@@ -19,7 +19,6 @@
     "ai-development"
   ],
   "agents": [
-    "./claude/agents/compass.md",
     "./claude/agents/nova.md",
     "./claude/agents/forge.md",
     "./claude/agents/palette.md",
