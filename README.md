@@ -76,7 +76,7 @@ Or type `/plugin` to open the interactive UI — add `choam2426/geas` in **Marke
 Build me a real-time polling app with shareable invite links.
 ```
 
-Compass takes over — refines requirements, compiles contracts, dispatches agents, verifies output.
+Compass (the orchestrator) takes over — refines requirements, compiles contracts, dispatches specialist agents, and verifies output through evidence gates.
 
 ### 3. Watch the process
 
@@ -102,12 +102,11 @@ Every artifact is written to `.geas/` — seeds, contracts, packets, evidence, d
 
 ## The Team
 
-16 agents execute the contract pipeline, each under their own geas:
+Compass orchestrates the pipeline. 15 specialist agents execute it, each under their own geas:
 
 | Group | Agent | Role |
 |-------|-------|------|
-| **Leadership** | Compass | PM / Orchestrator |
-| | Nova | CEO / Product judgment |
+| **Leadership** | Nova | CEO / Product judgment |
 | | Forge | CTO / Architecture |
 | **Design** | Palette | UI/UX Designer |
 | | Psyche | Behavioral Strategist |
