@@ -64,11 +64,11 @@ Geas는 세 가지를 해결합니다:
 ### 1. 플러그인 설치
 
 ```bash
-/plugin marketplace add choam2426/Geas
-/plugin install geas@choam2426-Geas
+/plugin marketplace add choam2426/geas
+/plugin install geas@choam2426-geas
 ```
 
-또는 `/plugin`을 입력해 인터랙티브 UI를 열고, **Marketplaces**에서 `choam2426/Geas`를 추가한 뒤 **Discover**에서 설치합니다.
+또는 `/plugin`을 입력해 인터랙티브 UI를 열고, **Marketplaces**에서 `choam2426/geas`를 추가한 뒤 **Discover**에서 설치합니다.
 
 ### 2. 미션을 설명합니다
 

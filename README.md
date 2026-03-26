@@ -64,11 +64,11 @@ Every action produces a traceable artifact. Missions freeze into **seed specs**.
 ### 1. Install the plugin
 
 ```bash
-/plugin marketplace add choam2426/Geas
-/plugin install geas@choam2426-Geas
+/plugin marketplace add choam2426/geas
+/plugin install geas@choam2426-geas
 ```
 
-Or type `/plugin` to open the interactive UI — add `choam2426/Geas` in **Marketplaces**, then install from **Discover**.
+Or type `/plugin` to open the interactive UI — add `choam2426/geas` in **Marketplaces**, then install from **Discover**.
 
 ### 2. Describe the mission
 
