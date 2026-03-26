@@ -36,9 +36,7 @@
     "./claude/agents/scroll.md"
   ],
   "skills": "./skills/",
-  "hooks": [
-    { "path": "hooks/hooks.json" }
-  ],
+  "hooks": "./hooks/hooks.json",
   "mcpServers": {
     "context7": {
       "type": "stdio",
