@@ -6,14 +6,14 @@
     },
     "metadata": {
         "description": "Contract-driven AI development harness. Every task is verified against acceptance criteria, every decision is visible, and humans can intervene. Don't trust AI — verify it.",
-        "version": "0.4.0"
+        "version": "0.5.0"
     },
     "plugins": [
         {
             "name": "geas",
             "source": "./plugin",
             "description": "Contract-driven AI development harness. Every task is verified against acceptance criteria, every decision is visible, and humans can intervene. Don't trust AI — verify it.",
-            "version": "0.4.0",
+            "version": "0.5.0",
             "author": {
                 "name": "choam2426",
                 "email": "choam2426@gmail.com"
