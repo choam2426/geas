@@ -1,0 +1,36 @@
+{
+    "name": "geas",
+    "owner": {
+        "name": "choam2426",
+        "email": "choam2426@gmail.com"
+    },
+    "metadata": {
+        "description": "Contract-driven AI development harness. Every task is verified against acceptance criteria, every decision is visible, and humans can intervene. Don't trust AI — verify it.",
+        "version": "0.3.0"
+    },
+    "plugins": [
+        {
+            "name": "geas",
+            "source": "./plugin",
+            "description": "Contract-driven AI development harness. Every task is verified against acceptance criteria, every decision is visible, and humans can intervene. Don't trust AI — verify it.",
+            "version": "0.3.0",
+            "author": {
+                "name": "choam2426",
+                "email": "choam2426@gmail.com"
+            },
+            "category": "development",
+            "keywords": [
+                "harness",
+                "contract-driven",
+                "verification",
+                "evidence-gate",
+                "multi-agent",
+                "orchestration",
+                "ai-development"
+            ],
+            "homepage": "https://github.com/choam2426/Geas",
+            "repository": "https://github.com/choam2426/Geas",
+            "license": "BSL-1.1"
+        }
+    ]
+}

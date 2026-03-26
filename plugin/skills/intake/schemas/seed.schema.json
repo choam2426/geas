@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Seed Spec",
+  "description": "Mission specification produced by the intake gate. Freezes what we're building before execution begins.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version"
+    },
+    "mission": {
+      "type": "string",
+      "description": "Refined, unambiguous mission statement"
+    },
+    "target_user": {
+      "type": "string",
+      "description": "Primary user persona or audience"
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Technical or business constraints (e.g., 'Must use PostgreSQL', 'No paid APIs')"
+    },
+    "assumptions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Assumptions surfaced during intake that the user confirmed"
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 3,
+      "description": "Measurable criteria that define 'done'. Minimum 3 required."
+    },
+    "scope_in": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Features and capabilities explicitly included"
+    },
+    "scope_out": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Features and capabilities explicitly excluded. Minimum 1 required to prove scope was considered."
+    },
+    "ambiguity_notes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Remaining ambiguities acknowledged but deferred (with rationale)"
+    },
+    "readiness_score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Quantified readiness score (0-100). Sum of 5 dimension scores (0-20 each): Clarity, Scope, Users, Constraints, Acceptance."
+    },
+    "readiness_breakdown": {
+      "type": "object",
+      "properties": {
+        "clarity": { "type": "integer", "minimum": 0, "maximum": 20 },
+        "scope": { "type": "integer", "minimum": 0, "maximum": 20 },
+        "users": { "type": "integer", "minimum": 0, "maximum": 20 },
+        "constraints": { "type": "integer", "minimum": 0, "maximum": 20 },
+        "acceptance": { "type": "integer", "minimum": 0, "maximum": 20 }
+      },
+      "description": "Per-dimension scoring breakdown"
+    },
+    "readiness_override": {
+      "type": "boolean",
+      "description": "True if user explicitly overrode a below-threshold readiness score"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the seed was frozen"
+    }
+  },
+  "required": ["version", "mission", "acceptance_criteria", "scope_in", "scope_out", "readiness_score", "created_at"]
+}

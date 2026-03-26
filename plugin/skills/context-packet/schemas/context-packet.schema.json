@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ContextPacket",
+  "description": "Role-specific briefing for a worker. Replaces 'read ALL comments' with a focused, compressed context window.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Reference to the parent TaskContract"
+    },
+    "target_worker": {
+      "type": "string",
+      "description": "Agent name this packet is written for"
+    },
+    "issue_summary": {
+      "type": "string",
+      "description": "1-3 sentence summary of what this task is about"
+    },
+    "design_excerpt": {
+      "type": "string",
+      "description": "Relevant design decisions from Palette (if applicable)"
+    },
+    "tech_approach": {
+      "type": "string",
+      "description": "Technical approach from Forge (if applicable)"
+    },
+    "allowed_paths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Inherited from TaskContract"
+    },
+    "prohibited_paths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Inherited from TaskContract"
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Inherited from TaskContract"
+    },
+    "eval_commands": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Inherited from TaskContract"
+    },
+    "known_risks": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Risks or edge cases the worker should be aware of"
+    },
+    "prior_evidence": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Paths to EvidenceBundle files from previous workers in the pipeline"
+    },
+    "linear_url": {
+      "type": "string",
+      "description": "Link to Linear issue for full thread reference (not required reading)"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["version", "task_id", "target_worker", "issue_summary", "acceptance_criteria", "created_at"]
+}

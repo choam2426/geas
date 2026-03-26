@@ -1,0 +1,56 @@
+{
+  "name": "geas",
+  "version": "0.3.0",
+  "description": "Contract-driven AI development harness. Every task is verified against acceptance criteria, every decision is visible, and humans can intervene. Don't trust AI — verify it.",
+  "author": {
+    "name": "choam2426",
+    "email": "choam2426@gmail.com"
+  },
+  "homepage": "https://github.com/choam2426/Geas",
+  "repository": "https://github.com/choam2426/Geas",
+  "license": "BSL-1.1",
+  "keywords": [
+    "harness",
+    "contract-driven",
+    "verification",
+    "evidence-gate",
+    "multi-agent",
+    "orchestration",
+    "ai-development"
+  ],
+  "agents": [
+    "./claude/agents/compass.md",
+    "./claude/agents/nova.md",
+    "./claude/agents/forge.md",
+    "./claude/agents/palette.md",
+    "./claude/agents/psyche.md",
+    "./claude/agents/pixel.md",
+    "./claude/agents/circuit.md",
+    "./claude/agents/vault.md",
+    "./claude/agents/keeper.md",
+    "./claude/agents/sentinel.md",
+    "./claude/agents/echo.md",
+    "./claude/agents/lens.md",
+    "./claude/agents/pipeline.md",
+    "./claude/agents/shield.md",
+    "./claude/agents/critic.md",
+    "./claude/agents/scroll.md"
+  ],
+  "skills": "./skills/",
+  "settings": {
+    "permissions": {
+      "allow": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep",
+        "WebSearch",
+        "WebFetch",
+        "Agent",
+        "mcp__playwright__*"
+      ]
+    }
+  }
+}

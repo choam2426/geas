@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EvidenceBundle",
+  "description": "Structured output from a worker. Reviewers and QA read this instead of parsing the full Linear thread.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Reference to the parent TaskContract"
+    },
+    "worker": {
+      "type": "string",
+      "description": "Agent name who produced this evidence"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["design", "implementation", "review", "qa", "security", "performance", "documentation", "product-review"],
+      "description": "Category of evidence"
+    },
+    "files_changed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of file paths created or modified"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Brief summary of what was done and key decisions made"
+    },
+    "verify_results": {
+      "type": "object",
+      "properties": {
+        "build": { "type": "string", "enum": ["pass", "fail", "skip"] },
+        "lint": { "type": "string", "enum": ["pass", "fail", "skip"] },
+        "test": { "type": "string", "enum": ["pass", "fail", "skip"] },
+        "typecheck": { "type": "string", "enum": ["pass", "fail", "skip"] }
+      },
+      "description": "Results of mechanical verification (from /verify)"
+    },
+    "criteria_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "criterion": { "type": "string" },
+          "met": { "type": "boolean" },
+          "evidence": { "type": "string" }
+        },
+        "required": ["criterion", "met"]
+      },
+      "description": "Per-criterion assessment against TaskContract acceptance_criteria"
+    },
+    "screenshots": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Paths to screenshot files (for UI work)"
+    },
+    "issues_found": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "severity": { "type": "string", "enum": ["critical", "major", "minor", "suggestion"] },
+          "description": { "type": "string" },
+          "file": { "type": "string" },
+          "line": { "type": "integer" }
+        },
+        "required": ["severity", "description"]
+      },
+      "description": "Issues discovered during review, QA, or security audit"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional context or observations"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["version", "task_id", "worker", "type", "summary", "created_at"]
+}

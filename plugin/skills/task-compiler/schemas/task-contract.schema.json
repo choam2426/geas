@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaskContract",
+  "description": "A machine-readable contract defining what a worker must deliver. Replaces ambiguous issue descriptions with verifiable agreements.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "id": {
+      "type": "string",
+      "description": "Unique task identifier (e.g., 'task-001')"
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable task title"
+    },
+    "goal": {
+      "type": "string",
+      "description": "What this task must achieve, stated as a verifiable outcome"
+    },
+    "linear_issue_id": {
+      "type": "string",
+      "description": "Linked Linear issue ID (e.g., 'MY-72'). Optional if running in local mode."
+    },
+    "assigned_worker": {
+      "type": "string",
+      "description": "Agent name assigned to implement (e.g., 'pixel', 'circuit')"
+    },
+    "reviewer": {
+      "type": "string",
+      "description": "Agent name assigned to review (e.g., 'forge')"
+    },
+    "allowed_paths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "File/directory paths the worker MAY modify (glob patterns allowed)"
+    },
+    "prohibited_paths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "File/directory paths the worker MUST NOT modify"
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Task IDs that must be completed before this task can start"
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Specific, verifiable criteria inherited from seed + story"
+    },
+    "eval_commands": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Shell commands to mechanically verify the task (e.g., 'npm test', 'npm run lint')"
+    },
+    "retry_budget": {
+      "type": "integer",
+      "default": 3,
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Max fix-verify iterations before escalation"
+    },
+    "escalation_policy": {
+      "type": "string",
+      "enum": ["forge-review", "nova-decision", "pivot"],
+      "default": "forge-review",
+      "description": "What happens when retry budget is exhausted"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "in_progress", "in_review", "testing", "passed", "failed", "escalated"],
+      "default": "pending"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["version", "id", "title", "goal", "assigned_worker", "acceptance_criteria", "eval_commands", "status", "created_at"]
+}
