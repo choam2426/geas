@@ -74,7 +74,7 @@ Agent(agent: "nova", prompt: "Read .geas/rules.md first. Read all evidence at .g
 **If ANY missing: execute the missing step.**
 
 ### Rules Update
-태스크 완료 후, evidence에 `suggested_rules` 필드가 있으면 `.geas/rules.md`에 반영하라. 또한 이번 태스크에서 발견된 프로젝트 규칙(컨벤션, 패턴, 제약)이 있으면 직접 추가하라.
+After task completion, check evidence for `suggested_rules` and merge into `.geas/rules.md`. Also add any project-specific conventions discovered during this task (patterns, constraints, naming).
 
 ### 9. Resolve
 - Ship → `"passed"`
