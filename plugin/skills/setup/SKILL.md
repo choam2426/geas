@@ -114,9 +114,10 @@ If the user wants Linear, proceed with the steps below:
    a. **Check existing labels** (`list-issue-labels --team <team-name>`)
       - Fetch existing label list first.
       - Required labels: type(`feature`, `bug`, `design-spec`, `architecture`, `review`, `tech-debt`, `blocked`, `pivot`, `improvement`), area(`frontend`, `backend`, `infra`), role(`needs-review`, `needs-qa`)
-      - Compare with existing labels — **skip labels that already exist. Only create missing ones.**
+      - Compare using **case-insensitive matching** — e.g., existing "Feature" matches required "feature". **Skip labels that already exist. Only create missing ones.**
+      - Create labels **one at a time, sequentially** (not in parallel). If one fails, log the error and continue with the next.
       - Use `create-issue-label --name <name> --team-id <UUID>` for each **missing** label only.
-      - Report: count created vs already existed
+      - Report: count created vs already existed vs errored
 
    b. **Check existing workflow states** (`list-issue-statuses --name <team-name>`)
       - Verify these exist: Backlog, Todo, In Progress, In Review, Testing, Done, Canceled
