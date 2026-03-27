@@ -5,7 +5,10 @@ description: >
   with new project conventions, and records lessons learned. Spawned by Compass after Ship Gate.
 model: sonnet
 tools: Read, Write, Edit, Glob, Grep
-skills: []
+skills:
+  - linear-cli
+  - linear-protocol
+  - ledger-query
 memory: project
 ---
 

@@ -87,3 +87,6 @@ Verify `.geas/memory/retro/{task-id}.json` exists.
   ```
 - Iterate → re-dispatch with feedback
 - Cut → `"failed"`, write DecisionRecord
+
+### 10. Run Summary
+Invoke `/geas:run-summary` to generate session audit trail.

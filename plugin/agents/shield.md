@@ -8,6 +8,7 @@ tools: Read, Grep, Glob, Bash, Write, Edit
 skills:
   - linear-cli
   - linear-protocol
+  - coding-conventions
 memory: project
 ---
 

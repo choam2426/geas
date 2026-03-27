@@ -9,6 +9,9 @@ skills:
   - linear-cli
   - linear-protocol
   - pivot-protocol
+  - briefing
+  - write-prd
+  - write-stories
 memory: project
 ---
 

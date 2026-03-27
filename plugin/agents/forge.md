@@ -10,6 +10,7 @@ skills:
   - linear-protocol
   - coding-conventions
   - verify
+  - cleanup
 memory: project
 ---
 
