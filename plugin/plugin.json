@@ -1,6 +1,6 @@
 {
   "name": "geas",
-  "version": "0.7.0",
+  "version": "0.1.0",
   "description": "Contract-driven AI development harness. Every task is verified against acceptance criteria, every decision is visible, and humans can intervene. Don't trust AI — verify it.",
   "author": {
     "name": "choam2426",
