@@ -53,6 +53,10 @@ plugin/
 4. **Evidence over declaration** — "agent says done" is never enough. Evidence Gate must verify.
 5. **Human comments are stakeholder input** — when reading Linear threads for ContextPackets, human comments have the highest priority.
 
+## Language
+
+All files must be written in English, except `README.ko.md`. This includes skills, agents, hooks, docs, and comments in code.
+
 ## Conventions
 
 - Skills are defined in `SKILL.md` with YAML frontmatter (`name`, `description`)
