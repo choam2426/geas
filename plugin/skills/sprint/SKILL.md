@@ -81,6 +81,9 @@ Agent(agent: "scrum", prompt: "Read .geas/rules.md first. Read all evidence at .
 Verify `.geas/memory/retro/{task-id}.json` exists.
 
 ### 9. Resolve
-- Ship → `"passed"`
+- Ship → `"passed"`. Spawn Keeper for commit:
+  ```
+  Agent(agent: "keeper", prompt: "Read .geas/rules.md first. Commit all changes for {task-id} with conventional commit format. Write to .geas/evidence/{task-id}/keeper.json")
+  ```
 - Iterate → re-dispatch with feedback
 - Cut → `"failed"`, write DecisionRecord

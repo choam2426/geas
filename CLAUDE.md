@@ -12,7 +12,7 @@ When making any design decision, ask: **"Does this make the multi-agent process 
 
 ```
 Collaboration Surface  ← replaceable (Linear, Dashboard)
-Agent Teams            ← replaceable (Geas-16, Lean-4, Custom)
+Agent Teams            ← replaceable (Geas-12, Lean-4, Custom)
 Contract Engine        ← core (Intake, TaskContract, Evidence Gate)
 Tool Adapters          ← replaceable (Claude Code, ...)
 ```
@@ -48,7 +48,7 @@ plugin/
 ## Key Design Principles
 
 1. **Contract Engine is tool-agnostic** — skills in core/ should not reference any specific AI tool.
-2. **Agents are templates, not identity** — the 16-agent team is one configuration. The contract engine works with any agent setup.
+2. **Agents are templates, not identity** — the 12-agent team is one configuration. The contract engine works with any agent setup.
 3. **Collaboration surface is an adapter** — Linear is the current implementation. Don't hardcode Linear assumptions into core skills.
 4. **Evidence over declaration** — "agent says done" is never enough. Evidence Gate must verify.
 5. **Human comments are stakeholder input** — when reading Linear threads for ContextPackets, human comments have the highest priority.

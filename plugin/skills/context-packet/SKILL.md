@@ -38,7 +38,7 @@ Different workers need different context:
 - Design constraints (responsive? dark mode? accessibility level?)
 - What NOT to redesign
 
-#### Implementer (Pixel / Circuit / Vault)
+#### Implementer (Pixel / Circuit)
 - Design spec from Palette (from prior evidence)
 - Technical approach from Forge (from prior evidence)
 - Allowed paths — where to write code
@@ -66,10 +66,7 @@ Different workers need different context:
 - Mission alignment check (from seed)
 
 #### Other Specialists
-- **Psyche**: user persona, feature goal, behavioral hooks to evaluate
 - **Shield**: files changed, auth/input handling code paths, OWASP concerns
-- **Lens**: pages/routes affected, performance budget, a11y requirements
-- **Echo**: user flows to test, target user persona, usability heuristics
 - **Scroll**: feature description, API endpoints, configuration options
 
 ### Step 3: Extract Relevant Context

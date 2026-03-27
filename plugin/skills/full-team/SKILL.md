@@ -38,8 +38,9 @@ Verify evidence exists. Write DecisionRecord to `.geas/decisions/dec-001.json`.
 ```
 Agent(agent: "circuit", prompt: "Read .geas/rules.md first. Read .geas/evidence/genesis/forge.json. Vote agree/disagree with rationale. Write to .geas/evidence/genesis/vote-circuit.json")
 Agent(agent: "palette", prompt: "Read .geas/rules.md first. Read .geas/evidence/genesis/forge.json. Vote agree/disagree with rationale. Write to .geas/evidence/genesis/vote-palette.json")
+Agent(agent: "critic", prompt: "Read .geas/rules.md first. Read .geas/evidence/genesis/forge.json. Play devil's advocate: identify risks, blind spots, and trade-offs even if you agree overall. Vote agree/disagree with rationale. Write to .geas/evidence/genesis/vote-critic.json")
 ```
-If any disagree: run debate, then re-vote.
+Critic MUST participate in every vote round. If all agree: proceed. If any disagree: run debate, then re-vote.
 
 ### 1.6 Compile TaskContracts
 - Create 5-10 granular tasks. For each, invoke `/geas:task-compiler`.
@@ -52,16 +53,16 @@ Analyze the tech stack from Forge's architecture decision and recommend helpful 
 
 | Detected | Recommended MCP | Install command | Reason |
 |----------|----------------|-----------------|--------|
-| PostgreSQL | PostgreSQL MCP | `claude mcp add postgres -- npx -y @modelcontextprotocol/server-postgres <connection-string>` | Vault can query schemas directly |
-| MongoDB | MongoDB MCP | `claude mcp add mongodb -- npx -y mongodb-mcp-server --readOnly` | Vault can explore collections |
+| PostgreSQL | PostgreSQL MCP | `claude mcp add postgres -- npx -y @modelcontextprotocol/server-postgres <connection-string>` | Circuit can query schemas directly |
+| MongoDB | MongoDB MCP | `claude mcp add mongodb -- npx -y mongodb-mcp-server --readOnly` | Circuit can explore collections |
 | Web frontend | MDN MCP | `claude mcp add --transport http mdn https://mcp.mdn.mozilla.net/` | Pixel can reference web standards |
-| Has deploy target | Lighthouse MCP | `claude mcp add lighthouse -- npx -y @anthropic/lighthouse-mcp` | Lens can audit performance/a11y |
+| Has deploy target | Lighthouse MCP | `claude mcp add lighthouse -- npx -y @anthropic/lighthouse-mcp` | Sentinel can audit performance/a11y |
 | GitHub hosted | GitHub MCP | `claude mcp add --transport http github https://mcp.github.com/anthropic` | Keeper can manage PRs/issues |
 
 Recommendation format:
 ```
 Recommended MCP servers for your tech stack:
-- [PostgreSQL MCP] → Vault can query DB schemas directly
+- [PostgreSQL MCP] → Circuit can query DB schemas directly
   Install: claude mcp add postgres -- npx -y @modelcontextprotocol/server-postgres <connection-string>
 
 Would you like to connect? (optional, you can proceed without them)
@@ -128,12 +129,17 @@ Run eval_commands from TaskContract. Check acceptance criteria against all evide
 Log detailed result with tier breakdown.
 If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix — do NOT fix code directly.** After fix, re-run gate.
 
-### 2.7 Nova Product Review [MANDATORY]
+### 2.7 Critic Pre-ship Review [MANDATORY]
 ```
-Agent(agent: "nova", prompt: "Read .geas/rules.md first. Read all evidence at .geas/evidence/{task-id}/. Verdict: Ship, Iterate, or Cut. Write to .geas/evidence/{task-id}/nova-verdict.json")
+Agent(agent: "critic", prompt: "Read .geas/rules.md first. Read all evidence at .geas/evidence/{task-id}/. Challenge: is this truly ready to ship? Identify risks, missing edge cases, or technical debt. Write to .geas/evidence/{task-id}/critic-review.json")
 ```
 
-### 2.8 Ship Gate — verify before marking passed
+### 2.8 Nova Product Review [MANDATORY]
+```
+Agent(agent: "nova", prompt: "Read .geas/rules.md first. Read all evidence at .geas/evidence/{task-id}/ including critic-review.json. Verdict: Ship, Iterate, or Cut. Write to .geas/evidence/{task-id}/nova-verdict.json")
+```
+
+### 2.9 Ship Gate — verify before marking passed
 **Before marking any task as "passed", verify:**
 - `.geas/evidence/{task-id}/forge-review.json` exists (Read it)
 - `.geas/evidence/{task-id}/sentinel.json` exists (Read it)
@@ -146,8 +152,11 @@ Agent(agent: "scrum", prompt: "Read .geas/rules.md first. Read all evidence at .
 ```
 Verify `.geas/memory/retro/{task-id}.json` exists.
 
-### 2.9 Resolve
-- **Ship**: status → `"passed"`.
+### 2.10 Resolve
+- **Ship**: status → `"passed"`. Spawn Keeper for commit:
+  ```
+  Agent(agent: "keeper", prompt: "Read .geas/rules.md first. Commit all changes for {task-id} with conventional commit format. Write to .geas/evidence/{task-id}/keeper.json")
+  ```
 - **Iterate**: re-dispatch with Nova's feedback.
 - **Cut**: status → `"failed"`. Write DecisionRecord.
 
@@ -180,6 +189,11 @@ Spawn agents as needed for improvements.
 **Nova final briefing is MANDATORY:**
 ```
 Agent(agent: "nova", prompt: "Read .geas/rules.md first. Final product review. Read all evidence. Deliver strategic summary and recommendations. Write to .geas/evidence/evolution/nova-final.json")
+```
+
+**Keeper release management:**
+```
+Agent(agent: "keeper", prompt: "Read .geas/rules.md first. Create release: version bump, changelog, final commit. Write to .geas/evidence/evolution/keeper-release.json")
 ```
 
 Close out. Log: `{"event": "phase_complete", "phase": "complete", "timestamp": "<actual>"}`

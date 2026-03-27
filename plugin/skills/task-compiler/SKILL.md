@@ -43,9 +43,8 @@ Based on the task nature:
 | Task Type | Worker | Reviewer |
 |-----------|--------|----------|
 | Frontend UI | pixel | forge |
-| Backend API | circuit | forge |
-| Database schema | vault | forge |
-| Design spec | palette | psyche |
+| Backend API / Database | circuit | forge |
+| Design spec | palette | forge |
 | DevOps/deployment | pipeline | forge |
 | Documentation | scroll | forge |
 | Full-stack feature | pixel or circuit (primary) | forge |

@@ -20,7 +20,7 @@ These rules apply to ALL modes (Full Team, Sprint, Debate).
 - Specialist agents (Palette, Forge, Pixel, Circuit, Sentinel, Nova, etc.) are spawned as **1-level sub-agents**.
 - Sub-agents do their work and return. No nesting — they do not spawn further agents.
 - Use `Agent(agent: "{name}", prompt: "...")` to spawn.
-- Use `Agent(agent: "{name}", isolation: "worktree", prompt: "...")` for implementation agents (Pixel, Circuit, Vault).
+- Use `Agent(agent: "{name}", isolation: "worktree", prompt: "...")` for implementation agents (Pixel, Circuit).
 
 ### Evidence verification
 - After every Agent() return, **Read the expected evidence file** to verify it exists.
@@ -41,9 +41,14 @@ These rules apply to ALL modes (Full Team, Sprint, Debate).
 - After each task's Ship Gate, spawn Scrum for a retrospective — Scrum updates rules.md and records lessons.
 - After Genesis: Compass adds stack-specific rules (e.g., "lint with ruff", "test with pytest") before Scrum exists in the pipeline.
 
+### Git operations
+- **All git operations (commit, branch, PR) must be done by Keeper.** Do not commit or manage branches directly.
+- Spawn Keeper at task Resolve for commits, and at Evolution for release management.
+
 ### What you do NOT do
 - **Do NOT implement code yourself.** You orchestrate. Specialist agents implement.
 - **Even for bug fixes** found during Evidence Gate or verify-fix-loop, **spawn the original worker agent** to fix. Do NOT fix code directly.
+- **Do NOT manage git directly.** Spawn Keeper for commits, branches, and PRs.
 - **Do NOT skip pipeline steps.** Follow the protocol of the invoked mode.
 
 ---

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Geas operates with a team of 16 specialist agents coordinated by Compass. Compass itself is not an agent -- it is a **skill** that runs in the main session, acting as the orchestrator. Compass spawns specialist agents as **1-level sub-agents**: each agent does its work and returns. There is no nesting -- sub-agents never spawn further agents.
+Geas operates with a team of 12 specialist agents coordinated by Compass. Compass itself is not an agent -- it is a **skill** that runs in the main session, acting as the orchestrator. Compass spawns specialist agents as **1-level sub-agents**: each agent does its work and returns. There is no nesting -- sub-agents never spawn further agents.
 
 Every agent:
 
@@ -11,7 +11,7 @@ Every agent:
 - Posts summary comments to Linear (when enabled) for human visibility, prefixed with its name (e.g., `[Forge]`, `[Sentinel]`).
 - Participates in structured debates with explicit voting and evidence-backed disagreements.
 
-Agents are templates, not fixed identities. The 16-agent team (Geas-16) is the default configuration. The contract engine works with any agent setup.
+Agents are templates, not fixed identities. The 12-agent team (Geas-12) is the default configuration. The contract engine works with any agent setup.
 
 ---
 
@@ -22,21 +22,17 @@ Agents are templates, not fixed identities. The 16-agent team (Geas-16) is the d
 | **Leadership** | Nova | CEO / Vision | opus | Read, Glob, Grep | -- | linear-cli, linear-protocol, pivot-protocol |
 | | Forge | CTO / Architecture | opus | Read, Grep, Glob, Bash, Write, Edit | Context7 | linear-cli, linear-protocol, coding-conventions, verify |
 | **Design** | Palette | UI/UX Designer | sonnet | Read, Write, Glob, Grep | -- | linear-cli, linear-protocol, coding-conventions |
-| | Psyche | Behavioral Strategist | opus | Read, Write, Glob, Grep | -- | linear-cli, linear-protocol |
 | **Engineering** | Pixel | Frontend Engineer | opus | Read, Write, Edit, Bash, Glob, Grep | Context7 | linear-cli, linear-protocol, coding-conventions |
 | | Circuit | Backend Engineer | opus | Read, Write, Edit, Bash, Glob, Grep | Context7 | linear-cli, linear-protocol, coding-conventions |
-| | Vault | DBA / Data Architect | sonnet | Read, Write, Edit, Bash, Glob, Grep | -- * | linear-cli, linear-protocol, coding-conventions |
 | | Keeper | Git / Release Manager | sonnet | Read, Write, Edit, Bash, Glob, Grep | -- * | linear-cli, linear-protocol, coding-conventions |
 | **Quality** | Sentinel | QA Engineer | sonnet | Read, Write, Bash, Glob, Grep | Playwright, Context7 | linear-cli, linear-protocol, verify |
-| | Echo | User Advocate | sonnet | Read, Write, Bash, Glob, Grep | Playwright | linear-cli, linear-protocol |
-| | Lens | Performance / Accessibility | sonnet | Read, Write, Bash, Glob, Grep | Playwright | linear-cli, linear-protocol, coding-conventions |
 | **Operations** | Pipeline | DevOps Engineer | sonnet | Read, Write, Edit, Bash | -- | linear-cli, linear-protocol, coding-conventions |
 | | Shield | Security Engineer | sonnet | Read, Grep, Glob, Bash, Write, Edit | -- | linear-cli, linear-protocol |
 | **Strategy** | Critic | Devil's Advocate | opus | Read, Glob, Grep | -- | linear-cli, linear-protocol |
 | **Documentation** | Scroll | Tech Writer | sonnet | Read, Write, Glob, Grep | Context7 | linear-cli, linear-protocol |
 | **Process** | Scrum | Agile Master | sonnet | Read, Write, Edit, Glob, Grep | -- | -- |
 
-\* Vault and Keeper have no built-in MCP servers. During Genesis, Geas may recommend contextual MCP servers based on the tech stack (e.g., PostgreSQL MCP for Vault, GitHub MCP for Keeper). See [full-team skill](../plugin/skills/full-team/SKILL.md) Step 1.7.
+\* Keeper has no built-in MCP server. During Genesis, Geas may recommend contextual MCP servers based on the tech stack (e.g., GitHub MCP for Keeper). See [full-team skill](../plugin/skills/full-team/SKILL.md) Step 1.7.
 
 ---
 
@@ -48,15 +44,15 @@ Leadership agents make strategic and architectural decisions. They operate at a 
 
 ### Design
 
-Design agents define how the product looks, feels, and behaves from a user psychology perspective. They produce design specs and behavioral analyses that guide the engineering agents.
+Design agents define how the product looks and feels. They produce design specs that guide the engineering agents.
 
 ### Engineering
 
-Engineering agents implement the product. Implementation agents (Pixel, Circuit, Vault) are spawned in **worktree isolation** to prevent file conflicts. Keeper manages the git workflow around their work.
+Engineering agents implement the product. Implementation agents (Pixel, Circuit) are spawned in **worktree isolation** to prevent file conflicts. Keeper manages the git workflow around their work.
 
 ### Quality
 
-Quality agents verify the product from three distinct angles: functional correctness (Sentinel), usability by real people (Echo), and performance/accessibility compliance (Lens).
+Quality agents verify the product. Sentinel handles functional correctness through structured verification and E2E testing.
 
 ### Operations
 
@@ -141,28 +137,6 @@ Scroll ensures the product is documented. Code without docs is treated as techni
 
 ---
 
-### Psyche -- Behavioral Strategist
-
-> "People don't buy products. They hire them to make progress."
-
-**Role.** Applies psychology frameworks (Fogg Behavior Model, Hook Model, Kahneman System 1/2, Cognitive Load Theory, Cialdini's Principles, JTBD) to product design. Makes products people want to keep using.
-
-**When invoked.**
-- Genesis phase: JTBD analysis alongside Nova's vision.
-- Per feature: behavioral design guide alongside Palette's design spec.
-- Polish phase: behavioral audit of the complete product.
-
-**Evidence produced.**
-- `psyche.json` -- behavioral analysis with Hook cycles, cognitive load recommendations, persuasion levers, and emotional design guidance.
-
-**Key behaviors.**
-- Distinguishes between persuasion and manipulation -- ethics matter.
-- Focuses on reducing ability barriers (Fogg) over increasing motivation.
-- Identifies the "aha moment" and how quickly new users reach it.
-- Challenges dark patterns explicitly.
-
----
-
 ### Pixel -- Frontend Engineer
 
 > "This transition needs 0.3s ease-in-out."
@@ -204,29 +178,6 @@ Scroll ensures the product is documented. Code without docs is treated as techni
 - Separates data logic from route handlers.
 - Never exposes internal errors to clients.
 - Uses Context7 MCP for latest framework docs.
-
----
-
-### Vault -- DBA / Data Architect
-
-> "Data structure is destiny. Get the schema right or pay forever."
-
-**Role.** Designs database schemas, migration strategies, and ensures data integrity. Guardian of data structure.
-
-**When invoked.**
-- Genesis phase: data model design based on feature requirements.
-- Per feature: schema changes, migration design.
-- Spawned in **worktree isolation** for implementation work.
-
-**Evidence produced.**
-- `vault.json` -- data model with entities, relationships, constraints, indexes, and migration plans.
-
-**Key behaviors.**
-- Designs reversible migrations; never drops columns without deprecation.
-- Defines validation at the database level, not just application.
-- Indexes cover common query patterns.
-- Identifies N+1 query risks.
-- Recommends denormalization only when performance justifies it.
 
 ---
 
@@ -272,49 +223,6 @@ Scroll ensures the product is documented. Code without docs is treated as techni
 - Takes screenshots as evidence.
 - @mentions responsible agents for every bug found.
 - Never rubber-stamps. The job is to find problems.
-
----
-
-### Echo -- User Advocate
-
-> "My mom would never find that button."
-
-**Role.** Tests products from real user perspectives using persona-based walkthroughs. Evaluates usability for first-time, busy, and non-technical users.
-
-**When invoked.**
-- Per feature: UX validation after QA passes.
-- Polish phase: full product usability review.
-
-**Evidence produced.**
-- `echo.json` -- UX review with per-persona walkthroughs, friction points (with severity), positive observations, and overall verdict (USABLE / NEEDS WORK / CONFUSING).
-
-**Key behaviors.**
-- Adopts 2-3 user personas per feature (first-time, busy, non-technical).
-- Uses Playwright MCP to navigate and interact as each persona.
-- Checks button labels, error messages, empty states, loading feedback.
-- Asks: "Would this person know what to do next?"
-- The user's last line of defense before shipping.
-
----
-
-### Lens -- Performance and Accessibility Engineer
-
-> "If it takes 3 seconds to load, 53% of users are already gone."
-
-**Role.** Runs performance audits (bundle size, Core Web Vitals, load time) and accessibility audits (WCAG 2.1 AA compliance).
-
-**When invoked.**
-- Polish phase: full performance and accessibility audit.
-- Per feature: when performance or accessibility impact is expected.
-
-**Evidence produced.**
-- `lens.json` -- audit report with performance scores (LCP, CLS, FID/INP), accessibility compliance (contrast, keyboard, screen reader, forms, motion), and scored verdicts.
-
-**Key behaviors.**
-- Uses Playwright MCP for Lighthouse audits and real-browser testing.
-- Core Web Vitals targets: LCP < 2.5s, FID/INP < 200ms, CLS < 0.1.
-- WCAG 2.1 AA: 4.5:1 contrast ratio, keyboard navigation, ARIA labels, semantic HTML.
-- Provides actionable fix recommendations with expected impact for each issue.
 
 ---
 
@@ -439,7 +347,7 @@ Every task follows a mandatory pipeline. Compass enforces this sequence:
 |------|-------|-------------|
 | 1. Design | Palette | DEFAULT (skip if no UI) |
 | 2. Tech Guide | Forge | DEFAULT (skip if trivial) |
-| 3. Implementation | Pixel / Circuit / Vault | MANDATORY |
+| 3. Implementation | Pixel / Circuit | MANDATORY |
 | 4. Code Review | Forge | MANDATORY |
 | 5. Testing | Sentinel | MANDATORY |
 | 6. Evidence Gate | (automated) | MANDATORY |
@@ -454,6 +362,6 @@ Before shipping, Compass verifies that `forge-review.json`, `sentinel.json`, and
 
 | Mode | Purpose | Agents Involved |
 |------|---------|-----------------|
-| **Full Team** | New product from scratch | All 16 agents across Genesis, MVP, Polish, Evolution phases |
+| **Full Team** | New product from scratch | All 12 agents across Genesis, MVP, Polish, Evolution phases |
 | **Sprint** | Bounded feature addition to existing project | Core agents: Design, Build, Review, QA, Retro |
 | **Debate** | Decision-only discussion, no code | Relevant debaters only (typically Nova, Forge, Critic, and domain experts) |

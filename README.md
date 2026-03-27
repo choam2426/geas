@@ -102,21 +102,17 @@ Every artifact is written to `.geas/` — seeds, contracts, packets, evidence, d
 
 ## The Team
 
-Compass orchestrates the pipeline. 16 specialist agents execute it, each under their own geas:
+Compass orchestrates the pipeline. 12 specialist agents execute it, each under their own geas:
 
 | Group | Agent | Role |
 |-------|-------|------|
 | **Leadership** | Nova | CEO / Product judgment |
 | | Forge | CTO / Architecture |
 | **Design** | Palette | UI/UX Designer |
-| | Psyche | Behavioral Strategist |
 | **Engineering** | Pixel | Frontend |
 | | Circuit | Backend |
-| | Vault | DBA / Data Architect |
 | | Keeper | Git / Release Manager |
 | **Quality** | Sentinel | QA Engineer |
-| | Echo | User Advocate |
-| | Lens | Performance & Accessibility |
 | **Operations** | Pipeline | DevOps |
 | | Shield | Security |
 | **Strategy** | Critic | Devil's Advocate |
@@ -161,7 +157,7 @@ Your comments are included in the next agent's context. This is how you stay in 
 | Document | Description |
 |----------|-------------|
 | [User Guide](docs/GUIDE.md) | Installation, first mission, modes, .geas/ structure, FAQ |
-| [Agent Reference](docs/AGENTS.md) | 16 specialist agents — roles, groups, evidence, MCP tools |
+| [Agent Reference](docs/AGENTS.md) | 12 specialist agents — roles, groups, evidence, MCP tools |
 | [Skill Reference](docs/SKILLS.md) | 24 skills — contract engine, protocols, utilities |
 | [Hooks Reference](docs/HOOKS.md) | 4 hooks — mechanical enforcement of pipeline rules |
 | [Design Document](docs/DESIGN.md) | Architecture, contract engine, roadmap (Korean) |
