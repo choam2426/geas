@@ -104,6 +104,20 @@ Identify patterns that should be fed into future tasks:
 - If Nova iterated on a feature, capture what the first attempt missed
 - If a specific library or API had unexpected behavior, document it for future agents
 
+### 5. Update Per-Agent Memory
+
+For each agent that participated in this task, update their memory file at `.geas/memory/agents/{agent-name}.md`:
+- Create the file if it does not exist
+- Append lessons specific to that agent (not generic project rules — those go in rules.md)
+- Examples:
+  - `sentinel.md`: "task-009: missed mobile viewport testing. Always test at 375px width."
+  - `pixel.md`: "task-010: stale closure bug in React event handler. Use useCallback for WebSocket callbacks."
+  - `forge.md`: "task-009: GROUP_CONCAT can fail with many items. Flag when reviewing SQL aggregations."
+- Keep entries concise and actionable. One line per lesson.
+- Do not duplicate: check existing entries before adding.
+
+The SubagentStart hook automatically injects these memory files into agents when they spawn.
+
 ## What to Look For in Evidence
 
 - **Sentinel bugs**: What caused them? Was it a misunderstanding of requirements, a missed edge case, or a code pattern issue?

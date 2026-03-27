@@ -110,8 +110,10 @@ Every artifact is written to `.geas/` — the traceable record of the entire run
 ├── evidence/                # structured proof of work per task
 ├── decisions/               # vote records, decision records
 ├── ledger/events.jsonl      # append-only event log
-├── memory/retro/            # retrospective lessons per task
-└── rules.md                 # living project conventions (grows over time)
+├── memory/
+│   ├── retro/               # retrospective lessons per task
+│   └── agents/              # per-agent memory (grows across sessions)
+└── rules.md                 # shared project conventions (grows over time)
 ```
 
 ---

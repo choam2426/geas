@@ -24,21 +24,21 @@ user-invocable: true
 
 ### 1.3 Vision (Nova)
 ```
-Agent(agent: "nova", prompt: "Read .geas/rules.md first. Then read .geas/spec/seed.json. Deliver vision, MVP scope, user value proposition. Write to .geas/evidence/genesis/nova.json")
+Agent(agent: "nova", prompt: "Then read .geas/spec/seed.json. Deliver vision, MVP scope, user value proposition. Write to .geas/evidence/genesis/nova.json")
 ```
 Verify `.geas/evidence/genesis/nova.json` exists.
 
 ### 1.4 Architecture (Forge)
 ```
-Agent(agent: "forge", prompt: "Read .geas/rules.md first. Then read .geas/spec/seed.json and .geas/evidence/genesis/nova.json. Propose architecture and tech stack. Write conventions to .geas/memory/_project/conventions.md and evidence to .geas/evidence/genesis/forge.json")
+Agent(agent: "forge", prompt: "Then read .geas/spec/seed.json and .geas/evidence/genesis/nova.json. Propose architecture and tech stack. Write conventions to .geas/memory/_project/conventions.md and evidence to .geas/evidence/genesis/forge.json")
 ```
 Verify evidence exists. Write DecisionRecord to `.geas/decisions/dec-001.json`.
 
 ### 1.5 Vote Round
 ```
-Agent(agent: "circuit", prompt: "Read .geas/rules.md first. Read .geas/evidence/genesis/forge.json. Vote agree/disagree with rationale. Write to .geas/evidence/genesis/vote-circuit.json")
-Agent(agent: "palette", prompt: "Read .geas/rules.md first. Read .geas/evidence/genesis/forge.json. Vote agree/disagree with rationale. Write to .geas/evidence/genesis/vote-palette.json")
-Agent(agent: "critic", prompt: "Read .geas/rules.md first. Read .geas/evidence/genesis/forge.json. Play devil's advocate: identify risks, blind spots, and trade-offs even if you agree overall. Vote agree/disagree with rationale. Write to .geas/evidence/genesis/vote-critic.json")
+Agent(agent: "circuit", prompt: "Read .geas/evidence/genesis/forge.json. Vote agree/disagree with rationale. Write to .geas/evidence/genesis/vote-circuit.json")
+Agent(agent: "palette", prompt: "Read .geas/evidence/genesis/forge.json. Vote agree/disagree with rationale. Write to .geas/evidence/genesis/vote-palette.json")
+Agent(agent: "critic", prompt: "Read .geas/evidence/genesis/forge.json. Play devil's advocate: identify risks, blind spots, and trade-offs even if you agree overall. Vote agree/disagree with rationale. Write to .geas/evidence/genesis/vote-critic.json")
 ```
 Critic MUST participate in every vote round. If all agree: proceed. If any disagree: run debate, then re-vote.
 
@@ -92,35 +92,35 @@ For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
 Generate ContextPacket, then:
 ```
-Agent(agent: "palette", prompt: "Read .geas/rules.md first. Read .geas/packets/{task-id}/palette.md. Write design spec to .geas/evidence/{task-id}/palette.json")
+Agent(agent: "palette", prompt: "Read .geas/packets/{task-id}/palette.md. Write design spec to .geas/evidence/{task-id}/palette.json")
 ```
 Verify `.geas/evidence/{task-id}/palette.json` exists.
 
 ### 2.2 Tech Guide (Forge) [DEFAULT — skip-if: trivial task (config, version bump)]
 Generate ContextPacket, then:
 ```
-Agent(agent: "forge", prompt: "Read .geas/rules.md first. Read .geas/packets/{task-id}/forge.md. Write tech guide to .geas/evidence/{task-id}/forge.json")
+Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge.md. Write tech guide to .geas/evidence/{task-id}/forge.json")
 ```
 Verify `.geas/evidence/{task-id}/forge.json` exists.
 
 ### 2.3 Implementation [MANDATORY — worktree isolated]
 Generate ContextPacket, then:
 ```
-Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/rules.md first. Read .geas/packets/{task-id}/{worker}.md. Implement the feature. Write evidence to .geas/evidence/{task-id}/{worker}.json")
+Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/packets/{task-id}/{worker}.md. Implement the feature. Write evidence to .geas/evidence/{task-id}/{worker}.json")
 ```
 Verify evidence exists. Merge worktree branch.
 
 ### 2.4 Code Review (Forge) [MANDATORY]
 Generate ContextPacket, then:
 ```
-Agent(agent: "forge", prompt: "Read .geas/rules.md first. Read .geas/packets/{task-id}/forge-review.md. Review implementation. Write to .geas/evidence/{task-id}/forge-review.json")
+Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge-review.md. Review implementation. Write to .geas/evidence/{task-id}/forge-review.json")
 ```
 Verify `.geas/evidence/{task-id}/forge-review.json` exists.
 
 ### 2.5 Testing (Sentinel) [MANDATORY]
 Generate ContextPacket, then:
 ```
-Agent(agent: "sentinel", prompt: "Read .geas/rules.md first. Read .geas/packets/{task-id}/sentinel.md. Test the feature. Write QA results to .geas/evidence/{task-id}/sentinel.json")
+Agent(agent: "sentinel", prompt: "Read .geas/packets/{task-id}/sentinel.md. Test the feature. Write QA results to .geas/evidence/{task-id}/sentinel.json")
 ```
 Verify `.geas/evidence/{task-id}/sentinel.json` exists.
 
@@ -131,12 +131,12 @@ If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix — 
 
 ### 2.7 Critic Pre-ship Review [MANDATORY]
 ```
-Agent(agent: "critic", prompt: "Read .geas/rules.md first. Read all evidence at .geas/evidence/{task-id}/. Challenge: is this truly ready to ship? Identify risks, missing edge cases, or technical debt. Write to .geas/evidence/{task-id}/critic-review.json")
+Agent(agent: "critic", prompt: "Read all evidence at .geas/evidence/{task-id}/. Challenge: is this truly ready to ship? Identify risks, missing edge cases, or technical debt. Write to .geas/evidence/{task-id}/critic-review.json")
 ```
 
 ### 2.8 Nova Product Review [MANDATORY]
 ```
-Agent(agent: "nova", prompt: "Read .geas/rules.md first. Read all evidence at .geas/evidence/{task-id}/ including critic-review.json. Verdict: Ship, Iterate, or Cut. Write to .geas/evidence/{task-id}/nova-verdict.json")
+Agent(agent: "nova", prompt: "Read all evidence at .geas/evidence/{task-id}/ including critic-review.json. Verdict: Ship, Iterate, or Cut. Write to .geas/evidence/{task-id}/nova-verdict.json")
 ```
 
 ### 2.9 Ship Gate — verify before marking passed
@@ -148,14 +148,14 @@ Agent(agent: "nova", prompt: "Read .geas/rules.md first. Read all evidence at .g
 
 ### Retrospective (Scrum) [MANDATORY]
 ```
-Agent(agent: "scrum", prompt: "Read .geas/rules.md first. Read all evidence at .geas/evidence/{task-id}/. Run retrospective: update rules.md with new conventions, write lessons to .geas/memory/retro/{task-id}.json")
+Agent(agent: "scrum", prompt: "Read all evidence at .geas/evidence/{task-id}/. Run retrospective: update rules.md with new conventions, write lessons to .geas/memory/retro/{task-id}.json")
 ```
 Verify `.geas/memory/retro/{task-id}.json` exists.
 
 ### 2.10 Resolve
 - **Ship**: status → `"passed"`. Spawn Keeper for commit:
   ```
-  Agent(agent: "keeper", prompt: "Read .geas/rules.md first. Commit all changes for {task-id} with conventional commit format. Write to .geas/evidence/{task-id}/keeper.json")
+  Agent(agent: "keeper", prompt: "Commit all changes for {task-id} with conventional commit format. Write to .geas/evidence/{task-id}/keeper.json")
   ```
 - **Iterate**: re-dispatch with Nova's feedback.
 - **Cut**: status → `"failed"`. Write DecisionRecord.
@@ -168,12 +168,12 @@ Log: `{"event": "phase_complete", "phase": "mvp", "timestamp": "<actual>"}`
 ## Phase 3: Polish [MANDATORY — do not skip]
 
 ```
-Agent(agent: "shield", prompt: "Read .geas/rules.md first. Security review of the project. Write to .geas/evidence/polish/shield.json")
+Agent(agent: "shield", prompt: "Security review of the project. Write to .geas/evidence/polish/shield.json")
 ```
 Verify `.geas/evidence/polish/shield.json` exists.
 
 ```
-Agent(agent: "scroll", prompt: "Read .geas/rules.md first. Write README and docs. Write to .geas/evidence/polish/scroll.json")
+Agent(agent: "scroll", prompt: "Write README and docs. Write to .geas/evidence/polish/scroll.json")
 ```
 Verify `.geas/evidence/polish/scroll.json` exists.
 
@@ -188,12 +188,12 @@ Spawn agents as needed for improvements.
 
 **Nova final briefing is MANDATORY:**
 ```
-Agent(agent: "nova", prompt: "Read .geas/rules.md first. Final product review. Read all evidence. Deliver strategic summary and recommendations. Write to .geas/evidence/evolution/nova-final.json")
+Agent(agent: "nova", prompt: "Final product review. Read all evidence. Deliver strategic summary and recommendations. Write to .geas/evidence/evolution/nova-final.json")
 ```
 
 **Keeper release management:**
 ```
-Agent(agent: "keeper", prompt: "Read .geas/rules.md first. Create release: version bump, changelog, final commit. Write to .geas/evidence/evolution/keeper-release.json")
+Agent(agent: "keeper", prompt: "Create release: version bump, changelog, final commit. Write to .geas/evidence/evolution/keeper-release.json")
 ```
 
 Close out. Log: `{"event": "phase_complete", "phase": "complete", "timestamp": "<actual>"}`

@@ -110,8 +110,10 @@ graph LR
 ├── evidence/                # 태스크별 작업 증거
 ├── decisions/               # 투표 기록, 결정 기록
 ├── ledger/events.jsonl      # 추가 전용 이벤트 로그
-├── memory/retro/            # 태스크별 회고 교훈
-└── rules.md                 # 프로젝트 규칙 (시간이 갈수록 성장)
+├── memory/
+│   ├── retro/               # 태스크별 회고 교훈
+│   └── agents/              # 에이전트별 메모리 (세션마다 축적)
+└── rules.md                 # 공유 프로젝트 규칙 (시간이 갈수록 성장)
 ```
 
 ---

@@ -33,7 +33,7 @@ These rules apply to ALL modes (Full Team, Sprint, Debate).
 
 ### Linear integration
 - Detailed Linear rules (API key usage, comment format, CLI calls) are in `.geas/rules.md`.
-- Include `"Read .geas/rules.md first."` in every agent spawn prompt so agents follow the rules.
+- The SubagentStart hook automatically injects `rules.md` + per-agent memory into every agent. No need to include "Read rules.md" in spawn prompts.
 - Issue state transitions are handled directly by the orchestrator (main session): In Progress → In Review → Testing → Done.
 
 ### Rules evolution
