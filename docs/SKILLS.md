@@ -25,6 +25,7 @@ mission              Entry point -- triggers Geas
   |
   v
 compass              Orchestrator -- setup, intake, mode detection
+  |                  SubagentStart hook auto-injects rules.md + agent memory
   |
   +---> setup        First-run: dependencies, Linear config, .geas/ init
   |
@@ -78,8 +79,8 @@ task-compiler  -->  context-packet  -->  [agent work]  -->  evidence-gate
 
 | Skill | Description | Invocation | Inputs | Outputs |
 |-------|-------------|------------|--------|---------|
-| [full-team](#full-team) | 4-phase new product build: Genesis, MVP, Polish, Evolution | Called by `compass` or explicitly via `/geas:full-team` | Seed spec from intake | Completed project with evidence trail |
-| [sprint](#sprint) | Single-feature pipeline: Design, Build, Review, QA | Called by `compass` or explicitly via `/geas:sprint` | Seed spec, existing codebase conventions | Shipped feature with evidence trail |
+| [full-team](#full-team) | 4-phase new product build: Genesis, MVP, Polish, Evolution. Critic votes in every vote round, performs pre-ship review. Keeper commits at Resolve/Evolution | Called by `compass` or explicitly via `/geas:full-team` | Seed spec from intake | Completed project with evidence trail |
+| [sprint](#sprint) | Single-feature pipeline: Design, Build, Review, QA, Retrospective. Keeper commits at Resolve | Called by `compass` or explicitly via `/geas:sprint` | Seed spec, existing codebase conventions | Shipped feature with evidence trail |
 | [debate](#debate) | Multi-agent structured debate for decisions, no code produced | Called by `compass` or explicitly via `/geas:debate` | User's question framed as 2-3 options | DecisionRecord in `.geas/decisions/` |
 
 ### Surface (Collaboration)
@@ -140,8 +141,10 @@ Startup sequence:
 
 Key rules:
 - Sub-agents are spawned as 1-level agents (no nesting).
+- The SubagentStart hook automatically injects `rules.md` and per-agent memory into every sub-agent. No manual "Read rules.md" instruction is needed in spawn prompts.
 - After every agent return, verify the expected evidence file exists.
 - Log every transition to `.geas/ledger/events.jsonl` with real timestamps.
+- All git operations (commit, branch, PR) must be done by Keeper -- never commit directly.
 - Never implement code directly -- orchestrate only.
 
 ---
@@ -200,7 +203,7 @@ A TaskContract includes:
 
 Packet content varies by worker role:
 - **Designer (Palette)**: mission context, user requirements, UI patterns, design constraints.
-- **Implementer (Pixel/Circuit/Vault)**: design spec, tech approach, allowed/prohibited paths, eval commands.
+- **Implementer (Pixel/Circuit)**: design spec, tech approach, allowed/prohibited paths, eval commands.
 - **Reviewer (Forge)**: files changed, architecture decisions, acceptance criteria.
 - **Tester (Sentinel)**: acceptance criteria, eval commands, expected behavior, edge cases.
 - **Product (Nova)**: feature goal, all evidence bundles, mission alignment.
@@ -288,12 +291,12 @@ Phases:
 
 | Phase | Key activities |
 |-------|---------------|
-| **Genesis** | Seed check, Linear bootstrap, Nova vision, Forge architecture, vote round, compile TaskContracts, MCP server recommendations |
-| **MVP Build** | Per-task pipeline: Design (Palette) -> Tech Guide (Forge) -> Implementation (worker in worktree) -> Code Review (Forge) -> Testing (Sentinel) -> Evidence Gate -> Nova Product Review -> Ship Gate |
+| **Genesis** | Seed check, Linear bootstrap, Nova vision, Forge architecture, vote round (Critic mandatory), compile TaskContracts, MCP server recommendations |
+| **MVP Build** | Per-task pipeline: Design (Palette) -> Tech Guide (Forge) -> Implementation (worker in worktree) -> Code Review (Forge) -> Testing (Sentinel) -> Evidence Gate -> Critic Pre-ship Review -> Nova Product Review -> Ship Gate -> Retrospective (Scrum) -> Resolve (Keeper commits) |
 | **Polish** | Security review (Shield), documentation (Scroll), fix issues found |
-| **Evolution** | Scoped improvements within seed scope, Nova final briefing |
+| **Evolution** | Scoped improvements within seed scope, Nova final briefing, Keeper release management |
 
-Every task gets the full pipeline. Code Review and Testing are mandatory for every task, not just the first.
+Every task gets the full pipeline. Code Review and Testing are mandatory for every task, not just the first. Critic performs a pre-ship review (step 2.7) before Nova's verdict. Keeper handles commits at Resolve and release management at Evolution.
 
 ---
 
@@ -308,7 +311,9 @@ Every task gets the full pipeline. Code Review and Testing are mandatory for eve
 | **Inputs** | Seed spec from intake, existing codebase conventions (`.geas/memory/_project/conventions.md`). |
 | **Outputs** | Shipped feature with full evidence trail. |
 
-Pipeline: Compile TaskContract -> Design (Palette) -> Tech Guide (Forge) -> Implementation (worktree) -> Code Review (Forge) -> Testing (Sentinel) -> Evidence Gate -> Nova Product Review -> Ship Gate -> Resolve.
+Pipeline: Compile TaskContract -> Design (Palette) -> Tech Guide (Forge) -> Implementation (worktree) -> Code Review (Forge) -> Testing (Sentinel) -> Evidence Gate -> Nova Product Review -> Ship Gate -> Retrospective (Scrum) -> Resolve (Keeper commits).
+
+On Evidence Gate failure, verify-fix-loop spawns the original worker agent to fix (never fix code directly).
 
 If conventions.md is missing, Forge is spawned for onboarding first.
 

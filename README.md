@@ -12,7 +12,7 @@ A harness that brings structure to multi-agent AI development — so every decis
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
 [![Agents](https://img.shields.io/badge/Agents-12-4A90D9?style=flat-square)](docs/AGENTS.md)
 [![Skills](https://img.shields.io/badge/Skills-24-2ECC71?style=flat-square)](docs/SKILLS.md)
-[![Hooks](https://img.shields.io/badge/Hooks-4-E67E22?style=flat-square)](docs/HOOKS.md)
+[![Hooks](https://img.shields.io/badge/Hooks-5-E67E22?style=flat-square)](docs/HOOKS.md)
 
 </div>
 
@@ -151,13 +151,14 @@ Compass orchestrates the pipeline. 12 specialist agents execute it, each under t
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [User Guide](docs/GUIDE.md) | Installation, first mission, modes, .geas/ structure, FAQ |
-| [Governance](docs/GOVERNANCE.md) | Vote rounds, debates, Critic's role, escalation paths |
-| [Agent Reference](docs/AGENTS.md) | 12 specialist agents — roles, groups, evidence, MCP tools |
-| [Skill Reference](docs/SKILLS.md) | 24 skills — contract engine, protocols, utilities |
-| [Hooks Reference](docs/HOOKS.md) | 4 hooks — mechanical enforcement of pipeline rules |
+| Document | EN | KO |
+|----------|----|----|
+| User Guide | [GUIDE.md](docs/GUIDE.md) | [GUIDE.ko.md](docs/GUIDE.ko.md) |
+| Governance | [GOVERNANCE.md](docs/GOVERNANCE.md) | [GOVERNANCE.ko.md](docs/GOVERNANCE.ko.md) |
+| Agent Reference | [AGENTS.md](docs/AGENTS.md) | [AGENTS.ko.md](docs/AGENTS.ko.md) |
+| Skill Reference | [SKILLS.md](docs/SKILLS.md) | [SKILLS.ko.md](docs/SKILLS.ko.md) |
+| Hooks Reference | [HOOKS.md](docs/HOOKS.md) | [HOOKS.ko.md](docs/HOOKS.ko.md) |
+| Design Document | — | [DESIGN.md](docs/DESIGN.md) |
 
 ---
 

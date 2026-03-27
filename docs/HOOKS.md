@@ -40,7 +40,7 @@ All hooks are declared in `plugin/hooks/hooks.json`. The file follows Claude Cod
 
 | Field | Description |
 |-------|-------------|
-| `EventName` | The lifecycle event that triggers the hook. One of: `SessionStart`, `SubagentStop`, `PostToolUse`, `Stop`. |
+| `EventName` | The lifecycle event that triggers the hook. One of: `SessionStart`, `SubagentStart`, `SubagentStop`, `PostToolUse`, `Stop`. |
 | `matcher` | A regex pattern that filters when the hook runs. For `PostToolUse`, this matches against the tool name. An empty string matches everything. |
 | `type` | Always `"command"` -- hooks are external shell commands. |
 | `command` | Path to the script. Uses `${CLAUDE_PLUGIN_ROOT}` to resolve relative to the plugin directory. |
@@ -89,7 +89,52 @@ When a session begins, this hook checks whether the working directory is a Geas-
 
 ---
 
-### 2. verify-evidence.sh
+### 2. inject-context.sh
+
+| Property | Value |
+|----------|-------|
+| **Event** | `SubagentStart` |
+| **Matcher** | _(none -- runs for all agents)_ |
+| **Timeout** | 10 seconds |
+| **Script** | `plugin/hooks/scripts/inject-context.sh` |
+
+#### What it does
+
+Before a sub-agent begins execution, this hook reads project-level rules and agent-specific memory files, then outputs them as additional context that is injected into the sub-agent's system prompt. This ensures every sub-agent starts with the project's current rules and any accumulated knowledge relevant to its role.
+
+**Step-by-step behavior:**
+
+1. Parse `cwd` and `agent_type` from stdin JSON.
+2. Check if `.geas/` directory exists. If not, exit silently (not a Geas project).
+3. Read `.geas/rules.md` if it exists. Prepend it to the context under a `--- PROJECT RULES ---` header.
+4. Derive the agent-specific memory path: `.geas/memory/agents/{agent-type}.md`. If the file exists, append it to the context under a `--- YOUR MEMORY ---` header.
+5. If any context was collected, output a JSON object with an `additionalContext` field containing the combined text.
+
+#### Exit behavior
+
+- **Always exits 0.** This hook never blocks. If any error occurs during file reading or JSON output, the script fails silently (errors are suppressed) and the sub-agent starts without additional context.
+
+#### Exit codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success. Sub-agent receives the injected context (or starts without it if no files were found). |
+
+#### Output
+
+Unlike the other hooks which communicate through stderr warnings, this hook writes structured JSON to **stdout**:
+
+```json
+{
+  "additionalContext": "--- PROJECT RULES (.geas/rules.md) ---\n...\n\n--- YOUR MEMORY (.geas/memory/agents/{agent-type}.md) ---\n..."
+}
+```
+
+Claude Code reads this JSON and injects the `additionalContext` value into the sub-agent's prompt. If no context files exist, the hook produces no output.
+
+---
+
+### 3. verify-evidence.sh
 
 | Property | Value |
 |----------|-------|
@@ -129,7 +174,7 @@ After a sub-agent finishes its work, this hook checks whether the agent produced
 
 ---
 
-### 3. protect-geas-state.sh
+### 4. protect-geas-state.sh
 
 | Property | Value |
 |----------|-------|
@@ -174,7 +219,7 @@ Files outside `.geas/` are ignored entirely.
 
 ---
 
-### 4. verify-pipeline.sh
+### 5. verify-pipeline.sh
 
 | Property | Value |
 |----------|-------|
@@ -236,7 +281,18 @@ Agent Work Loop
     |       v
     |   Tool operation proceeds
     |
-    |--- Sub-agent completes
+    |--- Sub-agent dispatched
+    |       |
+    |       v
+    |   [SubagentStart] ---> inject-context.sh
+    |       |                  - Read .geas/rules.md
+    |       |                  - Read .geas/memory/agents/{agent-type}.md
+    |       |                  - Output additionalContext JSON
+    |       v
+    |   Sub-agent executes with injected context
+    |       |
+    |       v
+    |   Sub-agent completes
     |       |
     |       v
     |   [SubagentStop] ---> verify-evidence.sh
@@ -262,6 +318,7 @@ Session End Requested
 ### Key interactions
 
 - **session-init** sets the stage by restoring state. Without it, agents start without context about previous work.
+- **inject-context** ensures every sub-agent inherits project rules and its own accumulated memory. Without it, sub-agents start with no knowledge of project-specific constraints or lessons learned from previous runs.
 - **protect-geas-state** catches mistakes in real time as agents write files. It acts as an early warning for issues that **verify-pipeline** will later enforce.
 - **verify-evidence** catches sub-agents that finish without writing results. The main agent can use this warning to trigger the `verify-fix-loop` skill.
 - **verify-pipeline** is the final gate. Even if earlier warnings were ignored, this hook prevents the session from closing with incomplete evidence. It is the mechanical enforcement of the "Evidence over declaration" principle.
@@ -271,7 +328,7 @@ Session End Requested
 
 ### Python (required)
 
-All four hooks use Python for JSON parsing instead of `jq`. This is a deliberate choice:
+All five hooks use Python for JSON parsing instead of `jq`. This is a deliberate choice:
 
 - Python is available on virtually all development machines.
 - `jq` is not installed by default on macOS or Windows and requires separate installation.
@@ -290,7 +347,8 @@ Hooks read from and check for files under the `.geas/` directory:
 | Path | Purpose |
 |------|---------|
 | `.geas/state/run.json` | Current run state (mission, phase, status, task list) |
-| `.geas/rules.md` | Agent rules template (created by session-init if missing) |
+| `.geas/rules.md` | Agent rules template (created by session-init if missing, injected by inject-context) |
+| `.geas/memory/agents/{agent-type}.md` | Per-agent accumulated memory (injected by inject-context) |
 | `.geas/tasks/*.json` | TaskContract files (monitored by protect-geas-state) |
 | `.geas/spec/seed.json` | Frozen project specification (monitored by protect-geas-state) |
 | `.geas/evidence/{task-id}/*.json` | Evidence files (checked by verify-evidence and verify-pipeline) |

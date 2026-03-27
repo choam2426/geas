@@ -2,7 +2,7 @@
 
 A step-by-step guide to using the Geas harness for contract-driven, multi-agent AI development.
 
-Geas brings structure to AI-driven development: every decision is recorded, every action is traceable, and every output is verified against a contract. This guide walks you through installation, your first mission, and the key concepts you will encounter along the way.
+Geas brings structure to AI-driven development: every decision follows a process, every action is traceable, every output is verified against a contract, and the team gets smarter over time. This guide walks you through installation, your first mission, and the key concepts you will encounter along the way.
 
 ---
 
@@ -93,7 +93,10 @@ On the first run, Compass invokes the setup skill automatically. This creates th
   evidence/      -- agent outputs and verification results
   decisions/     -- decision records
   ledger/        -- append-only event log
-  memory/        -- project conventions
+  memory/        -- project conventions, retrospectives, and per-agent memory
+    _project/    -- project-wide conventions
+    retro/       -- retrospective lessons per task
+    agents/      -- per-agent memory (grows across sessions)
 ```
 
 Setup also creates `.geas/rules.md`, a shared rules document that every agent reads before doing any work. This file contains evidence-writing rules, Linear configuration, and code boundary constraints. It is a living document that evolves as the project progresses.
@@ -137,7 +140,7 @@ Genesis establishes the vision, architecture, and task plan.
 
 **2. Forge's Architecture.** Forge (the CTO/Architecture agent) reads the seed and Nova's vision, then proposes the tech stack and architecture. Conventions are written to `.geas/memory/_project/conventions.md` and a DecisionRecord is created.
 
-**3. Vote Round.** Compass solicits votes from affected agents (typically Circuit and Palette) on the architecture proposal. If all agree, Genesis proceeds. If any disagree, a structured debate runs -- back-and-forth rounds of argument, with Nova as tiebreaker after three unresolved rounds.
+**3. Vote Round.** Compass solicits votes from affected agents (typically Circuit, Palette, and Critic) on the architecture proposal. Critic serves as the mandatory devil's advocate, stress-testing the proposal for hidden risks and trade-offs. If all agree, Genesis proceeds. If any disagree, a structured debate runs -- back-and-forth rounds of argument, with Nova as tiebreaker after three unresolved rounds.
 
 **4. Task Compilation.** The seed and architecture are compiled into 5-10 granular TaskContracts, each with:
 - A specific, verifiable goal
@@ -162,7 +165,7 @@ For each TaskContract, in dependency order:
 
 2. **Tech Guide (Forge)** -- Forge writes a technical approach document: which patterns to use, what to watch out for, how this task connects to the architecture. Skipped for trivial tasks (config changes, version bumps).
 
-3. **Implementation (Pixel/Circuit/Vault)** -- The assigned worker implements the feature in a worktree-isolated environment. They read their ContextPacket (a focused briefing assembled from the seed, design spec, tech guide, and prior evidence) and produce an EvidenceBundle documenting what they built.
+3. **Implementation (Pixel/Circuit)** -- The assigned worker implements the feature in a worktree-isolated environment. They read their ContextPacket (a focused briefing assembled from the seed, design spec, tech guide, and prior evidence) and produce an EvidenceBundle documenting what they built.
 
 4. **Code Review (Forge)** -- Forge reviews the implementation against acceptance criteria and architecture conventions. This step is mandatory for every task.
 
@@ -173,11 +176,17 @@ For each TaskContract, in dependency order:
    - **Tier 2 -- Semantic**: Are all acceptance criteria met? Does the evidence support each one?
    - **Tier 3 -- Product**: Nova reviews the feature for mission alignment and quality.
 
-   If the gate fails, the verify-fix loop kicks in: the responsible agent (Pixel for frontend bugs, Circuit for backend bugs) gets a fix-specific ContextPacket and tries again. This repeats up to the task's retry budget (default 3). If the budget is exhausted, it escalates -- Forge reviews the design, or Nova makes a strategic call (continue, cut, or pivot).
+   If the gate fails, the verify-fix loop kicks in: the responsible agent (Pixel for frontend issues, Circuit for backend issues) gets a fix-specific ContextPacket and tries again. This repeats up to the task's retry budget (default 3). If the budget is exhausted, it escalates -- Forge reviews the design, or Nova makes a strategic call (continue, cut, or pivot).
 
-7. **Nova Product Review** -- Nova reads all evidence and delivers a verdict: Ship, Iterate, or Cut.
+7. **Critic Pre-ship Review (Critic)** -- Before Nova renders a verdict, Critic reviews the accumulated evidence and challenges anything suspicious: unverified assumptions, missing edge cases, or acceptance criteria that passed too easily. Critic's feedback is written to `.geas/evidence/{task-id}/critic.json`.
 
-8. **Ship Gate** -- Before marking a task as passed, Compass verifies that `forge-review.json`, `sentinel.json`, and `nova-verdict.json` all exist. If any is missing, the missing step runs before proceeding.
+8. **Nova Product Review** -- Nova reads all evidence (including Critic's challenges) and delivers a verdict: Ship, Iterate, or Cut.
+
+9. **Ship Gate** -- Before marking a task as passed, Compass verifies that `forge-review.json`, `sentinel.json`, `critic.json`, and `nova-verdict.json` all exist. If any is missing, the missing step runs before proceeding.
+
+10. **Keeper Commit** -- Once the Ship Gate passes, Keeper commits the task's changes with a structured commit message that references the task ID and acceptance criteria.
+
+11. **Scrum Retrospective** -- After the Ship Gate, Scrum runs a retrospective on the completed task: what went well, what went wrong, and what conventions should be extracted. Lessons are written to `.geas/memory/retro/` and relevant conventions are merged into `.geas/rules.md`.
 
 After each task, `.geas/rules.md` is updated with any new conventions discovered during execution.
 
@@ -196,6 +205,7 @@ A final improvement pass within the original scope:
 
 - Remaining items from `scope_in` are addressed.
 - Items in `scope_out` are rejected.
+- Keeper creates a release commit or tag, consolidating the project's deliverables.
 - Nova delivers a final strategic briefing with recommendations for next steps.
 
 The run status is set to `"complete"`.
@@ -212,10 +222,12 @@ After a full run, you will find artifacts at every step:
   evidence/genesis/nova.json              -- Nova's vision
   evidence/genesis/forge.json             -- Forge's architecture
   evidence/genesis/vote-circuit.json      -- vote results
+  evidence/genesis/vote-critic.json       -- Critic's devil's advocate vote
   evidence/task-001/palette.json          -- design spec
   evidence/task-001/pixel.json            -- implementation evidence
   evidence/task-001/forge-review.json     -- code review
   evidence/task-001/sentinel.json         -- QA results
+  evidence/task-001/critic.json           -- Critic's pre-ship review
   evidence/task-001/nova-verdict.json     -- product review
   evidence/polish/shield.json             -- security review
   evidence/polish/scroll.json             -- documentation review
@@ -225,6 +237,9 @@ After a full run, you will find artifacts at every step:
   decisions/dec-001.json                  -- architecture decision record
   ledger/events.jsonl                     -- every state transition
   memory/_project/conventions.md          -- project conventions
+  memory/retro/task-001.json             -- retrospective lessons per task
+  memory/agents/pixel.md                 -- per-agent memory (grows across sessions)
+  memory/agents/circuit.md               -- per-agent memory
   rules.md                                -- shared agent rules
   config.json                             -- runtime config
 ```
@@ -268,7 +283,7 @@ If `conventions.md` does not exist yet (your first Sprint in a project), Forge i
 
 3. **Tech Guide (Forge)** -- Technical approach guidance. Skipped for trivial changes.
 
-4. **Implementation** -- The assigned worker (Pixel, Circuit, or Vault) builds the feature in worktree isolation.
+4. **Implementation** -- The assigned worker (Pixel or Circuit) builds the feature in worktree isolation.
 
 5. **Code Review (Forge)** -- Mandatory. Forge reviews the implementation.
 
@@ -341,11 +356,13 @@ The `.geas/` directory is the runtime state store for a Geas-managed project. It
       nova.json              -- Nova's vision document
       forge.json             -- Forge's architecture proposal
       vote-circuit.json      -- Circuit's vote on architecture
+      vote-critic.json       -- Critic's vote (devil's advocate)
     task-001/
       palette.json           -- Design spec
       pixel.json             -- Implementation evidence
       forge-review.json      -- Code review results
       sentinel.json          -- QA test results
+      critic.json            -- Critic's pre-ship review
       nova-verdict.json      -- Product review verdict
     polish/
       shield.json            -- Security review
@@ -366,6 +383,11 @@ The `.geas/` directory is the runtime state store for a Geas-managed project. It
     _project/
       conventions.md         -- Project-specific conventions
       linear-config.json     -- Linear workspace IDs (if connected)
+    retro/
+      task-001.json          -- Retrospective lessons for each task
+    agents/
+      pixel.md               -- Per-agent memory (grows across sessions)
+      circuit.md             -- Per-agent memory
   rules.md                   -- Shared agent rules (living document)
   config.json                -- Runtime configuration (Linear enabled, team info)
 ```
@@ -389,6 +411,10 @@ The `.geas/` directory is the runtime state store for a Geas-managed project. It
 **`rules.md`** -- The shared rules document that every agent reads before starting work. Contains evidence-writing rules, Linear configuration, code boundary rules, and project-specific conventions discovered during execution. This file is a living document -- it evolves as the project progresses.
 
 **`memory/_project/conventions.md`** -- Project-specific conventions written by Forge after scanning the codebase. Includes directory structure, naming patterns, test patterns, and architectural decisions.
+
+**`memory/retro/*.json`** -- Retrospective records written by Scrum after each task completes. Captures what went well, what went wrong, and conventions to extract. Lessons from retrospectives feed back into `rules.md`.
+
+**`memory/agents/*.md`** -- Per-agent memory files that persist across sessions. Each agent accumulates knowledge about the project: patterns it has learned, mistakes it has made, and preferences it has developed. The `inject-context` hook injects the relevant agent's memory at sub-agent startup.
 
 ---
 
@@ -458,7 +484,7 @@ These are always available when the Geas plugin is installed:
 | Server | Purpose |
 |--------|---------|
 | **Context7** | Up-to-date documentation and code examples for libraries. Agents use this to reference current API docs instead of relying on training data. |
-| **Playwright** | Browser automation. Sentinel and Lens can use this to test UI behavior and verify visual output. |
+| **Playwright** | Browser automation. Sentinel can use this to test UI behavior and verify visual output. |
 
 ### Contextual Recommendations
 
@@ -466,17 +492,17 @@ After Forge proposes the tech stack during Genesis, Compass analyzes it and reco
 
 | Detected in Stack | Recommended Server | Why |
 |--------------------|--------------------|-----|
-| PostgreSQL | PostgreSQL MCP | Vault can query database schemas directly |
-| MongoDB | MongoDB MCP | Vault can explore collections |
+| PostgreSQL | PostgreSQL MCP | Circuit can query database schemas directly |
+| MongoDB | MongoDB MCP | Circuit can explore collections |
 | Web frontend | MDN MCP | Pixel can reference web standards |
-| Has deploy target | Lighthouse MCP | Lens can audit performance and accessibility |
+| Has deploy target | Lighthouse MCP | Sentinel can audit performance and accessibility |
 | GitHub hosted | GitHub MCP | Keeper can manage PRs and issues |
 
 Compass presents recommendations like this:
 
 ```
 Recommended MCP servers for your tech stack:
-- [PostgreSQL MCP] -- Vault can query DB schemas directly
+- [PostgreSQL MCP] -- Circuit can query DB schemas directly
   Install: claude mcp add postgres -- npx -y @modelcontextprotocol/server-postgres <connection-string>
 
 Would you like to connect? (optional, you can proceed without them)
@@ -551,14 +577,16 @@ Hooks are shell scripts that Claude Code runs automatically at specific lifecycl
 
 | Hook | When It Fires | What It Does |
 |------|---------------|--------------|
-| **session-init** | Session start | Restores context from `run.json`, creates `rules.md` if missing, prints status summary |
-| **verify-evidence** | After a sub-agent completes | Checks that the agent wrote evidence files for its assigned task |
-| **protect-geas-state** | After any Write/Edit to `.geas/` | Warns if a task is marked "passed" without required evidence, or if `seed.json` is modified after intake |
-| **verify-pipeline** | Before session exit | Checks all completed tasks for mandatory evidence. **This is the only hook that can block session exit.** |
+| **session-init** | Session start (`SessionStart`) | Restores context from `run.json`, creates `rules.md` if missing, prints status summary |
+| **inject-context** | Sub-agent start (`SubagentStart`) | Injects `rules.md` and per-agent memory (`memory/agents/{agent}.md`) into the sub-agent's context |
+| **verify-evidence** | After a sub-agent completes (`SubagentStop`) | Checks that the agent wrote evidence files for its assigned task |
+| **protect-geas-state** | After any Write/Edit to `.geas/` (`PostToolUse`) | Warns if a task is marked "passed" without required evidence, or if `seed.json` is modified after intake |
+| **verify-pipeline** | Before session exit (`Stop`) | Checks all completed tasks for mandatory evidence. **This is the only hook that can block session exit.** |
 
 ### What You Might See
 
 - **Status summary at session start**: Normal. The session-init hook is printing the current project state.
+- **Agent receiving project rules and memory**: Normal. The inject-context hook is providing the sub-agent with `rules.md` and its per-agent memory file before it starts work.
 - **Warnings about missing evidence**: A sub-agent finished without writing its evidence file. Compass will typically retry.
 - **"Pipeline incomplete" blocking session exit**: The verify-pipeline hook found completed tasks without mandatory `forge-review.json` or `sentinel.json` evidence files. You must complete the missing verification steps before the session can end.
 - **Warnings about seed.json modification**: Something tried to change the frozen specification. Usually a mistake.
