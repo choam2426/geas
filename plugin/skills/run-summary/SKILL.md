@@ -83,6 +83,19 @@ Open Work:
 
 ---
 
+### Cost Report (if `.geas/ledger/costs.jsonl` exists)
+
+Read costs.jsonl and aggregate:
+- **Total agent spawns**: count of entries
+- **Spawns by agent**: group by `agent` field, count each
+- **Spawns by model**: group by `model` field (opus vs sonnet)
+- **Spawns by phase**: group by `phase` field
+- **Per-task breakdown**: group by `task_id`
+
+Present as a markdown table in the summary.
+
+---
+
 ## Creating the Linear Document
 
 Post the summary as a Linear Document attached to the project:

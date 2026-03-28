@@ -52,6 +52,18 @@
         ]
       }
     ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/track-cost.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PostCompact": [
       {
         "matcher": "",
