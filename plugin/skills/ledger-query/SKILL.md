@@ -169,7 +169,7 @@ Current run state summary with recent events.
 
 **Process:**
 1. Read `.geas/state/run.json` for current state
-2. Read `.geas/spec/seed.json` for mission and readiness_score
+2. Read `.geas/spec/seed.json` for mission and completeness_checklist
 3. Read last 10 events from `.geas/ledger/events.jsonl`
 4. Count completed vs total tasks from `.geas/tasks/`
 5. List any in-progress or failed tasks
@@ -181,7 +181,7 @@ Current run state summary with recent events.
 Mission: <mission from seed>
 Mode: <initiative | sprint | debate>
 Phase: <current phase>
-Readiness Score: <score>/100
+Completeness: <checklist summary>
 
 Progress: <completed>/<total> tasks complete
 Current task: <task-id> — <title> (<status>)

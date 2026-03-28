@@ -80,8 +80,7 @@ Check for `.geas/state/run.json`:
 
 ### Step 1: Intake Gate
 Invoke `/geas:intake` to produce `.geas/spec/seed.json`.
-- Ask the user clarifying questions until readiness threshold is met.
-- Initiative threshold: 60 | Sprint threshold: 40
+- Ask the user clarifying questions until the completeness checklist is satisfied (all boolean fields in `completeness_checklist` are true).
 
 ### Step 2: Mode Detection
 Infer from the user's intent:

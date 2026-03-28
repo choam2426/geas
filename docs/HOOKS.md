@@ -40,7 +40,7 @@ All hooks are declared in `plugin/hooks/hooks.json`. The file follows Claude Cod
 
 | Field | Description |
 |-------|-------------|
-| `EventName` | The lifecycle event that triggers the hook. One of: `SessionStart`, `SubagentStart`, `SubagentStop`, `PostToolUse`, `Stop`. |
+| `EventName` | The lifecycle event that triggers the hook. One of: `SessionStart`, `SubagentStart`, `SubagentStop`, `PostToolUse`, `PostCompact`, `Stop`. |
 | `matcher` | A regex pattern that filters when the hook runs. For `PostToolUse`, this matches against the tool name. An empty string matches everything. |
 | `type` | Always `"command"` -- hooks are external shell commands. |
 | `command` | Path to the script. Uses `${CLAUDE_PLUGIN_ROOT}` to resolve relative to the plugin directory. |
@@ -261,7 +261,7 @@ After Claude Code compacts the conversation context (to fit within the context w
 
 #### What it does
 
-After a sub-agent completes, this hook logs the agent name, task ID, and model used to `.geas/costs.jsonl`. This data is consumed by the `run-summary` skill to produce a cost report section at the end of a run.
+After a sub-agent completes, this hook logs the agent name, task ID, and model used to `.geas/ledger/costs.jsonl`. This data is consumed by the `run-summary` skill to produce a cost report section at the end of a run.
 
 #### Exit behavior
 
@@ -425,7 +425,7 @@ Hooks read from and check for files under the `.geas/` directory:
 | `.geas/tasks/*.json` | TaskContract files (monitored by protect-geas-state) |
 | `.geas/spec/seed.json` | Frozen project specification (monitored by protect-geas-state) |
 | `.geas/evidence/{task-id}/*.json` | Evidence files (checked by verify-task-status and verify-pipeline) |
-| `.geas/costs.jsonl` | Cost tracking log (written by track-cost, read by run-summary) |
+| `.geas/ledger/costs.jsonl` | Cost tracking log (written by track-cost, read by run-summary) |
 
 
 ## Troubleshooting

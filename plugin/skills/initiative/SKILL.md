@@ -14,7 +14,7 @@ user-invocable: true
 
 ### 1.1 Seed Check
 - `.geas/spec/seed.json` should exist from intake. If not, invoke `/geas:intake`.
-- If readiness_score < 60 and no override: ask the user, re-run intake.
+- If completeness_checklist has any false values and no override: ask the user, re-run intake.
 
 ### 1.2 Linear Bootstrap (if enabled)
 - Check `.geas/config.json` for `linear_enabled`.
