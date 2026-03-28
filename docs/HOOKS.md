@@ -75,7 +75,8 @@ When a session begins, this hook checks whether the working directory is a Geas-
 2. Check if `.geas/` directory exists. If not, exit silently (not a Geas project).
 3. Check if `.geas/state/run.json` exists. If not, print a reminder to run setup first.
 4. Read `run.json` and print a status summary to stderr: mission, phase, status, and completed task count.
-5. If `.geas/rules.md` does not exist, create it from a built-in template containing evidence writing rules, Linear configuration, and code boundary rules.
+5. If a checkpoint file exists (`.geas/state/checkpoint.json`), read and include checkpoint information in the status summary.
+6. If `.geas/rules.md` does not exist, create it from a built-in template containing evidence writing rules, Linear configuration, and code boundary rules.
 
 #### Exit behavior
 
@@ -134,47 +135,7 @@ Claude Code reads this JSON and injects the `additionalContext` value into the s
 
 ---
 
-### 3. verify-evidence.sh
-
-| Property | Value |
-|----------|-------|
-| **Event** | `SubagentStop` |
-| **Matcher** | _(none -- runs after every sub-agent completes)_ |
-| **Timeout** | 30 seconds |
-| **Script** | `plugin/hooks/scripts/verify-evidence.sh` |
-
-#### What it does
-
-After a sub-agent finishes its work, this hook checks whether the agent produced evidence files for its assigned task. Evidence is how Geas verifies that work actually happened -- without it, a task cannot pass the Evidence Gate.
-
-**Step-by-step behavior:**
-
-1. Parse `cwd` from stdin JSON.
-2. Check if `.geas/` and `run.json` exist. If not, skip.
-3. Read `current_task_id` from `run.json`.
-4. Check if `.geas/evidence/{task-id}/` directory exists. Warn if missing.
-5. Check if the directory contains any `.json` files. Warn if empty.
-
-#### Exit behavior
-
-- **Always exits 0.** This hook warns but never blocks. The main orchestrating session is responsible for deciding whether to retry. This design keeps the hook simple and avoids false-positive blocks when sub-agents legitimately have no evidence to write (e.g., planning tasks).
-
-#### Exit codes
-
-| Code | Meaning |
-|------|---------|
-| `0` | Success (with or without warnings). Session continues. |
-
-#### Warning messages
-
-| Message | Meaning |
-|---------|---------|
-| `No evidence directory for {task-id}` | The sub-agent did not create an evidence directory at all. |
-| `No evidence files in {path}` | The directory exists but contains no JSON evidence files. |
-
----
-
-### 4. protect-geas-state.sh
+### 3. protect-geas-state.sh
 
 | Property | Value |
 |----------|-------|
@@ -185,26 +146,59 @@ After a sub-agent finishes its work, this hook checks whether the agent produced
 
 #### What it does
 
-Every time an agent uses the `Write` or `Edit` tool, this hook inspects the target file path. If the file is inside `.geas/`, the hook applies integrity checks to prevent premature or unauthorized state changes.
+Every time an agent uses the `Write` or `Edit` tool, this hook inspects the target file path and applies integrity checks.
 
 **Three enforcement areas:**
 
-1. **`.geas/tasks/*.json` (TaskContract files)** -- If a task's status is set to `"passed"`, the hook checks that the required verification evidence exists:
-   - `forge-review.json` (Code Review by the Forge agent)
-   - `sentinel.json` (QA Testing by the Sentinel agent)
-   - `critic-review.json` (Critic Pre-ship Review)
-   - `nova-verdict.json` (Nova Product Review)
-   - `memory/retro/{task-id}.json` (Scrum Retrospective)
+1. **Timestamp injection** -- When any `.geas/**/*.json` file is written, the hook automatically injects a real UTC timestamp into the `created_at` field. Agents do not need to call `date -u` directly. Dummy timestamps (`:00:00Z` patterns) are also detected and replaced with real values.
 
-   If any file is missing, the hook emits a warning.
+2. **`.geas/spec/seed.json` protection** -- The seed file is frozen after intake. Any modification triggers a warning that the seed should not be changed.
 
-2. **`.geas/spec/seed.json`** -- The seed file is frozen after intake. Any modification triggers a warning that the seed should not be changed.
-
-3. **Path boundary enforcement** -- Checks all Write|Edit operations against the current task's `allowed_paths` and `prohibited_paths`. Warns (does not block) if a file is outside allowed paths or matches a prohibited path.
+3. **Prohibited path enforcement** -- Checks all Write|Edit operations against the current task's `prohibited_paths`. Warns (does not block) if a file matches a prohibited path pattern.
 
 #### Exit behavior
 
 - **Always exits 0.** This hook warns but never blocks. It trusts that warnings combined with prompt-level rules are sufficient to prevent most violations. A future version may escalate to blocking (exit 2) for critical state files.
+
+#### Exit codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success (with or without warnings). Operation is allowed. |
+
+#### Warning messages
+
+| Message | Meaning |
+|---------|---------|
+| `seed.json was modified after intake` | The frozen seed specification was changed. |
+| `File {path} matches prohibited_paths for {task-id}` | A Write/Edit target matches a prohibited path pattern for the current task. |
+
+---
+
+### 4. verify-task-status.sh
+
+| Property | Value |
+|----------|-------|
+| **Event** | `PostToolUse` |
+| **Matcher** | `Write\|Edit` |
+| **Timeout** | 10 seconds |
+| **Script** | `plugin/hooks/scripts/verify-task-status.sh` |
+
+#### What it does
+
+Every time an agent uses the `Write` or `Edit` tool on a `.geas/tasks/*.json` file where the task's status is set to `"passed"`, this hook checks that the 5 required evidence files exist:
+
+- `forge-review.json` (Code Review by the Forge agent)
+- `sentinel.json` (QA Testing by the Sentinel agent)
+- `critic-review.json` (Critic Pre-ship Review)
+- `nova-verdict.json` (Nova Product Review)
+- `memory/retro/{task-id}.json` (Scrum Retrospective)
+
+If any file is missing, the hook emits a warning.
+
+#### Exit behavior
+
+- **Always exits 0.** This hook warns but never blocks. It acts as an early warning for issues that **verify-pipeline** will later enforce at session exit.
 
 #### Exit codes
 
@@ -221,13 +215,67 @@ Every time an agent uses the `Write` or `Edit` tool, this hook inspects the targ
 | `{task-id} marked as passed but critic-review.json is missing` | Task promoted to "passed" without Critic Pre-ship Review evidence. |
 | `{task-id} marked as passed but nova-verdict.json is missing` | Task promoted to "passed" without Nova Product Review evidence. |
 | `{task-id} marked as passed but retro/{task-id}.json is missing` | Task promoted to "passed" without Scrum Retrospective evidence. |
-| `seed.json was modified after intake` | The frozen seed specification was changed. |
-| `File {path} is outside allowed_paths for {task-id}` | A Write/Edit target is outside the current task's allowed path boundaries. |
-| `File {path} matches prohibited_paths for {task-id}` | A Write/Edit target matches a prohibited path pattern for the current task. |
 
 ---
 
-### 5. verify-pipeline.sh
+### 5. restore-context.sh
+
+| Property | Value |
+|----------|-------|
+| **Event** | `PostCompact` |
+| **Matcher** | _(none -- runs after every context compaction)_ |
+| **Timeout** | 10 seconds |
+| **Script** | `plugin/hooks/scripts/restore-context.sh` |
+
+#### What it does
+
+After Claude Code compacts the conversation context (to fit within the context window), critical Geas state may be lost. This hook re-injects essential state so the orchestrator can continue without losing track of the current run.
+
+**Step-by-step behavior:**
+
+1. Parse `cwd` from stdin JSON.
+2. Check if `.geas/` directory exists. If not, exit silently.
+3. Read `.geas/state/run.json` and `.geas/rules.md`.
+4. Output the current run state and rules as `additionalContext` JSON, similar to `inject-context.sh`.
+
+#### Exit behavior
+
+- **Always exits 0.** This hook never blocks. It is purely informational -- it re-injects context after compaction.
+
+#### Exit codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success. Session continues with restored context. |
+
+---
+
+### 6. track-cost.sh
+
+| Property | Value |
+|----------|-------|
+| **Event** | `SubagentStop` |
+| **Matcher** | _(none -- runs after every sub-agent completes)_ |
+| **Timeout** | 10 seconds |
+| **Script** | `plugin/hooks/scripts/track-cost.sh` |
+
+#### What it does
+
+After a sub-agent completes, this hook logs the agent name, task ID, and model used to `.geas/costs.jsonl`. This data is consumed by the `run-summary` skill to produce a cost report section at the end of a run.
+
+#### Exit behavior
+
+- **Always exits 0.** This hook never blocks. It is purely a logging hook.
+
+#### Exit codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success. Cost entry logged. |
+
+---
+
+### 7. verify-pipeline.sh
 
 | Property | Value |
 |----------|-------|
@@ -276,7 +324,7 @@ Session Start
     |
     v
 [SessionStart] ---> session-init.sh
-    |                  - Restore run.json state
+    |                  - Restore run.json state + checkpoint info
     |                  - Create rules.md if missing
     |                  - Print status summary
     v
@@ -286,11 +334,24 @@ Agent Work Loop
     |       |
     |       v
     |   [PostToolUse] ---> protect-geas-state.sh
-    |       |                - Check .geas/tasks/*.json for premature "passed"
+    |       |                - Inject timestamps into .geas/**/*.json
     |       |                - Check .geas/spec/seed.json for modification
+    |       |                - Check prohibited_paths
+    |       |                - (warn only, never blocks)
+    |       |
+    |       +-------------> verify-task-status.sh
+    |       |                - Check 5 evidence files when task marked passed
     |       |                - (warn only, never blocks)
     |       v
     |   Tool operation proceeds
+    |
+    |--- Context compacted
+    |       |
+    |       v
+    |   [PostCompact] ---> restore-context.sh
+    |       |                - Re-inject run state and rules
+    |       v
+    |   Session continues with restored context
     |
     |--- Sub-agent dispatched
     |       |
@@ -306,10 +367,9 @@ Agent Work Loop
     |   Sub-agent completes
     |       |
     |       v
-    |   [SubagentStop] ---> verify-evidence.sh
-    |       |                 - Check evidence directory exists
-    |       |                 - Check evidence JSON files exist
-    |       |                 - (warn only, never blocks)
+    |   [SubagentStop] ---> track-cost.sh
+    |       |                 - Log agent/task/model to costs.jsonl
+    |       |                 - (never blocks)
     |       v
     |   Main agent decides: retry or continue
     |
@@ -328,10 +388,12 @@ Session End Requested
 
 ### Key interactions
 
-- **session-init** sets the stage by restoring state. Without it, agents start without context about previous work.
+- **session-init** sets the stage by restoring state and checkpoint info. Without it, agents start without context about previous work.
 - **inject-context** ensures every sub-agent inherits project rules and its own accumulated memory. Without it, sub-agents start with no knowledge of project-specific constraints or lessons learned from previous runs.
-- **protect-geas-state** catches mistakes in real time as agents write files. It acts as an early warning for issues that **verify-pipeline** will later enforce.
-- **verify-evidence** catches sub-agents that finish without writing results. The main agent can use this warning to trigger the `verify-fix-loop` skill.
+- **protect-geas-state** enforces timestamp injection, seed protection, and prohibited path boundaries in real time as agents write files.
+- **verify-task-status** catches premature task completion -- when a task is marked "passed" without the 5 required evidence files. It acts as an early warning for issues that **verify-pipeline** will later enforce.
+- **restore-context** re-injects critical state after context compaction, preventing the orchestrator from losing track of the current run.
+- **track-cost** logs agent, task, and model information after each sub-agent completes. This data feeds into the run-summary cost report.
 - **verify-pipeline** is the final gate. Even if earlier warnings were ignored, this hook prevents the session from closing with incomplete evidence. It is the mechanical enforcement of the "Evidence over declaration" principle.
 
 
@@ -339,7 +401,7 @@ Session End Requested
 
 ### Python (required)
 
-All five hooks use Python for JSON parsing instead of `jq`. This is a deliberate choice:
+All hooks use Python for JSON parsing instead of `jq`. This is a deliberate choice:
 
 - Python is available on virtually all development machines.
 - `jq` is not installed by default on macOS or Windows and requires separate installation.
@@ -362,7 +424,8 @@ Hooks read from and check for files under the `.geas/` directory:
 | `.geas/memory/agents/{agent-type}.md` | Per-agent accumulated memory (injected by inject-context) |
 | `.geas/tasks/*.json` | TaskContract files (monitored by protect-geas-state) |
 | `.geas/spec/seed.json` | Frozen project specification (monitored by protect-geas-state) |
-| `.geas/evidence/{task-id}/*.json` | Evidence files (checked by verify-evidence and verify-pipeline) |
+| `.geas/evidence/{task-id}/*.json` | Evidence files (checked by verify-task-status and verify-pipeline) |
+| `.geas/costs.jsonl` | Cost tracking log (written by track-cost, read by run-summary) |
 
 
 ## Troubleshooting

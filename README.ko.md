@@ -12,7 +12,7 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
 [![Agents](https://img.shields.io/badge/Agents-12-4A90D9?style=flat-square)](docs/AGENTS.md)
 [![Skills](https://img.shields.io/badge/Skills-24-2ECC71?style=flat-square)](docs/SKILLS.md)
-[![Hooks](https://img.shields.io/badge/Hooks-5-E67E22?style=flat-square)](docs/HOOKS.md)
+[![Hooks](https://img.shields.io/badge/Hooks-7-E67E22?style=flat-square)](docs/HOOKS.md)
 
 </div>
 

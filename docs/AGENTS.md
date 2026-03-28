@@ -110,7 +110,7 @@ Scroll ensures the product is documented. Code without docs is treated as techni
 
 **Key behaviors.**
 - Uses Context7 MCP to verify current framework APIs.
-- Checks that changes stay within the contract's `allowed_paths`.
+- Checks that changes do not violate the contract's `prohibited_paths`.
 - Reviews against error handling, performance, security, structure, naming, and accessibility.
 - Never skips code review. Every feature gets reviewed.
 

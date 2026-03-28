@@ -107,14 +107,14 @@ If you want Linear integration, setup will walk you through connecting your API 
 
 Before any agent writes code, the Intake Gate runs. Its job is to surface hidden assumptions and produce a frozen specification.
 
-Compass asks you Socratic questions in up to two rounds:
+Compass asks you questions in a brainstorming-style, one question at a time. Rather than scoring answers on a numeric scale, Intake uses a **completeness checklist** to track which areas are covered:
 
-- What is the scope? What is explicitly out of scope?
-- Who is the target user?
-- What constraints do you have (tech stack, hosting, budget)?
-- How will you know this is done? What must work on day one?
+- Scope (what is in, what is explicitly out)
+- Target user
+- Constraints (tech stack, hosting, budget)
+- Acceptance criteria (how will you know this is done)
 
-Each answer is scored across five dimensions (Clarity, Scope, Users, Constraints, Acceptance) on a 0-20 scale. Initiative mode requires a readiness score of at least 60 out of 100 before proceeding.
+Each question builds on your previous answers. Once the checklist is sufficiently complete, Compass produces a summary for your confirmation.
 
 Once you confirm the summary, the specification is written to `.geas/spec/seed.json` and frozen. This seed becomes the source of truth for the entire run.
 
@@ -145,7 +145,7 @@ Genesis establishes the vision, architecture, and task plan.
 **4. Task Compilation.** The seed and architecture are compiled into 5-10 granular TaskContracts, each with:
 - A specific, verifiable goal
 - Acceptance criteria (minimum 3 per task)
-- Path boundaries (what files the worker may and must not touch)
+- Path boundaries (prohibited files that the worker must not touch)
 - Eval commands (build, lint, test)
 - A retry budget and escalation policy
 
@@ -269,7 +269,7 @@ If the project already has a `.geas/` directory from a previous run, Compass det
 | Aspect | Initiative | Sprint |
 |--------|-----------|--------|
 | Genesis phase | Yes (vision, architecture, votes) | No |
-| Intake depth | Deep (up to 2 Socratic rounds, threshold 60) | Light (1 round, threshold 40) |
+| Intake depth | Deep (brainstorming-style, full checklist) | Light (focused on feature scope and constraints) |
 | Task count | 5-10 tasks | Usually 1 task |
 | Conventions | Forge scans and writes from scratch | Uses existing `.geas/memory/_project/conventions.md` |
 
@@ -396,7 +396,7 @@ The `.geas/` directory is the runtime state store for a Geas-managed project. It
 
 ### Key Files Explained
 
-**`spec/seed.json`** -- The frozen mission specification produced by the Intake Gate. Contains the refined mission statement, target user, scope (in and out), acceptance criteria, constraints, and readiness score. Once confirmed, this file should not be modified. If scope changes are needed, a pivot protocol is triggered instead.
+**`spec/seed.json`** -- The frozen mission specification produced by the Intake Gate. Contains the refined mission statement, target user, scope (in and out), acceptance criteria, constraints, and a completeness checklist. Once confirmed, this file should not be modified. If scope changes are needed, a pivot protocol is triggered instead.
 
 **`tasks/*.json`** -- TaskContracts. Each one is a machine-readable work agreement: a specific goal, verifiable acceptance criteria, file path boundaries, eval commands, retry budget, escalation policy, and current status (`pending`, `in_progress`, `passed`, `failed`, `escalated`).
 
@@ -579,19 +579,22 @@ Hooks are shell scripts that Claude Code runs automatically at specific lifecycl
 
 | Hook | When It Fires | What It Does |
 |------|---------------|--------------|
-| **session-init** | Session start (`SessionStart`) | Restores context from `run.json`, creates `rules.md` if missing, prints status summary |
+| **session-init** | Session start (`SessionStart`) | Restores context from `run.json` and checkpoint, creates `rules.md` if missing, prints status summary |
 | **inject-context** | Sub-agent start (`SubagentStart`) | Injects `rules.md` and per-agent memory (`memory/agents/{agent}.md`) into the sub-agent's context |
-| **verify-evidence** | After a sub-agent completes (`SubagentStop`) | Checks that the agent wrote evidence files for its assigned task |
-| **protect-geas-state** | After any Write/Edit to `.geas/` (`PostToolUse`) | Warns if a task is marked "passed" without required evidence, or if `seed.json` is modified after intake |
+| **protect-geas-state** | After any Write/Edit (`PostToolUse`) | Injects timestamps into `.geas/**/*.json`, warns if `seed.json` is modified after intake, checks `prohibited_paths` |
+| **verify-task-status** | After any Write/Edit (`PostToolUse`) | Checks that 5 required evidence files exist when a task is marked "passed" |
+| **restore-context** | After context compaction (`PostCompact`) | Re-injects run state and rules after context window compaction |
+| **track-cost** | After a sub-agent completes (`SubagentStop`) | Logs agent, task, and model to `costs.jsonl` for the run-summary cost report |
 | **verify-pipeline** | Before session exit (`Stop`) | Checks all completed tasks for mandatory evidence. **This is the only hook that can block session exit.** |
 
 ### What You Might See
 
-- **Status summary at session start**: Normal. The session-init hook is printing the current project state.
+- **Status summary at session start**: Normal. The session-init hook is printing the current project state and checkpoint information.
 - **Agent receiving project rules and memory**: Normal. The inject-context hook is providing the sub-agent with `rules.md` and its per-agent memory file before it starts work.
-- **Warnings about missing evidence**: A sub-agent finished without writing its evidence file. Compass will typically retry.
+- **Warnings about premature task completion**: The verify-task-status hook detected a task marked "passed" without the required 5 evidence files. Compass will ensure missing steps run.
 - **"Pipeline incomplete" blocking session exit**: The verify-pipeline hook found completed tasks without mandatory evidence files (`forge-review.json`, `sentinel.json`, `critic-review.json`, `nova-verdict.json`, or `memory/retro/{task-id}.json`). You must complete the missing verification steps before the session can end.
 - **Warnings about seed.json modification**: Something tried to change the frozen specification. Usually a mistake.
+- **Context restored after compaction**: Normal. The restore-context hook re-injected run state after a context compaction event.
 
 For the full technical reference on hooks, including exit codes, timeout behavior, and troubleshooting, see [HOOKS.md](HOOKS.md).
 
@@ -670,7 +673,7 @@ This removes all runtime state, evidence, decisions, and the event ledger. Your 
 
 If a sub-agent completes but does not write an evidence file:
 
-1. The `verify-evidence` hook will emit a warning.
-2. Compass will typically retry the agent once.
-3. Check if the agent encountered an error (tool permission denied, file path issue, etc.).
-4. Ensure `.geas/rules.md` exists -- agents read it first and may fail silently if it is missing.
+1. Compass will typically detect the missing evidence and retry the agent once.
+2. Check if the agent encountered an error (tool permission denied, file path issue, etc.).
+3. Ensure `.geas/rules.md` exists -- agents read it first and may fail silently if it is missing.
+4. The `verify-pipeline` hook will catch missing evidence at session exit.

@@ -77,7 +77,8 @@ Hook은 프롬프트 기반 규칙을 대체하지 않습니다. 보완합니다
 2. `.geas/` 디렉토리가 있는지 확인합니다. 없으면 조용히 종료합니다(Geas 프로젝트가 아님).
 3. `.geas/state/run.json`이 있는지 확인합니다. 없으면 먼저 설정을 실행하라는 알림을 출력합니다.
 4. `run.json`을 읽고 stderr에 상태 요약을 출력합니다: mission, phase, status, 완료된 작업 수.
-5. `.geas/rules.md`가 없으면, 증거 작성 규칙, Linear 설정, 코드 경계 규칙을 포함하는 내장 템플릿에서 생성합니다.
+5. 체크포인트 파일(`.geas/state/checkpoint.json`)이 있으면 읽어서 상태 요약에 체크포인트 정보를 포함합니다.
+6. `.geas/rules.md`가 없으면, 증거 작성 규칙, Linear 설정, 코드 경계 규칙을 포함하는 내장 템플릿에서 생성합니다.
 
 #### 종료 동작
 
@@ -136,47 +137,7 @@ Claude Code는 이 JSON을 읽고 `additionalContext` 값을 서브 에이전트
 
 ---
 
-### 3. verify-evidence.sh
-
-| 속성 | 값 |
-|------|-----|
-| **Event** | `SubagentStop` |
-| **Matcher** | _(없음 -- 모든 서브 에이전트 완료 후 실행)_ |
-| **Timeout** | 30초 |
-| **Script** | `plugin/hooks/scripts/verify-evidence.sh` |
-
-#### 동작 설명
-
-서브 에이전트가 작업을 마치면, 이 hook은 해당 에이전트가 할당된 작업에 대한 증거 파일을 생성했는지 확인합니다. 증거는 Geas가 작업이 실제로 수행되었는지 검증하는 방법입니다 -- 증거 없이는 작업이 Evidence Gate를 통과할 수 없습니다.
-
-**단계별 동작:**
-
-1. stdin JSON에서 `cwd`를 파싱합니다.
-2. `.geas/`와 `run.json`이 있는지 확인합니다. 없으면 건너뜁니다.
-3. `run.json`에서 `current_task_id`를 읽습니다.
-4. `.geas/evidence/{task-id}/` 디렉토리가 있는지 확인합니다. 없으면 경고합니다.
-5. 디렉토리에 `.json` 파일이 있는지 확인합니다. 비어 있으면 경고합니다.
-
-#### 종료 동작
-
-- **항상 exit 0으로 종료합니다.** 이 hook은 경고만 하고 절대 차단하지 않습니다. 재시도 여부는 메인 오케스트레이션 세션이 결정합니다. 이 설계는 hook을 단순하게 유지하며, 서브 에이전트가 증거를 쓸 필요가 없는 경우(예: 계획 작업)의 오탐을 방지합니다.
-
-#### 종료 코드
-
-| 코드 | 의미 |
-|------|------|
-| `0` | 성공(경고 유무에 관계없이). 세션이 계속됩니다. |
-
-#### 경고 메시지
-
-| 메시지 | 의미 |
-|--------|------|
-| `No evidence directory for {task-id}` | 서브 에이전트가 증거 디렉토리를 전혀 생성하지 않았습니다. |
-| `No evidence files in {path}` | 디렉토리는 있지만 JSON 증거 파일이 없습니다. |
-
----
-
-### 4. protect-geas-state.sh
+### 3. protect-geas-state.sh
 
 | 속성 | 값 |
 |------|-----|
@@ -187,28 +148,59 @@ Claude Code는 이 JSON을 읽고 `additionalContext` 값을 서브 에이전트
 
 #### 동작 설명
 
-에이전트가 `Write` 또는 `Edit` 도구를 사용할 때마다 이 hook은 대상 파일 경로를 검사합니다. 파일이 `.geas/` 내부에 있으면 hook은 조기 또는 무단 상태 변경을 방지하기 위해 무결성 검사를 적용합니다.
+에이전트가 `Write` 또는 `Edit` 도구를 사용할 때마다 이 hook은 대상 파일 경로를 검사하고 무결성 검사를 적용합니다.
 
-**두 가지 모니터링 경로:**
+**세 가지 강제 영역:**
 
-1. **`.geas/tasks/*.json` (TaskContract 파일)** -- 작업의 상태가 `"passed"`로 설정되면, hook은 필요한 검증 증거가 존재하는지 확인합니다:
-   - `forge-review.json` (Forge 에이전트의 코드 리뷰)
-   - `sentinel.json` (Sentinel 에이전트의 QA 테스트)
-   - `critic-review.json` (Critic 에이전트의 출시 전 리뷰)
-   - `nova-verdict.json` (Nova 에이전트의 제품 리뷰)
-   - `memory/retro/{task-id}.json` (Scrum 에이전트의 회고)
+1. **타임스탬프 주입** -- `.geas/**/*.json` 파일이 기록될 때 `created_at` 필드에 실제 UTC 타임스탬프를 자동 주입합니다. 에이전트가 `date -u`를 직접 호출할 필요 없습니다. 더미 타임스탬프(`:00:00Z` 패턴)도 감지하여 실제 값으로 교체합니다.
 
-   하나라도 없으면 hook은 경고를 출력합니다.
+2. **`.geas/spec/seed.json` 보호** -- seed 파일은 intake 후 동결됩니다. 수정이 발생하면 seed를 변경해서는 안 된다는 경고가 트리거됩니다.
 
-2. **경로 경계 강제** -- 작업의 `allowed_paths` 외부에 파일이 작성되면 hook은 경고를 출력합니다. 이는 에이전트가 할당된 작업 범위 밖의 파일을 수정하는 것을 방지합니다.
-
-3. **`.geas/spec/seed.json`** -- seed 파일은 intake 후 동결됩니다. 수정이 발생하면 seed를 변경해서는 안 된다는 경고가 트리거됩니다.
-
-`.geas/` 외부의 파일도 경로 경계 강제 대상이 될 수 있습니다.
+3. **금지 경로 강제** -- 현재 작업의 `prohibited_paths`에 대해 모든 Write|Edit 작업을 검사합니다. 금지 경로 패턴과 일치하면 경고합니다(차단하지 않음).
 
 #### 종료 동작
 
 - **항상 exit 0으로 종료합니다.** 이 hook은 경고만 하고 절대 차단하지 않습니다. 경고와 프롬프트 수준 규칙의 조합이 대부분의 위반을 방지하기에 충분하다고 신뢰합니다. 향후 버전에서는 중요 상태 파일에 대해 차단(exit 2)으로 격상될 수 있습니다.
+
+#### 종료 코드
+
+| 코드 | 의미 |
+|------|------|
+| `0` | 성공(경고 유무에 관계없이). 작업이 허용됩니다. |
+
+#### 경고 메시지
+
+| 메시지 | 의미 |
+|--------|------|
+| `seed.json was modified after intake` | 동결된 seed 사양이 변경되었습니다. |
+| `File {path} matches prohibited_paths for {task-id}` | 현재 작업의 금지 경로 패턴과 일치하는 파일이 작성되었습니다. |
+
+---
+
+### 4. verify-task-status.sh
+
+| 속성 | 값 |
+|------|-----|
+| **Event** | `PostToolUse` |
+| **Matcher** | `Write\|Edit` |
+| **Timeout** | 10초 |
+| **Script** | `plugin/hooks/scripts/verify-task-status.sh` |
+
+#### 동작 설명
+
+에이전트가 `Write` 또는 `Edit` 도구를 사용하여 `.geas/tasks/*.json` 파일에서 작업의 상태를 `"passed"`로 설정할 때, 이 hook은 5개의 필수 증거 파일이 존재하는지 확인합니다:
+
+- `forge-review.json` (Forge 에이전트의 코드 리뷰)
+- `sentinel.json` (Sentinel 에이전트의 QA 테스트)
+- `critic-review.json` (Critic 에이전트의 출시 전 리뷰)
+- `nova-verdict.json` (Nova 에이전트의 제품 리뷰)
+- `memory/retro/{task-id}.json` (Scrum 에이전트의 회고)
+
+하나라도 없으면 hook은 경고를 출력합니다.
+
+#### 종료 동작
+
+- **항상 exit 0으로 종료합니다.** 이 hook은 경고만 하고 절대 차단하지 않습니다. **verify-pipeline**이 나중에 세션 종료 시 강제할 문제에 대한 조기 경고 역할을 합니다.
 
 #### 종료 코드
 
@@ -225,12 +217,67 @@ Claude Code는 이 JSON을 읽고 `additionalContext` 값을 서브 에이전트
 | `{task-id} marked as passed but critic-review.json is missing` | Critic 출시 전 리뷰 증거 없이 작업이 "passed"로 승격되었습니다. |
 | `{task-id} marked as passed but nova-verdict.json is missing` | Nova 제품 리뷰 증거 없이 작업이 "passed"로 승격되었습니다. |
 | `{task-id} marked as passed but retro/{task-id}.json is missing` | Scrum 회고 증거 없이 작업이 "passed"로 승격되었습니다. |
-| `File written outside allowed_paths for {task-id}` | 작업의 허용 경로 밖에 파일이 작성되었습니다. |
-| `seed.json was modified after intake` | 동결된 seed 사양이 변경되었습니다. |
 
 ---
 
-### 5. verify-pipeline.sh
+### 5. restore-context.sh
+
+| 속성 | 값 |
+|------|-----|
+| **Event** | `PostCompact` |
+| **Matcher** | _(없음 -- 모든 컨텍스트 압축 후 실행)_ |
+| **Timeout** | 10초 |
+| **Script** | `plugin/hooks/scripts/restore-context.sh` |
+
+#### 동작 설명
+
+Claude Code가 대화 컨텍스트를 압축한 후(컨텍스트 윈도우에 맞추기 위해), 중요한 Geas 상태가 손실될 수 있습니다. 이 hook은 필수 상태를 재주입하여 오케스트레이터가 현재 실행의 추적을 잃지 않고 계속할 수 있게 합니다.
+
+**단계별 동작:**
+
+1. stdin JSON에서 `cwd`를 파싱합니다.
+2. `.geas/` 디렉토리가 있는지 확인합니다. 없으면 조용히 종료합니다.
+3. `.geas/state/run.json`과 `.geas/rules.md`를 읽습니다.
+4. 현재 실행 상태와 규칙을 `additionalContext` JSON으로 출력합니다.
+
+#### 종료 동작
+
+- **항상 exit 0으로 종료합니다.** 이 hook은 절대 차단하지 않습니다. 순수하게 정보 제공 목적이며, 압축 후 컨텍스트를 재주입합니다.
+
+#### 종료 코드
+
+| 코드 | 의미 |
+|------|------|
+| `0` | 성공. 복원된 컨텍스트로 세션이 계속됩니다. |
+
+---
+
+### 6. track-cost.sh
+
+| 속성 | 값 |
+|------|-----|
+| **Event** | `SubagentStop` |
+| **Matcher** | _(없음 -- 모든 서브 에이전트 완료 후 실행)_ |
+| **Timeout** | 10초 |
+| **Script** | `plugin/hooks/scripts/track-cost.sh` |
+
+#### 동작 설명
+
+서브 에이전트가 완료된 후, 이 hook은 에이전트 이름, 작업 ID, 사용된 모델을 `.geas/costs.jsonl`에 기록합니다. 이 데이터는 `run-summary` 스킬이 실행 종료 시 비용 보고서 섹션을 생성하는 데 사용됩니다.
+
+#### 종료 동작
+
+- **항상 exit 0으로 종료합니다.** 이 hook은 절대 차단하지 않습니다. 순수한 로깅 hook입니다.
+
+#### 종료 코드
+
+| 코드 | 의미 |
+|------|------|
+| `0` | 성공. 비용 항목이 기록되었습니다. |
+
+---
+
+### 7. verify-pipeline.sh
 
 | 속성 | 값 |
 |------|-----|
@@ -279,7 +326,7 @@ Session Start
     |
     v
 [SessionStart] ---> session-init.sh
-    |                  - run.json 상태 복원
+    |                  - run.json 상태 + 체크포인트 복원
     |                  - rules.md가 없으면 생성
     |                  - 상태 요약 출력
     v
@@ -289,11 +336,24 @@ Agent Work Loop
     |       |
     |       v
     |   [PostToolUse] ---> protect-geas-state.sh
-    |       |                - .geas/tasks/*.json에서 조기 "passed" 확인
+    |       |                - .geas/**/*.json에 타임스탬프 주입
     |       |                - .geas/spec/seed.json 수정 확인
+    |       |                - prohibited_paths 확인
+    |       |                - (경고만, 차단하지 않음)
+    |       |
+    |       +-------------> verify-task-status.sh
+    |       |                - 태스크 passed 시 5개 증거 파일 확인
     |       |                - (경고만, 차단하지 않음)
     |       v
     |   도구 작업 진행
+    |
+    |--- 컨텍스트 압축
+    |       |
+    |       v
+    |   [PostCompact] ---> restore-context.sh
+    |       |                - 실행 상태와 규칙 재주입
+    |       v
+    |   복원된 컨텍스트로 세션 계속
     |
     |--- 서브 에이전트 디스패치
     |       |
@@ -309,10 +369,9 @@ Agent Work Loop
     |   서브 에이전트 완료
     |       |
     |       v
-    |   [SubagentStop] ---> verify-evidence.sh
-    |       |                 - 증거 디렉토리 존재 확인
-    |       |                 - 증거 JSON 파일 존재 확인
-    |       |                 - (경고만, 차단하지 않음)
+    |   [SubagentStop] ---> track-cost.sh
+    |       |                 - 에이전트/태스크/모델을 costs.jsonl에 기록
+    |       |                 - (차단하지 않음)
     |       v
     |   메인 에이전트가 결정: 재시도 또는 계속
     |
@@ -331,10 +390,12 @@ Session End Requested
 
 ### 주요 상호작용
 
-- **session-init**은 상태를 복원하여 무대를 설정합니다. 이것이 없으면 에이전트는 이전 작업에 대한 컨텍스트 없이 시작합니다.
+- **session-init**은 상태와 체크포인트 정보를 복원하여 무대를 설정합니다. 이것이 없으면 에이전트는 이전 작업에 대한 컨텍스트 없이 시작합니다.
 - **inject-context**는 모든 서브 에이전트가 프로젝트 규칙과 자체 축적된 메모리를 상속받도록 합니다. 이것이 없으면 서브 에이전트는 프로젝트별 제약 조건이나 이전 실행에서 얻은 교훈에 대한 지식 없이 시작합니다.
-- **protect-geas-state**는 에이전트가 파일을 쓸 때 실시간으로 실수를 포착합니다. **verify-pipeline**이 나중에 강제할 문제에 대한 조기 경고 역할을 합니다.
-- **verify-evidence**는 결과를 쓰지 않고 완료된 서브 에이전트를 포착합니다. 메인 에이전트는 이 경고를 사용하여 `verify-fix-loop` 스킬을 트리거할 수 있습니다.
+- **protect-geas-state**는 타임스탬프 주입, seed 보호, 금지 경로 경계를 에이전트가 파일을 쓸 때 실시간으로 강제합니다.
+- **verify-task-status**는 조기 태스크 완료를 포착합니다 -- 5개의 필수 증거 파일 없이 태스크가 "passed"로 표시될 때. **verify-pipeline**이 나중에 강제할 문제에 대한 조기 경고 역할을 합니다.
+- **restore-context**는 컨텍스트 압축 후 중요 상태를 재주입하여 오케스트레이터가 현재 실행의 추적을 잃지 않도록 합니다.
+- **track-cost**는 서브 에이전트 완료 후 에이전트, 태스크, 모델 정보를 기록합니다. 이 데이터는 run-summary 비용 보고서에 사용됩니다.
 - **verify-pipeline**은 최종 관문입니다. 이전 경고가 무시되었더라도 이 hook은 불완전한 증거로 세션이 닫히는 것을 방지합니다. "선언보다 증거(Evidence over declaration)" 원칙의 기계적 강제입니다.
 
 
@@ -342,7 +403,7 @@ Session End Requested
 
 ### Python (필수)
 
-다섯 개의 hook 모두 JSON 파싱에 `jq` 대신 Python을 사용합니다. 이는 의도적인 선택입니다:
+모든 hook은 JSON 파싱에 `jq` 대신 Python을 사용합니다. 이는 의도적인 선택입니다:
 
 - Python은 거의 모든 개발 머신에서 사용 가능합니다.
 - `jq`는 macOS나 Windows에 기본 설치되어 있지 않으며 별도 설치가 필요합니다.
@@ -365,7 +426,8 @@ Hook은 `.geas/` 디렉토리 하위의 파일을 읽고 확인합니다:
 | `.geas/memory/agents/{agent-type}.md` | 에이전트별 축적 메모리 (inject-context가 주입) |
 | `.geas/tasks/*.json` | TaskContract 파일 (protect-geas-state가 모니터링) |
 | `.geas/spec/seed.json` | 동결된 프로젝트 사양 (protect-geas-state가 모니터링) |
-| `.geas/evidence/{task-id}/*.json` | 증거 파일 (verify-evidence와 verify-pipeline이 확인) |
+| `.geas/evidence/{task-id}/*.json` | 증거 파일 (verify-task-status와 verify-pipeline이 확인) |
+| `.geas/costs.jsonl` | 비용 추적 로그 (track-cost가 기록, run-summary가 읽음) |
 
 
 ## 문제 해결

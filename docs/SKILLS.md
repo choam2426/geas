@@ -161,9 +161,9 @@ Key rules:
 | **Outputs** | `.geas/spec/seed.json` (conforms to `schemas/seed.schema.json`). |
 
 Process:
-1. Score readiness across 5 dimensions (Clarity, Scope, Users, Constraints, Acceptance), each 0-20.
-2. If score < threshold (60 for Initiative, 40 for Sprint), ask Socratic questions (max 2 rounds).
-3. Produce `seed.json` with acceptance criteria (>= 3), scope boundaries, and readiness breakdown.
+1. Ask brainstorming-style questions, one at a time, building on previous answers.
+2. Track completeness across key areas (scope, users, constraints, acceptance criteria) using a checklist.
+3. Produce `seed.json` with acceptance criteria (>= 3), scope boundaries, and completeness checklist.
 4. Confirm with user before freezing.
 
 ---
@@ -182,7 +182,7 @@ Process:
 A TaskContract includes:
 - Sequential task ID, title, goal
 - Assigned worker and reviewer
-- Allowed and prohibited file paths
+- Prohibited file paths
 - Acceptance criteria (>= 3, verifiable)
 - Eval commands (build, lint, test)
 - Retry budget and escalation policy
@@ -203,7 +203,7 @@ A TaskContract includes:
 
 Packet content varies by worker role:
 - **Designer (Palette)**: mission context, user requirements, UI patterns, design constraints.
-- **Implementer (Pixel/Circuit)**: design spec, tech approach, allowed/prohibited paths, eval commands.
+- **Implementer (Pixel/Circuit)**: design spec, tech approach, prohibited paths, eval commands.
 - **Reviewer (Forge)**: files changed, architecture decisions, acceptance criteria.
 - **Tester (Sentinel)**: acceptance criteria, eval commands, expected behavior, edge cases.
 - **Product (Nova)**: feature goal, all evidence bundles, mission alignment.

@@ -163,9 +163,9 @@ task-compiler  -->  context-packet  -->  [에이전트 작업]  -->  evidence-ga
 | **출력** | `.geas/spec/seed.json` (`schemas/seed.schema.json` 준수). |
 
 프로세스:
-1. 5개 차원(Clarity, Scope, Users, Constraints, Acceptance)에 걸쳐 준비도를 0-20으로 평가합니다.
-2. 점수가 임계값(Initiative은 60, Sprint는 40) 미만이면 소크라테스식 질문을 합니다(최대 2라운드).
-3. 수락 기준(3개 이상), 범위 경계, 준비도 분석이 포함된 `seed.json`을 생성합니다.
+1. 브레인스토밍 스타일로 한 번에 하나씩 질문하며, 이전 답변을 기반으로 합니다.
+2. 핵심 영역(범위, 사용자, 제약 조건, 수락 기준)에 걸쳐 체크리스트로 완전성을 추적합니다.
+3. 수락 기준(3개 이상), 범위 경계, 완전성 체크리스트가 포함된 `seed.json`을 생성합니다.
 4. 확정 전 사용자에게 확인을 받습니다.
 
 ---
@@ -184,7 +184,7 @@ task-compiler  -->  context-packet  -->  [에이전트 작업]  -->  evidence-ga
 TaskContract에 포함되는 항목:
 - 순차 태스크 ID, 제목, 목표
 - 할당된 워커와 리뷰어
-- 허용 및 금지 파일 경로
+- 금지 파일 경로
 - 수락 기준 (3개 이상, 검증 가능)
 - Eval 명령어 (build, lint, test)
 - 재시도 예산 및 에스컬레이션 정책
@@ -205,7 +205,7 @@ TaskContract에 포함되는 항목:
 
 워커 역할에 따라 패킷 내용이 달라집니다:
 - **Designer (Palette)**: 미션 컨텍스트, 사용자 요구사항, UI 패턴, 디자인 제약.
-- **Implementer (Pixel/Circuit)**: 디자인 스펙, 기술 접근 방식, 허용/금지 경로, eval 명령어.
+- **Implementer (Pixel/Circuit)**: 디자인 스펙, 기술 접근 방식, 금지 경로, eval 명령어.
 - **Reviewer (Forge)**: 변경된 파일, 아키텍처 결정, 수락 기준.
 - **Tester (Sentinel)**: 수락 기준, eval 명령어, 기대 동작, 엣지 케이스.
 - **Product (Nova)**: 기능 목표, 모든 에비던스 번들, 미션 정합성.
