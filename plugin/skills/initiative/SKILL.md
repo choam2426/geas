@@ -102,7 +102,19 @@ Agent(agent: "palette", prompt: "Read .geas/packets/{task-id}/palette.md. Write 
 ```
 Verify `.geas/evidence/{task-id}/palette.json` exists.
 
-### 2.2 Tech Guide (Forge) [DEFAULT — skip-if: trivial task (config, version bump)]
+### 2.2 Tech Guide (Forge) [DEFAULT — skip when ALL: existing pattern, no new libs, single module, no schema change]
+**Skip** when ALL of these are true:
+- Task follows an existing pattern in conventions.md
+- No new external libraries or services
+- Single module scope (no cross-boundary changes)
+- No data model or schema changes
+
+**Spawn** when ANY of these are true:
+- New external library/service integration
+- Architecture pattern change
+- Cross-module dependencies
+- New data model or schema changes
+
 Generate ContextPacket, then:
 ```
 Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge.md. Write tech guide to .geas/evidence/{task-id}/forge.json")
