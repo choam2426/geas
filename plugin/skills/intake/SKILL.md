@@ -1,87 +1,89 @@
 ---
 name: intake
-description: Mission intake gate — surfaces hidden assumptions via Socratic questioning, freezes a seed spec before execution begins. Prevents garbage-in-garbage-out.
+description: Mission intake gate — collaborative exploration to freeze a seed spec. One question at a time, section-by-section approval.
 ---
 
 # Intake Gate
 
 Before any execution mode (Initiative, Sprint), run this gate to freeze the mission specification.
-
-**Skip this skill entirely for Debate mode** — the debate question itself is the specification.
+Skip this skill entirely for Debate mode.
 
 ## Purpose
 
-Missions arrive as natural language with hidden assumptions, ambiguous scope, and implicit constraints.
-This gate surfaces those gaps and produces an immutable `seed.json` before the team starts building.
+Missions arrive as natural language with hidden assumptions, ambiguous scope, and implicit constraints. This gate surfaces those gaps through collaborative exploration and produces an immutable `seed.json` before the team starts building.
 
 ## Process
 
-### Step 1: Analyze the Mission and Score Readiness
+### Step 1: Assess Scope
 
-Read the raw mission string. Score each dimension 0-20:
+Read the raw mission. Determine if it's too large for a single spec:
+- If the mission describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately
+- Propose decomposition: what are the independent pieces, how do they relate, what order to build?
+- Then brainstorm the first sub-project through the normal intake flow
 
-| Dimension | 0-5 (Critical gap) | 6-10 (Vague) | 11-15 (Partial) | 16-20 (Clear) |
-|-----------|---------------------|--------------|-----------------|----------------|
-| **Clarity** | No discernible goal | Goal implied but ambiguous | Goal stated, some ambiguity | Specific, unambiguous goal |
-| **Scope** | No boundaries mentioned | Implied boundaries only | Some in/out stated | Clear in/out with rationale |
-| **Users** | No user mentioned | "Users" without specifics | User type identified | Persona with context |
-| **Constraints** | None mentioned | Implied (e.g., "simple") | Some explicit constraints | Technical + business constraints |
-| **Acceptance** | No success criteria | Vague ("should work") | Some measurable criteria | 3+ verifiable criteria |
+### Step 2: Explore Requirements
 
-Calculate `readiness_score` = sum of all 5 dimensions (0-100).
-
-Record `readiness_breakdown` with per-dimension scores.
-
-Determine next action based on score:
-- **Score >= 80**: Mission is clear → proceed directly to Step 3
-- **Score 40-79**: Gaps exist → ask targeted Socratic questions (Step 2) focusing on dimensions scoring <= 10
-- **Score < 40**: Mission is too vague → ask 3-5 deep questions (Step 2) covering all low dimensions
-
-### Step 2: Socratic Questioning (if ambiguity is Medium or High)
-
-Ask the user questions that surface hidden assumptions. Use the AskUserQuestion tool.
-
-Question categories:
-1. **Scope boundary**: "You mentioned X — does that include Y, or is Y out of scope?"
-2. **User definition**: "Who is the primary user? What's their technical level?"
-3. **Constraint surfacing**: "Any preferences on tech stack, hosting, or budget?"
-4. **Success criteria**: "How will you know this is done? What must work on day one?"
-5. **Anti-scope**: "What should this explicitly NOT do, even if it seems related?"
+Ask the user questions to surface hidden assumptions. Use the AskUserQuestion tool.
 
 Rules:
-- Ask maximum 5 questions per round, minimum 2
-- Only ask one round for Sprint mode (feature-level clarity is enough)
-- Never ask questions whose answers are obvious from the mission
-- If the user says "just build it" — respect that, but still produce a seed with explicit ambiguity_notes
+- **One question at a time** — do not batch questions
+- **Multiple choice preferred** — easier for the user than open-ended
+- **Target unchecked items only** — track a mental checklist: mission, acceptance_criteria, scope_out, target_user, constraints. Only ask about items not yet addressed.
+- Never ask questions whose answers are obvious from the mission text
+- Stop when all checklist items are satisfied — no fixed question limit
 
-After receiving answers, **re-score** all 5 dimensions. Update `readiness_score`.
-- If score now meets the threshold for the target execution mode → proceed to Step 3
-- If score still below threshold → ask one more focused round (maximum 2 Socratic rounds total)
-- If the user says "just build it" after re-scoring → proceed to Step 3 regardless, but set `readiness_override: true` in the seed
+Question categories:
+1. **Scope boundary**: "You mentioned X — does that include Y?" (with options)
+2. **User definition**: "Who primarily uses this?" (with persona options)
+3. **Constraint surfacing**: "Any tech stack or platform preferences?" (with common options)
+4. **Success criteria**: "How will you know this is done? What must work on day one?"
+5. **Anti-scope**: "What should this explicitly NOT do?" (with related-but-excluded options)
 
-### Step 3: Produce Seed Spec
+If the user says "just build it" at any point — respect that, set `readiness_override: true`, fill best-effort values for unchecked items, and proceed.
 
-Write `.geas/spec/seed.json` following the schema at `schemas/seed.schema.json`.
+### Step 3: Propose Approaches
 
-Before writing, ensure `.geas/spec/` directory exists. Create it if needed:
+When requirements are clear enough, present 2-3 scope/approach options:
+- Lead with the recommended option and explain why
+- Include trade-offs for each
+- Example format:
+  ```
+  Option A (recommended): CLI-only with SQLite — simple, fast, self-contained
+  Option B: CLI + REST API — extensible but more complexity
+  Option C: TUI with ratatui — richer UX but harder to test
+  ```
+- Let the user choose direction before finalizing the seed
+
+### Step 4: Build Seed Section by Section
+
+Present each seed section to the user and get explicit approval before moving on:
+
+1. **Mission**: "Mission: '{refined mission statement}'. Does this capture your intent?"
+2. **Scope IN**: "These features are IN scope: [list]. Correct?"
+3. **Scope OUT**: "These are explicitly OUT of scope: [list]. Anything to add or remove?"
+4. **Acceptance Criteria**: "Done when: [numbered list]. These are the success criteria. Correct?"
+5. **Target User**: "Primary user: '{persona}'. Correct?"
+6. **Constraints**: "Constraints: [list]. Anything else?"
+
+As each section is approved, mark it in the completeness checklist.
+
+### Step 5: Verify Completeness and Freeze Seed
+
+Check the completeness checklist — all items must be true:
+- `mission`: approved
+- `acceptance_criteria`: approved (>= 3 items)
+- `scope_out`: approved (>= 1 item)
+- `target_user`: approved
+- `constraints`: approved
+
+Ensure `.geas/spec/` directory exists:
 ```bash
 mkdir -p .geas/spec
 ```
 
-**Go/No-go gate**:
-- acceptance_criteria must have >= 3 items
-- scope_out must have >= 1 item
-- If these minimums can't be met even after questioning, note them in ambiguity_notes and proceed with a warning
+Write `.geas/spec/seed.json` following the schema at `schemas/seed.schema.json`.
 
-Include in seed.json:
-- `readiness_score`: the final calculated score (0-100)
-- `readiness_breakdown`: per-dimension scores (`{ clarity, scope, users, constraints, acceptance }`)
-- If user overrode the threshold: set `readiness_override: true`
-
-### Step 4: Confirm with User
-
-Show the user the seed summary in this format:
-
+Show the user a final summary:
 ```
 Mission: <refined mission>
 Target User: <who>
@@ -93,30 +95,24 @@ Acceptance Criteria:
   3. <criterion>
 Constraints: <if any>
 Assumptions: <if any>
-Readiness Score: <score>/100 (Clarity: <n>, Scope: <n>, Users: <n>, Constraints: <n>, Acceptance: <n>)
 ```
 
 Ask: "Does this capture your intent? Any changes before we start?"
-
-If the user confirms → seed is frozen. Proceed to execution mode.
-If the user changes something → update seed.json and re-confirm.
+If confirmed → seed is frozen. Proceed to execution mode.
+If changes → update and re-confirm.
 
 ## Sprint Mode Variant
 
 For Sprint mode (adding a feature to an existing project):
-
-1. Skip deep Socratic questioning
-2. Focus on:
+1. Skip Step 3 (approach proposals) — the approach is constrained by existing codebase
+2. Step 2 limited to 1-2 questions focused on:
    - What exactly does this feature do?
    - What existing code does it touch?
    - What should NOT change?
-3. Produce a lighter seed with emphasis on:
-   - `scope_in`: the specific feature
-   - `scope_out`: existing functionality that must remain unchanged
-   - `constraints`: existing tech stack, patterns, conventions
+3. Produce a lighter seed with emphasis on scope_in (the specific feature), scope_out (existing functionality that must not change), and constraints (existing tech stack)
 
 ## Output
 
 - **File**: `.geas/spec/seed.json`
 - **Format**: JSON conforming to `schemas/seed.schema.json`
-- **Immutability**: Once confirmed, the seed should not be modified during execution. If scope must change, trigger `/pivot-protocol` instead.
+- **Immutability**: Once confirmed, the seed should not be modified during execution. If scope must change, trigger `/geas:pivot-protocol` instead.
