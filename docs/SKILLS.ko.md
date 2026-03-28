@@ -313,7 +313,7 @@ TaskContract에 포함되는 항목:
 | **입력** | intake의 seed 스펙, 기존 코드베이스 컨벤션 (`.geas/memory/_project/conventions.md`). |
 | **출력** | 전체 에비던스 트레일이 포함된 배포된 기능. |
 
-파이프라인: Compile TaskContract -> Design (Palette) -> Tech Guide (Forge) -> Implementation (worktree) -> Code Review (Forge) -> Testing (Sentinel) -> Evidence Gate -> Nova Product Review -> Ship Gate -> Retrospective (Scrum) -> Resolve (Keeper 커밋) -> Run Summary.
+파이프라인: Compile TaskContract -> Design (Palette) -> Tech Guide (Forge) -> Implementation (worktree) -> Code Review (Forge) -> Testing (Sentinel) -> Evidence Gate -> Critic Pre-ship Review (Critic) -> Nova Product Review -> Ship Gate -> Retrospective (Scrum) -> Resolve (Keeper 커밋) -> Run Summary.
 
 Evidence Gate 실패 시, verify-fix-loop가 원래 워커 에이전트를 스폰하여 수정합니다(직접 코드를 수정하지 않음).
 

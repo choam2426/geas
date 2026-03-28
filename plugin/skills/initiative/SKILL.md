@@ -149,8 +149,9 @@ Agent(agent: "nova", prompt: "Read all evidence at .geas/evidence/{task-id}/ inc
 **Before marking any task as "passed", verify:**
 - `.geas/evidence/{task-id}/forge-review.json` exists (Read it)
 - `.geas/evidence/{task-id}/sentinel.json` exists (Read it)
+- `.geas/evidence/{task-id}/critic-review.json` exists (Read it)
 - `.geas/evidence/{task-id}/nova-verdict.json` exists (Read it)
-**If ANY is missing: go back and execute the missing step. Do NOT proceed without all three.**
+**If ANY is missing: go back and execute the missing step. Do NOT proceed without all four.**
 
 ### Retrospective (Scrum) [MANDATORY]
 ```

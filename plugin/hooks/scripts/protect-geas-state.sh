@@ -32,7 +32,44 @@ fi
 
 GEAS_DIR="$CWD/.geas"
 
-# Not a .geas file — skip
+# Path boundary check — warn if file is outside task's allowed_paths
+python -c "
+import json, sys, os, fnmatch
+
+cwd = sys.argv[1]
+fp = sys.argv[2]
+geas = os.path.join(cwd, '.geas')
+run_file = os.path.join(geas, 'state', 'run.json')
+
+if not os.path.isfile(run_file):
+    sys.exit(0)
+
+run = json.load(open(run_file))
+tid = run.get('current_task_id', '')
+if not tid:
+    sys.exit(0)
+
+task_file = os.path.join(geas, 'tasks', f'{tid}.json')
+if not os.path.isfile(task_file):
+    sys.exit(0)
+
+task = json.load(open(task_file))
+rel = os.path.relpath(fp, cwd).replace(chr(92), '/')
+
+if rel.startswith('.geas/'):
+    sys.exit(0)
+
+for pat in task.get('prohibited_paths', []):
+    if fnmatch.fnmatch(rel, pat):
+        print(f'[Geas] WARNING: Write to {rel} matches prohibited path \"{pat}\" in {tid}', file=sys.stderr)
+        sys.exit(0)
+
+allowed = task.get('allowed_paths', [])
+if allowed and not any(fnmatch.fnmatch(rel, p) for p in allowed):
+    print(f'[Geas] WARNING: Write to {rel} outside allowed_paths of {tid}', file=sys.stderr)
+" "$CWD" "$FILE_PATH" 2>&1 >&2 || true
+
+# .geas/ file checks
 case "$FILE_PATH" in
   */.geas/*.json)
     # Inject real timestamp if created_at is missing or dummy
@@ -76,6 +113,13 @@ if d.get('status') == 'passed':
         print(f'[Geas] Warning: {tid} marked as passed but forge-review.json is missing')
     if not os.path.isfile(os.path.join(edir, 'sentinel.json')):
         print(f'[Geas] Warning: {tid} marked as passed but sentinel.json is missing')
+    if not os.path.isfile(os.path.join(edir, 'critic-review.json')):
+        print(f'[Geas] Warning: {tid} marked as passed but critic-review.json is missing')
+    if not os.path.isfile(os.path.join(edir, 'nova-verdict.json')):
+        print(f'[Geas] Warning: {tid} marked as passed but nova-verdict.json is missing')
+    retro_path = os.path.join(geas, 'memory', 'retro', tid + '.json')
+    if not os.path.isfile(retro_path):
+        print(f'[Geas] Warning: {tid} marked as passed but retro/{tid}.json is missing (Scrum retrospective not run)')
 " "$FILE_PATH" "$GEAS_DIR" 2>/dev/null || echo "")
       if [ -n "$WARN" ]; then
         echo "$WARN" >&2

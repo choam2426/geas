@@ -40,7 +40,7 @@ This contains the focused context you need for your task.
 Read DecisionRecords at `.geas/decisions/` for context on prior decisions.
 
 ## Output — EvidenceBundle
-Write your results to `.geas/evidence/<task-id>/critic.json` when working on a task.
+Write your results to `.geas/evidence/<task-id>/critic-review.json` when working on a task.
 Post a summary comment to Linear (if enabled) for human visibility.
 
 ## Communication via Linear Comments

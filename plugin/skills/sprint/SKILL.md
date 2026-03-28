@@ -62,6 +62,12 @@ Verify evidence.
 Run eval_commands. Check acceptance criteria. Log detailed result.
 If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix — do NOT fix code directly.** After fix, re-run gate.
 
+### 7.5 Critic Pre-ship Review [MANDATORY]
+```
+Agent(agent: "critic", prompt: "Read all evidence at .geas/evidence/{task-id}/. Challenge: is this truly ready to ship? Identify risks, missing edge cases, or technical debt. Write to .geas/evidence/{task-id}/critic-review.json")
+```
+Verify `.geas/evidence/{task-id}/critic-review.json` exists.
+
 ### 8. Nova Product Review [MANDATORY]
 ```
 Agent(agent: "nova", prompt: "Read all evidence at .geas/evidence/{task-id}/. Verdict: Ship/Iterate/Cut. Write to .geas/evidence/{task-id}/nova-verdict.json")
@@ -71,8 +77,9 @@ Agent(agent: "nova", prompt: "Read all evidence at .geas/evidence/{task-id}/. Ve
 **Before marking "passed", verify these exist:**
 - `.geas/evidence/{task-id}/forge-review.json`
 - `.geas/evidence/{task-id}/sentinel.json`
+- `.geas/evidence/{task-id}/critic-review.json`
 - `.geas/evidence/{task-id}/nova-verdict.json`
-**If ANY missing: execute the missing step.**
+**If ANY missing: execute the missing step. Do NOT proceed without all four.**
 
 ### Retrospective (Scrum) [MANDATORY]
 ```

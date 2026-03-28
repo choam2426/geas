@@ -311,7 +311,7 @@ Every task gets the full pipeline. Code Review and Testing are mandatory for eve
 | **Inputs** | Seed spec from intake, existing codebase conventions (`.geas/memory/_project/conventions.md`). |
 | **Outputs** | Shipped feature with full evidence trail. |
 
-Pipeline: Compile TaskContract -> Design (Palette) -> Tech Guide (Forge) -> Implementation (worktree) -> Code Review (Forge) -> Testing (Sentinel) -> Evidence Gate -> Nova Product Review -> Ship Gate -> Retrospective (Scrum) -> Resolve (Keeper commits) -> Run Summary.
+Pipeline: Compile TaskContract -> Design (Palette) -> Tech Guide (Forge) -> Implementation (worktree) -> Code Review (Forge) -> Testing (Sentinel) -> Evidence Gate -> Critic Pre-ship Review -> Nova Product Review -> Ship Gate -> Retrospective (Scrum) -> Resolve (Keeper commits) -> Run Summary.
 
 On Evidence Gate failure, verify-fix-loop spawns the original worker agent to fix (never fix code directly).
 

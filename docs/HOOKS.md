@@ -187,17 +187,20 @@ After a sub-agent finishes its work, this hook checks whether the agent produced
 
 Every time an agent uses the `Write` or `Edit` tool, this hook inspects the target file path. If the file is inside `.geas/`, the hook applies integrity checks to prevent premature or unauthorized state changes.
 
-**Two monitored paths:**
+**Three enforcement areas:**
 
 1. **`.geas/tasks/*.json` (TaskContract files)** -- If a task's status is set to `"passed"`, the hook checks that the required verification evidence exists:
    - `forge-review.json` (Code Review by the Forge agent)
    - `sentinel.json` (QA Testing by the Sentinel agent)
+   - `critic-review.json` (Critic Pre-ship Review)
+   - `nova-verdict.json` (Nova Product Review)
+   - `memory/retro/{task-id}.json` (Scrum Retrospective)
 
-   If either file is missing, the hook emits a warning.
+   If any file is missing, the hook emits a warning.
 
 2. **`.geas/spec/seed.json`** -- The seed file is frozen after intake. Any modification triggers a warning that the seed should not be changed.
 
-Files outside `.geas/` are ignored entirely.
+3. **Path boundary enforcement** -- Checks all Write|Edit operations against the current task's `allowed_paths` and `prohibited_paths`. Warns (does not block) if a file is outside allowed paths or matches a prohibited path.
 
 #### Exit behavior
 
@@ -215,7 +218,12 @@ Files outside `.geas/` are ignored entirely.
 |---------|---------|
 | `{task-id} marked as passed but forge-review.json is missing` | Task promoted to "passed" without Code Review evidence. |
 | `{task-id} marked as passed but sentinel.json is missing` | Task promoted to "passed" without QA Testing evidence. |
+| `{task-id} marked as passed but critic-review.json is missing` | Task promoted to "passed" without Critic Pre-ship Review evidence. |
+| `{task-id} marked as passed but nova-verdict.json is missing` | Task promoted to "passed" without Nova Product Review evidence. |
+| `{task-id} marked as passed but retro/{task-id}.json is missing` | Task promoted to "passed" without Scrum Retrospective evidence. |
 | `seed.json was modified after intake` | The frozen seed specification was changed. |
+| `File {path} is outside allowed_paths for {task-id}` | A Write/Edit target is outside the current task's allowed path boundaries. |
+| `File {path} matches prohibited_paths for {task-id}` | A Write/Edit target matches a prohibited path pattern for the current task. |
 
 ---
 
@@ -241,6 +249,9 @@ Before a session ends, this hook checks that all completed tasks have the mandat
 5. Iterate over `completed_tasks` array. For each task, check for:
    - `forge-review.json` in `.geas/evidence/{task-id}/`
    - `sentinel.json` in `.geas/evidence/{task-id}/`
+   - `critic-review.json` in `.geas/evidence/{task-id}/`
+   - `nova-verdict.json` in `.geas/evidence/{task-id}/`
+   - `memory/retro/{task-id}.json` in `.geas/`
 6. If any evidence is missing, print the list and **block session exit**.
 
 #### Exit behavior
@@ -390,12 +401,12 @@ sudo ln -s $(which python3) /usr/local/bin/python
 
 **Symptom:** Session refuses to end with the message `Pipeline incomplete. MANDATORY evidence missing`.
 
-**Cause:** `verify-pipeline.sh` found completed tasks without the required `forge-review.json` or `sentinel.json` evidence files.
+**Cause:** `verify-pipeline.sh` found completed tasks without the required evidence files: `forge-review.json`, `sentinel.json`, `critic-review.json`, `nova-verdict.json`, or `memory/retro/{task-id}.json`.
 
 **Fix:** This is working as designed. Complete the missing verification steps:
 1. Check which tasks are listed in the error message.
-2. Run the Code Review (Forge) and/or QA Testing (Sentinel) steps for those tasks.
-3. Verify that evidence files are written to `.geas/evidence/{task-id}/`.
+2. Run the missing steps (Code Review, QA Testing, Critic Pre-ship Review, Nova Product Review, or Scrum Retrospective) for those tasks.
+3. Verify that evidence files are written to `.geas/evidence/{task-id}/` and `.geas/memory/retro/`.
 4. Attempt to end the session again.
 
 ### Warnings about seed.json modification

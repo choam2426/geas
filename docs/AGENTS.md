@@ -282,9 +282,10 @@ Scroll ensures the product is documented. Code without docs is treated as techni
 - Genesis phase: architecture and product critique.
 - Planning: plan critique after task breakdown.
 - Vote rounds: expected to disagree on at least one aspect.
+- Pre-ship review: invoked for every task in both Initiative and Sprint modes, before Nova renders a verdict.
 
 **Evidence produced.**
-- `critic.json` -- structured critique with risk identification, evidence, alternatives, trade-offs, and verdict (Disagree / Caution / Grudging Agree).
+- `critic-review.json` -- structured critique with risk identification, evidence, alternatives, trade-offs, and verdict (Disagree / Caution / Grudging Agree). Used for both general critiques and pre-ship reviews.
 
 **Key behaviors.**
 - Always provides alternatives -- criticism without alternatives is not accepted.
@@ -351,10 +352,11 @@ Every task follows a mandatory pipeline. Compass enforces this sequence:
 | 4. Code Review | Forge | MANDATORY |
 | 5. Testing | Sentinel | MANDATORY |
 | 6. Evidence Gate | (automated) | MANDATORY |
-| 7. Product Review | Nova | MANDATORY |
-| 8. Retrospective | Scrum | MANDATORY |
+| 7. Critic Pre-ship Review | Critic | MANDATORY |
+| 8. Product Review | Nova | MANDATORY |
+| 9. Retrospective | Scrum | MANDATORY |
 
-Before shipping, Compass verifies that `forge-review.json`, `sentinel.json`, and `nova-verdict.json` all exist. If any is missing, the skipped step is executed. After Ship Gate, Scrum runs a retrospective to update rules and record lessons.
+Before shipping, Compass verifies that `forge-review.json`, `sentinel.json`, `critic-review.json`, and `nova-verdict.json` all exist. If any is missing, the skipped step is executed. After Ship Gate, Scrum runs a retrospective to update rules and record lessons. The retro file (`memory/retro/{task-id}.json`) is also checked by the `verify-pipeline` hook.
 
 ---
 

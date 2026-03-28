@@ -178,11 +178,11 @@ For each TaskContract, in dependency order:
 
    If the gate fails, the verify-fix loop kicks in: the responsible agent (Pixel for frontend issues, Circuit for backend issues) gets a fix-specific ContextPacket and tries again. This repeats up to the task's retry budget (default 3). If the budget is exhausted, it escalates -- Forge reviews the design, or Nova makes a strategic call (continue, cut, or pivot).
 
-7. **Critic Pre-ship Review (Critic)** -- Before Nova renders a verdict, Critic reviews the accumulated evidence and challenges anything suspicious: unverified assumptions, missing edge cases, or acceptance criteria that passed too easily. Critic's feedback is written to `.geas/evidence/{task-id}/critic.json`.
+7. **Critic Pre-ship Review (Critic)** -- Before Nova renders a verdict, Critic reviews the accumulated evidence and challenges anything suspicious: unverified assumptions, missing edge cases, or acceptance criteria that passed too easily. Critic's feedback is written to `.geas/evidence/{task-id}/critic-review.json`.
 
 8. **Nova Product Review** -- Nova reads all evidence (including Critic's challenges) and delivers a verdict: Ship, Iterate, or Cut.
 
-9. **Ship Gate** -- Before marking a task as passed, Compass verifies that `forge-review.json`, `sentinel.json`, `critic.json`, and `nova-verdict.json` all exist. If any is missing, the missing step runs before proceeding.
+9. **Ship Gate** -- Before marking a task as passed, Compass verifies that `forge-review.json`, `sentinel.json`, `critic-review.json`, and `nova-verdict.json` all exist, plus `memory/retro/{task-id}.json` after retrospective. If any is missing, the missing step runs before proceeding.
 
 10. **Keeper Commit** -- Once the Ship Gate passes, Keeper commits the task's changes with a structured commit message that references the task ID and acceptance criteria.
 
@@ -227,7 +227,7 @@ After a full run, you will find artifacts at every step:
   evidence/task-001/pixel.json            -- implementation evidence
   evidence/task-001/forge-review.json     -- code review
   evidence/task-001/sentinel.json         -- QA results
-  evidence/task-001/critic.json           -- Critic's pre-ship review
+  evidence/task-001/critic-review.json    -- Critic's pre-ship review
   evidence/task-001/nova-verdict.json     -- product review
   evidence/polish/shield.json             -- security review
   evidence/polish/scroll.json             -- documentation review
@@ -291,9 +291,11 @@ If `conventions.md` does not exist yet (your first Sprint in a project), Forge i
 
 7. **Evidence Gate** -- Same 3-tier gate as Initiative (mechanical, semantic, product).
 
-8. **Nova Product Review** -- Ship, Iterate, or Cut verdict.
+8. **Critic Pre-ship Review (Critic)** -- Mandatory. Critic reviews all evidence and challenges readiness before Nova's verdict. Evidence written to `.geas/evidence/{task-id}/critic-review.json`.
 
-9. **Ship Gate** -- All three mandatory evidence files must exist before the task is marked passed.
+9. **Nova Product Review** -- Ship, Iterate, or Cut verdict.
+
+10. **Ship Gate** -- All four mandatory evidence files (`forge-review.json`, `sentinel.json`, `critic-review.json`, `nova-verdict.json`) must exist before the task is marked passed.
 
 ---
 
@@ -362,7 +364,7 @@ The `.geas/` directory is the runtime state store for a Geas-managed project. It
       pixel.json             -- Implementation evidence
       forge-review.json      -- Code review results
       sentinel.json          -- QA test results
-      critic.json            -- Critic's pre-ship review
+      critic-review.json     -- Critic's pre-ship review
       nova-verdict.json      -- Product review verdict
     polish/
       shield.json            -- Security review
@@ -588,7 +590,7 @@ Hooks are shell scripts that Claude Code runs automatically at specific lifecycl
 - **Status summary at session start**: Normal. The session-init hook is printing the current project state.
 - **Agent receiving project rules and memory**: Normal. The inject-context hook is providing the sub-agent with `rules.md` and its per-agent memory file before it starts work.
 - **Warnings about missing evidence**: A sub-agent finished without writing its evidence file. Compass will typically retry.
-- **"Pipeline incomplete" blocking session exit**: The verify-pipeline hook found completed tasks without mandatory `forge-review.json` or `sentinel.json` evidence files. You must complete the missing verification steps before the session can end.
+- **"Pipeline incomplete" blocking session exit**: The verify-pipeline hook found completed tasks without mandatory evidence files (`forge-review.json`, `sentinel.json`, `critic-review.json`, `nova-verdict.json`, or `memory/retro/{task-id}.json`). You must complete the missing verification steps before the session can end.
 - **Warnings about seed.json modification**: Something tried to change the frozen specification. Usually a mistake.
 
 For the full technical reference on hooks, including exit codes, timeout behavior, and troubleshooting, see [HOOKS.md](HOOKS.md).
@@ -640,12 +642,12 @@ If a task repeatedly fails the Evidence Gate:
 
 ### "Pipeline incomplete" blocks session exit
 
-This is the `verify-pipeline` hook working as designed. It found completed tasks without mandatory evidence files (`forge-review.json` or `sentinel.json`).
+This is the `verify-pipeline` hook working as designed. It found completed tasks without mandatory evidence files (`forge-review.json`, `sentinel.json`, `critic-review.json`, `nova-verdict.json`, or `memory/retro/{task-id}.json`).
 
 To resolve:
 1. Read the error message to see which tasks are affected.
-2. Run the missing Code Review (Forge) or QA Testing (Sentinel) steps for those tasks.
-3. Verify the evidence files appear in `.geas/evidence/{task-id}/`.
+2. Run the missing steps (Code Review, QA Testing, Critic Pre-ship Review, Nova Product Review, or Scrum Retrospective) for those tasks.
+3. Verify the evidence files appear in `.geas/evidence/{task-id}/` and `.geas/memory/retro/`.
 4. Try ending the session again.
 
 ### How to reset and start fresh

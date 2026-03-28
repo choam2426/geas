@@ -194,12 +194,17 @@ Claude Code는 이 JSON을 읽고 `additionalContext` 값을 서브 에이전트
 1. **`.geas/tasks/*.json` (TaskContract 파일)** -- 작업의 상태가 `"passed"`로 설정되면, hook은 필요한 검증 증거가 존재하는지 확인합니다:
    - `forge-review.json` (Forge 에이전트의 코드 리뷰)
    - `sentinel.json` (Sentinel 에이전트의 QA 테스트)
+   - `critic-review.json` (Critic 에이전트의 출시 전 리뷰)
+   - `nova-verdict.json` (Nova 에이전트의 제품 리뷰)
+   - `memory/retro/{task-id}.json` (Scrum 에이전트의 회고)
 
-   둘 중 하나라도 없으면 hook은 경고를 출력합니다.
+   하나라도 없으면 hook은 경고를 출력합니다.
 
-2. **`.geas/spec/seed.json`** -- seed 파일은 intake 후 동결됩니다. 수정이 발생하면 seed를 변경해서는 안 된다는 경고가 트리거됩니다.
+2. **경로 경계 강제** -- 작업의 `allowed_paths` 외부에 파일이 작성되면 hook은 경고를 출력합니다. 이는 에이전트가 할당된 작업 범위 밖의 파일을 수정하는 것을 방지합니다.
 
-`.geas/` 외부의 파일은 완전히 무시됩니다.
+3. **`.geas/spec/seed.json`** -- seed 파일은 intake 후 동결됩니다. 수정이 발생하면 seed를 변경해서는 안 된다는 경고가 트리거됩니다.
+
+`.geas/` 외부의 파일도 경로 경계 강제 대상이 될 수 있습니다.
 
 #### 종료 동작
 
@@ -217,6 +222,10 @@ Claude Code는 이 JSON을 읽고 `additionalContext` 값을 서브 에이전트
 |--------|------|
 | `{task-id} marked as passed but forge-review.json is missing` | 코드 리뷰 증거 없이 작업이 "passed"로 승격되었습니다. |
 | `{task-id} marked as passed but sentinel.json is missing` | QA 테스트 증거 없이 작업이 "passed"로 승격되었습니다. |
+| `{task-id} marked as passed but critic-review.json is missing` | Critic 출시 전 리뷰 증거 없이 작업이 "passed"로 승격되었습니다. |
+| `{task-id} marked as passed but nova-verdict.json is missing` | Nova 제품 리뷰 증거 없이 작업이 "passed"로 승격되었습니다. |
+| `{task-id} marked as passed but retro/{task-id}.json is missing` | Scrum 회고 증거 없이 작업이 "passed"로 승격되었습니다. |
+| `File written outside allowed_paths for {task-id}` | 작업의 허용 경로 밖에 파일이 작성되었습니다. |
 | `seed.json was modified after intake` | 동결된 seed 사양이 변경되었습니다. |
 
 ---
@@ -240,9 +249,12 @@ Claude Code는 이 JSON을 읽고 `additionalContext` 값을 서브 에이전트
 2. `.geas/`와 `run.json`이 있는지 확인합니다. 없으면 건너뜁니다.
 3. `run.json`에서 `status`를 읽습니다. 이미 `"complete"`이면 건너뜁니다(재확인 불필요).
 4. `run.json`에서 `phase`를 읽습니다. `mvp`, `polish`, `evolve` 단계에서만 강제합니다. `genesis` 단계에서는 증거 요구 사항이 아직 강제되지 않습니다.
-5. `completed_tasks` 배열을 순회합니다. 각 작업에 대해 다음을 확인합니다:
-   - `.geas/evidence/{task-id}/`에 `forge-review.json`이 있는지
-   - `.geas/evidence/{task-id}/`에 `sentinel.json`이 있는지
+5. `completed_tasks` 배열을 순회합니다. 각 작업에 대해 다음 5개 증거 파일을 확인합니다:
+   - `.geas/evidence/{task-id}/forge-review.json`
+   - `.geas/evidence/{task-id}/sentinel.json`
+   - `.geas/evidence/{task-id}/critic-review.json`
+   - `.geas/evidence/{task-id}/nova-verdict.json`
+   - `.geas/memory/retro/{task-id}.json`
 6. 증거가 누락되면 목록을 출력하고 **세션 종료를 차단합니다**.
 
 #### 종료 동작
@@ -392,12 +404,12 @@ sudo ln -s $(which python3) /usr/local/bin/python
 
 **증상:** `Pipeline incomplete. MANDATORY evidence missing` 메시지와 함께 세션이 종료되지 않습니다.
 
-**원인:** `verify-pipeline.sh`가 필요한 `forge-review.json` 또는 `sentinel.json` 증거 파일 없이 완료된 작업을 발견했습니다.
+**원인:** `verify-pipeline.sh`가 필요한 5개 증거 파일(`forge-review.json`, `sentinel.json`, `critic-review.json`, `nova-verdict.json`, `memory/retro/{task-id}.json`) 중 하나 이상 없이 완료된 작업을 발견했습니다.
 
 **해결:** 이것은 설계된 대로 동작하는 것입니다. 누락된 검증 단계를 완료하세요:
 1. 오류 메시지에 나열된 작업을 확인합니다.
-2. 해당 작업에 대해 코드 리뷰(Forge) 및/또는 QA 테스트(Sentinel) 단계를 실행합니다.
-3. `.geas/evidence/{task-id}/`에 증거 파일이 작성되었는지 확인합니다.
+2. 해당 작업에 대해 누락된 단계를 실행합니다: 코드 리뷰(Forge), QA 테스트(Sentinel), 출시 전 리뷰(Critic), 제품 리뷰(Nova), 회고(Scrum).
+3. `.geas/evidence/{task-id}/`와 `.geas/memory/retro/`에 증거 파일이 작성되었는지 확인합니다.
 4. 세션 종료를 다시 시도합니다.
 
 ### seed.json 수정 경고
