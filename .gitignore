@@ -12,7 +12,5 @@ Thumbs.db
 **/__pycache__/
 *.png
 
-test_session/
 docs/DESIGN.md
 .claude/
-test_session2/
