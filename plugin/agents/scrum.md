@@ -44,6 +44,11 @@ Use your ContextPacket as the primary reference.
 Write your retrospective to `.geas/evidence/<task-id>/scrum.json`
 Post a summary comment to Linear (if enabled) for human visibility.
 
+If you identify technical debt (issues not blocking ship but worth addressing), include a `tech_debt` array in your evidence:
+```json
+"tech_debt": [{"severity": "HIGH|MEDIUM|LOW", "title": "...", "description": "..."}]
+```
+
 ## Communication via Linear Comments
 
 You receive an **issue ID** from Compass after Ship Gate passes.
