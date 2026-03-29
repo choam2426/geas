@@ -108,7 +108,7 @@ Agent(agent: "scrum", prompt: "Read all evidence at .geas/evidence/{task-id}/. R
 Verify `.geas/memory/retro/{task-id}.json` exists.
 
 ### 9. Resolve
-- Ship → `"passed"`. Spawn Keeper for commit:
+- Ship → Read `.geas/tasks/{task-id}.json`, set `"status": "passed"`, Write it back. Then spawn Keeper for commit:
   Update run.json checkpoint: `pipeline_step` = "resolve", `agent_in_flight` = "keeper"
   ```
   Agent(agent: "keeper", prompt: "Commit all changes for {task-id} with conventional commit format. Write to .geas/evidence/{task-id}/keeper.json")

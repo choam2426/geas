@@ -81,7 +81,7 @@ Ensure `.geas/spec/` directory exists:
 mkdir -p .geas/spec
 ```
 
-Write `.geas/spec/seed.json` following the schema at `schemas/seed.schema.json`.
+Write `.geas/spec/seed.json` following the schema at `schemas/seed.schema.json`. Include `"version": "1.0"` and `"created_at"` (actual UTC timestamp) in the seed.
 
 Show the user a final summary:
 ```
