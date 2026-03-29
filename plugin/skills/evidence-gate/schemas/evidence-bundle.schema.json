@@ -73,6 +73,19 @@
       },
       "description": "Issues discovered during review, QA, or security audit"
     },
+    "tech_debt": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "severity": { "type": "string", "enum": ["HIGH", "MEDIUM", "LOW"] },
+          "title": { "type": "string" },
+          "description": { "type": "string" }
+        },
+        "required": ["severity", "title"]
+      },
+      "description": "Technical debt identified during review — not blocking but should be addressed"
+    },
     "notes": {
       "type": "string",
       "description": "Additional context or observations"
