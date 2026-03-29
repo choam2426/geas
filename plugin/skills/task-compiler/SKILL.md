@@ -58,7 +58,7 @@ Define paths the worker MUST NOT modify:
 
 Workers are free to create or modify any file not in prohibited_paths. Scope compliance is verified by Forge in code review, not by mechanical path matching.
 
-**IMPORTANT:** The ONLY path-related field in TaskContract is `prohibited_paths`. Do NOT create `path_boundaries`, `allowed_paths`, or any other path field. The JSON schema enforces this with `additionalProperties: false`.
+**⛔ CRITICAL: Do NOT add `allowed_paths`, `path_boundaries`, or ANY other path field to the TaskContract. The ONLY path field is `prohibited_paths`. Workers can modify any file not in prohibited_paths — you do not need to list what they CAN touch, only what they CANNOT.**
 
 ### Step 5: Define Acceptance Criteria
 
@@ -106,6 +106,8 @@ Look at existing TaskContracts in `.geas/tasks/`:
 ## Output
 
 Write the TaskContract to `.geas/tasks/{id}.json` conforming to `schemas/task-contract.schema.json`.
+
+**The contract MUST contain ONLY these fields:** version, id, title, goal, linear_issue_id (optional), assigned_worker, reviewer, prohibited_paths, dependencies, acceptance_criteria, eval_commands, retry_budget, escalation_policy, status, created_at. **No other fields.**
 
 ```bash
 mkdir -p .geas/tasks
