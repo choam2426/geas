@@ -58,8 +58,16 @@ These rules apply to ALL modes (Initiative, Sprint, Debate).
 - **Scrum retrospective is MANDATORY for every task.** Do NOT skip it, even if the task was trivial. Verify `.geas/memory/retro/{task-id}.json` exists after Scrum returns. If missing, retry once.
 - After Genesis: Compass adds stack-specific rules (e.g., "lint with ruff", "test with pytest") before Scrum exists in the pipeline.
 
-### Repeated issue escalation
-After reading each Scrum retrospective, check for action items marked BLOCKING. If the same issue was BLOCKING in the previous task's retrospective too (2+ consecutive occurrences), you MUST create a new TaskContract specifically to resolve this issue and execute it before proceeding to the next planned task. Do not defer BLOCKING issues more than once.
+### Tech debt tracking
+After reading each agent's evidence, check for a `tech_debt` array. If present:
+1. Read `.geas/debt.json` (create with `{"items": []}` if missing).
+2. For each debt item, check if a similar title already exists in debt.json (skip duplicates).
+3. Add new items with sequential ID (DEBT-001, DEBT-002...), set `source_task`, `found_by`, `found_at`, `status: "open"`, and `created_at`.
+4. Write back debt.json.
+
+When a task resolves a debt item, update its `status` to `"resolved"` with `resolution_task` and `resolved_at`.
+
+Threshold warning is handled automatically by the check-debt hook when you write debt.json.
 
 ### Git operations
 - **All git operations (commit, branch, PR) must be done by Keeper.** Do not commit or manage branches directly.
