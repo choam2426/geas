@@ -8,7 +8,7 @@ user-invocable: true
 
 One feature, one pipeline. Skips Genesis.
 
-**EVERY step in the pipeline is executed. Code Review and Testing are MANDATORY. Do NOT skip them.**
+**Every step in the pipeline is executed. Code Review and Testing are mandatory.**
 
 ---
 
@@ -77,7 +77,7 @@ Verify evidence.
 
 ### 7. Evidence Gate
 Run eval_commands. Check acceptance criteria. Log detailed result.
-If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix — do NOT fix code directly.** After fix, re-run gate.
+If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** After fix, re-run gate.
 
 ### 7.5 Critic Pre-ship Review [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "critic_review", `agent_in_flight` = "critic"

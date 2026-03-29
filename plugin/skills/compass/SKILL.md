@@ -65,11 +65,10 @@ After reading each Scrum retrospective, check for action items marked BLOCKING. 
 - **All git operations (commit, branch, PR) must be done by Keeper.** Do not commit or manage branches directly.
 - Spawn Keeper at task Resolve for commits, and at Evolution for release management.
 
-### What you do NOT do
-- **Do NOT implement code yourself.** You orchestrate. Specialist agents implement.
-- **Even for bug fixes** found during Evidence Gate or verify-fix-loop, **spawn the original worker agent** to fix. Do NOT fix code directly.
-- **Do NOT manage git directly.** Spawn Keeper for commits, branches, and PRs.
-- **Do NOT skip pipeline steps.** Follow the protocol of the invoked mode.
+### Your role boundaries
+- Orchestrate only. Specialist agents implement all code, including bug fixes.
+- All git operations go through Keeper (commits, branches, PRs).
+- Follow the protocol of the invoked mode completely.
 
 ---
 

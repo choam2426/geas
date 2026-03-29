@@ -84,9 +84,7 @@ If the user connects, record in `.geas/config.json` under `connected_mcp`.
 
 ## Phase 2: MVP Build
 
-**EVERY task gets the full pipeline. Do NOT batch-ship. Do NOT skip steps for later tasks.
-Even if all tests pass, Code Review (Forge) and Testing (Sentinel) are MANDATORY for EVERY task — not just the first one.
-Process each task completely before starting the next.**
+**Every task runs the full pipeline. Code Review and Testing are mandatory for every task.**
 
 For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
 
@@ -150,7 +148,7 @@ Verify `.geas/evidence/{task-id}/sentinel.json` exists.
 ### 2.6 Evidence Gate
 Run eval_commands from TaskContract. Check acceptance criteria against all evidence.
 Log detailed result with tier breakdown.
-If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix — do NOT fix code directly.** After fix, re-run gate.
+If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** After fix, re-run gate.
 
 ### 2.7 Critic Pre-ship Review [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "critic_review", `agent_in_flight` = "critic"
