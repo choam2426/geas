@@ -3,6 +3,7 @@
   "title": "EvidenceBundle",
   "description": "Structured output from a worker. Reviewers and QA read this instead of parsing the full Linear thread.",
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "version": {
       "type": "string",

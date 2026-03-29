@@ -14,6 +14,10 @@ from datetime import datetime, timezone
 d = json.load(sys.stdin)
 cwd = d.get('cwd', '')
 agent_type = d.get('agent_type', 'unknown')
+# Strip plugin prefix (e.g., "geas:nova" -> "nova")
+agent_name = agent_type.split(':')[-1] if ':' in agent_type else agent_type
+if not agent_name:
+    agent_name = 'unknown'
 
 if not cwd:
     sys.exit(0)
@@ -31,11 +35,11 @@ phase = run.get('phase', '')
 
 # Determine model from agent definition (hardcoded mapping)
 opus_agents = {'nova', 'forge', 'circuit', 'pixel', 'critic'}
-model = 'opus' if agent_type in opus_agents else 'sonnet'
+model = 'opus' if agent_name in opus_agents else 'sonnet'
 
 entry = {
     'event': 'agent_complete',
-    'agent': agent_type,
+    'agent': agent_name,
     'task_id': tid,
     'phase': phase,
     'model': model,

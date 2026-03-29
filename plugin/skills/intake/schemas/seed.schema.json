@@ -3,6 +3,7 @@
   "title": "Seed Spec",
   "description": "Mission specification produced by the intake gate. Freezes what we're building before execution begins.",
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "version": {
       "type": "string",

@@ -13,6 +13,9 @@ import json, sys, os
 d = json.load(sys.stdin)
 cwd = d.get('cwd', '')
 agent_type = d.get('agent_type', '').lower()
+# Strip plugin prefix (e.g., "geas:nova" -> "nova")
+if ':' in agent_type:
+    agent_type = agent_type.split(':')[-1]
 
 if not cwd:
     sys.exit(0)

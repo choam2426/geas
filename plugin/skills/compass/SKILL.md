@@ -32,7 +32,7 @@ These rules apply to ALL modes (Initiative, Sprint, Debate).
 - **Timestamps must be actual current time.** For event ledger entries, use `date -u +%Y-%m-%dT%H:%M:%SZ` in Bash. For JSON files in `.geas/`, the hook auto-injects timestamps.
 
 ### Checkpoint management
-- Before spawning any agent, update `.geas/state/run.json` checkpoint:
+**[MANDATORY]** Before EVERY Agent() spawn, you MUST Read `.geas/state/run.json`, update the `checkpoint` field, and Write it back. This is not optional — session recovery depends on it.
   ```json
   "checkpoint": {
     "pipeline_step": "code_review",
@@ -57,6 +57,9 @@ These rules apply to ALL modes (Initiative, Sprint, Debate).
 - After each task's Ship Gate, spawn Scrum for a retrospective — Scrum updates rules.md and records lessons.
 - **Scrum retrospective is MANDATORY for every task.** Do NOT skip it, even if the task was trivial. Verify `.geas/memory/retro/{task-id}.json` exists after Scrum returns. If missing, retry once.
 - After Genesis: Compass adds stack-specific rules (e.g., "lint with ruff", "test with pytest") before Scrum exists in the pipeline.
+
+### Repeated issue escalation
+After reading each Scrum retrospective, check for action items marked BLOCKING. If the same issue was BLOCKING in the previous task's retrospective too (2+ consecutive occurrences), you MUST create a new TaskContract specifically to resolve this issue and execute it before proceeding to the next planned task. Do not defer BLOCKING issues more than once.
 
 ### Git operations
 - **All git operations (commit, branch, PR) must be done by Keeper.** Do not commit or manage branches directly.

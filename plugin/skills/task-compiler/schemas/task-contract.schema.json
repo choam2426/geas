@@ -3,6 +3,7 @@
   "title": "TaskContract",
   "description": "A machine-readable contract defining what a worker must deliver. Replaces ambiguous issue descriptions with verifiable agreements.",
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "version": {
       "type": "string",

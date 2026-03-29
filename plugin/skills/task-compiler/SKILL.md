@@ -58,6 +58,8 @@ Define paths the worker MUST NOT modify:
 
 Workers are free to create or modify any file not in prohibited_paths. Scope compliance is verified by Forge in code review, not by mechanical path matching.
 
+**IMPORTANT:** The ONLY path-related field in TaskContract is `prohibited_paths`. Do NOT create `path_boundaries`, `allowed_paths`, or any other path field. The JSON schema enforces this with `additionalProperties: false`.
+
 ### Step 5: Define Acceptance Criteria
 
 Inherit from the seed spec and refine for this specific task:

@@ -97,6 +97,7 @@ For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
 ### 2.1 Design (Palette) [DEFAULT — skip-if: no user-facing interface (DB, API, CI, Docker, etc.)]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
 Generate ContextPacket, then:
+Update run.json checkpoint: `pipeline_step` = "design", `agent_in_flight` = "palette"
 ```
 Agent(agent: "palette", prompt: "Read .geas/packets/{task-id}/palette.md. Write design spec to .geas/evidence/{task-id}/palette.json")
 ```
@@ -116,6 +117,7 @@ Verify `.geas/evidence/{task-id}/palette.json` exists.
 - New data model or schema changes
 
 Generate ContextPacket, then:
+Update run.json checkpoint: `pipeline_step` = "tech_guide", `agent_in_flight` = "forge"
 ```
 Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge.md. Write tech guide to .geas/evidence/{task-id}/forge.json")
 ```
@@ -123,6 +125,7 @@ Verify `.geas/evidence/{task-id}/forge.json` exists.
 
 ### 2.3 Implementation [MANDATORY — worktree isolated]
 Generate ContextPacket, then:
+Update run.json checkpoint: `pipeline_step` = "implementation", `agent_in_flight` = "{worker}"
 ```
 Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/packets/{task-id}/{worker}.md. Implement the feature. Write evidence to .geas/evidence/{task-id}/{worker}.json")
 ```
@@ -130,6 +133,7 @@ Verify evidence exists. Merge worktree branch.
 
 ### 2.4 Code Review (Forge) [MANDATORY]
 Generate ContextPacket, then:
+Update run.json checkpoint: `pipeline_step` = "code_review", `agent_in_flight` = "forge"
 ```
 Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge-review.md. Review implementation. Write to .geas/evidence/{task-id}/forge-review.json")
 ```
@@ -137,6 +141,7 @@ Verify `.geas/evidence/{task-id}/forge-review.json` exists.
 
 ### 2.5 Testing (Sentinel) [MANDATORY]
 Generate ContextPacket, then:
+Update run.json checkpoint: `pipeline_step` = "testing", `agent_in_flight` = "sentinel"
 ```
 Agent(agent: "sentinel", prompt: "Read .geas/packets/{task-id}/sentinel.md. Test the feature. Write QA results to .geas/evidence/{task-id}/sentinel.json")
 ```
@@ -148,11 +153,13 @@ Log detailed result with tier breakdown.
 If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix — do NOT fix code directly.** After fix, re-run gate.
 
 ### 2.7 Critic Pre-ship Review [MANDATORY]
+Update run.json checkpoint: `pipeline_step` = "critic_review", `agent_in_flight` = "critic"
 ```
 Agent(agent: "critic", prompt: "Read all evidence at .geas/evidence/{task-id}/. Challenge: is this truly ready to ship? Identify risks, missing edge cases, or technical debt. Write to .geas/evidence/{task-id}/critic-review.json")
 ```
 
 ### 2.8 Nova Product Review [MANDATORY]
+Update run.json checkpoint: `pipeline_step` = "nova_review", `agent_in_flight` = "nova"
 ```
 Agent(agent: "nova", prompt: "Read all evidence at .geas/evidence/{task-id}/ including critic-review.json. Verdict: Ship, Iterate, or Cut. Write to .geas/evidence/{task-id}/nova-verdict.json")
 ```
@@ -166,6 +173,7 @@ Agent(agent: "nova", prompt: "Read all evidence at .geas/evidence/{task-id}/ inc
 **If ANY is missing: go back and execute the missing step. Do NOT proceed without all four.**
 
 ### Retrospective (Scrum) [MANDATORY]
+Update run.json checkpoint: `pipeline_step` = "retrospective", `agent_in_flight` = "scrum"
 ```
 Agent(agent: "scrum", prompt: "Read all evidence at .geas/evidence/{task-id}/. Run retrospective: update rules.md with new conventions, write lessons to .geas/memory/retro/{task-id}.json")
 ```
@@ -173,6 +181,7 @@ Verify `.geas/memory/retro/{task-id}.json` exists.
 
 ### 2.10 Resolve
 - **Ship**: status → `"passed"`. Spawn Keeper for commit:
+  Update run.json checkpoint: `pipeline_step` = "resolve", `agent_in_flight` = "keeper"
   ```
   Agent(agent: "keeper", prompt: "Commit all changes for {task-id} with conventional commit format. Write to .geas/evidence/{task-id}/keeper.json")
   ```
