@@ -19,6 +19,11 @@ Before anything else, create the runtime directory structure in the project root
 mkdir -p .geas/spec .geas/state .geas/tasks .geas/packets .geas/evidence .geas/decisions .geas/ledger .geas/memory/_project
 ```
 
+Write the initial debt tracking file `.geas/debt.json`:
+```json
+{"items": []}
+```
+
 Then ensure `.geas/` is gitignored. Check if `.gitignore` exists:
 - If yes: append `.geas/` if not already present
 - If no: create `.gitignore` with `.geas/` entry

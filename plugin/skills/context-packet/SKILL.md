@@ -83,6 +83,10 @@ From Linear (when `linear_enabled` and `linear_issue_id` exists in TaskContract)
 - Format each comment as: `[Author] content (timestamp)`
 - If the issue has no comments yet, note "No prior comments" and proceed
 
+From tech debt (`.geas/debt.json`, if it exists):
+- Read open debt items
+- Include items relevant to the current task's domain
+
 ### Step 4: Write the Packet
 
 Write to `.geas/packets/{task-id}/{worker-name}.md`
@@ -124,6 +128,9 @@ Write the packet as a markdown file with this structure:
 
 ## Prior Work
 {summaries from upstream evidence bundles}
+
+## Known Tech Debt
+{Open debt items relevant to this task. Workers should be aware but fix only if the task explicitly addresses them.}
 
 ## Linear Thread
 {Previous comments on this issue, including human feedback. Omit if Linear disabled or no comments.}

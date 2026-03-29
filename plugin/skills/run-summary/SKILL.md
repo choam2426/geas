@@ -96,6 +96,17 @@ Present as a markdown table in the summary.
 
 ---
 
+### Tech Debt Report (if `.geas/debt.json` exists)
+
+Read debt.json and report:
+- **Open**: count by severity (HIGH / MEDIUM / LOW)
+- **New this session**: items where `created_at` falls within this session
+- **Resolved this session**: items where `resolved_at` falls within this session
+
+Present as a markdown summary.
+
+---
+
 ## Creating the Linear Document
 
 Post the summary as a Linear Document attached to the project:
