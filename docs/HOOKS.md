@@ -40,7 +40,7 @@ All hooks are declared in `plugin/hooks/hooks.json`. The file follows Claude Cod
 
 | Field | Description |
 |-------|-------------|
-| `EventName` | The lifecycle event that triggers the hook. One of: `SessionStart`, `SubagentStart`, `SubagentStop`, `PostToolUse`, `PostCompact`, `Stop`. |
+| `EventName` | The lifecycle event that triggers the hook. One of: `SessionStart`, `SubagentStart`, `SubagentStop`, `PreToolUse`, `PostToolUse`, `PostCompact`, `Stop`. |
 | `matcher` | A regex pattern that filters when the hook runs. For `PostToolUse`, this matches against the tool name. An empty string matches everything. |
 | `type` | Always `"command"` -- hooks are external shell commands. |
 | `command` | Path to the script. Uses `${CLAUDE_PLUGIN_ROOT}` to resolve relative to the plugin directory. |
@@ -315,6 +315,45 @@ Before a session ends, this hook checks that all completed tasks have the mandat
 | `2` | **Blocking.** Mandatory evidence is missing. Session exit is prevented. |
 
 
+### 8. check-debt.sh
+
+| Property | Value |
+|----------|-------|
+| **Event** | `PostToolUse` |
+| **Matcher** | `Write\|Edit` |
+| **Timeout** | 10 seconds |
+| **Script** | `plugin/hooks/scripts/check-debt.sh` |
+
+#### What it does
+
+Every time an agent uses the `Write` or `Edit` tool on `.geas/debt.json`, this hook reads the file and counts the number of items with `severity: "HIGH"`. If the count reaches 3 or more, it emits a warning to stderr alerting the team that the tech debt backlog needs attention.
+
+**Step-by-step behavior:**
+
+1. Parse `cwd` and `tool_input` from stdin JSON.
+2. Check if the written file is `.geas/debt.json`. If not, exit silently.
+3. Read `.geas/debt.json` and count entries where `severity` is `"HIGH"`.
+4. If the count is 3 or more, print a warning to stderr: `[Geas] Warning: {count} HIGH-severity tech debt items open. Review .geas/debt.json.`
+
+#### Exit behavior
+
+- **Always exits 0.** This hook warns but never blocks. It is an advisory signal to prioritize debt resolution.
+
+#### Exit codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success (with or without warnings). Operation is allowed. |
+
+#### Warning messages
+
+| Message | Meaning |
+|---------|---------|
+| `{count} HIGH-severity tech debt items open. Review .geas/debt.json.` | Three or more HIGH-severity debt items are accumulating. The team should prioritize resolving them. |
+
+---
+
+
 ## Lifecycle Diagram
 
 The following diagram shows when each hook fires during a typical Geas session:
@@ -341,6 +380,11 @@ Agent Work Loop
     |       |
     |       +-------------> verify-task-status.sh
     |       |                - Check 5 evidence files when task marked passed
+    |       |                - (warn only, never blocks)
+    |       |
+    |       +-------------> check-debt.sh
+    |       |                - On .geas/debt.json write, count HIGH items
+    |       |                - Warn if HIGH >= 3
     |       |                - (warn only, never blocks)
     |       v
     |   Tool operation proceeds
@@ -394,6 +438,7 @@ Session End Requested
 - **verify-task-status** catches premature task completion -- when a task is marked "passed" without the 5 required evidence files. It acts as an early warning for issues that **verify-pipeline** will later enforce.
 - **restore-context** re-injects critical state after context compaction, preventing the orchestrator from losing track of the current run.
 - **track-cost** logs agent, task, and model information after each sub-agent completes. This data feeds into the run-summary cost report.
+- **check-debt** monitors writes to `.geas/debt.json` and warns when 3 or more HIGH-severity tech debt items are open. This keeps the team aware of accumulating debt before it becomes unmanageable.
 - **verify-pipeline** is the final gate. Even if earlier warnings were ignored, this hook prevents the session from closing with incomplete evidence. It is the mechanical enforcement of the "Evidence over declaration" principle.
 
 
@@ -426,6 +471,7 @@ Hooks read from and check for files under the `.geas/` directory:
 | `.geas/spec/seed.json` | Frozen project specification (monitored by protect-geas-state) |
 | `.geas/evidence/{task-id}/*.json` | Evidence files (checked by verify-task-status and verify-pipeline) |
 | `.geas/ledger/costs.jsonl` | Cost tracking log (written by track-cost, read by run-summary) |
+| `.geas/debt.json` | Tech debt tracker (written by Compass from agent evidence, monitored by check-debt) |
 
 
 ## Troubleshooting

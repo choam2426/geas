@@ -190,6 +190,8 @@ For each TaskContract, in dependency order:
 
 After each task, `.geas/rules.md` is updated with any new conventions discovered during execution.
 
+**Tech Debt Tracking** -- During execution, agents (Forge, Critic, Scrum) may report `tech_debt` items in their evidence when they identify shortcuts, deferred improvements, or known issues. Compass collects these into `.geas/debt.json`, a persistent tracker that carries debt visibility across sessions. ContextPackets include a "Known Tech Debt" section so agents are aware of existing debt when working on related areas. The `run-summary` skill includes a Tech Debt Report at the end of each run.
+
 #### Phase 3: Polish
 
 After all MVP tasks are complete:
@@ -585,6 +587,7 @@ Hooks are shell scripts that Claude Code runs automatically at specific lifecycl
 | **verify-task-status** | After any Write/Edit (`PostToolUse`) | Checks that 5 required evidence files exist when a task is marked "passed" |
 | **restore-context** | After context compaction (`PostCompact`) | Re-injects run state and rules after context window compaction |
 | **track-cost** | After a sub-agent completes (`SubagentStop`) | Logs agent, task, and model to `costs.jsonl` for the run-summary cost report |
+| **check-debt** | After any Write/Edit (`PostToolUse`) | Monitors writes to `.geas/debt.json` and warns when 3+ HIGH-severity tech debt items are open |
 | **verify-pipeline** | Before session exit (`Stop`) | Checks all completed tasks for mandatory evidence. **This is the only hook that can block session exit.** |
 
 ### What You Might See
@@ -594,6 +597,7 @@ Hooks are shell scripts that Claude Code runs automatically at specific lifecycl
 - **Warnings about premature task completion**: The verify-task-status hook detected a task marked "passed" without the required 5 evidence files. Compass will ensure missing steps run.
 - **"Pipeline incomplete" blocking session exit**: The verify-pipeline hook found completed tasks without mandatory evidence files (`forge-review.json`, `sentinel.json`, `critic-review.json`, `nova-verdict.json`, or `memory/retro/{task-id}.json`). You must complete the missing verification steps before the session can end.
 - **Warnings about seed.json modification**: Something tried to change the frozen specification. Usually a mistake.
+- **Warnings about HIGH-severity tech debt**: The check-debt hook detected 3 or more HIGH-severity items in `.geas/debt.json`. Consider prioritizing debt resolution.
 - **Context restored after compaction**: Normal. The restore-context hook re-injected run state after a context compaction event.
 
 For the full technical reference on hooks, including exit codes, timeout behavior, and troubleshooting, see [HOOKS.md](HOOKS.md).
