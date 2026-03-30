@@ -53,10 +53,6 @@
       "items": { "type": "string" },
       "description": "Paths to EvidenceBundle files from previous workers in the pipeline"
     },
-    "linear_url": {
-      "type": "string",
-      "description": "Link to Linear issue for full thread reference (not required reading)"
-    },
     "created_at": {
       "type": "string",
       "format": "date-time"

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "EvidenceBundle",
-  "description": "Structured output from a worker. Reviewers and QA read this instead of parsing the full Linear thread.",
+  "description": "Structured output from a worker. Reviewers and QA read this to assess task completion.",
   "type": "object",
   "additionalProperties": false,
   "properties": {

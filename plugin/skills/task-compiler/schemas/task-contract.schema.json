@@ -21,10 +21,6 @@
       "type": "string",
       "description": "What this task must achieve, stated as a verifiable outcome"
     },
-    "linear_issue_id": {
-      "type": "string",
-      "description": "Linked Linear issue ID (e.g., 'MY-72'). Optional if running in local mode."
-    },
     "assigned_worker": {
       "type": "string",
       "description": "Agent name assigned to implement (e.g., 'pixel', 'circuit')"
