@@ -47,11 +47,6 @@ These rules apply to ALL modes (Initiative, Sprint, Debate).
 - On parallel batch: set `parallel_batch` with task IDs.
 - On task completion: clear checkpoint entirely.
 
-### Linear integration
-- Detailed Linear rules (API key usage, comment format, CLI calls) are in `.geas/rules.md`.
-- The SubagentStart hook automatically injects `rules.md` + per-agent memory into every agent. No need to include "Read rules.md" in spawn prompts.
-- Issue state transitions are handled directly by the orchestrator (main session): In Progress → In Review → Testing → Done.
-
 ### Rules evolution
 - `.geas/rules.md` is a living document managed primarily by **Scrum** (Agile Master).
 - After each task's Ship Gate, spawn Scrum for a retrospective — Scrum updates rules.md and records lessons.

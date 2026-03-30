@@ -16,31 +16,25 @@ user-invocable: true
 - `.geas/spec/seed.json` should exist from intake. If not, invoke `/geas:intake`.
 - If completeness_checklist has any false values and no override: ask the user, re-run intake.
 
-### 1.2 Linear Bootstrap (if enabled)
-- Check `.geas/config.json` for `linear_enabled`.
-- If enabled: create project, milestones (Genesis, MVP, Polish, Evolution), discover IDs.
-- Save to `.geas/memory/_project/linear-config.json`.
-- **Update `.geas/rules.md`**: set Linear section `enabled` to true, fill in linear-cli path and team/project IDs with actual values.
-
-### 1.3 Vision (Nova)
+### 1.2 Vision (Nova)
 ```
 Agent(agent: "nova", prompt: "Then read .geas/spec/seed.json. Deliver vision, MVP scope, user value proposition. Write to .geas/evidence/genesis/nova.json")
 ```
 Verify `.geas/evidence/genesis/nova.json` exists.
 
-### 1.4 PRD & User Stories (Nova)
+### 1.3 PRD & User Stories (Nova)
 ```
 Agent(agent: "nova", prompt: "Read .geas/spec/seed.json and .geas/evidence/genesis/nova.json. Create a PRD using write-prd skill, save to .geas/spec/prd.md. Then break it into user stories using write-stories skill, save to .geas/spec/stories.md.")
 ```
 Verify both `.geas/spec/prd.md` and `.geas/spec/stories.md` exist.
 
-### 1.5 Architecture (Forge)
+### 1.4 Architecture (Forge)
 ```
 Agent(agent: "forge", prompt: "Then read .geas/spec/seed.json, .geas/evidence/genesis/nova.json, and .geas/spec/prd.md. Propose architecture and tech stack. Write conventions to .geas/memory/_project/conventions.md and evidence to .geas/evidence/genesis/forge.json")
 ```
 Verify evidence exists. Write DecisionRecord to `.geas/decisions/dec-001.json`.
 
-### 1.6 Vote Round
+### 1.5 Vote Round
 ```
 Agent(agent: "circuit", prompt: "Read .geas/evidence/genesis/forge.json. Vote agree/disagree with rationale. Write to .geas/evidence/genesis/vote-circuit.json")
 Agent(agent: "palette", prompt: "Read .geas/evidence/genesis/forge.json. Vote agree/disagree with rationale. Write to .geas/evidence/genesis/vote-palette.json")
@@ -48,12 +42,11 @@ Agent(agent: "critic", prompt: "Read .geas/evidence/genesis/forge.json. Play dev
 ```
 Critic MUST participate in every vote round. If all agree: proceed. If any disagree: run debate, then re-vote.
 
-### 1.7 Compile TaskContracts
+### 1.6 Compile TaskContracts
 - Use `.geas/spec/stories.md` as input. For each user story, invoke `/geas:task-compiler`.
-- If Linear enabled: create issues, store IDs in TaskContracts.
 - Log each: `{"event": "task_compiled", "task_id": "...", "timestamp": "<actual>"}`
 
-### 1.8 MCP Server Recommendations
+### 1.7 MCP Server Recommendations
 
 Analyze the tech stack from Forge's architecture decision and recommend helpful MCP servers to the user.
 
@@ -76,7 +69,7 @@ Would you like to connect? (optional, you can proceed without them)
 
 If the user connects, record in `.geas/config.json` under `connected_mcp`.
 
-### 1.9 Close Genesis
+### 1.8 Close Genesis
 - Update run state: `{ "phase": "mvp", "status": "in_progress" }`
 - Log: `{"event": "phase_complete", "phase": "genesis", "timestamp": "<actual>"}`
 

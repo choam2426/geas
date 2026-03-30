@@ -25,7 +25,7 @@ One feature, one pipeline. Skips Genesis.
 ## Sprint Pipeline
 
 ### 1. Compile TaskContract
-Invoke `/geas:task-compiler` for the feature. If Linear enabled: create issue, store IDs.
+Invoke `/geas:task-compiler` for the feature.
 
 ### 2. Design (Palette) [DEFAULT — skip-if: no user-facing interface]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
