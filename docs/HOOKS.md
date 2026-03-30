@@ -250,18 +250,18 @@ After Claude Code compacts the conversation context (to fit within the context w
 
 ---
 
-### 6. track-cost.sh
+### 6. agent-telemetry.sh
 
 | Property | Value |
 |----------|-------|
 | **Event** | `SubagentStop` |
 | **Matcher** | _(none -- runs after every sub-agent completes)_ |
 | **Timeout** | 10 seconds |
-| **Script** | `plugin/hooks/scripts/track-cost.sh` |
+| **Script** | `plugin/hooks/scripts/agent-telemetry.sh` |
 
 #### What it does
 
-After a sub-agent completes, this hook logs the agent name, task ID, and model used to `.geas/ledger/costs.jsonl`. This data is consumed by the `run-summary` skill to produce a cost report section at the end of a run.
+After a sub-agent completes, this hook performs agent spawn metadata logging -- logs agent name, task ID, model to `.geas/ledger/costs.jsonl` for distribution analysis.
 
 #### Exit behavior
 
@@ -271,7 +271,7 @@ After a sub-agent completes, this hook logs the agent name, task ID, and model u
 
 | Code | Meaning |
 |------|---------|
-| `0` | Success. Cost entry logged. |
+| `0` | Success. Telemetry entry logged. |
 
 ---
 
@@ -353,6 +353,36 @@ Every time an agent uses the `Write` or `Edit` tool on `.geas/debt.json`, this h
 
 ---
 
+### 9. calculate-cost.sh
+
+| Property | Value |
+|----------|-------|
+| **Event** | `Stop` |
+| **Script** | `hooks/scripts/calculate-cost.sh` |
+| **Timeout** | 30 seconds |
+| **Blocking** | No (exit 0) |
+
+**Purpose:** Calculates actual token usage and estimated cost at session end by parsing subagent session JSONL files.
+
+**Step-by-step behavior:**
+
+1. Derive the Claude Code project directory from `cwd` (e.g., `A:\project` → `~/.claude/projects/A--project/`).
+2. Find the most recent session directory with a `subagents/` folder.
+3. Parse every subagent `.jsonl` file — sum `input_tokens`, `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens` from all assistant messages.
+4. Calculate estimated cost using Opus pricing as upper bound.
+5. Write `.geas/ledger/cost-summary.json` with token totals, cost breakdown, and per-agent distribution.
+6. Print session cost summary to stderr.
+
+**Output:** `.geas/ledger/cost-summary.json`
+
+**Warning messages:**
+
+| Message | Meaning |
+|---------|---------|
+| `Session cost: $X.XX (N agents, M output tokens)` | Session cost summary at exit |
+
+---
+
 
 ## Lifecycle Diagram
 
@@ -411,7 +441,7 @@ Agent Work Loop
     |   Sub-agent completes
     |       |
     |       v
-    |   [SubagentStop] ---> track-cost.sh
+    |   [SubagentStop] ---> agent-telemetry.sh
     |       |                 - Log agent/task/model to costs.jsonl
     |       |                 - (never blocks)
     |       v
@@ -426,6 +456,12 @@ Session End Requested
     |          - During mvp/polish/evolve phases only
     |          - BLOCKS (exit 2) if evidence missing
     |
+    +------> calculate-cost.sh
+    |          - Parse subagent JSONL files for token usage
+    |          - Write cost-summary.json
+    |          - Print session cost summary
+    |          - (never blocks)
+    |
     |--- exit 0 ---> Session ends
     |--- exit 2 ---> Session blocked, agent must fix
 ```
@@ -437,9 +473,10 @@ Session End Requested
 - **protect-geas-state** enforces timestamp injection, seed protection, and prohibited path boundaries in real time as agents write files.
 - **verify-task-status** catches premature task completion -- when a task is marked "passed" without the 5 required evidence files. It acts as an early warning for issues that **verify-pipeline** will later enforce.
 - **restore-context** re-injects critical state after context compaction, preventing the orchestrator from losing track of the current run.
-- **track-cost** logs agent, task, and model information after each sub-agent completes. This data feeds into the run-summary cost report.
+- **agent-telemetry** logs agent, task, and model information after each sub-agent completes. This data feeds into the run-summary cost report.
 - **check-debt** monitors writes to `.geas/debt.json` and warns when 3 or more HIGH-severity tech debt items are open. This keeps the team aware of accumulating debt before it becomes unmanageable.
 - **verify-pipeline** is the final gate. Even if earlier warnings were ignored, this hook prevents the session from closing with incomplete evidence. It is the mechanical enforcement of the "Evidence over declaration" principle.
+- **calculate-cost** parses subagent session JSONL files at session end to calculate actual token usage and estimated cost, writing a summary to `.geas/ledger/cost-summary.json`.
 
 
 ## Dependencies
@@ -470,7 +507,8 @@ Hooks read from and check for files under the `.geas/` directory:
 | `.geas/tasks/*.json` | TaskContract files (monitored by protect-geas-state) |
 | `.geas/spec/seed.json` | Frozen project specification (monitored by protect-geas-state) |
 | `.geas/evidence/{task-id}/*.json` | Evidence files (checked by verify-task-status and verify-pipeline) |
-| `.geas/ledger/costs.jsonl` | Cost tracking log (written by track-cost, read by run-summary) |
+| `.geas/ledger/costs.jsonl` | Agent telemetry log (written by agent-telemetry, read by run-summary) |
+| `.geas/ledger/cost-summary.json` | Token usage and cost summary (written by calculate-cost) |
 | `.geas/debt.json` | Tech debt tracker (written by Compass from agent evidence, monitored by check-debt) |
 
 

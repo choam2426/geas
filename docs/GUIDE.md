@@ -586,9 +586,10 @@ Hooks are shell scripts that Claude Code runs automatically at specific lifecycl
 | **protect-geas-state** | After any Write/Edit (`PostToolUse`) | Injects timestamps into `.geas/**/*.json`, warns if `seed.json` is modified after intake, checks `prohibited_paths` |
 | **verify-task-status** | After any Write/Edit (`PostToolUse`) | Checks that 5 required evidence files exist when a task is marked "passed" |
 | **restore-context** | After context compaction (`PostCompact`) | Re-injects run state and rules after context window compaction |
-| **track-cost** | After a sub-agent completes (`SubagentStop`) | Logs agent, task, and model to `costs.jsonl` for the run-summary cost report |
+| **agent-telemetry** | After a sub-agent completes (`SubagentStop`) | Logs agent, task, and model to `costs.jsonl` for distribution analysis |
 | **check-debt** | After any Write/Edit (`PostToolUse`) | Monitors writes to `.geas/debt.json` and warns when 3+ HIGH-severity tech debt items are open |
 | **verify-pipeline** | Before session exit (`Stop`) | Checks all completed tasks for mandatory evidence. **This is the only hook that can block session exit.** |
+| **calculate-cost** | Before session exit (`Stop`) | Parses subagent session JSONL files to calculate token usage and estimated cost. Writes `.geas/ledger/cost-summary.json`. |
 
 ### What You Might See
 
