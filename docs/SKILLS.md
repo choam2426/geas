@@ -27,7 +27,7 @@ mission              Entry point -- triggers Geas
 compass              Orchestrator -- setup, intake, mode detection
   |                  SubagentStart hook auto-injects rules.md + agent memory
   |
-  +---> setup        First-run: dependencies, Linear config, .geas/ init
+  +---> setup        First-run: dependencies, .geas/ init
   |
   +---> intake       Socratic questioning, produces seed.json
   |
@@ -70,7 +70,7 @@ task-compiler  -->  context-packet  -->  [agent work]  -->  evidence-gate
 |-------|-------------|------------|--------|---------|
 | [intake](#intake) | Socratic requirements gathering -- surfaces hidden assumptions and freezes a seed spec | Called by `compass` via `/geas:intake` | User's mission string | `.geas/spec/seed.json` |
 | [task-compiler](#task-compiler) | Compiles a user story into a TaskContract with verifiable acceptance criteria | Called by `compass` during initiative or sprint | Seed spec, architecture context, user story | `.geas/tasks/{id}.json` |
-| [context-packet](#context-packet) | Generates a role-specific briefing for a worker agent | Called by `compass` before dispatching any worker | TaskContract, prior evidence, Linear thread, seed spec | `.geas/packets/{task-id}/{worker}.md` |
+| [context-packet](#context-packet) | Generates a role-specific briefing for a worker agent | Called by `compass` before dispatching any worker | TaskContract, prior evidence, seed spec | `.geas/packets/{task-id}/{worker}.md` |
 | [evidence-gate](#evidence-gate) | Three-tier quality gate evaluating output against a TaskContract | Called by `compass` after collecting an EvidenceBundle | EvidenceBundle, TaskContract, gate level | Gate verdict (pass/fail/iterate) in `.geas/evidence/` |
 | [verify-fix-loop](#verify-fix-loop) | Bounded fix-verify inner loop after evidence gate failure | Called by `compass` (or evidence-gate) on gate failure | Failed EvidenceBundle, TaskContract, gate verdict | Fixed evidence, or escalation DecisionRecord |
 | [vote-round](#vote-round) | Structured agent voting and debate on major proposals | Called by `compass` after architecture/design proposals | Proposal (e.g., Forge's architecture), list of voters | Vote result summary; DecisionRecord on disagreement |
@@ -87,21 +87,19 @@ task-compiler  -->  context-packet  -->  [agent work]  -->  evidence-gate
 
 | Skill | Description | Invocation | Inputs | Outputs |
 |-------|-------------|------------|--------|---------|
-| [linear-cli](#linear-cli) | Python CLI wrapper for the Linear API | Called by any skill or agent needing Linear operations | Command + flags (e.g., `create-issue --title ...`) | Linear API response (JSON) |
-| [linear-protocol](#linear-protocol) | Startup-specific conventions for using Linear — labels, comment format, workflow rules | Referenced by agents and skills for formatting guidance | N/A (reference document) | N/A (defines standards) |
-| [setup](#setup) | First-time setup — validate Linear API key, check dependencies, configure Linear workspace, generate config files | Called by `compass` on first run via `/geas:setup` | User input (Linear API key, team selection) | `.geas/` directory structure, `.geas/config.json`, `.geas/rules.md` |
+| [setup](#setup) | First-time setup — check dependencies, create `.geas/` directory structure, generate config files | Called by `compass` on first run via `/geas:setup` | User input (optional configuration) | `.geas/` directory structure, `.geas/config.json`, `.geas/rules.md` |
 
 ### Utility
 
 | Skill | Description | Invocation | Inputs | Outputs |
 |-------|-------------|------------|--------|---------|
-| [briefing](#briefing) | Nova's structured status report on product health | Nova agent skill; at milestones, phase transitions, or on request | Run state, Linear issues, prior briefings | Status report (Linear comment + console) |
-| [cleanup](#cleanup) | Entropy scan for AI slop, dead code, convention drift | Forge agent skill; after MVP or during Evolution | Source files, conventions.md | Tech-debt issues on Linear |
+| [briefing](#briefing) | Nova's structured status report on product health | Nova agent skill; at milestones, phase transitions, or on request | Run state, prior briefings | Status report (console) |
+| [cleanup](#cleanup) | Entropy scan for AI slop, dead code, convention drift | Forge agent skill; after MVP or during Evolution | Source files, conventions.md | Tech-debt entries in `.geas/debt.json` |
 | [coding-conventions](#coding-conventions) | Universal coding standards for the AI startup workspace — stack-agnostic | Referenced by agents during implementation | N/A (reference document) | N/A (defines standards) |
 | [ledger-query](#ledger-query) | Read-only search over `.geas/ledger/events.jsonl` | Scrum agent skill; on demand for diagnostics, status, or history | Query type + optional filters | Formatted markdown tables |
 | [onboard](#onboard) | Codebase discovery: scan structure, detect stack, map architecture | Auto-triggered in Sprint mode when no prior state exists | Project source files | `.geas/memory/_project/conventions.md` |
-| [pivot-protocol](#pivot-protocol) | Strategic direction change when the current approach is failing | Triggered by repeated failures, Nova "Cut" verdict, or agent concern | Failure context, evidence, options | Nova's pivot decision, restructured Linear board |
-| [run-summary](#run-summary) | Generate end-of-session summary — decisions, issues completed, agent stats, verify-fix loops. Post to Linear Document and console | Invoked by compass at initiative Phase 4 end / sprint end, or on request | Run state, agent log, Linear issues | Linear Document + console output |
+| [pivot-protocol](#pivot-protocol) | Strategic direction change when the current approach is failing | Triggered by repeated failures, Nova "Cut" verdict, or agent concern | Failure context, evidence, options | Nova's pivot decision, updated run state and DecisionRecord |
+| [run-summary](#run-summary) | Generate end-of-session summary — decisions, tasks completed, agent stats, verify-fix loops. Print to console and write to `.geas/` | Invoked by compass at initiative Phase 4 end / sprint end, or on request | Run state, agent log | Console output + `.geas/ledger/run-summary.json` |
 | [verify](#verify) | Structured verification checklist — BUILD, LINT, TEST, ERROR_FREE, FUNCTIONALITY. Invoke to check code quality before declaring complete | Before declaring any feature complete | Project build/lint/test commands | Checklist verdict (PASS/FAIL per item) |
 | [write-prd](#write-prd) | Create a Product Requirements Document from a feature idea or mission | Nova agent skill; invoked during initiative Genesis 1.4 | Feature idea, problem statement, or mission | `.geas/spec/prd.md` |
 | [write-stories](#write-stories) | Break a feature or mission into user stories with acceptance criteria | Nova agent skill; invoked during initiative Genesis 1.4 | PRD or feature description | `.geas/spec/stories.md` |
@@ -198,7 +196,7 @@ A TaskContract includes:
 | **Category** | Core (Contract Engine) |
 | **Description** | Generates a role-specific ContextPacket for a worker -- a compressed briefing that replaces "read ALL comments" with focused, relevant context only. |
 | **When invoked** | Called by `compass` before dispatching any worker for a task. |
-| **Inputs** | TaskContract, prior evidence from upstream workers, Linear thread (if enabled), seed spec. |
+| **Inputs** | TaskContract, prior evidence from upstream workers, seed spec. |
 | **Outputs** | `.geas/packets/{task-id}/{worker-name}.md` |
 
 Packet content varies by worker role:
@@ -230,7 +228,7 @@ Three tiers:
 | **Tier 2: Semantic** | Check each acceptance criterion against evidence. All must be met. | All task types |
 | **Tier 3: Product** | Nova ship/iterate/cut judgment on mission alignment and quality. | Feature completion, phase completion, pivot decisions |
 
-On pass: update TaskContract status, log event, post Linear comment.
+On pass: update TaskContract status, log event.
 On fail: check retry budget, invoke `/verify-fix-loop` or escalate.
 
 ---
@@ -291,7 +289,7 @@ Phases:
 
 | Phase | Key activities |
 |-------|---------------|
-| **Genesis** | Seed check, Linear bootstrap, Nova vision, PRD & user stories (Nova), Forge architecture, vote round (Critic mandatory), compile TaskContracts from stories, MCP server recommendations |
+| **Genesis** | Seed check, Nova vision, PRD & user stories (Nova), Forge architecture, vote round (Critic mandatory), compile TaskContracts from stories, MCP server recommendations |
 | **MVP Build** | Per-task pipeline: Design (Palette) -> Tech Guide (Forge) -> Implementation (worker in worktree) -> Code Review (Forge) -> Testing (Sentinel) -> Evidence Gate -> Critic Pre-ship Review -> Nova Product Review -> Ship Gate -> Retrospective (Scrum) -> Resolve (Keeper commits) |
 | **Polish** | Security review (Shield), documentation (Scroll), fix issues found |
 | **Evolution** | Scoped improvements within seed scope, Nova final briefing, Keeper release management, run-summary |
@@ -334,55 +332,20 @@ Flow: Frame question -> Spawn debaters (Forge, Critic, Circuit, Palette) -> Synt
 
 ---
 
-### linear-cli
-
-| | |
-|---|---|
-| **Name** | linear-cli |
-| **Category** | Surface (Collaboration) |
-| **Description** | Linear workspace CLI -- Python wrapper for the Linear API covering issues, projects, documents, teams, users, comments, labels, cycles, milestones, and attachments. |
-| **When invoked** | Called by any skill or agent that needs to interact with Linear. All Linear operations go through this CLI. |
-| **Inputs** | Command name and flags (e.g., `create-issue --title "..." --team-id UUID`). |
-| **Outputs** | Linear API response as JSON. Errors to stderr. |
-
-Command groups: Issues, Documents, Projects, Teams, Users, Comments, Labels, Workflow, Milestones, Attachments.
-
----
-
-### linear-protocol
-
-| | |
-|---|---|
-| **Name** | linear-protocol |
-| **Category** | Surface (Collaboration) |
-| **Description** | Startup-specific conventions for using Linear — labels, comment format, workflow rules. |
-| **When invoked** | Referenced by agents and skills for formatting and workflow guidance. Not a procedural skill. |
-| **Inputs** | N/A (reference document). |
-| **Outputs** | N/A (defines standards). |
-
-Key conventions:
-- Comment format: `[AgentName] content`
-- Workflow: Backlog -> Todo -> Waiting -> In Progress -> In Review -> Testing -> Done
-- Issue title format: `[Label] Short description`
-- Labels: type (feature, bug, design-spec, ...), area (frontend, backend, infra), role (needs-review, needs-qa)
-- Estimates: Fibonacci scale (1, 2, 3, 5, 8, 13)
-
----
-
 ### setup
 
 | | |
 |---|---|
 | **Name** | setup |
 | **Category** | Surface (Collaboration) |
-| **Description** | First-time setup — validate Linear API key, check dependencies, configure Linear workspace, generate config files. |
+| **Description** | First-time setup — check dependencies, create `.geas/` directory structure, generate config files. |
 | **When invoked** | Called by `compass` automatically on the first run. Users do not normally invoke this directly. |
-| **Inputs** | User input for Linear API key and team selection (optional). |
+| **Inputs** | User input (optional configuration). |
 | **Outputs** | `.geas/` directory structure, `.geas/state/run.json`, `.geas/rules.md`, `.geas/config.json`. |
 
 Setup phases:
 1. **Phase A**: Create `.geas/` subdirectories (spec, state, tasks, packets, evidence, decisions, ledger, memory). Write initial `run.json` and `rules.md`.
-2. **Phase B** (optional): Linear setup -- detect or request API key, select team, create labels and workflow states, save config.
+2. **Phase B** (optional): Additional configuration — connect external services, save config.
 
 ---
 
@@ -394,8 +357,8 @@ Setup phases:
 | **Category** | Utility |
 | **Description** | Nova Morning Briefing -- structured status report on what shipped, what's blocked, and what needs human attention. Designed to be read in under 60 seconds. |
 | **When invoked** | At milestones (Genesis/MVP/Polish complete), at Evolution phase start, on explicit request. |
-| **Inputs** | `.geas/state/run.json`, Linear issues and comments, prior briefings. |
-| **Outputs** | Briefing posted as a Linear comment and printed to console. |
+| **Inputs** | `.geas/state/run.json`, prior briefings. |
+| **Outputs** | Briefing printed to console. |
 
 Sections: What Shipped, What's Blocked, Needs Human Attention, Product Health (mission alignment, quality, velocity, user value), Next Priority.
 
@@ -407,10 +370,10 @@ Sections: What Shipped, What's Blocked, Needs Human Attention, Product Health (m
 |---|---|
 | **Name** | cleanup |
 | **Category** | Utility |
-| **Description** | Entropy scan -- detects AI slop, unused code, dead code, duplication, over-abstraction, and convention drift. Creates tech-debt issues on Linear. |
+| **Description** | Entropy scan -- detects AI slop, unused code, dead code, duplication, over-abstraction, and convention drift. Creates tech-debt entries in `.geas/debt.json`. |
 | **When invoked** | After Phase 2 (MVP), during Phase 4 (Evolution), or on explicit request. |
 | **Inputs** | Project source files, `.geas/memory/_project/conventions.md`. |
-| **Outputs** | Linear issues with `tech-debt` label, summary comment on project tracking issue. |
+| **Outputs** | Tech-debt entries in `.geas/debt.json` with categorized findings. |
 
 Scan categories: unnecessary comments, dead code, duplication, over-abstraction, convention drift, AI boilerplate.
 
@@ -472,7 +435,7 @@ Skipped entirely on repeat Sprints if conventions.md already exists.
 | **Description** | Defines when and how to pivot during product development. A pivot is a strategic direction change, not a code fix. |
 | **When invoked** | Triggered by repeated test failures (>50%), technical infeasibility, fundamental architecture problems, Nova "Cut" verdict, or agent concerns. |
 | **Inputs** | Full failure context, evidence, and available options. |
-| **Outputs** | Nova's pivot decision (scope cut, feature drop, approach change, push through, or simplify). Restructured Linear board. |
+| **Outputs** | Nova's pivot decision (scope cut, feature drop, approach change, push through, or simplify). Updated run state and DecisionRecord. |
 
 ---
 
@@ -482,10 +445,10 @@ Skipped entirely on repeat Sprints if conventions.md already exists.
 |---|---|
 | **Name** | run-summary |
 | **Category** | Utility |
-| **Description** | Generate end-of-session summary — decisions, issues completed, agent stats, verify-fix loops. Post to Linear Document and console. |
+| **Description** | Generate end-of-session summary — decisions, tasks completed, agent stats, verify-fix loops. Print to console and write to `.geas/`. |
 | **When invoked** | Invoked by compass at initiative Phase 4 end and sprint end. Also at session handoff or on explicit request. |
-| **Inputs** | `.geas/state/run.json`, `.geas/memory/_project/agent-log.jsonl`, Linear issues and comments. |
-| **Outputs** | Linear Document (`Run Summary: <date>`) and identical console output. |
+| **Inputs** | `.geas/state/run.json`, `.geas/memory/_project/agent-log.jsonl`. |
+| **Outputs** | Console output and `.geas/ledger/run-summary.json`. |
 
 ---
 
@@ -498,7 +461,7 @@ Skipped entirely on repeat Sprints if conventions.md already exists.
 | **Description** | Structured verification checklist — BUILD, LINT, TEST, ERROR_FREE, FUNCTIONALITY. Invoke to check code quality before declaring complete. |
 | **When invoked** | Before declaring any feature complete. Also used in Forge pre-check mode (BUILD + LINT only). |
 | **Inputs** | Project build/lint/test commands (from conventions.md or auto-detected from marker files). |
-| **Outputs** | Per-item verdict (PASS/FAIL/SKIP/PENDING) and overall VERDICT. Posted as a Linear comment. |
+| **Outputs** | Per-item verdict (PASS/FAIL/SKIP/PENDING) and overall VERDICT. |
 
 | Item | What it checks |
 |------|---------------|

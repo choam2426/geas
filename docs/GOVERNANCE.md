@@ -282,13 +282,13 @@ Evidence Gate PASS?
 
 Geas is designed for human-in-the-loop operation, not human-out-of-loop. The governance system assumes a human stakeholder is present and has ultimate authority.
 
-### Human Comments Have Highest Priority
+### Human Feedback Has Highest Priority
 
-When agents read Linear threads to build ContextPackets, human comments are treated as the highest-priority input. A human comment overrides any agent's prior analysis or recommendation. If a human says "this approach is wrong," the system treats that as stronger signal than any agent's assessment.
+When building ContextPackets, human feedback is treated as the highest-priority input. A human directive overrides any agent's prior analysis or recommendation. If a human says "this approach is wrong," the system treats that as stronger signal than any agent's assessment.
 
 ### ContextPackets Include Human Feedback
 
-Every ContextPacket generated for an agent includes relevant human feedback from the Linear thread. Agents do not operate in isolation from human input -- they receive it as part of their standard briefing.
+Every ContextPacket generated for an agent includes relevant human feedback. Agents do not operate in isolation from human input -- they receive it as part of their standard briefing.
 
 ### Humans Can Override Any Agent Decision
 

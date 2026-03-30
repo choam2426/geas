@@ -76,7 +76,7 @@ When a session begins, this hook checks whether the working directory is a Geas-
 3. Check if `.geas/state/run.json` exists. If not, print a reminder to run setup first.
 4. Read `run.json` and print a status summary to stderr: mission, phase, status, and completed task count.
 5. If a checkpoint file exists (`.geas/state/checkpoint.json`), read and include checkpoint information in the status summary.
-6. If `.geas/rules.md` does not exist, create it from a built-in template containing evidence writing rules, Linear configuration, and code boundary rules.
+6. If `.geas/rules.md` does not exist, create it from a built-in template containing evidence writing rules and code boundary rules.
 
 #### Exit behavior
 

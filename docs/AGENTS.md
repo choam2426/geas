@@ -8,7 +8,6 @@ Every agent:
 
 - Receives a **ContextPacket** (`.geas/packets/<task-id>/<agent>.md`) containing focused context for its task.
 - Produces an **EvidenceBundle** (`.geas/evidence/<task-id>/<agent>.json`) as structured proof of work.
-- Posts summary comments to Linear (when enabled) for human visibility, prefixed with its name (e.g., `[Forge]`, `[Sentinel]`).
 - Participates in structured debates with explicit voting and evidence-backed disagreements.
 
 Agents are templates, not fixed identities. The 12-agent team (Geas-12) is the default configuration. The contract engine works with any agent setup.
@@ -19,18 +18,18 @@ Agents are templates, not fixed identities. The 12-agent team (Geas-12) is the d
 
 | Group | Agent | Role | Model | Tools | MCP | Skills |
 |-------|-------|------|-------|-------|-----|--------|
-| **Leadership** | Nova | CEO / Vision | opus | Read, Glob, Grep | -- | linear-cli, linear-protocol, pivot-protocol, briefing, write-prd, write-stories |
-| | Forge | CTO / Architecture | opus | Read, Grep, Glob, Bash, Write, Edit | Context7 | linear-cli, linear-protocol, coding-conventions, verify, cleanup |
-| **Design** | Palette | UI/UX Designer | sonnet | Read, Write, Glob, Grep | -- | linear-cli, linear-protocol, coding-conventions |
-| **Engineering** | Pixel | Frontend Engineer | opus | Read, Write, Edit, Bash, Glob, Grep | Context7 | linear-cli, linear-protocol, coding-conventions |
-| | Circuit | Backend Engineer | opus | Read, Write, Edit, Bash, Glob, Grep | Context7 | linear-cli, linear-protocol, coding-conventions |
-| | Keeper | Git / Release Manager | sonnet | Read, Write, Edit, Bash, Glob, Grep | -- * | linear-cli, linear-protocol, coding-conventions |
-| **Quality** | Sentinel | QA Engineer | sonnet | Read, Write, Bash, Glob, Grep | Playwright, Context7 | linear-cli, linear-protocol, verify |
-| **Operations** | Pipeline | DevOps Engineer | sonnet | Read, Write, Edit, Bash | -- | linear-cli, linear-protocol, coding-conventions |
-| | Shield | Security Engineer | sonnet | Read, Grep, Glob, Bash, Write, Edit | -- | linear-cli, linear-protocol, coding-conventions |
-| **Strategy** | Critic | Devil's Advocate | opus | Read, Glob, Grep | -- | linear-cli, linear-protocol |
-| **Documentation** | Scroll | Tech Writer | sonnet | Read, Write, Glob, Grep | Context7 | linear-cli, linear-protocol |
-| **Process** | Scrum | Agile Master | sonnet | Read, Write, Edit, Glob, Grep | -- | linear-cli, linear-protocol, ledger-query |
+| **Leadership** | Nova | CEO / Vision | opus | Read, Glob, Grep | -- | pivot-protocol, briefing, write-prd, write-stories |
+| | Forge | CTO / Architecture | opus | Read, Grep, Glob, Bash, Write, Edit | Context7 | coding-conventions, verify, cleanup |
+| **Design** | Palette | UI/UX Designer | sonnet | Read, Write, Glob, Grep | -- | coding-conventions |
+| **Engineering** | Pixel | Frontend Engineer | opus | Read, Write, Edit, Bash, Glob, Grep | Context7 | coding-conventions |
+| | Circuit | Backend Engineer | opus | Read, Write, Edit, Bash, Glob, Grep | Context7 | coding-conventions |
+| | Keeper | Git / Release Manager | sonnet | Read, Write, Edit, Bash, Glob, Grep | -- * | coding-conventions |
+| **Quality** | Sentinel | QA Engineer | sonnet | Read, Write, Bash, Glob, Grep | Playwright, Context7 | verify |
+| **Operations** | Pipeline | DevOps Engineer | sonnet | Read, Write, Edit, Bash | -- | coding-conventions |
+| | Shield | Security Engineer | sonnet | Read, Grep, Glob, Bash, Write, Edit | -- | coding-conventions |
+| **Strategy** | Critic | Devil's Advocate | opus | Read, Glob, Grep | -- | -- |
+| **Documentation** | Scroll | Tech Writer | sonnet | Read, Write, Glob, Grep | Context7 | -- |
+| **Process** | Scrum | Agile Master | sonnet | Read, Write, Edit, Glob, Grep | -- | ledger-query |
 
 \* Keeper has no built-in MCP server. During Genesis, Geas may recommend contextual MCP servers based on the tech stack (e.g., GitHub MCP for Keeper). See [initiative skill](../plugin/skills/initiative/SKILL.md) Step 1.7.
 

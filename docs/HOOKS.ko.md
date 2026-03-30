@@ -78,7 +78,7 @@ Hook은 프롬프트 기반 규칙을 대체하지 않습니다. 보완합니다
 3. `.geas/state/run.json`이 있는지 확인합니다. 없으면 먼저 설정을 실행하라는 알림을 출력합니다.
 4. `run.json`을 읽고 stderr에 상태 요약을 출력합니다: mission, phase, status, 완료된 작업 수.
 5. checkpoint 파일(`.geas/state/checkpoint.json`)이 있으면 읽어서 상태 요약에 checkpoint 정보를 포함합니다.
-6. `.geas/rules.md`가 없으면, 증거 작성 규칙, Linear 설정, 코드 경계 규칙을 포함하는 내장 template에서 생성합니다.
+6. `.geas/rules.md`가 없으면, 증거 작성 규칙, 코드 경계 규칙을 포함하는 내장 template에서 생성합니다.
 
 #### 종료 동작
 
