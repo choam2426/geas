@@ -52,9 +52,6 @@ if not os.path.isfile(rules):
 - Required fields: agent, task_id, summary, files_changed, created_at
 - created_at is auto-injected by the PostToolUse hook. No manual timestamp needed.
 
-## Linear
-- enabled: false
-
 ## Code
 - Respect prohibited_paths from the TaskContract
 - Do not modify files outside the task scope
