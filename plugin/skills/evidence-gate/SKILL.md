@@ -124,11 +124,7 @@ After running all applicable tiers, produce a verdict:
      "timestamp": "<actual ISO 8601 from date -u>"
    }
    ```
-3. If Linear is enabled:
-   a. Post a summary comment: `[Compass] Gate PASSED for {task-title}. All criteria met.`
-   b. Verify at least one `[AgentName]` comment exists on the issue (via `list-comments`)
-   c. If no agent comments found: post a fallback summary from the evidence bundles
-4. Return to Compass to proceed with the next task
+3. Return to Compass to proceed with the next task
 
 ### On Fail
 

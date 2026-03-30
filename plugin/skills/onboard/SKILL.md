@@ -135,16 +135,6 @@ Write `.geas/memory/_project/state.json`:
 }
 ```
 
-### 7. Bootstrap Linear
-
-If `.geas/memory/_project/linear-config.json` does not exist:
-
-1. Run the setup skill's Linear workspace steps (labels, workflow states)
-2. Create or find the Linear project for this codebase
-3. Write `.geas/memory/_project/linear-config.json` with team and project IDs
-
-If it already exists, skip — Linear is already configured.
-
 ---
 
 ## Second Sprint Behavior
@@ -169,7 +159,7 @@ This makes repeat Sprints fast: no redundant scanning.
 
 ## Post-Onboard
 
-After writing conventions.md, Forge posts a comment on the Sprint's Linear issue:
+After writing conventions.md, Forge prints onboarding status to console:
 
 ```
 [Forge] Onboarding complete.

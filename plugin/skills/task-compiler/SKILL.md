@@ -118,7 +118,6 @@ Example output:
   "id": "task-003",
   "title": "[Frontend] Login form with email/password",
   "goal": "Create a login form component that submits to POST /api/auth/login and handles success/error states",
-  "linear_issue_id": "MY-15",
   "assigned_worker": "pixel",
   "reviewer": "forge",
   "prohibited_paths": [".env", ".geas/", "plugin/", ".agents/", "src/components/payment/**"],

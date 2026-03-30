@@ -12,7 +12,7 @@ The tech stack is **NOT predefined**. It is decided by the team at project start
 1. **Forge (CTO)** proposes architecture and stack based on the mission
 2. **Nova (CEO)** validates alignment with product vision
 3. **Compass (PM)** confirms feasibility within scope
-4. Decision is recorded as a Linear issue with label `architecture`
+4. Decision is recorded as a DecisionRecord in `.geas/decisions/`
 
 Once decided, Forge creates `.geas/memory/_project/conventions.md` with the chosen stack and conventions.
 

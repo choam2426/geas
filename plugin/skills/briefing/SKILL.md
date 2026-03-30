@@ -76,8 +76,8 @@ Next Priority:
 Nova reads these to assemble the briefing:
 
 1. **`.geas/state/run.json`** — current phase, milestone, mission
-2. **Linear issues** — `list-issues` filtered by project, grouped by status
-3. **Linear comments** — recent activity, blockers, decisions
+2. **`.geas/tasks/`** — TaskContracts grouped by status
+3. **`.geas/evidence/`** — recent activity, blockers, decisions
 4. **Previous briefings** — check for prior "Run Summary" or "Morning Briefing" documents to track delta
 
 ---
@@ -103,11 +103,7 @@ Nova makes a subjective call:
 
 ## Posting
 
-Post the briefing as a **Linear comment** on the project's main tracking issue (or the current milestone issue if one exists).
-
-Do NOT create a Linear Document for briefings — they are ephemeral status updates, not project artifacts.
-
-Also print to console for immediate human visibility.
+Print the briefing to console for immediate human visibility.
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: cleanup
-description: Entropy scan — detect AI slop, unused code, convention drift. Creates tech-debt issues on Linear. Invoke after MVP or during Evolution.
+description: Entropy scan — detect AI slop, unused code, convention drift. Records findings in .geas/debt.json. Invoke after MVP or during Evolution.
 ---
 
 # Cleanup
@@ -91,29 +91,32 @@ Patterns common in AI-generated code:
 
 ## Output
 
-### Per Finding: Linear Issue
+### Per Finding: debt.json Entry
 
-For each finding, create a Linear issue with the `tech-debt` label:
+For each finding, append an entry to `.geas/debt.json`:
 
-```
-Title: [Tech Debt] <short description>
-Description:
-  - Location: <file:line> (or <file> for file-level issues)
-  - Issue: <what's wrong, in one sentence>
-  - Fix: <suggested approach, in one sentence>
-  - Impact: low | medium | high
+```json
+{
+  "id": "debt-<NNN>",
+  "title": "[Tech Debt] <short description>",
+  "location": "<file:line> (or <file> for file-level issues)",
+  "issue": "<what's wrong, in one sentence>",
+  "fix": "<suggested approach, in one sentence>",
+  "impact": "low | medium | high",
+  "created_at": "<ISO 8601 timestamp>"
+}
 ```
 
 **Priority mapping**:
-- `high` impact = Priority 2 (High) — affects correctness, maintainability of core modules
-- `medium` impact = Priority 3 (Normal) — code smell, moderate duplication
-- `low` impact = Priority 4 (Low) — cosmetic, minor inconsistency
+- `high` impact — affects correctness, maintainability of core modules
+- `medium` impact — code smell, moderate duplication
+- `low` impact — cosmetic, minor inconsistency
 
-**Batching**: Group related findings into a single issue when they share the same root cause. Do not create 20 issues for 20 unnecessary comments in the same file — create one issue: "[Tech Debt] Remove unnecessary comments in <module>".
+**Batching**: Group related findings into a single entry when they share the same root cause. Do not create 20 entries for 20 unnecessary comments in the same file -- create one entry: "[Tech Debt] Remove unnecessary comments in <module>".
 
-### Summary Comment
+### Summary
 
-Post a summary comment on the project's tracking issue:
+Print a summary to console:
 
 ```
 [Forge] Entropy Scan Results
@@ -126,7 +129,7 @@ Top priorities:
   2. <second highest>
   3. <third highest>
 
-Tech debt issues created on Linear with label: tech-debt
+Tech debt items recorded in .geas/debt.json
 ```
 
 ---
@@ -145,7 +148,7 @@ Focus on:
 ### For Large Projects (500+)
 Focus exclusively on:
 - Files created or modified by the team during this run
-- Files flagged during code review (check Linear comments for review feedback)
+- Files flagged during code review (check evidence bundles for review feedback)
 - Shared utilities and core business logic directories
 
 ---

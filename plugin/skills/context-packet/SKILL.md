@@ -1,11 +1,11 @@
 ---
 name: context-packet
-description: Generate a role-specific ContextPacket for a worker — compressed briefing that replaces 'read ALL comments' with focused, relevant context only.
+description: Generate a role-specific ContextPacket for a worker — compressed briefing with focused, relevant context only.
 ---
 
 # Context Packet Generator
 
-Creates a focused, role-specific briefing for a worker. Workers read their packet instead of replaying entire Linear threads.
+Creates a focused, role-specific briefing for a worker. Workers read their packet instead of replaying full project history.
 
 ## When to Use
 
@@ -15,7 +15,7 @@ Compass invokes this skill before dispatching any worker for a task.
 
 1. **TaskContract** — read from `.geas/tasks/{task-id}.json`
 2. **Prior evidence** — check `.geas/evidence/{task-id}/` for upstream worker output
-3. **Linear thread** (when Linear enabled and `linear_issue_id` exists in TaskContract) — agent comments, human feedback, and decisions
+3. **Decision records** — check `.geas/decisions/` for relevant decisions
 4. **Seed spec** — `.geas/spec/seed.json` for mission context
 
 ## Generation Process
@@ -76,12 +76,10 @@ From prior evidence (`.geas/evidence/{task-id}/`):
 - For design evidence: extract the full design spec
 - For tech guide evidence: extract the approach and constraints
 
-From Linear (when `linear_enabled` and `linear_issue_id` exists in TaskContract):
-- **MUST** run: `list-comments --issue-id {linear_issue_id}`
-- Include ALL comments — both agent comments (`[AgentName]` prefixed) and human comments
-- Human comments are especially important: they represent direct stakeholder feedback that must be respected
-- Format each comment as: `[Author] content (timestamp)`
-- If the issue has no comments yet, note "No prior comments" and proceed
+From decision records (`.geas/decisions/`):
+- Read any decisions relevant to this task's domain
+- Include the decision rationale and outcome
+- Human-confirmed decisions have the highest priority
 
 From tech debt (`.geas/debt.json`, if it exists):
 - Read open debt items
@@ -132,15 +130,7 @@ Write the packet as a markdown file with this structure:
 ## Known Tech Debt
 {Open debt items relevant to this task. Workers should be aware but fix only if the task explicitly addresses them.}
 
-## Linear Thread
-{Previous comments on this issue, including human feedback. Omit if Linear disabled or no comments.}
-
-- [Palette] Design spec: mobile-first layout with... (2026-03-25T01:00)
-- [Human] Use bar charts instead of pie charts for vote results (2026-03-25T01:05)
-- [Forge] Agreed. CSS-only bar chart approach. (2026-03-25T01:10)
-
 ## Reference
-- Linear: {issue url, if available}
 - Seed: .geas/spec/seed.json
 - Contract: .geas/tasks/{task-id}.json
 ```

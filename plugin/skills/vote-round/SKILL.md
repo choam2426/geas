@@ -1,23 +1,23 @@
 ---
 name: vote-round
-description: Vote Round protocol — solicit structured votes from agents after major proposals. Triggers debate if disagreement found.
+description: Structured review protocol — Forge proposes, Critic challenges, Compass synthesizes, user confirms. Produces a DecisionRecord.
 ---
 
-# Vote Round Protocol
+# Structured Review Protocol
 
-After a major proposal (architecture, design system, cross-cutting decision), run a Vote Round to actively solicit agreement or disagreement before proceeding.
+After a major proposal (architecture, design system, cross-cutting decision), run a structured review to surface concerns and reach a confirmed decision before proceeding.
 
 ---
 
-## When to Trigger a Vote Round
+## When to Trigger a Review
 
-| Proposal | Voters |
+| Proposal | Critic |
 |----------|--------|
-| Forge proposes architecture / tech stack (Genesis) | Circuit, Palette |
-| Palette posts the overall design system (not per-feature specs) | Forge, Pixel |
-| Cross-cutting decision affecting multiple agents (e.g., state management, API shape, deployment strategy) | 2-3 agents whose domain is affected |
+| Forge proposes architecture / tech stack (Genesis) | Circuit or Palette (whoever's domain is most affected) |
+| Palette posts the overall design system (not per-feature specs) | Forge or Pixel |
+| Cross-cutting decision affecting multiple agents (e.g., state management, API shape, deployment strategy) | The agent whose domain is most affected |
 
-## What NOT to Vote On
+## What NOT to Review
 
 - Individual feature design specs (too granular)
 - Per-feature tech guides from Forge
@@ -28,89 +28,129 @@ Trust the agents on these. Keep moving.
 
 ---
 
-## How to Run a Vote Round
+## How to Run a Structured Review
 
-### Step 1 — Identify Voters
-- Select 2-3 agents whose domain is affected by the proposal.
-- Never include the proposer as a voter.
+### Step 1 -- Forge Proposes
 
-### Step 2 — Spawn Voters
-- Use the `Agent` tool to spawn each voter with this prompt:
+The proposer writes a structured proposal:
 
 ```
-A proposal has been posted on <ISSUE_ID> by <PROPOSER>:
-"<brief summary of the proposal>"
+Proposal: <title>
+By: <proposer agent>
 
-Read the full comment using linear-cli, then post a VOTE comment:
-- thumbs up Agree: <one sentence why you support this>
-- thumbs down Disagree: <what's wrong> + <your alternative> + <trade-off>
+## What
+<What is being proposed, in 2-3 sentences>
 
-Pick ONE. Be honest — don't agree just to be fast.
+## Why
+<Rationale — what problem does this solve?>
+
+## Trade-offs
+<Known trade-offs and why they are acceptable>
+
+## Alternatives Considered
+<What else was considered and why it was rejected>
 ```
 
-### Step 3 — Read Votes
-- Use `linear-cli` to read all vote comments on the issue.
-- Tally: count thumbs up and thumbs down votes.
+The proposal is saved to `.geas/decisions/pending/{proposal-id}.md`.
 
----
+### Step 2 -- Critic Challenges
 
-## If All Thumbs Up
+Compass spawns the designated Critic agent to review the proposal. The Critic must:
 
-Proceed to the next step immediately. No further discussion needed.
+1. Read the proposal from `.geas/decisions/pending/{proposal-id}.md`
+2. Evaluate against their domain expertise
+3. Write a structured challenge:
 
----
-
-## If Any Thumbs Down — Debate Round
-
-When any voter disagrees, enter a structured debate:
-
-### Round 1 — Proposer Responds
-- Re-spawn the **original proposer** with the disagree argument:
-  ```
-  <Voter> disagrees with your proposal on <ISSUE_ID> because: <reason>.
-  Read their comment on <ISSUE_ID> and respond:
-  - Counter-argue with evidence, or
-  - Concede the point, or
-  - Propose a modified approach that addresses their concern
-  ```
-
-### Round 2+ — Continue Until Resolution
-- After the proposer responds, re-spawn the dissenting voter to either:
-  - Accept the response (concede)
-  - Counter-argue with new evidence
-  - Propose a hybrid
-- Continue rounds until resolution.
-
-### Maximum 3 Rounds
-- If after 3 rounds no resolution is reached, spawn **Nova** as tiebreaker.
-- Nova reads ALL comments and posts a final decision with:
-  - Which approach to take
-  - Which arguments convinced the decision
-  - What trade-offs are being accepted
-
----
-
-## What Counts as Resolution
-
-The vote round is resolved when any of these occur:
-
-| Resolution | Example |
-|------------|---------|
-| One side concedes with reasoning | "Fair point because the latency cost is real..." |
-| A hybrid is proposed and accepted | "If we combine your API shape with my caching approach..." |
-| Nova makes a final call | After 3 unresolved rounds |
-
----
-
-## Output
-
-After resolution, Compass posts a summary comment on the issue:
 ```
-[Compass] Vote resolved:
-- Proposal: <what was proposed>
-- Result: <Approved / Modified / Overruled>
-- Key concern: <if any thumbs down, what was the issue>
-- Resolution: <what was decided and why>
+Challenge: <proposal-id>
+By: <critic agent>
+
+## Assessment
+<agree | challenge>
+
+## Concerns
+<specific technical or design concerns, if any>
+
+## Alternative
+<if challenging: a concrete alternative with trade-offs>
+
+## Recommendation
+<proceed as-is | modify with specifics | replace with alternative>
+```
+
+The challenge is appended to the same proposal file.
+
+**The Critic must participate.** Skipping the Critic step is not allowed — even if the proposal seems obvious, a second perspective catches blind spots.
+
+### Step 3 -- Compass Synthesizes
+
+Compass reads both the proposal and the challenge, then presents a summary to the user:
+
+```
+[Compass] Decision needed: <proposal title>
+
+Proposal by <proposer>:
+  <1-2 sentence summary>
+
+Critic (<critic agent>) says:
+  <1-2 sentence summary of challenge/agreement>
+
+Options:
+  1. Accept proposal as-is
+  2. Accept with modifications: <specific modifications from critic>
+  3. Accept critic's alternative: <alternative summary>
+  4. Reject — need more information
+
+Recommendation: <Compass's recommendation based on project context>
+```
+
+### Step 4 -- User Confirms
+
+The user selects an option or provides a modified decision. If the user does not respond (e.g., autonomous mode), Compass proceeds with their recommendation after noting the auto-decision.
+
+---
+
+## Output: DecisionRecord
+
+After resolution, create a DecisionRecord:
+
+```bash
+mkdir -p .geas/decisions
+```
+
+Write to `.geas/decisions/{dec-id}.json` conforming to `schemas/decision-record.schema.json`:
+
+```json
+{
+  "id": "dec-<NNN>",
+  "proposal": "<what was proposed>",
+  "proposer": "<agent>",
+  "critic": "<agent>",
+  "result": "accepted | modified | alternative | rejected",
+  "summary": "<what was decided and why>",
+  "key_concern": "<critic's main concern, if any>",
+  "confirmed_by": "user | compass-auto",
+  "timestamp": "<ISO 8601>"
+}
+```
+
+Clean up the pending file:
+
+```bash
+rm .geas/decisions/pending/{proposal-id}.md
 ```
 
 Then proceed with the decided approach.
+
+---
+
+## Resolution Criteria
+
+The review is resolved when:
+
+| Resolution | Example |
+|------------|---------|
+| User accepts the proposal | "Go with option 1" |
+| User accepts with modifications | "Option 2, but use PostgreSQL instead of SQLite" |
+| User picks the alternative | "The critic's approach is better" |
+| Compass auto-decides (autonomous mode) | Compass picks the strongest option and notes it |

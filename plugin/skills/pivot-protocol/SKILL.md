@@ -13,10 +13,10 @@ A pivot is triggered when ANY of these occur:
 - Forge identifies a fundamental architecture problem
 - Nova judges that a feature doesn't deliver enough user value ("Cut")
 - Implementation is taking significantly longer than expected for the value it delivers
-- Multiple agents raise concerns about the same approach in Linear comments
+- Multiple agents raise concerns about the same approach
 - The team discovers mid-build that the user need is different than assumed
 
-**Any team member can suggest a pivot via Linear comment.** You don't need to wait for failures.
+**Any team member can suggest a pivot.** You don't need to wait for failures.
 
 ## Pivot Process
 
@@ -32,13 +32,12 @@ A pivot is triggered when ANY of these occur:
    - **Push through**: if the issue is fixable with reasonable effort
    - **Simplify**: keep the goal but drastically reduce complexity
 
-3. **Nova posts decision as Linear comment** with clear rationale
+3. **Nova records decision** as a DecisionRecord in `.geas/decisions/` with clear rationale
 
-4. **Compass restructures** the Linear board:
-   - Cancel dropped issues with explanation
-   - Create new issues for the new approach
-   - Update priorities
-   - Comment on affected issues to notify agents
+4. **Compass restructures** the task board:
+   - Cancel dropped TaskContracts with explanation
+   - Create new TaskContracts for the new approach
+   - Update priorities in `.geas/tasks/`
 
 5. **Team redirects** and continues from the new plan
 

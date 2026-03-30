@@ -1,6 +1,6 @@
 ---
 name: run-summary
-description: Generate end-of-session summary — decisions, issues completed, agent stats, verify-fix loops. Post to Linear Document and console.
+description: Generate end-of-session summary — decisions, issues completed, agent stats, verify-fix loops. Output to console and .geas/ file.
 ---
 
 # Run Summary
@@ -26,14 +26,15 @@ Read these in order to assemble the summary:
 
 1. **`.geas/state/run.json`** — current phase, mode, mission, milestone
 2. **`.geas/memory/_project/agent-log.jsonl`** — agent spawn history (who was spawned, when, for what issue)
-3. **Linear issues** — `list-issues` filtered by project, check statuses and comments for decisions
-4. **Linear comments** — scan for decision patterns: `[Nova]`, `[Forge]`, vote results, pivot notices
+3. **`.geas/tasks/`** — TaskContracts, check statuses for completion and progress
+4. **`.geas/decisions/`** — DecisionRecords for decisions made this session
+5. **`.geas/ledger/events.jsonl`** — gate results, verify-fix loops, escalations
 
 ---
 
 ## Output Format
 
-Post as both a **Linear Document** and **console output**.
+Print to **console** and write to **`.geas/summaries/`**.
 
 ```
 Run Summary — <mission name or Sprint feature>
@@ -107,17 +108,11 @@ Present as a markdown summary.
 
 ---
 
-## Creating the Linear Document
+## Writing the Summary File
 
-Post the summary as a Linear Document attached to the project:
+Write the summary to `.geas/summaries/run-summary-<YYYY-MM-DD>.md`.
 
-```
-create-document --title "Run Summary: <YYYY-MM-DD>" --content "<summary content>" --project-id <UUID>
-```
-
-Read the project ID from `.geas/memory/_project/linear-config.json`.
-
-If multiple summaries exist for the same date (multiple sessions), append a sequence number: "Run Summary: 2026-03-21 #2".
+If multiple summaries exist for the same date (multiple sessions), append a sequence number: `run-summary-2026-03-21-2.md`.
 
 ---
 
@@ -131,15 +126,15 @@ The agent log at `.geas/memory/_project/agent-log.jsonl` uses one JSON object pe
 {"agent": "sentinel", "action": "verify-fail", "issue_id": "MY-42", "timestamp": "2026-03-21T11:20:00Z"}
 ```
 
-If the log file does not exist, note "Agent log not available — counts estimated from Linear activity" and derive counts from Linear issue comments.
+If the log file does not exist, note "Agent log not available" and skip the agent spawn counts section.
 
 ---
 
 ## Console Output
 
-Print the same summary to the console so the human sees it immediately, without needing to open Linear.
+Print the same summary to the console so the human sees it immediately.
 
-Keep console output identical to the Linear Document content — no separate formatting.
+Keep console output identical to the summary file content — no separate formatting.
 
 ---
 

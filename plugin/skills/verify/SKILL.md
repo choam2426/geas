@@ -160,7 +160,7 @@ else:
 
 ## Posting Results
 
-Post the verification result as a comment on the Linear issue:
+Print the verification result to console:
 
 ```
 [<Agent>] Verify checklist:
