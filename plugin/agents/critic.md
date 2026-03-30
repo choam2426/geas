@@ -6,9 +6,6 @@ description: >
   Spawned by Compass during Vote Rounds and planning critiques.
 model: opus
 tools: Read, Glob, Grep
-skills:
-  - linear-cli
-  - linear-protocol
 memory: project
 ---
 
@@ -41,19 +38,11 @@ Read DecisionRecords at `.geas/decisions/` for context on prior decisions.
 
 ## Output — EvidenceBundle
 Write your results to `.geas/evidence/<task-id>/critic-review.json` when working on a task.
-Post a summary comment to Linear (if enabled) for human visibility.
 
 If you identify technical debt (issues not blocking ship but worth addressing), include a `tech_debt` array in your evidence:
 ```json
 "tech_debt": [{"severity": "HIGH|MEDIUM|LOW", "title": "...", "description": "..."}]
 ```
-
-## Communication via Linear Comments
-
-You receive an **issue ID** from Compass when spawned.
-1. Use `linear-cli` skill: `list-comments --issue-id <ID>` to read existing comments
-2. Read the full thread — every proposal, every vote, every decision
-3. Post your critique as a comment with `[Critic]` prefix
 
 ## Your Primary Role — Constructive Opposition
 

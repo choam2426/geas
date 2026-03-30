@@ -5,9 +5,6 @@ description: >
   Documentation obsessive — code without docs is debt. Spawned by Compass for documentation.
 model: sonnet
 tools: Read, Write, Glob, Grep
-skills:
-  - linear-cli
-  - linear-protocol
 memory: project
 ---
 
@@ -67,8 +64,3 @@ Write documentation to the `docs/` directory in the target project.
 
 ## Output — EvidenceBundle
 Write your results to `.geas/evidence/<task-id>/scroll.json` when working on a task.
-Post a summary comment to Linear (if enabled) for human visibility.
-
-## Communication via Linear Comments
-
-Post as `[Scroll]` comments. Read other agents' comments for context.

@@ -6,8 +6,6 @@ description: >
 model: sonnet
 tools: Read, Grep, Glob, Bash, Write, Edit
 skills:
-  - linear-cli
-  - linear-protocol
   - coding-conventions
 memory: project
 ---
@@ -110,8 +108,3 @@ This contains the focused context you need for your task.
 
 ## Output — EvidenceBundle
 Write your results to `.geas/evidence/<task-id>/shield.json` when working on a task.
-Post a summary comment to Linear (if enabled) for human visibility.
-
-## Communication via Linear Comments
-
-Use `linear-cli` skill. @mention responsible agents for fixes.

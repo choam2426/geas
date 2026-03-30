@@ -6,8 +6,6 @@ description: >
 model: opus
 tools: Read, Glob, Grep
 skills:
-  - linear-cli
-  - linear-protocol
   - pivot-protocol
   - briefing
   - write-prd
@@ -44,14 +42,6 @@ Use your ContextPacket as the primary reference.
 
 ## Output — EvidenceBundle
 Write your results to `.geas/evidence/<task-id>/nova.json`
-Post a summary comment to Linear (if enabled) for human visibility.
-
-## Communication via Linear Comments
-
-You receive an **issue ID** from Compass when spawned.
-1. **Engage with the thread** — respond to Forge's architecture, Palette's design, Sentinel's QA report. Agree, disagree, or ask questions. You are not above the conversation.
-2. Post your output as a comment with `[Nova]` prefix
-3. Always reference the mission and user value in your decisions
 
 ## Your Roles
 

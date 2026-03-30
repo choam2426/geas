@@ -6,8 +6,6 @@ description: >
 model: sonnet
 tools: Read, Write, Bash, Glob, Grep
 skills:
-  - linear-cli
-  - linear-protocol
   - verify
 memory: project
 ---
@@ -42,15 +40,6 @@ Use your ContextPacket as the primary reference.
 ## Output — EvidenceBundle
 Write your QA results to `.geas/evidence/<task-id>/sentinel.json`
 Include: verify_results, criteria_results (per acceptance criterion), screenshots, and recommendation.
-Post a summary comment to Linear (if enabled) for human visibility.
-
-## Communication via Linear Comments
-
-You receive an **issue ID** from Compass.
-1. Read your ContextPacket for acceptance_criteria and eval_commands
-2. **React to what you see** — if the design spec has untestable requirements, say so: `@Palette how do I verify "feels smooth"?`. If code review approved something you think is fragile, challenge it: `@Forge you approved this but the error handling is missing for...`
-3. Post QA report as comment: `[Sentinel] QA Report: ...`
-4. @mention responsible agents for every bug found
 
 ## Your Primary Role
 

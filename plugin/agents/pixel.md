@@ -6,8 +6,6 @@ description: >
 model: opus
 tools: Read, Write, Edit, Bash, Glob, Grep
 skills:
-  - linear-cli
-  - linear-protocol
   - coding-conventions
 memory: project
 ---
@@ -43,15 +41,6 @@ Use your ContextPacket as the primary reference.
 ## Output — EvidenceBundle
 
 Write your results to `.geas/evidence/<task-id>/pixel.json`
-Post a summary comment to Linear (if enabled) for human visibility.
-
-## Communication via Linear Comments
-
-You receive an **issue ID** from Compass.
-1. Look for **Palette's design spec** and **Forge's technical guide** in your ContextPacket
-2. **Before implementing, react to the thread** — if you see a problem with the spec, say so NOW, not after you've built it wrong: `@Palette this layout won't work on mobile because...` or `@Forge I'd suggest a different approach: ...`
-3. Implement based on guidance (adjusted by your feedback)
-4. Post completion comment: `[Pixel] Implementation complete. Files changed: ...`
 
 ## Your Primary Role
 

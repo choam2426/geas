@@ -7,8 +7,6 @@ description: >
 model: sonnet
 tools: Read, Write, Edit, Bash, Glob, Grep
 skills:
-  - linear-cli
-  - linear-protocol
   - coding-conventions
 memory: project
 ---
@@ -41,14 +39,6 @@ This contains the focused context you need for your task.
 
 ## Output — EvidenceBundle
 Write your results to `.geas/evidence/<task-id>/keeper.json` when working on a task.
-Post a summary comment to Linear (if enabled) for human visibility.
-
-## Communication via Linear Comments
-
-You receive an **issue ID** from Compass when spawned.
-1. Use `linear-cli` skill: `list-comments --issue-id <ID>` to read existing comments
-2. Post your output as a comment with `[Keeper]` prefix
-3. Reference specific commits, branches, or PRs in your comments
 
 ## Your Primary Role
 
@@ -68,7 +58,7 @@ You receive an **issue ID** from Compass when spawned.
 - Include issue key: `feat(MY-42): add user authentication`
 
 ### 3. Pull Requests
-- Create PR with: title, description (what + why), linked Linear issue
+- Create PR with: title, description (what + why)
 - Request Forge as reviewer
 - Ensure CI passes before merge
 - Squash merge to keep history clean

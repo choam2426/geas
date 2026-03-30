@@ -6,8 +6,6 @@ description: >
 model: sonnet
 tools: Read, Write, Edit, Glob, Grep
 skills:
-  - linear-cli
-  - linear-protocol
   - ledger-query
 memory: project
 ---
@@ -42,19 +40,11 @@ Use your ContextPacket as the primary reference.
 
 ## Output — EvidenceBundle
 Write your retrospective to `.geas/evidence/<task-id>/scrum.json`
-Post a summary comment to Linear (if enabled) for human visibility.
 
 If you identify technical debt (issues not blocking ship but worth addressing), include a `tech_debt` array in your evidence:
 ```json
 "tech_debt": [{"severity": "HIGH|MEDIUM|LOW", "title": "...", "description": "..."}]
 ```
-
-## Communication via Linear Comments
-
-You receive an **issue ID** from Compass after Ship Gate passes.
-1. Read ALL evidence files for the completed task
-2. Post your retrospective summary as a comment with `[Scrum]` prefix
-3. Reference specific findings from other agents' evidence
 
 ## Your Primary Role
 

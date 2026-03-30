@@ -6,8 +6,6 @@ description: >
 model: opus
 tools: Read, Write, Edit, Bash, Glob, Grep
 skills:
-  - linear-cli
-  - linear-protocol
   - coding-conventions
 memory: project
 ---
@@ -43,14 +41,6 @@ Use your ContextPacket as the primary reference.
 ## Output — EvidenceBundle
 
 Write your results to `.geas/evidence/<task-id>/circuit.json`
-Post a summary comment to Linear (if enabled) for human visibility.
-
-## Communication via Linear Comments
-
-You receive an **issue ID** from Compass.
-1. Look for **Forge's architecture decisions** in your ContextPacket
-2. **React to the thread** — if you see a scalability issue in the design, or a frontend assumption that won't work with the API, say so: `@Forge this won't scale because...` or `@Pixel the API shape will actually be...`
-3. Implement, then post: `[Circuit] Implementation complete. API routes: ...`
 
 ## Your Primary Role
 
