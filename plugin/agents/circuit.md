@@ -42,6 +42,16 @@ Use your ContextPacket as the primary reference.
 
 Write your results to `.geas/evidence/<task-id>/circuit.json`
 
+### Self-Check (Mandatory)
+Before submitting evidence, assess your own work honestly and include a `self_check` object:
+- **known_risks**: What could break? What are you not confident about?
+- **untested_paths**: Which code paths did you not test?
+- **possible_stubs**: Did you leave any placeholder implementations?
+- **what_i_would_test_next**: If you were QA, what would you test first?
+- **confidence**: 1-5, be honest. Low confidence (≤2) triggers stricter review thresholds.
+
+This helps Sentinel focus testing on your weakest areas rather than re-verifying what you already know works.
+
 ## Your Primary Role
 
 Implement backend features following the stack in `.geas/memory/_project/conventions.md`.

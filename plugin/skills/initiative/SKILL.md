@@ -114,7 +114,12 @@ Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge.md. Write tech
 ```
 Verify `.geas/evidence/{task-id}/forge.json` exists.
 
-### 2.3 Implementation [MANDATORY — worktree isolated]
+### 2.3 Implementation Contract [MANDATORY]
+Invoke `/geas:implementation-contract` — worker writes action plan, Sentinel and Forge approve before coding.
+Update run.json checkpoint: `pipeline_step` = "implementation_contract", `agent_in_flight` = "{worker}"
+Verify `.geas/contracts/{task-id}.json` exists with `status: "approved"`.
+
+### 2.4 Implementation [MANDATORY — worktree isolated]
 Generate ContextPacket, then:
 Update run.json checkpoint: `pipeline_step` = "implementation", `agent_in_flight` = "{worker}"
 ```
@@ -122,7 +127,7 @@ Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/packets/{tas
 ```
 Verify evidence exists. Merge worktree branch.
 
-### 2.4 Code Review (Forge) [MANDATORY]
+### 2.5 Code Review (Forge) [MANDATORY]
 Generate ContextPacket, then:
 Update run.json checkpoint: `pipeline_step` = "code_review", `agent_in_flight` = "forge"
 ```
@@ -130,7 +135,7 @@ Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge-review.md. Rev
 ```
 Verify `.geas/evidence/{task-id}/forge-review.json` exists.
 
-### 2.5 Testing (Sentinel) [MANDATORY]
+### 2.6 Testing (Sentinel) [MANDATORY]
 Generate ContextPacket, then:
 Update run.json checkpoint: `pipeline_step` = "testing", `agent_in_flight` = "sentinel"
 ```
@@ -138,24 +143,24 @@ Agent(agent: "sentinel", prompt: "Read .geas/packets/{task-id}/sentinel.md. Test
 ```
 Verify `.geas/evidence/{task-id}/sentinel.json` exists.
 
-### 2.6 Evidence Gate
+### 2.7 Evidence Gate
 Run eval_commands from TaskContract. Check acceptance criteria against all evidence.
 Log detailed result with tier breakdown.
 If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** After fix, re-run gate.
 
-### 2.7 Critic Pre-ship Review [MANDATORY]
+### 2.8 Critic Pre-ship Review [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "critic_review", `agent_in_flight` = "critic"
 ```
 Agent(agent: "critic", prompt: "Read all evidence at .geas/evidence/{task-id}/. Challenge: is this truly ready to ship? Identify risks, missing edge cases, or technical debt. Write to .geas/evidence/{task-id}/critic-review.json")
 ```
 
-### 2.8 Nova Product Review [MANDATORY]
+### 2.9 Nova Product Review [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "nova_review", `agent_in_flight` = "nova"
 ```
 Agent(agent: "nova", prompt: "Read all evidence at .geas/evidence/{task-id}/ including critic-review.json. Verdict: Ship, Iterate, or Cut. Write to .geas/evidence/{task-id}/nova-verdict.json")
 ```
 
-### 2.9 Ship Gate — verify before marking passed
+### 2.10 Ship Gate — verify before marking passed
 **Before marking any task as "passed", verify:**
 - `.geas/evidence/{task-id}/forge-review.json` exists (Read it)
 - `.geas/evidence/{task-id}/sentinel.json` exists (Read it)
@@ -170,7 +175,7 @@ Agent(agent: "scrum", prompt: "Read all evidence at .geas/evidence/{task-id}/. R
 ```
 Verify `.geas/memory/retro/{task-id}.json` exists.
 
-### 2.10 Resolve
+### 2.11 Resolve
 - **Ship**: Read `.geas/tasks/{task-id}.json`, set `"status": "passed"`, Write it back. Then spawn Keeper for commit:
   Update run.json checkpoint: `pipeline_step` = "resolve", `agent_in_flight` = "keeper"
   ```

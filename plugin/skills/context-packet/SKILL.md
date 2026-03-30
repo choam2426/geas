@@ -50,6 +50,9 @@ Different workers need different context:
 - Architecture decisions relevant to this area
 - Acceptance criteria to review against
 - Known anti-patterns to watch for
+- **Implementation contract** — read `.geas/contracts/{task-id}.json` to verify the implementation matches the agreed plan
+- **Worker's `self_check`** — `known_risks` and `possible_stubs` to focus review attention
+- **Rubric dimension**: `code_quality` score and threshold (from TaskContract `rubric`)
 
 #### Tester (Sentinel)
 - Acceptance criteria — what to test
@@ -57,6 +60,10 @@ Different workers need different context:
 - Expected behavior for each criterion
 - Edge cases to probe
 - UI flows to exercise (if frontend)
+- **Worker's `self_check`** — `untested_paths`, `known_risks`, and `what_i_would_test_next` from the worker's EvidenceBundle (prioritize testing these areas)
+- **Implementation contract** — read `.geas/contracts/{task-id}.json` for `demo_steps` and `edge_cases` the worker committed to handling
+- **QA tools available** — based on project stack (see QA Tools section below)
+- **Rubric dimensions** — which dimensions Sentinel must score and their thresholds (from TaskContract `rubric`)
 
 #### Product Reviewer (Nova)
 - Feature goal (from contract)
@@ -136,6 +143,33 @@ Write the packet as a markdown file with this structure:
 ```
 
 Omit sections that have no content (e.g., no design context for a backend task before Palette has worked).
+
+## QA Tools Section (Sentinel packets only)
+
+When generating a Sentinel packet, include a `## QA Tools Available` section based on the project's tech stack (from `.geas/memory/_project/conventions.md` and `.geas/config.json` connected MCPs):
+
+```markdown
+## QA Tools Available
+- **API**: curl/fetch for direct HTTP endpoint testing
+- **Database**: {{PostgreSQL MCP / MongoDB MCP / SQLite — based on detected stack}}
+- **Browser**: Playwright MCP for E2E, screenshots, visual regression
+- **Performance**: Lighthouse for Core Web Vitals
+```
+
+Only include tools that are actually available for the project.
+
+## Rubric Section (Sentinel and Forge review packets)
+
+Include a `## Rubric Scoring` section listing the dimensions the evaluator must score:
+
+```markdown
+## Rubric Scoring
+You MUST include `rubric_scores` in your EvidenceBundle for these dimensions:
+| Dimension | Threshold | Your role |
+|-----------|-----------|-----------|
+| core_interaction | 3 | Score 1-5 with rationale |
+| feature_completeness | 4 | Score 1-5 with rationale |
+```
 
 ## Rules
 

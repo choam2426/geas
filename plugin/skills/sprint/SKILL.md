@@ -54,39 +54,44 @@ Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge.md. Write tech
 ```
 Verify evidence exists.
 
-### 4. Implementation [MANDATORY — worktree isolated]
+### 4. Implementation Contract [MANDATORY]
+Invoke `/geas:implementation-contract` — worker writes action plan, Sentinel and Forge approve before coding.
+Update run.json checkpoint: `pipeline_step` = "implementation_contract", `agent_in_flight` = "{worker}"
+Verify `.geas/contracts/{task-id}.json` exists with `status: "approved"`.
+
+### 5. Implementation [MANDATORY — worktree isolated]
 Update run.json checkpoint: `pipeline_step` = "implementation", `agent_in_flight` = "{worker}"
 ```
 Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/packets/{task-id}/{worker}.md. Implement. Write evidence to .geas/evidence/{task-id}/{worker}.json")
 ```
 Verify evidence. Merge worktree.
 
-### 5. Code Review (Forge) [MANDATORY]
+### 6. Code Review (Forge) [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "code_review", `agent_in_flight` = "forge"
 ```
 Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge-review.md. Review code. Write to .geas/evidence/{task-id}/forge-review.json")
 ```
 Verify evidence.
 
-### 6. Testing (Sentinel) [MANDATORY]
+### 7. Testing (Sentinel) [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "testing", `agent_in_flight` = "sentinel"
 ```
 Agent(agent: "sentinel", prompt: "Read .geas/packets/{task-id}/sentinel.md. Test feature. Write to .geas/evidence/{task-id}/sentinel.json")
 ```
 Verify evidence.
 
-### 7. Evidence Gate
+### 8. Evidence Gate
 Run eval_commands. Check acceptance criteria. Log detailed result.
 If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** After fix, re-run gate.
 
-### 7.5 Critic Pre-ship Review [MANDATORY]
+### 8.5 Critic Pre-ship Review [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "critic_review", `agent_in_flight` = "critic"
 ```
 Agent(agent: "critic", prompt: "Read all evidence at .geas/evidence/{task-id}/. Challenge: is this truly ready to ship? Identify risks, missing edge cases, or technical debt. Write to .geas/evidence/{task-id}/critic-review.json")
 ```
 Verify `.geas/evidence/{task-id}/critic-review.json` exists.
 
-### 8. Nova Product Review [MANDATORY]
+### 9. Nova Product Review [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "nova_review", `agent_in_flight` = "nova"
 ```
 Agent(agent: "nova", prompt: "Read all evidence at .geas/evidence/{task-id}/. Verdict: Ship/Iterate/Cut. Write to .geas/evidence/{task-id}/nova-verdict.json")
@@ -107,7 +112,7 @@ Agent(agent: "scrum", prompt: "Read all evidence at .geas/evidence/{task-id}/. R
 ```
 Verify `.geas/memory/retro/{task-id}.json` exists.
 
-### 9. Resolve
+### 10. Resolve
 - Ship → Read `.geas/tasks/{task-id}.json`, set `"status": "passed"`, Write it back. Then spawn Keeper for commit:
   Update run.json checkpoint: `pipeline_step` = "resolve", `agent_in_flight` = "keeper"
   ```
@@ -116,5 +121,5 @@ Verify `.geas/memory/retro/{task-id}.json` exists.
 - Iterate → re-dispatch with feedback
 - Cut → `"failed"`, write DecisionRecord
 
-### 10. Run Summary
+### 11. Run Summary
 Invoke `/geas:run-summary` to generate session audit trail.

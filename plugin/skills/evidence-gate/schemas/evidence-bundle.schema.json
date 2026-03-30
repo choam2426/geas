@@ -86,6 +86,93 @@
       },
       "description": "Technical debt identified during review — not blocking but should be addressed"
     },
+    "self_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "known_risks": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Risks the worker is aware of in their implementation"
+        },
+        "untested_paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Code paths the worker did not test"
+        },
+        "possible_stubs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Implementations left as stubs or placeholders"
+        },
+        "what_i_would_test_next": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Suggested test areas for QA to prioritize"
+        },
+        "confidence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Worker's self-assessed confidence. 1=very uncertain, 5=very confident. Score ≤2 triggers stricter rubric thresholds."
+        }
+      },
+      "required": ["known_risks", "untested_paths", "confidence"],
+      "description": "Worker's honest self-assessment. Guides Sentinel on where to focus testing."
+    },
+    "rubric_scores": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "dimension": { "type": "string" },
+          "score": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "rationale": { "type": "string", "description": "Brief justification for the score" }
+        },
+        "required": ["dimension", "score"]
+      },
+      "description": "Rubric dimension scores produced by evaluators (Sentinel, Forge). Evidence Gate aggregates these."
+    },
+    "state_verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "api_checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "endpoint": { "type": "string" },
+              "expected_status": { "type": "integer" },
+              "actual_status": { "type": "integer" },
+              "pass": { "type": "boolean" },
+              "notes": { "type": "string" }
+            },
+            "required": ["endpoint", "expected_status", "actual_status", "pass"]
+          },
+          "description": "Direct API endpoint verification results"
+        },
+        "db_checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "description": { "type": "string" },
+              "query": { "type": "string" },
+              "expected": { "type": "string" },
+              "actual": { "type": "string" },
+              "pass": { "type": "boolean" }
+            },
+            "required": ["description", "pass"]
+          },
+          "description": "Read-only database state verification results"
+        }
+      },
+      "description": "Stateful QA results — API responses and DB state beyond UI surface testing"
+    },
     "notes": {
       "type": "string",
       "description": "Additional context or observations"

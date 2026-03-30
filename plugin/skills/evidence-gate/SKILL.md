@@ -44,7 +44,9 @@ If the EvidenceBundle already contains `verify_results`, compare them against a 
 
 ### Tier 2: Semantic Gate
 
-Check each acceptance criterion from the TaskContract against the evidence.
+Two-part evaluation: acceptance criteria check + rubric scoring.
+
+#### Part A: Acceptance Criteria
 
 For each criterion in `acceptance_criteria`:
 1. Read the worker's evidence (summary, files_changed, criteria_results if present)
@@ -53,7 +55,34 @@ For each criterion in `acceptance_criteria`:
    - If not → infer from the evidence (files changed, test results, code inspection)
 3. Record: `{ "criterion": "...", "met": true/false, "evidence": "..." }`
 
-**All criteria must be met** for the semantic gate to pass.
+**All criteria must be met** to proceed to Part B.
+
+#### Part B: Rubric Scoring
+
+Read the `rubric` array from the TaskContract. For each dimension:
+1. Identify the evaluator's evidence:
+   - Forge's code review evidence → `code_quality` score
+   - Sentinel's QA evidence → `core_interaction`, `feature_completeness`, `regression_safety`, `ux_clarity`, `visual_coherence` scores
+2. Read the evaluator's `rubric_scores` from their EvidenceBundle
+3. Compare each score against the dimension's `threshold`
+
+**Threshold adjustment**: If the worker's `self_check.confidence` ≤ 2, add +1 to every rubric threshold (stricter review for uncertain work).
+
+**Stub check**: If the worker's `self_check.possible_stubs` is non-empty, verify those files are not left as stubs. Any confirmed stub → `feature_completeness` capped at 2.
+
+Record rubric results:
+```json
+{
+  "rubric_scores": [
+    { "dimension": "core_interaction", "score": 4, "evaluator": "sentinel", "threshold": 3, "pass": true },
+    { "dimension": "code_quality", "score": 3, "evaluator": "forge", "threshold": 4, "pass": false }
+  ],
+  "rubric_pass": false,
+  "blocking_dimensions": ["code_quality"]
+}
+```
+
+**All rubric dimensions must meet their threshold** for Tier 2 to pass. If any dimension is below threshold, Tier 2 fails and the task cannot proceed to Tier 3 (Nova). The `blocking_dimensions` list tells the verify-fix-loop exactly what to target.
 
 ### Tier 3: Product Gate
 
@@ -99,7 +128,7 @@ After running all applicable tiers, produce a verdict:
   "verdict": "pass | fail | iterate",
   "tiers": {
     "mechanical": { "status": "pass", "results": {...} },
-    "semantic": { "status": "pass", "criteria_met": 5, "criteria_total": 5 },
+    "semantic": { "status": "pass", "criteria_met": 5, "criteria_total": 5, "rubric_pass": true, "rubric_scores": [...], "blocking_dimensions": [] },
     "product": { "status": "ship", "nova_notes": "..." }
   },
   "failures": [],
@@ -118,7 +147,7 @@ After running all applicable tiers, produce a verdict:
      "result": "pass",
      "tiers": {
        "mechanical": { "status": "pass", "commands_run": ["npm run build", "npm test"] },
-       "semantic": { "status": "pass", "criteria_met": 5, "criteria_total": 5 },
+       "semantic": { "status": "pass", "criteria_met": 5, "criteria_total": 5, "rubric_pass": true, "rubric_scores": [...], "blocking_dimensions": [] },
        "product": { "status": "ship", "nova_notes": "..." }
      },
      "timestamp": "<actual ISO 8601 from date -u>"

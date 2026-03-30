@@ -101,6 +101,28 @@ Look at existing TaskContracts in `.geas/tasks/`:
 - If this task needs another task's output (e.g., frontend needs backend API) → add to `dependencies`
 - If this task blocks others → note for scheduling
 
+### Step 9: Generate Rubric
+
+Assign quality rubric dimensions based on task type. Every task gets the base dimensions; UI tasks get additional ones.
+
+**Base dimensions (all tasks):**
+
+| Dimension | Evaluator | Default Threshold |
+|-----------|-----------|-------------------|
+| `core_interaction` | sentinel | 3 |
+| `feature_completeness` | sentinel | 4 |
+| `code_quality` | forge | 4 |
+| `regression_safety` | sentinel | 4 |
+
+**Additional dimensions (when `assigned_worker` is `pixel` or task has UI component):**
+
+| Dimension | Evaluator | Default Threshold |
+|-----------|-----------|-------------------|
+| `ux_clarity` | sentinel | 3 |
+| `visual_coherence` | sentinel | 3 |
+
+Write the `rubric` array to the TaskContract. Compass or the user may adjust thresholds for specific tasks.
+
 ## Output
 
 Write the TaskContract to `.geas/tasks/{id}.json` conforming to `schemas/task-contract.schema.json`.
@@ -130,6 +152,14 @@ Example output:
     "Form is accessible (labels, focus management, aria attributes)"
   ],
   "eval_commands": ["npm run build", "npm run lint", "npm test"],
+  "rubric": [
+    { "dimension": "core_interaction", "evaluator": "sentinel", "threshold": 3 },
+    { "dimension": "feature_completeness", "evaluator": "sentinel", "threshold": 4 },
+    { "dimension": "code_quality", "evaluator": "forge", "threshold": 4 },
+    { "dimension": "regression_safety", "evaluator": "sentinel", "threshold": 4 },
+    { "dimension": "ux_clarity", "evaluator": "sentinel", "threshold": 3 },
+    { "dimension": "visual_coherence", "evaluator": "sentinel", "threshold": 3 }
+  ],
   "retry_budget": 3,
   "escalation_policy": "forge-review",
   "status": "pending",

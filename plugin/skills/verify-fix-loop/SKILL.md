@@ -47,8 +47,10 @@ Track current iteration count in `.geas/state/run.json` under `current_task_id`.
 Generate a fix-specific ContextPacket:
 - Include the specific failures from the gate verdict
 - Include the original acceptance criteria that weren't met
+- **Include `blocking_dimensions` from rubric evaluation** — the fixer must know which quality dimensions failed and their current scores vs. thresholds
 - Include files_changed from the previous attempt
 - Reference the full EvidenceBundle for context
+- If the worker's `self_check.untested_paths` overlap with failure areas, highlight the connection
 
 Spawn the fixer **with worktree isolation** (implementation agents always use worktree):
 ```

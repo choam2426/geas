@@ -62,6 +62,32 @@
       "default": "forge-review",
       "description": "What happens when retry budget is exhausted"
     },
+    "rubric": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "dimension": {
+            "type": "string",
+            "description": "Quality dimension name (e.g., 'core_interaction', 'code_quality')"
+          },
+          "evaluator": {
+            "type": "string",
+            "enum": ["sentinel", "forge", "nova"],
+            "description": "Agent responsible for scoring this dimension"
+          },
+          "threshold": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Minimum score required to pass. Below threshold blocks Tier 3 entry."
+          }
+        },
+        "required": ["dimension", "evaluator", "threshold"]
+      },
+      "description": "Quality rubric dimensions with scoring thresholds. All must pass for Tier 3 entry."
+    },
     "status": {
       "type": "string",
       "enum": ["pending", "in_progress", "in_review", "testing", "passed", "failed", "escalated"],
