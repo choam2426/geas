@@ -62,7 +62,7 @@ These rules apply to ALL modes (Initiative, Sprint, Debate).
 After reading each agent's evidence, check for a `tech_debt` array. If present:
 1. Read `.geas/debt.json` (create with `{"items": []}` if missing).
 2. For each debt item, check if a similar title already exists in debt.json (skip duplicates).
-3. Add new items with sequential ID (DEBT-001, DEBT-002...), set `source_task`, `found_by`, `found_at`, `status: "open"`, and `created_at`.
+3. Add new items with sequential ID (DEBT-001, DEBT-002...), preserving `severity` from the original tech_debt item. If severity is absent, assess it yourself based on the description (HIGH = security/data risk, MEDIUM = quality/maintainability, LOW = cosmetic/minor). Set `source_task`, `found_by`, `found_at`, `status: "open"`, and `created_at`.
 4. Write back debt.json.
 
 When a task resolves a debt item, update its `status` to `"resolved"` with `resolution_task` and `resolved_at`.

@@ -23,13 +23,9 @@ fi
 STATUS=$(python -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('status',''))" "$RUN_FILE" 2>/dev/null || echo "")
 PHASE=$(python -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('phase',''))" "$RUN_FILE" 2>/dev/null || echo "")
 
-# Already complete — no check needed
-if [ "$STATUS" = "complete" ]; then
-  exit 0
-fi
-
-# Only check during mvp or later phases
-if [ "$PHASE" != "mvp" ] && [ "$PHASE" != "polish" ] && [ "$PHASE" != "evolve" ]; then
+# Skip if no tasks have been completed yet
+TASK_COUNT=$(python -c "import json,sys; d=json.load(open(sys.argv[1])); print(len(d.get('completed_tasks',[])))" "$RUN_FILE" 2>/dev/null || echo "0")
+if [ "$TASK_COUNT" = "0" ]; then
   exit 0
 fi
 
