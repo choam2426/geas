@@ -158,7 +158,6 @@ Compass가 pipeline을 조율하고, 12명의 전문 agent가 각자의 Geas 아
 | agent reference | [AGENTS.ko.md](docs/AGENTS.ko.md) | [AGENTS.md](docs/AGENTS.md) |
 | skill reference | [SKILLS.ko.md](docs/SKILLS.ko.md) | [SKILLS.md](docs/SKILLS.md) |
 | hook reference | [HOOKS.ko.md](docs/HOOKS.ko.md) | [HOOKS.md](docs/HOOKS.md) |
-| 설계 문서 | [DESIGN.md](docs/DESIGN.md) | — |
 
 ---
 

@@ -158,7 +158,6 @@ Compass orchestrates the pipeline. 12 specialist agents execute it, each under t
 | Agent Reference | [AGENTS.md](docs/AGENTS.md) | [AGENTS.ko.md](docs/AGENTS.ko.md) |
 | Skill Reference | [SKILLS.md](docs/SKILLS.md) | [SKILLS.ko.md](docs/SKILLS.ko.md) |
 | Hooks Reference | [HOOKS.md](docs/HOOKS.md) | [HOOKS.ko.md](docs/HOOKS.ko.md) |
-| Design Document | — | [DESIGN.md](docs/DESIGN.md) |
 
 ---
 

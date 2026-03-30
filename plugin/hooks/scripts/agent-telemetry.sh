@@ -1,7 +1,7 @@
 #!/bin/bash
-# track-cost.sh — SubagentStop hook
-# Logs agent spawn data for cost analysis.
-# Token counts are not in hook input — logs agent/task/model for JSONL correlation.
+# agent-telemetry.sh — SubagentStop hook
+# Logs agent spawn metadata (agent name, task, model) for distribution analysis.
+# For actual token costs, see calculate-cost.sh (Stop hook).
 
 set -euo pipefail
 

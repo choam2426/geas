@@ -19,6 +19,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/verify-pipeline.sh",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/calculate-cost.sh",
+            "timeout": 30
           }
         ]
       }
@@ -63,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/track-cost.sh",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/agent-telemetry.sh",
             "timeout": 10
           }
         ]
