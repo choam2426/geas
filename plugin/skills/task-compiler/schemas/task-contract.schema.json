@@ -44,6 +44,11 @@
       "items": { "type": "string" },
       "description": "Specific, verifiable criteria inherited from seed + story"
     },
+    "scope_out": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Features or behaviors this task explicitly will NOT implement. Complements prohibited_paths (file-level) with feature-level exclusions."
+    },
     "eval_commands": {
       "type": "array",
       "items": { "type": "string" },

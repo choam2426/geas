@@ -14,9 +14,7 @@ One feature, one pipeline. Skips Genesis.
 
 ## Pre-conditions
 
-1. Seed should exist from intake:
-   - If project had a prior Initiative: sprint seed at `.geas/spec/sprint/{task-id}-seed.json`, original `seed.json` is read-only context.
-   - If first time using geas (no prior Initiative): seed at `.geas/spec/seed.json` as normal.
+1. `.geas/spec/seed.json` — read-only project context. If it exists (from Initiative or prior Sprint), read it for mission/constraints. If it doesn't exist, intake will create a minimal one. Sprint NEVER modifies seed.json after it exists.
 2. `.geas/memory/_project/conventions.md` — if missing, spawn Forge for onboarding:
    ```
    Agent(agent: "forge", prompt: "Scan this codebase. Write conventions to .geas/memory/_project/conventions.md")

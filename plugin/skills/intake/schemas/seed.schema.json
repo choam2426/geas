@@ -62,6 +62,11 @@
       },
       "description": "Binary checklist confirming each section was reviewed and approved by the user"
     },
+    "source": {
+      "type": "string",
+      "enum": ["initiative", "sprint"],
+      "description": "Which mode created this seed. 'sprint' indicates a minimal auto-generated seed (not a full Initiative intake). Initiative may overwrite a sprint-created seed."
+    },
     "readiness_override": {
       "type": "boolean",
       "description": "True if user explicitly skipped the intake process ('just build it')"

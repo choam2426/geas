@@ -115,9 +115,7 @@ For Sprint mode (adding a feature to an existing project):
 
 - **Initiative mode**: `.geas/spec/seed.json`
 - **Sprint mode**:
-  - If `.geas/spec/seed.json` already exists (project had a prior Initiative): write to `.geas/spec/sprint/{task-id}-seed.json`. The original seed.json MUST NOT be modified.
-    - `mkdir -p .geas/spec/sprint`
-    - Task ID comes from the sprint task being compiled (e.g., SP-01). If no task ID yet, use `sprint-{YYYY-MM-DD}-seed.json`.
-  - If `.geas/spec/seed.json` does NOT exist (first time using geas on this project): write to `.geas/spec/seed.json` as normal.
+  - If `.geas/spec/seed.json` already exists: do NOT modify it. Skip seed creation — the feature scope goes directly into the TaskContract via task-compiler (goal, acceptance_criteria, scope_out).
+  - If `.geas/spec/seed.json` does NOT exist (first time using geas): create a minimal seed.json with project identity (mission, target_user, constraints detected from onboard). Include `"source": "sprint"` to indicate this was auto-generated, not from a full Initiative intake. Feature scope still goes into TaskContract.
 - **Format**: JSON conforming to `schemas/seed.schema.json`
 - **Immutability**: Once confirmed, the seed should not be modified during execution. If scope must change, trigger `/geas:pivot-protocol` instead.
