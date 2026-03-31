@@ -31,7 +31,7 @@ The result is `.geas/spec/seed.json`. Once confirmed, the seed does not change d
 
 ## The Four Phases
 
-### Phase 1: Genesis
+### Phase 1: Discovery
 
 Everything before a single line of code is written.
 
@@ -41,7 +41,7 @@ Everything before a single line of code is written.
 2. **Nova** delivers a vision statement, MVP scope definition, and user value proposition.
 3. **Nova** writes the PRD and breaks it into user stories.
 4. **Forge** proposes the architecture and tech stack, writes project conventions to `.geas/memory/_project/conventions.md`, and records the decision.
-5. Three agents vote on the architecture in parallel: **Circuit** (backend/scalability), **Palette** (UX/frontend), **Critic** (devil's advocate — identifies risks even when broadly in agreement). If all agree, Genesis continues. If anyone disagrees, a structured debate runs first, then re-vote.
+5. Three agents vote on the architecture in parallel: **Circuit** (backend/scalability), **Palette** (UX/frontend), **Critic** (devil's advocate — identifies risks even when broadly in agreement). If all agree, Discovery continues. If anyone disagrees, a structured debate runs first, then re-vote.
 6. **Task Compiler** converts each user story into a TaskContract with acceptance criteria and a rubric of scored dimensions.
 7. Based on the tech stack, Geas recommends MCP servers that will help agents during the build (database query, web standards, git platform, etc.).
 
@@ -127,7 +127,7 @@ Mandatory — the final phase before release.
 
 A session building an online auction platform from scratch. 15 tasks, approximately 56 agent spawns across all phases.
 
-**Genesis:**
+**Discovery:**
 - Intake surfaced 4 scope questions: bidding rules, payment integration, real-time updates, and admin tooling. Payment and admin were scoped out.
 - Nova proposed a focused MVP: item listing, bidding, and auction close.
 - Forge proposed a Node.js/PostgreSQL stack with a REST API and a React frontend.

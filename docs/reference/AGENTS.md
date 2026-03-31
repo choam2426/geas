@@ -83,7 +83,7 @@ Every task follows this mandatory sequence. Compass enforces it and will not adv
 | 2.11 Retrospective | Scrum | MANDATORY | After Ship Gate; updates rules.md and per-agent memory |
 | 2.12 Resolve | Keeper | On Ship | Commits all changes with Conventional Commits |
 
-Before Genesis begins, Nova (1.2–1.3), Forge (1.4), and Critic (1.5 vote round) are involved in the architecture vote that sets the tech stack and conventions for the entire project.
+Before Discovery begins, Nova (1.2–1.3), Forge (1.4), and Critic (1.5 vote round) are involved in the architecture vote that sets the tech stack and conventions for the entire project.
 
 ---
 
@@ -117,18 +117,18 @@ Before Genesis begins, Nova (1.2–1.3), Forge (1.4), and Critic (1.5 vote round
 **Model:** opus | **Tools:** Read, Glob, Grep | **Skills:** pivot-protocol, briefing, write-prd, write-stories
 
 **Primary responsibilities:**
-- Genesis: mission analysis, value proposition, MVP scope definition using write-prd and write-stories skills.
+- Discovery: mission analysis, value proposition, MVP scope definition using write-prd and write-stories skills.
 - Per-feature product review: reads all evidence bundles and determines whether to Ship, Iterate, or Cut.
 - Pivot decisions when Compass escalates a problem (scope cut, feature drop, alternative approach).
 - Priority adjustments when the team is working on lower-value items.
 - Morning briefings at milestones (briefing skill).
 
 **Pipeline position:**
-- Genesis (step 1.2–1.3): first agent spawned after intake.
+- Discovery (step 1.2–1.3): first agent spawned after intake.
 - Per task (step 2.9): spawned after Evidence Gate and Critic review, before Ship Gate.
 
 **Evidence output:**
-- `nova.json` (genesis) — product vision, MVP scope.
+- `nova.json` (discovery) — product vision, MVP scope.
 - `nova-verdict.json` (per task) — Ship / Iterate / Cut verdict with explicit reasoning.
 
 **Special behaviors:**
@@ -148,20 +148,20 @@ Before Genesis begins, Nova (1.2–1.3), Forge (1.4), and Critic (1.5 vote round
 **Model:** opus | **Tools:** Read, Grep, Glob, Bash, Write, Edit | **Skills:** coding-conventions, verify, cleanup | **MCP:** Context7
 
 **Primary responsibilities:**
-- Genesis: tech stack selection, writing `.geas/memory/_project/conventions.md`.
+- Discovery: tech stack selection, writing `.geas/memory/_project/conventions.md`.
 - Pre-implementation: writes a technical guide (function signatures, file organization, edge cases) so engineers do not go down wrong paths.
 - Post-implementation: mandatory code review of every feature against the implementation contract.
 - Architecture consistency: monitors for duplicated logic, pattern divergence, and growing complexity across features (cleanup skill).
 - Implementation contract approval: one of two approvers before coding starts.
 
 **Pipeline position:**
-- Genesis (step 1.4): architecture and stack decision.
+- Discovery (step 1.4): architecture and stack decision.
 - Per task (step 2.2): tech guide (when conditions require it).
 - Per task (step 2.3): approves implementation contract.
 - Per task (step 2.5): mandatory code review.
 
 **Evidence output:**
-- `forge.json` (genesis/tech-guide) — architecture decisions, conventions, or technical approach.
+- `forge.json` (discovery/tech-guide) — architecture decisions, conventions, or technical approach.
 - `forge-review.json` (code review) — APPROVED or CHANGES REQUESTED verdict with `rubric_scores`.
 
 **Special behaviors:**
@@ -332,14 +332,14 @@ Before Genesis begins, Nova (1.2–1.3), Forge (1.4), and Critic (1.5 vote round
 **Model:** sonnet | **Tools:** Read, Write, Edit, Bash | **Skills:** coding-conventions
 
 **Primary responsibilities:**
-- Genesis: initial build and deployment setup for the target platform (Vercel, Netlify, Docker).
+- Discovery: initial build and deployment setup for the target platform (Vercel, Netlify, Docker).
 - Build verification: confirms `build` and `dev` scripts work without errors; flags bundles over 1MB.
 - Environment audit: compares `.env.example` against actual usage; flags documented-but-unused and used-but-undocumented variables; ensures no secrets in committed files.
 - Build optimization: bundle size analysis, tree shaking, duplicate dependency detection, code splitting recommendations.
 - Deployment smoke tests: health endpoint, core routes, static assets.
 
 **Pipeline position:**
-- Genesis: build and deployment setup.
+- Discovery: build and deployment setup.
 - Polish phase: deployment smoke test before release.
 - On demand: build optimization, environment audits.
 
@@ -392,17 +392,17 @@ Before Genesis begins, Nova (1.2–1.3), Forge (1.4), and Critic (1.5 vote round
 **Model:** opus | **Tools:** Read, Glob, Grep | **Skills:** —
 
 **Primary responsibilities:**
-- Genesis: architecture critique (risks, scale, over-engineering) and product critique (user need, existing alternatives, minimum feature set).
+- Discovery: architecture critique (risks, scale, over-engineering) and product critique (user need, existing alternatives, minimum feature set).
 - Planning critique: identifies missing dependencies, time estimate risks, and priority ordering problems.
 - Vote rounds: MUST participate in every vote; expected to disagree on at least one aspect.
 - Pre-ship review: mandatory for every task — challenges whether the feature is truly ready to ship.
 
 **Pipeline position:**
-- Genesis (step 1.5): architecture vote round — always participates.
+- Discovery (step 1.5): architecture vote round — always participates.
 - Per task (step 2.8): mandatory pre-ship review after Evidence Gate, before Nova's verdict.
 
 **Evidence output:**
-- `vote-critic.json` (genesis vote) — vote with risk, evidence, alternative, trade-off.
+- `vote-critic.json` (discovery vote) — vote with risk, evidence, alternative, trade-off.
 - `critic-review.json` (per task) — structured critique with risk identification, evidence, alternatives, trade-offs, and verdict (Disagree / Caution / Grudging Agree).
 
 **Special behaviors:**
@@ -481,6 +481,6 @@ Before Genesis begins, Nova (1.2–1.3), Forge (1.4), and Critic (1.5 vote round
 
 | Mode | Purpose | Agents Involved |
 |------|---------|-----------------|
-| **Initiative** | New product from scratch across 4 phases | All 12 agents: Genesis (Nova, Forge, Critic), MVP Build (full pipeline per task), Polish (Shield, Scroll), Evolution |
+| **Initiative** | New product from scratch across 4 phases | All 12 agents: Discovery (Nova, Forge, Critic), MVP Build (full pipeline per task), Polish (Shield, Scroll), Evolution |
 | **Sprint** | Bounded feature addition to an existing project | Core pipeline agents: Palette, Pixel/Circuit, Forge, Sentinel, Critic, Nova, Scrum, Keeper |
 | **Debate** | Decision-only discussion, no code | Relevant debaters only — typically Nova, Forge, Critic, and domain experts for the decision at hand |

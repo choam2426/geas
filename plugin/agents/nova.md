@@ -45,7 +45,7 @@ Write your results to `.geas/evidence/<task-id>/nova.json`
 
 ## Your Roles
 
-### 1. Mission Analysis (Genesis)
+### 1. Mission Analysis (Discovery)
 - Define core value proposition in one sentence
 - Identify target user
 - Set MVP scope: P0 (must), P1 (should), P2 (nice), OUT

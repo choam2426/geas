@@ -1,16 +1,16 @@
 ---
 name: initiative
-description: Start a new product with the Geas team — Genesis, MVP Build, Polish, Evolution.
+description: Start a new product with the Geas team — Discovery, MVP Build, Polish, Evolution.
 user-invocable: true
 ---
 
 # Initiative Mode
 
-4 phases: Genesis → MVP Build → Polish → Evolution.
+4 phases: Discovery → MVP Build → Polish → Evolution.
 
 ---
 
-## Phase 1: Genesis
+## Phase 1: Discovery
 
 ### 1.1 Seed Check
 - `.geas/spec/seed.json` should exist from intake. If not, invoke `/geas:intake`.
@@ -18,27 +18,27 @@ user-invocable: true
 
 ### 1.2 Vision (Nova)
 ```
-Agent(agent: "nova", prompt: "Then read .geas/spec/seed.json. Deliver vision, MVP scope, user value proposition. Write to .geas/evidence/genesis/nova.json")
+Agent(agent: "nova", prompt: "Then read .geas/spec/seed.json. Deliver vision, MVP scope, user value proposition. Write to .geas/evidence/discovery/nova.json")
 ```
-Verify `.geas/evidence/genesis/nova.json` exists.
+Verify `.geas/evidence/discovery/nova.json` exists.
 
 ### 1.3 PRD & User Stories (Nova)
 ```
-Agent(agent: "nova", prompt: "Read .geas/spec/seed.json and .geas/evidence/genesis/nova.json. Create a PRD using write-prd skill, save to .geas/spec/prd.md. Then break it into user stories using write-stories skill, save to .geas/spec/stories.md.")
+Agent(agent: "nova", prompt: "Read .geas/spec/seed.json and .geas/evidence/discovery/nova.json. Create a PRD using write-prd skill, save to .geas/spec/prd.md. Then break it into user stories using write-stories skill, save to .geas/spec/stories.md.")
 ```
 Verify both `.geas/spec/prd.md` and `.geas/spec/stories.md` exist.
 
 ### 1.4 Architecture (Forge)
 ```
-Agent(agent: "forge", prompt: "Then read .geas/spec/seed.json, .geas/evidence/genesis/nova.json, and .geas/spec/prd.md. Propose architecture and tech stack. Write conventions to .geas/memory/_project/conventions.md and evidence to .geas/evidence/genesis/forge.json")
+Agent(agent: "forge", prompt: "Then read .geas/spec/seed.json, .geas/evidence/discovery/nova.json, and .geas/spec/prd.md. Propose architecture and tech stack. Write conventions to .geas/memory/_project/conventions.md and evidence to .geas/evidence/discovery/forge.json")
 ```
 Verify evidence exists. Write DecisionRecord to `.geas/decisions/dec-001.json`.
 
 ### 1.5 Vote Round
 ```
-Agent(agent: "circuit", prompt: "Read .geas/evidence/genesis/forge.json. Vote agree/disagree with rationale. Write to .geas/evidence/genesis/vote-circuit.json")
-Agent(agent: "palette", prompt: "Read .geas/evidence/genesis/forge.json. Vote agree/disagree with rationale. Write to .geas/evidence/genesis/vote-palette.json")
-Agent(agent: "critic", prompt: "Read .geas/evidence/genesis/forge.json. Play devil's advocate: identify risks, blind spots, and trade-offs even if you agree overall. Vote agree/disagree with rationale. Write to .geas/evidence/genesis/vote-critic.json")
+Agent(agent: "circuit", prompt: "Read .geas/evidence/discovery/forge.json. Vote agree/disagree with rationale. Write to .geas/evidence/discovery/vote-circuit.json")
+Agent(agent: "palette", prompt: "Read .geas/evidence/discovery/forge.json. Vote agree/disagree with rationale. Write to .geas/evidence/discovery/vote-palette.json")
+Agent(agent: "critic", prompt: "Read .geas/evidence/discovery/forge.json. Play devil's advocate: identify risks, blind spots, and trade-offs even if you agree overall. Vote agree/disagree with rationale. Write to .geas/evidence/discovery/vote-critic.json")
 ```
 Critic MUST participate in every vote round. If all agree: proceed. If any disagree: run debate, then re-vote.
 
@@ -61,9 +61,9 @@ Analyze the tech stack from Forge's architecture decision and recommend helpful 
 
 Present recommendations with install commands from the MCP registry. If the user connects, record in `.geas/config.json` under `connected_mcp`.
 
-### 1.8 Close Genesis
+### 1.8 Close Discovery
 - Update run state: `{ "phase": "mvp", "status": "in_progress" }`
-- Log: `{"event": "phase_complete", "phase": "genesis", "timestamp": "<actual>"}`
+- Log: `{"event": "phase_complete", "phase": "discovery", "timestamp": "<actual>"}`
 
 ---
 

@@ -38,7 +38,7 @@ plugin/
 - `vote-round/` — structured agent voting + debate on disagreement
 
 ### Team skills (execution protocols)
-- `initiative/` — 4-phase execution (Genesis → MVP → Polish → Evolution)
+- `initiative/` — 4-phase execution (Discovery → MVP → Polish → Evolution)
 - `sprint/` — bounded feature addition to existing project
 - `debate/` — decision-only discussion, no code
 

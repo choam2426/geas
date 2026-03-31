@@ -10,7 +10,7 @@ Transforms a user story (or feature description) into a structured TaskContract 
 ## When to Use
 
 Compass invokes this skill during:
-- **Initiative Mode**: after Genesis creates issues, compile each into a TaskContract
+- **Initiative Mode**: after Discovery creates issues, compile each into a TaskContract
 - **Sprint Mode**: compile the single feature into a TaskContract
 
 ## Inputs

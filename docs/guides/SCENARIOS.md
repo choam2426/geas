@@ -24,7 +24,7 @@ A developer with a product idea and no existing codebase. They want a working MV
 4. **Intake** freezes the spec as `.geas/spec/seed.json`. The seed is immutable from this point.
 5. **Nova** delivers a vision statement, MVP scope, and user value proposition. Writes the PRD and breaks it into user stories.
 6. **Forge** proposes the architecture and tech stack, writes project conventions to `.geas/memory/_project/conventions.md`.
-7. **Circuit**, **Palette**, and **Critic** vote on the architecture in parallel. If all agree, Genesis continues. If anyone disagrees, a structured debate runs first, then re-vote.
+7. **Circuit**, **Palette**, and **Critic** vote on the architecture in parallel. If all agree, Discovery continues. If anyone disagrees, a structured debate runs first, then re-vote.
 8. **Task Compiler** converts user stories into TaskContracts with acceptance criteria and scored rubric dimensions.
 9. MVP Build begins. For each task, the pipeline runs: Implementation Contract → Implementation (worktree isolated) → Code Review (**Forge**) → QA (**Sentinel**) → Evidence Gate → Critic Review → Nova Review → Retrospective → Resolve.
 10. After all tasks pass, **Shield** runs a security review and **Scroll** writes the documentation.

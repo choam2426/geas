@@ -24,7 +24,7 @@ Geas의 세 가지 실행 모드 -- Initiative, Sprint, Debate -- 에 대한 예
 4. **Intake**가 명세를 `.geas/spec/seed.json`으로 확정합니다. 이 시점부터 seed는 변경 불가입니다.
 5. **Nova**가 비전 선언문, MVP 범위, 사용자 가치 제안을 내놓습니다. PRD를 작성하고 사용자 스토리로 쪼갭니다.
 6. **Forge**가 아키텍처와 기술 스택을 제안하고, 프로젝트 컨벤션을 `.geas/memory/_project/conventions.md`에 기록합니다.
-7. **Circuit**, **Palette**, **Critic**이 아키텍처에 대해 병렬로 투표합니다. 전원 찬성이면 Genesis가 계속됩니다. 반대가 나오면 구조적 토론을 먼저 한 뒤 다시 투표합니다.
+7. **Circuit**, **Palette**, **Critic**이 아키텍처에 대해 병렬로 투표합니다. 전원 찬성이면 Discovery가 계속됩니다. 반대가 나오면 구조적 토론을 먼저 한 뒤 다시 투표합니다.
 8. **Task Compiler**가 사용자 스토리를 인수 기준과 채점 rubric이 달린 TaskContract로 변환합니다.
 9. MVP Build가 시작됩니다. 각 태스크마다 파이프라인이 실행됩니다: Implementation Contract → 구현 (worktree 격리) → 코드 리뷰 (**Forge**) → QA (**Sentinel**) → Evidence Gate → Critic Review → Nova Review → Retrospective → Resolve.
 10. 모든 태스크가 통과하면 **Shield**가 보안 리뷰를 실행하고, **Scroll**이 문서를 작성합니다.

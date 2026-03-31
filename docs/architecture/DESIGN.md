@@ -196,7 +196,7 @@ The `.geas/` directory is the runtime state root for a project. It is gitignored
       ...
 
   evidence/
-    genesis/                 # Genesis phase evidence (Initiative only)
+    discovery/                 # Discovery phase evidence (Initiative only)
       nova.json              # Vision and MVP scope
       forge.json             # Architecture decision
       vote-*.json            # Vote round results
@@ -398,7 +398,7 @@ Core skills (`plugin/skills/`) must not hardcode specific tools, frameworks, pac
 
 ### How This Works in Practice
 
-1. **Forge onboards the project** during Genesis (Initiative) or pre-conditions (Sprint), writing discovered conventions to `.geas/memory/_project/conventions.md`
+1. **Forge onboards the project** during Discovery (Initiative) or pre-conditions (Sprint), writing discovered conventions to `.geas/memory/_project/conventions.md`
 2. **TaskContracts reference conventions.md** for eval_commands (e.g., the test command, build command, lint command)
 3. **Workers read their ContextPacket**, which includes relevant conventions
 4. **Evidence Gate runs eval_commands** from the TaskContract -- these are project-specific commands, not hardcoded tool invocations

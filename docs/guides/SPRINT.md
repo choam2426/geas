@@ -4,7 +4,7 @@
 
 Sprint mode is for adding a bounded feature to an existing project. Use it when the codebase already exists and you have one clear addition to make — a new endpoint, a UI page, a background job, a service integration.
 
-Sprint skips the Genesis phase. It does not scaffold a new project or establish architectural patterns from scratch. The existing codebase is the constraint.
+Sprint skips the Discovery phase. It does not scaffold a new project or establish architectural patterns from scratch. The existing codebase is the constraint.
 
 ## Pre-conditions
 

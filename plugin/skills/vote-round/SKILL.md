@@ -13,7 +13,7 @@ After a major proposal (architecture, design system, cross-cutting decision), ru
 
 | Proposal | Critic |
 |----------|--------|
-| Forge proposes architecture / tech stack (Genesis) | Circuit or Palette (whoever's domain is most affected) |
+| Forge proposes architecture / tech stack (Discovery) | Circuit or Palette (whoever's domain is most affected) |
 | Palette posts the overall design system (not per-feature specs) | Forge or Pixel |
 | Cross-cutting decision affecting multiple agents (e.g., state management, API shape, deployment strategy) | The agent whose domain is most affected |
 

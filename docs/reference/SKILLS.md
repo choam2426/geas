@@ -16,12 +16,12 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 | [evidence-gate](#evidence-gate) | Core - Contract Engine | No | Compass | Gate verdict + ledger event |
 | [verify-fix-loop](#verify-fix-loop) | Core - Contract Engine | No | Compass (via evidence-gate) | Fix iterations + DecisionRecord |
 | [verify](#verify) | Core - Verification | No | Worker agents | Console checklist report |
-| [vote-round](#vote-round) | Core - Verification | No | Compass (at Genesis) | `.geas/decisions/{dec-id}.json` |
+| [vote-round](#vote-round) | Core - Verification | No | Compass (at Discovery) | `.geas/decisions/{dec-id}.json` |
 | [initiative](#initiative) | Team - Execution | Yes | Compass or User | Full product build (4 phases) |
 | [sprint](#sprint) | Team - Execution | Yes | Compass or User | Feature addition to existing project |
 | [debate](#debate) | Team - Execution | Yes | Compass or User | `.geas/decisions/{dec-id}.json` |
-| [write-prd](#write-prd) | Team - Planning | No | Nova (during Genesis) | `.geas/spec/prd.md` |
-| [write-stories](#write-stories) | Team - Planning | No | Nova (during Genesis) | `.geas/spec/stories.md` |
+| [write-prd](#write-prd) | Team - Planning | No | Nova (during Discovery) | `.geas/spec/prd.md` |
+| [write-stories](#write-stories) | Team - Planning | No | Nova (during Discovery) | `.geas/spec/stories.md` |
 | [onboard](#onboard) | Team - Planning | No | Compass (Sprint, first run) | `.geas/memory/_project/conventions.md` |
 | [coding-conventions](#coding-conventions) | Utility | No | All agents | Reference guidance only |
 | [briefing](#briefing) | Utility | No | Nova or Compass | Console status report |
@@ -143,7 +143,7 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 
 **User-Invocable:** No
 
-**Invoked By:** Compass during Initiative (Genesis phase, step 1.6) and Sprint (step 1)
+**Invoked By:** Compass during Initiative (Discovery phase, step 1.6) and Sprint (step 1)
 
 **Inputs:**
 - User story or feature description
@@ -306,7 +306,7 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 
 **User-Invocable:** No
 
-**Invoked By:** Compass at major architectural or cross-cutting decisions (primarily Genesis step 1.5)
+**Invoked By:** Compass at major architectural or cross-cutting decisions (primarily Discovery step 1.5)
 
 **Inputs:**
 - Proposal from Forge (saved to `.geas/decisions/pending/{proposal-id}.md`)
@@ -329,7 +329,7 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 
 ### initiative
 
-**Description:** Start a new product with the Geas team — Genesis, MVP Build, Polish, Evolution.
+**Description:** Start a new product with the Geas team — Discovery, MVP Build, Polish, Evolution.
 
 **User-Invocable:** Yes (`/geas:initiative`)
 
@@ -340,7 +340,7 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 - `.geas/tasks/` — compiled TaskContracts for MVP Build ordering
 
 **Outputs (per phase):**
-- Genesis: `.geas/evidence/genesis/nova.json`, `.geas/spec/prd.md`, `.geas/spec/stories.md`, `.geas/evidence/genesis/forge.json`, `.geas/decisions/dec-001.json`, `.geas/tasks/*.json`
+- Discovery: `.geas/evidence/discovery/nova.json`, `.geas/spec/prd.md`, `.geas/spec/stories.md`, `.geas/evidence/discovery/forge.json`, `.geas/decisions/dec-001.json`, `.geas/tasks/*.json`
 - MVP Build (per task): full evidence chain — `palette.json`, `forge.json`, `contracts/{id}.json`, `{worker}.json`, `forge-review.json`, `sentinel.json`, `critic-review.json`, `nova-verdict.json`, `memory/retro/{id}.json`
 - Polish: `.geas/evidence/polish/shield.json`, `.geas/evidence/polish/scroll.json`
 - Evolution: `.geas/evidence/evolution/nova-final.json`, `.geas/evidence/evolution/keeper-release.json`, `.geas/summaries/run-summary-<date>.md`
@@ -372,7 +372,7 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 - `.geas/summaries/run-summary-<date>.md` — session audit trail
 
 **Key Behaviors:**
-- Skips Genesis entirely (no PRD, no stories, no architecture vote). Compiles a single TaskContract directly from the feature description.
+- Skips Discovery entirely (no PRD, no stories, no architecture vote). Compiles a single TaskContract directly from the feature description.
 - Runs the same 11-step pipeline as Initiative MVP Build. Ship Gate, Critic Review, Nova Review, and Scrum retrospective are all mandatory.
 - If `.geas/memory/_project/conventions.md` is missing (first Sprint on an unknown project), Compass spawns Forge to run the `onboard` skill before the pipeline starts.
 
@@ -411,7 +411,7 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 
 **User-Invocable:** No
 
-**Invoked By:** Nova during Genesis (Initiative phase 1.3)
+**Invoked By:** Nova during Discovery (Initiative phase 1.3)
 
 **Inputs:**
 - `$ARGUMENTS` — feature idea, problem statement, or mission
@@ -435,7 +435,7 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 
 **User-Invocable:** No
 
-**Invoked By:** Nova during Genesis (Initiative phase 1.3), immediately after write-prd
+**Invoked By:** Nova during Discovery (Initiative phase 1.3), immediately after write-prd
 
 **Inputs:**
 - `$ARGUMENTS` — feature description, mission statement, or problem to solve

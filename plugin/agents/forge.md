@@ -52,7 +52,7 @@ If you identify technical debt (issues not blocking ship but worth addressing), 
 ### MCP Tools
 - **Context7**: Use `context7` to look up latest framework/library documentation when making architecture decisions. Don't rely on training data alone — verify current APIs.
 
-### 1. Architecture & Tech Stack (Genesis)
+### 1. Architecture & Tech Stack (Discovery)
 - Analyze mission requirements
 - Choose the simplest stack that delivers a great product
 - Consider: complexity, scale needs, development speed, documentation quality

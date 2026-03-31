@@ -7,7 +7,7 @@ Exact step-by-step execution flow for every mode in the Geas contract engine.
 ## Table of Contents
 
 1. [Initiative Pipeline](#initiative-pipeline)
-   - [Phase 1: Genesis](#phase-1-genesis)
+   - [Phase 1: Discovery](#phase-1-discovery)
    - [Phase 2: MVP Build](#phase-2-mvp-build)
    - [Phase 3: Polish](#phase-3-polish)
    - [Phase 4: Evolution](#phase-4-evolution)
@@ -22,11 +22,11 @@ Exact step-by-step execution flow for every mode in the Geas contract engine.
 
 ## Initiative Pipeline
 
-Invoked via `/geas:initiative`. Runs four sequential phases: Genesis, MVP Build, Polish, Evolution. The contract engine governs every step — no agent self-reports completion without evidence.
+Invoked via `/geas:initiative`. Runs four sequential phases: Discovery, MVP Build, Polish, Evolution. The contract engine governs every step — no agent self-reports completion without evidence.
 
 ---
 
-### Phase 1: Genesis
+### Phase 1: Discovery
 
 Produces all planning artifacts before a single line of code is written.
 
@@ -40,7 +40,7 @@ Produces all planning artifacts before a single line of code is written.
 
 ```
 Agent(agent: "nova", ...)
-Output: .geas/evidence/genesis/nova.json
+Output: .geas/evidence/discovery/nova.json
 ```
 
 Nova reads `seed.json` and delivers vision statement, MVP scope, and user value proposition. Verify the output file exists before proceeding.
@@ -60,7 +60,7 @@ Nova reads `seed.json` and `nova.json`, creates a PRD using the `write-prd` skil
 ```
 Agent(agent: "forge", ...)
 Output: .geas/memory/_project/conventions.md
-        .geas/evidence/genesis/forge.json
+        .geas/evidence/discovery/forge.json
 ```
 
 Forge reads `seed.json`, `nova.json`, and `prd.md`. Proposes architecture and tech stack. Writes project conventions and architecture evidence. After verification, write `DecisionRecord` to `.geas/decisions/dec-001.json`.
@@ -70,9 +70,9 @@ Forge reads `seed.json`, `nova.json`, and `prd.md`. Proposes architecture and te
 Three agents vote in parallel on Forge's architecture:
 
 ```
-Agent(agent: "circuit", ...) → .geas/evidence/genesis/vote-circuit.json
-Agent(agent: "palette", ...) → .geas/evidence/genesis/vote-palette.json
-Agent(agent: "critic",  ...) → .geas/evidence/genesis/vote-critic.json
+Agent(agent: "circuit", ...) → .geas/evidence/discovery/vote-circuit.json
+Agent(agent: "palette", ...) → .geas/evidence/discovery/vote-palette.json
+Agent(agent: "critic",  ...) → .geas/evidence/discovery/vote-critic.json
 ```
 
 Critic MUST participate in every vote round — the Critic is instructed to play devil's advocate and identify risks even when broadly in agreement.
@@ -120,10 +120,10 @@ Analyze the tech stack from Forge's architecture decision and recommend MCP serv
 
 Present recommendations with install commands from the MCP registry. If the user connects, record in `.geas/config.json` under `connected_mcp`.
 
-#### 1.8 Close Genesis
+#### 1.8 Close Discovery
 
 - Update run state: `{ "phase": "mvp", "status": "in_progress" }`
-- Log: `{"event": "phase_complete", "phase": "genesis", "timestamp": "<actual>"}`
+- Log: `{"event": "phase_complete", "phase": "discovery", "timestamp": "<actual>"}`
 
 ---
 
@@ -345,7 +345,7 @@ Close out:
 
 ## Sprint Pipeline
 
-Invoked via `/geas:sprint`. Adds a bounded feature to an existing project. Skips Genesis. One feature, one pipeline.
+Invoked via `/geas:sprint`. Adds a bounded feature to an existing project. Skips Discovery. One feature, one pipeline.
 
 ### Pre-conditions
 
@@ -754,9 +754,9 @@ Steps that use `step_complete`: `design`, `tech_guide`, `implementation`, `code_
 
 | Event | When logged |
 |---|---|
-| `task_compiled` | After each TaskContract is compiled (Genesis 1.6) |
+| `task_compiled` | After each TaskContract is compiled (Discovery 1.6) |
 | `task_started` | At start of each task (step 2.0) |
-| `phase_complete` | At the end of each phase (Genesis, MVP, Polish, Evolution) |
+| `phase_complete` | At the end of each phase (Discovery, MVP, Polish, Evolution) |
 | Escalation event | When retry budget is exhausted and escalation_policy is invoked |
 
 ### gate_result Event Structure

@@ -345,7 +345,7 @@ Vote rounds are for major proposals that affect project direction. They are not 
 
 | Proposal | Designated Critic |
 |----------|-------------------|
-| Forge proposes architecture or tech stack (Genesis) | Circuit or Palette (most affected domain) |
+| Forge proposes architecture or tech stack (Discovery) | Circuit or Palette (most affected domain) |
 | Palette posts the overall design system (not per-feature specs) | Forge or Pixel |
 | Cross-cutting decision affecting multiple agents (state management, API shape, deployment strategy) | The agent whose domain is most affected |
 

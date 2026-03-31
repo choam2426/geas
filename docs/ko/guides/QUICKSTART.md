@@ -32,7 +32,7 @@ Geas는 Claude Code 기반의 계약 기반 멀티 에이전트 AI 개발 하네
 
 | 의도 | 감지되는 모드 | 진행 방식 |
 |---|---|---|
-| 새 제품을 밑바닥부터 만들기 | **Initiative** | 4단계: Genesis → MVP → Polish → Evolution |
+| 새 제품을 밑바닥부터 만들기 | **Initiative** | 4단계: Discovery → MVP → Polish → Evolution |
 | 기존 프로젝트에 기능 추가 | **Sprint** | 범위 한정 파이프라인: Design → Build → Review → QA → Evidence Gate |
 | 기술적·제품적 의사결정 | **Debate** | 구조적 토론, 코드 없음 — DecisionRecord 출력 |
 

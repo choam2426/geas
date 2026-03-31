@@ -6,7 +6,7 @@ user-invocable: true
 
 # Sprint Mode
 
-One feature, one pipeline. Skips Genesis.
+One feature, one pipeline. Skips Discovery.
 
 **Every step in the pipeline is executed. Code Review and Testing are mandatory.**
 

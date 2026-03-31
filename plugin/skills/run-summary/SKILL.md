@@ -40,7 +40,7 @@ Print to **console** and write to **`.geas/summaries/`**.
 Run Summary — <mission name or Sprint feature>
 Date: <ISO date, e.g. 2026-03-21>
 Mode: <initiative | sprint | debate>
-Phase: <genesis | mvp | polish | evolve | complete>
+Phase: <discovery | mvp | polish | evolve | complete>
 Duration: <if available from timestamps, otherwise omit>
 
 ---
@@ -141,5 +141,5 @@ Keep console output identical to the summary file content — no separate format
 ## Edge Cases
 
 - **Session interrupted mid-issue**: Mark the issue as "In Progress" in the summary. State what was in progress and which agent was working on it.
-- **No issues created yet** (e.g. interrupted during Genesis): Summary should still capture decisions made, even if no issues were created.
+- **No issues created yet** (e.g. interrupted during Discovery): Summary should still capture decisions made, even if no issues were created.
 - **Debate mode**: No issues to report. Summarize the debate topic, positions taken, and outcome (if reached).

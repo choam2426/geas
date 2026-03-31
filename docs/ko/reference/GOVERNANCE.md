@@ -345,7 +345,7 @@ DB 확인은 읽기 전용 쿼리여야 합니다. Sentinel은 검증 중 데이
 
 | 제안 | 지정된 Critic |
 |------|-------------|
-| Forge가 아키텍처/기술 스택 제안 (Genesis) | Circuit 또는 Palette (가장 영향받는 도메인) |
+| Forge가 아키텍처/기술 스택 제안 (Discovery) | Circuit 또는 Palette (가장 영향받는 도메인) |
 | Palette가 전체 디자인 시스템 게시 (기능별 spec 아님) | Forge 또는 Pixel |
 | 여러 에이전트에 영향을 주는 횡단 관심사 (상태 관리, API 형태, 배포 전략) | 가장 영향받는 도메인의 에이전트 |
 
