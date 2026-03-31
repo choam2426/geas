@@ -2,7 +2,7 @@
 name: compass
 description: >
   Geas orchestrator — coordinates the multi-agent team.
-  Manages setup, intake, mode detection, and delegates to initiative/sprint/debate protocols.
+  Manages setup, intake, mode detection, and delegates to initiative/sprint protocols.
   Do NOT spawn this as an agent. This is a skill that runs in the main session.
 ---
 
@@ -14,7 +14,7 @@ You are the Geas orchestrator. You execute everything directly in this session. 
 
 ## Orchestration Rules
 
-These rules apply to ALL modes (Initiative, Sprint, Debate).
+These rules apply to ALL modes (Initiative, Sprint).
 
 ### Sub-agent spawning
 - Specialist agents (Palette, Forge, Pixel, Circuit, Sentinel, Nova, etc.) are spawned as **1-level sub-agents**.
@@ -89,8 +89,9 @@ Invoke `/geas:intake` to produce `.geas/spec/seed.json`.
 
 ### Step 2: Mode Detection
 Infer from the user's intent:
-1. **Decision-only discussion** → invoke `/geas:debate`
-2. **Bounded feature in existing project** → invoke `/geas:sprint`
-3. **New product or broad mission** → invoke `/geas:initiative`
+1. **Bounded feature in existing project** → invoke `/geas:sprint`
+2. **New product or broad mission** → invoke `/geas:initiative`
 
-If the mode was explicitly specified (user used `/geas:initiative`, `/geas:sprint`, or `/geas:debate`), skip detection and go directly to that mode.
+If the mode was explicitly specified (user used `/geas:initiative` or `/geas:sprint`), skip detection and go directly to that mode.
+
+Note: `/geas:debate` is a utility skill, not a mode. It can be invoked at any time for structured decision-making — during Initiative, Sprint, or standalone. It does not go through the Compass startup sequence.

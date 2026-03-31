@@ -1,6 +1,6 @@
 ---
 name: debate
-description: Run a structured multi-agent debate to make a technical or product decision before implementation.
+description: Utility skill — structured multi-agent debate for technical or product decisions. Invocable standalone or within any mode.
 user-invocable: true
 ---
 

@@ -1,4 +1,6 @@
-# Debate Mode Guide
+# Debate — Utility Skill Guide
+
+> **Note:** Debate is a utility skill, not a mode. It can be invoked standalone via `/geas:debate` or internally during Initiative/Sprint when a structured decision is needed (e.g., after vote round disagreement).
 
 ## When to Use
 

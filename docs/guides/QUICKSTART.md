@@ -34,7 +34,8 @@ You don't need to pick a mode yourself. Geas reads your intent and routes automa
 |---|---|---|
 | Build a new product from scratch | **Initiative** | 4 phases: Discovery → MVP → Polish → Evolution |
 | Add a feature to an existing project | **Sprint** | Bounded pipeline: Design → Build → Review → QA → Evidence Gate |
-| Make a technical or product decision | **Debate** | Structured discussion, no code — outputs a DecisionRecord |
+
+For structured technical or product decisions without code, use `/geas:debate` at any time — it is a utility skill, not a mode.
 
 ### Examples
 

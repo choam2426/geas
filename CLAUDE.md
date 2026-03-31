@@ -40,7 +40,7 @@ plugin/
 ### Team skills (execution protocols)
 - `initiative/` — 4-phase execution (Discovery → MVP → Polish → Evolution)
 - `sprint/` — bounded feature addition to existing project
-- `debate/` — decision-only discussion, no code
+- `debate/` — utility skill for structured decision-making, no code (not a mode)
 
 ## Key Design Principles
 

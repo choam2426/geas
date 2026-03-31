@@ -12,7 +12,7 @@ Exact step-by-step execution flow for every mode in the Geas contract engine.
    - [Phase 3: Polish](#phase-3-polish)
    - [Phase 4: Evolution](#phase-4-evolution)
 2. [Sprint Pipeline](#sprint-pipeline)
-3. [Debate Pipeline](#debate-pipeline)
+3. [Debate (Utility Skill)](#debate-utility-skill)
 4. [Checkpoint and Recovery](#checkpoint-and-recovery)
 5. [Skip Conditions](#skip-conditions)
 6. [Escalation Paths](#escalation-paths)
@@ -487,7 +487,9 @@ Invoke `/geas:run-summary` to generate session audit trail.
 
 ---
 
-## Debate Pipeline
+## Debate (Utility Skill)
+
+Debate is a utility skill, not an execution mode. It can be invoked standalone via `/geas:debate` or internally during Initiative/Sprint when a structured decision is needed (e.g., after vote round disagreement).
 
 Invoked via `/geas:debate`. No code is produced. Output is a `DecisionRecord`.
 

@@ -6,7 +6,6 @@ description: Mission intake gate — collaborative exploration to freeze a seed 
 # Intake Gate
 
 Before any execution mode (Initiative, Sprint), run this gate to freeze the mission specification.
-Skip this skill entirely for Debate mode.
 
 ## Purpose
 
