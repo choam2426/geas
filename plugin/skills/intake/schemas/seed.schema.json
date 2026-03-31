@@ -21,7 +21,7 @@
     "constraints": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Technical or business constraints (e.g., 'Must use PostgreSQL', 'No paid APIs')"
+      "description": "Technical or business constraints (e.g., 'Must use relational database', 'No paid APIs')"
     },
     "assumptions": {
       "type": "array",

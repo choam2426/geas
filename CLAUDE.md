@@ -49,6 +49,22 @@ plugin/
 4. **Evidence over declaration** — "agent says done" is never enough. Evidence Gate must verify.
 5. **Human comments are stakeholder input** — when reading collaboration threads for ContextPackets, human comments have the highest priority.
 
+## Tool-Agnostic Rules
+
+Core skills (`plugin/skills/`) MUST NOT hardcode specific tools, frameworks, or package managers. This includes:
+- Package managers (npm, pnpm, yarn, bun)
+- Frameworks (Next.js, React, Express, Django, etc.)
+- Databases (PostgreSQL, MongoDB, etc.)
+- Test tools (Playwright, Jest, pytest, etc.)
+- Build tools (webpack, vite, etc.)
+
+**Allowed**:
+- Referencing `.geas/memory/_project/conventions.md` for project-specific commands
+- Marker file names for stack detection (package.json, go.mod — these are detection targets, not prescriptions)
+- Tool names in "e.g." lists that show multiple alternatives
+
+Agent definitions may reference MCP tools by category ("browser automation MCP") but not by product name as the only option.
+
 ## Language
 
 All files must be written in English, except `README.ko.md`. This includes skills, agents, hooks, docs, and comments in code.

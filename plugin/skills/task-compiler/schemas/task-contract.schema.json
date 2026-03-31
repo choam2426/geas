@@ -47,7 +47,7 @@
     "eval_commands": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Shell commands to mechanically verify the task (e.g., 'npm test', 'npm run lint')"
+      "description": "Shell commands to mechanically verify the task (from .geas/memory/_project/conventions.md)"
     },
     "retry_budget": {
       "type": "integer",
@@ -98,5 +98,5 @@
       "format": "date-time"
     }
   },
-  "required": ["version", "id", "title", "goal", "assigned_worker", "acceptance_criteria", "eval_commands", "status", "created_at"]
+  "required": ["version", "id", "title", "goal", "assigned_worker", "acceptance_criteria", "eval_commands", "rubric", "status", "created_at"]
 }
