@@ -35,12 +35,13 @@ Agent(agent: "forge", prompt: "Then read .geas/spec/seed.json, .geas/evidence/di
 Verify evidence exists. Write DecisionRecord to `.geas/decisions/dec-001.json`.
 
 ### 1.5 Vote Round
-```
-Agent(agent: "circuit", prompt: "Read .geas/evidence/discovery/forge.json. Vote agree/disagree with rationale. Write to .geas/evidence/discovery/vote-circuit.json")
-Agent(agent: "palette", prompt: "Read .geas/evidence/discovery/forge.json. Vote agree/disagree with rationale. Write to .geas/evidence/discovery/vote-palette.json")
-Agent(agent: "critic", prompt: "Read .geas/evidence/discovery/forge.json. Play devil's advocate: identify risks, blind spots, and trade-offs even if you agree overall. Vote agree/disagree with rationale. Write to .geas/evidence/discovery/vote-critic.json")
-```
-Critic MUST participate in every vote round. If all agree: proceed. If any disagree: run debate, then re-vote.
+Invoke `/geas:vote-round` with:
+- Proposal: `.geas/evidence/discovery/forge.json`
+- Voters: circuit, palette, critic
+- Output: `.geas/evidence/discovery/vote-{agent}.json`
+
+If all agree: proceed. If any disagree: `/geas:debate` runs, then re-vote.
+Verify all vote files exist before continuing.
 
 ### 1.6 Compile TaskContracts
 - Use `.geas/spec/stories.md` as input. For each user story, invoke `/geas:task-compiler`.
