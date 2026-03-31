@@ -1,44 +1,36 @@
 ---
 name: coding-conventions
-description: Universal coding standards for the AI startup workspace — stack-agnostic
+description: Follow project conventions from conventions.md. Update when new patterns emerge. Default to Google Style Guide for unlisted areas.
 ---
 
 # Coding Conventions
 
-## Tech Stack
+## Primary Source
 
-The tech stack is **NOT predefined**. It is decided by the team at project start:
+Read `.geas/memory/_project/conventions.md` before writing any code. This file contains the project's specific stack, build commands, naming patterns, and architectural decisions detected during onboarding.
 
-1. **Forge (CTO)** proposes architecture and stack based on the mission
-2. **Nova (CEO)** validates alignment with product vision
-3. **Compass (PM)** confirms feasibility within scope
-4. Decision is recorded as a DecisionRecord in `.geas/decisions/`
+**Follow conventions.md exactly.** If it says the project uses tabs, use tabs. If it says the test command is `pytest`, use `pytest`. Do not override project conventions with personal preferences.
 
-Once decided, Forge creates `.geas/memory/_project/conventions.md` with the chosen stack and conventions.
+## When conventions.md Is Silent
 
-## Universal Standards (apply regardless of stack)
+For coding patterns not covered by conventions.md, follow the **Google Style Guide** for the project's language:
 
-### Code Quality
-- TypeScript strict mode (if using TypeScript)
-- No `any` types — always type properly
-- Meaningful variable and function names
-- One responsibility per function/component
+- Use the style guide for the language detected in conventions.md (e.g., Python, Go, Java, C++, Kotlin)
+- When multiple style guides conflict, prefer the one closest to existing project patterns
+- If no language-specific guide exists, apply general principles: clarity over cleverness, consistency over novelty
 
-### Error Handling
-- Graceful failures with user-facing messages
-- Never swallow errors silently
-- Log errors with context for debugging
+## Updating Conventions
 
-### Structure
-- Clear separation of concerns
-- Co-locate related files when practical
-- Shared types in a dedicated directory
+When you discover a new pattern during implementation that is not yet in conventions.md:
 
-### Git
-- Atomic commits with descriptive messages
-- Never commit secrets, credentials, or API keys
+1. **Verify it is consistent** with existing patterns in the file
+2. **Add it** to the appropriate section of conventions.md
+3. **Keep entries concrete** — "API routes use camelCase for URL params" not "use consistent naming"
 
-### UI (if applicable)
-- Mobile-first responsive design
-- Loading, error, and empty states for every view
-- Accessible: proper contrast, focus states, semantic HTML
+Do NOT update conventions.md with personal preferences or hypothetical patterns. Only add patterns that are established in the codebase or decided by the team.
+
+## What This Skill Does NOT Do
+
+- Does not define specific coding rules (those belong in conventions.md)
+- Does not prescribe any language, framework, or tooling
+- Does not override project-specific patterns
