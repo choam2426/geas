@@ -81,6 +81,12 @@ For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
   "remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "code_review", "testing", "evidence_gate", "critic_review", "nova_review", "retrospective", "resolve"]
   ```
   Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
+- **Event logging**: After each step completes and is removed from `remaining_steps`, log:
+  ```
+  Append to .geas/ledger/events.jsonl:
+  {"event": "step_complete", "task_id": "{task-id}", "step": "{step_name}", "agent": "{agent_name}", "timestamp": "<actual>"}
+  ```
+  Exception: `implementation_contract`, `gate_result`, and `task_resolved` have their own event formats. Do not duplicate those.
 - **Rubric check**: If the TaskContract is missing `rubric`, insert the default before proceeding:
   ```json
   "rubric": [

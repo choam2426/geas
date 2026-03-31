@@ -113,6 +113,10 @@ For Sprint mode (adding a feature to an existing project):
 
 ## Output
 
-- **File**: `.geas/spec/seed.json`
+- **Initiative mode**: `.geas/spec/seed.json`
+- **Sprint mode**: `.geas/spec/sprint/{task-id}-seed.json`
+  - `mkdir -p .geas/spec/sprint`
+  - Task ID comes from the sprint task being compiled (e.g., SP-01). If no task ID yet, use `sprint-{YYYY-MM-DD}-seed.json`.
+  - The original `.geas/spec/seed.json` MUST NOT be modified in Sprint mode.
 - **Format**: JSON conforming to `schemas/seed.schema.json`
 - **Immutability**: Once confirmed, the seed should not be modified during execution. If scope must change, trigger `/geas:pivot-protocol` instead.

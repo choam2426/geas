@@ -14,7 +14,7 @@ One feature, one pipeline. Skips Genesis.
 
 ## Pre-conditions
 
-1. `.geas/spec/seed.json` should exist from intake.
+1. Sprint seed should exist from intake at `.geas/spec/sprint/{task-id}-seed.json`. The original `.geas/spec/seed.json` (from Initiative) is read-only context — do NOT modify it.
 2. `.geas/memory/_project/conventions.md` — if missing, spawn Forge for onboarding:
    ```
    Agent(agent: "forge", prompt: "Scan this codebase. Write conventions to .geas/memory/_project/conventions.md")
@@ -34,6 +34,13 @@ After compilation, write `remaining_steps` to checkpoint:
 Remove steps that will be skipped. After completing each step, remove it from the front of the array and update run.json.
 
 **Rubric check**: If the TaskContract is missing `rubric`, insert the default (same as initiative mode).
+
+**Event logging**: After each step completes and is removed from `remaining_steps`, log:
+```
+Append to .geas/ledger/events.jsonl:
+{"event": "step_complete", "task_id": "{task-id}", "step": "{step_name}", "agent": "{agent_name}", "timestamp": "<actual>"}
+```
+Exception: `implementation_contract`, `gate_result`, and `task_resolved` have their own event formats. Do not duplicate those.
 
 ### 2. Design (Palette) [DEFAULT — skip-if: no user-facing interface]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**

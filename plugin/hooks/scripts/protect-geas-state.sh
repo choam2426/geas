@@ -94,8 +94,18 @@ if needs_fix:
     fi
     ;;&
   */.geas/spec/seed.json)
-    # seed.json is frozen after intake — warn on modification
-    echo "[Geas] Warning: seed.json was modified after intake. Seed should be frozen." >&2
+    # seed.json is frozen after intake — block in sprint mode, warn otherwise
+    RUN_FILE="$CWD/.geas/state/run.json"
+    if [ -f "$RUN_FILE" ]; then
+      MODE=$(python -c "import json; print(json.load(open('$RUN_FILE')).get('mode',''))" 2>/dev/null || echo "")
+      if [ "$MODE" = "sprint" ]; then
+        echo "[Geas] ERROR: seed.json must not be modified in Sprint mode. Write sprint seed to .geas/spec/sprint/ instead." >&2
+      else
+        echo "[Geas] Warning: seed.json was modified after intake. Seed should be frozen." >&2
+      fi
+    else
+      echo "[Geas] Warning: seed.json was modified after intake. Seed should be frozen." >&2
+    fi
     ;;
 esac
 
