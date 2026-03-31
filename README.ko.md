@@ -11,7 +11,7 @@
 [![Claude Code](https://img.shields.io/badge/Built_for-Claude_Code-6B4FBB?style=for-the-badge)](https://claude.ai/code)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
 [![Agents](https://img.shields.io/badge/Agents-12-4A90D9?style=flat-square)](docs/ko/reference/AGENTS.md)
-[![Skills](https://img.shields.io/badge/Skills-22-2ECC71?style=flat-square)](docs/ko/reference/SKILLS.md)
+[![Skills](https://img.shields.io/badge/Skills-23-2ECC71?style=flat-square)](docs/ko/reference/SKILLS.md)
 [![Hooks](https://img.shields.io/badge/Hooks-9-E67E22?style=flat-square)](docs/ko/reference/HOOKS.md)
 
 </div>
@@ -144,7 +144,7 @@ Compass가 파이프라인을 조율하고, 12명의 전문 에이전트가 각�
 ### 레퍼런스
 | 문서 | 설명 |
 |------|------|
-| [Skills](docs/ko/reference/SKILLS.md) | 22개 skill 레퍼런스 |
+| [Skills](docs/ko/reference/SKILLS.md) | 23개 skill 레퍼런스 |
 | [Agents](docs/ko/reference/AGENTS.md) | 12명 에이전트 레퍼런스 |
 | [Hooks](docs/ko/reference/HOOKS.md) | 9개 hook 레퍼런스 |
 | [Governance](docs/ko/reference/GOVERNANCE.md) | 평가 기준과 품질 게이트 |

@@ -71,6 +71,14 @@ Different workers need different context:
 - Acceptance criteria and their status
 - Mission alignment check (from seed)
 
+#### DevOps (Pipeline)
+- Build/deploy configuration from conventions.md
+- Target deployment environment and constraints (from seed)
+- CI/CD requirements from TaskContract
+- Existing deployment configuration (if Sprint mode)
+- Environment variable setup requirements
+- Eval commands for build/deploy verification
+
 #### Other Specialists
 - **Shield**: files changed, auth/input handling code paths, OWASP concerns
 - **Scroll**: feature description, API endpoints, configuration options

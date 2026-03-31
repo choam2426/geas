@@ -27,8 +27,8 @@ home = os.path.expanduser('~')
 
 # Find Claude project directory
 # cwd path conversion: A:\geas-test3 -> A--geas-test3
-cwd_normalized = cwd.replace('\\\\', '/').replace(':', '')
-project_hash = cwd_normalized.replace('/', '-').lstrip('-')
+cwd_normalized = cwd.replace('\\\\', '-').replace('/', '-').replace(':', '-')
+project_hash = cwd_normalized.lstrip('-')
 projects_base = os.path.join(home, '.claude', 'projects')
 
 # Try to find the project directory

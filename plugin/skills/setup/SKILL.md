@@ -16,7 +16,7 @@ Users should not need to run setup manually unless they are troubleshooting.
 Before anything else, create the runtime directory structure in the project root:
 
 ```bash
-mkdir -p .geas/spec .geas/state .geas/tasks .geas/packets .geas/evidence .geas/decisions .geas/ledger .geas/memory/_project
+mkdir -p .geas/spec .geas/state .geas/tasks .geas/contracts .geas/packets .geas/evidence .geas/decisions .geas/decisions/pending .geas/ledger .geas/summaries .geas/memory/_project .geas/memory/retro .geas/memory/agents
 ```
 
 Write the initial debt tracking file `.geas/debt.json`:
@@ -64,7 +64,7 @@ Write `.geas/rules.md` — the shared rules that ALL agents must follow:
 
 ```
 Setup complete:
-- .geas/: initialized (spec, state, tasks, packets, evidence, decisions, ledger)
+- .geas/: initialized (spec, state, tasks, contracts, packets, evidence, decisions, ledger, summaries, memory)
 - Config: .geas/config.json saved
 
 Ready! Stay in Claude and describe your mission in natural language.

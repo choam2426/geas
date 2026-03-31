@@ -1,11 +1,12 @@
 # Skills 레퍼런스
 
-Geas 플러그인의 22개 skill 목록입니다. 사용자가 `/geas:<name>`으로 직접 호출하거나, Compass가 실행 프로토콜 중 자동 호출합니다.
+Geas 플러그인의 23개 skill 목록입니다. 사용자가 `/geas:<name>`으로 직접 호출하거나, Compass가 실행 프로토콜 중 자동 호출합니다.
 
 ## 요약 표
 
 | Skill | 분류 | 사용자 호출 | 호출 주체 | 주요 출력 |
 |-------|------|-----------|-----------|-----------|
+| [mission](#mission) | Entry | 가능 | 사용자 직접 | Compass 호출 |
 | [compass](#compass) | Entry | 불가 | 사용자 (`/geas:mission` 경유) | 전체 세션 조율 |
 | [setup](#setup) | Entry | 불가 | Compass (최초 실행) | `.geas/` 런타임 디렉토리 |
 | [intake](#intake) | Core - Contract Engine | 불가 | Compass | `.geas/spec/seed.json` |
@@ -32,6 +33,29 @@ Geas 플러그인의 22개 skill 목록입니다. 사용자가 `/geas:<name>`으
 ---
 
 ## Entry Skills
+
+### mission
+
+진입점입니다. 사용자 의도를 받아 Compass를 호출합니다.
+
+**사용자 호출:** 가능 (`/geas:mission`)
+
+**호출 주체:** 사용자 직접
+
+**입력:**
+- 사용자 자연어 (미션, 기능 요청, 또는 의사결정 질문)
+
+**출력:**
+- 없음 (즉시 Compass에 위임)
+
+**핵심 동작:**
+- 얇은 진입 셸입니다. 사용자 입력을 받아 `/geas:compass`를 호출합니다.
+- Compass 에이전트를 스폰하지 않습니다. Compass는 메인 세션에서 실행되는 skill이지 sub-agent가 아닙니다.
+- 실행 모드를 직접 호출할 수도 있습니다 (`/geas:initiative`, `/geas:sprint`, `/geas:debate`).
+
+**스키마:** 없음
+
+---
 
 ### compass
 
@@ -72,7 +96,7 @@ Geas 오케스트레이터입니다. 멀티 에이전트 팀 전체를 관리합
 **입력:** 없음 (`.gitignore`에 기존 항목이 있는지만 확인합니다)
 
 **출력:**
-- `.geas/` 디렉토리 트리: `spec/`, `state/`, `tasks/`, `packets/`, `evidence/`, `decisions/`, `ledger/`, `memory/_project/`
+- `.geas/` 디렉토리 트리: `spec/`, `state/`, `tasks/`, `contracts/`, `packets/`, `evidence/`, `decisions/`, `decisions/pending/`, `ledger/`, `summaries/`, `memory/_project/`, `memory/retro/`, `memory/agents/`
 - `.geas/state/run.json` — 초기 실행 상태 (`status: "initialized"`)
 - `.geas/debt.json` — 빈 기술 부채 레지스터 (`{"items": []}`)
 - `.geas/rules.md` — 모든 에이전트가 따르는 공유 규칙 (evidence 형식, 코드 경계)

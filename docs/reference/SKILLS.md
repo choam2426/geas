@@ -1,11 +1,12 @@
 # Skills Reference
 
-All 22 skills in the Geas plugin. Skills are invoked either by users directly (`/geas:<name>`) or by Compass as part of execution protocols.
+All 23 skills in the Geas plugin. Skills are invoked either by users directly (`/geas:<name>`) or by Compass as part of execution protocols.
 
 ## Summary Table
 
 | Skill | Category | User-Invocable | Invoked By | Key Output |
 |-------|----------|----------------|------------|------------|
+| [mission](#mission) | Entry | Yes | User directly | Invokes Compass |
 | [compass](#compass) | Entry | No | User (via `/geas:mission`) | Orchestrates entire session |
 | [setup](#setup) | Entry | No | Compass (first run) | `.geas/` runtime directory |
 | [intake](#intake) | Core - Contract Engine | No | Compass | `.geas/spec/seed.json` |
@@ -32,6 +33,29 @@ All 22 skills in the Geas plugin. Skills are invoked either by users directly (`
 ---
 
 ## Entry Skills
+
+### mission
+
+**Description:** Entry point — receives user intent and invokes Compass.
+
+**User-Invocable:** Yes (`/geas:mission`)
+
+**Invoked By:** User directly
+
+**Inputs:**
+- User natural language (mission statement, feature request, or decision question)
+
+**Outputs:**
+- None (delegates to Compass immediately)
+
+**Key Behaviors:**
+- Thin entry shell — receives user input and invokes `/geas:compass`.
+- Does NOT spawn a compass agent. Compass is a skill that runs in the main session, not a sub-agent.
+- Users can also invoke execution modes directly (`/geas:initiative`, `/geas:sprint`, `/geas:debate`) to skip mode detection.
+
+**Schemas:** None.
+
+---
 
 ### compass
 
@@ -72,7 +96,7 @@ All 22 skills in the Geas plugin. Skills are invoked either by users directly (`
 **Inputs:** None (reads `.gitignore` to check for existing entries)
 
 **Outputs:**
-- `.geas/` directory tree: `spec/`, `state/`, `tasks/`, `packets/`, `evidence/`, `decisions/`, `ledger/`, `memory/_project/`
+- `.geas/` directory tree: `spec/`, `state/`, `tasks/`, `contracts/`, `packets/`, `evidence/`, `decisions/`, `decisions/pending/`, `ledger/`, `summaries/`, `memory/_project/`, `memory/retro/`, `memory/agents/`
 - `.geas/state/run.json` — initial run state (`status: "initialized"`)
 - `.geas/debt.json` — empty tech debt register (`{"items": []}`)
 - `.geas/rules.md` — shared agent rules (evidence format, code boundaries)

@@ -204,35 +204,105 @@ Log: `{"event": "phase_complete", "phase": "mvp", "timestamp": "<actual>"}`
 
 ## Phase 3: Polish [MANDATORY — do not skip]
 
+### 3.1 Security Review (Shield)
+Update run.json checkpoint: `pipeline_step` = "security_review", `agent_in_flight` = "shield"
 ```
-Agent(agent: "shield", prompt: "Security review of the project. Write to .geas/evidence/polish/shield.json")
+Agent(agent: "shield", prompt: "Full security review of the project. Check OWASP top 10, auth flows, input validation, secrets exposure, dependency vulnerabilities. Write findings with severity (CRITICAL/HIGH/MEDIUM/LOW) to .geas/evidence/polish/shield.json")
 ```
 Verify `.geas/evidence/polish/shield.json` exists.
 
+### 3.2 Triage Shield Findings
+Read `.geas/evidence/polish/shield.json`. Classify each finding by severity:
+- **CRITICAL / HIGH** → create a fix task (mini-pipeline, see 3.3)
+- **MEDIUM / LOW** → register in `.geas/debt.json` with `source_task: "polish"`, `found_by: "shield"`
+
+If no CRITICAL/HIGH findings: skip 3.3 and proceed to 3.4.
+
+### 3.3 Fix Critical Security Issues
+For each CRITICAL/HIGH finding, run a reduced pipeline:
+1. Generate ContextPacket for the appropriate worker (Pixel for frontend, Circuit for backend) with Shield's finding as primary context
+2. Update run.json checkpoint: `pipeline_step` = "security_fix", `agent_in_flight` = "{worker}"
+3. Spawn worker with worktree isolation:
+   ```
+   Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/packets/polish/{worker}-fix-{N}.md. Fix the security issue. Write evidence to .geas/evidence/polish/{worker}-fix-{N}.json")
+   ```
+4. Merge worktree branch
+5. Code Review (Forge) — verify the fix is correct and doesn't introduce regressions
+6. Testing (Sentinel) — verify the fix with `eval_commands` from conventions.md
+7. If fix fails: retry once (`retry_budget: 2`). If still fails: register as HIGH debt and proceed — do not block Polish phase indefinitely
+
+### 3.4 Documentation (Scroll)
+Update run.json checkpoint: `pipeline_step` = "documentation", `agent_in_flight` = "scroll"
 ```
-Agent(agent: "scroll", prompt: "Write README and docs. Write to .geas/evidence/polish/scroll.json")
+Agent(agent: "scroll", prompt: "Read .geas/spec/seed.json, .geas/spec/prd.md, and all evidence at .geas/evidence/. Write README, API docs, and user-facing documentation. Write to .geas/evidence/polish/scroll.json")
 ```
 Verify `.geas/evidence/polish/scroll.json` exists.
 
-Fix issues found. Log phase complete.
+### 3.5 Entropy Scan
+Update run.json checkpoint: `pipeline_step` = "cleanup", `agent_in_flight` = "forge"
+Invoke `/geas:cleanup` — Forge scans for dead code, AI boilerplate, convention drift, and duplication.
+Results are recorded in `.geas/debt.json`.
+
+### 3.6 Close Phase 3
+**Completion criteria:** zero open CRITICAL/HIGH security issues. MEDIUM/LOW items in debt.json are acceptable — they carry into Phase 4.
+
+Log: `{"event": "phase_complete", "phase": "polish", "timestamp": "<actual>"}`
 
 ---
 
 ## Phase 4: Scoped Evolution [MANDATORY — do not skip]
 
-Assess remaining work within seed's `scope_in`. Reject `scope_out` features.
-Spawn agents as needed for improvements.
+### 4.1 Gap Assessment
+1. Read `.geas/spec/seed.json` — get `scope_in` items
+2. Read all TaskContracts in `.geas/tasks/` — get items with `status: "passed"`
+3. Diff: identify `scope_in` items that have no corresponding completed task
+4. Read `.geas/debt.json` — get open items with severity HIGH
+5. Reject any work that falls under `scope_out` — Evolution refines, it does not expand
 
-**Nova final briefing is MANDATORY:**
+### 4.2 Prioritize Remaining Work
+Classify remaining items:
+- **P0 (must)**: unimplemented `scope_in` items that are core to the mission + HIGH severity debt
+- **P1 (nice-to-have)**: `scope_in` items that are enhancements + MEDIUM severity debt
+
+Present the prioritized list to the user:
 ```
-Agent(agent: "nova", prompt: "Final product review. Read all evidence. Deliver strategic summary and recommendations. Write to .geas/evidence/evolution/nova-final.json")
+[Compass] Evolution scope:
+  P0 (will execute):
+    1. <item>
+    2. <item>
+  P1 (skipped unless you request):
+    1. <item>
+
+  Proceed with P0 items?
 ```
 
-**Keeper release management:**
-```
-Agent(agent: "keeper", prompt: "Create release: version bump, changelog, final commit. Write to .geas/evidence/evolution/keeper-release.json")
-```
+If no P0 items remain: skip to 4.4.
 
+### 4.3 Execute P0 Items
+For each P0 item, run the **full Phase 2 pipeline**:
+- Compile TaskContract → Design → Tech Guide → Implementation Contract → Implementation → Code Review → Testing → Evidence Gate → Critic Review → Nova Review → Retrospective → Resolve
+
+Same mandatory steps, same Ship Gate, same checkpoint management as Phase 2.
+
+**Exit criteria** — stop executing when ANY of:
+- All P0 items are complete
+- User requests stop
+
+### 4.4 Nova Final Briefing [MANDATORY]
+```
+Agent(agent: "nova", prompt: "Final product review. Read .geas/spec/seed.json and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write to .geas/evidence/evolution/nova-final.json")
+```
+Verify `.geas/evidence/evolution/nova-final.json` exists.
+
+### 4.5 Keeper Release Management [MANDATORY]
+```
+Agent(agent: "keeper", prompt: "Create release: version bump, changelog from .geas/ledger/events.jsonl, final commit. Write to .geas/evidence/evolution/keeper-release.json")
+```
+Verify `.geas/evidence/evolution/keeper-release.json` exists.
+
+### 4.6 Run Summary
 Invoke `/geas:run-summary` to generate session audit trail.
 
-Close out. Log: `{"event": "phase_complete", "phase": "complete", "timestamp": "<actual>"}`
+### 4.7 Close
+Update run state: `{ "phase": "complete", "status": "complete" }`
+Log: `{"event": "phase_complete", "phase": "complete", "timestamp": "<actual>"}`

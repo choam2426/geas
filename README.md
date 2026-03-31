@@ -11,7 +11,7 @@ A harness that brings structure to multi-agent AI development — so every decis
 [![Claude Code](https://img.shields.io/badge/Built_for-Claude_Code-6B4FBB?style=for-the-badge)](https://claude.ai/code)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
 [![Agents](https://img.shields.io/badge/Agents-12-4A90D9?style=flat-square)](docs/reference/AGENTS.md)
-[![Skills](https://img.shields.io/badge/Skills-22-2ECC71?style=flat-square)](docs/reference/SKILLS.md)
+[![Skills](https://img.shields.io/badge/Skills-23-2ECC71?style=flat-square)](docs/reference/SKILLS.md)
 [![Hooks](https://img.shields.io/badge/Hooks-9-E67E22?style=flat-square)](docs/reference/HOOKS.md)
 
 </div>
@@ -144,7 +144,7 @@ Compass orchestrates the pipeline. 12 specialist agents execute it, each under t
 ### Reference
 | Document | Description |
 |----------|-------------|
-| [Skills](docs/reference/SKILLS.md) | 22 skills reference |
+| [Skills](docs/reference/SKILLS.md) | 23 skills reference |
 | [Agents](docs/reference/AGENTS.md) | 12 agents reference |
 | [Hooks](docs/reference/HOOKS.md) | 9 hooks reference |
 | [Governance](docs/reference/GOVERNANCE.md) | Evaluation and quality gates |
