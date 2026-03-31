@@ -25,7 +25,15 @@ One feature, one pipeline. Skips Genesis.
 ## Sprint Pipeline
 
 ### 1. Compile TaskContract
-Invoke `/geas:task-compiler` for the feature.
+Invoke `/geas:task-compiler` for the feature. The TaskContract MUST include a `rubric` array. Base dimensions: core_interaction(3), feature_completeness(4), code_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
+
+After compilation, write `remaining_steps` to checkpoint:
+```json
+"remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "code_review", "testing", "evidence_gate", "critic_review", "nova_review", "retrospective", "resolve"]
+```
+Remove steps that will be skipped. After completing each step, remove it from the front of the array and update run.json.
+
+**Rubric check**: If the TaskContract is missing `rubric`, insert the default (same as initiative mode).
 
 ### 2. Design (Palette) [DEFAULT — skip-if: no user-facing interface]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**

@@ -44,30 +44,22 @@ Critic MUST participate in every vote round. If all agree: proceed. If any disag
 
 ### 1.6 Compile TaskContracts
 - Use `.geas/spec/stories.md` as input. For each user story, invoke `/geas:task-compiler`.
+- Each TaskContract MUST include a `rubric` array. Base dimensions: core_interaction(3), feature_completeness(4), code_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
 - Log each: `{"event": "task_compiled", "task_id": "...", "timestamp": "<actual>"}`
 
 ### 1.7 MCP Server Recommendations
 
-Analyze the tech stack from Forge's architecture decision and recommend helpful MCP servers to the user.
+Analyze the tech stack from Forge's architecture decision and recommend helpful MCP servers to the user. Match by category, not by specific tool name:
 
-| Detected | Recommended MCP | Install command | Reason |
-|----------|----------------|-----------------|--------|
-| PostgreSQL | PostgreSQL MCP | `claude mcp add postgres -- npx -y @modelcontextprotocol/server-postgres <connection-string>` | Circuit can query schemas directly |
-| MongoDB | MongoDB MCP | `claude mcp add mongodb -- npx -y mongodb-mcp-server --readOnly` | Circuit can explore collections |
-| Web frontend | MDN MCP | `claude mcp add --transport http mdn https://mcp.mdn.mozilla.net/` | Pixel can reference web standards |
-| Has deploy target | Lighthouse MCP | `claude mcp add lighthouse -- npx -y @anthropic/lighthouse-mcp` | Sentinel can audit performance/a11y |
-| GitHub hosted | GitHub MCP | `claude mcp add --transport http github https://mcp.github.com/anthropic` | Keeper can manage PRs/issues |
+| Stack category | MCP category | Reason |
+|---------------|--------------|--------|
+| Relational database | Database query MCP | Workers can inspect schemas and run read-only queries |
+| Document database | Database query MCP | Workers can explore collections |
+| Web frontend | Web standards MCP | Workers can reference specification docs |
+| Has deploy target | Performance audit MCP | Sentinel can audit performance and accessibility |
+| Git-hosted | Git platform MCP | Keeper can manage PRs and issues |
 
-Recommendation format:
-```
-Recommended MCP servers for your tech stack:
-- [PostgreSQL MCP] → Circuit can query DB schemas directly
-  Install: claude mcp add postgres -- npx -y @modelcontextprotocol/server-postgres <connection-string>
-
-Would you like to connect? (optional, you can proceed without them)
-```
-
-If the user connects, record in `.geas/config.json` under `connected_mcp`.
+Present recommendations with install commands from the MCP registry. If the user connects, record in `.geas/config.json` under `connected_mcp`.
 
 ### 1.8 Close Genesis
 - Update run state: `{ "phase": "mvp", "status": "in_progress" }`
@@ -84,6 +76,21 @@ For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
 ### 2.0 Start Task
 - Read TaskContract. Check dependencies are `"passed"`.
 - Update status to `"in_progress"`. Log `task_started` event.
+- **Write `remaining_steps` to checkpoint** — the full pipeline for this task:
+  ```json
+  "remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "code_review", "testing", "evidence_gate", "critic_review", "nova_review", "retrospective", "resolve"]
+  ```
+  Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
+- **Rubric check**: If the TaskContract is missing `rubric`, insert the default before proceeding:
+  ```json
+  "rubric": [
+    { "dimension": "core_interaction", "evaluator": "sentinel", "threshold": 3 },
+    { "dimension": "feature_completeness", "evaluator": "sentinel", "threshold": 4 },
+    { "dimension": "code_quality", "evaluator": "forge", "threshold": 4 },
+    { "dimension": "regression_safety", "evaluator": "sentinel", "threshold": 4 }
+  ]
+  ```
+  Add `ux_clarity` (threshold 3) and `visual_coherence` (threshold 3) if the task has a UI component.
 
 ### 2.1 Design (Palette) [DEFAULT — skip-if: no user-facing interface (DB, API, CI, Docker, etc.)]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
