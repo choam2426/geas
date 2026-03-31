@@ -16,33 +16,42 @@ Geas는 Claude Code 기반의 계약 기반 멀티 에이전트 AI 개발 하네
 /plugin install geas@choam2426-geas
 ```
 
-## 모드 선택
+## 미션 시작
 
-### Initiative -- 처음부터 만들기
+`/geas:mission`을 실행하고, 만들고 싶은 것, 추가할 기능, 결정할 사안을 설명하세요.
 
-제품을 밑바닥부터 시작할 때 사용하세요. Genesis, MVP, Polish, Evolution 총 네 단계로 진행됩니다.
+```
+/geas:mission Build me a real-time polling app with shareable invite links
+```
 
-1. Claude Code에서 빈 프로젝트 디렉터리를 엽니다
-2. 미션을 알려주세요: `Build me a real-time polling app with shareable invite links`
-3. Intake가 몇 가지 질문을 던진 뒤 요구사항을 `seed.json`으로 확정합니다
-4. 이후 네 단계를 에이전트 팀이 자율적으로 진행합니다
+나머지는 Geas가 알아서 합니다. 질문을 던져 요구사항을 정리하고, 적절한 모드를 판단한 뒤, 파이프라인을 실행합니다.
 
-### Sprint -- 기능 하나 추가
+### 모드 자동 감지
 
-기존 프로젝트에 기능 하나를 추가할 때 사용하세요. 파이프라인은 전부 돌지만, 범위는 한정됩니다.
+모드를 직접 고를 필요가 없습니다. Geas가 의도를 읽고 자동으로 분기합니다:
 
-1. Claude Code에서 기존 프로젝트를 엽니다
-2. 기능을 설명하세요: `Add CSV export to the reports page`
-3. 첫 실행이면 Geas가 코드베이스를 파악합니다 (구조 읽기, 컨텍스트 구성)
-4. Sprint 파이프라인이 실행됩니다: Design, Build, Review, QA, Evidence Gate
+| 의도 | 감지되는 모드 | 진행 방식 |
+|---|---|---|
+| 새 제품을 밑바닥부터 만들기 | **Initiative** | 4단계: Genesis → MVP → Polish → Evolution |
+| 기존 프로젝트에 기능 추가 | **Sprint** | 범위 한정 파이프라인: Design → Build → Review → QA → Evidence Gate |
+| 기술적·제품적 의사결정 | **Debate** | 구조적 토론, 코드 없음 — DecisionRecord 출력 |
 
-### Debate -- 결정만 내리기
+### 예시
 
-코드는 안 짜고, 구조적으로 의사결정만 할 때 사용하세요.
+```
+/geas:mission Build a CLI tool that converts Markdown to PDF
+```
+→ Initiative: 새 제품을 처음부터 만듭니다
 
-1. 질문을 던지세요: `Should we use a monorepo or separate repositories?`
-2. 에이전트들이 근거를 대며 토론합니다. 악마의 변호인 역할도 포함됩니다
-3. 결과는 `.geas/decisions/`에 `DecisionRecord`로 남습니다
+```
+/geas:mission Add dark mode toggle to the settings page
+```
+→ Sprint: 기능 하나를 추가합니다
+
+```
+/geas:mission Should we migrate from REST to GraphQL?
+```
+→ Debate: 구조적으로 의사결정을 내립니다
 
 ## 실행하면 어떻게 되나요?
 

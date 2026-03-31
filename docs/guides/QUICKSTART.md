@@ -16,33 +16,42 @@ Geas is a contract-driven multi-agent AI development harness built for Claude Co
 /plugin install geas@choam2426-geas
 ```
 
-## Choose Your Mode
+## Start a Mission
 
-### Initiative — Build Something New
+Run `/geas:mission` and describe what you want to build, add, or decide.
 
-For starting a product from scratch. Geas runs four phases: Genesis → MVP → Polish → Evolution.
+```
+/geas:mission Build me a real-time polling app with shareable invite links
+```
 
-1. Open an empty project directory in Claude Code
-2. Describe your mission: `Build me a real-time polling app with shareable invite links`
-3. Intake asks clarifying questions, then freezes requirements into `seed.json`
-4. The team executes autonomously through all four phases
+Geas handles the rest — it asks clarifying questions, detects the right mode, and runs the full pipeline.
 
-### Sprint — Add a Feature
+### How mode detection works
 
-For adding a single feature to an existing project. Full pipeline, bounded scope.
+You don't need to pick a mode yourself. Geas reads your intent and routes automatically:
 
-1. Open your existing project in Claude Code
-2. Describe the feature: `Add CSV export to the reports page`
-3. Geas onboards the codebase on first run (reads structure, builds context)
-4. Sprint pipeline executes: Design → Build → Review → QA → Evidence Gate
+| Your intent | Detected mode | What happens |
+|---|---|---|
+| Build a new product from scratch | **Initiative** | 4 phases: Genesis → MVP → Polish → Evolution |
+| Add a feature to an existing project | **Sprint** | Bounded pipeline: Design → Build → Review → QA → Evidence Gate |
+| Make a technical or product decision | **Debate** | Structured discussion, no code — outputs a DecisionRecord |
 
-### Debate — Make a Decision
+### Examples
 
-For structured decision-making without writing any code.
+```
+/geas:mission Build a CLI tool that converts Markdown to PDF
+```
+→ Initiative: new product from scratch
 
-1. Describe the question: `Should we use a monorepo or separate repositories?`
-2. Agents debate with evidence, devil's advocacy included
-3. Decision is recorded as a `DecisionRecord` in `.geas/decisions/`
+```
+/geas:mission Add dark mode toggle to the settings page
+```
+→ Sprint: bounded feature addition
+
+```
+/geas:mission Should we migrate from REST to GraphQL?
+```
+→ Debate: structured decision-making
 
 ## What Happens During Execution
 
