@@ -25,7 +25,7 @@ Compass invokes this:
 Read these in order to assemble the summary:
 
 1. **`.geas/state/run.json`** — current phase, mode, mission, milestone
-2. **`.geas/memory/_project/agent-log.jsonl`** — agent spawn history (who was spawned, when, for what issue)
+2. **`.geas/ledger/costs.jsonl`** — agent spawn telemetry (agent name, task, phase, timestamp per spawn)
 3. **`.geas/tasks/`** — TaskContracts, check statuses for completion and progress
 4. **`.geas/decisions/`** — DecisionRecords for decisions made this session
 5. **`.geas/ledger/events.jsonl`** — gate results, verify-fix loops, escalations
@@ -84,14 +84,12 @@ Open Work:
 
 ---
 
-### Cost Report (if `.geas/ledger/costs.jsonl` exists)
+### Token Report (if `.geas/ledger/token-summary.json` exists)
 
-Read costs.jsonl and aggregate:
-- **Total agent spawns**: count of entries
-- **Spawns by agent**: group by `agent` field, count each
-- **Spawns by model**: group by `model` field (opus vs sonnet)
-- **Spawns by phase**: group by `phase` field
-- **Per-task breakdown**: group by `task_id`
+Read token-summary.json and report:
+- **Total agents spawned**: `agent_count`
+- **Token usage**: input tokens, output tokens, cache creation tokens, cache read tokens
+- **Per-agent breakdown**: group by agent name, show input/output tokens and spawn count
 
 Present as a markdown table in the summary.
 
@@ -113,20 +111,6 @@ Present as a markdown summary.
 Write the summary to `.geas/summaries/run-summary-<YYYY-MM-DD>.md`.
 
 If multiple summaries exist for the same date (multiple sessions), append a sequence number: `run-summary-2026-03-21-2.md`.
-
----
-
-## Agent Log Format
-
-The agent log at `.geas/memory/_project/agent-log.jsonl` uses one JSON object per line:
-
-```json
-{"agent": "forge", "action": "spawn", "issue_id": "MY-42", "timestamp": "2026-03-21T10:30:00Z"}
-{"agent": "pixel", "action": "complete", "issue_id": "MY-42", "timestamp": "2026-03-21T11:15:00Z"}
-{"agent": "sentinel", "action": "verify-fail", "issue_id": "MY-42", "timestamp": "2026-03-21T11:20:00Z"}
-```
-
-If the log file does not exist, note "Agent log not available" and skip the agent spawn counts section.
 
 ---
 
