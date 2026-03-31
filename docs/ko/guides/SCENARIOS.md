@@ -21,7 +21,7 @@
 ### 주요 관찰
 
 - 전체 Initiative에서 서브에이전트 56회 생성
-- US-01 Implementation Contract: 계획된 작업 24개, 엣지 케이스 7개, non-goal 8개
+- US-01 Implementation Contract: 계획된 작업 24개, edge case 7개, non-goal 8개
 - Worker self-check: 모든 worker가 신뢰도 점수를 남김 (4-5)
 - Forge rubric: 전 태스크에 걸쳐 code_quality=4로 일관
 - Sentinel rubric: 점수 1-5 분포. 실제 품질 차이가 드러남
@@ -37,18 +37,18 @@
 | US-05 | 4 | 5 | **2** | 4 |
 | US-15 | **2** | **2** | **1** | **3** |
 
-채점된 태스크 6개 중 3개에서 임계값 위반이 나왔다.
+채점된 태스크 6개 중 3개에서 임계값 위반이 나왔습니다.
 
 ## 시나리오 2: 정산 + 분쟁 기능 추가 (Sprint)
 
 ### 미션
 "경매 플랫폼에 정산 내역 조회 및 분쟁 시스템 추가"
 
-### Initiative와 뭐가 달랐나
+### Initiative와 뭐가 달랐나요?
 
 - seed.json은 읽기 전용 (덮어쓰지 않음)
 - Rubric 6차원 생성
-- Implementation Contract: 작업 21개, 엣지 케이스 10개, 데모 단계 15개
+- Implementation Contract: 작업 21개, edge case 10개, 데모 단계 15개
 - remaining_steps 전부 정상적으로 추적 및 소화
 - Rubric 점수: 전 차원 4 이상 (regression_safety=5)
 
@@ -63,11 +63,11 @@
 ## 배운 것
 
 ### 잘 된 것
-1. 에이전트 정의는 100% 지켜진다. 지침을 넣기에 가장 확실한 곳이다
-2. Self-check와 Forge rubric은 별도 개입 없이 잘 돌아간다
-3. Implementation Contract 덕분에 요구사항 오해가 사전에 잡힌다
+1. 에이전트 정의는 100% 지켜집니다. 지침을 넣기에 가장 확실한 곳입니다
+2. Self-check와 Forge rubric은 별도 개입 없이 잘 돌아갑니다
+3. Implementation Contract 덕분에 요구사항 오해가 사전에 잡힙니다
 
 ### 고쳐야 했던 것
-1. SKILL.md의 파이프라인 단계가 context compaction 후 증발한다 -> remaining_steps로 해결
-2. 선택적 스키마 필드를 에이전트가 무시한다 -> 중요한 필드는 required로 바꿔야 한다
-3. core skill에 특정 도구가 하드코딩되어 있었다 -> conventions.md 참조 패턴으로 전환
+1. SKILL.md의 파이프라인 단계가 context compaction 후 증발합니다 -> remaining_steps로 해결했습니다
+2. 선택적 스키마 필드를 에이전트가 무시합니다 -> 중요한 필드는 required로 바꿔야 합니다
+3. core skill에 특정 도구가 하드코딩되어 있었습니다 -> conventions.md 참조 패턴으로 전환했습니다
