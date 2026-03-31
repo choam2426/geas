@@ -138,7 +138,7 @@ After running all applicable tiers, produce a verdict:
 
 ### On Pass
 
-1. Update the TaskContract status to `"passed"` in `.geas/tasks/{task-id}.json`
+1. Update the TaskContract status to `"in_review"` in `.geas/tasks/{task-id}.json` (Critic and Nova review still pending — only Resolve sets "passed")
 2. Log a **detailed** event to `.geas/ledger/events.jsonl` with tier results. Timestamp must be actual current time (not dummy):
    ```json
    {
@@ -173,10 +173,30 @@ After running all applicable tiers, produce a verdict:
 
 ### On Iterate (from Nova)
 
-1. Nova's specific feedback becomes new context for the worker
-2. Generate a new ContextPacket with Nova's feedback included
-3. Re-dispatch the worker
-4. This counts against the retry budget
+Nova's "Iterate" verdict means the gate passed mechanically and semantically, but the product is not ready from Nova's perspective. Unlike verify-fix-loop (which targets specific gate failures), Iterate triggers a full pipeline re-run because the changes may affect design, implementation approach, or quality across all dimensions.
+
+**Procedure:**
+
+1. **Deduct retry_budget.** If exhausted → follow `escalation_policy` (same as verify-fix-loop escalation).
+2. **Repopulate `remaining_steps`** with the full pipeline, applying the same skip conditions as the original run:
+   ```json
+   ["design", "tech_guide", "implementation_contract", "implementation",
+    "code_review", "testing", "evidence_gate", "critic_review",
+    "nova_review", "retrospective", "resolve"]
+   ```
+   Remove steps that were skipped originally (e.g., remove `"design"` if the task has no UI).
+3. **Generate new ContextPackets** for all downstream workers. Nova's specific feedback MUST be included in every packet as a `## Nova Feedback` section.
+4. **Resume from the first non-skipped step** (typically Design or Tech Guide).
+5. The full pipeline runs again: Design → Tech Guide → Implementation Contract → Implementation → Code Review → Testing → Evidence Gate → Critic → Nova → Retrospective → Resolve.
+
+**Comparison with verify-fix-loop:**
+
+| | Verify-Fix Loop | Iterate |
+|---|---|---|
+| Trigger | Gate failure (Tier 1 or 2) | Nova product judgment (Tier 3) |
+| Re-entry point | Implementation only | Full pipeline (Design onward) |
+| Scope | Fix specific failures | Product-level improvement |
+| Budget | Shared `retry_budget` | Shared `retry_budget` |
 
 ## Decision Records
 

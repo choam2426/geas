@@ -87,6 +87,8 @@ Update run.json checkpoint: `pipeline_step` = "code_review", `agent_in_flight` =
 Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge-review.md. Review code. Write to .geas/evidence/{task-id}/forge-review.json")
 ```
 Verify evidence.
+Update TaskContract status to "in_review".
+Update run.json checkpoint: `pipeline_step` = "code_review"
 
 ### 7. Testing (Sentinel) [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "testing", `agent_in_flight` = "sentinel"
@@ -94,6 +96,8 @@ Update run.json checkpoint: `pipeline_step` = "testing", `agent_in_flight` = "se
 Agent(agent: "sentinel", prompt: "Read .geas/packets/{task-id}/sentinel.md. Test feature. Write to .geas/evidence/{task-id}/sentinel.json")
 ```
 Verify evidence.
+Update TaskContract status to "testing".
+Update run.json checkpoint: `pipeline_step` = "testing"
 
 ### 8. Evidence Gate
 Run eval_commands. Check acceptance criteria. Log detailed result.
@@ -133,7 +137,7 @@ Verify `.geas/memory/retro/{task-id}.json` exists.
   ```
   Agent(agent: "keeper", prompt: "Commit all changes for {task-id} with conventional commit format. Write to .geas/evidence/{task-id}/keeper.json")
   ```
-- Iterate → re-dispatch with feedback
+- Iterate → deduct retry_budget (if exhausted → escalation_policy). Repopulate remaining_steps with full pipeline (same skip conditions). Include Nova's feedback in all ContextPackets. Resume from first non-skipped step. See evidence-gate "On Iterate" for full procedure.
 - Cut → `"failed"`, write DecisionRecord
 
 ### 11. Run Summary
