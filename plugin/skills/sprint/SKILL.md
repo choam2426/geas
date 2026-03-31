@@ -44,6 +44,7 @@ Exception: `implementation_contract`, `gate_result`, and `task_resolved` have th
 
 ### 2. Design (Palette) [DEFAULT — skip-if: no user-facing interface]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
+Generate ContextPacket, then:
 Update run.json checkpoint: `pipeline_step` = "design", `agent_in_flight` = "palette"
 ```
 Agent(agent: "palette", prompt: "Read .geas/packets/{task-id}/palette.md. Write design to .geas/evidence/{task-id}/palette.json")
@@ -63,6 +64,7 @@ Verify evidence exists.
 - Cross-module dependencies
 - New data model or schema changes
 
+Generate ContextPacket, then:
 Update run.json checkpoint: `pipeline_step` = "tech_guide", `agent_in_flight` = "forge"
 ```
 Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge.md. Write tech guide to .geas/evidence/{task-id}/forge.json")
@@ -75,6 +77,7 @@ Update run.json checkpoint: `pipeline_step` = "implementation_contract", `agent_
 Verify `.geas/contracts/{task-id}.json` exists with `status: "approved"`.
 
 ### 5. Implementation [MANDATORY — worktree isolated]
+Generate ContextPacket, then:
 Update run.json checkpoint: `pipeline_step` = "implementation", `agent_in_flight` = "{worker}"
 ```
 Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/packets/{task-id}/{worker}.md. Implement. Write evidence to .geas/evidence/{task-id}/{worker}.json")
@@ -82,6 +85,7 @@ Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/packets/{tas
 Verify evidence. Merge worktree.
 
 ### 6. Code Review (Forge) [MANDATORY]
+Generate ContextPacket, then:
 Update run.json checkpoint: `pipeline_step` = "code_review", `agent_in_flight` = "forge"
 ```
 Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge-review.md. Review code. Write to .geas/evidence/{task-id}/forge-review.json")
@@ -91,6 +95,7 @@ Update TaskContract status to "in_review".
 Update run.json checkpoint: `pipeline_step` = "code_review"
 
 ### 7. Testing (Sentinel) [MANDATORY]
+Generate ContextPacket, then:
 Update run.json checkpoint: `pipeline_step` = "testing", `agent_in_flight` = "sentinel"
 ```
 Agent(agent: "sentinel", prompt: "Read .geas/packets/{task-id}/sentinel.md. Test feature. Write to .geas/evidence/{task-id}/sentinel.json")
