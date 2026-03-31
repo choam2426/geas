@@ -1,7 +1,7 @@
 #!/bin/bash
 # calculate-cost.sh — Stop hook
-# Calculates actual token usage and estimated cost by parsing subagent session JSONLs.
-# Runs once at session end. Writes summary to .geas/ledger/cost-summary.json.
+# Aggregates token usage by parsing subagent session JSONLs.
+# Runs once at session end. Writes summary to .geas/ledger/token-summary.json.
 
 set -euo pipefail
 
@@ -100,28 +100,14 @@ for jf in glob.glob(os.path.join(session_dir, '*.jsonl')):
     agent_totals[name]['spawns'] += 1
     agent_count += 1
 
-# Calculate estimated cost (Opus pricing as upper bound)
-input_cost = total['input_tokens'] * 15 / 1_000_000
-output_cost = total['output_tokens'] * 75 / 1_000_000
-cache_create_cost = total['cache_creation_input_tokens'] * 3.75 / 1_000_000
-cache_read_cost = total['cache_read_input_tokens'] * 1.50 / 1_000_000
-total_cost = input_cost + output_cost + cache_create_cost + cache_read_cost
-
 from datetime import datetime, timezone
 
 summary = {
-    'session_cost_usd': round(total_cost, 2),
     'tokens': {
         'input': total['input_tokens'],
         'output': total['output_tokens'],
         'cache_creation': total['cache_creation_input_tokens'],
         'cache_read': total['cache_read_input_tokens']
-    },
-    'cost_breakdown_usd': {
-        'input': round(input_cost, 2),
-        'output': round(output_cost, 2),
-        'cache_creation': round(cache_create_cost, 2),
-        'cache_read': round(cache_read_cost, 2)
     },
     'agent_count': agent_count,
     'agents': {k: v for k, v in sorted(agent_totals.items(), key=lambda x: -x[1]['output'])},
@@ -129,13 +115,13 @@ summary = {
 }
 
 # Write summary
-summary_file = os.path.join(geas, 'ledger', 'cost-summary.json')
+summary_file = os.path.join(geas, 'ledger', 'token-summary.json')
 os.makedirs(os.path.dirname(summary_file), exist_ok=True)
 with open(summary_file, 'w', encoding='utf-8') as f:
     json.dump(summary, f, indent=2, ensure_ascii=False)
     f.write(chr(10))
 
-print(f'[Geas] Session cost: \${total_cost:.2f} ({agent_count} agents, {total[\"output_tokens\"]:,} output tokens)', file=sys.stderr)
+print(f'[Geas] Session tokens: {total[\"input_tokens\"]:,} input, {total[\"output_tokens\"]:,} output ({agent_count} agents)', file=sys.stderr)
 " "$CWD" "$GEAS_DIR" 2>&1 >&2 || true
 
 exit 0

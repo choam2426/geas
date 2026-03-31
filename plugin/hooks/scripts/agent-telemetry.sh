@@ -33,16 +33,11 @@ run = json.load(open(run_file))
 tid = run.get('current_task_id', '')
 phase = run.get('phase', '')
 
-# Determine model from agent definition (hardcoded mapping)
-opus_agents = {'nova', 'forge', 'circuit', 'pixel', 'critic'}
-model = 'opus' if agent_name in opus_agents else 'sonnet'
-
 entry = {
     'event': 'agent_complete',
     'agent': agent_name,
     'task_id': tid,
     'phase': phase,
-    'model': model,
     'timestamp': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 }
 
