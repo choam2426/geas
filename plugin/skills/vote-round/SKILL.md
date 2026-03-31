@@ -151,6 +151,6 @@ The review is resolved when:
 | Resolution | Example |
 |------------|---------|
 | User accepts the proposal | "Go with option 1" |
-| User accepts with modifications | "Option 2, but use PostgreSQL instead of SQLite" |
+| User accepts with modifications | "Option 2, but with the alternative database" |
 | User picks the alternative | "The critic's approach is better" |
 | Compass auto-decides (autonomous mode) | Compass picks the strongest option and notes it |

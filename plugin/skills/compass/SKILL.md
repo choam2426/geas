@@ -51,7 +51,7 @@ These rules apply to ALL modes (Initiative, Sprint, Debate).
 - `.geas/rules.md` is a living document managed primarily by **Scrum** (Agile Master).
 - After each task's Ship Gate, spawn Scrum for a retrospective — Scrum updates rules.md and records lessons.
 - **Scrum retrospective is MANDATORY for every task.** Do NOT skip it, even if the task was trivial. Verify `.geas/memory/retro/{task-id}.json` exists after Scrum returns. If missing, retry once.
-- After Genesis: Compass adds stack-specific rules (e.g., "lint with ruff", "test with pytest") before Scrum exists in the pipeline.
+- After Genesis: Compass adds stack-specific rules (e.g., "lint with {linter}", "test with {test runner}") before Scrum exists in the pipeline.
 
 ### Tech debt tracking
 After reading each agent's evidence, check for a `tech_debt` array. If present:

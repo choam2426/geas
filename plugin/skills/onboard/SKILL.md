@@ -131,7 +131,7 @@ Write `.geas/memory/_project/state.json`:
   "phase": "active",
   "onboarded_at": "<ISO date>",
   "project_size": "small|medium|large",
-  "stack_summary": "<one-line summary, e.g. Next.js 14 + Prisma + PostgreSQL>"
+  "stack_summary": "<one-line summary of detected stack>"
 }
 ```
 

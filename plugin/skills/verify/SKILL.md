@@ -94,7 +94,7 @@ Start the dev server and check for errors in its output.
 
 ### 5. FUNCTIONALITY
 
-This is Sentinel's domain — Playwright E2E testing against acceptance criteria.
+This is Sentinel's domain — E2E testing against acceptance criteria.
 
 - **If invoked by Sentinel**: Run E2E tests using the browser automation MCP available for this project. Report pass/fail per test.
 - **If invoked by Forge or any other agent**: Mark as `PENDING (Sentinel E2E)`. Do not run E2E tests yourself.
@@ -182,5 +182,5 @@ Use your agent codename in the prefix (e.g. `[Forge]`, `[Sentinel]`, `[Circuit]`
 
 - **Forge code review**: Run pre-check (BUILD + LINT) before approving.
 - **Circuit / Pixel implementation**: Run full checklist (minus FUNCTIONALITY) before posting completion.
-- **Sentinel QA**: Run full checklist including FUNCTIONALITY (Playwright E2E).
+- **Sentinel QA**: Run full checklist including FUNCTIONALITY (E2E via browser automation MCP).
 - **Verify-Fix Loop**: After each fix iteration, Sentinel re-runs the full checklist.
