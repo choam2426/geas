@@ -202,6 +202,7 @@ Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/packets/{tas
 #### 2.5 코드 리뷰 (Forge) [MANDATORY]
 
 ```
+TaskContract 상태를 "in_review"로 업데이트한다.
 Update run.json: pipeline_step = "code_review", agent_in_flight = "forge"
 Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge-review.md. Review implementation. Write to .geas/evidence/{task-id}/forge-review.json")
 ```
@@ -211,6 +212,7 @@ Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge-review.md. Rev
 #### 2.6 테스트 (Sentinel) [MANDATORY]
 
 ```
+TaskContract 상태를 "testing"으로 업데이트한다.
 Update run.json: pipeline_step = "testing", agent_in_flight = "sentinel"
 Agent(agent: "sentinel", prompt: "Read .geas/packets/{task-id}/sentinel.md. Test the feature. Write QA results to .geas/evidence/{task-id}/sentinel.json")
 ```
@@ -273,7 +275,7 @@ Agent(agent: "scrum", prompt: "Read all evidence at .geas/evidence/{task-id}/. R
 | 판정 | 행동 |
 |---|---|
 | **Ship** | `.geas/tasks/{task-id}.json`을 읽어 `"status": "passed"`로 설정하고 다시 쓴다. Keeper를 스폰해서 커밋한다(아래 참조). |
-| **Iterate** | Nova의 피드백을 추가 컨텍스트로 넣어 worker를 다시 보낸다. |
+| **Iterate** | retry_budget을 차감한다. remaining_steps를 전체 파이프라인으로 다시 채운다(동일한 skip 조건 적용). 모든 ContextPacket에 Nova의 피드백을 포함한다. 첫 번째 non-skip 단계부터 재개한다. Evidence Gate "On Iterate" 섹션을 참조한다. |
 | **Cut** | 태스크 상태를 `"failed"`로 설정한다. `.geas/decisions/{dec-id}.json`에 DecisionRecord를 쓴다. |
 
 Keeper 커밋 (Ship인 경우만):
@@ -478,7 +480,7 @@ Agent(agent: "scrum", ...) → .geas/memory/retro/{task-id}.json
 | 판정 | 행동 |
 |---|---|
 | Ship | 태스크 `"status": "passed"` 설정. Keeper를 스폰해서 커밋. |
-| Iterate | Nova 피드백을 넣어 worker를 다시 보낸다. |
+| Iterate | retry_budget을 차감한다. remaining_steps를 전체 파이프라인으로 다시 채운다(동일한 skip 조건 적용). 모든 ContextPacket에 Nova의 피드백을 포함한다. 첫 번째 non-skip 단계부터 재개한다. |
 | Cut | `"status": "failed"` 설정. DecisionRecord 작성. |
 
 #### Step 11: 실행 요약

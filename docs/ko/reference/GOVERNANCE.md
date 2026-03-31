@@ -77,6 +77,9 @@ Nova는 작업 목표, 모든 evidence bundle, Tier 2의 criteria 결과, seed.j
 Nova의 판정:
 - **Ship** — 모든 기준 충족, 좋은 품질, 미션에 부합
 - **Iterate** — 부분적으로 충족. Nova가 구체적 피드백을 줍니다. worker의 다음 ContextPacket이 됩니다. retry budget에서 차감됩니다.
+
+Iterate 시 전체 파이프라인이 Design부터 재실행된다(동일한 skip 조건 적용). 단순 구현 수정이 아니라 — Nova의 피드백이 디자인, 기술 방향, 전체 품질에 영향을 줄 수 있다. 전체 절차는 Evidence Gate "On Iterate" 섹션을 참조한다.
+
 - **Cut** — 근본적으로 맞지 않거나 고칠 가치가 없음
 
 ### 게이트 수준

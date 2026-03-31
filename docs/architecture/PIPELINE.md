@@ -202,6 +202,7 @@ Verify evidence exists. Merge the worktree branch before proceeding.
 #### 2.5 Code Review (Forge) [MANDATORY]
 
 ```
+Update TaskContract status to "in_review".
 Update run.json: pipeline_step = "code_review", agent_in_flight = "forge"
 Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge-review.md. Review implementation. Write to .geas/evidence/{task-id}/forge-review.json")
 ```
@@ -211,6 +212,7 @@ Verify `.geas/evidence/{task-id}/forge-review.json` exists.
 #### 2.6 Testing (Sentinel) [MANDATORY]
 
 ```
+Update TaskContract status to "testing".
 Update run.json: pipeline_step = "testing", agent_in_flight = "sentinel"
 Agent(agent: "sentinel", prompt: "Read .geas/packets/{task-id}/sentinel.md. Test the feature. Write QA results to .geas/evidence/{task-id}/sentinel.json")
 ```
@@ -273,7 +275,7 @@ Based on Nova's verdict from step 2.9:
 | Verdict | Action |
 |---|---|
 | **Ship** | Read `.geas/tasks/{task-id}.json`, set `"status": "passed"`, write it back. Spawn Keeper for commit (see below). |
-| **Iterate** | Re-dispatch the worker with Nova's feedback as additional context. |
+| **Iterate** | Deduct retry_budget. Repopulate remaining_steps with full pipeline (same skip conditions). Include Nova's feedback in all ContextPackets. Resume from first non-skipped step. See Evidence Gate "On Iterate" section. |
 | **Cut** | Set task status to `"failed"`. Write a DecisionRecord to `.geas/decisions/{dec-id}.json`. |
 
 Keeper commit (Ship only):
@@ -478,7 +480,7 @@ Agent(agent: "scrum", ...) → .geas/memory/retro/{task-id}.json
 | Verdict | Action |
 |---|---|
 | Ship | Set task `"status": "passed"`. Spawn Keeper for commit. |
-| Iterate | Re-dispatch worker with Nova's feedback. |
+| Iterate | Deduct retry_budget. Repopulate remaining_steps with full pipeline (same skip conditions). Include Nova's feedback in all ContextPackets. Resume from first non-skipped step. |
 | Cut | Set `"status": "failed"`. Write DecisionRecord. |
 
 #### Step 11: Run Summary

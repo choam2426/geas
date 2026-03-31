@@ -77,6 +77,9 @@ Nova receives the task goal, all evidence bundles for the task, criteria results
 Nova's verdict:
 - **Ship** — meets all criteria, good quality, aligned with mission
 - **Iterate** — partially meets criteria; Nova provides specific feedback that becomes the worker's next ContextPacket. Counts against retry budget.
+
+On Iterate, the full pipeline re-runs from Design onward (with same skip conditions). This is not just an implementation fix — Nova's feedback may affect design, technical approach, or quality across all dimensions. See the Evidence Gate "On Iterate" section for the full procedure.
+
 - **Cut** — fundamentally misaligned or not worth fixing
 
 ### Gate Levels
