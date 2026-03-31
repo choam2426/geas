@@ -56,6 +56,21 @@ if d.get('status') == 'passed':
     retro_path = os.path.join(geas, 'memory', 'retro', tid + '.json')
     if not os.path.isfile(retro_path):
         print(f'[Geas] Warning: {tid} marked as passed but retro/{tid}.json is missing (Scrum retrospective not run)')
+    # Check rubric_scores in sentinel and forge-review evidence
+    sentinel_path = os.path.join(edir, 'sentinel.json')
+    if os.path.isfile(sentinel_path):
+        try:
+            sentinel = json.load(open(sentinel_path))
+            if 'rubric_scores' not in sentinel or not sentinel.get('rubric_scores'):
+                print(f'[Geas] Warning: {tid} sentinel.json is missing rubric_scores')
+        except: pass
+    forge_review_path = os.path.join(edir, 'forge-review.json')
+    if os.path.isfile(forge_review_path):
+        try:
+            forge_review = json.load(open(forge_review_path))
+            if 'rubric_scores' not in forge_review or not forge_review.get('rubric_scores'):
+                print(f'[Geas] Warning: {tid} forge-review.json is missing rubric_scores')
+        except: pass
 " "$FILE_PATH" "$GEAS_DIR" 2>/dev/null || echo "")
   if [ -n "$WARN" ]; then
     echo "$WARN" >&2

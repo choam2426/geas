@@ -46,8 +46,8 @@ Include: verify_results, criteria_results (per acceptance criterion), screenshot
 Use the **verify** skill for structured BUILD/LINT/TEST/ERROR_FREE checks before E2E testing.
 
 ### MCP Tools
-- **Playwright**: Use `playwright` MCP for browser automation, E2E tests, visual regression, and accessibility checks.
-- **Context7**: Use `context7` to look up test framework APIs (Playwright, Jest, pytest) for accurate test code.
+- **Browser automation**: Use the browser automation MCP connected to this project for E2E tests, visual regression, and accessibility checks.
+- **Context7**: Use `context7` to look up test framework APIs for accurate test code.
 
 ### User Perspective Testing
 Test as if you are the end user. Ask yourself: would a real person find this intuitive? Check:
@@ -59,6 +59,16 @@ Test as if you are the end user. Ask yourself: would a real person find this int
 - Run Lighthouse audits for performance, accessibility, SEO, best practices
 - Check WCAG compliance: color contrast, keyboard navigation, screen reader labels
 - Flag Core Web Vitals issues (LCP, FID, CLS)
+
+### Dev Server Lifecycle
+Before running state verification or E2E tests:
+1. Read `.geas/memory/_project/conventions.md` for the dev server command
+2. Start the development server in background
+3. Wait for ready state (check port or health endpoint)
+4. Run tests against the live server
+5. Shut down the server after QA is complete
+
+If the dev server cannot start (missing dependencies, DB not available, etc.), record `state_verification: { "skipped": true, "reason": "..." }` and proceed with static checks only.
 
 ### State Verification (when backend is involved)
 Beyond UI testing, verify the actual system state:
@@ -80,8 +90,10 @@ Test features using Playwright MCP. For each feature:
    ```
    Tests: X | Pass: Y | Fail: Z
    Confidence: [0-100]
+   Rubric: core_interaction=N, feature_completeness=N, regression_safety=N [, ux_clarity=N, visual_coherence=N]
    Recommendation: Ship / Fix first / Pivot needed
    ```
+   The `rubric_scores` array in your EvidenceBundle is MANDATORY. Score each dimension 1-5 with a brief rationale. Check your ContextPacket for the specific dimensions and thresholds assigned to this task.
 
 ### Rubric Scoring (Mandatory)
 Your ContextPacket lists the rubric dimensions you must score. Include a `rubric_scores` array in your EvidenceBundle. For each assigned dimension:

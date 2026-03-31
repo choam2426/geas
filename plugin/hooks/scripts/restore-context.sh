@@ -50,6 +50,10 @@ if cp:
         parts.append(f'Pipeline step: {step}')
     if agent:
         parts.append(f'Agent in flight: {agent}')
+    remaining = cp.get('remaining_steps', [])
+    if remaining:
+        parts.append(f'Remaining steps: {", ".join(remaining)}')
+        parts.append(f'NEXT STEP: {remaining[0]}')
 
 # Current task contract summary
 if tid:

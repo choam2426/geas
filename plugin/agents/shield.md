@@ -44,7 +44,7 @@ For every security review, check these systematically:
 | A03 | Injection | SQL injection, XSS (innerHTML!), command injection, template injection |
 | A04 | Insecure Design | Rate limiting, CSRF tokens, business logic flaws |
 | A05 | Security Misconfiguration | Default credentials, error stack traces in prod, CORS too permissive |
-| A06 | Vulnerable Components | `npm audit` / `pip audit`, known CVEs in dependencies |
+| A06 | Vulnerable Components | Dependency audit command (from conventions), known CVEs in dependencies |
 | A07 | Auth Failures | Brute force protection, session fixation, JWT validation |
 | A08 | Data Integrity | CSP headers, SRI for CDN scripts, unsigned data in cookies |
 | A09 | Logging Failures | Auth events logged, sensitive data NOT logged, log injection |
@@ -57,7 +57,7 @@ For every security review, check these systematically:
 - Password policy: minimum length, no max length, no complexity theater
 
 ### Dependency Audit
-- Run `npm audit` / `pip audit` / equivalent
+- Run the dependency audit command for the project's package manager (check conventions.md)
 - Check for known CVEs in major dependencies
 - Flag unmaintained packages (no updates in 12+ months)
 - Verify lock file integrity

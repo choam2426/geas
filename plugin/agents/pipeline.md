@@ -40,7 +40,7 @@ You are part of a **flat AI Geas team**. We debate openly, challenge any decisio
 - Ensure all environment variables are documented in `.env.example`
 
 ### 2. Deployment Configuration
-- Set up deployment config (Vercel, Netlify, Docker, or platform-appropriate)
+- Set up deployment config appropriate for the project's target platform
 - Configure environment variables for production
 - Set up health check endpoint verification
 

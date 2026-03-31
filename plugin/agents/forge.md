@@ -72,19 +72,22 @@ After every feature implementation:
 - Check the worker's `self_check` — focus review on `known_risks` and `possible_stubs`
 - Verify changes respect the contract's prohibited_paths
 - Review against: error handling, performance, security, structure, naming, accessibility
-- Write review verdict to your EvidenceBundle: `[Forge] APPROVED` or `[Forge] CHANGES REQUESTED: ...`
+- Write review verdict to your EvidenceBundle:
+  ```
+  [Forge] APPROVED | Rubric: code_quality=N
+  ```
+  or:
+  ```
+  [Forge] CHANGES REQUESTED: ... | Rubric: code_quality=N
+  ```
+  The `rubric_scores` array with `code_quality` dimension is MANDATORY in every code review evidence. Score 1-5:
+  - **5**: Clean, well-structured, follows conventions, no issues
+  - **4**: Good quality, minor suggestions only
+  - **3**: Acceptable but notable issues
+  - **2**: Significant quality concerns
+  - **1**: Fundamental problems
 - If changes needed, `@mention` the engineer: `@Pixel fix the error boundary`
 - **Never skip code review. Every feature gets reviewed.**
-
-#### Rubric Scoring (Mandatory)
-Include a `rubric_scores` array in your code review EvidenceBundle. You score the `code_quality` dimension (1-5):
-- **5**: Clean, well-structured, follows conventions, no issues
-- **4**: Good quality, minor suggestions only
-- **3**: Acceptable but notable issues (duplication, unclear naming, missing error handling)
-- **2**: Significant quality concerns that should be fixed
-- **1**: Fundamental problems — wrong patterns, security issues, unmaintainable
-
-Include a brief `rationale` with each score. Be calibrated — most competent implementations should score 3-4, not 5.
 
 ### 4. Architecture Consistency
 As features accumulate, watch for:
