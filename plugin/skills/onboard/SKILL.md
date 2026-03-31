@@ -35,37 +35,37 @@ Check project root for marker files to identify the stack:
 
 | Marker file | Stack | Framework detection |
 |-------------|-------|-------------------|
-| `package.json` | Node.js | Read `dependencies` for Next.js, Express, React, Vue, etc. |
+| `package.json` | Node.js | Read `dependencies` and `devDependencies` for framework and tooling |
 | `go.mod` | Go | Read module path and dependencies |
 | `Cargo.toml` | Rust | Read `[dependencies]` section |
-| `pyproject.toml` | Python | Check `[tool.poetry]` or `[project]` for framework |
-| `requirements.txt` | Python | Scan for Django, Flask, FastAPI, etc. |
+| `pyproject.toml` | Python | Check `[tool]` or `[project]` sections for framework and tooling |
+| `requirements.txt` | Python | Scan for framework and tooling packages |
 
 From the detected stack, identify:
-- **Framework** (e.g. Next.js 14, Express, FastAPI)
-- **Build system** (e.g. npm, cargo, poetry)
-- **Test framework** (e.g. Jest, pytest, go test)
-- **Package manager** (e.g. npm, pnpm, yarn — check for lockfiles)
+- **Framework** (detected from dependency declarations)
+- **Build system** (detected from project configuration)
+- **Test framework** (detected from config files or dependencies)
+- **Package manager** (detected from lockfile presence)
 
 ### 2. Architecture Mapping
 
 Find the structural skeleton of the project:
 
 - **Entry points**: `src/index`, `main`, `app`, `server` files
-- **Routing patterns**: File-based (Next.js `app/`), explicit (Express `routes/`), framework-specific
-- **Database connections**: Look for ORM config (Prisma, Drizzle, SQLAlchemy, GORM), connection strings, migration directories
+- **Routing patterns**: File-based or explicit — identify from directory structure and framework conventions
+- **Database connections**: Look for ORM config files, connection strings, migration directories
 - **Key modules**: Auth, API, services, models, utils — identify the major directories and what they own
-- **External services**: Look for SDK imports (Stripe, AWS, Supabase, Firebase)
+- **External services**: Look for third-party SDK imports and API key references
 
 ### 3. Convention Detection
 
 Read existing configuration to understand the project's style:
 
-- **Linter config**: `.eslintrc`, `.prettierrc`, `rustfmt.toml`, `ruff.toml`, `.golangci.yml`
+- **Linter config**: Search for linter/formatter configuration files in the project root
 - **Existing conventions**: If `.geas/memory/_project/conventions.md` exists, read and respect it — do not overwrite
 - **Naming patterns**: camelCase vs snake_case, file naming conventions, directory structure patterns
-- **Import style**: Absolute vs relative, barrel exports, path aliases (tsconfig paths)
-- **TypeScript strictness**: Check `tsconfig.json` for strict mode, noImplicitAny, etc.
+- **Import style**: Absolute vs relative, barrel exports, path aliases
+- **Type checking**: Check for type-checking configuration and strictness settings
 
 ### 4. Adaptive Depth
 
@@ -87,19 +87,19 @@ Write `.geas/memory/_project/conventions.md` with everything discovered:
 # Project Conventions
 
 ## Stack
-- Language: <e.g. TypeScript>
-- Framework: <e.g. Next.js 14 (App Router)>
-- Runtime: <e.g. Node.js 20>
-- Package manager: <e.g. pnpm>
-- Database: <e.g. PostgreSQL via Prisma>
+- Language: <detected language>
+- Framework: <detected framework and version>
+- Runtime: <detected runtime and version>
+- Package manager: <detected from lockfile>
+- Database: <detected from ORM/driver config>
 
 ## Build Commands
-- Install: <e.g. pnpm install>
-- Build: <e.g. pnpm build>
-- Dev: <e.g. pnpm dev>
-- Lint: <e.g. pnpm lint>
-- Test: <e.g. pnpm test>
-- Format: <e.g. pnpm format>
+- Install: <install command from package manager>
+- Build: <build command from project config>
+- Dev: <dev server command>
+- Lint: <lint command>
+- Test: <test command>
+- Format: <format command, if configured>
 
 ## Key Paths
 - Entry point: <e.g. src/app/layout.tsx>
@@ -118,7 +118,7 @@ Write `.geas/memory/_project/conventions.md` with everything discovered:
 - Naming: <e.g. camelCase for files, PascalCase for components>
 - Imports: <e.g. absolute with @/ alias>
 - TypeScript: <e.g. strict mode enabled>
-- Linting: <e.g. ESLint + Prettier, config in .eslintrc.json>
+- Linting: <linter and formatter, config location>
 ```
 
 ### 6. Create State File

@@ -26,10 +26,10 @@ Run the eval commands from the TaskContract and check results.
 1. Read `eval_commands` from the TaskContract
 2. Run each command:
    ```bash
-   # Example
-   npm run build
-   npm run lint
-   npm test
+   # Run each eval_command from the TaskContract
+   {eval_command_1}
+   {eval_command_2}
+   ...
    ```
 3. Record results:
    - **pass**: command exits 0
@@ -146,7 +146,7 @@ After running all applicable tiers, produce a verdict:
      "task_id": "task-001",
      "result": "pass",
      "tiers": {
-       "mechanical": { "status": "pass", "commands_run": ["npm run build", "npm test"] },
+       "mechanical": { "status": "pass", "commands_run": ["{build_command}", "{test_command}"] },
        "semantic": { "status": "pass", "criteria_met": 5, "criteria_total": 5, "rubric_pass": true, "rubric_scores": [...], "blocking_dimensions": [] },
        "product": { "status": "ship", "nova_notes": "..." }
      },

@@ -21,7 +21,7 @@ Run in order. Stop-on-fail is optional — running all items gives a complete pi
 | 2 | LINT | No lint violations |
 | 3 | TEST | Unit and integration tests pass |
 | 4 | ERROR_FREE | Dev server starts clean — no console errors |
-| 5 | FUNCTIONALITY | Playwright E2E tests cover acceptance criteria |
+| 5 | FUNCTIONALITY | E2E tests cover acceptance criteria |
 
 ---
 
@@ -29,17 +29,17 @@ Run in order. Stop-on-fail is optional — running all items gives a complete pi
 
 Read `.geas/memory/_project/conventions.md` for project-specific build, lint, and test commands.
 
-If no conventions file exists, detect from project root files:
+If no conventions file exists, detect from project root marker files:
 
-| Marker file | Stack | Build | Lint | Test |
-|-------------|-------|-------|------|------|
-| `package.json` | Node.js | `npm run build` | `npm run lint` | `npm test` |
-| `go.mod` | Go | `go build ./...` | `golangci-lint run` | `go test ./...` |
-| `Cargo.toml` | Rust | `cargo build` | `cargo clippy` | `cargo test` |
-| `pyproject.toml` | Python | `python -m py_compile` | `ruff check` | `pytest` |
-| `requirements.txt` | Python | `python -m py_compile` | `ruff check` | `pytest` |
+| Marker file | Stack |
+|-------------|-------|
+| `package.json` | Node.js — read `scripts` object for build/lint/test commands |
+| `go.mod` | Go — use standard `go build`, `go test`, etc. |
+| `Cargo.toml` | Rust — use standard `cargo build`, `cargo test`, etc. |
+| `pyproject.toml` | Python — check `[tool]` or `[project.scripts]` for commands |
+| `requirements.txt` | Python — check for test runner config files |
 
-For Node.js projects, also check `package.json` scripts — prefer explicit script names (e.g. `npm run build` only if a `build` script exists). If a script is missing, skip that item and mark it `SKIP — no script configured`.
+Read the project's own configuration to determine exact commands. Do NOT assume specific tools — use whatever the project has configured. If a command is not configured, mark that item as `SKIP — not configured`.
 
 ---
 
@@ -96,7 +96,7 @@ Start the dev server and check for errors in its output.
 
 This is Sentinel's domain — Playwright E2E testing against acceptance criteria.
 
-- **If invoked by Sentinel**: Run the Playwright test suite. Report pass/fail per test.
+- **If invoked by Sentinel**: Run E2E tests using the browser automation MCP available for this project. Report pass/fail per test.
 - **If invoked by Forge or any other agent**: Mark as `PENDING (Sentinel E2E)`. Do not run E2E tests yourself.
 
 ---

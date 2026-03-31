@@ -77,16 +77,11 @@ Example:
 
 ### Step 6: Set Eval Commands
 
-Detect from the project's stack (check `package.json`, `pyproject.toml`, `Cargo.toml`, etc.):
+Read build/lint/test commands from `.geas/memory/_project/conventions.md`. If the conventions file has a Build Commands section, use those exact commands.
 
-| Stack | Build | Lint | Test | Typecheck |
-|-------|-------|------|------|-----------|
-| Node/npm | `npm run build` | `npm run lint` | `npm test` | `npx tsc --noEmit` |
-| Node/pnpm | `pnpm build` | `pnpm lint` | `pnpm test` | `pnpm tsc --noEmit` |
-| Python | — | `ruff check .` | `pytest` | `mypy .` |
-| Go | `go build ./...` | `golangci-lint run` | `go test ./...` | — |
+If no conventions file exists, detect from the project's configuration files (package.json scripts, Makefile targets, pyproject.toml tool sections, etc.) and set appropriate commands.
 
-If no test/lint commands are configured yet, set them to what Forge/Circuit should configure.
+If no commands are configured yet, set eval_commands to what the project should have based on its stack — the implementation worker or Forge will configure them.
 
 ### Step 7: Set Retry Budget and Escalation
 
@@ -151,7 +146,7 @@ Example output:
     "Failed login shows error message without exposing server details",
     "Form is accessible (labels, focus management, aria attributes)"
   ],
-  "eval_commands": ["npm run build", "npm run lint", "npm test"],
+  "eval_commands": ["{build command from conventions}", "{lint command}", "{test command}"],
   "rubric": [
     { "dimension": "core_interaction", "evaluator": "sentinel", "threshold": 3 },
     { "dimension": "feature_completeness", "evaluator": "sentinel", "threshold": 4 },
