@@ -10,44 +10,28 @@
 
 [![Claude Code](https://img.shields.io/badge/Built_for-Claude_Code-6B4FBB?style=for-the-badge)](https://claude.ai/code)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
-[![Agents](https://img.shields.io/badge/Agents-12-4A90D9?style=flat-square)](docs/AGENTS.md)
-[![Skills](https://img.shields.io/badge/Skills-22-2ECC71?style=flat-square)](docs/SKILLS.md)
-[![Hooks](https://img.shields.io/badge/Hooks-9-E67E22?style=flat-square)](docs/HOOKS.md)
+[![Agents](https://img.shields.io/badge/Agents-12-4A90D9?style=flat-square)](docs/ko/reference/AGENTS.md)
+[![Skills](https://img.shields.io/badge/Skills-22-2ECC71?style=flat-square)](docs/ko/reference/SKILLS.md)
+[![Hooks](https://img.shields.io/badge/Hooks-9-E67E22?style=flat-square)](docs/ko/reference/HOOKS.md)
 
 </div>
 
 ---
 
-## 문제
+## Geas란?
 
-AI agent 여러 개를 동시에 돌리면 강력하지만, 한 가지 근본적인 문제가 있습니다. agent가 늘어날수록 결정도 늘어나는데, 아무도 그걸 추적하지 않는다는 겁니다.
-
-- **누가 무슨 결정을 했는지 모릅니다.** agent A가 기술 stack을 골랐고, B가 schema를 설계하고, C가 구현했는데 — 왜 그런 선택을 했는지 기록이 없습니다.
-- **결과물이 맞는지 확인할 수 없습니다.** 각 agent가 "완료"라고 하지만, 실제로 요구사항을 충족했는지 검증한 적이 없습니다.
-- **문제가 생기면 되짚을 수가 없습니다.** 어떤 과정을 거쳐 이 결과가 나왔는지 추적할 방법이 없습니다.
-- **팀이 학습하지 않습니다.** 다음 세션은 제로부터 시작합니다. 규칙도, 교훈도, 축적된 지식도 없습니다.
-
-> 켈트 신화에서 **Geas**는 영웅에게 걸리는 절대적인 서약입니다. 반드시 지켜야 하고, 어기면 파멸합니다.
->
-> 이 project도 마찬가지입니다. 모든 agent는 **계약**에 묶여서 일합니다 — 지켜야 할 기준, 넘으면 안 되는 경계, 남겨야 할 증거가 정해져 있고, 예외는 없습니다.
+Geas는 Claude Code 기반의 계약 중심 멀티 에이전트 AI 개발 하네스입니다. 네 가지를 보장합니다: **Governance** (모든 결정이 정해진 프로세스를 따릅니다), **Traceability** (모든 행동이 추적 가능한 기록을 남깁니다), **Verification** (결과물이 수용 기준에 대해 검증됩니다 — "에이전트가 됐다고 함"이 아닙니다), **Evolution** (팀이 세션마다 지식을 축적합니다). 미션을 설명하면 Geas가 전문 에이전트 팀을 운영하여 설계, 구현, 리뷰, 검증을 수행하고 모든 과정을 기록합니다.
 
 ---
 
 ## 네 가지 원칙
 
-> **Governance** — 결정을 암묵적으로 내리지 않습니다. architecture 선택은 투표를 거치고, 의견이 갈리면 토론이 붙고, 결과는 결정 기록으로 남습니다. "model이 그렇게 느꼈으니까"로 넘어가는 일은 없습니다.
-
-> **Traceability** — 모든 과정이 기록으로 남습니다. 미션은 seed spec으로 고정되고, 작업은 계약으로 컴파일되고, agent는 증거를 남기고, 상태 변화는 event 로그에 쌓입니다. 뭐가 일어났고, 누가 했고, 왜 했는지 되짚을 수 있습니다.
-
-> **Verification** — "완료"는 증거 gate를 통과했다는 뜻입니다. "agent가 됐다고 함"이 아닙니다. 모든 작업은 3단계 gate를 통과합니다:
->
-> | 계층 | 질문 | 방법 |
-> |------|------|------|
-> | **기계적** | 코드가 동작하는가? | build, lint, test |
-> | **의미론적** | 올바른 것을 만들었는가? | 요구사항 대조 |
-> | **제품** | 미션에 부합하는가? | 제품 review 판정 |
-
-> **Evolution** — 팀은 세션마다 성장합니다. Scrum이 매 task 후 회고를 실행하고, 발견한 규칙은 `rules.md`에, 교훈은 project memory에 축적됩니다. 세션 1에서 배운 것이 세션 5의 작업 방식을 바꿉니다. 지식이 복리로 쌓입니다.
+| 원칙 | 정의 | 구체적 예시 |
+|------|------|------------|
+| **Governance** | 모든 결정이 명시적 권한을 가진 정해진 프로세스를 따릅니다. | 아키텍처 선택은 투표를 거칩니다. 의견이 갈리면 구조화된 토론이 실행됩니다. 트레이드오프가 기록됩니다. |
+| **Traceability** | 모든 행동이 기록되고 사후에 감사할 수 있습니다. | 모든 전환이 실제 타임스탬프와 함께 `.geas/ledger/events.jsonl`에 기록됩니다. `run.json`의 체크포인트가 파이프라인 위치를 추적합니다. |
+| **Verification** | 모든 결과물이 계약에 대해 검증됩니다 — "완료"는 "계약 충족"을 뜻합니다. | Evidence Gate가 3단계를 실행합니다: 기계적 (빌드/린트/테스트), 의미론적 (수용 기준 + 루브릭 점수), 제품 (Nova 판단). |
+| **Evolution** | 팀이 시간이 지날수록 성장합니다. | 매 작업 후 Scrum 회고가 실행됩니다. 교훈이 `.geas/memory/retro/`에 저장됩니다. `rules.md`가 세션마다 성장합니다. |
 
 ---
 
@@ -62,13 +46,13 @@ AI agent 여러 개를 동시에 돌리면 강력하지만, 한 가지 근본적
 /plugin install geas@choam2426-geas
 ```
 
-### 2. 미션을 설명합니다
+### 2. 미션 시작
 
 ```text
-공유 링크로 초대할 수 있는 실시간 투표 app을 만들어줘.
+/geas:mission
 ```
 
-Compass(오케스트레이터)가 요구사항을 정리하고, 계약을 만들고, 전문 agent를 배치하고, 증거 gate로 결과를 검증합니다.
+만들고 싶은 것, 추가하고 싶은 기능, 또는 결정하고 싶은 사안을 설명합니다. Compass가 적절한 모드를 감지하여 — Initiative (새 제품), Sprint (기능 추가), Debate (구조화된 의사결정) — 파이프라인을 실행합니다.
 
 ### 3. 과정을 확인합니다
 
@@ -139,25 +123,31 @@ Compass가 pipeline을 조율하고, 12명의 전문 agent가 각자의 Geas 아
 
 ---
 
-## 실행 mode
-
-| | Initiative | Sprint | Debate |
-|---|---|---|---|
-| **용도** | 새 제품 시작 | 기능 추가 | 의사결정 |
-| **단계** | Genesis → MVP → Polish → Evolution | Design → Build → Review → QA | 구조화된 토론 |
-| **결과물** | 완성된 제품 + 문서 | 검증된 기능 + commit | DecisionRecord |
-
----
-
 ## 문서
 
-| 문서 | KO | EN |
-|------|----|----|
-| 사용 가이드 | [GUIDE.ko.md](docs/GUIDE.ko.md) | [GUIDE.md](docs/GUIDE.md) |
-| governance | [GOVERNANCE.ko.md](docs/GOVERNANCE.ko.md) | [GOVERNANCE.md](docs/GOVERNANCE.md) |
-| agent reference | [AGENTS.ko.md](docs/AGENTS.ko.md) | [AGENTS.md](docs/AGENTS.md) |
-| skill reference | [SKILLS.ko.md](docs/SKILLS.ko.md) | [SKILLS.md](docs/SKILLS.md) |
-| hook reference | [HOOKS.ko.md](docs/HOOKS.ko.md) | [HOOKS.md](docs/HOOKS.md) |
+### 시작하기
+| 문서 | 설명 |
+|------|------|
+| [빠른 시작](docs/ko/guides/QUICKSTART.md) | 5분 시작 가이드 |
+| [Initiative 가이드](docs/ko/guides/INITIATIVE.md) | 새 제품 만들기 |
+| [Sprint 가이드](docs/ko/guides/SPRINT.md) | 기존 프로젝트에 기능 추가 |
+| [Debate 가이드](docs/ko/guides/DEBATE.md) | 구조화된 의사결정 |
+| [시나리오](docs/ko/guides/SCENARIOS.md) | 테스트 데이터가 포함된 실제 예시 |
+
+### 아키텍처
+| 문서 | 설명 |
+|------|------|
+| [설계](docs/ko/architecture/DESIGN.md) | 시스템 아키텍처, 데이터 흐름, 원칙 |
+| [파이프라인](docs/ko/architecture/PIPELINE.md) | 실행 파이프라인 단계별 참조 |
+| [스키마](docs/ko/architecture/SCHEMAS.md) | 데이터 계약과 관계 |
+
+### 레퍼런스
+| 문서 | 설명 |
+|------|------|
+| [Skills](docs/ko/reference/SKILLS.md) | 22개 skill 레퍼런스 |
+| [Agents](docs/ko/reference/AGENTS.md) | 12명 에이전트 레퍼런스 |
+| [Hooks](docs/ko/reference/HOOKS.md) | 9개 hook 레퍼런스 |
+| [Governance](docs/ko/reference/GOVERNANCE.md) | 평가 기준과 품질 게이트 |
 
 ---
 
@@ -169,6 +159,6 @@ Compass가 pipeline을 조율하고, 12명의 전문 agent가 각자의 Geas 아
 
 <div align="center">
 
-**plugin을 설치하세요. 미션을 설명하세요. 결과를 검증하세요. 팀이 성장하는 걸 지켜보세요.**
+**플러그인을 설치하세요. 미션을 시작하세요. 결과를 검증하세요. 팀이 성장하는 걸 지켜보세요.**
 
 </div>

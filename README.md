@@ -18,36 +18,20 @@ A harness that brings structure to multi-agent AI development — so every decis
 
 ---
 
-## The Problem
+## What is Geas?
 
-Multi-agent AI systems are powerful, but they have a structural weakness: as the number of agents grows, so does the number of decisions — and no one is tracking them.
-
-- **Who decided what?** Agent A picked the tech stack, Agent B designed the schema, Agent C implemented. But why those choices? No record.
-- **Is the output correct?** Each agent says "done." No one verified whether the acceptance criteria were actually met.
-- **Can you trace the process?** If something goes wrong, there is no audit trail. You cannot reconstruct how the system arrived at this result.
-- **Does the team learn?** Next session starts from zero. No conventions, no lessons, no accumulated knowledge.
-
-> In Celtic mythology, a **geas** is a binding obligation placed upon a hero — an unbreakable oath that defines what must and must not be done. Break the geas, and the consequences are severe.
->
-> This project applies the same principle to AI agents. Every agent operates under a **contract** — verifiable acceptance criteria that must be fulfilled, boundaries that must not be crossed, and evidence that must be produced. No exceptions.
+Geas is a contract-driven multi-agent AI development harness built for Claude Code. It brings four guarantees to any AI team: **Governance** (every decision follows a defined process), **Traceability** (every action produces a traceable artifact), **Verification** (output is proven against acceptance criteria — not just declared done), and **Evolution** (the team accumulates knowledge across sessions). You describe a mission; Geas runs a governed pipeline of specialist agents that design, build, review, and verify — and records everything.
 
 ---
 
 ## Four Pillars
 
-> **Governance** — Every decision follows a defined process. Architecture choices go through vote rounds with mandatory devil's advocacy. Disagreements trigger structured debates. Trade-offs are recorded. Nothing is decided "because the model felt like it."
-
-> **Traceability** — Every action produces a traceable artifact. Missions freeze into seed specs. Tasks compile into contracts. Agents write evidence bundles. State transitions log to an append-only ledger. You can reconstruct exactly what happened, who did it, and why.
-
-> **Verification** — "Done" means the evidence gate passed — not "agent says done." Every task goes through a 3-tier gate:
->
-> | Tier | Question | Method |
-> |------|----------|--------|
-> | **Mechanical** | Does the code work? | Build, lint, test |
-> | **Semantic** | Was the right thing built? | Acceptance criteria check |
-> | **Product** | Does it serve the mission? | Product review judgment |
-
-> **Evolution** — The team gets smarter with every session. Scrum runs retrospectives after each task, extracting conventions into `rules.md` and lessons into project memory. What was learned in session 1 shapes how session 5 operates. Knowledge compounds.
+| Pillar | Definition | Concrete Example |
+|--------|-----------|-----------------|
+| **Governance** | Every decision follows a defined process with explicit authority. | Architecture choices go through vote rounds with mandatory devil's advocacy. Disagreements trigger structured debates. Trade-offs are recorded. |
+| **Traceability** | Every action is recorded and auditable after the fact. | All transitions log to `.geas/ledger/events.jsonl` with real timestamps. Checkpoint state in `run.json` tracks pipeline position. DecisionRecords capture the *why* behind escalations. |
+| **Verification** | Every output is verified against its contract — "done" means "contract fulfilled." | Evidence Gate runs three tiers: mechanical (build/lint/test), semantic (acceptance criteria + rubric scores), product (Nova judgment). |
+| **Evolution** | The team gets smarter over time. | Scrum retrospectives after every task. Lessons go to `.geas/memory/retro/`. `rules.md` grows with each session. |
 
 ---
 
@@ -62,13 +46,13 @@ Multi-agent AI systems are powerful, but they have a structural weakness: as the
 /plugin install geas@choam2426-geas
 ```
 
-### 2. Describe the mission
+### 2. Start a mission
 
 ```text
-Build me a real-time polling app with shareable invite links.
+/geas:mission
 ```
 
-Compass (the orchestrator) takes over — refines requirements, compiles contracts, dispatches specialist agents, and verifies output through evidence gates.
+Describe what you want to build, add, or decide. Compass detects the appropriate mode — Initiative (new product), Sprint (feature addition), or Debate (structured decision) — and runs the governed pipeline.
 
 ### 3. Watch the process
 
@@ -136,16 +120,6 @@ Compass orchestrates the pipeline. 12 specialist agents execute it, each under t
 | **Strategy** | Critic | Devil's Advocate |
 | **Documentation** | Scroll | Tech Writer |
 | **Process** | Scrum | Agile Master / Retrospectives |
-
----
-
-## Execution Modes
-
-| | Initiative | Sprint | Debate |
-|---|---|---|---|
-| **When** | Starting a new product | Adding a feature | Making a decision |
-| **Phases** | Genesis → MVP → Polish → Evolution | Design → Build → Review → QA | Structured discussion |
-| **Output** | Complete product + documentation | Verified feature + commit | DecisionRecord |
 
 ---
 
