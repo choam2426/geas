@@ -15,7 +15,7 @@ Read `.geas/memory/_project/conventions.md` before writing any code. This file c
 
 For coding patterns not covered by conventions.md, follow the **Google Style Guide** for the project's language:
 
-- Use the style guide for the language detected in conventions.md (e.g., Python, Go, Java, C++, Kotlin)
+- Use the style guide for the language detected in conventions.md (e.g., Python, Go, TypeScript, Java, C++)
 - When multiple style guides conflict, prefer the one closest to existing project patterns
 - If no language-specific guide exists, apply general principles: clarity over cleverness, consistency over novelty
 
