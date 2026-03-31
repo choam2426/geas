@@ -174,7 +174,6 @@ Compass orchestrates the pipeline. 12 specialist agents execute it, each under t
 | [Agents](docs/reference/AGENTS.md) | 12 agents reference |
 | [Hooks](docs/reference/HOOKS.md) | 9 hooks reference |
 | [Governance](docs/reference/GOVERNANCE.md) | Evaluation and quality gates |
-| [Changelog](docs/CHANGELOG.md) | Version history |
 
 ---
 
