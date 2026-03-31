@@ -154,12 +154,12 @@ Omit sections that have no content (e.g., no design context for a backend task b
 
 ## QA Tools Section (Sentinel packets only)
 
-When generating a Sentinel packet, include a `## QA Tools Available` section listing connected MCPs and available tools from `.geas/config.json` and `.geas/memory/_project/conventions.md`:
+When generating a Sentinel packet, include a `## QA Tools Available` section listing available MCP tools and commands from `.geas/memory/_project/conventions.md`:
 
 ```markdown
 ## QA Tools Available
 - **API**: HTTP request tools for direct endpoint testing
-- **Database**: Database query MCP (if connected — check .geas/config.json connected_mcp)
+- **Database**: Database query MCP (if available)
 - **Browser**: Browser automation MCP (if connected) for E2E, screenshots, visual regression
 - **Performance**: Performance audit MCP (if connected) for accessibility and performance
 - **Dev server**: {{dev command from conventions.md}} — start before state verification

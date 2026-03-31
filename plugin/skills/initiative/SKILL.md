@@ -59,7 +59,7 @@ Analyze the tech stack from Forge's architecture decision and recommend helpful 
 | Has deploy target | Performance audit MCP | Sentinel can audit performance and accessibility |
 | Git-hosted | Git platform MCP | Keeper can manage PRs and issues |
 
-Present recommendations with install commands from the MCP registry. If the user connects, record in `.geas/config.json` under `connected_mcp`.
+Present recommendations with install commands from the MCP registry.
 
 ### 1.8 Close Discovery
 - Update run state: `{ "phase": "mvp", "status": "in_progress" }`

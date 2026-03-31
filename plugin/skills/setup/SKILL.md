@@ -65,7 +65,6 @@ Write `.geas/rules.md` — the shared rules that ALL agents must follow:
 ```
 Setup complete:
 - .geas/: initialized (spec, state, tasks, contracts, packets, evidence, decisions, ledger, summaries, memory)
-- Config: .geas/config.json saved
 
 Ready! Stay in Claude and describe your mission in natural language.
 ```
