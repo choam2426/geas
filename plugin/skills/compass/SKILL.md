@@ -43,6 +43,7 @@ These rules apply to ALL modes (Initiative, Sprint).
     "last_updated": "<actual timestamp>"
   }
   ```
+- The run state must conform to `schemas/run-state.schema.json`.
 - After agent returns: clear `agent_in_flight`, update `pending_evidence` with completed files.
 - On parallel batch: set `parallel_batch` with task IDs.
 - On task completion: clear checkpoint entirely.

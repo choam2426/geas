@@ -43,6 +43,8 @@ Write the initial run state file `.geas/state/run.json`:
 }
 ```
 
+The run state must conform to `compass/schemas/run-state.schema.json`. Refer to the schema for the full field list.
+
 ### Phase A-2: Generate `.geas/rules.md`
 
 Write `.geas/rules.md` — the shared rules that ALL agents must follow:

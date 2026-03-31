@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunState",
+  "description": "Session state and checkpoint for the Geas orchestrator. Written by Compass, read by restore-context hook for session recovery.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["initialized", "in_progress", "complete"],
+      "description": "Overall session status"
+    },
+    "mission": {
+      "type": ["string", "null"],
+      "description": "Mission statement from seed.json"
+    },
+    "mode": {
+      "type": ["string", "null"],
+      "enum": ["initiative", "sprint", null],
+      "description": "Execution mode"
+    },
+    "phase": {
+      "type": ["string", "null"],
+      "enum": ["discovery", "mvp", "polish", "evolution", "complete", null],
+      "description": "Current phase within Initiative mode"
+    },
+    "current_task_id": {
+      "type": ["string", "null"],
+      "description": "ID of the task currently being executed"
+    },
+    "completed_tasks": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs of tasks that have been resolved"
+    },
+    "decisions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs of DecisionRecords created during the session"
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pipeline_step": {
+          "type": ["string", "null"],
+          "description": "Current pipeline step name (e.g., 'code_review', 'testing')"
+        },
+        "agent_in_flight": {
+          "type": ["string", "null"],
+          "description": "Agent currently spawned and executing"
+        },
+        "pending_evidence": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Evidence files expected from the current agent"
+        },
+        "retry_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of verify-fix iterations used for the current task"
+        },
+        "parallel_batch": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Agent names when multiple agents are spawned in parallel (e.g., vote round)"
+        },
+        "remaining_steps": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ordered list of pipeline steps still to complete. Pop from front after each step."
+        },
+        "last_updated": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of last checkpoint update"
+        }
+      },
+      "description": "Pipeline checkpoint for session recovery. Updated before every agent spawn."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["version", "status", "created_at"]
+}
