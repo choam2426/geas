@@ -10,9 +10,9 @@ A harness that brings structure to multi-agent AI development — so every decis
 
 [![Claude Code](https://img.shields.io/badge/Built_for-Claude_Code-6B4FBB?style=for-the-badge)](https://claude.ai/code)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
-[![Agents](https://img.shields.io/badge/Agents-12-4A90D9?style=flat-square)](docs/AGENTS.md)
-[![Skills](https://img.shields.io/badge/Skills-22-2ECC71?style=flat-square)](docs/SKILLS.md)
-[![Hooks](https://img.shields.io/badge/Hooks-9-E67E22?style=flat-square)](docs/HOOKS.md)
+[![Agents](https://img.shields.io/badge/Agents-12-4A90D9?style=flat-square)](docs/reference/AGENTS.md)
+[![Skills](https://img.shields.io/badge/Skills-22-2ECC71?style=flat-square)](docs/reference/SKILLS.md)
+[![Hooks](https://img.shields.io/badge/Hooks-9-E67E22?style=flat-square)](docs/reference/HOOKS.md)
 
 </div>
 
@@ -151,13 +151,30 @@ Compass orchestrates the pipeline. 12 specialist agents execute it, each under t
 
 ## Documentation
 
-| Document | EN | KO |
-|----------|----|----|
-| User Guide | [GUIDE.md](docs/GUIDE.md) | [GUIDE.ko.md](docs/GUIDE.ko.md) |
-| Governance | [GOVERNANCE.md](docs/GOVERNANCE.md) | [GOVERNANCE.ko.md](docs/GOVERNANCE.ko.md) |
-| Agent Reference | [AGENTS.md](docs/AGENTS.md) | [AGENTS.ko.md](docs/AGENTS.ko.md) |
-| Skill Reference | [SKILLS.md](docs/SKILLS.md) | [SKILLS.ko.md](docs/SKILLS.ko.md) |
-| Hooks Reference | [HOOKS.md](docs/HOOKS.md) | [HOOKS.ko.md](docs/HOOKS.ko.md) |
+### Getting Started
+| Document | Description |
+|----------|-------------|
+| [Quick Start](docs/guides/QUICKSTART.md) | 5-minute getting started |
+| [Initiative Guide](docs/guides/INITIATIVE.md) | Build a new product |
+| [Sprint Guide](docs/guides/SPRINT.md) | Add a feature to existing project |
+| [Debate Guide](docs/guides/DEBATE.md) | Structured decision-making |
+| [Scenarios](docs/guides/SCENARIOS.md) | Real-world examples with test data |
+
+### Architecture
+| Document | Description |
+|----------|-------------|
+| [Design](docs/architecture/DESIGN.md) | System architecture, data flow, principles |
+| [Pipeline](docs/architecture/PIPELINE.md) | Execution pipeline step-by-step |
+| [Schemas](docs/architecture/SCHEMAS.md) | Data contracts and relationships |
+
+### Reference
+| Document | Description |
+|----------|-------------|
+| [Skills](docs/reference/SKILLS.md) | 22 skills reference |
+| [Agents](docs/reference/AGENTS.md) | 12 agents reference |
+| [Hooks](docs/reference/HOOKS.md) | 9 hooks reference |
+| [Governance](docs/reference/GOVERNANCE.md) | Evaluation and quality gates |
+| [Changelog](docs/CHANGELOG.md) | Version history |
 
 ---
 

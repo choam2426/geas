@@ -30,9 +30,10 @@ plugin/
 
 ### Core skills (contract engine)
 - `intake/` — Socratic requirements gathering → seed.json
-- `task-compiler/` — seed → TaskContracts with acceptance criteria
+- `task-compiler/` — seed → TaskContracts with acceptance criteria and rubric
 - `context-packet/` — role-specific briefings
-- `evidence-gate/` — 3-tier verification (mechanical, semantic, product)
+- `implementation-contract/` — pre-implementation agreement between worker and reviewers
+- `evidence-gate/` — 3-tier verification (mechanical, semantic+rubric, product)
 - `verify-fix-loop/` — fail → fix → re-verify with retry budget
 - `vote-round/` — structured agent voting + debate on disagreement
 
