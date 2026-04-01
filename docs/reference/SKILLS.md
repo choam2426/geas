@@ -19,7 +19,7 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 | [vote-round](#vote-round) | Core - Verification | No | Compass (at Discovery) | `.geas/decisions/{dec-id}.json` |
 | [initiative](#initiative) | Team - Execution | Yes | Compass or User | Full product build (4 phases) |
 | [sprint](#sprint) | Team - Execution | Yes | Compass or User | Feature addition to existing project |
-| [debate](#debate) | Team - Execution | Yes | Compass or User | `.geas/decisions/{dec-id}.json` |
+| [decision](#decision) | Team - Execution | Yes | Compass or User | `.geas/decisions/{dec-id}.json` |
 | [write-prd](#write-prd) | Team - Planning | No | Nova (during Discovery) | `.geas/spec/prd.md` |
 | [write-stories](#write-stories) | Team - Planning | No | Nova (during Discovery) | `.geas/spec/stories.md` |
 | [onboard](#onboard) | Team - Planning | No | Compass (Sprint, first run) | `.geas/memory/_project/conventions.md` |
@@ -51,7 +51,7 @@ Entry point -- receives user intent and invokes Compass.
 **Key Behaviors:**
 - Thin entry shell -- receives user input and invokes `/geas:compass`.
 - Does NOT spawn a compass agent. Compass is a skill that runs in the main session, not a sub-agent.
-- Users can also invoke execution missions/modes directly (`/geas:initiative`, `/geas:sprint`, `/geas:debate`).
+- Users can also invoke execution missions/modes directly (`/geas:initiative`, `/geas:sprint`, `/geas:decision`).
 
 **Schemas:** None.
 
@@ -59,7 +59,7 @@ Entry point -- receives user intent and invokes Compass.
 
 ### compass
 
-Geas orchestrator -- coordinates the multi-agent team. Manages setup, intake, mode routing (discovery/delivery/decision), and delegates to Initiative mission, Sprint pattern, or debate protocol.
+Geas orchestrator -- coordinates the multi-agent team. Manages setup, intake, mode routing (discovery/delivery/decision), and delegates to Initiative mission, Sprint pattern, or decision protocol.
 
 **User-Invocable:** No (invoked via `/geas:mission`, which calls `/geas:compass`)
 
@@ -381,11 +381,11 @@ Add a bounded feature to an existing project using delivery mode (Sprint pattern
 
 ---
 
-### debate
+### decision
 
-Run a structured multi-agent debate in decision mode to make a technical or product decision before implementation.
+Run a structured multi-agent decision in decision mode to make a technical or product decision before implementation.
 
-**User-Invocable:** Yes (`/geas:debate`)
+**User-Invocable:** Yes (`/geas:decision`)
 
 **Invoked By:** Compass (after mode detection) or directly by user
 

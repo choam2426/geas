@@ -193,7 +193,7 @@ plugin/
     compass/               # Orchestrator
     initiative/            # 4-phase mission (discovery -> build -> polish -> evolution)
     sprint/                # delivery mode: add features to existing project
-    debate/                # decision mode: decision-making
+    decision/              # decision mode: decision-making
     ...
   agents/                  # Agent definitions (.md)
   hooks/

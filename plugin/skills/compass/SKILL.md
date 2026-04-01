@@ -120,4 +120,4 @@ Infer from the user's intent:
 
 If the mode was explicitly specified (user used `/geas:initiative` or `/geas:sprint`), skip detection and go directly to that mode.
 
-Note: `/geas:debate` is a utility skill for decision mode. It can be invoked at any time for structured decision-making — during Initiative mission, delivery mode, or standalone. It does not go through the Compass startup sequence.
+Note: `/geas:decision` is a utility skill for decision mode. It can be invoked at any time for structured decision-making — during Initiative mission, delivery mode, or standalone. It does not go through the Compass startup sequence.

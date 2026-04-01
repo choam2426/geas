@@ -126,4 +126,4 @@ Keep console output identical to the summary file content — no separate format
 
 - **Session interrupted mid-issue**: Mark the issue as "In Progress" in the summary. State what was in progress and which agent was working on it.
 - **No issues created yet** (e.g. interrupted during Discovery): Summary should still capture decisions made, even if no issues were created.
-- **Decision mode**: No issues to report. Summarize the debate topic, positions taken, and outcome (if reached).
+- **Decision mode**: No issues to report. Summarize the decision topic, positions taken, and outcome (if reached).

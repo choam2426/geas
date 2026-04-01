@@ -40,7 +40,7 @@ Invoke `/geas:vote-round` with:
 - Voters: circuit, palette, critic
 - Output: `.geas/evidence/discovery/vote-{agent}.json`
 
-If all agree: proceed. If any disagree: `/geas:debate` runs, then re-vote.
+If all agree: proceed. If any disagree: `/geas:decision` runs, then re-vote.
 Verify all vote files exist before continuing.
 
 ### 1.6 Compile TaskContracts

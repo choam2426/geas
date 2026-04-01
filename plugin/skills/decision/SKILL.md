@@ -1,6 +1,6 @@
 ---
-name: debate
-description: Utility skill — structured multi-agent debate for technical or product decisions. Invocable standalone or within any mode.
+name: decision
+description: Utility skill — structured multi-agent decision for technical or product decisions. Invocable standalone or within any mode.
 user-invocable: true
 ---
 

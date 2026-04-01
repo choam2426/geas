@@ -193,7 +193,7 @@ plugin/
     compass/               # 오케스트레이터
     initiative/            # 4-phase mission (discovery → build → polish → evolution)
     sprint/                # delivery mode: 기존 프로젝트에 기능 추가
-    debate/                # decision mode: 의사결정
+    decision/              # decision mode: 의사결정
     ...
   agents/                  # 에이전트 정의 (.md)
   hooks/

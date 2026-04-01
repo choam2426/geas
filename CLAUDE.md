@@ -74,7 +74,7 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 ### Team skills (execution protocols)
 - `initiative/` — 4-phase mission (discovery → build → polish → evolution)
 - `sprint/` — delivery mode: bounded feature addition
-- `debate/` — decision mode: structured decision-making, no code
+- `decision/` — decision mode: structured decision-making, no code
 
 ## Key Design Principles
 
@@ -121,7 +121,6 @@ Priority gaps to close:
 3. Evidence Gate ↔ Final Verdict separation (currently merged — gate should return pass/fail/block/error only)
 4. Closure Packet assembly (new step after gate pass)
 5. Critical Reviewer Challenge (new step before final verdict)
-6. Directory rename: `debate/` → `decision/` (with plugin.json, hooks, cross-references)
 
 ### How to work on migration
 

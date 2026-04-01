@@ -1,11 +1,11 @@
 ---
 name: vote-round
-description: Parallel agent voting on a proposal — agree/disagree with rationale. Critic always participates. Disagreement triggers debate.
+description: Parallel agent voting on a proposal — agree/disagree with rationale. Critic always participates. Disagreement triggers decision.
 ---
 
 # Vote Round
 
-Structured parallel voting on a major proposal. Multiple agents evaluate independently and vote. Disagreement triggers a structured debate before proceeding.
+Structured parallel voting on a major proposal. Multiple agents evaluate independently and vote. Disagreement triggers a structured decision before proceeding.
 
 ---
 
@@ -50,7 +50,7 @@ Each vote file must contain:
 - **vote**: `agree` or `disagree`
 - **severity**: (required if vote is `disagree`) `minor` or `major`
   - `minor`: concrete amendment proposed, compatible with the proposal's direction
-  - `major`: fundamental objection, proposal replacement or full debate needed
+  - `major`: fundamental objection, proposal replacement or full decision needed
 - **rationale**: why
 - **concerns**: risks or blind spots identified (even if voting agree)
 - **alternative**: if disagreeing, a concrete alternative with trade-offs
@@ -64,17 +64,17 @@ After all voters return, read each vote file.
   1. Incorporate each minor voter's alternative as an amendment to the proposal.
   2. Write a DecisionRecord with `status: "approved_with_amendments"` listing all amendments.
   3. Mark the dissenting voter's stance as `disagree_resolved`.
-  4. Proceed without debate.
-- **Any disagree with severity: major** → `debate_triggered`:
-  1. Invoke `/geas:debate` with the proposal and all vote files as context.
-  2. After debate resolution, re-vote (one re-vote maximum).
+  4. Proceed without decision.
+- **Any disagree with severity: major** → `decision_triggered`:
+  1. Invoke `/geas:decision` with the proposal and all vote files as context.
+  2. After decision resolution, re-vote (one re-vote maximum).
   3. If still no consensus after re-vote, Compass synthesizes a decision and the user decides.
 
 ### Step 4: Log Result
 
 **[MANDATORY]** Append to `.geas/ledger/events.jsonl`:
 ```json
-{"event": "vote_round", "proposal": "...", "voters": [...], "result": "unanimous|approved_with_amendments|debate_triggered", "timestamp": "<actual>"}
+{"event": "vote_round", "proposal": "...", "voters": [...], "result": "unanimous|approved_with_amendments|decision_triggered", "timestamp": "<actual>"}
 ```
 
 ---
@@ -89,5 +89,5 @@ Vote evidence files at the location specified by the caller (e.g., `.geas/eviden
 
 1. **Critic always participates** — no exceptions, even if the proposal seems obvious
 2. **Voters are independent** — they do not see each other's votes before voting
-3. **Disagreement is not failure** — minor disagreements become amendments, major disagreements trigger structured debate. Both produce better decisions than ignoring dissent.
-4. **One re-vote maximum** — after debate, one more vote round. If still no consensus, Compass synthesizes and the user decides.
+3. **Disagreement is not failure** — minor disagreements become amendments, major disagreements trigger structured decision. Both produce better decisions than ignoring dissent.
+4. **One re-vote maximum** — after decision, one more vote round. If still no consensus, Compass synthesizes and the user decides.
