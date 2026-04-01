@@ -53,14 +53,5 @@
   - phase 간 의존성 명시, phase별 deliverables, chaos exercise 5개 시나리오 정의
 - `14_EVOLUTION_DEBT_AND_GAP_LOOP.md`
   - retrospective, rules.md update, role-specific lesson 판별 기준, debt lifecycle(scheduled→resolved 전환 조건), gap assessment forward-feeding, harmful reuse feedback loop
-- `GAP_CLOSURE_NOTES_v3.md`
-  - v3에서 반영한 7개 갭 목록 및 반영 위치
-
-## 2. reference
-
-- `reference/monolith/GEAS_OPERATING_PROTOCOL_DETAILED_v5.md`
-  - 기존 단일 상세 문서
-- `reference/monolith/GEAS_OPERATING_PROTOCOL_DETAILED_v3.md`
-  - memory/recovery/context가 먼저 추가된 중간 상세 문서
-- `reference/geas_protocol_runtime_bundle_v1/`
-  - 이전 runtime bundle 전체
+- `schemas/` — 13개 JSON Schema (draft 2020-12) + `_defs.schema.json` 공유 정의
+- `examples/` — 9개 예제 파일 (각 schema에 대응)

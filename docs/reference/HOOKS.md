@@ -299,7 +299,7 @@ Fires whenever a sub-agent finishes. Records agent spawn metadata to the ledger 
      "event": "agent_complete",
      "agent": "nova",
      "task_id": "TASK-001",
-     "phase": "mvp",
+     "phase": "build",
      "model": "opus",
      "timestamp": "2026-03-30T12:00:00Z"
    }
@@ -334,8 +334,8 @@ Fires when the session is about to end. This is the only hook in the system that
    |---|---|
    | `.geas/evidence/<tid>/forge-review.json` | Code Review |
    | `.geas/evidence/<tid>/sentinel.json` | QA Testing |
-   | `.geas/evidence/<tid>/critic-review.json` | Critic Pre-ship Review |
-   | `.geas/evidence/<tid>/nova-verdict.json` | Nova Product Review |
+   | `.geas/evidence/<tid>/critic-review.json` | Critical Reviewer Pre-ship Challenge |
+   | `.geas/evidence/<tid>/nova-verdict.json` | Final Verdict (Nova) |
    | `.geas/memory/retro/<tid>.json` | Scrum Retrospective |
 
 4. **If any files are missing**, prints to stderr:
@@ -462,6 +462,8 @@ Hooks are declared in `plugin/hooks/hooks.json`. The schema is:
 | 0 | Success, continue |
 | 1 | Error (logged, but does not block) |
 | 2 | Block the pipeline (only meaningful for `Stop` hooks) |
+
+For protocol details on hook failure handling, conformance checking, and metrics collection, see `protocol/12_ENFORCEMENT_CONFORMANCE_AND_METRICS.md`.
 
 ---
 

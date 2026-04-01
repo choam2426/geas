@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "artifact_type": "rules_update",
+  "artifact_id": "rules-014",
+  "producer_type": "process_lead",
+  "status": "approved",
+  "affected_rule_ids": [
+    "rule-auth-recovery-e2e"
+  ],
+  "reason": "Two consecutive regressions missed session recovery edge cases.",
+  "evidence_refs": [
+    "retro-task-003",
+    "retro-task-007",
+    "memory-entry-auth-recovery"
+  ],
+  "applies_to": [
+    "auth UI tasks",
+    "qa_engineer",
+    "frontend_engineer"
+  ],
+  "created_at": "2026-04-01T18:05:00Z"
+}

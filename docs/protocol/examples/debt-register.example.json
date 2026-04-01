@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "artifact_type": "debt_register",
+  "artifact_id": "debt-polish-001",
+  "producer_type": "process_lead",
+  "scope": "phase",
+  "items": [
+    {
+      "debt_id": "debt-101",
+      "severity": "high",
+      "kind": "test_gap",
+      "title": "Auth recovery E2E missing",
+      "description": "No E2E coverage for refresh token expiry path",
+      "introduced_by_task_id": "task-003",
+      "owner_type": "qa_engineer",
+      "status": "scheduled",
+      "target_phase": "polish"
+    },
+    {
+      "debt_id": "debt-102",
+      "severity": "medium",
+      "kind": "docs",
+      "title": "Operator reset flow doc missing",
+      "description": "Support runbook lacks password reset troubleshooting",
+      "introduced_by_task_id": "task-009",
+      "owner_type": "technical_writer",
+      "status": "open",
+      "target_phase": "evolution"
+    }
+  ],
+  "rollup_by_severity": {
+    "high": 1,
+    "medium": 1
+  },
+  "rollup_by_kind": {
+    "test_gap": 1,
+    "docs": 1
+  },
+  "created_at": "2026-04-01T18:10:00Z"
+}

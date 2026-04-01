@@ -2,412 +2,292 @@
 
 ## 1. Overview
 
-Geas is a contract-driven governance harness for multi-agent AI development. It coordinates teams of AI agents through structured protocols where every decision follows a governed process, every action is traceable through an append-only ledger, every output is verified against a formal contract, and the team evolves across sessions through retrospectives and living rules.
+Geas is a contract-based governance harness for multi-agent AI development. It coordinates multiple AI agents through structured protocols, guaranteeing four control objectives (4 Pillars):
 
-The core insight is that the value of multi-agent development is not the number of agents -- it is that a governed process replaces ad-hoc "agent says done" with evidence-backed verification. The contract engine is the invariant; the agents, collaboration surface, and tooling are all replaceable.
+- **Governance** -- Every decision follows a defined procedure with explicit authority.
+- **Traceability** -- Every action is recorded and auditable after the fact.
+- **Verification** -- Every deliverable is verified against its contract. "Done" means "contract satisfied."
+- **Evolution** -- The team grows across sessions through retrospectives, rule updates, memory promotion, debt tracking, and gap assessments.
 
-When making any design decision, ask: **"Does this make the multi-agent process more governed, traceable, verifiable, or capable of learning?"**
+The value of multi-agent is not the number of agents. It is replacing "the agent says it is done" with evidence-based verification. The Contract Engine is the immutable core; agents, collaboration surfaces, and tools are all replaceable.
 
----
+When making any design decision, always ask: **"Does this change make the multi-agent process more governed, traceable, verifiable, or capable of learning?"**
 
-## 2. Four Pillars
-
-| Pillar | Definition | Concrete Example |
-|--------|-----------|-----------------|
-| **Governance** | Every decision follows a defined process with explicit authority. | Compass orchestrates the pipeline; Nova has ship/iterate/cut authority; Critic must participate in every vote round. No agent self-approves their own work. |
-| **Traceability** | Every action is recorded and auditable after the fact. | All transitions are logged to `.geas/ledger/events.jsonl` with real UTC timestamps. Checkpoint state in `run.json` tracks which pipeline step is active and which agent is in flight. DecisionRecords capture the *why* behind escalations. |
-| **Verification** | Every output is verified against its contract -- "done" means "contract fulfilled." | The Evidence Gate runs three tiers: mechanical (build/lint/test commands exit 0), semantic (acceptance criteria met, rubric scores above threshold), and product (Nova judgment). A Ship Gate requires four independent evidence files before a task can be marked passed. |
-| **Evolution** | The team gets smarter over time. | Scrum retrospectives are mandatory for every task. Lessons go to `.geas/memory/retro/`. Rules.md is a living document updated after each task. Conventions.md captures project-specific patterns discovered during execution. |
+> For the concrete protocol bindings and design principles behind the 4 Pillars, see `protocol/00_PROTOCOL_FOUNDATIONS.md`.
 
 ---
 
-## 3. Four-Layer Architecture
+## 2. Four-Layer Architecture
 
 ```
 +---------------------------+
-| Collaboration Surface     |  <-- replaceable (Dashboard, CLI, ...)
+| Collaboration Surface     |  <-- Replaceable (Dashboard, CLI, ...)
 +---------------------------+
-| Agent Teams               |  <-- replaceable (Geas-12, Lean-4, Custom)
+| Agent Teams               |  <-- Replaceable (Geas-12, Lean-4, Custom)
 +---------------------------+
-| Contract Engine           |  <-- CORE (Intake, TaskContract, Evidence Gate)
+| Contract Engine           |  <-- Core (immutable)
 +---------------------------+
-| Tool Adapters             |  <-- replaceable (Claude Code, ...)
+| Tool Adapters             |  <-- Replaceable (Claude Code, ...)
 +---------------------------+
 ```
 
-### Layer Descriptions
+| Layer | Role | Replaceable? |
+|-------|------|--------------|
+| **Collaboration Surface** | The interface through which humans interact with the system. Dashboards, CLI, chat threads, etc. | Fully replaceable. |
+| **Agent Teams** | The set of specialized agents that perform work. The default Geas-12 team is one configuration; other team compositions are possible. | Replaceable. The Contract Engine's data flow works with any agent configuration. |
+| **Contract Engine** | The core set of skills that define the workflow: intake, task compilation, context packet, implementation contract, evidence gate, verify-fix loop, vote round. Tool-agnostic. | **Not replaceable** -- this is the immutable core. |
+| **Tool Adapters** | Runtime tools agents use to do their work (file I/O, bash, MCP servers, etc.). | Fully replaceable. Core skills reference tools by functional category. |
 
-| Layer | Role | Replaceability |
-|-------|------|----------------|
-| **Collaboration Surface** | The interface humans use to interact with the system. Could be a dashboard, CLI, or chat thread. | Fully replaceable. Core skills must not hardcode surface assumptions. |
-| **Agent Teams** | The set of specialist agents that execute work. The default Geas-12 team includes Nova (PM), Forge (Architect), Palette (Designer), Pixel (Frontend), Circuit (Backend), Sentinel (QA), Keeper (Git/Release), Shield (Security), Scroll (Docs), Critic (Devil's Advocate), Scrum (Agile Master), Pipeline (DevOps). | Replaceable by adapting pipeline skills. The default Geas-12 team is one configuration. Alternative teams require modifying the pipeline skills that reference agent names. The contract engine's data flow (TaskContract → Evidence → Gate) works with any agent setup. |
-| **Contract Engine** | The core skills that define *how* work flows: intake, task compilation, context packets, implementation contracts, evidence gates, verify-fix loops, vote rounds. This layer is tool-agnostic. | **Not replaceable** -- this is the invariant. All other layers adapt to it. |
-| **Tool Adapters** | The runtime tools agents use to do work (file I/O, bash, web search, MCP servers, browser automation). | Fully replaceable. Core skills reference capabilities by category, not by product name. |
+---
 
-### Plugin Structure
+## 3. Execution Model
+
+### Top-Level Modes
+
+| Mode | Purpose | Code changes |
+|------|---------|-------------|
+| `discovery` | Form direction, scope, structure, task inventory | Prohibited by default (spike exception) |
+| `delivery` | Execute the task backlog: implement, verify, integrate | Allowed |
+| `decision` | Structured decision-making without code | Prohibited |
+
+### Missions and Phases
+
+An Initiative mission progresses through four phases:
+
+```
+discovery --[gate 1]--> build --[gate 2]--> polish --[gate 3]--> evolution
+                                                                    |
+                                                               [gate 4]
+                                                                    |
+                                                                  close
+```
+
+Sprint is an execution pattern within delivery mode. It skips discovery and uses the existing seed as read-only context.
+
+> For details on modes, missions, and phases, see `protocol/02_MODES_MISSIONS_AND_RUNTIME.md`.
+
+---
+
+## 4. Task Lifecycle
+
+A task is the only closure unit in the protocol. It passes through 7 primary states and 4 auxiliary states:
+
+```
+drafted -> ready -> implementing -> reviewed -> integrated -> verified -> passed
+                                                          (+ blocked, escalated, cancelled, paused[scheduler flag])
+```
+
+Each transition requires a mandatory artifact:
+
+| Transition | Required artifact |
+|------------|------------------|
+| drafted -> ready | task-contract.json |
+| ready -> implementing | implementation-contract.json (approved) |
+| implementing -> reviewed | worker-self-check.json + specialist-review.json |
+| reviewed -> integrated | integration-result.json |
+| integrated -> verified | gate-result.json (pass) |
+| verified -> passed | closure-packet.json + final-verdict.json (pass) |
+
+> For the task state machine, transition conditions, and rewind rules, see `protocol/03_TASK_MODEL_AND_LIFECYCLE.md`.
+
+---
+
+## 5. Verification Flow
+
+```
+Implementation
+    |
+    v
+Evidence Gate (Tier 0 -> Tier 1 -> Tier 2)
+    |                          |
+    | pass                     | fail -> Verify-Fix Loop (retry_budget decremented)
+    v
+Closure Packet assembly
+    |
+    v
+Critical Reviewer Challenge (mandatory for high/critical)
+    |
+    v
+Final Verdict (product_authority: pass / iterate / escalate)
+    |
+    v
+Resolve -> passed
+```
+
+- **Tier 0** (Precheck): Artifact existence, task state eligibility, baseline checks
+- **Tier 1** (Mechanical): build/lint/test/typecheck
+- **Tier 2** (Contract + Rubric): Acceptance criteria, rubric scoring (1-5, per-dimension thresholds)
+- **block**: Structural precondition not met (retry_budget not decremented)
+- **fail**: Quality issue (retry_budget decremented by 1, enters verify-fix loop)
+- **Final Verdict iterate**: Product judgment (retry_budget not decremented; 3 cumulative iterations trigger escalation)
+
+> For details on Evidence Gate, rubric scoring, vote round, closure packet, and final verdict, see `protocol/05_GATE_VOTE_AND_FINAL_VERDICT.md`.
+
+---
+
+## 6. Memory and Evolution
+
+A key differentiator of Geas is that **the team learns across sessions**.
+
+### Memory System
+
+Memory is not a repository -- it is a **behavior modification device**. Through rules.md, agent_memory, risk_memory, and context packets, it changes behavior on the next task.
+
+The memory lifecycle has 9 states:
+
+```
+candidate -> provisional -> stable -> canonical
+                 ↕               ↕
+            under_review    under_review
+                 ↓               ↓
+         decayed / superseded / archived / rejected
+```
+
+Promotion criteria:
+- candidate -> provisional: evidence 2+ OR incident 2+ OR authority approval
+- provisional -> stable: application log 3+, contradiction 0, authority review
+- stable -> canonical: application log 5+ across 3+ tasks, joint approval
+
+### Evolution Loop
+
+After every task completion:
+1. **Retrospective**: process_lead extracts lessons, rule/memory/debt candidates
+2. **Rules.md Update**: Verified lessons promoted to team rules
+3. **Memory Promotion**: candidate -> provisional -> stable -> canonical
+4. **Debt Tracking**: Record debt, classify, resolve per phase
+5. **Gap Assessment**: Compare scope_in vs scope_out, forward-feed shortfalls
+
+> For memory details, see `protocol/07`, `08`, `09`. For the evolution loop, see `protocol/14`.
+
+---
+
+## 7. Context Loss Defense
+
+Long-running sessions hit context window limits. Geas uses two defenses:
+
+### Defense 1: run.json Checkpoint
+
+The `remaining_steps[]` array externalizes the current pipeline position to disk. Steps are removed from the array as they complete. Even after compaction, reading this file tells the orchestrator exactly what to do next.
+
+### Defense 2: PostCompact Hook
+
+When context compaction occurs, this hook automatically reads `run.json` and re-injects the current state (mode, phase, task, remaining_steps, key rules.md content) into the conversation.
+
+> For session recovery details, see `protocol/10_SESSION_RECOVERY_AND_RESUMABILITY.md`.
+
+---
+
+## 8. Plugin Structure
 
 ```
 plugin/
-  plugin.json              # Manifest (agents, skills, hooks, settings)
-  skills/                  # Shared skills (core + team + surface)
+  plugin.json              # Manifest
+  skills/                  # Shared skills
     intake/                # Socratic requirements gathering
-    task-compiler/         # seed -> TaskContracts
+    task-compiler/         # seed -> TaskContract
     context-packet/        # Role-specific briefings
-    evidence-gate/         # 3-tier verification
+    evidence-gate/         # Tier 0/1/2 + Closure Packet + Final Verdict
     implementation-contract/  # Pre-implementation agreement
-    verify-fix-loop/       # Fail -> fix -> re-verify with retry budget
-    vote-round/            # Structured agent voting + debate
-    compass/               # Orchestrator (runs in main session)
-    initiative/            # 4-phase new product protocol
-    sprint/                # Bounded feature addition protocol
-    debate/                # Decision-only discussion, no code
-    ...                    # Additional utility skills
-  agents/                  # 12 agent definitions (.md with YAML frontmatter)
+    verify-fix-loop/       # fail -> fix -> re-verify
+    vote-round/            # Structured voting
+    compass/               # Orchestrator
+    initiative/            # 4-phase mission (discovery -> build -> polish -> evolution)
+    sprint/                # delivery mode: add features to existing project
+    debate/                # decision mode: decision-making
+    ...
+  agents/                  # Agent definitions (.md)
   hooks/
     hooks.json             # Hook configuration
-    scripts/               # Hook implementation scripts
+    scripts/               # Hook scripts
 ```
 
 ---
 
-## 4. Data Flow
+## 9. `.geas/` Directory Structure
 
-### Complete Task Lifecycle
-
-A task flows through these artifacts, each conforming to a JSON Schema in the relevant `schemas/` directory:
-
-```
-User Request
-    |
-    v
-+-----------+     Socratic Q&A     +------------+
-|  Intake   | ------------------->  |  seed.json |  (immutable project identity)
-+-----------+                       +------------+
-                                         |
-                                         v
-                                  +--------------+
-                                  | Task Compiler | --- stories/feature desc
-                                  +--------------+
-                                         |
-                                         v
-                                  +--------------+
-                                  | TaskContract  |  (.geas/tasks/{task-id}.json)
-                                  +--------------+  goal, acceptance_criteria,
-                                         |          eval_commands, rubric,
-                                         |          retry_budget, worker, reviewer
-                                         v
-                                  +---------------+
-                                  | ContextPacket |  (.geas/packets/{task-id}/{role}.md)
-                                  +---------------+  role-specific briefing
-                                         |
-                                         v
-                                  +------------------------+
-                                  | ImplementationContract |  (.geas/contracts/{task-id}.json)
-                                  +------------------------+  planned_actions, edge_cases,
-                                         |                    demo_steps, approved by
-                                         |                    Sentinel + Forge
-                                         v
-                                  +----------------+
-                                  | Implementation |  (worker in isolated worktree)
-                                  +----------------+
-                                         |
-                                         v
-                                  +----------------+
-                                  | EvidenceBundle |  (.geas/evidence/{task-id}/{agent}.json)
-                                  +----------------+  per-agent evidence files
-                                         |
-                                         v
-                                  +--------------+     fail     +----------------+
-                                  | Evidence Gate | ----------> | Verify-Fix Loop|
-                                  +--------------+              +----------------+
-                                    |    |                            |
-                                    |    | (retry budget              |
-                                    |    |  exhausted)                | (re-run gate)
-                                    |    v                            |
-                                    |  +----------------+             |
-                                    |  | DecisionRecord | <-----------+
-                                    |  +----------------+   (on escalation)
-                                    |  (.geas/decisions/)
-                                    |
-                                    | pass
-                                    v
-                              +-------------+
-                              | GateVerdict |  pass / fail / iterate
-                              +-------------+
-                                    |
-                                    v
-                              +------------+
-                              | Ship Gate  |  4 evidence files required:
-                              +------------+  forge-review, sentinel,
-                                    |         critic-review, nova-verdict
-                                    v
-                              +-----------+
-                              |  Resolve  |  status -> "passed"
-                              +-----------+  Keeper commits, Scrum retros
-```
-
-### Artifact Summary
-
-| Artifact | Location | Schema | Created By |
-|----------|----------|--------|------------|
-| seed.json | `.geas/spec/seed.json` | `intake/schemas/seed.schema.json` | Intake |
-| TaskContract | `.geas/tasks/{task-id}.json` | `task-compiler/schemas/task-contract.schema.json` | Task Compiler |
-| ContextPacket | `.geas/packets/{task-id}/{role}.md` | `context-packet/schemas/context-packet.schema.json` | Context Packet Generator |
-| ImplementationContract | `.geas/contracts/{task-id}.json` | `implementation-contract/schemas/implementation-contract.schema.json` | Worker (approved by Sentinel + Forge) |
-| EvidenceBundle | `.geas/evidence/{task-id}/{agent}.json` | `evidence-gate/schemas/evidence-bundle.schema.json` | Each agent after completing work |
-| GateVerdict | Logged to events.jsonl | N/A (event format) | Evidence Gate |
-| DecisionRecord | `.geas/decisions/{dec-id}.json` | `evidence-gate/schemas/decision-record.schema.json` | Evidence Gate (on escalation) |
-
----
-
-## 5. `.geas/` Directory Structure
-
-The `.geas/` directory is the runtime state root for a project. It is gitignored and created per-project.
+`.geas/` is the per-project runtime state root. It is gitignored and created per project.
 
 ```
 .geas/
   state/
-    run.json                 # Current run state: mode, phase, status,
-                             # current_task_id, completed_tasks, checkpoint
-                             # (including remaining_steps, agent_in_flight,
-                             # pipeline_step, retry_count)
+    run.json                 # Session state, checkpoint, remaining_steps
+    locks.json               # Lock manifest
+    health-check.json        # Health signal calculation results
 
   spec/
-    seed.json                # Frozen mission spec from intake (immutable)
-    prd.md                   # Product Requirements Document (Initiative only)
-    stories.md               # User stories broken from PRD (Initiative only)
+    seed.json                # Mission spec frozen at intake (immutable)
 
   tasks/
-    task-001.json            # TaskContract for each task
-    task-002.json            # Contains goal, acceptance_criteria, eval_commands,
-    ...                      # rubric, worker, reviewer, status, retry_budget
+    {task_id}/
+      task-contract.json
+      implementation-contract.json
+      worker-self-check.json
+      specialist-review.json
+      integration-result.json
+      gate-result.json
+      closure-packet.json
+      challenge-review.json
+      final-verdict.json
+      retrospective.json
 
-  contracts/
-    task-001.json            # ImplementationContract per task
-    ...                      # planned_actions, edge_cases, demo_steps, status
-
-  packets/
-    task-001/
-      palette.md             # ContextPacket for designer
-      pixel.md               # ContextPacket for frontend worker
-      forge.md               # ContextPacket for architect
-      forge-review.md        # ContextPacket for code review
-      sentinel.md            # ContextPacket for QA
-      ...
-
-  evidence/
-    discovery/                 # Discovery phase evidence (Initiative only)
-      nova.json              # Vision and MVP scope
-      forge.json             # Architecture decision
-      vote-*.json            # Vote round results
-    task-001/
-      palette.json           # Design spec evidence
-      pixel.json             # Implementation evidence
-      forge-review.json      # Code review evidence
-      sentinel.json          # QA/testing evidence
-      critic-review.json     # Critic pre-ship review
-      nova-verdict.json      # Product owner verdict
-      keeper.json            # Commit evidence
-    polish/
-      shield.json            # Security review
-      scroll.json            # Documentation review
-    evolution/
-      nova-final.json        # Final product review
-      keeper-release.json    # Release management
-
-  decisions/
-    dec-001.json             # DecisionRecord — why a decision was made
-    ...                      # Created on escalations, architecture choices, pivots
-
-  ledger/
-    events.jsonl             # Append-only event log (all transitions, gate results,
-                             # step completions with real UTC timestamps)
+  evolution/
+    rules-update-{seq}.json
+    debt-register.json
+    gap-assessment-{transition}.json
+    phase-review-{transition}.json
 
   memory/
-    _project/
-      conventions.md         # Project-specific conventions (tech stack, commands,
-                             # patterns — detected by Forge during onboarding)
-    retro/
-      task-001.json          # Retrospective lessons from Scrum
-      ...
+    memory-index.json
+    _project/conventions.md
+    agents/{type}.md
+    retro/{task_id}.json
+    incidents/{id}.json
 
-  rules.md                   # Living rules document — updated by Scrum after
-                             # each task's retrospective
+  summaries/
+    session-latest.md
+    task-focus/{task_id}.md
+    mission-summary.md
+    run-summary-{timestamp}.md
 
-  debt.json                  # Tech debt tracker (DEBT-001, DEBT-002, ...)
-                             # severity, source_task, status
+  ledger/
+    events.jsonl             # Append-only audit trail
 
-  config.json                # Runtime config (connected MCP servers, etc.)
+  rules.md                   # Continuously updated team rules
+  debt.json                  # Legacy (migrating to evolution/debt-register.json)
 ```
 
-### Key Files
-
-| File | Purpose | Updated By |
-|------|---------|------------|
-| `state/run.json` | Session state and checkpoint. Recovery anchor after compaction. | Compass (before/after every agent spawn) |
-| `spec/seed.json` | Frozen mission identity. Never modified after creation. | Intake (once) |
-| `rules.md` | Living conventions. Grows with every retrospective. | Scrum |
-| `debt.json` | Tech debt backlog. Threshold warnings via hook. | Compass (after reading agent evidence) |
-| `ledger/events.jsonl` | Audit trail. Append-only. | Compass (every transition) |
+> For artifact details and schemas, see `protocol/11_RUNTIME_ARTIFACTS_AND_SCHEMAS.md`.
 
 ---
 
-## 6. seed.json Design
+## 10. Tool-Agnostic Principle
 
-### Purpose
+Core skills (`plugin/skills/`) must not hardcode specific tools.
 
-The seed is the project's frozen identity -- what we are building, for whom, and within what boundaries. It is the single source of truth that all downstream artifacts (TaskContracts, ContextPackets, Nova verdicts) reference for mission alignment.
+**Prohibited**: Assuming package managers, frameworks, databases, test tools, or build tools as defaults.
 
-### Schema
+**Allowed**: Referencing `.geas/memory/_project/conventions.md` for project-specific commands, marker file detection (package.json, go.mod), listing multiple alternatives (e.g., "Jest, pytest").
 
-Defined in `plugin/skills/intake/schemas/seed.schema.json`. Required fields:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `version` | string (const "1.0") | Schema version |
-| `mission` | string | Refined, unambiguous mission statement |
-| `acceptance_criteria` | array (min 3) | Measurable criteria that define "done" |
-| `scope_in` | array (min 1) | Features explicitly included |
-| `scope_out` | array (min 1) | Features explicitly excluded (proves scope was considered) |
-| `completeness_checklist` | object | Booleans confirming each section was user-approved |
-| `created_at` | date-time | UTC timestamp when frozen |
-
-Optional fields: `target_user`, `constraints`, `assumptions`, `ambiguity_notes`, `source`, `readiness_override`.
-
-### Immutability
-
-Once confirmed by the user, the seed is never modified during execution. If scope must change, the pivot-protocol skill is invoked instead.
-
-### Source Field
-
-The `source` field indicates how the seed was created:
-
-| Value | Meaning |
-|-------|---------|
-| `"initiative"` | Full Socratic intake process. Comprehensive seed with all sections user-approved. |
-| `"sprint"` | Minimal auto-generated seed. Created only when no seed exists (first Sprint on a project). Contains project identity detected from codebase onboarding. |
-
-### Initiative vs Sprint Behavior
-
-**Initiative** creates a full seed through multi-step Socratic intake:
-1. Assess scope (decompose if too large)
-2. Explore requirements (one question at a time, multiple choice preferred)
-3. Propose 2-3 approaches with trade-offs
-4. Build seed section-by-section with explicit user approval
-5. Verify completeness checklist (all booleans true)
-6. Freeze
-
-**Sprint** treats the seed as read-only context:
-- If `seed.json` exists (from prior Initiative or Sprint): read it for mission/constraints. Never modify it. Feature scope goes directly into the TaskContract.
-- If `seed.json` does not exist (first time using Geas): create a minimal seed with `"source": "sprint"`, populated from codebase onboarding (detected stack, conventions, project identity).
-
-This separation means the seed captures *project identity*, while the TaskContract captures *what to build right now*.
+How it works in practice: Forge records project conventions in conventions.md during onboarding. TaskContract's eval_commands reference those conventions. Evidence Gate runs the project-specific commands. No skill definitions need to change.
 
 ---
 
-## 7. Context Decay Resistance
+## 11. Protocol Reference
 
-### The Problem
+The detailed operational protocol specifications live in `docs/protocol/`. This document is an architecture overview; the protocol documents are canonical for protocol-level rules.
 
-Long-running orchestration sessions hit context window limits. When the LLM compacts its context, pipeline state degrades:
-
-- The orchestrator forgets which step it was on
-- It skips mandatory steps (code review, testing, critic review)
-- It loses track of which tasks are complete vs in-progress
-- Agent definitions (YAML frontmatter + role description) survive compaction at ~100% fidelity because they are short and self-contained
-- SKILL.md pipeline steps (long sequential procedures) degrade significantly because the compactor summarizes them, losing step ordering and mandatory markers
-
-### The Solution
-
-Geas uses a two-part defense:
-
-#### Part 1: Checkpoint State in run.json
-
-Before every agent spawn, Compass writes the full pipeline position to `.geas/state/run.json`:
-
-```json
-{
-  "mode": "initiative",
-  "phase": "mvp",
-  "status": "in_progress",
-  "current_task_id": "task-003",
-  "completed_tasks": ["task-001", "task-002"],
-  "checkpoint": {
-    "pipeline_step": "code_review",
-    "agent_in_flight": "forge",
-    "pending_evidence": ["forge-review.json"],
-    "retry_count": 0,
-    "parallel_batch": null,
-    "completed_in_batch": [],
-    "remaining_steps": ["testing", "evidence_gate", "critic_review", "nova_review", "retrospective", "resolve"],
-    "last_updated": "2026-03-30T10:15:00Z"
-  }
-}
-```
-
-During parallel batch execution, `parallel_batch` contains the task IDs being executed concurrently, and `completed_in_batch` tracks which have resolved. See `/geas:parallel-dispatch` for the full protocol.
-
-The `remaining_steps` array is the critical element. After each step completes, it is removed from the front. If the orchestrator loses context, it reads `remaining_steps` and knows exactly what comes next.
-
-#### Part 2: PostCompact Hook (restore-context.sh)
-
-A `PostCompact` hook fires automatically after every context compaction. It reads `run.json` and injects the current state back into the conversation as `additionalContext`:
-
-- Mode, phase, status
-- Current task ID and goal
-- Acceptance criteria for the current task
-- Pipeline step and agent in flight
-- The `remaining_steps` array with an explicit `NEXT STEP` indicator
-- The first 30 lines of `rules.md` (key conventions)
-
-This means even after aggressive compaction, the orchestrator receives a structured state summary that tells it exactly where to resume.
-
-#### Why Agent Definitions Survive but Pipelines Degrade
-
-Agent definitions are small, self-contained markdown files (name, model, role description). They compress well and retain their meaning after compaction.
-
-SKILL.md pipeline definitions are long sequential procedures with conditional logic, mandatory markers (`[MANDATORY]`), skip conditions, and cross-references. When compacted, the summarizer tends to:
-- Merge adjacent steps
-- Drop conditional skip logic
-- Lose the `[MANDATORY]` annotations
-- Summarize "11 steps" as "the pipeline runs design through resolve"
-
-The checkpoint + restore-context approach sidesteps this entirely by externalizing the pipeline position to disk, where it is immune to compaction.
-
----
-
-## 8. Tool-Agnostic Principle
-
-### Rule
-
-Core skills (`plugin/skills/`) must not hardcode specific tools, frameworks, package managers, databases, test runners, or build tools. This keeps the contract engine portable across any tech stack.
-
-### What Is Prohibited
-
-- Package manager names (npm, pnpm, yarn, bun) as assumed defaults
-- Framework names (Next.js, React, Express, Django) as requirements
-- Database names (PostgreSQL, MongoDB) as assumptions
-- Test tool names (Playwright, Jest, pytest) as mandated tools
-- Build tool names (webpack, vite) as prescribed choices
-
-### What Is Allowed
-
-| Pattern | Example | Rationale |
-|---------|---------|-----------|
-| Referencing conventions.md | "Run the build command from conventions.md" | Project-specific commands live in conventions.md, not in skill definitions |
-| Marker file detection | "If package.json exists..." / "If go.mod exists..." | Detection targets for stack identification, not prescriptions |
-| Multi-alternative examples | "e.g., Jest, pytest, or vitest" | Showing multiple options avoids prescribing one |
-| MCP tool categories | "browser automation MCP" | Agent definitions may reference MCP categories but not specific product names as the only option |
-
-### How This Works in Practice
-
-1. **Forge onboards the project** during Discovery (Initiative) or pre-conditions (Sprint), writing discovered conventions to `.geas/memory/_project/conventions.md`
-2. **TaskContracts reference conventions.md** for eval_commands (e.g., the test command, build command, lint command)
-3. **Workers read their ContextPacket**, which includes relevant conventions
-4. **Evidence Gate runs eval_commands** from the TaskContract -- these are project-specific commands, not hardcoded tool invocations
-
-This means a Geas session on a Python/Django project uses `pytest` and `ruff` because conventions.md says so, while a TypeScript/Next.js project uses `vitest` and `eslint` -- all without changing any skill definition.
-
-### CLAUDE.md Enforcement
-
-The project's CLAUDE.md contains these rules explicitly. Any PR that adds a hardcoded tool reference to a core skill violates the architecture and should be rejected.
+| Topic | Reference |
+|-------|-----------|
+| Design principles, 4 Pillars | `protocol/00_PROTOCOL_FOUNDATIONS.md` |
+| Agent types, authority boundaries | `protocol/01_AGENT_TYPES_AND_AUTHORITY.md` |
+| Modes, missions, phases | `protocol/02_MODES_MISSIONS_AND_RUNTIME.md` |
+| Task lifecycle, state machine | `protocol/03_TASK_MODEL_AND_LIFECYCLE.md` |
+| Worktree, locks, parallelism | `protocol/04_BASELINE_WORKTREE_SCHEDULER_AND_PARALLELISM.md` |
+| Gate, vote, verdict | `protocol/05_GATE_VOTE_AND_FINAL_VERDICT.md` |
+| Specialist evidence matrix | `protocol/06_SPECIALIST_EVIDENCE_MATRIX.md` |
+| Memory system | `protocol/07`, `08`, `09` |
+| Session recovery | `protocol/10_SESSION_RECOVERY_AND_RESUMABILITY.md` |
+| Artifacts, schemas | `protocol/11_RUNTIME_ARTIFACTS_AND_SCHEMAS.md` |
+| Enforcement, metrics | `protocol/12_ENFORCEMENT_CONFORMANCE_AND_METRICS.md` |
+| Migration roadmap | `protocol/13_MIGRATION_AND_IMPLEMENTATION_ROADMAP.md` |
+| Evolution loop | `protocol/14_EVOLUTION_DEBT_AND_GAP_LOOP.md` |
