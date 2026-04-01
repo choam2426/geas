@@ -83,6 +83,26 @@ For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
 
 ### 2.0 Start Task
 - Read TaskContract. Check dependencies are `"passed"`.
+
+#### Baseline Check (before implementing)
+
+Before transitioning to `"implementing"`, check for staleness:
+
+1. Read `base_commit` from the TaskContract
+2. Get current integration branch tip: `git rev-parse HEAD`
+3. If `base_commit == tip`: no staleness, proceed
+4. If `base_commit != tip`: run revalidation:
+   a. Compute changed files: `git diff {base_commit}..{tip} --name-only`
+   b. Compare against the task's `scope.paths`
+   c. **No overlap** → classification = `clean_sync`. Update `base_commit` to current tip in the TaskContract. Proceed.
+   d. **Overlap, auto-resolvable** → classification = `review_sync`. Update `base_commit`, proceed. Flag for specialist re-review after implementation.
+   e. **Overlap, not auto-resolvable** → classification = `replan_required`. Do NOT proceed. Rewind task to `"ready"`. Update implementation contract.
+   f. **Preconditions invalidated** → classification = `blocking_conflict`. Set task status to `"blocked"`.
+   g. Write `.geas/tasks/{task-id}/revalidation-record.json` conforming to `docs/protocol/schemas/revalidation-record.schema.json`
+   h. Log event: `{"event": "revalidation", "task_id": "...", "classification": "...", "timestamp": "<actual>"}`
+
+Only proceed to `"implementing"` if classification is `clean_sync` or `review_sync`.
+
 - Update status to `"implementing"`. Log `task_started` event.
 - **Write `remaining_steps` to checkpoint** — the full pipeline for this task:
   ```json
@@ -156,7 +176,22 @@ Update run.json checkpoint: `pipeline_step` = "implementation", `agent_in_flight
 ```
 Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/packets/{task-id}/{worker}.md. Implement the feature. Write evidence to .geas/evidence/{task-id}/{worker}.json")
 ```
-Verify evidence exists. Merge worktree branch. After successful merge, update TaskContract status to `"integrated"`.
+Verify evidence exists.
+
+#### Pre-Integration Staleness Check
+
+Before merging the worktree:
+
+1. Re-check: compare `base_commit` with current `tip(integration_branch)` using `git diff {base_commit}..HEAD --name-only`
+2. Compare against `scope.paths`
+3. Classify:
+   - `clean_sync` → fast-forward merge or trivial rebase, proceed
+   - `review_sync` → merge, then specialist re-review required for changed areas
+   - `replan_required` → rewind task to `"ready"`, update implementation contract
+   - `blocking_conflict` → task → `"blocked"`
+4. If revalidation was needed, write an updated `.geas/tasks/{task-id}/revalidation-record.json`
+
+Merge worktree branch. After successful merge, update TaskContract status to `"integrated"`.
 
 ### 2.4.5 Worker Self-Check [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "self_check", `agent_in_flight` = "{worker}"

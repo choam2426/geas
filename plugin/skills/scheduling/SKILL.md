@@ -27,8 +27,14 @@ When the orchestrator reaches a point where new tasks could start (Phase 2 entry
 
 1. Read all task files in `.geas/tasks/`.
 2. Filter: `status == "ready"` AND every ID in `depends_on` has a task file with `status == "passed"`.
-3. If 0-1 eligible: this protocol does not apply. The orchestrator runs the single task through the normal pipeline.
-4. If 2+ eligible: form a batch.
+3. **Staleness check per task**: For each candidate, compare `base_commit` with `tip(integration_branch)`.
+   - If `base_commit == tip`: eligible
+   - If `base_commit != tip`: run revalidation procedure
+     - `clean_sync`: eligible (update base_commit first)
+     - `review_sync`: eligible (flag for re-review after implementation)
+     - `replan_required` or `blocking_conflict`: **exclude from batch**. Rewind or block as appropriate. Write revalidation-record.json.
+4. If 0-1 eligible: this protocol does not apply. The orchestrator runs the single task through the normal pipeline.
+5. If 2+ eligible: form a batch.
    - **Max batch size: 4.** If more eligible, take the first 4 by task ID order. Remainder waits for next batch.
    - Reason: worktree concurrency + context window limits.
 
