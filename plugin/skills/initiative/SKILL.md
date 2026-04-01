@@ -86,7 +86,7 @@ For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
 - Update status to `"implementing"`. Log `task_started` event.
 - **Write `remaining_steps` to checkpoint** — the full pipeline for this task:
   ```json
-  "remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "code_review", "testing", "evidence_gate", "critical_reviewer", "final_verdict", "retrospective", "resolve"]
+  "remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "self_check", "code_review", "testing", "evidence_gate", "critical_reviewer", "final_verdict", "retrospective", "resolve"]
   ```
   Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
 - **[MANDATORY] Event logging**: After each step completes and is removed from `remaining_steps`, log:
@@ -157,6 +157,13 @@ Update run.json checkpoint: `pipeline_step` = "implementation", `agent_in_flight
 Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/packets/{task-id}/{worker}.md. Implement the feature. Write evidence to .geas/evidence/{task-id}/{worker}.json")
 ```
 Verify evidence exists. Merge worktree branch. After successful merge, update TaskContract status to `"integrated"`.
+
+### 2.4.5 Worker Self-Check [MANDATORY]
+Update run.json checkpoint: `pipeline_step` = "self_check", `agent_in_flight` = "{worker}"
+```
+Agent(agent: "{worker}", prompt: "Implementation for {task-id} is complete. Before handing off to code review, produce your self-check artifact. Write .geas/tasks/{task-id}/worker-self-check.json conforming to docs/protocol/schemas/worker-self-check.schema.json. Required fields: version (\"1.0\"), artifact_type (\"worker_self_check\"), artifact_id (e.g. \"self-check-{task-id}\"), producer_type (your agent type: frontend_engineer | backend_engineer | devops_engineer | technical_writer), task_id, known_risks (string[]), untested_paths (string[]), possible_stubs (string[]), what_to_test_next (string[]), confidence (integer 1-5: 1=very_low … 5=very_high), summary (string), created_at (ISO 8601 timestamp).")
+```
+Verify `.geas/tasks/{task-id}/worker-self-check.json` exists. Do NOT proceed to Code Review without this file.
 
 ### 2.5 Code Review (Forge) [MANDATORY]
 Generate ContextPacket, then:
