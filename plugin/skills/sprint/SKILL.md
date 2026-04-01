@@ -32,7 +32,7 @@ Invoke `/geas:task-compiler` for the feature. The TaskContract MUST include a `r
 
 After compilation, write `remaining_steps` to checkpoint:
 ```json
-"remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "self_check", "code_review", "testing", "evidence_gate", "closure_packet", "critical_reviewer", "final_verdict", "retrospective", "resolve"]
+"remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "self_check", "code_review", "testing", "evidence_gate", "closure_packet", "critical_reviewer", "final_verdict", "resolve", "retrospective"]
 ```
 Remove steps that will be skipped. After completing each step, remove it from the front of the array and update run.json.
 
@@ -328,13 +328,6 @@ Note: "iterate" is only valid as a Final Verdict outcome. Gate verdicts (evidenc
 - `.geas/tasks/{task-id}/final-verdict.json` exists with `verdict: "pass"`
 **If ANY missing: execute the missing step. Do NOT proceed without all three.**
 
-### Retrospective (Scrum) [MANDATORY]
-Update run.json checkpoint: `pipeline_step` = "retrospective", `agent_in_flight` = "scrum"
-```
-Agent(agent: "scrum", prompt: "Read all evidence at .geas/evidence/{task-id}/. Run retrospective: update rules.md with new conventions, write lessons to .geas/memory/retro/{task-id}.json")
-```
-Verify `.geas/memory/retro/{task-id}.json` exists.
-
 ### 10. Resolve
 
 #### Lock Release
@@ -352,6 +345,30 @@ On task completion (Ship, Cut, or Escalate):
   ```
 - Iterate (Final Verdict only) → does NOT deduct retry_budget (iterate is a product judgment, not a gate failure). Track iterate_count — after 3 cumulative iterates, escalate to orchestration_authority. Repopulate remaining_steps with full pipeline (same skip conditions). Include Nova's feedback in all ContextPackets. Resume from the rewind_target specified in the final verdict.
 - Cut → `"cancelled"`, write DecisionRecord
+
+### Retrospective (Scrum) [MANDATORY — Ship only, after Resolve]
+
+**Skip condition:** If the Final Verdict was Cut or Escalate, skip retrospective. Only run when the task has been resolved as Ship (status = `"passed"`).
+
+Update run.json checkpoint: `pipeline_step` = "retrospective", `agent_in_flight` = "scrum"
+```
+Agent(agent: "scrum", prompt: "Read all evidence at .geas/evidence/{task-id}/ and the closure packet at .geas/tasks/{task-id}/closure-packet.json. Write a structured retrospective to .geas/tasks/{task-id}/retrospective.json conforming to docs/protocol/schemas/retrospective.schema.json. Required fields:
+- version: '1.0'
+- artifact_type: 'retrospective'
+- artifact_id: 'retro-{task-id}'
+- producer_type: 'process_lead'
+- task_id: '{task-id}'
+- what_went_well: things that worked in this task
+- what_broke: problems encountered during implementation, review, or gate
+- what_was_surprising: unexpected findings or outcomes
+- rule_candidates: proposed changes to rules.md (DO NOT modify rules.md directly — list proposals here)
+- memory_candidates: lessons worth remembering for future tasks
+- debt_candidates: new technical debt discovered during retrospective review
+- next_time_guidance: specific advice for similar future tasks
+- created_at: ISO 8601 timestamp")
+```
+
+Verify `.geas/tasks/{task-id}/retrospective.json` exists.
 
 ### 11. Run Summary
 Invoke `/geas:run-summary` to generate session audit trail.
