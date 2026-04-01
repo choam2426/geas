@@ -441,7 +441,7 @@ Verify `.geas/evidence/polish/shield.json` exists.
 ### 3.2 Triage Shield Findings
 Read `.geas/evidence/polish/shield.json`. Classify each finding by severity:
 - **CRITICAL / HIGH** → create a fix task (mini-pipeline, see 3.3)
-- **MEDIUM / LOW** → register in `.geas/debt.json` with `source_task: "polish"`, `found_by: "shield"`
+- **MEDIUM / LOW** → add to `.geas/state/debt-register.json` as structured debt items with severity, kind, status, target_phase
 
 If no CRITICAL/HIGH findings: skip 3.3 and proceed to 3.4.
 
@@ -468,10 +468,10 @@ Verify `.geas/evidence/polish/scroll.json` exists.
 ### 3.5 Entropy Scan
 Update run.json checkpoint: `pipeline_step` = "cleanup", `agent_in_flight` = "forge"
 Invoke `/geas:cleanup` — Forge scans for dead code, AI boilerplate, convention drift, and duplication.
-Results are recorded in `.geas/debt.json`.
+Results are recorded in `.geas/state/debt-register.json`.
 
 ### 3.6 Close Phase 3
-**Completion criteria:** zero open CRITICAL/HIGH security issues. MEDIUM/LOW items in debt.json are acceptable — they carry into Phase 4.
+**Completion criteria:** zero open CRITICAL/HIGH security issues. MEDIUM/LOW items in debt-register.json are acceptable — they carry into Phase 4.
 
 Log: `{"event": "phase_complete", "phase": "polish", "timestamp": "<actual>"}`
 
@@ -483,7 +483,7 @@ Log: `{"event": "phase_complete", "phase": "polish", "timestamp": "<actual>"}`
 1. Read `.geas/spec/seed.json` — get `scope_in` items
 2. Read all TaskContracts in `.geas/tasks/` — get items with `status: "passed"`
 3. Diff: identify `scope_in` items that have no corresponding completed task
-4. Read `.geas/debt.json` — get open items with severity HIGH
+4. Read `.geas/state/debt-register.json` — get open items with severity HIGH
 5. Reject any work that falls under `scope_out` — Evolution refines, it does not expand
 
 ### 4.2 Prioritize Remaining Work

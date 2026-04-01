@@ -19,9 +19,19 @@ Before anything else, create the runtime directory structure in the project root
 mkdir -p .geas/spec .geas/state .geas/tasks .geas/contracts .geas/packets .geas/evidence .geas/decisions .geas/decisions/pending .geas/ledger .geas/summaries .geas/memory/_project .geas/memory/retro .geas/memory/agents
 ```
 
-Write the initial debt tracking file `.geas/debt.json`:
+Write the initial debt register `.geas/state/debt-register.json` conforming to `docs/protocol/schemas/debt-register.schema.json`:
 ```json
-{"items": []}
+{
+  "version": "1.0",
+  "artifact_type": "debt_register",
+  "artifact_id": "dr-init",
+  "producer_type": "orchestration_authority",
+  "scope": "mission",
+  "items": [],
+  "rollup_by_severity": { "low": 0, "medium": 0, "high": 0, "critical": 0 },
+  "rollup_by_kind": { "code_quality": 0, "architecture": 0, "security": 0, "docs": 0, "ops": 0, "test_gap": 0, "product_gap": 0 },
+  "created_at": "<ISO 8601>"
+}
 ```
 
 Then ensure `.geas/` is gitignored. Check if `.gitignore` exists:

@@ -1,6 +1,6 @@
 ---
 name: cleanup
-description: Entropy scan — detect AI slop, unused code, convention drift. Records findings in .geas/debt.json. Invoke after Build or during Evolution.
+description: Entropy scan — detect AI slop, unused code, convention drift. Records findings in .geas/state/debt-register.json. Invoke after Build or during Evolution.
 ---
 
 # Cleanup
@@ -91,28 +91,44 @@ Patterns common in AI-generated code:
 
 ## Output
 
-### Per Finding: debt.json Entry
+### Per Finding: debt-register.json Entry
 
-For each finding, append an entry to `.geas/debt.json`:
+For each finding, add a structured debt item to `.geas/state/debt-register.json`. Read the existing file, append to the `items` array, update rollups, and write back.
+
+Each debt item conforms to `docs/protocol/schemas/debt-register.schema.json`:
 
 ```json
 {
-  "id": "debt-<NNN>",
-  "title": "[Tech Debt] <short description>",
-  "location": "<file:line> (or <file> for file-level issues)",
-  "issue": "<what's wrong, in one sentence>",
-  "fix": "<suggested approach, in one sentence>",
-  "impact": "low | medium | high",
-  "created_at": "<ISO 8601 timestamp>"
+  "debt_id": "DEBT-<NNN>",
+  "severity": "low | medium | high | critical",
+  "kind": "code_quality | architecture | security | docs | ops | test_gap | product_gap",
+  "title": "<short description>",
+  "description": "<what's wrong and suggested fix>",
+  "introduced_by_task_id": "<task-id or 'polish'>",
+  "owner_type": "<agent type responsible>",
+  "status": "open",
+  "target_phase": "polish | evolution | future"
 }
 ```
 
-**Priority mapping**:
-- `high` impact — affects correctness, maintainability of core modules
-- `medium` impact — code smell, moderate duplication
-- `low` impact — cosmetic, minor inconsistency
+**Severity mapping:**
+- `critical` — security/data loss risk, blocks shipping
+- `high` — affects correctness, maintainability of core modules
+- `medium` — code smell, moderate duplication
+- `low` — cosmetic, minor inconsistency
 
-**Batching**: Group related findings into a single entry when they share the same root cause. Do not create 20 entries for 20 unnecessary comments in the same file -- create one entry: "[Tech Debt] Remove unnecessary comments in <module>".
+**Kind mapping:**
+- `code_quality` — dead code, duplication, naming, style
+- `architecture` — structural issues, coupling, layering
+- `security` — vulnerability, exposure
+- `docs` — missing/wrong documentation
+- `ops` — deployment, monitoring, config issues
+- `test_gap` — missing test coverage
+- `product_gap` — feature incomplete or misaligned
+
+**Batching**: Group related findings into a single entry when they share the same root cause. Do not create 20 entries for 20 unnecessary comments in the same file -- create one entry with title "Remove unnecessary comments in <module>".
+
+After adding items, update `rollup_by_severity` and `rollup_by_kind` counts to match the current `items` array.
 
 ### Summary
 
@@ -129,7 +145,7 @@ Top priorities:
   2. <second highest>
   3. <third highest>
 
-Tech debt items recorded in .geas/debt.json
+Tech debt items recorded in .geas/state/debt-register.json
 ```
 
 ---

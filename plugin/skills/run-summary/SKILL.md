@@ -95,9 +95,9 @@ Present as a markdown table in the summary.
 
 ---
 
-### Tech Debt Report (if `.geas/debt.json` exists)
+### Tech Debt Report (if `.geas/state/debt-register.json` exists)
 
-Read debt.json and report:
+Read debt-register.json and report:
 - **Open**: count by severity (HIGH / MEDIUM / LOW)
 - **New this session**: items where `created_at` falls within this session
 - **Resolved this session**: items where `resolved_at` falls within this session

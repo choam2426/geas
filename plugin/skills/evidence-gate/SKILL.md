@@ -119,7 +119,7 @@ Compare files changed against the task's `scope.paths`:
 Verify that each item in the implementation contract's `known_risks` has been handled:
 - **Mitigated**: evidence shows the risk was addressed
 - **Accepted with rationale**: explicit rationale recorded for accepting the risk
-- **Deferred to debt**: recorded in `.geas/debt.json`
+- **Deferred to debt**: recorded in `.geas/state/debt-register.json`
 
 Any `known_risk` with no handling status -> Tier 2 fails.
 

@@ -84,14 +84,15 @@ This applies to every task — sequential or parallel, initiative or sprint. If 
 
 ### Tech debt tracking
 After reading each agent's evidence, check for a `tech_debt` array. If present:
-1. Read `.geas/debt.json` (create with `{"items": []}` if missing).
-2. For each debt item, check if a similar title already exists in debt.json (skip duplicates).
-3. Add new items with sequential ID (DEBT-001, DEBT-002...), preserving `severity` from the original tech_debt item. If severity is absent, assess it yourself based on the description (HIGH = security/data risk, MEDIUM = quality/maintainability, LOW = cosmetic/minor). Set `source_task`, `found_by`, `found_at`, `status: "open"`, and `created_at`.
-4. Write back debt.json.
+1. Read `.geas/state/debt-register.json` (create with initial schema if missing).
+2. For each debt item, check if a similar title already exists (skip duplicates).
+3. Add new items with sequential ID (DEBT-001, DEBT-002...) as structured items conforming to `docs/protocol/schemas/debt-register.schema.json`. Each item requires: `debt_id`, `severity`, `kind`, `title`, `description`, `introduced_by_task_id`, `owner_type`, `status: "open"`, `target_phase`.
+4. Update `rollup_by_severity` and `rollup_by_kind` counts.
+5. Write back debt-register.json.
 
-When a task resolves a debt item, update its `status` to `"resolved"` with `resolution_task` and `resolved_at`.
+When a task resolves a debt item, update its `status` to `"resolved"`.
 
-Threshold warning is handled automatically by the check-debt hook when you write debt.json.
+Threshold warning is handled automatically by the check-debt hook when you write debt-register.json.
 
 ### Git operations
 - **All git operations (commit, branch, PR) must be done by Keeper.** Do not commit or manage branches directly.
