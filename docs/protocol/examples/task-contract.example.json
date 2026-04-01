@@ -1,0 +1,48 @@
+{
+  "version": "1.0",
+  "artifact_type": "task_contract",
+  "artifact_id": "tc-task-003",
+  "producer_type": "orchestration_authority",
+  "created_at": "2026-04-01T09:00:00Z",
+  "task_id": "task-003",
+  "title": "Implement user authentication flow",
+  "goal": "Build login, signup, and password reset forms with token-based authentication against the existing backend API",
+  "task_kind": "code",
+  "risk_level": "normal",
+  "gate_profile": "code_change",
+  "vote_round_policy": "auto",
+  "acceptance_criteria": [
+    "Login form submits credentials and stores JWT on success",
+    "Signup form validates inputs and creates account via API",
+    "Password reset sends email token and allows password change",
+    "All error states display user-friendly messages",
+    "Session persists across page refreshes"
+  ],
+  "eval_commands": [
+    "npm test -- --filter auth",
+    "npm run lint",
+    "npm run typecheck"
+  ],
+  "rubric": {
+    "dimensions": [
+      { "name": "core_interaction", "threshold": 3 },
+      { "name": "feature_completeness", "threshold": 4 },
+      { "name": "code_quality", "threshold": 4 },
+      { "name": "regression_safety", "threshold": 4 }
+    ]
+  },
+  "retry_budget": 3,
+  "scope": {
+    "paths": [
+      "src/features/auth/",
+      "src/components/forms/",
+      "src/api/auth.ts"
+    ]
+  },
+  "routing": {
+    "primary_worker_type": "frontend_engineer",
+    "required_reviewer_types": ["architecture_authority", "qa_engineer"]
+  },
+  "base_commit": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+  "status": "ready"
+}

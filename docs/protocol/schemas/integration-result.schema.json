@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "IntegrationResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "artifact_type",
+    "artifact_id",
+    "producer_type",
+    "created_at",
+    "task_id",
+    "integration_branch",
+    "merge_commit",
+    "base_commit",
+    "status",
+    "files_changed"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "artifact_type": {
+      "type": "string",
+      "const": "integration_result"
+    },
+    "artifact_id": {
+      "type": "string"
+    },
+    "producer_type": {
+      "$ref": "_defs.schema.json#/$defs/agentType"
+    },
+    "created_at": {
+      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "integration_branch": {
+      "type": "string"
+    },
+    "merge_commit": {
+      "type": "string"
+    },
+    "base_commit": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["success", "conflict", "failed"]
+    },
+    "files_changed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "conflict_details": {
+      "type": "string"
+    },
+    "drift_classification": {
+      "type": "string",
+      "enum": ["clean_sync", "review_sync", "replan_required", "blocking_conflict"]
+    }
+  }
+}
