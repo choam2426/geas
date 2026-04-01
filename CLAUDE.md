@@ -121,15 +121,16 @@ We are upgrading skills to match the v3 protocol. Migration follows 6 phases (se
 
 - **Phase 1 (Minimum Enforceable State)**: 7-state task model, worker self-check, gate/verdict separation, closure packet, critical reviewer, debate→decision rename
 - **Phase 2 (Baseline, Stale, Parallelism)**: revalidation-record/lock-manifest schemas, staleness detection, lock lifecycle, safe parallel conditions, compass→orchestrating + parallel-dispatch→scheduling renames
+- **Phase 3 (Evolution Core)**: structured retrospective (after Resolve, Ship only), rules-update workflow, debt-register.json, gap-assessment.json, phase-review wiring, evolution exit gate, Sprint Wrap-Up
 
-### Current phase: Phase 3 — Evolution Core
+### Current phase: Phase 4 — Memory Core
 
 Priority gaps to close:
-1. Retrospective structured format (retrospective.schema.json)
-2. Rules update with evidence refs (rules-update.schema.json)
-3. Debt register structured format (debt-register.schema.json)
-4. Gap assessment comparison logic (gap-assessment.schema.json)
-5. Phase review / mission summary wiring
+1. Memory candidate extraction (automated from retrospective)
+2. Memory entry lifecycle (9-state: candidate → canonical)
+3. Memory review and promotion (6-stage)
+4. Memory packet builder (context injection)
+5. Application logging (effect tracking when memory applied)
 
 ### How to work on migration
 

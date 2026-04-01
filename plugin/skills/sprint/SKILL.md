@@ -32,7 +32,7 @@ Invoke `/geas:task-compiler` for the feature. The TaskContract MUST include a `r
 
 After compilation, write `remaining_steps` to checkpoint:
 ```json
-"remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "self_check", "code_review", "testing", "evidence_gate", "closure_packet", "critical_reviewer", "final_verdict", "resolve", "retrospective"]
+"remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "self_check", "code_review", "testing", "evidence_gate", "closure_packet", "critical_reviewer", "final_verdict", "resolve", "retrospective", "sprint_wrapup"]
 ```
 Remove steps that will be skipped. After completing each step, remove it from the front of the array and update run.json.
 
@@ -370,5 +370,31 @@ Agent(agent: "scrum", prompt: "Read all evidence at .geas/evidence/{task-id}/ an
 
 Verify `.geas/tasks/{task-id}/retrospective.json` exists.
 
-### 11. Run Summary
+### 11. Sprint Wrap-Up [after Retrospective, before Run Summary]
+
+Lightweight post-resolve section for rules and debt processing.
+
+#### 11.1 Rules Update
+
+1. Read `.geas/tasks/{task-id}/retrospective.json` → extract `rule_candidates[]`
+2. If no candidates: write `.geas/state/rules-update.json` with `status: "none"`, `reason: "no rule candidates"`, `evidence_refs: []`, `applies_to: []`. Skip to 11.2.
+3. If candidates exist:
+   - Check approval conditions: do the candidates have evidence_refs >= 2 (same pattern in 2+ prior sessions) AND contradiction_count = 0?
+   - If conditions met: auto-approve. Apply changes to `.geas/rules.md`. Write `.geas/state/rules-update.json` conforming to `docs/protocol/schemas/rules-update.schema.json` with `status: "approved"`, `affected_rule_ids`, `reason`, `evidence_refs`, `applies_to`.
+   - If conditions not met: write `.geas/state/rules-update.json` with `status: "proposed"`. Note for future review.
+4. Log: `{"event": "rules_update", "status": "approved|proposed|none", "timestamp": "<actual>"}`
+
+#### 11.2 Debt Register Update
+
+1. Read `.geas/tasks/{task-id}/retrospective.json` → extract `debt_candidates[]`
+2. If no candidates: skip.
+3. For each candidate: add as structured item to `.geas/state/debt-register.json` with `debt_id` (sequential), `severity`, `kind`, `title`, `description`, `introduced_by_task_id: "{task-id}"`, `owner_type`, `status: "open"`, `target_phase: "future"`.
+4. Update `rollup_by_severity` and `rollup_by_kind` counts.
+5. Write back debt-register.json.
+
+#### 11.3 Sprint Result
+
+Brief confirmation: what was requested (from seed.json or task goal) vs what was delivered. This is NOT a full gap assessment — just a one-line confirmation for the session record.
+
+### 12. Run Summary
 Invoke `/geas:run-summary` to generate session audit trail.

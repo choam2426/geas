@@ -178,6 +178,7 @@ The items below exist in skills but not in the protocol. They should either be a
 | `remaining_steps` checkpoint | core mechanism for session recovery | reflect in doc 10 |
 | Entropy Scan / Cleanup | dead code cleanup in polish phase | add to doc 02 polish phase |
 | Run Summary | session audit trail | add to doc 12 observability |
+| Sprint Wrap-Up | Lightweight post-resolve section for rules approval + debt update in Sprint | Add to doc 02 as Sprint pattern extension |
 
 ## Migration Rule
 
