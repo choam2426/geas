@@ -63,6 +63,32 @@ Analyze the tech stack from Forge's architecture decision and recommend helpful 
 Present recommendations with install commands from the MCP registry.
 
 ### 1.8 Close Discovery
+
+**Phase review** — verify gate criteria for discovery → build:
+- Mission brief exists (seed.json)
+- scope_in defined
+- Initial tasks compiled
+
+Write `.geas/state/phase-review.json` conforming to `docs/protocol/schemas/phase-review.schema.json`:
+```json
+{
+  "version": "1.0",
+  "artifact_type": "phase_review",
+  "artifact_id": "pr-discovery",
+  "producer_type": "orchestration_authority",
+  "mission_phase": "discovery",
+  "status": "ready_to_exit",
+  "summary": "<discovery outcomes>",
+  "gate_criteria_met": ["mission brief exists", "scope_in defined", "tasks compiled"],
+  "gate_criteria_unmet": [],
+  "risk_notes": [],
+  "next_phase": "build",
+  "created_at": "<ISO 8601>"
+}
+```
+
+If any gate criteria unmet: set `status: "blocked"`, list unmet criteria in `gate_criteria_unmet`. Do not proceed until resolved. After 3 consecutive transition failures → enter decision mode.
+
 - Update run state: `{ "phase": "build", "status": "in_progress" }`
 - Log: `{"event": "phase_complete", "phase": "discovery", "timestamp": "<actual>"}`
 
@@ -425,6 +451,18 @@ Agent(agent: "scrum", prompt: "Read all evidence at .geas/evidence/{task-id}/ an
 Verify `.geas/tasks/{task-id}/retrospective.json` exists.
 
 ### Close Phase 2
+
+**Phase review** — verify gate criteria for build → polish:
+- All MVP-critical tasks passed
+- No blocking_conflict active
+- 0 critical debt in `.geas/state/debt-register.json`
+- 0 unmitigated high debt (status must not be "open" for high severity)
+
+Write `.geas/state/gap-assessment.json` if not yet produced for this transition (same procedure as 4.1 but scoped to build phase).
+Write `.geas/state/phase-review.json` with `mission_phase: "build"`, `next_phase: "polish"`.
+
+If any gate criteria unmet: set `status: "blocked"`. List unmet criteria. After 3 consecutive failures → enter decision mode.
+
 Log: `{"event": "phase_complete", "phase": "build", "timestamp": "<actual>"}`
 
 ---
@@ -471,7 +509,17 @@ Invoke `/geas:cleanup` — Forge scans for dead code, AI boilerplate, convention
 Results are recorded in `.geas/state/debt-register.json`.
 
 ### 3.6 Close Phase 3
-**Completion criteria:** zero open CRITICAL/HIGH security issues. MEDIUM/LOW items in debt-register.json are acceptable — they carry into Phase 4.
+
+**Phase review** — verify gate criteria for polish → evolution:
+- All high/critical debt triaged in `.geas/state/debt-register.json` (no items with severity high/critical and status "open")
+- Required reviews approved
+- Shipping rationale recorded for every known risk
+- Zero open CRITICAL/HIGH security issues
+
+Write `.geas/state/gap-assessment.json` if not yet produced for this transition.
+Write `.geas/state/phase-review.json` with `mission_phase: "polish"`, `next_phase: "evolution"`.
+
+If any gate criteria unmet: set `status: "blocked"`. List unmet criteria. After 3 consecutive failures → enter decision mode.
 
 Log: `{"event": "phase_complete", "phase": "polish", "timestamp": "<actual>"}`
 
