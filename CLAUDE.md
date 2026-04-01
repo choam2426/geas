@@ -54,7 +54,7 @@ plugin/
 docs/
 ├── protocol/                # Operating protocol (English, canonical)
 │   ├── 00-14 .md            # 15 protocol documents
-│   ├── schemas/             # 19 JSON Schema (draft 2020-12)
+│   ├── schemas/             # 21 JSON Schema (draft 2020-12)
 │   └── examples/            # 15 example files
 ├── architecture/DESIGN.md   # Architecture overview
 └── reference/               # SKILLS.md, HOOKS.md
@@ -70,6 +70,10 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 - `evidence-gate/` — Tier 0/1/2 verification (pass/fail/block/error)
 - `verify-fix-loop/` — fail → fix → re-verify with retry budget
 - `vote-round/` — structured agent voting (proposal_round + readiness_round)
+
+### Orchestration + scheduling
+- `orchestrating/` — Geas orchestrator: setup, intake, mode routing, pipeline coordination
+- `scheduling/` — parallel task scheduling: batch construction, lock checks, safe conditions
 
 ### Team skills (execution protocols)
 - `initiative/` — 4-phase mission (discovery → build → polish → evolution)
@@ -87,7 +91,7 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 
 ## Agent Name Rule
 
-Protocol docs (`docs/protocol/`, `docs/ko/protocol/`) and core skills MUST use **agent type names only** (e.g., `product_authority`, `critical_reviewer`, `process_lead`). NEVER use character names (Nova, Forge, Pixel, Circuit, Sentinel, Keeper, Shield, Critic, Scroll, Scrum, Palette, Pipeline, Compass). Character names are defined only in `plugin/agents/*.md`.
+Protocol docs (`docs/protocol/`, `docs/ko/protocol/`) and core skills MUST use **agent type names only** (e.g., `product_authority`, `critical_reviewer`, `process_lead`). NEVER use character names (Nova, Forge, Pixel, Circuit, Sentinel, Keeper, Shield, Critic, Scroll, Scrum, Palette, Pipeline). Character names are defined only in `plugin/agents/*.md`.
 
 ## Tool-Agnostic Rules
 
@@ -113,14 +117,19 @@ All files must be written in English, except `docs/ko/` and `README.ko.md`.
 
 We are upgrading skills to match the v3 protocol. Migration follows 6 phases (see `docs/protocol/13_MIGRATION_AND_IMPLEMENTATION_ROADMAP.md`). Each phase depends on the previous one.
 
-### Current phase: Phase 1 — Minimum Enforceable State
+### Completed phases
+
+- **Phase 1 (Minimum Enforceable State)**: 7-state task model, worker self-check, gate/verdict separation, closure packet, critical reviewer, debate→decision rename
+- **Phase 2 (Baseline, Stale, Parallelism)**: revalidation-record/lock-manifest schemas, staleness detection, lock lifecycle, safe parallel conditions, compass→orchestrating + parallel-dispatch→scheduling renames
+
+### Current phase: Phase 3 — Evolution Core
 
 Priority gaps to close:
-1. Task 7-state model in task-compiler (drafted→ready→implementing→reviewed→integrated→verified→passed)
-2. Worker self-check generation (currently consumed but never produced)
-3. Evidence Gate ↔ Final Verdict separation (currently merged — gate should return pass/fail/block/error only)
-4. Closure Packet assembly (new step after gate pass)
-5. Critical Reviewer Challenge (new step before final verdict)
+1. Retrospective structured format (retrospective.schema.json)
+2. Rules update with evidence refs (rules-update.schema.json)
+3. Debt register structured format (debt-register.schema.json)
+4. Gap assessment comparison logic (gap-assessment.schema.json)
+5. Phase review / mission summary wiring
 
 ### How to work on migration
 
