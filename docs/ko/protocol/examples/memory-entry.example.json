@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "version": "2.1.0",
+    "artifact_type": "memory_entry",
+    "artifact_id": "mem-001",
+    "producer_type": "process_lead",
+    "created_at": "2026-04-01T12:00:00Z",
+    "updated_at": "2026-04-01T12:00:00Z"
+  },
+  "memory_id": "mem-001",
+  "memory_type": "test_strategy",
+  "state": "stable",
+  "title": "Auth UI tasks should always exercise failed-login rendering",
+  "summary": "\ub85c\uadf8\uc778 \uad00\ub828 UI \ubcc0\uacbd\uc740 \uc131\uacf5 \uacbd\ub85c\ubfd0 \uc544\ub2c8\ub77c failed-login \ub80c\ub354\ub9c1\uae4c\uc9c0 demo/test path\uc5d0 \ud3ec\ud568\ud574\uc57c \ud55c\ub2e4.",
+  "scope": "project",
+  "evidence_refs": [
+    "task-003/failure-record-001",
+    "task-007/specialist-review-qa-001"
+  ],
+  "signals": {
+    "evidence_count": 2,
+    "reuse_count": 3,
+    "contradiction_count": 0,
+    "confidence": 0.83
+  },
+  "review_after": "2026-07-01T00:00:00Z",
+  "supersedes": [],
+  "superseded_by": null,
+  "tags": [
+    "auth",
+    "ui",
+    "qa",
+    "failure-path"
+  ],
+  "body": [
+    "Apply to all auth UI tasks.",
+    "Include failed-login rendering in demo steps.",
+    "If no browser automation exists, require explicit manual verification note."
+  ]
+}

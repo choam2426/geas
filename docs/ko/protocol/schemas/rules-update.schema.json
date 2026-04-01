@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RulesUpdate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "artifact_type",
+    "artifact_id",
+    "producer_type",
+    "status",
+    "reason",
+    "evidence_refs",
+    "applies_to",
+    "created_at"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "artifact_type": {
+      "type": "string",
+      "const": "rules_update"
+    },
+    "artifact_id": {
+      "type": "string"
+    },
+    "producer_type": {
+      "type": "string",
+      "enum": [
+        "process_lead",
+        "architecture_authority",
+        "product_authority",
+        "qa_engineer",
+        "security_engineer"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "proposed",
+        "approved",
+        "rejected",
+        "superseded"
+      ]
+    },
+    "affected_rule_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reason": {
+      "type": "string"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "applies_to": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string"
+    }
+  },
+  "if": {
+    "properties": {
+      "status": { "const": "approved" }
+    },
+    "required": ["status"]
+  },
+  "then": {
+    "required": [
+      "affected_rule_ids"
+    ],
+    "properties": {
+      "affected_rule_ids": {
+        "minItems": 1
+      }
+    }
+  }
+}

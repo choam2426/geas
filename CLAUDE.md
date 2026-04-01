@@ -77,6 +77,10 @@ All files must be written in English, except `README.ko.md`. This includes skill
 - Schemas are JSON Schema draft 2020-12 in `schemas/` directories
 - Runtime state goes in `.geas/` (gitignored, per-project)
 
+## Agent Name Rule
+
+Protocol docs (`geas_protocol_doc_bundle_v3/docs/`) and core skills MUST use **agent type names only** (e.g., `product_authority`, `critical_reviewer`, `process_lead`). NEVER use character names (Nova, Forge, Pixel, Circuit, Sentinel, Keeper, Shield, Critic, Scroll, Scrum, Palette, Pipeline, Compass). Character names are defined only in `plugin/agents/*.md` and must not leak into protocol specifications or core skills.
+
 ## When editing skills or agents
 
 - Read the existing file first — understand the current behavior before changing it

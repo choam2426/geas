@@ -184,8 +184,8 @@ Claude Code 세션 시작 시 한 번 실행됩니다.
    |---|---|
    | `.geas/evidence/<tid>/forge-review.json` | Code Review (Forge) |
    | `.geas/evidence/<tid>/sentinel.json` | QA Testing (Sentinel) |
-   | `.geas/evidence/<tid>/critic-review.json` | Pre-ship Review (Critic) |
-   | `.geas/evidence/<tid>/nova-verdict.json` | Product Review (Nova) |
+   | `.geas/evidence/<tid>/critic-review.json` | Critical Reviewer Pre-ship Challenge |
+   | `.geas/evidence/<tid>/nova-verdict.json` | Final Verdict (Nova) |
    | `.geas/memory/retro/<tid>.json` | Scrum 회고 |
 
    누락 파일마다 stderr에 경고합니다.
@@ -297,7 +297,7 @@ Claude Code 하네스가 컨텍스트 창을 압축할 때마다 실행됩니다
      "event": "agent_complete",
      "agent": "nova",
      "task_id": "TASK-001",
-     "phase": "mvp",
+     "phase": "build",
      "model": "opus",
      "timestamp": "2026-03-30T12:00:00Z"
    }
@@ -332,8 +332,8 @@ Claude Code 하네스가 컨텍스트 창을 압축할 때마다 실행됩니다
    |---|---|
    | `.geas/evidence/<tid>/forge-review.json` | Code Review |
    | `.geas/evidence/<tid>/sentinel.json` | QA Testing |
-   | `.geas/evidence/<tid>/critic-review.json` | Critic Pre-ship Review |
-   | `.geas/evidence/<tid>/nova-verdict.json` | Nova Product Review |
+   | `.geas/evidence/<tid>/critic-review.json` | Critical Reviewer Pre-ship Challenge |
+   | `.geas/evidence/<tid>/nova-verdict.json` | Final Verdict (Nova) |
    | `.geas/memory/retro/<tid>.json` | Scrum 회고 |
 
 4. **파일이 빠져 있으면** stderr에 출력합니다:
@@ -460,6 +460,8 @@ hook은 `plugin/hooks/hooks.json`에 선언합니다. 스키마:
 | 0 | 성공, 계속 |
 | 1 | 오류 (기록되지만 차단 안 함) |
 | 2 | 파이프라인 차단 (`Stop` hook에서만 의미 있음) |
+
+Hook 실패 처리, 적합성 검사, 메트릭 수집에 대한 프로토콜 상세는 `docs/ko/protocol/12_ENFORCEMENT_CONFORMANCE_AND_METRICS.md` 참조.
 
 ---
 

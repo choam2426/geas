@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GapAssessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "artifact_type",
+    "artifact_id",
+    "producer_type",
+    "scope_in_summary",
+    "scope_out_summary",
+    "fully_delivered",
+    "partially_delivered",
+    "not_delivered",
+    "intentional_cuts",
+    "unexpected_additions",
+    "recommended_followups",
+    "created_at"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "artifact_type": {
+      "type": "string",
+      "const": "gap_assessment"
+    },
+    "artifact_id": {
+      "type": "string"
+    },
+    "producer_type": {
+      "type": "string",
+      "enum": [
+        "product_authority",
+        "orchestration_authority",
+        "process_lead"
+      ]
+    },
+    "scope_in_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope_out_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fully_delivered": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "partially_delivered": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "not_delivered": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "intentional_cuts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unexpected_additions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recommended_followups": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_at": {
+      "type": "string"
+    }
+  }
+}

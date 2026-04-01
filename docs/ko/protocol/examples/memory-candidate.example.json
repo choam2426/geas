@@ -1,0 +1,31 @@
+{
+  "meta": {
+    "version": "2.1.0",
+    "artifact_type": "memory_candidate",
+    "artifact_id": "mem-candidate-001",
+    "producer_type": "process_lead",
+    "created_at": "2026-04-01T19:05:00Z"
+  },
+  "memory_id": "mem-candidate-001",
+  "memory_type": "failure_lesson",
+  "state": "candidate",
+  "title": "Auth UI tasks must verify failed-login rendering",
+  "summary": "로그인 실패 경로 렌더링 검증을 누락하면 회귀가 반복된다. task-003과 task-007에서 동일한 회귀가 두 차례 발생하여 패턴으로 확인됨.",
+  "scope": "project",
+  "evidence_refs": [
+    "retro-task-003",
+    "retro-task-007",
+    "task-003/failure-record-001"
+  ],
+  "signals": {
+    "evidence_count": 3,
+    "reuse_count": 0,
+    "contradiction_count": 0,
+    "confidence": 0.75
+  },
+  "candidate_reason": "두 차례 연속 회귀 발생으로 패턴 확인. retrospective에서 rule_candidate 및 memory_candidate로 식별됨.",
+  "source_artifacts": [
+    "retro-task-007",
+    "retro-task-003"
+  ]
+}
