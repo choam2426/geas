@@ -197,12 +197,22 @@ Agent(agent: "critic", prompt: "Read all evidence at .geas/evidence/{task-id}/. 
 ```
 
 ### 2.9 Final Verdict (Nova) [MANDATORY — after critical_reviewer only]
-**Precondition:** `.geas/evidence/{task-id}/critic-review.json` must exist. Do NOT spawn Nova until Critic has returned and evidence is verified.
+**Preconditions:**
+- `.geas/evidence/{task-id}/critic-review.json` must exist (Critical Reviewer Challenge complete)
+- Closure Packet must be assembled (all required fields populated)
+- Do NOT spawn Nova until both preconditions are verified
+
 Update run.json checkpoint: `pipeline_step` = "final_verdict", `agent_in_flight` = "nova"
 ```
-Agent(agent: "nova", prompt: "Read all evidence at .geas/evidence/{task-id}/ including critic-review.json. Verdict: Ship, Iterate, or Cut. Write to .geas/evidence/{task-id}/nova-verdict.json")
+Agent(agent: "nova", prompt: "Read the closure packet and all evidence at .geas/evidence/{task-id}/ including critic-review.json. Decide: pass, iterate, or escalate. Write .geas/tasks/{task-id}/final-verdict.json conforming to docs/protocol/schemas/final-verdict.schema.json. Required fields: version (\"1.0\"), artifact_type (\"final_verdict\"), artifact_id (e.g. \"verdict-{task-id}\"), producer_type (\"product_authority\"), created_at (ISO 8601 timestamp), task_id, verdict (\"pass\" | \"iterate\" | \"escalate\"), rationale (why this verdict), closure_packet_ref (path to closure packet). If iterate: include rewind_target (\"ready\" | \"implementing\" | \"reviewed\") and iterate_count. If escalate: include escalation_reason. Also write to .geas/evidence/{task-id}/nova-verdict.json for backward compatibility.")
 ```
-Note: "Iterate" is only valid as a Final Verdict outcome from Nova. Gate verdicts (evidence-gate) are pass/fail/block/error.
+
+**Verdict rules:**
+- `pass` -> task proceeds to Resolve (status `"passed"`)
+- `iterate` -> specify `rewind_target` (ready/implementing/reviewed). Does NOT consume `retry_budget`. After 3 cumulative iterates for the same task -> `escalated`.
+- `escalate` -> requires higher-level decision-making. Include `escalation_reason`.
+
+Note: "iterate" is only valid as a Final Verdict outcome. Gate verdicts (evidence-gate) are pass/fail/block/error.
 
 ### 2.10 Closure Packet — verify before marking passed
 **Before marking any task as "passed", verify:**
@@ -225,7 +235,7 @@ Verify `.geas/memory/retro/{task-id}.json` exists.
   ```
   Agent(agent: "keeper", prompt: "Commit all changes for {task-id} with conventional commit format. Write to .geas/evidence/{task-id}/keeper.json")
   ```
-- **Iterate** (Final Verdict only): deduct retry_budget (if exhausted → escalate to orchestration_authority). Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include Nova's feedback in all subsequent ContextPackets. Resume from the first non-skipped step (typically Design). See evidence-gate "On Iterate" for the full procedure.
+- **Iterate** (Final Verdict only): does NOT deduct retry_budget (iterate is a product judgment, not a gate failure). Track iterate_count — after 3 cumulative iterates, escalate to orchestration_authority. Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include Nova's feedback in all subsequent ContextPackets. Resume from the rewind_target specified in the final verdict.
 - **Cut**: status → `"cancelled"`. Write DecisionRecord.
 
 ### Close Phase 2

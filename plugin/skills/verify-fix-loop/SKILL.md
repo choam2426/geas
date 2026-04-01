@@ -22,7 +22,7 @@ Read the gate failure details:
 
 ## If Gate Passed
 
-Proceed immediately to **Final Verdict** (Tier 3 of evidence-gate). No further action needed.
+Exit the loop. Return to the pipeline — next step is Closure Packet assembly, then Critical Reviewer Challenge, then Final Verdict.
 
 ---
 
@@ -65,7 +65,7 @@ After the fixer completes:
 - Gate re-runs Tier 1 (mechanical) and Tier 2 (semantic)
 
 #### Step D — Evaluate
-- If **PASS**: exit loop, proceed to Final Verdict (Tier 3).
+- If **PASS**: exit loop, return to pipeline.
 - If **FAIL**: check remaining retry budget.
   - Budget remaining → next iteration
   - Budget exhausted → escalation
@@ -129,11 +129,11 @@ Log the escalation event to `.geas/ledger/events.jsonl`.
 
 ```
 Evidence Gate PASS?
-  YES -> Final Verdict (Tier 3)
+  YES -> Return to pipeline (Closure Packet -> Critical Reviewer -> Final Verdict)
   NO  -> Fix (Pixel/Circuit) -> Re-gate
-         PASS? -> Final Verdict
+         PASS? -> Return to pipeline (Closure Packet -> Critical Reviewer -> Final Verdict)
          NO    -> Fix -> Re-gate (iteration 2)
-                  PASS? -> Final Verdict
+                  PASS? -> Return to pipeline (Closure Packet -> Critical Reviewer -> Final Verdict)
                   NO    -> ... (up to retry_budget)
                            Budget exhausted?
                            -> escalation_policy:

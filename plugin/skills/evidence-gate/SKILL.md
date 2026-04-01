@@ -1,27 +1,72 @@
 ---
 name: evidence-gate
-description: Three-tier quality gate — evaluates an EvidenceBundle against its TaskContract. Mechanical (build/lint/test), semantic (acceptance criteria), and product (Nova judgment).
+description: Evidence Gate v2 — Tier 0 (Precheck) + Tier 1 (Mechanical) + Tier 2 (Contract+Rubric). Returns pass/fail/block/error.
 ---
 
 # Evidence Gate
 
-Evaluates whether a worker's output meets the TaskContract requirements. This is the gatekeeper that ensures "done" means "contract fulfilled", not "agent says done".
+Objective verification of whether a worker's output meets the TaskContract requirements. The gate verdict is strictly objective — it answers "does this meet the contract?" with one of four verdicts: **pass**, **fail**, **block**, or **error**.
 
-## When to Use
-
-Compass invokes this skill after collecting an EvidenceBundle from a worker.
+`iterate` is NOT a gate verdict. Product judgment happens in the Final Verdict, which is a separate pipeline step.
 
 ## Inputs
 
-1. **EvidenceBundle** — read from `.geas/evidence/{task-id}/{worker-name}.json`
-2. **TaskContract** — read from `.geas/tasks/{task-id}.json`
-3. **Gate level** — which tiers to run (see below)
+1. **TaskContract** — read from `.geas/tasks/{task-id}.json`
+2. **Worker Self-Check** — read from `.geas/tasks/{task-id}/worker-self-check.json`
+3. **Specialist Reviews** — read from `.geas/evidence/{task-id}/` (e.g., `forge-review.json`, `sentinel.json`)
+4. **Integration Result** — merge status from worktree integration
+5. **Gate profile** — determines which tiers to run (see below)
 
-## Three-Tier Gate
+## Gate Profiles
 
-### Tier 1: Mechanical Gate
+| gate_profile | Tier 0 | Tier 1 | Tier 2 | Description |
+|---|---|---|---|---|
+| `code_change` | Run | Run | Run | Standard task involving code changes |
+| `artifact_only` | Run | Skip | Run (rubric only, no build/test) | Tasks without code changes such as documentation or design |
+| `closure_ready` | Run | Skip | Simplified (completeness check only) | Final cleanup tasks such as release or config |
+
+---
+
+## Tier 0 — Precheck
+
+Verify that all prerequisites are in place before running expensive checks.
+
+### Checks
+
+1. **Required artifacts existence**
+   - `worker-self-check.json` must exist at `.geas/tasks/{task-id}/worker-self-check.json`
+   - Specialist reviews must exist (per the task's required reviewer set)
+   - Integration result must be recorded (for `code_change` profile)
+
+2. **Task state eligibility**
+   - `code_change` profile: task must be in `integrated` state
+   - `artifact_only` profile: task must be in `reviewed` state
+   - `closure_ready` profile: task must be in `reviewed` or `integrated` state
+
+3. **Baseline check**
+   - For `code_change`: verify `base_commit` ancestry — the integration branch must contain the declared base commit
+
+4. **Required reviewer presence**
+   - All agent types listed in the task's required reviewer set must have submitted reviews
+
+### On Tier 0 Failure
+
+- **Missing required artifact**: verdict = `block`. Does NOT consume retry_budget. Gate re-entry not allowed until the artifact is created.
+- **Task state ineligible**: verdict = `error`. The orchestration_authority inspects and corrects the state.
+- **Baseline mismatch**: verdict = `block`. Re-enter after performing revalidation.
+- **Missing required reviewer**: verdict = `block`. Does NOT consume retry_budget.
+
+**Stop** — do not proceed to Tier 1 or Tier 2.
+
+---
+
+## Tier 1 — Mechanical
 
 Run the eval commands from the TaskContract and check results.
+
+**Skip conditions**: Skip for `artifact_only` and `closure_ready` profiles. Record as `{"status": "skipped", "details": "Profile does not require mechanical verification"}`.
+
+### Procedure
 
 1. Read `eval_commands` from the TaskContract
 2. Run each command:
@@ -34,169 +79,215 @@ Run the eval commands from the TaskContract and check results.
 3. Record results:
    - **pass**: command exits 0
    - **fail**: command exits non-zero (capture error output)
-   - **skip**: command not applicable or not configured
 
-**Stop on first failure** — no point running semantic checks if the code doesn't build.
+**Stop on first failure** — no point running contract checks if the code doesn't build.
 
-> **Important:** You MUST execute eval_commands and record the results. Do not assume "pass". If no commands exist, record as `"skip"`. Having commands but not running them is a gate violation.
+> **Important:** You MUST execute eval_commands and record the results. Do not assume "pass". If no commands exist, record as `{"status": "skipped", "details": "No eval_commands configured"}`. Having commands but not running them is a gate violation.
 
-If the EvidenceBundle already contains `verify_results`, compare them against a fresh run. Trust the fresh run.
+If previous evidence already contains `verify_results`, compare them against a fresh run. Trust the fresh run.
 
-### Tier 2: Semantic Gate
+---
 
-Two-part evaluation: acceptance criteria check + rubric scoring.
+## Tier 2 — Contract + Rubric
 
-#### Part A: Acceptance Criteria
+Multi-part evaluation of contract compliance and quality.
+
+**For `closure_ready` profile**: only run Part A (completeness check). Skip Parts B, C, D.
+
+### Part A: Acceptance Criteria
 
 For each criterion in `acceptance_criteria`:
 1. Read the worker's evidence (summary, files_changed, criteria_results if present)
 2. Assess whether the criterion is met:
-   - If the worker provided `criteria_results` → verify their self-assessment
-   - If not → infer from the evidence (files changed, test results, code inspection)
+   - If the worker provided `criteria_results` -> verify their self-assessment
+   - If not -> infer from the evidence (files changed, test results, code inspection)
 3. Record: `{ "criterion": "...", "met": true/false, "evidence": "..." }`
 
 **All criteria must be met** to proceed to Part B.
 
-#### Part B: Rubric Scoring
+### Part B: Scope Violation Check
+
+Compare files changed against the task's `scope.paths`:
+1. Read `scope.paths` from the TaskContract (or implementation contract)
+2. List all files modified by the worker
+3. Flag any file outside `scope.paths` as a potential scope violation
+4. Minor scope violations (e.g., shared config files): record as warning
+5. Major scope violations (touching unrelated modules): Tier 2 fails
+
+### Part C: Known Risk Handling
+
+Verify that each item in the implementation contract's `known_risks` has been handled:
+- **Mitigated**: evidence shows the risk was addressed
+- **Accepted with rationale**: explicit rationale recorded for accepting the risk
+- **Deferred to debt**: recorded in `.geas/debt.json`
+
+Any `known_risk` with no handling status -> Tier 2 fails.
+
+### Part D: Rubric Scoring
 
 Read the `rubric` array from the TaskContract. For each dimension:
+
 1. Identify the evaluator's evidence:
-   - Forge's code review evidence → `code_quality` score
-   - Sentinel's QA evidence → `core_interaction`, `feature_completeness`, `regression_safety`, `ux_clarity`, `visual_coherence` scores
-2. Read the evaluator's `rubric_scores` from their EvidenceBundle
+   - `architecture_authority` review evidence -> `code_quality` score
+   - `qa_engineer` evidence -> `core_interaction`, `feature_completeness`, `regression_safety` scores
+   - `qa_engineer` or `ui_ux_designer` evidence -> `ux_clarity`, `visual_coherence` scores (UI-sensitive tasks)
+2. Read the evaluator's `rubric_scores` from their review
 3. Compare each score against the dimension's `threshold`
 
-**Threshold adjustment**: If the worker's `self_check.confidence` ≤ 2, add +1 to every rubric threshold (stricter review for uncertain work).
+#### Default Dimensions
 
-**Stub check**: If the worker's `self_check.possible_stubs` is non-empty, verify those files are not left as stubs. Any confirmed stub → `feature_completeness` capped at 2.
+| dimension | evaluator | default threshold |
+|---|---|---:|
+| `core_interaction` | `qa_engineer` | 3 |
+| `feature_completeness` | `qa_engineer` | 4 |
+| `code_quality` | `architecture_authority` | 4 |
+| `regression_safety` | `qa_engineer` | 4 |
+
+UI-sensitive tasks add:
+
+| dimension | evaluator | default threshold |
+|---|---|---:|
+| `ux_clarity` | `qa_engineer` or `ui_ux_designer` | 3 |
+| `visual_coherence` | `qa_engineer` or `ui_ux_designer` | 3 |
+
+#### Low Confidence Threshold Adjustment
+
+Read `confidence` from `worker-self-check.json`. If `confidence` <= 2, add +1 to **every** rubric dimension threshold.
+
+Example: if confidence is 2, thresholds become: `core_interaction` 3->4, `feature_completeness` 4->5, `code_quality` 4->5, `regression_safety` 4->5.
+
+#### Stub Check
+
+If `possible_stubs[]` from the worker self-check is non-empty:
+1. Verify those locations are not left as stubs
+2. If confirmed stubs exist: `feature_completeness` is capped at a maximum of 2
+3. If confirmed stub count exceeds the stub cap: gate immediately returns `block`
+
+Default stub cap by `risk_level`:
+
+| risk_level | stub cap |
+|---|---:|
+| `low` | 3 |
+| `normal` | 2 |
+| `high` | 0 |
+| `critical` | 0 |
+
+#### Rubric Result
 
 Record rubric results:
 ```json
 {
   "rubric_scores": [
-    { "dimension": "core_interaction", "score": 4, "evaluator": "sentinel", "threshold": 3, "pass": true },
-    { "dimension": "code_quality", "score": 3, "evaluator": "forge", "threshold": 4, "pass": false }
+    { "dimension": "core_interaction", "score": 4, "threshold": 3, "passed": true },
+    { "dimension": "code_quality", "score": 3, "threshold": 4, "passed": false }
   ],
-  "rubric_pass": false,
   "blocking_dimensions": ["code_quality"]
 }
 ```
 
-**All rubric dimensions must meet their threshold** for Tier 2 to pass. If any dimension is below threshold, Tier 2 fails and the task cannot proceed to Tier 3 (Nova). The `blocking_dimensions` list tells the verify-fix-loop exactly what to target.
+**All rubric dimensions must meet their threshold** for Tier 2 to pass. The `blocking_dimensions` list tells the verify-fix-loop exactly what to target.
 
-### Tier 3: Product Gate
+---
 
-Spawn Nova for a ship/iterate/cut judgment (Final Verdict). Only run this tier for:
-- Feature completion (not for intermediate steps like design or code review)
-- Phase completion (end of Build, Polish, Evolution)
-- Pivot decisions
+## `fail` vs `block` Distinction
 
-Nova receives:
-- The task goal
-- All evidence bundles for this task
-- Criteria results from Tier 2
-- Mission context from seed
+- **`fail`**: implementation quality issue. Can be fixed via the verify-fix-loop. Consumes 1 from `retry_budget`.
+- **`block`**: structural prerequisite not met. Cannot be resolved by modifying the implementation alone. Does NOT consume `retry_budget`. Re-enter the gate after resolving the blocking cause.
 
-Nova's Final Verdict:
-- **Ship**: meets all criteria, good quality, aligned with mission
-- **Iterate**: partially meets criteria, specific improvements needed (only valid as a Final Verdict, not as a gate verdict)
-- **Cut**: fundamentally misaligned or not worth fixing
+Conditions that produce `block`:
+- Tier 0: missing required artifact, baseline mismatch, missing required reviewer
+- Tier 2: stub cap exceeded, required specialist review missing
 
-## Gate Levels
+---
 
-Not every task needs all three tiers:
+## Gate Error Handling
 
-| Situation | Tiers to Run |
-|-----------|-------------|
-| Implementation task (code change) | Tier 1 + Tier 2 |
-| Design spec (no code) | Tier 2 only |
-| Feature completion (ready for Final Verdict) | Tier 1 + Tier 2 + Tier 3 |
-| Code review (Forge reviewing) | Tier 2 only |
-| QA testing (Sentinel) | Tier 1 + Tier 2 |
-| Security review (Shield) | Tier 2 only |
-| Phase completion | Tier 1 + Tier 2 + Tier 3 |
+If the gate verdict is `error`:
+- `retry_budget` is NOT consumed
+- The orchestration_authority resolves the cause and re-runs the gate
+- If the same cause produces `error` 3 consecutive times, the task transitions to `blocked` and the cause is recorded
+
+---
 
 ## Output
 
-### Gate Verdict
-
-After running all applicable tiers, produce a verdict:
+Write to `.geas/tasks/{task-id}/gate-result.json` conforming to `docs/protocol/schemas/gate-result.schema.json`.
 
 ```json
 {
-  "task_id": "task-003",
-  "verdict": "pass | fail | block | error",
-  "tiers": {
-    "mechanical": { "status": "pass", "results": {...} },
-    "semantic": { "status": "pass", "criteria_met": 5, "criteria_total": 5, "rubric_pass": true, "rubric_scores": [...], "blocking_dimensions": [] },
-    "product": { "status": "ship", "nova_notes": "..." }
+  "version": "1.0",
+  "artifact_type": "gate_result",
+  "artifact_id": "gate-{task-id}-{timestamp}",
+  "producer_type": "qa_engineer",
+  "created_at": "<actual ISO 8601 from date -u>",
+  "task_id": "{task-id}",
+  "gate_profile": "code_change",
+  "verdict": "pass",
+  "tier_results": {
+    "tier_0": { "status": "pass", "details": "All prerequisites verified" },
+    "tier_1": { "status": "pass", "details": "All eval_commands passed" },
+    "tier_2": { "status": "pass", "details": "All criteria met, rubric passed" }
   },
-  "failures": [],
-  "timestamp": "..."
+  "rubric_scores": [
+    { "dimension": "core_interaction", "score": 4, "threshold": 3, "passed": true },
+    { "dimension": "feature_completeness", "score": 4, "threshold": 4, "passed": true },
+    { "dimension": "code_quality", "score": 4, "threshold": 4, "passed": true },
+    { "dimension": "regression_safety", "score": 5, "threshold": 4, "passed": true }
+  ],
+  "blocking_dimensions": [],
+  "retry_budget_before": 3,
+  "retry_budget_after": 3
 }
 ```
 
-### On Pass
+Also log a detailed event to `.geas/ledger/events.jsonl`:
+```json
+{
+  "event": "gate_result",
+  "task_id": "{task-id}",
+  "result": "pass",
+  "gate_profile": "code_change",
+  "tier_results": {
+    "tier_0": { "status": "pass" },
+    "tier_1": { "status": "pass" },
+    "tier_2": { "status": "pass" }
+  },
+  "blocking_dimensions": [],
+  "timestamp": "<actual ISO 8601 from date -u>"
+}
+```
 
-1. Update the TaskContract status to `"in_review"` in `.geas/tasks/{task-id}.json` (Critical Reviewer Challenge and Final Verdict still pending — only Resolve sets "passed")
-2. Log a **detailed** event to `.geas/ledger/events.jsonl` with tier results. Timestamp must be actual current time (not dummy):
-   ```json
-   {
-     "event": "gate_result",
-     "task_id": "task-001",
-     "result": "pass",
-     "tiers": {
-       "mechanical": { "status": "pass", "commands_run": ["{build_command}", "{test_command}"] },
-       "semantic": { "status": "pass", "criteria_met": 5, "criteria_total": 5, "rubric_pass": true, "rubric_scores": [...], "blocking_dimensions": [] },
-       "product": { "status": "ship", "nova_notes": "..." }
-     },
-     "timestamp": "<actual ISO 8601 from date -u>"
-   }
-   ```
-3. Return to Compass to proceed with the next task
+---
 
-### On Fail
+## On Pass
 
-1. Check the TaskContract's `retry_budget`
+1. Update TaskContract status to `"verified"` in `.geas/tasks/{task-id}.json`
+2. Log the gate_result event (see Output above)
+3. Return to the pipeline — next step is **Closure Packet assembly**, then **Critical Reviewer Challenge**, then **Final Verdict**
+
+## On Fail
+
+1. Decrement `retry_budget` (`retry_budget_after` = `retry_budget_before` - 1)
 2. If retries remain:
    - Invoke `/verify-fix-loop` with the failure details
-   - The fix loop will dispatch the worker again with failure context
+   - The fix loop dispatches the worker with failure context
    - After fix, re-run the gate
-   - Decrement retry count
 3. If retries exhausted:
    - Follow the `escalation_policy`:
-     - `"forge-review"`: Spawn Forge for architectural review, write a DecisionRecord
-     - `"nova-decision"`: Spawn Nova for a strategic decision (continue/cut/pivot)
-     - `"pivot"`: Invoke `/pivot-protocol`
+     - `"forge-review"`: spawn the `architecture_authority` for architectural review, write a DecisionRecord
+     - `"nova-decision"`: spawn the `product_authority` for a strategic decision (continue/cut/pivot)
+     - `"pivot"`: invoke pivot protocol
    - Update TaskContract status to `"escalated"`
    - Write a DecisionRecord to `.geas/decisions/{dec-id}.json`
 
-### On Iterate (Final Verdict from Nova)
+## On Block
 
-Nova's "Iterate" Final Verdict means the gate passed mechanically and semantically, but the product is not ready from Nova's perspective. Unlike verify-fix-loop (which targets specific gate failures), Iterate triggers a full pipeline re-run because the changes may affect design, implementation approach, or quality across all dimensions. Note: "Iterate" is only valid as a Final Verdict outcome. Gate verdicts are pass/fail/block/error.
+1. Do NOT decrement `retry_budget` (`retry_budget_after` = `retry_budget_before`)
+2. Record the blocking cause in the gate result
+3. Task cannot re-enter the gate until the blocking cause is resolved
+4. The orchestration_authority is responsible for resolving the block
 
-**Procedure:**
-
-1. **Deduct retry_budget.** If exhausted → follow `escalation_policy` (same as verify-fix-loop escalation).
-2. **Repopulate `remaining_steps`** with the full pipeline, applying the same skip conditions as the original run:
-   ```json
-   ["design", "tech_guide", "implementation_contract", "implementation",
-    "code_review", "testing", "evidence_gate", "critical_reviewer",
-    "final_verdict", "retrospective", "resolve"]
-   ```
-   Remove steps that were skipped originally (e.g., remove `"design"` if the task has no UI).
-3. **Generate new ContextPackets** for all downstream workers. Nova's specific feedback MUST be included in every packet as a `## Nova Feedback` section.
-4. **Resume from the first non-skipped step** (typically Design or Tech Guide).
-5. The full pipeline runs again: Design → Tech Guide → Implementation Contract → Implementation → Code Review → Testing → Evidence Gate → Critical Reviewer Challenge → Final Verdict → Retrospective → Resolve.
-
-**Comparison with verify-fix-loop:**
-
-| | Verify-Fix Loop | Iterate (Final Verdict) |
-|---|---|---|
-| Trigger | Gate failure (Tier 1 or 2) | Nova Final Verdict (Tier 3) |
-| Re-entry point | Implementation only | Full pipeline (Design onward) |
-| Scope | Fix specific failures | Product-level improvement |
-| Budget | Shared `retry_budget` | Shared `retry_budget` |
+---
 
 ## Decision Records
 
