@@ -480,11 +480,40 @@ Log: `{"event": "phase_complete", "phase": "polish", "timestamp": "<actual>"}`
 ## Phase 4: Scoped Evolution [MANDATORY — do not skip]
 
 ### 4.1 Gap Assessment
-1. Read `.geas/spec/seed.json` — get `scope_in` items
-2. Read all TaskContracts in `.geas/tasks/` — get items with `status: "passed"`
-3. Diff: identify `scope_in` items that have no corresponding completed task
-4. Read `.geas/state/debt-register.json` — get open items with severity HIGH
-5. Reject any work that falls under `scope_out` — Evolution refines, it does not expand
+
+Produce a structured gap assessment comparing what was planned vs what was delivered.
+
+1. Read `.geas/spec/seed.json` — extract `scope_in` and `scope_out` items
+2. Read all TaskContracts in `.geas/tasks/` — categorize by status
+3. Read `.geas/state/debt-register.json` — get open items
+4. Classify each `scope_in` item:
+   - Task exists with `status: "passed"` → `fully_delivered`
+   - Task exists but partially complete or with caveats → `partially_delivered`
+   - No corresponding task or task cancelled → `not_delivered`
+5. Check for `scope_out` items that were delivered anyway → `unexpected_additions` (need traceability note)
+6. Items explicitly dropped by product_authority decision → `intentional_cuts`
+7. Write `.geas/state/gap-assessment.json` conforming to `docs/protocol/schemas/gap-assessment.schema.json`:
+
+```json
+{
+  "version": "1.0",
+  "artifact_type": "gap_assessment",
+  "artifact_id": "ga-evolution",
+  "producer_type": "product_authority",
+  "scope_in_summary": "<what was planned — summarize from seed.json scope_in>",
+  "scope_out_summary": "<what was explicitly excluded — from seed.json scope_out>",
+  "fully_delivered": ["item 1", "item 2"],
+  "partially_delivered": ["item 3 — missing error handling"],
+  "not_delivered": ["item 4"],
+  "intentional_cuts": ["item 5 — cut per decision dec-003"],
+  "unexpected_additions": [],
+  "recommended_followups": ["Complete item 3 error handling", "Address item 4 in next mission"],
+  "created_at": "<ISO 8601>"
+}
+```
+
+8. **Forward-feeding rule**: Items appearing in `partially_delivered` or `not_delivered` across 2+ gap assessments are automatically fed into the next discovery phase's seed.json constraints.
+9. Reject any work that falls under `scope_out` — Evolution refines, it does not expand.
 
 ### 4.2 Prioritize Remaining Work
 Classify remaining items:
