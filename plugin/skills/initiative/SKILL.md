@@ -1,12 +1,12 @@
 ---
 name: initiative
-description: Start a new product with the Geas team — Discovery, MVP Build, Polish, Evolution.
+description: Start a new product with the Geas team — Discovery, Build, Polish, Evolution.
 user-invocable: true
 ---
 
-# Initiative Mode
+# Initiative Mission
 
-4 phases: Discovery → MVP Build → Polish → Evolution.
+4 phases: Discovery → Build → Polish → Evolution.
 
 ---
 
@@ -63,12 +63,12 @@ Analyze the tech stack from Forge's architecture decision and recommend helpful 
 Present recommendations with install commands from the MCP registry.
 
 ### 1.8 Close Discovery
-- Update run state: `{ "phase": "mvp", "status": "in_progress" }`
+- Update run state: `{ "phase": "build", "status": "in_progress" }`
 - Log: `{"event": "phase_complete", "phase": "discovery", "timestamp": "<actual>"}`
 
 ---
 
-## Phase 2: MVP Build
+## Phase 2: Build
 
 **Every task runs the full pipeline. Code Review and Testing are mandatory for every task.**
 
@@ -86,7 +86,7 @@ For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
 - Update status to `"in_progress"`. Log `task_started` event.
 - **Write `remaining_steps` to checkpoint** — the full pipeline for this task:
   ```json
-  "remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "code_review", "testing", "evidence_gate", "critic_review", "nova_review", "retrospective", "resolve"]
+  "remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "code_review", "testing", "evidence_gate", "critical_reviewer", "final_verdict", "retrospective", "resolve"]
   ```
   Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
 - **[MANDATORY] Event logging**: After each step completes and is removed from `remaining_steps`, log:
@@ -112,7 +112,7 @@ Within a single task's pipeline, these steps may run in parallel:
 - **[code_review, testing]** — forge and sentinel do not reference each other's output. Spawn both in one message. After both return, remove both from `remaining_steps` and log `step_complete` for each.
 
 All other steps are strictly sequential. In particular:
-- **critic_review → nova_review** — Nova's prompt requires `critic-review.json` as input. Critic MUST complete and evidence MUST be verified before spawning Nova.
+- **critical_reviewer → final_verdict** — Nova's prompt requires `critic-review.json` as input. Critic MUST complete and evidence MUST be verified before spawning Nova.
 
 ### 2.1 Design (Palette) [DEFAULT — skip-if: no user-facing interface (DB, API, CI, Docker, etc.)]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
@@ -181,20 +181,21 @@ Run eval_commands from TaskContract. Check acceptance criteria against all evide
 Log detailed result with tier breakdown.
 If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** After fix, re-run gate.
 
-### 2.8 Critic Pre-ship Review [MANDATORY]
-Update run.json checkpoint: `pipeline_step` = "critic_review", `agent_in_flight` = "critic"
+### 2.8 Critical Reviewer Challenge [MANDATORY]
+Update run.json checkpoint: `pipeline_step` = "critical_reviewer", `agent_in_flight` = "critic"
 ```
 Agent(agent: "critic", prompt: "Read all evidence at .geas/evidence/{task-id}/. Challenge: is this truly ready to ship? Identify risks, missing edge cases, or technical debt. Write to .geas/evidence/{task-id}/critic-review.json")
 ```
 
-### 2.9 Nova Product Review [MANDATORY — after critic_review only]
+### 2.9 Final Verdict (Nova) [MANDATORY — after critical_reviewer only]
 **Precondition:** `.geas/evidence/{task-id}/critic-review.json` must exist. Do NOT spawn Nova until Critic has returned and evidence is verified.
-Update run.json checkpoint: `pipeline_step` = "nova_review", `agent_in_flight` = "nova"
+Update run.json checkpoint: `pipeline_step` = "final_verdict", `agent_in_flight` = "nova"
 ```
 Agent(agent: "nova", prompt: "Read all evidence at .geas/evidence/{task-id}/ including critic-review.json. Verdict: Ship, Iterate, or Cut. Write to .geas/evidence/{task-id}/nova-verdict.json")
 ```
+Note: "Iterate" is only valid as a Final Verdict outcome from Nova. Gate verdicts (evidence-gate) are pass/fail/block/error.
 
-### 2.10 Ship Gate — verify before marking passed
+### 2.10 Closure Packet — verify before marking passed
 **Before marking any task as "passed", verify:**
 - `.geas/evidence/{task-id}/forge-review.json` exists (Read it)
 - `.geas/evidence/{task-id}/sentinel.json` exists (Read it)
@@ -215,11 +216,11 @@ Verify `.geas/memory/retro/{task-id}.json` exists.
   ```
   Agent(agent: "keeper", prompt: "Commit all changes for {task-id} with conventional commit format. Write to .geas/evidence/{task-id}/keeper.json")
   ```
-- **Iterate**: deduct retry_budget (if exhausted → escalation_policy). Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include Nova's feedback in all subsequent ContextPackets. Resume from the first non-skipped step (typically Design). See evidence-gate "On Iterate" for the full procedure.
+- **Iterate** (Final Verdict only): deduct retry_budget (if exhausted → escalation_policy). Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include Nova's feedback in all subsequent ContextPackets. Resume from the first non-skipped step (typically Design). See evidence-gate "On Iterate" for the full procedure.
 - **Cut**: status → `"failed"`. Write DecisionRecord.
 
 ### Close Phase 2
-Log: `{"event": "phase_complete", "phase": "mvp", "timestamp": "<actual>"}`
+Log: `{"event": "phase_complete", "phase": "build", "timestamp": "<actual>"}`
 
 ---
 
@@ -301,9 +302,9 @@ If no P0 items remain: skip to 4.4.
 
 ### 4.3 Execute P0 Items
 For each P0 item, run the **full Phase 2 pipeline**:
-- Compile TaskContract → Design → Tech Guide → Implementation Contract → Implementation → Code Review → Testing → Evidence Gate → Critic Review → Nova Review → Retrospective → Resolve
+- Compile TaskContract → Design → Tech Guide → Implementation Contract → Implementation → Code Review → Testing → Evidence Gate → Critical Reviewer Challenge → Final Verdict → Retrospective → Resolve
 
-Same mandatory steps, same Ship Gate, same checkpoint management as Phase 2.
+Same mandatory steps, same Closure Packet verification, same checkpoint management as Phase 2.
 
 **Exit criteria** — stop executing when ANY of:
 - All P0 items are complete

@@ -4,7 +4,7 @@ description: Add a bounded feature to an existing project with the Geas team —
 user-invocable: true
 ---
 
-# Sprint Mode
+# Delivery Mode (Sprint Pattern)
 
 One feature, one pipeline. Skips Discovery.
 
@@ -25,18 +25,18 @@ One feature, one pipeline. Skips Discovery.
 ## Sprint Pipeline
 
 ### Task File Precondition
-The TaskContract MUST be written to `.geas/tasks/{task-id}.json` before the pipeline starts. Do NOT enter the pipeline without a task file on disk. This is required for Ship Gate validation and session recovery.
+The TaskContract MUST be written to `.geas/tasks/{task-id}.json` before the pipeline starts. Do NOT enter the pipeline without a task file on disk. This is required for Closure Packet validation and session recovery.
 
 ### 1. Compile TaskContract
 Invoke `/geas:task-compiler` for the feature. The TaskContract MUST include a `rubric` array. Base dimensions: core_interaction(3), feature_completeness(4), code_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
 
 After compilation, write `remaining_steps` to checkpoint:
 ```json
-"remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "code_review", "testing", "evidence_gate", "critic_review", "nova_review", "retrospective", "resolve"]
+"remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "code_review", "testing", "evidence_gate", "critical_reviewer", "final_verdict", "retrospective", "resolve"]
 ```
 Remove steps that will be skipped. After completing each step, remove it from the front of the array and update run.json.
 
-**Rubric check**: If the TaskContract is missing `rubric`, insert the default (same as initiative mode).
+**Rubric check**: If the TaskContract is missing `rubric`, insert the default (same as Initiative mission).
 
 **[MANDATORY] Event logging**: After each step completes and is removed from `remaining_steps`, log:
 ```
@@ -51,7 +51,7 @@ Within a single task's pipeline, these steps may run in parallel:
 - **[code_review, testing]** — forge and sentinel do not reference each other's output. Spawn both in one message. After both return, remove both from `remaining_steps` and log `step_complete` for each.
 
 All other steps are strictly sequential. In particular:
-- **critic_review → nova_review** — Nova's prompt requires `critic-review.json` as input. Critic MUST complete and evidence MUST be verified before spawning Nova.
+- **critical_reviewer → final_verdict** — Nova's prompt requires `critic-review.json` as input. Critic MUST complete and evidence MUST be verified before spawning Nova.
 
 ### 2. Design (Palette) [DEFAULT — skip-if: no user-facing interface]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
@@ -119,21 +119,22 @@ Update run.json checkpoint: `pipeline_step` = "testing"
 Run eval_commands. Check acceptance criteria. Log detailed result.
 If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** After fix, re-run gate.
 
-### 8.5 Critic Pre-ship Review [MANDATORY]
-Update run.json checkpoint: `pipeline_step` = "critic_review", `agent_in_flight` = "critic"
+### 8.5 Critical Reviewer Challenge [MANDATORY]
+Update run.json checkpoint: `pipeline_step` = "critical_reviewer", `agent_in_flight` = "critic"
 ```
 Agent(agent: "critic", prompt: "Read all evidence at .geas/evidence/{task-id}/. Challenge: is this truly ready to ship? Identify risks, missing edge cases, or technical debt. Write to .geas/evidence/{task-id}/critic-review.json")
 ```
 Verify `.geas/evidence/{task-id}/critic-review.json` exists.
 
-### 9. Nova Product Review [MANDATORY — after critic_review only]
+### 9. Final Verdict (Nova) [MANDATORY — after critical_reviewer only]
 **Precondition:** `.geas/evidence/{task-id}/critic-review.json` must exist. Do NOT spawn Nova until Critic has returned and evidence is verified.
-Update run.json checkpoint: `pipeline_step` = "nova_review", `agent_in_flight` = "nova"
+Update run.json checkpoint: `pipeline_step` = "final_verdict", `agent_in_flight` = "nova"
 ```
 Agent(agent: "nova", prompt: "Read all evidence at .geas/evidence/{task-id}/. Verdict: Ship/Iterate/Cut. Write to .geas/evidence/{task-id}/nova-verdict.json")
 ```
+Note: "Iterate" is only valid as a Final Verdict outcome from Nova. Gate verdicts (evidence-gate) are pass/fail/block/error.
 
-### Ship Gate
+### Closure Packet
 **Before marking "passed", verify these exist:**
 - `.geas/evidence/{task-id}/forge-review.json`
 - `.geas/evidence/{task-id}/sentinel.json`
@@ -154,7 +155,7 @@ Verify `.geas/memory/retro/{task-id}.json` exists.
   ```
   Agent(agent: "keeper", prompt: "Commit all changes for {task-id} with conventional commit format. Write to .geas/evidence/{task-id}/keeper.json")
   ```
-- Iterate → deduct retry_budget (if exhausted → escalation_policy). Repopulate remaining_steps with full pipeline (same skip conditions). Include Nova's feedback in all ContextPackets. Resume from first non-skipped step. See evidence-gate "On Iterate" for full procedure.
+- Iterate (Final Verdict only) → deduct retry_budget (if exhausted → escalation_policy). Repopulate remaining_steps with full pipeline (same skip conditions). Include Nova's feedback in all ContextPackets. Resume from first non-skipped step. See evidence-gate "On Iterate" for full procedure.
 - Cut → `"failed"`, write DecisionRecord
 
 ### 11. Run Summary

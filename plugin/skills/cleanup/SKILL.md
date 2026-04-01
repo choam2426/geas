@@ -1,6 +1,6 @@
 ---
 name: cleanup
-description: Entropy scan — detect AI slop, unused code, convention drift. Records findings in .geas/debt.json. Invoke after MVP or during Evolution.
+description: Entropy scan — detect AI slop, unused code, convention drift. Records findings in .geas/debt.json. Invoke after Build or during Evolution.
 ---
 
 # Cleanup
@@ -14,7 +14,7 @@ Entropy management. Codebases degrade over rapid iteration — especially when m
 ## When
 
 Compass invokes this:
-- After **Phase 2 (MVP)** — the first wave of code is done, clean it up before polish
+- After **Phase 2 (Build)** — the first wave of code is done, clean it up before polish
 - During **Phase 4 (Evolution)** — ongoing hygiene as the product matures
 - On **explicit request** from the human or Forge
 

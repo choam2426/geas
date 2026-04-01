@@ -10,6 +10,6 @@ description: >
 
 Invoke `/geas:compass` to start the Geas orchestrator.
 
-The compass skill will handle setup, intake, mode detection, and delegate to the appropriate protocol (initiative, sprint, or debate).
+The compass skill will handle setup, intake, mode detection, and delegate to the appropriate protocol (Initiative mission, delivery mode via Sprint pattern, or decision mode).
 
 **Do NOT spawn a compass agent. Compass is a skill, not an agent.**

@@ -22,7 +22,7 @@ Read the gate failure details:
 
 ## If Gate Passed
 
-Proceed immediately to **Nova product review** (Tier 3 of evidence-gate). No further action needed.
+Proceed immediately to **Final Verdict** (Tier 3 of evidence-gate). No further action needed.
 
 ---
 
@@ -65,7 +65,7 @@ After the fixer completes:
 - Gate re-runs Tier 1 (mechanical) and Tier 2 (semantic)
 
 #### Step D — Evaluate
-- If **PASS**: exit loop, proceed to Nova product review (Tier 3).
+- If **PASS**: exit loop, proceed to Final Verdict (Tier 3).
 - If **FAIL**: check remaining retry budget.
   - Budget remaining → next iteration
   - Budget exhausted → escalation
@@ -129,11 +129,11 @@ Log the escalation event to `.geas/ledger/events.jsonl`.
 
 ```
 Evidence Gate PASS?
-  YES -> Nova review (Tier 3)
+  YES -> Final Verdict (Tier 3)
   NO  -> Fix (Pixel/Circuit) -> Re-gate
-         PASS? -> Nova review
+         PASS? -> Final Verdict
          NO    -> Fix -> Re-gate (iteration 2)
-                  PASS? -> Nova review
+                  PASS? -> Final Verdict
                   NO    -> ... (up to retry_budget)
                            Budget exhausted?
                            -> escalation_policy:

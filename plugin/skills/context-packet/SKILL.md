@@ -34,7 +34,7 @@ Different workers need different context:
 #### Designer (Palette)
 - Mission context and target user (from seed)
 - User requirements for this specific feature
-- Existing UI patterns in the codebase (if Sprint mode)
+- Existing UI patterns in the codebase (if delivery mode)
 - Design constraints (responsive? dark mode? accessibility level?)
 - What NOT to redesign
 
@@ -65,7 +65,7 @@ Different workers need different context:
 - **QA tools available** — based on project stack (see QA Tools section below)
 - **Rubric dimensions** — which dimensions Sentinel must score and their thresholds (from TaskContract `rubric`)
 
-#### Product Reviewer (Nova)
+#### Final Verdict Authority (Nova)
 - Feature goal (from contract)
 - All evidence bundles for this task
 - Acceptance criteria and their status
@@ -75,7 +75,7 @@ Different workers need different context:
 - Build/deploy configuration from conventions.md
 - Target deployment environment and constraints (from seed)
 - CI/CD requirements from TaskContract
-- Existing deployment configuration (if Sprint mode)
+- Existing deployment configuration (if delivery mode)
 - Environment variable setup requirements
 - Eval commands for build/deploy verification
 

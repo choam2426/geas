@@ -1,11 +1,11 @@
 ---
 name: onboard
-description: Codebase discovery protocol — scan project structure, detect stack, map architecture. Used automatically when Sprint mode finds no existing state.
+description: Codebase discovery protocol — scan project structure, detect stack, map architecture. Used automatically when delivery mode finds no existing state.
 ---
 
 # Onboard
 
-Codebase discovery protocol for Sprint mode on existing projects. A single-agent scan that maps an unknown codebase into a structured conventions file so the rest of the team can work immediately.
+Codebase discovery protocol for delivery mode (Sprint pattern) on existing projects. A single-agent scan that maps an unknown codebase into a structured conventions file so the rest of the team can work immediately.
 
 **KEY PRINCIPLE: Discover first, act second. Never guess what the project uses.**
 
@@ -13,9 +13,9 @@ Codebase discovery protocol for Sprint mode on existing projects. A single-agent
 
 ## When Triggered
 
-Compass detects no `.geas/state/run.json` during Sprint mode. This means the project has never been onboarded by this team.
+Compass detects no `.geas/state/run.json` during delivery mode. This means the project has never been onboarded by this team.
 
-If `.geas/memory/_project/conventions.md` already exists from a previous Sprint, skip onboarding entirely — the project is already "known."
+If `.geas/memory/_project/conventions.md` already exists from a previous session, skip onboarding entirely — the project is already "known."
 
 ---
 
@@ -77,7 +77,7 @@ Adjust scan depth based on project size. Count source files (exclude `node_modul
 | Medium | 50-500 files | **Focused scan** — `src/` + config files + entry points + key modules |
 | Large | 500+ files | **Targeted scan** — only directories relevant to the Sprint feature. Use `find` to list structure, read selectively. |
 
-For Large projects, ask Compass which directories are relevant to the Sprint feature before deep-reading.
+For Large projects, ask Compass which directories are relevant to the feature before deep-reading.
 
 ### 5. Output Conventions File
 
@@ -139,13 +139,13 @@ Write `.geas/memory/_project/state.json`:
 
 ## Second Sprint Behavior
 
-When Compass triggers Sprint mode and `.geas/memory/_project/conventions.md` already exists:
+When Compass triggers delivery mode and `.geas/memory/_project/conventions.md` already exists:
 
 1. **Skip onboarding entirely** — do not re-scan
 2. Read conventions.md to load project context
-3. Proceed directly to Sprint execution
+3. Proceed directly to delivery mode execution
 
-This makes repeat Sprints fast: no redundant scanning.
+This makes repeat sessions fast: no redundant scanning.
 
 ---
 
@@ -166,5 +166,5 @@ After writing conventions.md, Forge prints onboarding status to console:
 Stack: <summary>
 Project size: <small/medium/large> (<file count> source files)
 Key paths mapped. Conventions written to `.geas/memory/`.
-Ready for Sprint execution.
+Ready for delivery mode execution.
 ```

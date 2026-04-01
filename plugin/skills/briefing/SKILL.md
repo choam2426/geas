@@ -20,7 +20,7 @@ Nova's structured status report. A snapshot of product health designed for the h
 ## When
 
 Nova produces a briefing:
-- At **milestones** (Discovery complete, MVP complete, Polish complete)
+- At **milestones** (Discovery complete, Build complete, Polish complete)
 - At the **start of Evolution phase** (Phase 4)
 - When **Compass explicitly requests** one
 - When the **human asks** for a status update

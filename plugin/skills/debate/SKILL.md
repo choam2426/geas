@@ -4,7 +4,7 @@ description: Utility skill — structured multi-agent debate for technical or pr
 user-invocable: true
 ---
 
-# Debate Mode
+# Decision Mode
 
 No code is produced. Output is a DecisionRecord.
 

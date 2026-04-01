@@ -5,7 +5,7 @@ description: Mission intake gate — collaborative exploration to freeze a seed 
 
 # Intake Gate
 
-Before any execution mode (Initiative, Sprint), run this gate to freeze the mission specification.
+Before any execution mode (Initiative mission, delivery mode), run this gate to freeze the mission specification.
 
 ## Purpose
 
@@ -100,9 +100,9 @@ Ask: "Does this capture your intent? Any changes before we start?"
 If confirmed → seed is frozen. Proceed to execution mode.
 If changes → update and re-confirm.
 
-## Sprint Mode Variant
+## Delivery Mode (Sprint Pattern) Variant
 
-For Sprint mode (adding a feature to an existing project):
+For delivery mode (adding a feature to an existing project):
 1. Skip Step 3 (approach proposals) — the approach is constrained by existing codebase
 2. Step 2 limited to 1-2 questions focused on:
    - What exactly does this feature do?
@@ -112,8 +112,8 @@ For Sprint mode (adding a feature to an existing project):
 
 ## Output
 
-- **Initiative mode**: `.geas/spec/seed.json`
-- **Sprint mode**:
+- **Initiative mission**: `.geas/spec/seed.json`
+- **Delivery mode (Sprint pattern)**:
   - If `.geas/spec/seed.json` already exists: do NOT modify it. Skip seed creation — the feature scope goes directly into the TaskContract via task-compiler (goal, acceptance_criteria, scope_out).
   - If `.geas/spec/seed.json` does NOT exist (first time using geas): create a minimal seed.json with project identity (mission, target_user, constraints detected from onboard). Include `"source": "sprint"` to indicate this was auto-generated, not from a full Initiative intake. Feature scope still goes into TaskContract.
 - **Format**: JSON conforming to `schemas/seed.schema.json`
