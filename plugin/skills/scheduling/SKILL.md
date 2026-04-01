@@ -33,8 +33,15 @@ When the orchestrator reaches a point where new tasks could start (Phase 2 entry
      - `clean_sync`: eligible (update base_commit first)
      - `review_sync`: eligible (flag for re-review after implementation)
      - `replan_required` or `blocking_conflict`: **exclude from batch**. Rewind or block as appropriate. Write revalidation-record.json.
-4. If 0-1 eligible: this protocol does not apply. The orchestrator runs the single task through the normal pipeline.
-5. If 2+ eligible: form a batch.
+4. **Lock conflict check**: For each pair of candidate tasks in the batch:
+   - Compare their `scope.paths` — if any paths overlap, they have a path lock conflict. Remove the later task (by ID order) from the batch.
+   - If either task touches API contracts that the other also touches, they have an interface lock conflict. Remove the later task.
+   - If both tasks use the same shared resource, they have a resource lock conflict. Remove the later task.
+
+After filtering, the batch contains only tasks that can safely run in parallel.
+
+5. If 0-1 eligible: this protocol does not apply. The orchestrator runs the single task through the normal pipeline.
+6. If 2+ eligible: form a batch.
    - **Max batch size: 4.** If more eligible, take the first 4 by task ID order. Remainder waits for next batch.
    - Reason: worktree concurrency + context window limits.
 
@@ -44,7 +51,8 @@ When the orchestrator reaches a point where new tasks could start (Phase 2 entry
 
 For each task in the batch:
 1. Read task file, set `"status": "implementing"`, write back.
-2. Log `task_started` event for each task.
+2. Acquire path/interface/resource locks for the task (same procedure as initiative/sprint Lock Acquisition). Write all locks to `.geas/state/locks.json`.
+3. Log `task_started` event for each task.
 
 Update `run.json` checkpoint:
 ```json
@@ -113,3 +121,52 @@ When a session resumes and run.json has `parallel_batch` set (non-null):
    - Neither exists → re-execute the full pipeline for this task.
 4. Update run.json with corrected `completed_in_batch`.
 5. Continue with section 3 for any remaining tasks.
+
+---
+
+## Safe Parallel Conditions
+
+All of the following must be satisfied for two tasks to run in parallel (per doc 04):
+
+1. No path lock conflict (checked in batch construction)
+2. No interface lock conflict (checked in batch construction)
+3. No shared mutable resource contention (`.geas/state/run.json`, `.geas/rules.md`, project-wide config)
+4. Both are independent tasks within `delivery` mode
+5. Both are non-speculative
+
+### Unsafe Parallel Combinations (always rejected)
+
+- Both tasks modify the same API contract
+- Concurrent modification of auth / payment / migration / release paths
+- Both change the same shared fixture or environment
+- Both redefine the same docs+code contract
+
+---
+
+## Speculative Execution (conditions documented, dispatch deferred)
+
+Speculative execution MAY be allowed when ALL of the following are true:
+- Task has `risk_level = low`
+- The predecessor task (dependency) is in `reviewed` or later state
+- The predecessor's worker self-check `confidence` is 4 or above
+- At most 1 speculative task is running concurrently
+
+Speculative execution is PROHIBITED for:
+- Tasks with `risk_level` of `normal`, `high`, or `critical`
+- Tasks touching: public API, migration, auth/security, deploy/release, high-risk refactor
+
+**Note:** Actual speculative dispatch is deferred to Phase 6. This section documents the conditions only. The scheduler currently treats all tasks as non-speculative.
+
+---
+
+## Pause / Park / Preemption
+
+`paused` and `parked` are scheduler execution flags, not task states. The task's state (doc 03) does not change.
+
+- **`paused`**: short suspension. On resume: baseline check only. If `base_commit` is 10+ commits behind `tip(integration_branch)`, run full revalidation.
+- **`parked`**: longer hold. On resume: mandatory revalidation. Parking reason must be recorded in `run.json`.
+- **Hotfix preemption**: hotfixes may preempt regular tasks. A preemption record must be left with: preempted `task_id`, preemption reason, task state at preemption time.
+
+### Deadlock Handling
+
+If two tasks hold mutually conflicting locks, the state transitions to `manual_repair_required`. No automatic resolution is attempted. The orchestration_authority or a human operator must intervene to release a lock or rewind a task.

@@ -83,6 +83,22 @@ Before the pipeline enters `"implementing"`, check for staleness:
 
 Only proceed to `"implementing"` if classification is `clean_sync` or `review_sync`.
 
+#### Lock Acquisition
+
+Before entering `"implementing"`, acquire locks in order (per doc 04):
+
+1. **`path` locks**: Read `scope.paths` from the TaskContract. For each path, check `.geas/state/locks.json` for existing `path` locks with overlapping targets held by other tasks.
+   - If conflict: **cannot proceed** — skip this task and try the next eligible task.
+   - If no conflict: add lock entry: `{ "lock_type": "path", "task_id": "{task-id}", "session_id": "{session-id}", "targets": [scope paths], "status": "held", "acquired_at": "<ISO 8601>" }`
+
+2. **`interface` locks**: If the task touches API contracts (scope.paths containing API definition files, or task_kind = "config"), acquire interface locks for the relevant contract names.
+   - Same conflict check as path locks.
+
+3. **`resource` locks**: If the task uses shared resources (ports, DB migrations, fixtures — inferred from implementation contract), acquire resource locks.
+   - Same conflict check.
+
+Write updated `locks.json` after all acquisitions. If any acquisition fails (conflict), release any locks already acquired for this task and do NOT proceed.
+
 ### 2. Design (Palette) [DEFAULT — skip-if: no user-facing interface]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
 Generate ContextPacket, then:
@@ -138,7 +154,20 @@ Before merging the worktree:
    - `blocking_conflict` → task → `"blocked"`
 4. If revalidation was needed, write an updated `.geas/tasks/{task-id}/revalidation-record.json`
 
-Merge worktree. After successful merge, update TaskContract status to `"integrated"`.
+#### Integration Lock
+
+Before merging the worktree to the integration branch:
+
+1. Read `.geas/state/locks.json`
+2. Check if any other task holds an `integration` lock:
+   - If yes: **wait**. Add a lock entry with `"status": "waiting"` and `wait_start` timestamp. Do NOT merge until the lock is released.
+   - If no: acquire the lock: `{ "lock_type": "integration", "task_id": "{task-id}", "session_id": "{session-id}", "targets": ["integration_branch"], "status": "held", "acquired_at": "<ISO 8601>" }`
+3. Merge the worktree branch
+4. **Release the integration lock immediately** after merge (remove the entry from locks.json)
+
+This ensures integration is single-flight — only one task merges at a time.
+
+After successful merge, update TaskContract status to `"integrated"`.
 
 ### 5.5 Worker Self-Check [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "self_check", `agent_in_flight` = "{worker}"
@@ -307,6 +336,15 @@ Agent(agent: "scrum", prompt: "Read all evidence at .geas/evidence/{task-id}/. R
 Verify `.geas/memory/retro/{task-id}.json` exists.
 
 ### 10. Resolve
+
+#### Lock Release
+
+On task completion (Ship, Cut, or Escalate):
+1. Read `.geas/state/locks.json`
+2. Remove ALL lock entries where `task_id` matches this task (path, interface, resource locks)
+3. Write updated `locks.json`
+4. Log: `{"event": "locks_released", "task_id": "...", "timestamp": "<actual>"}`
+
 - Ship → Read `.geas/tasks/{task-id}.json`, set `"status": "passed"`, Write it back. Then spawn Keeper for commit:
   Update run.json checkpoint: `pipeline_step` = "resolve", `agent_in_flight` = "keeper"
   ```

@@ -109,6 +109,18 @@ Check for `.geas/state/run.json`:
 - **Exists with `status: "complete"`** → fresh run
 - **Does not exist** → first run, invoke `/geas:setup`
 
+#### Lock Initialization
+
+1. Read `.geas/state/locks.json`. If it does not exist, create it:
+   ```json
+   { "version": "1.0", "locks": [] }
+   ```
+2. **Orphan detection**: For each lock entry with `status: "held"`:
+   - Compare `session_id` with the current session ID
+   - If mismatch: the owning session no longer exists. Remove the lock entry (release orphan).
+   - Log: `{"event": "lock_orphan_released", "task_id": "...", "lock_type": "...", "targets": [...], "timestamp": "<actual>"}`
+3. Write updated `locks.json`
+
 ### Step 1: Intake Gate
 Invoke `/geas:intake` to produce `.geas/spec/seed.json`.
 - Ask the user clarifying questions until the completeness checklist is satisfied (all boolean fields in `completeness_checklist` are true).
@@ -121,3 +133,12 @@ Infer from the user's intent:
 If the mode was explicitly specified (user used `/geas:initiative` or `/geas:sprint`), skip detection and go directly to that mode.
 
 Note: `/geas:decision` is a utility skill for decision mode. It can be invoked at any time for structured decision-making — during Initiative mission, delivery mode, or standalone. It does not go through the Orchestrator startup sequence.
+
+---
+
+### Session End — Lock Cleanup
+
+Before session ends (invoked by the Stop hook or run-summary):
+1. Read `.geas/state/locks.json`
+2. Remove all lock entries where `session_id` matches the current session
+3. Write updated `locks.json`
