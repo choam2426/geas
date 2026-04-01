@@ -62,7 +62,7 @@ Within a single task's pipeline, these steps may run in parallel:
 - **[code_review, testing]** — forge and sentinel do not reference each other's output. Spawn both in one message. After both return, remove both from `remaining_steps` and log `step_complete` for each.
 
 All other steps are strictly sequential. In particular:
-- **critical_reviewer → final_verdict** — Nova's prompt requires `critic-review.json` as input. Critic MUST complete and evidence MUST be verified before spawning Nova.
+- **critical_reviewer → final_verdict** — Nova's prompt requires `challenge-review.json` as input. Critic MUST complete and file MUST be verified before spawning Nova.
 
 ### 2. Design (Palette) [DEFAULT — skip-if: no user-facing interface]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
@@ -210,22 +210,45 @@ Set `readiness_round: null` initially — may be updated by the critical reviewe
 
 Update run.json checkpoint: `pipeline_step` = "closure_packet"
 
-### 8.5 Critical Reviewer Challenge [MANDATORY]
+### 8.5 Critical Reviewer Challenge [CONDITIONAL — mandatory for high/critical risk]
+
+**Skip condition:** If `risk_level` is `low` or `normal`, this step is at orchestration_authority's discretion. If skipped: remove `"critical_reviewer"` from `remaining_steps`, update run.json checkpoint, and proceed directly to Final Verdict.
+
+**Mandatory condition:** If `risk_level` is `high` or `critical`, this step MUST run.
+
 Update run.json checkpoint: `pipeline_step` = "critical_reviewer", `agent_in_flight` = "critic"
 ```
-Agent(agent: "critic", prompt: "Read all evidence at .geas/evidence/{task-id}/. Challenge: is this truly ready to ship? Identify risks, missing edge cases, or technical debt. Write to .geas/evidence/{task-id}/critic-review.json")
+Agent(agent: "critic", prompt: "Read the closure packet at .geas/tasks/{task-id}/closure-packet.json. Read all evidence at .geas/evidence/{task-id}/. You MUST raise at least 1 substantive concern — surface a real risk, edge case, or technical debt item. For each concern, state clearly whether it is BLOCKING or non-blocking. Write .geas/tasks/{task-id}/challenge-review.json with the following fields: reviewer_type (\"critical_reviewer\"), concerns (array of strings, each prefixed with \"[BLOCKING]\" or \"[non-blocking]\"), blocking (boolean — true if ANY concern is blocking).")
 ```
-Verify `.geas/evidence/{task-id}/critic-review.json` exists.
+
+Verify `.geas/tasks/{task-id}/challenge-review.json` exists.
+
+**After critic returns:**
+
+1. Read `.geas/tasks/{task-id}/challenge-review.json`.
+2. Update the closure packet: add a `challenge_review` field populated from the review.
+3. **If `blocking` is true:**
+   - Add blocking concerns to `open_risks` in the closure packet: set `status: "present"` and append each blocking concern as an item.
+   - Invoke `/geas:vote-round` as a readiness_round:
+     - Participants: orchestration_authority, product_authority, 1 specialist (most relevant to the blocking concern)
+     - Vote options: ship / iterate / escalate
+     - Record the outcome in the closure packet `readiness_round` field
+   - **If ship:** convert blocking concerns to acknowledged risks (add `acknowledged: true` to each item in `open_risks`). Proceed to Final Verdict.
+   - **If iterate:** rewind to resolve the blocking concern. Repopulate `remaining_steps` from the rewind point.
+   - **If escalate:** set task status to `"escalated"`. Write a DecisionRecord. Stop pipeline.
+4. **If `blocking` is false:** record concerns in the closure packet `challenge_review` field. Proceed to Final Verdict.
+
+Update run.json checkpoint: `pipeline_step` = "critical_reviewer"
 
 ### 9. Final Verdict (Nova) [MANDATORY — after critical_reviewer only]
 **Preconditions:**
-- `.geas/evidence/{task-id}/critic-review.json` must exist (Critical Reviewer Challenge complete)
+- `.geas/tasks/{task-id}/challenge-review.json` must exist OR `critical_reviewer` was explicitly skipped for low/normal risk
 - Closure Packet must be assembled (all required fields populated)
 - Do NOT spawn Nova until both preconditions are verified
 
 Update run.json checkpoint: `pipeline_step` = "final_verdict", `agent_in_flight` = "nova"
 ```
-Agent(agent: "nova", prompt: "Read the closure packet and all evidence at .geas/evidence/{task-id}/ including critic-review.json. Decide: pass, iterate, or escalate. Write .geas/tasks/{task-id}/final-verdict.json conforming to docs/protocol/schemas/final-verdict.schema.json. Required fields: version (\"1.0\"), artifact_type (\"final_verdict\"), artifact_id (e.g. \"verdict-{task-id}\"), producer_type (\"product_authority\"), created_at (ISO 8601 timestamp), task_id, verdict (\"pass\" | \"iterate\" | \"escalate\"), rationale (why this verdict), closure_packet_ref (path to closure packet). If iterate: include rewind_target (\"ready\" | \"implementing\" | \"reviewed\") and iterate_count. If escalate: include escalation_reason. Also write to .geas/evidence/{task-id}/nova-verdict.json for backward compatibility.")
+Agent(agent: "nova", prompt: "Read the closure packet at .geas/tasks/{task-id}/closure-packet.json (which includes the challenge_review field if critic ran) and all evidence at .geas/evidence/{task-id}/. Decide: pass, iterate, or escalate. Write .geas/tasks/{task-id}/final-verdict.json conforming to docs/protocol/schemas/final-verdict.schema.json. Required fields: version (\"1.0\"), artifact_type (\"final_verdict\"), artifact_id (e.g. \"verdict-{task-id}\"), producer_type (\"product_authority\"), created_at (ISO 8601 timestamp), task_id, verdict (\"pass\" | \"iterate\" | \"escalate\"), rationale (why this verdict), closure_packet_ref (path to closure packet). If iterate: include rewind_target (\"ready\" | \"implementing\" | \"reviewed\") and iterate_count. If escalate: include escalation_reason. Also write to .geas/evidence/{task-id}/nova-verdict.json for backward compatibility.")
 ```
 
 **Verdict rules:**
@@ -238,7 +261,7 @@ Note: "iterate" is only valid as a Final Verdict outcome. Gate verdicts (evidenc
 ### Pre-Resolve Check
 **Before marking "passed", verify:**
 - `.geas/tasks/{task-id}/closure-packet.json` exists (assembled in Step 8.25)
-- `.geas/evidence/{task-id}/critic-review.json` exists (Critical Reviewer Challenge complete)
+- `.geas/tasks/{task-id}/challenge-review.json` exists OR critical_reviewer was explicitly skipped (low/normal risk)
 - `.geas/tasks/{task-id}/final-verdict.json` exists with `verdict: "pass"`
 **If ANY missing: execute the missing step. Do NOT proceed without all three.**
 
