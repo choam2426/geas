@@ -620,9 +620,10 @@ Same mandatory steps, same Closure Packet verification, same checkpoint manageme
 
 ### 4.4 Nova Final Briefing [MANDATORY]
 ```
-Agent(agent: "nova", prompt: "Final product review. Read .geas/spec/seed.json and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write to .geas/evidence/evolution/nova-final.json")
+Agent(agent: "nova", prompt: "Final product review. Read .geas/spec/seed.json, .geas/state/gap-assessment.json, .geas/state/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write JSON to .geas/evidence/evolution/nova-final.json. ALSO write a human-readable markdown summary to .geas/evidence/evolution/mission-summary.md covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
 ```
 Verify `.geas/evidence/evolution/nova-final.json` exists.
+Verify `.geas/evidence/evolution/mission-summary.md` exists.
 
 ### 4.5 Keeper Release Management [MANDATORY]
 ```
@@ -633,6 +634,36 @@ Verify `.geas/evidence/evolution/keeper-release.json` exists.
 ### 4.6 Run Summary
 Invoke `/geas:run-summary` to generate session audit trail.
 
-### 4.7 Close
+### 4.7 Evolution Exit Gate and Close
+
+**Before closing, verify ALL 5 required artifacts exist:**
+
+1. `.geas/state/gap-assessment.json` — produced in Step 4.1
+2. `.geas/state/debt-register.json` — all open debt triaged (no items with `severity: "high"` or `"critical"` and `status: "open"`)
+3. `.geas/state/rules-update.json` — exists with `status: "approved"` or `"none"` (produced in Step 4.2.5)
+4. `.geas/evidence/evolution/mission-summary.md` — produced in Step 4.4
+5. `.geas/state/phase-review.json` — write now (see below)
+
+**If ANY artifact is missing: go back and execute the missing step. Do NOT close without all 5.**
+
+**Debt triage check**: Read debt-register.json. If any item has `severity: "critical"` and `status: "open"`, the exit gate fails. Product_authority must decide: (a) immediate fix as task, (b) accept with mandatory rationale, or (c) defer to next mission. Record decision in a DecisionRecord with `decision_type: "critical_debt_triage"`.
+
+Write `.geas/state/phase-review.json`:
+```json
+{
+  "version": "1.0",
+  "artifact_type": "phase_review",
+  "artifact_id": "pr-evolution",
+  "producer_type": "orchestration_authority",
+  "mission_phase": "evolution",
+  "status": "ready_to_exit",
+  "summary": "<evolution outcomes>",
+  "gate_criteria_met": ["gap-assessment exists", "debt triaged", "rules-update exists", "mission-summary exists"],
+  "gate_criteria_unmet": [],
+  "risk_notes": [],
+  "created_at": "<ISO 8601>"
+}
+```
+
 Update run state: `{ "phase": "complete", "status": "complete" }`
 Log: `{"event": "phase_complete", "phase": "complete", "timestamp": "<actual>"}`
