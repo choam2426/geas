@@ -45,7 +45,7 @@ Verify all vote files exist before continuing.
 
 ### 1.6 Compile TaskContracts
 - Use `.geas/spec/stories.md` as input. For each user story, invoke `/geas:task-compiler`.
-- Each TaskContract MUST include a `rubric` array. Base dimensions: core_interaction(3), feature_completeness(4), code_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
+- Each TaskContract MUST include a `rubric` object with a `dimensions` array. Base dimensions: core_interaction(3), feature_completeness(4), code_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
 - Log each: `{"event": "task_compiled", "task_id": "...", "timestamp": "<actual>"}`
 
 ### 1.7 MCP Server Recommendations
@@ -75,7 +75,7 @@ Present recommendations with install commands from the MCP registry.
 ### Parallel Execution
 
 Before starting the first task, and after each task or batch resolves:
-- Scan `.geas/tasks/` for eligible tasks (status `"pending"`, all `depends_on` are `"passed"`).
+- Scan `.geas/tasks/` for eligible tasks (status `"ready"`, all `depends_on` are `"passed"`).
 - If 2+ eligible: apply `/geas:parallel-dispatch` protocol.
 - If 0-1 eligible: run the single task through the sequential pipeline below.
 
@@ -83,7 +83,7 @@ For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
 
 ### 2.0 Start Task
 - Read TaskContract. Check dependencies are `"passed"`.
-- Update status to `"in_progress"`. Log `task_started` event.
+- Update status to `"implementing"`. Log `task_started` event.
 - **Write `remaining_steps` to checkpoint** — the full pipeline for this task:
   ```json
   "remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "code_review", "testing", "evidence_gate", "critical_reviewer", "final_verdict", "retrospective", "resolve"]
@@ -97,12 +97,14 @@ For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
   Exception: `implementation_contract`, `gate_result`, and `task_resolved` have their own event formats. Do not duplicate those.
 - **Rubric check**: If the TaskContract is missing `rubric`, insert the default before proceeding:
   ```json
-  "rubric": [
-    { "dimension": "core_interaction", "evaluator": "sentinel", "threshold": 3 },
-    { "dimension": "feature_completeness", "evaluator": "sentinel", "threshold": 4 },
-    { "dimension": "code_quality", "evaluator": "forge", "threshold": 4 },
-    { "dimension": "regression_safety", "evaluator": "sentinel", "threshold": 4 }
-  ]
+  "rubric": {
+    "dimensions": [
+      { "name": "core_interaction", "threshold": 3 },
+      { "name": "feature_completeness", "threshold": 4 },
+      { "name": "code_quality", "threshold": 4 },
+      { "name": "regression_safety", "threshold": 4 }
+    ]
+  }
   ```
   Add `ux_clarity` (threshold 3) and `visual_coherence` (threshold 3) if the task has a UI component.
 
@@ -154,7 +156,7 @@ Update run.json checkpoint: `pipeline_step` = "implementation", `agent_in_flight
 ```
 Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/packets/{task-id}/{worker}.md. Implement the feature. Write evidence to .geas/evidence/{task-id}/{worker}.json")
 ```
-Verify evidence exists. Merge worktree branch.
+Verify evidence exists. Merge worktree branch. After successful merge, update TaskContract status to `"integrated"`.
 
 ### 2.5 Code Review (Forge) [MANDATORY]
 Generate ContextPacket, then:
@@ -163,7 +165,7 @@ Update run.json checkpoint: `pipeline_step` = "code_review", `agent_in_flight` =
 Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge-review.md. Review implementation. Write to .geas/evidence/{task-id}/forge-review.json")
 ```
 Verify `.geas/evidence/{task-id}/forge-review.json` exists.
-Update TaskContract status to "in_review".
+Update TaskContract status to `"reviewed"`.
 Update run.json checkpoint: `pipeline_step` = "code_review"
 
 ### 2.6 Testing (Sentinel) [MANDATORY]
@@ -173,12 +175,12 @@ Update run.json checkpoint: `pipeline_step` = "testing", `agent_in_flight` = "se
 Agent(agent: "sentinel", prompt: "Read .geas/packets/{task-id}/sentinel.md. Test the feature. Write QA results to .geas/evidence/{task-id}/sentinel.json")
 ```
 Verify `.geas/evidence/{task-id}/sentinel.json` exists.
-Update TaskContract status to "testing".
 Update run.json checkpoint: `pipeline_step` = "testing"
 
 ### 2.7 Evidence Gate
 Run eval_commands from TaskContract. Check acceptance criteria against all evidence.
 Log detailed result with tier breakdown.
+On gate pass: update TaskContract status to `"verified"`.
 If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** After fix, re-run gate.
 
 ### 2.8 Critical Reviewer Challenge [MANDATORY]
@@ -216,8 +218,8 @@ Verify `.geas/memory/retro/{task-id}.json` exists.
   ```
   Agent(agent: "keeper", prompt: "Commit all changes for {task-id} with conventional commit format. Write to .geas/evidence/{task-id}/keeper.json")
   ```
-- **Iterate** (Final Verdict only): deduct retry_budget (if exhausted → escalation_policy). Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include Nova's feedback in all subsequent ContextPackets. Resume from the first non-skipped step (typically Design). See evidence-gate "On Iterate" for the full procedure.
-- **Cut**: status → `"failed"`. Write DecisionRecord.
+- **Iterate** (Final Verdict only): deduct retry_budget (if exhausted → escalate to orchestration_authority). Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include Nova's feedback in all subsequent ContextPackets. Resume from the first non-skipped step (typically Design). See evidence-gate "On Iterate" for the full procedure.
+- **Cut**: status → `"cancelled"`. Write DecisionRecord.
 
 ### Close Phase 2
 Log: `{"event": "phase_complete", "phase": "build", "timestamp": "<actual>"}`

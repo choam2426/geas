@@ -28,7 +28,7 @@ One feature, one pipeline. Skips Discovery.
 The TaskContract MUST be written to `.geas/tasks/{task-id}.json` before the pipeline starts. Do NOT enter the pipeline without a task file on disk. This is required for Closure Packet validation and session recovery.
 
 ### 1. Compile TaskContract
-Invoke `/geas:task-compiler` for the feature. The TaskContract MUST include a `rubric` array. Base dimensions: core_interaction(3), feature_completeness(4), code_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
+Invoke `/geas:task-compiler` for the feature. The TaskContract MUST include a `rubric` object with a `dimensions` array. Base dimensions: core_interaction(3), feature_completeness(4), code_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
 
 After compilation, write `remaining_steps` to checkpoint:
 ```json
@@ -36,7 +36,18 @@ After compilation, write `remaining_steps` to checkpoint:
 ```
 Remove steps that will be skipped. After completing each step, remove it from the front of the array and update run.json.
 
-**Rubric check**: If the TaskContract is missing `rubric`, insert the default (same as Initiative mission).
+**Rubric check**: If the TaskContract is missing `rubric`, insert the default:
+```json
+"rubric": {
+  "dimensions": [
+    { "name": "core_interaction", "threshold": 3 },
+    { "name": "feature_completeness", "threshold": 4 },
+    { "name": "code_quality", "threshold": 4 },
+    { "name": "regression_safety", "threshold": 4 }
+  ]
+}
+```
+Add `ux_clarity` (threshold 3) and `visual_coherence` (threshold 3) if the task has a UI component.
 
 **[MANDATORY] Event logging**: After each step completes and is removed from `remaining_steps`, log:
 ```
@@ -93,7 +104,7 @@ Update run.json checkpoint: `pipeline_step` = "implementation", `agent_in_flight
 ```
 Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/packets/{task-id}/{worker}.md. Implement. Write evidence to .geas/evidence/{task-id}/{worker}.json")
 ```
-Verify evidence. Merge worktree.
+Verify evidence. Merge worktree. After successful merge, update TaskContract status to `"integrated"`.
 
 ### 6. Code Review (Forge) [MANDATORY]
 Generate ContextPacket, then:
@@ -102,7 +113,7 @@ Update run.json checkpoint: `pipeline_step` = "code_review", `agent_in_flight` =
 Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge-review.md. Review code. Write to .geas/evidence/{task-id}/forge-review.json")
 ```
 Verify evidence.
-Update TaskContract status to "in_review".
+Update TaskContract status to `"reviewed"`.
 Update run.json checkpoint: `pipeline_step` = "code_review"
 
 ### 7. Testing (Sentinel) [MANDATORY]
@@ -112,11 +123,11 @@ Update run.json checkpoint: `pipeline_step` = "testing", `agent_in_flight` = "se
 Agent(agent: "sentinel", prompt: "Read .geas/packets/{task-id}/sentinel.md. Test feature. Write to .geas/evidence/{task-id}/sentinel.json")
 ```
 Verify evidence.
-Update TaskContract status to "testing".
 Update run.json checkpoint: `pipeline_step` = "testing"
 
 ### 8. Evidence Gate
 Run eval_commands. Check acceptance criteria. Log detailed result.
+On gate pass: update TaskContract status to `"verified"`.
 If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** After fix, re-run gate.
 
 ### 8.5 Critical Reviewer Challenge [MANDATORY]
@@ -155,8 +166,8 @@ Verify `.geas/memory/retro/{task-id}.json` exists.
   ```
   Agent(agent: "keeper", prompt: "Commit all changes for {task-id} with conventional commit format. Write to .geas/evidence/{task-id}/keeper.json")
   ```
-- Iterate (Final Verdict only) → deduct retry_budget (if exhausted → escalation_policy). Repopulate remaining_steps with full pipeline (same skip conditions). Include Nova's feedback in all ContextPackets. Resume from first non-skipped step. See evidence-gate "On Iterate" for full procedure.
-- Cut → `"failed"`, write DecisionRecord
+- Iterate (Final Verdict only) → deduct retry_budget (if exhausted → escalate to orchestration_authority). Repopulate remaining_steps with full pipeline (same skip conditions). Include Nova's feedback in all ContextPackets. Resume from first non-skipped step. See evidence-gate "On Iterate" for full procedure.
+- Cut → `"cancelled"`, write DecisionRecord
 
 ### 11. Run Summary
 Invoke `/geas:run-summary` to generate session audit trail.
