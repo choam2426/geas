@@ -109,6 +109,49 @@ All files must be written in English, except `docs/ko/` and `README.ko.md`.
 - Runtime state: `.geas/` (gitignored, per-project)
 - Protocol reference: `docs/protocol/` (English canonical), `docs/ko/protocol/` (Korean canonical)
 
+## Protocol Migration (current work)
+
+We are upgrading skills to match the v3 protocol. Migration follows 6 phases (see `docs/protocol/13_MIGRATION_AND_IMPLEMENTATION_ROADMAP.md`). Each phase depends on the previous one.
+
+### Current phase: Phase 1 — Minimum Enforceable State
+
+Priority gaps to close:
+1. Task 7-state model in task-compiler (drafted→ready→implementing→reviewed→integrated→verified→passed)
+2. Worker self-check generation (currently consumed but never produced)
+3. Evidence Gate ↔ Final Verdict separation (currently merged — gate should return pass/fail/block/error only)
+4. Closure Packet assembly (new step after gate pass)
+5. Critical Reviewer Challenge (new step before final verdict)
+6. Directory rename: `debate/` → `decision/` (with plugin.json, hooks, cross-references)
+
+### How to work on migration
+
+1. **Read the protocol doc first** — before touching any skill, read the relevant protocol document in `docs/protocol/`.
+2. **Read the skill second** — understand what it currently does vs what the protocol requires.
+3. **Change one gap at a time** — don't mix multiple gaps in one change. Commit after each.
+4. **Protocol schemas are the contract** — `docs/protocol/schemas/` defines the exact artifact shapes. Skills must produce artifacts that validate against these schemas.
+5. **Update both `initiative` and `sprint`** when changing shared pipeline behavior.
+6. **Don't break working functionality** — migration is incremental. Old behavior should keep working until explicitly replaced.
+
+### Protocol quick reference
+
+| Topic | Protocol doc |
+|-------|-------------|
+| Design principles, 4 Pillars, terminology | `protocol/00` |
+| Agent types, authority, routing | `protocol/01` |
+| Modes, phases, mission model | `protocol/02` |
+| Task states, transitions, self-check | `protocol/03` |
+| Worktree, locks, parallelism | `protocol/04` |
+| Gate, vote, closure, verdict | `protocol/05` |
+| Specialist evidence matrix | `protocol/06` |
+| Memory system overview | `protocol/07` |
+| Memory lifecycle, promotion | `protocol/08` |
+| Memory retrieval, context engine | `protocol/09` |
+| Session recovery | `protocol/10` |
+| Runtime artifacts, schemas | `protocol/11` |
+| Enforcement, metrics | `protocol/12` |
+| Migration roadmap, skill gaps | `protocol/13` |
+| Evolution, debt, gap loop | `protocol/14` |
+
 ## When editing skills or agents
 
 - Read the existing file first — understand the current behavior before changing it
