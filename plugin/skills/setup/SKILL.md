@@ -43,7 +43,7 @@ Write the initial run state file `.geas/state/run.json`:
 }
 ```
 
-The run state must conform to `compass/schemas/run-state.schema.json`. Refer to the schema for the full field list.
+The run state must conform to `orchestrating/schemas/run-state.schema.json`. Refer to the schema for the full field list.
 
 ### Phase A-2: Generate `.geas/rules.md`
 

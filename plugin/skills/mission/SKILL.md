@@ -8,8 +8,8 @@ description: >
 
 # Mission
 
-Invoke `/geas:compass` to start the Geas orchestrator.
+Invoke `/geas:orchestrating` to start the Geas orchestrator.
 
-The compass skill will handle setup, intake, mode detection, and delegate to the appropriate protocol (Initiative mission, delivery mode via Sprint pattern, or decision mode).
+The orchestrating skill will handle setup, intake, mode detection, and delegate to the appropriate protocol (Initiative mission, delivery mode via Sprint pattern, or decision mode).
 
-**Do NOT spawn a compass agent. Compass is a skill, not an agent.**
+**Do NOT spawn an orchestrator agent. Orchestrating is a skill, not an agent.**

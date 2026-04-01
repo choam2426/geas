@@ -13,7 +13,7 @@ End-of-session summary for observability. Captures what happened, what shipped, 
 
 ## When
 
-Compass invokes this:
+Orchestrator invokes this:
 - At the **end of every session** (natural completion or human interrupt)
 - Before **session handoff** (if work continues in a new conversation)
 - On explicit request from the human

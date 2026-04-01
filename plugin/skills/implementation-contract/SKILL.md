@@ -9,7 +9,7 @@ Worker and reviewers agree on "what done looks like" before any code is written.
 
 ## When to Use
 
-Compass invokes this skill after Tech Guide (Forge) and before Implementation, for every task.
+Orchestrator invokes this skill after Tech Guide (Forge) and before Implementation, for every task.
 
 ## Purpose
 

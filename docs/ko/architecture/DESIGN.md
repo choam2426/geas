@@ -190,7 +190,7 @@ plugin/
     implementation-contract/  # 구현 전 합의
     verify-fix-loop/       # 실패 → 수정 → 재검증
     vote-round/            # 구조화된 투표
-    compass/               # 오케스트레이터
+    orchestrating/         # 오케스트레이터
     initiative/            # 4-phase mission (discovery → build → polish → evolution)
     sprint/                # delivery mode: 기존 프로젝트에 기능 추가
     decision/              # decision mode: 의사결정

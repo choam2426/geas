@@ -1,16 +1,16 @@
 ---
-name: parallel-dispatch
+name: scheduling
 description: >
-  Protocol for compass to manage multiple tasks simultaneously.
+  Protocol for orchestrator to manage multiple tasks simultaneously.
   Defines batch construction, pipeline interleaving, checkpoint management, and recovery.
   Task-level parallelism only. Step-level parallelism is defined in initiative/sprint.
 ---
 
-# Parallel Dispatch
+# Scheduling
 
-This skill is a protocol document — compass reads it and executes directly. There is no separate orchestrator.
+This skill is a protocol document — the orchestrator reads it and executes directly. There is no separate scheduling agent.
 
-Compass assigns multiple tasks to run simultaneously. Each task progresses through its pipeline sequentially (as defined in initiative/sprint). Compass interleaves agent spawns across tasks, spawning agents for different tasks in the same message when possible.
+The orchestrator assigns multiple tasks to run simultaneously. Each task progresses through its pipeline sequentially (as defined in initiative/sprint). The orchestrator interleaves agent spawns across tasks, spawning agents for different tasks in the same message when possible.
 
 ---
 
@@ -23,11 +23,11 @@ Compass assigns multiple tasks to run simultaneously. Each task progresses throu
 
 ## 1. Batch Construction
 
-When compass reaches a point where new tasks could start (Phase 2 entry, or after a task/batch resolves):
+When the orchestrator reaches a point where new tasks could start (Phase 2 entry, or after a task/batch resolves):
 
 1. Read all task files in `.geas/tasks/`.
 2. Filter: `status == "ready"` AND every ID in `depends_on` has a task file with `status == "passed"`.
-3. If 0-1 eligible: this protocol does not apply. Compass runs the single task through the normal pipeline.
+3. If 0-1 eligible: this protocol does not apply. The orchestrator runs the single task through the normal pipeline.
 4. If 2+ eligible: form a batch.
    - **Max batch size: 4.** If more eligible, take the first 4 by task ID order. Remainder waits for next batch.
    - Reason: worktree concurrency + context window limits.
@@ -54,18 +54,18 @@ Update `run.json` checkpoint:
 }
 ```
 
-Note: during batch execution, `remaining_steps` is empty at the batch level. Each task's pipeline progress is tracked by compass internally (in context) and by evidence file presence.
+Note: during batch execution, `remaining_steps` is empty at the batch level. Each task's pipeline progress is tracked by the orchestrator internally (in context) and by evidence file presence.
 
 ---
 
 ## 3. Pipeline Interleaving
 
-Compass manages each task's pipeline independently:
+The orchestrator manages each task's pipeline independently:
 
 - Each task follows the per-task pipeline defined in initiative/sprint SKILL.md.
-- **Independent progression:** When an agent returns for task A, compass spawns task A's next step immediately. It does NOT wait for other tasks to reach the same step.
-- **Parallel spawning:** Compass MAY spawn agents for different tasks in the same message (parallel tool calls). Example: `Agent(circuit, "implement STORY-003")` and `Agent(circuit, "implement STORY-009")` in one message.
-- **Step groups:** Within a single task, compass also applies step group rules from initiative/sprint (e.g., spawning forge + sentinel simultaneously for the same task).
+- **Independent progression:** When an agent returns for task A, the orchestrator spawns task A's next step immediately. It does NOT wait for other tasks to reach the same step.
+- **Parallel spawning:** The orchestrator MAY spawn agents for different tasks in the same message (parallel tool calls). Example: `Agent(circuit, "implement STORY-003")` and `Agent(circuit, "implement STORY-009")` in one message.
+- **Step groups:** Within a single task, the orchestrator also applies step group rules from initiative/sprint (e.g., spawning forge + sentinel simultaneously for the same task).
 - **All mandatory steps apply:** Implementation contract, code review, testing, critic review, nova review, retrospective, and resolve are mandatory for every task in the batch. Do NOT skip any because of parallelism.
 
 **Checkpoint during batch:** Before each agent spawn, update `last_updated` in run.json. `agent_in_flight` stays `null` during batches (multiple agents active). The authoritative progress record is the evidence files and task file statuses.
@@ -81,7 +81,7 @@ When a task's pipeline finishes (keeper commits, retro done):
 3. Add task ID to `completed_tasks` in run.json, write back.
 4. Log `task_resolved` event.
 
-If other tasks in the batch are still running, compass continues managing them.
+If other tasks in the batch are still running, the orchestrator continues managing them.
 
 ---
 

@@ -9,7 +9,7 @@ Creates a focused, role-specific briefing for a worker. Workers read their packe
 
 ## When to Use
 
-Compass invokes this skill before dispatching any worker for a task.
+Orchestrator invokes this skill before dispatching any worker for a task.
 
 ## Inputs
 

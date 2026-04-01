@@ -190,7 +190,7 @@ plugin/
     implementation-contract/  # Pre-implementation agreement
     verify-fix-loop/       # fail -> fix -> re-verify
     vote-round/            # Structured voting
-    compass/               # Orchestrator
+    orchestrating/         # Orchestrator
     initiative/            # 4-phase mission (discovery -> build -> polish -> evolution)
     sprint/                # delivery mode: add features to existing project
     decision/              # decision mode: decision-making

@@ -1,14 +1,14 @@
 ---
-name: compass
+name: orchestrating
 description: >
   Geas orchestrator — coordinates the multi-agent team.
   Manages setup, intake, mode detection, and delegates to initiative/sprint protocols.
   Do NOT spawn this as an agent. This is a skill that runs in the main session.
 ---
 
-# Compass
+# Orchestrating
 
-You are the Geas orchestrator. You execute everything directly in this session. **There is no separate compass agent to spawn.**
+You are the Geas orchestrator. You execute everything directly in this session. **There is no separate orchestrator agent to spawn.**
 
 ---
 
@@ -57,7 +57,7 @@ These rules apply to ALL modes (Initiative mission, delivery mode).
 - On task completion (sequential): clear checkpoint entirely.
 
 #### Batch checkpoint
-During parallel batch execution (see `/geas:parallel-dispatch`):
+During parallel batch execution (see `/geas:scheduling`):
 - `parallel_batch`: task IDs in the current batch.
 - `completed_in_batch`: task IDs resolved so far within the batch.
 - `agent_in_flight`: `null` (multiple agents may be active).
@@ -77,7 +77,7 @@ This applies to every task — sequential or parallel, initiative or sprint. If 
 - `.geas/rules.md` is a living document managed primarily by **Scrum** (Agile Master).
 - After each task's Closure Packet verification, spawn Scrum for a retrospective — Scrum updates rules.md and records lessons.
 - **Scrum retrospective is MANDATORY for every task.** Do NOT skip it, even if the task was trivial. Verify `.geas/memory/retro/{task-id}.json` exists after Scrum returns. If missing, retry once.
-- After Discovery: Compass adds stack-specific rules (e.g., "lint with {linter}", "test with {test runner}") before Scrum exists in the pipeline.
+- After Discovery: Orchestrator adds stack-specific rules (e.g., "lint with {linter}", "test with {test runner}") before Scrum exists in the pipeline.
 
 ### Tech debt tracking
 After reading each agent's evidence, check for a `tech_debt` array. If present:
@@ -120,4 +120,4 @@ Infer from the user's intent:
 
 If the mode was explicitly specified (user used `/geas:initiative` or `/geas:sprint`), skip detection and go directly to that mode.
 
-Note: `/geas:decision` is a utility skill for decision mode. It can be invoked at any time for structured decision-making — during Initiative mission, delivery mode, or standalone. It does not go through the Compass startup sequence.
+Note: `/geas:decision` is a utility skill for decision mode. It can be invoked at any time for structured decision-making — during Initiative mission, delivery mode, or standalone. It does not go through the Orchestrator startup sequence.

@@ -1,34 +1,34 @@
 # Skills Reference
 
-All 23 skills in the Geas plugin. Skills are invoked either by users directly (`/geas:<name>`) or by Compass as part of execution protocols.
+All 23 skills in the Geas plugin. Skills are invoked either by users directly (`/geas:<name>`) or by the Orchestrator as part of execution protocols.
 
 ## Summary Table
 
 | Skill | Category | User-Invocable | Invoked By | Key Output |
 |-------|----------|----------------|------------|------------|
-| [mission](#mission) | Entry | Yes | User directly | Invokes Compass |
-| [compass](#compass) | Entry | No | User (via `/geas:mission`) | Orchestrates entire session |
-| [setup](#setup) | Entry | No | Compass (first run) | `.geas/` runtime directory |
-| [intake](#intake) | Core - Contract Engine | No | Compass | `.geas/spec/seed.json` |
-| [task-compiler](#task-compiler) | Core - Contract Engine | No | Compass | `.geas/tasks/{id}.json` |
-| [context-packet](#context-packet) | Core - Contract Engine | No | Compass | `.geas/packets/{task-id}/{worker}.md` |
-| [implementation-contract](#implementation-contract) | Core - Contract Engine | No | Compass | `.geas/contracts/{task-id}.json` |
-| [evidence-gate](#evidence-gate) | Core - Contract Engine | No | Compass | Gate verdict + ledger event |
-| [verify-fix-loop](#verify-fix-loop) | Core - Contract Engine | No | Compass (via evidence-gate) | Fix iterations + DecisionRecord |
+| [mission](#mission) | Entry | Yes | User directly | Invokes Orchestrator |
+| [orchestrating](#orchestrating) | Entry | No | User (via `/geas:mission`) | Orchestrates entire session |
+| [setup](#setup) | Entry | No | Orchestrator (first run) | `.geas/` runtime directory |
+| [intake](#intake) | Core - Contract Engine | No | Orchestrator | `.geas/spec/seed.json` |
+| [task-compiler](#task-compiler) | Core - Contract Engine | No | Orchestrator | `.geas/tasks/{id}.json` |
+| [context-packet](#context-packet) | Core - Contract Engine | No | Orchestrator | `.geas/packets/{task-id}/{worker}.md` |
+| [implementation-contract](#implementation-contract) | Core - Contract Engine | No | Orchestrator | `.geas/contracts/{task-id}.json` |
+| [evidence-gate](#evidence-gate) | Core - Contract Engine | No | Orchestrator | Gate verdict + ledger event |
+| [verify-fix-loop](#verify-fix-loop) | Core - Contract Engine | No | Orchestrator (via evidence-gate) | Fix iterations + DecisionRecord |
 | [verify](#verify) | Core - Verification | No | Worker agents | Console checklist report |
-| [vote-round](#vote-round) | Core - Verification | No | Compass (at Discovery) | `.geas/decisions/{dec-id}.json` |
-| [initiative](#initiative) | Team - Execution | Yes | Compass or User | Full product build (4 phases) |
-| [sprint](#sprint) | Team - Execution | Yes | Compass or User | Feature addition to existing project |
-| [decision](#decision) | Team - Execution | Yes | Compass or User | `.geas/decisions/{dec-id}.json` |
+| [vote-round](#vote-round) | Core - Verification | No | Orchestrator (at Discovery) | `.geas/decisions/{dec-id}.json` |
+| [initiative](#initiative) | Team - Execution | Yes | Orchestrator or User | Full product build (4 phases) |
+| [sprint](#sprint) | Team - Execution | Yes | Orchestrator or User | Feature addition to existing project |
+| [decision](#decision) | Team - Execution | Yes | Orchestrator or User | `.geas/decisions/{dec-id}.json` |
 | [write-prd](#write-prd) | Team - Planning | No | Nova (during Discovery) | `.geas/spec/prd.md` |
 | [write-stories](#write-stories) | Team - Planning | No | Nova (during Discovery) | `.geas/spec/stories.md` |
-| [onboard](#onboard) | Team - Planning | No | Compass (Sprint, first run) | `.geas/memory/_project/conventions.md` |
+| [onboard](#onboard) | Team - Planning | No | Orchestrator (Sprint, first run) | `.geas/memory/_project/conventions.md` |
 | [coding-conventions](#coding-conventions) | Utility | No | All agents | Reference guidance only |
-| [briefing](#briefing) | Utility | No | Nova or Compass | Console status report |
-| [run-summary](#run-summary) | Utility | No | Compass (end of session) | `.geas/summaries/run-summary-<date>.md` |
-| [ledger-query](#ledger-query) | Utility | No | Compass or User | Formatted query results (read-only) |
-| [cleanup](#cleanup) | Utility | No | Compass (post-Build / Evolution) | `.geas/debt.json` entries |
-| [pivot-protocol](#pivot-protocol) | Utility | No | Compass or any agent | `.geas/decisions/{dec-id}.json` |
+| [briefing](#briefing) | Utility | No | Nova or Orchestrator | Console status report |
+| [run-summary](#run-summary) | Utility | No | Orchestrator (end of session) | `.geas/summaries/run-summary-<date>.md` |
+| [ledger-query](#ledger-query) | Utility | No | Orchestrator or User | Formatted query results (read-only) |
+| [cleanup](#cleanup) | Utility | No | Orchestrator (post-Build / Evolution) | `.geas/debt.json` entries |
+| [pivot-protocol](#pivot-protocol) | Utility | No | Orchestrator or any agent | `.geas/decisions/{dec-id}.json` |
 
 ---
 
@@ -36,7 +36,7 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 
 ### mission
 
-Entry point -- receives user intent and invokes Compass.
+Entry point -- receives user intent and invokes Orchestrator.
 
 **User-Invocable:** Yes (`/geas:mission`)
 
@@ -46,22 +46,22 @@ Entry point -- receives user intent and invokes Compass.
 - User natural language (mission statement, feature request, or decision question)
 
 **Outputs:**
-- None (delegates to Compass immediately)
+- None (delegates to Orchestrator immediately)
 
 **Key Behaviors:**
-- Thin entry shell -- receives user input and invokes `/geas:compass`.
-- Does NOT spawn a compass agent. Compass is a skill that runs in the main session, not a sub-agent.
+- Thin entry shell -- receives user input and invokes `/geas:orchestrating`.
+- Does NOT spawn an orchestrator agent. Orchestrating is a skill that runs in the main session, not a sub-agent.
 - Users can also invoke execution missions/modes directly (`/geas:initiative`, `/geas:sprint`, `/geas:decision`).
 
 **Schemas:** None.
 
 ---
 
-### compass
+### orchestrating
 
 Geas orchestrator -- coordinates the multi-agent team. Manages setup, intake, mode routing (discovery/delivery/decision), and delegates to Initiative mission, Sprint pattern, or decision protocol.
 
-**User-Invocable:** No (invoked via `/geas:mission`, which calls `/geas:compass`)
+**User-Invocable:** No (invoked via `/geas:mission`, which calls `/geas:orchestrating`)
 
 **Invoked By:** The `mission` skill on every user request
 
@@ -91,7 +91,7 @@ First-time setup -- initialize `.geas/` runtime directory, generate config files
 
 **User-Invocable:** No
 
-**Invoked By:** Compass on the first run (when `.geas/state/run.json` does not exist)
+**Invoked By:** Orchestrator on the first run (when `.geas/state/run.json` does not exist)
 
 **Inputs:** None (reads `.gitignore` to check for existing entries)
 
@@ -105,7 +105,7 @@ First-time setup -- initialize `.geas/` runtime directory, generate config files
 **Key Behaviors:**
 - Idempotent directory creation via `mkdir -p` -- safe to call on an existing project.
 - Writes `rules.md` with the baseline evidence and code rules that all agents must follow; Scrum updates this file over time via retrospectives.
-- Users should not need to run this manually; Compass triggers it automatically.
+- Users should not need to run this manually; Orchestrator triggers it automatically.
 
 **Schemas:** None.
 
@@ -119,7 +119,7 @@ Mission intake gate -- collaborative exploration to freeze a seed spec. One ques
 
 **User-Invocable:** No
 
-**Invoked By:** Compass (Step 1 of Startup Sequence, before mode detection)
+**Invoked By:** Orchestrator (Step 1 of Startup Sequence, before mode detection)
 
 **Inputs:**
 - User natural language (the raw mission statement)
@@ -143,7 +143,7 @@ Compile a user story into a TaskContract -- a machine-readable work agreement wi
 
 **User-Invocable:** No
 
-**Invoked By:** Compass during Initiative (Discovery phase, step 1.6) and Sprint (step 1)
+**Invoked By:** Orchestrator during Initiative (Discovery phase, step 1.6) and Sprint (step 1)
 
 **Inputs:**
 - User story or feature description
@@ -170,7 +170,7 @@ Generate a role-specific ContextPacket for a worker -- compressed briefing with 
 
 **User-Invocable:** No
 
-**Invoked By:** Compass before dispatching any worker for a task
+**Invoked By:** Orchestrator before dispatching any worker for a task
 
 **Inputs:**
 - `.geas/tasks/{task-id}.json` -- TaskContract
@@ -198,7 +198,7 @@ Pre-implementation agreement -- worker proposes concrete action plan, Sentinel a
 
 **User-Invocable:** No
 
-**Invoked By:** Compass after Tech Guide (Forge) and before Implementation, for every task
+**Invoked By:** Orchestrator after Tech Guide (Forge) and before Implementation, for every task
 
 **Inputs:**
 - `.geas/tasks/{task-id}.json` -- TaskContract
@@ -224,7 +224,7 @@ Evidence Gate v2 quality gate -- evaluates an EvidenceBundle against its TaskCon
 
 **User-Invocable:** No
 
-**Invoked By:** Compass after each implementation, code review, or QA step
+**Invoked By:** Orchestrator after each implementation, code review, or QA step
 
 **Inputs:**
 - `.geas/evidence/{task-id}/{worker-name}.json` -- EvidenceBundle
@@ -253,7 +253,7 @@ Verify-Fix Loop -- bounded fix-verify inner loop. Reads TaskContract for retry b
 
 **User-Invocable:** No
 
-**Invoked By:** Compass (triggered by evidence-gate on failure)
+**Invoked By:** Orchestrator (triggered by evidence-gate on failure)
 
 **Inputs:**
 - `.geas/tasks/{task-id}.json` -- TaskContract (retry budget, escalation policy)
@@ -303,11 +303,11 @@ Structured verification checklist -- BUILD, LINT, TEST, ERROR_FREE, FUNCTIONALIT
 
 ### vote-round
 
-Structured review protocol -- Forge proposes, Critic challenges, Compass synthesizes, user confirms. Produces a DecisionRecord.
+Structured review protocol -- Forge proposes, Critic challenges, Orchestrator synthesizes, user confirms. Produces a DecisionRecord.
 
 **User-Invocable:** No
 
-**Invoked By:** Compass at major architectural or cross-cutting decisions (primarily Discovery step 1.5)
+**Invoked By:** Orchestrator at major architectural or cross-cutting decisions (primarily Discovery step 1.5)
 
 **Inputs:**
 - Proposal from Forge (saved to `.geas/decisions/pending/{proposal-id}.md`)
@@ -318,7 +318,7 @@ Structured review protocol -- Forge proposes, Critic challenges, Compass synthes
 - Cleans up `.geas/decisions/pending/{proposal-id}.md` after resolution
 
 **Key Behaviors:**
-- Four-step process: Forge writes a structured proposal (What / Why / Trade-offs / Alternatives) -> Critic writes a structured challenge (Assessment / Concerns / Alternative / Recommendation) -> Compass synthesizes both and presents options to the user -> user confirms or Compass auto-decides in autonomous mode.
+- Four-step process: Forge writes a structured proposal (What / Why / Trade-offs / Alternatives) -> Critic writes a structured challenge (Assessment / Concerns / Alternative / Recommendation) -> Orchestrator synthesizes both and presents options to the user -> user confirms or Orchestrator auto-decides in autonomous mode.
 - Triggered for architecture/tech stack proposals and design system decisions; not triggered for individual feature specs, per-feature tech guides, bug fixes, or minor refactors.
 - Critic participation is mandatory -- skipping the Critic step is not allowed even when the proposal seems obvious.
 
@@ -334,7 +334,7 @@ Start a new product with the Geas team -- a 4-phase Initiative mission: Discover
 
 **User-Invocable:** Yes (`/geas:initiative`)
 
-**Invoked By:** Compass (after mode detection) or directly by user
+**Invoked By:** Orchestrator (after mode detection) or directly by user
 
 **Inputs:**
 - `.geas/spec/seed.json` -- frozen mission spec from intake
@@ -361,7 +361,7 @@ Add a bounded feature to an existing project using delivery mode (Sprint pattern
 
 **User-Invocable:** Yes (`/geas:sprint`)
 
-**Invoked By:** Compass (after mode detection) or directly by user
+**Invoked By:** Orchestrator (after mode detection) or directly by user
 
 **Inputs:**
 - `.geas/spec/seed.json` -- read-only project context (Sprint never modifies it after it exists)
@@ -375,7 +375,7 @@ Add a bounded feature to an existing project using delivery mode (Sprint pattern
 **Key Behaviors:**
 - Skips Discovery entirely (no PRD, no stories, no architecture vote). Compiles a single TaskContract directly from the feature description.
 - Runs the same 11-step pipeline as Initiative Build phase. Closure Packet, Critical Reviewer Challenge, Final Verdict, and Scrum retrospective are all mandatory.
-- If `.geas/memory/_project/conventions.md` is missing (first Sprint on an unknown project), Compass spawns Forge to run the `onboard` skill before the pipeline starts.
+- If `.geas/memory/_project/conventions.md` is missing (first Sprint on an unknown project), Orchestrator spawns Forge to run the `onboard` skill before the pipeline starts.
 
 **Schemas:** Reads and writes all contract-engine schemas.
 
@@ -387,7 +387,7 @@ Run a structured multi-agent decision in decision mode to make a technical or pr
 
 **User-Invocable:** Yes (`/geas:decision`)
 
-**Invoked By:** Compass (after mode detection) or directly by user
+**Invoked By:** Orchestrator (after mode detection) or directly by user
 
 **Inputs:**
 - User's question or decision to frame (natural language)
@@ -398,7 +398,7 @@ Run a structured multi-agent decision in decision mode to make a technical or pr
 **Key Behaviors:**
 - No code is produced. The entire output is a DecisionRecord.
 - Spawns four debaters in parallel: Forge (argues for option A with technical rationale), Critic (challenges option A / argues for option B), Circuit (backend/scalability perspective), Palette (UX/frontend perspective).
-- Compass synthesizes positions, presents trade-offs, asks the user for a final decision, then writes the DecisionRecord.
+- Orchestrator synthesizes positions, presents trade-offs, asks the user for a final decision, then writes the DecisionRecord.
 
 **Schemas:** `plugin/skills/evidence-gate/schemas/decision-record.schema.json`
 
@@ -460,7 +460,7 @@ Codebase discovery protocol -- scan project structure, detect stack, map archite
 
 **User-Invocable:** No
 
-**Invoked By:** Compass during delivery mode (Sprint pattern) when `.geas/memory/_project/conventions.md` does not exist
+**Invoked By:** Orchestrator during delivery mode (Sprint pattern) when `.geas/memory/_project/conventions.md` does not exist
 
 **Inputs:**
 - Project root files: `package.json`, `go.mod`, `Cargo.toml`, `pyproject.toml`, `requirements.txt`
@@ -473,7 +473,7 @@ Codebase discovery protocol -- scan project structure, detect stack, map archite
 **Key Behaviors:**
 - Run by Forge only (single agent, not parallel). Read-only reconnaissance -- no code changes.
 - Scan depth adapts to project size: full scan for small (~50 files), focused scan of `src/` and entry points for medium (50-500 files), targeted scan of relevant directories for large (500+ files).
-- Second-Sprint behavior: if `conventions.md` already exists, skip onboarding entirely. Compass reads it directly and proceeds to Sprint execution.
+- Second-Sprint behavior: if `conventions.md` already exists, skip onboarding entirely. Orchestrator reads it directly and proceeds to Sprint execution.
 
 **Schemas:** None.
 
@@ -495,7 +495,7 @@ Universal coding standards for the AI startup workspace -- stack-agnostic.
 
 **Key Behaviors:**
 - Defines universal standards that apply regardless of stack: TypeScript strict mode (if applicable), no `any` types, one responsibility per function/component, graceful error handling, atomic git commits, mobile-first accessible UI.
-- The tech stack itself is NOT predefined here -- Forge proposes it, Nova validates, Compass confirms, and the decision is recorded as a DecisionRecord. Forge then writes the project-specific `conventions.md`.
+- The tech stack itself is NOT predefined here -- Forge proposes it, Nova validates, Orchestrator confirms, and the decision is recorded as a DecisionRecord. Forge then writes the project-specific `conventions.md`.
 - Serves as the baseline that `conventions.md` extends and specializes.
 
 **Schemas:** None.
@@ -508,7 +508,7 @@ Nova Morning Briefing -- structured status report on what shipped, what's blocke
 
 **User-Invocable:** No
 
-**Invoked By:** Nova at milestones, start of Evolution, or on Compass/human request
+**Invoked By:** Nova at milestones, start of Evolution, or on Orchestrator/human request
 
 **Inputs:**
 - `.geas/state/run.json` -- current phase and mission
@@ -534,7 +534,7 @@ Generate end-of-session summary -- decisions, issues completed, agent stats, ver
 
 **User-Invocable:** No
 
-**Invoked By:** Compass at end of Initiative (Evolution phase) and Sprint, or on human request
+**Invoked By:** Orchestrator at end of Initiative (Evolution phase) and Sprint, or on human request
 
 **Inputs:**
 - `.geas/state/run.json` -- phase, mode, mission
@@ -564,7 +564,7 @@ Structured search over `.geas/ledger/events.jsonl` -- query by task, phase, agen
 
 **User-Invocable:** No
 
-**Invoked By:** Compass or human for diagnostics, status checks, and history review
+**Invoked By:** Orchestrator or human for diagnostics, status checks, and history review
 
 **Inputs (read-only):**
 - `.geas/ledger/events.jsonl` -- primary event log
@@ -591,7 +591,7 @@ Entropy scan -- detect AI slop, unused code, convention drift. Records findings 
 
 **User-Invocable:** No
 
-**Invoked By:** Compass after Phase 2 (Build), during Phase 4 (Evolution), or on explicit request from human or Forge
+**Invoked By:** Orchestrator after Phase 2 (Build), during Phase 4 (Evolution), or on explicit request from human or Forge
 
 **Inputs:**
 - All project source files (respects `.gitignore`; skips `node_modules`, `vendor`, `target`, `dist`, `build`, `.git`)
@@ -616,10 +616,10 @@ When and how to pivot during product development.
 
 **User-Invocable:** No
 
-**Invoked By:** Compass (when triggered by evidence-gate escalation policy `"pivot"`, Nova "Cut" verdict, or any team member surfacing a pivot signal)
+**Invoked By:** Orchestrator (when triggered by evidence-gate escalation policy `"pivot"`, Nova "Cut" verdict, or any team member surfacing a pivot signal)
 
 **Inputs:**
-- Full context from Compass: what is wrong, what has been tried, available options
+- Full context from Orchestrator: what is wrong, what has been tried, available options
 - `.geas/tasks/` -- existing TaskContracts to cancel or restructure
 - `.geas/decisions/` -- prior decisions for context
 

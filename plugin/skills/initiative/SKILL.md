@@ -76,7 +76,7 @@ Present recommendations with install commands from the MCP registry.
 
 Before starting the first task, and after each task or batch resolves:
 - Scan `.geas/tasks/` for eligible tasks (status `"ready"`, all `depends_on` are `"passed"`).
-- If 2+ eligible: apply `/geas:parallel-dispatch` protocol.
+- If 2+ eligible: apply `/geas:scheduling` protocol.
 - If 0-1 eligible: run the single task through the sequential pipeline below.
 
 For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
@@ -192,7 +192,7 @@ If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** A
 
 ### 2.7.5 Closure Packet Assembly [MANDATORY — after gate pass]
 
-orchestration_authority (Compass) assembles the closure packet by reading all task artifacts. This is NOT an agent spawn — Compass reads and writes directly.
+orchestration_authority (Orchestrator) assembles the closure packet by reading all task artifacts. This is NOT an agent spawn — Orchestrator reads and writes directly.
 
 **Read required artifacts:**
 - TaskContract: `.geas/tasks/{task-id}.json`
@@ -403,7 +403,7 @@ Classify remaining items:
 
 Present the prioritized list to the user:
 ```
-[Compass] Evolution scope:
+[Orchestrator] Evolution scope:
   P0 (will execute):
     1. <item>
     2. <item>

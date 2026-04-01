@@ -11,7 +11,7 @@ Structured parallel voting on a major proposal. Multiple agents evaluate indepen
 
 ## When to Use
 
-Compass invokes this after a major proposal that affects project direction:
+Orchestrator invokes this after a major proposal that affects project direction:
 
 | Proposal | Voters |
 |----------|--------|

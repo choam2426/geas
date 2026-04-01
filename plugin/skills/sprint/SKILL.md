@@ -139,7 +139,7 @@ If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** A
 
 ### 8.25 Closure Packet Assembly [MANDATORY — after gate pass]
 
-orchestration_authority (Compass) assembles the closure packet by reading all task artifacts. This is NOT an agent spawn — Compass reads and writes directly.
+orchestration_authority (Orchestrator) assembles the closure packet by reading all task artifacts. This is NOT an agent spawn — Orchestrator reads and writes directly.
 
 **Read required artifacts:**
 - TaskContract: `.geas/tasks/{task-id}.json`
