@@ -86,7 +86,7 @@ For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
 - Update status to `"implementing"`. Log `task_started` event.
 - **Write `remaining_steps` to checkpoint** — the full pipeline for this task:
   ```json
-  "remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "self_check", "code_review", "testing", "evidence_gate", "critical_reviewer", "final_verdict", "retrospective", "resolve"]
+  "remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "self_check", "code_review", "testing", "evidence_gate", "closure_packet", "critical_reviewer", "final_verdict", "retrospective", "resolve"]
   ```
   Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
 - **[MANDATORY] Event logging**: After each step completes and is removed from `remaining_steps`, log:
@@ -190,6 +190,79 @@ Log detailed result with tier breakdown.
 On gate pass: update TaskContract status to `"verified"`.
 If fail → invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** After fix, re-run gate.
 
+### 2.7.5 Closure Packet Assembly [MANDATORY — after gate pass]
+
+orchestration_authority (Compass) assembles the closure packet by reading all task artifacts. This is NOT an agent spawn — Compass reads and writes directly.
+
+**Read required artifacts:**
+- TaskContract: `.geas/tasks/{task-id}.json`
+- Worker Self-Check: `.geas/tasks/{task-id}/worker-self-check.json`
+- Gate Result: `.geas/tasks/{task-id}/gate-result.json`
+- Specialist Reviews: `.geas/evidence/{task-id}/forge-review.json`, `.geas/evidence/{task-id}/sentinel.json`
+- Integration Result: from worktree merge (commit hash, conflict status)
+
+**If ANY required artifact is missing: go back and execute the missing step. Do NOT proceed.**
+
+**Write** `.geas/tasks/{task-id}/closure-packet.json` conforming to `docs/protocol/schemas/closure-packet.schema.json`:
+
+```json
+{
+  "version": "1.0",
+  "artifact_type": "closure_packet",
+  "artifact_id": "closure-{task-id}",
+  "producer_type": "orchestration_authority",
+  "created_at": "<ISO 8601 timestamp>",
+  "task_id": "{task-id}",
+  "task_summary": "<one-line summary from TaskContract description>",
+  "change_summary": "<brief description of what was implemented>",
+  "specialist_reviews": [
+    {
+      "reviewer_type": "architecture_authority",
+      "status": "approved",
+      "summary": "<key finding from forge-review.json>"
+    },
+    {
+      "reviewer_type": "qa_engineer",
+      "status": "approved",
+      "summary": "<key finding from sentinel.json>"
+    }
+  ],
+  "integration_result": {
+    "status": "success",
+    "merge_commit": "<commit hash from worktree merge>"
+  },
+  "verification_result": {
+    "gate_verdict": "pass",
+    "rubric_scores": [
+      { "dimension": "core_interaction", "score": 4, "passed": true },
+      { "dimension": "feature_completeness", "score": 4, "passed": true },
+      { "dimension": "code_quality", "score": 4, "passed": true },
+      { "dimension": "regression_safety", "score": 4, "passed": true }
+    ]
+  },
+  "worker_self_check": {
+    "confidence": 4,
+    "known_risks": ["<from worker-self-check.json known_risks>"],
+    "untested_paths": ["<from worker-self-check.json untested_paths>"]
+  },
+  "open_risks": {
+    "status": "none",
+    "items": []
+  },
+  "debt_snapshot": {
+    "status": "none",
+    "items": []
+  },
+  "readiness_round": null
+}
+```
+
+Set `readiness_round: null` initially — may be updated by the critical reviewer step.
+
+**Verify** `.geas/tasks/{task-id}/closure-packet.json` exists and all required fields are populated before proceeding.
+
+Update run.json checkpoint: `pipeline_step` = "closure_packet"
+
 ### 2.8 Critical Reviewer Challenge [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "critical_reviewer", `agent_in_flight` = "critic"
 ```
@@ -214,13 +287,12 @@ Agent(agent: "nova", prompt: "Read the closure packet and all evidence at .geas/
 
 Note: "iterate" is only valid as a Final Verdict outcome. Gate verdicts (evidence-gate) are pass/fail/block/error.
 
-### 2.10 Closure Packet — verify before marking passed
+### 2.10 Pre-Resolve Check
 **Before marking any task as "passed", verify:**
-- `.geas/evidence/{task-id}/forge-review.json` exists (Read it)
-- `.geas/evidence/{task-id}/sentinel.json` exists (Read it)
-- `.geas/evidence/{task-id}/critic-review.json` exists (Read it)
-- `.geas/evidence/{task-id}/nova-verdict.json` exists (Read it)
-**If ANY is missing: go back and execute the missing step. Do NOT proceed without all four.**
+- `.geas/tasks/{task-id}/closure-packet.json` exists (assembled in Step 2.7.5)
+- `.geas/evidence/{task-id}/critic-review.json` exists (Critical Reviewer Challenge complete)
+- `.geas/tasks/{task-id}/final-verdict.json` exists with `verdict: "pass"`
+**If ANY is missing: go back and execute the missing step. Do NOT proceed without all three.**
 
 ### Retrospective (Scrum) [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "retrospective", `agent_in_flight` = "scrum"
