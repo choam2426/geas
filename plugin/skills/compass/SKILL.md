@@ -31,6 +31,13 @@ These rules apply to ALL modes (Initiative, Sprint).
 - Log every transition to `.geas/ledger/events.jsonl`.
 - **Timestamps must be actual current time.** For event ledger entries, use `date -u +%Y-%m-%dT%H:%M:%SZ` in Bash. For JSON files in `.geas/`, the hook auto-injects timestamps.
 
+**[MANDATORY] The following events must always be logged. Omitting any is a protocol violation:**
+- `step_complete` — after each pipeline step completes (format defined in initiative/sprint)
+- `task_started` / `task_resolved` — task lifecycle
+- `phase_complete` — phase transitions
+- `gate_result` — evidence gate outcomes (format defined in evidence-gate)
+- `vote_round` — vote results (format defined in vote-round)
+
 ### Checkpoint management
 **[MANDATORY]** Before EVERY Agent() spawn, you MUST Read `.geas/state/run.json`, update the `checkpoint` field, and Write it back. This is not optional — session recovery depends on it.
   ```json
@@ -40,13 +47,31 @@ These rules apply to ALL modes (Initiative, Sprint).
     "pending_evidence": ["forge-review.json"],
     "retry_count": 0,
     "parallel_batch": null,
+    "completed_in_batch": [],
+    "remaining_steps": [],
     "last_updated": "<actual timestamp>"
   }
   ```
 - The run state must conform to `schemas/run-state.schema.json`.
 - After agent returns: clear `agent_in_flight`, update `pending_evidence` with completed files.
-- On parallel batch: set `parallel_batch` with task IDs.
-- On task completion: clear checkpoint entirely.
+- On task completion (sequential): clear checkpoint entirely.
+
+#### Batch checkpoint
+During parallel batch execution (see `/geas:parallel-dispatch`):
+- `parallel_batch`: task IDs in the current batch.
+- `completed_in_batch`: task IDs resolved so far within the batch.
+- `agent_in_flight`: `null` (multiple agents may be active).
+- Before spawning any agent, update `last_updated`.
+- After each task resolves: add to `completed_in_batch`, update task file status to `"passed"`, add to `completed_tasks`. **No exceptions — sequential or parallel.**
+- When all batch tasks resolved: clear checkpoint entirely, scan for next batch.
+
+### Task file status updates
+**[MANDATORY]** When resolving a task (Ship verdict):
+1. Read `.geas/tasks/{task-id}.json`
+2. Set `"status": "passed"`
+3. Write it back
+
+This applies to every task — sequential or parallel, initiative or sprint. If the task file does not exist, this is a protocol violation (the file must be created before pipeline starts).
 
 ### Rules evolution
 - `.geas/rules.md` is a living document managed primarily by **Scrum** (Agile Master).

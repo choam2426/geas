@@ -67,7 +67,13 @@
         "parallel_batch": {
           "type": ["array", "null"],
           "items": { "type": "string" },
-          "description": "Agent names when multiple agents are spawned in parallel (e.g., vote round)"
+          "description": "Task IDs being executed in the current parallel batch. Null when running sequentially."
+        },
+        "completed_in_batch": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Task IDs resolved within the current parallel batch. When this matches parallel_batch, the batch is complete."
         },
         "remaining_steps": {
           "type": "array",

@@ -72,6 +72,13 @@ Present recommendations with install commands from the MCP registry.
 
 **Every task runs the full pipeline. Code Review and Testing are mandatory for every task.**
 
+### Parallel Execution
+
+Before starting the first task, and after each task or batch resolves:
+- Scan `.geas/tasks/` for eligible tasks (status `"pending"`, all `depends_on` are `"passed"`).
+- If 2+ eligible: apply `/geas:parallel-dispatch` protocol.
+- If 0-1 eligible: run the single task through the sequential pipeline below.
+
 For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
 
 ### 2.0 Start Task
@@ -82,7 +89,7 @@ For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
   "remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "code_review", "testing", "evidence_gate", "critic_review", "nova_review", "retrospective", "resolve"]
   ```
   Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
-- **Event logging**: After each step completes and is removed from `remaining_steps`, log:
+- **[MANDATORY] Event logging**: After each step completes and is removed from `remaining_steps`, log:
   ```
   Append to .geas/ledger/events.jsonl:
   {"event": "step_complete", "task_id": "{task-id}", "step": "{step_name}", "agent": "{agent_name}", "timestamp": "<actual>"}
@@ -98,6 +105,14 @@ For **each** TaskContract in `.geas/tasks/` (ordered by dependencies):
   ]
   ```
   Add `ux_clarity` (threshold 3) and `visual_coherence` (threshold 3) if the task has a UI component.
+
+### Step Groups
+
+Within a single task's pipeline, these steps may run in parallel:
+- **[code_review, testing]** — forge and sentinel do not reference each other's output. Spawn both in one message. After both return, remove both from `remaining_steps` and log `step_complete` for each.
+
+All other steps are strictly sequential. In particular:
+- **critic_review → nova_review** — Nova's prompt requires `critic-review.json` as input. Critic MUST complete and evidence MUST be verified before spawning Nova.
 
 ### 2.1 Design (Palette) [DEFAULT — skip-if: no user-facing interface (DB, API, CI, Docker, etc.)]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
@@ -172,7 +187,8 @@ Update run.json checkpoint: `pipeline_step` = "critic_review", `agent_in_flight`
 Agent(agent: "critic", prompt: "Read all evidence at .geas/evidence/{task-id}/. Challenge: is this truly ready to ship? Identify risks, missing edge cases, or technical debt. Write to .geas/evidence/{task-id}/critic-review.json")
 ```
 
-### 2.9 Nova Product Review [MANDATORY]
+### 2.9 Nova Product Review [MANDATORY — after critic_review only]
+**Precondition:** `.geas/evidence/{task-id}/critic-review.json` must exist. Do NOT spawn Nova until Critic has returned and evidence is verified.
 Update run.json checkpoint: `pipeline_step` = "nova_review", `agent_in_flight` = "nova"
 ```
 Agent(agent: "nova", prompt: "Read all evidence at .geas/evidence/{task-id}/ including critic-review.json. Verdict: Ship, Iterate, or Cut. Write to .geas/evidence/{task-id}/nova-verdict.json")

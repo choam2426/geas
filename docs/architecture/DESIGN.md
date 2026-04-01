@@ -338,11 +338,14 @@ Before every agent spawn, Compass writes the full pipeline position to `.geas/st
     "pending_evidence": ["forge-review.json"],
     "retry_count": 0,
     "parallel_batch": null,
+    "completed_in_batch": [],
     "remaining_steps": ["testing", "evidence_gate", "critic_review", "nova_review", "retrospective", "resolve"],
     "last_updated": "2026-03-30T10:15:00Z"
   }
 }
 ```
+
+During parallel batch execution, `parallel_batch` contains the task IDs being executed concurrently, and `completed_in_batch` tracks which have resolved. See `/geas:parallel-dispatch` for the full protocol.
 
 The `remaining_steps` array is the critical element. After each step completes, it is removed from the front. If the orchestrator loses context, it reads `remaining_steps` and knows exactly what comes next.
 

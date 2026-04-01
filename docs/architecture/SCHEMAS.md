@@ -449,6 +449,26 @@ No enums. `additionalProperties` is not restricted at the schema level for this 
 
 ---
 
+## RunState (Checkpoint)
+
+| Field | Type | Description |
+|---|---|---|
+| `pipeline_step` | string \| null | Current step name (e.g., `"code_review"`, `"batch_active"`) |
+| `agent_in_flight` | string \| null | Agent currently executing. Null during parallel batches. |
+| `pending_evidence` | string[] | Evidence files expected from current agent |
+| `retry_count` | integer | Verify-fix iterations used for current task |
+| `parallel_batch` | string[] \| null | Task IDs in current parallel batch. Null when sequential. |
+| `completed_in_batch` | string[] | Task IDs resolved within current batch |
+| `remaining_steps` | string[] | Pipeline steps still to complete (empty during batch) |
+| `last_updated` | datetime | Timestamp of last checkpoint update |
+
+**Schema file:** `plugin/skills/compass/schemas/run-state.schema.json`
+
+**Produced by:** Compass (before every agent spawn)
+**Consumed by:** `restore-context` hook (session recovery), `verify-pipeline` hook (session exit)
+
+---
+
 ## New Fields Added in v0.2.0
 
 The following fields were added to the schema set in v0.2.0. They implement rubric-based quality scoring, worker self-honesty, stateful QA verification, and multi-mode seed tracking.

@@ -1,6 +1,6 @@
 # Skills Reference
 
-All 23 skills in the Geas plugin. Skills are invoked either by users directly (`/geas:<name>`) or by Compass as part of execution protocols.
+All 24 skills in the Geas plugin. Skills are invoked either by users directly (`/geas:<name>`) or by Compass as part of execution protocols.
 
 ## Summary Table
 
@@ -17,6 +17,7 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 | [verify-fix-loop](#verify-fix-loop) | Core - Contract Engine | No | Compass (via evidence-gate) | Fix iterations + DecisionRecord |
 | [verify](#verify) | Core - Verification | No | Worker agents | Console checklist report |
 | [vote-round](#vote-round) | Core - Verification | No | Compass (at Discovery) | `.geas/decisions/{dec-id}.json` |
+| [parallel-dispatch](#parallel-dispatch) | Core - Contract Engine | No | Compass (during MVP Build) | Batch lifecycle management |
 | [initiative](#initiative) | Team - Execution | Yes | Compass or User | Full product build (4 phases) |
 | [sprint](#sprint) | Team - Execution | Yes | Compass or User | Feature addition to existing project |
 | [debate](#debate) | Team - Execution | Yes | Compass or User | `.geas/decisions/{dec-id}.json` |
@@ -271,6 +272,24 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 - When retry budget is exhausted, follows the TaskContract's `escalation_policy`: `forge-review` (architectural analysis with one additional attempt if fixable), `nova-decision` (strategic direction), or `pivot` (invoke pivot-protocol).
 
 **Schemas:** Reads `task-contract.schema.json`; writes `decision-record.schema.json`.
+
+---
+
+### parallel-dispatch
+
+**Description:** Protocol for compass to manage multiple tasks simultaneously. Defines batch construction, pipeline interleaving, checkpoint management, and recovery.
+
+**Category:** Core - Contract Engine
+
+**Invoked by:** Compass (when 2+ tasks have all dependencies resolved)
+
+**Key output:** Batch checkpoint state in `run.json`
+
+**Key rules:**
+- Max batch size 4, worktree isolation required
+- Each task progresses independently through its pipeline
+- Task file status updated to `"passed"` on completion — no exceptions
+- Recovery: check evidence files to determine incomplete tasks
 
 ---
 

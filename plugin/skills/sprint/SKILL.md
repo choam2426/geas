@@ -24,6 +24,9 @@ One feature, one pipeline. Skips Discovery.
 
 ## Sprint Pipeline
 
+### Task File Precondition
+The TaskContract MUST be written to `.geas/tasks/{task-id}.json` before the pipeline starts. Do NOT enter the pipeline without a task file on disk. This is required for Ship Gate validation and session recovery.
+
 ### 1. Compile TaskContract
 Invoke `/geas:task-compiler` for the feature. The TaskContract MUST include a `rubric` array. Base dimensions: core_interaction(3), feature_completeness(4), code_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
 
@@ -35,12 +38,20 @@ Remove steps that will be skipped. After completing each step, remove it from th
 
 **Rubric check**: If the TaskContract is missing `rubric`, insert the default (same as initiative mode).
 
-**Event logging**: After each step completes and is removed from `remaining_steps`, log:
+**[MANDATORY] Event logging**: After each step completes and is removed from `remaining_steps`, log:
 ```
 Append to .geas/ledger/events.jsonl:
 {"event": "step_complete", "task_id": "{task-id}", "step": "{step_name}", "agent": "{agent_name}", "timestamp": "<actual>"}
 ```
 Exception: `implementation_contract`, `gate_result`, and `task_resolved` have their own event formats. Do not duplicate those.
+
+### Step Groups
+
+Within a single task's pipeline, these steps may run in parallel:
+- **[code_review, testing]** — forge and sentinel do not reference each other's output. Spawn both in one message. After both return, remove both from `remaining_steps` and log `step_complete` for each.
+
+All other steps are strictly sequential. In particular:
+- **critic_review → nova_review** — Nova's prompt requires `critic-review.json` as input. Critic MUST complete and evidence MUST be verified before spawning Nova.
 
 ### 2. Design (Palette) [DEFAULT — skip-if: no user-facing interface]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
@@ -115,7 +126,8 @@ Agent(agent: "critic", prompt: "Read all evidence at .geas/evidence/{task-id}/. 
 ```
 Verify `.geas/evidence/{task-id}/critic-review.json` exists.
 
-### 9. Nova Product Review [MANDATORY]
+### 9. Nova Product Review [MANDATORY — after critic_review only]
+**Precondition:** `.geas/evidence/{task-id}/critic-review.json` must exist. Do NOT spawn Nova until Critic has returned and evidence is verified.
 Update run.json checkpoint: `pipeline_step` = "nova_review", `agent_in_flight` = "nova"
 ```
 Agent(agent: "nova", prompt: "Read all evidence at .geas/evidence/{task-id}/. Verdict: Ship/Iterate/Cut. Write to .geas/evidence/{task-id}/nova-verdict.json")

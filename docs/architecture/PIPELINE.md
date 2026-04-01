@@ -655,6 +655,36 @@ Each step updates these fields in `.geas/state/run.json` before spawning the age
 }
 ```
 
+#### Batch Checkpoint Fields
+
+During parallel batch execution (see `/geas:parallel-dispatch`), checkpoint uses additional fields:
+
+```json
+{
+  "pipeline_step": "batch_active",
+  "agent_in_flight": null,
+  "parallel_batch": ["STORY-003", "STORY-009"],
+  "completed_in_batch": ["STORY-003"],
+  "remaining_steps": []
+}
+```
+
+- `parallel_batch`: task IDs being executed concurrently. Null when running sequentially.
+- `completed_in_batch`: task IDs resolved within the current batch. When this matches `parallel_batch`, the batch is complete.
+- `agent_in_flight`: null during batches (multiple agents may be active simultaneously).
+- `remaining_steps`: empty at batch level. Each task's pipeline progress is tracked by evidence file presence.
+
+#### Batch Resume Protocol
+
+When Compass starts and detects `parallel_batch` (non-null) in `run.json`:
+
+1. Compute remaining tasks: `parallel_batch` minus `completed_in_batch`.
+2. For each remaining task, check evidence:
+   - `keeper.json` + retro file exist → mark as passed, add to `completed_in_batch`.
+   - `keeper.json` only → resume from retrospective.
+   - Neither → re-execute full pipeline.
+3. Continue managing remaining tasks.
+
 ### Session Resume Protocol
 
 When Compass starts and detects an existing `run.json` with `status: "in_progress"`:
@@ -666,6 +696,18 @@ When Compass starts and detects an existing `run.json` with `status: "in_progres
 3. Before resuming any downstream step, verify mandatory evidence files from prior steps exist (apply the Ship Gate check for any task near completion).
 
 The `restore-context` hook loads `run.json` at session start and surfaces the resume point to the user before proceeding.
+
+---
+
+## Parallel Task Execution
+
+When multiple tasks have all dependencies resolved, Compass may execute them simultaneously using `/geas:parallel-dispatch`. Key rules:
+
+- **Max batch size: 4.** Remaining eligible tasks wait for next batch.
+- **Worktree required:** All batch tasks use worktree isolation for implementation. If unavailable, fall back to sequential.
+- **Independent progression:** Each task advances through its pipeline independently. Compass does not synchronize tasks at the same step.
+- **Step groups within a task:** `[code_review, testing]` may run in parallel. All other steps are sequential. `critic_review` must complete before `nova_review`.
+- **Mandatory steps enforced:** Implementation contract, code review, testing, critic review, nova review, retrospective, and resolve are mandatory for every batch task.
 
 ---
 
@@ -761,6 +803,7 @@ Steps that use `step_complete`: `design`, `tech_guide`, `implementation`, `code_
 | `task_compiled` | After each TaskContract is compiled (Discovery 1.6) |
 | `task_started` | At start of each task (step 2.0) |
 | `phase_complete` | At the end of each phase (Discovery, MVP, Polish, Evolution) |
+| `vote_round` | After vote collection completes | `unanimous`, `approved_with_amendments`, or `debate_triggered` |
 | Escalation event | When retry budget is exhausted and escalation_policy is invoked |
 
 ### gate_result Event Structure

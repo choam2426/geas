@@ -264,6 +264,8 @@ Fires whenever the Claude Code harness compacts the context window. Compaction d
    { "additionalContext": "..." }
    ```
 
+**Batch recovery:** When `parallel_batch` is non-null, the hook outputs the batch task list and `completed_in_batch` count. Compass uses this to determine which tasks need re-execution.
+
 ### Conditions
 
 - Skips if `cwd` is empty or `.geas/run.json` does not exist.
