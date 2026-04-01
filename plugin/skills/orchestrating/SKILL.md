@@ -74,10 +74,13 @@ During parallel batch execution (see `/geas:scheduling`):
 This applies to every task — sequential or parallel, initiative or sprint. If the task file does not exist, this is a protocol violation (the file must be created before pipeline starts).
 
 ### Rules evolution
-- `.geas/rules.md` is a living document managed primarily by **Scrum** (Agile Master).
-- After each task's Closure Packet verification, spawn Scrum for a retrospective — Scrum updates rules.md and records lessons.
-- **Scrum retrospective is MANDATORY for every task.** Do NOT skip it, even if the task was trivial. Verify `.geas/memory/retro/{task-id}.json` exists after Scrum returns. If missing, retry once.
-- After Discovery: Orchestrator adds stack-specific rules (e.g., "lint with {linter}", "test with {test runner}") before Scrum exists in the pipeline.
+- `.geas/rules.md` is a living document. Changes go through a structured `rules-update.json` workflow.
+- During per-task retrospectives, Scrum produces `rule_candidates[]` in `retrospective.json`. These are proposals, NOT direct modifications.
+- **Initiative**: rule candidates accumulate during Build phase. Batch approval happens in Evolution phase (Step 4.2.5).
+- **Sprint**: inline approval happens in Sprint Wrap-Up after retrospective.
+- Approved rules updates are applied to `.geas/rules.md` and recorded in `.geas/state/rules-update.json` with `status: "approved"`.
+- Approval conditions (per doc 14): process_lead + domain authority, OR evidence_refs >= 2 with contradiction_count = 0.
+- After Discovery: Orchestrator adds stack-specific rules before the rules-update workflow exists in the pipeline.
 
 ### Tech debt tracking
 After reading each agent's evidence, check for a `tech_debt` array. If present:

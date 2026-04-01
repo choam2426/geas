@@ -505,6 +505,32 @@ Present the prioritized list to the user:
 
 If no P0 items remain: skip to 4.4.
 
+### 4.2.5 Rules Update Approval
+
+1. Read all per-task retrospectives: `.geas/tasks/*/retrospective.json`
+2. Collect all `rule_candidates[]` across tasks
+3. If no candidates across any task: write `.geas/state/rules-update.json` with `status: "none"`, `reason: "no rule candidates from any task retrospective"`, `evidence_refs: []`, `applies_to: []`. Skip to next step.
+4. For each candidate, check approval conditions:
+   - `evidence_refs` >= 2 (same pattern observed in 2+ tasks) AND `contradiction_count` = 0 → auto-approve
+   - Otherwise → spawn domain authority for review
+5. Write `.geas/state/rules-update.json` conforming to `docs/protocol/schemas/rules-update.schema.json`:
+   ```json
+   {
+     "version": "1.0",
+     "artifact_type": "rules_update",
+     "artifact_id": "ru-{mission-id}",
+     "producer_type": "process_lead",
+     "status": "approved",
+     "affected_rule_ids": ["rule-001", "rule-002"],
+     "reason": "<aggregated rationale>",
+     "evidence_refs": ["retro-task-001", "retro-task-003"],
+     "applies_to": ["rules.md section X"],
+     "created_at": "<ISO 8601>"
+   }
+   ```
+6. If `status: "approved"`: apply changes to `.geas/rules.md`
+7. Log: `{"event": "rules_update", "status": "approved|none", "timestamp": "<actual>"}`
+
 ### 4.3 Execute P0 Items
 For each P0 item, run the **full Phase 2 pipeline**:
 - Compile TaskContract → Design → Tech Guide → Implementation Contract → Implementation → Code Review → Testing → Evidence Gate → Critical Reviewer Challenge → Final Verdict → Resolve → Retrospective
