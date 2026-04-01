@@ -26,7 +26,7 @@ Compass assigns multiple tasks to run simultaneously. Each task progresses throu
 When compass reaches a point where new tasks could start (Phase 2 entry, or after a task/batch resolves):
 
 1. Read all task files in `.geas/tasks/`.
-2. Filter: `status == "pending"` AND every ID in `depends_on` has a task file with `status == "passed"`.
+2. Filter: `status == "ready"` AND every ID in `depends_on` has a task file with `status == "passed"`.
 3. If 0-1 eligible: this protocol does not apply. Compass runs the single task through the normal pipeline.
 4. If 2+ eligible: form a batch.
    - **Max batch size: 4.** If more eligible, take the first 4 by task ID order. Remainder waits for next batch.
@@ -37,7 +37,7 @@ When compass reaches a point where new tasks could start (Phase 2 entry, or afte
 ## 2. Batch Start
 
 For each task in the batch:
-1. Read task file, set `"status": "in_progress"`, write back.
+1. Read task file, set `"status": "implementing"`, write back.
 2. Log `task_started` event for each task.
 
 Update `run.json` checkpoint:
