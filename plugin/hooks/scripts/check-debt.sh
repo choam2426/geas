@@ -1,6 +1,6 @@
 #!/bin/bash
 # check-debt.sh — PostToolUse hook (Write|Edit)
-# When debt.json is updated, checks HIGH threshold and warns.
+# When debt-register.json is updated, checks HIGH threshold and warns.
 
 set -euo pipefail
 
@@ -28,9 +28,9 @@ if [ -z "$CWD" ] || [ -z "$FILE_PATH" ]; then
   exit 0
 fi
 
-# Only process .geas/debt.json
+# Only process .geas/state/debt-register.json
 case "$FILE_PATH" in
-  */.geas/debt.json) ;;
+  */.geas/state/debt-register.json) ;;
   *) exit 0 ;;
 esac
 

@@ -76,7 +76,7 @@ Read `.geas/rules.md` (create it if it does not exist). Then update it with new 
 
 ### 3. Write Retrospective
 
-Write a structured retrospective to `.geas/memory/retro/<task-id>.json` with this schema:
+Write a structured retrospective to `.geas/tasks/<task-id>/retrospective.json` with this schema:
 ```json
 {
   "task_id": "<task-id>",

@@ -31,7 +31,7 @@ Geas는 Claude Code에서 동작하는 계약 기반 멀티 에이전트 개발 
 | **Governance** | 결정마다 정해진 프로세스와 명시적 권한이 있습니다. | 아키텍처를 고를 때 투표를 거칩니다. 의견이 갈리면 토론을 열고, 트레이드오프를 기록합니다. |
 | **Traceability** | 행동마다 기록이 남고, 나중에 추적할 수 있습니다. | 상태가 바뀔 때마다 타임스탬프와 함께 `.geas/ledger/events.jsonl`에 기록하고, `run.json` 체크포인트로 파이프라인 위치를 추적합니다. |
 | **Verification** | 결과물을 계약 기준으로 검증합니다. "완료" = "계약 충족"입니다. | Evidence Gate가 3단계로 검증합니다: 기계적(빌드/린트/테스트), 의미론적(수용 기준 + 루브릭 점수), 제품(Nova 판단). |
-| **Evolution** | 팀이 세션을 거듭할수록 성장합니다. | 작업이 끝날 때마다 Scrum이 회고를 실행합니다. 교훈은 `.geas/memory/retro/`에, 규칙은 `rules.md`에 쌓입니다. |
+| **Evolution** | 팀이 세션을 거듭할수록 성장합니다. | 작업이 끝날 때마다 Scrum이 회고를 실행합니다. 교훈은 `.geas/tasks/{task-id}/retrospective.json`에, 규칙은 `rules.md`에 쌓입니다. |
 
 ---
 

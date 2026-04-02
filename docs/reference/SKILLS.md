@@ -27,7 +27,7 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 | [briefing](#briefing) | Utility | No | Nova or Orchestrator | Console status report |
 | [run-summary](#run-summary) | Utility | No | Orchestrator (end of session) | `.geas/summaries/run-summary-<date>.md` |
 | [ledger-query](#ledger-query) | Utility | No | Orchestrator or User | Formatted query results (read-only) |
-| [cleanup](#cleanup) | Utility | No | Orchestrator (post-Build / Evolution) | `.geas/debt.json` entries |
+| [cleanup](#cleanup) | Utility | No | Orchestrator (post-Build / Evolution) | `.geas/state/debt-register.json` entries |
 | [pivot-protocol](#pivot-protocol) | Utility | No | Orchestrator or any agent | `.geas/decisions/{dec-id}.json` |
 
 ---
@@ -69,12 +69,12 @@ Geas orchestrator -- coordinates the multi-agent team. Manages setup, intake, mo
 - `.geas/state/run.json` -- checked at startup for resume vs fresh run
 - `.geas/spec/seed.json` -- mission context after intake
 - `.geas/ledger/events.jsonl` -- event log for writing transitions
-- `.geas/debt.json` -- tech debt tracking after each agent return
+- `.geas/state/debt-register.json` -- tech debt tracking after each agent return
 
 **Outputs:**
 - `.geas/state/run.json` -- checkpoint updates before every agent spawn
 - `.geas/ledger/events.jsonl` -- event entries for all state transitions
-- `.geas/debt.json` -- new tech debt items extracted from evidence bundles
+- `.geas/state/debt-register.json` -- new tech debt items extracted from evidence bundles
 
 **Key Behaviors:**
 - Before every `Agent()` spawn, reads and writes `.geas/state/run.json` with a checkpoint (`pipeline_step`, `agent_in_flight`, `pending_evidence`). Session recovery depends on this.
@@ -178,7 +178,7 @@ Generate a role-specific ContextPacket for a worker -- compressed briefing with 
 - `.geas/decisions/` -- relevant decision records
 - `.geas/spec/seed.json` -- mission context
 - `.geas/contracts/{task-id}.json` -- implementation contract (for Forge and Sentinel packets)
-- `.geas/debt.json` -- open tech debt items relevant to the task
+- `.geas/state/debt-register.json` -- open tech debt items relevant to the task
 
 **Outputs:**
 - `.geas/packets/{task-id}/{worker-name}.md` -- role-tailored markdown briefing (target: under 200 lines)
@@ -342,14 +342,14 @@ Start a new product with the Geas team -- a 4-phase Initiative mission: Discover
 
 **Outputs (per phase):**
 - Discovery: `.geas/evidence/discovery/nova.json`, `.geas/spec/prd.md`, `.geas/spec/stories.md`, `.geas/evidence/discovery/forge.json`, `.geas/decisions/dec-001.json`, `.geas/tasks/*.json`
-- Build (per task): full evidence chain -- `palette.json`, `forge.json`, `contracts/{id}.json`, `{worker}.json`, `forge-review.json`, `sentinel.json`, `critic-review.json`, `nova-verdict.json`, `memory/retro/{id}.json`
+- Build (per task): full evidence chain -- `palette.json`, `forge.json`, `contracts/{id}.json`, `{worker}.json`, `forge-review.json`, `sentinel.json`, `critic-review.json`, `nova-verdict.json`, `tasks/{id}/retrospective.json`
 - Polish: `.geas/evidence/polish/shield.json`, `.geas/evidence/polish/scroll.json`
 - Evolution: `.geas/evidence/evolution/nova-final.json`, `.geas/evidence/evolution/keeper-release.json`, `.geas/summaries/run-summary-<date>.md`
 
 **Key Behaviors:**
 - Every Build phase task runs the full 11-step pipeline (Design -> Tech Guide -> Implementation Contract -> Implementation -> Code Review -> Testing -> Evidence Gate -> Critical Reviewer Challenge -> Final Verdict -> Retrospective -> Resolve). Code Review and Testing are mandatory with no exceptions. Protocol task states follow: `drafted -> ready -> implementing -> reviewed -> integrated -> verified -> passed`.
 - The Closure Packet + Critical Reviewer + Final Verdict process enforces four mandatory evidence files before marking a task passed: `forge-review.json`, `sentinel.json`, `critic-review.json`, `nova-verdict.json`. Any missing file triggers execution of the missing step.
-- Scrum retrospective is mandatory after every task, even trivial ones. Produces `.geas/memory/retro/{task-id}.json`; missing file triggers one retry.
+- Scrum retrospective is mandatory after every task, even trivial ones. Produces `.geas/tasks/{task-id}/retrospective.json`; missing file triggers one retry.
 
 **Schemas:** Reads and writes all contract-engine schemas.
 
@@ -543,7 +543,7 @@ Generate end-of-session summary -- decisions, issues completed, agent stats, ver
 - `.geas/decisions/` -- DecisionRecords made this session
 - `.geas/ledger/events.jsonl` -- gate results, fix loops, escalations
 - `.geas/ledger/costs.jsonl` -- agent spawn costs (optional)
-- `.geas/debt.json` -- tech debt state (optional)
+- `.geas/state/debt-register.json` -- tech debt state (optional)
 
 **Outputs:**
 - `.geas/summaries/run-summary-<YYYY-MM-DD>.md` -- session audit trail
@@ -551,7 +551,7 @@ Generate end-of-session summary -- decisions, issues completed, agent stats, ver
 
 **Key Behaviors:**
 - Covers: decisions made, issues completed (with verify-fix loop counts), issues in progress, agents spawned by name, open work.
-- Includes a Cost Report table (spawns by agent, model, phase, and task) if `costs.jsonl` exists, and a Tech Debt Report (open by severity, new and resolved this session) if `debt.json` exists.
+- Includes a Cost Report table (spawns by agent, model, phase, and task) if `costs.jsonl` exists, and a Tech Debt Report (open by severity, new and resolved this session) if `debt-register.json` exists.
 - Multiple summaries on the same date get a sequence suffix: `run-summary-2026-03-21-2.md`.
 
 **Schemas:** None.
@@ -587,7 +587,7 @@ Structured search over `.geas/ledger/events.jsonl` -- query by task, phase, agen
 
 ### cleanup
 
-Entropy scan -- detect AI slop, unused code, convention drift. Records findings in `.geas/debt.json`. Invoke after Build phase or during Evolution.
+Entropy scan -- detect AI slop, unused code, convention drift. Records findings in `.geas/state/debt-register.json`. Invoke after Build phase or during Evolution.
 
 **User-Invocable:** No
 
@@ -598,15 +598,15 @@ Entropy scan -- detect AI slop, unused code, convention drift. Records findings 
 - `.geas/memory/_project/conventions.md` -- baseline for detecting convention drift
 
 **Outputs:**
-- `.geas/debt.json` -- new entries appended for each finding
+- `.geas/state/debt-register.json` -- new entries appended for each finding
 - Console summary (files scanned, issue counts by severity, top 3 priorities)
 
 **Key Behaviors:**
 - Six scan categories: unnecessary comments (restating the code), dead code (unused exports, unreachable branches, commented-out blocks), duplication (10+ lines of substantially similar code across files), over-abstraction, convention drift (naming, import patterns, file structure), and AI boilerplate (verbose error handling, redundant type annotations, template remnants).
 - Scan depth scales to project size: full scan for small projects; files changed in the current Sprint plus core modules for medium; only team-modified files and flagged areas for large.
-- Related findings with the same root cause are grouped into one `debt.json` entry (not 20 entries for 20 comments in one file).
+- Related findings with the same root cause are grouped into one `debt-register.json` entry (not 20 entries for 20 comments in one file).
 
-**Schemas:** None (writes entries to `.geas/debt.json`; structure is defined in the skill).
+**Schemas:** None (writes entries to `.geas/state/debt-register.json`; structure is defined in the skill).
 
 ---
 

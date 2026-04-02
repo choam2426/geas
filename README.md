@@ -31,7 +31,7 @@ Geas is a contract-driven multi-agent AI development harness built for Claude Co
 | **Governance** | Every decision follows a defined process with explicit authority. | Architecture choices go through vote rounds with mandatory devil's advocacy. Disagreements trigger structured debates. Trade-offs are recorded. |
 | **Traceability** | Every action is recorded and auditable after the fact. | All transitions log to `.geas/ledger/events.jsonl` with real timestamps. Checkpoint state in `run.json` tracks pipeline position. DecisionRecords capture the *why* behind escalations. |
 | **Verification** | Every output is verified against its contract — "done" means "contract fulfilled." | Evidence Gate runs three tiers: mechanical (build/lint/test), semantic (acceptance criteria + rubric scores), product (Nova judgment). |
-| **Evolution** | The team gets smarter over time. | Scrum retrospectives after every task. Lessons go to `.geas/memory/retro/`. `rules.md` grows with each session. |
+| **Evolution** | The team gets smarter over time. | Scrum retrospectives after every task. Lessons go to `.geas/tasks/{task-id}/retrospective.json`. `rules.md` grows with each session. |
 
 ---
 

@@ -186,7 +186,7 @@ Fires after every `Write` or `Edit` tool call, but only acts when a task file is
    | `.geas/evidence/<tid>/sentinel.json` | QA Testing (Sentinel) |
    | `.geas/evidence/<tid>/critic-review.json` | Pre-ship Review (Critic) |
    | `.geas/evidence/<tid>/nova-verdict.json` | Product Review (Nova) |
-   | `.geas/memory/retro/<tid>.json` | Scrum Retrospective |
+   | `.geas/tasks/<tid>/retrospective.json` | Scrum Retrospective |
 
    For each missing file, it prints a warning to stderr.
 
@@ -218,7 +218,7 @@ Fires after every `Write` or `Edit` tool call, but only acts when a task file is
 
 Fires after every `Write` or `Edit` tool call, but only acts on the debt ledger.
 
-1. **Filters to `.geas/debt.json` only.** All other writes are ignored immediately.
+1. **Filters to `.geas/state/debt-register.json` only.** All other writes are ignored immediately.
 2. **Reads the debt file** and counts items where `severity == "HIGH"` and `status == "open"`.
 3. **Warns when the count reaches 3 or more:**
    ```
@@ -228,7 +228,7 @@ Fires after every `Write` or `Edit` tool call, but only acts on the debt ledger.
 
 ### Conditions
 
-- Only activates for writes to `.geas/debt.json`.
+- Only activates for writes to `.geas/state/debt-register.json`.
 - Warning threshold is 3 open HIGH items.
 
 ---
@@ -336,13 +336,13 @@ Fires when the session is about to end. This is the only hook in the system that
    | `.geas/evidence/<tid>/sentinel.json` | QA Testing |
    | `.geas/evidence/<tid>/critic-review.json` | Critical Reviewer Pre-ship Challenge |
    | `.geas/evidence/<tid>/nova-verdict.json` | Final Verdict (Nova) |
-   | `.geas/memory/retro/<tid>.json` | Scrum Retrospective |
+   | `.geas/tasks/<tid>/retrospective.json` | Scrum Retrospective |
 
 4. **If any files are missing**, prints to stderr:
    ```
    [Geas] Pipeline incomplete. MANDATORY evidence missing:
      - TASK-001: sentinel.json (QA Testing) missing
-     - TASK-001: memory/retro/TASK-001.json (Scrum Retrospective) missing
+     - TASK-001: tasks/TASK-001/retrospective.json (Scrum Retrospective) missing
 
    Execute the missing steps before completing the session.
    ```
@@ -479,8 +479,8 @@ For protocol details on hook failure handling, conformance checking, and metrics
 | `.geas/evidence/<tid>/sentinel.json` | verify-task-status, verify-pipeline |
 | `.geas/evidence/<tid>/critic-review.json` | verify-task-status, verify-pipeline |
 | `.geas/evidence/<tid>/nova-verdict.json` | verify-task-status, verify-pipeline |
-| `.geas/memory/retro/<tid>.json` | verify-task-status, verify-pipeline |
+| `.geas/tasks/<tid>/retrospective.json` | verify-task-status, verify-pipeline |
 | `.geas/spec/seed.json` | protect-geas-state (freeze guard) |
-| `.geas/debt.json` | check-debt |
+| `.geas/state/debt-register.json` | check-debt |
 | `.geas/ledger/costs.jsonl` | agent-telemetry |
 | `.geas/ledger/cost-summary.json` | calculate-cost |

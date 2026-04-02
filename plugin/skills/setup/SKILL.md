@@ -16,7 +16,7 @@ Users should not need to run setup manually unless they are troubleshooting.
 Before anything else, create the runtime directory structure in the project root:
 
 ```bash
-mkdir -p .geas/spec .geas/state .geas/tasks .geas/contracts .geas/packets .geas/evidence .geas/decisions .geas/decisions/pending .geas/ledger .geas/summaries .geas/memory/_project .geas/memory/retro .geas/memory/agents .geas/memory/candidates .geas/memory/entries .geas/memory/logs .geas/recovery .geas/state/task-focus
+mkdir -p .geas/spec .geas/state .geas/tasks .geas/contracts .geas/packets .geas/evidence .geas/decisions .geas/decisions/pending .geas/ledger .geas/summaries .geas/memory/_project .geas/memory/agents .geas/memory/candidates .geas/memory/entries .geas/memory/logs .geas/recovery .geas/state/task-focus
 ```
 
 Write the initial debt register `.geas/state/debt-register.json` conforming to `docs/protocol/schemas/debt-register.schema.json`:

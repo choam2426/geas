@@ -45,9 +45,9 @@ for tid in d.get('completed_tasks', []):
         missing.append(f'  - {tid}: critic-review.json (Critic Pre-ship Review) missing')
     if not os.path.isfile(os.path.join(edir, 'nova-verdict.json')):
         missing.append(f'  - {tid}: nova-verdict.json (Nova Product Review) missing')
-    retro_path = os.path.join(geas, 'memory', 'retro', f'{tid}.json')
+    retro_path = os.path.join(geas, 'tasks', tid, 'retrospective.json')
     if not os.path.isfile(retro_path):
-        missing.append(f'  - {tid}: memory/retro/{tid}.json (Scrum Retrospective) missing')
+        missing.append(f'  - {tid}: tasks/{tid}/retrospective.json (Scrum Retrospective) missing')
 print('\n'.join(missing))
 " "$RUN_FILE" "$GEAS_DIR" 2>/dev/null || echo "")
 
