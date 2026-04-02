@@ -54,6 +54,13 @@ Determine the four classification fields based on the task nature:
 | Touches auth, payments, shared infra, or cross-module | `high` |
 | Data migration, security-critical, or breaking API change | `critical` |
 
+#### Risk Signals
+
+- `low`: Isolated change, single file, no dependencies, easily reversible
+- `normal`: Multi-file change within existing architecture
+- `high`: Architecture change, schema migration, public API change, or refactoring that touches >50% of source files
+- `critical`: Data migration, security-sensitive, or irreversible change
+
 **`gate_profile`** — what verification strategy applies:
 
 | Signal | gate_profile |
@@ -69,6 +76,14 @@ Determine the four classification fields based on the task nature:
 | Routine work, clear requirements | `never` |
 | Ambiguous scope or multiple valid approaches | `auto` |
 | Architecture decision, breaking change, or cross-team impact | `always` |
+
+#### Decision Tree
+
+1. Does the task involve architecture decisions (new patterns, stack changes, structural reorganization)? → `always`
+2. Does the task touch 3+ files with cross-cutting changes? → `auto`
+3. Is it a focused change within existing patterns? → `never`
+
+When in doubt, prefer `auto` over `never`.
 
 ### Step 3: Define the Goal
 
