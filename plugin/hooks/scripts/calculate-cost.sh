@@ -1,127 +1,76 @@
 #!/bin/bash
 # calculate-cost.sh — Stop hook
-# Aggregates token usage by parsing subagent session JSONLs.
-# Runs once at session end. Writes summary to .geas/ledger/token-summary.json.
-
+# Aggregates token usage from subagent sessions.
 set -euo pipefail
 
-INPUT=$(cat)
-CWD=$(echo "$INPUT" | python -c "import json,sys; d=json.load(sys.stdin); print(d.get('cwd',''))" 2>/dev/null || echo "")
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+node -e "
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const h = require(path.join('$HOOK_DIR', 'lib', 'geas-hooks'));
+const {cwd} = h.parseInput();
+if (!cwd) process.exit(0);
 
-if [ -z "$CWD" ]; then
-  exit 0
-fi
+const geas = h.geasDir(cwd);
+if (!fs.existsSync(geas)) process.exit(0);
 
-GEAS_DIR="$CWD/.geas"
+// Find Claude project directory
+const normalized = cwd.replace(/\\\\/g, '/').replace(/^([A-Z]):/, (m,d) => '/' + d.toLowerCase());
+const hash = crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 8);
+const home = process.env.HOME || process.env.USERPROFILE || '';
+const base = path.join(home, '.claude', 'projects');
 
-if [ ! -d "$GEAS_DIR" ]; then
-  exit 0
-fi
+let projectDir = null;
+try {
+  const dirs = fs.readdirSync(base);
+  const match = dirs.find(d => d.includes(hash));
+  projectDir = match ? path.join(base, match) : null;
+} catch { process.exit(0); }
+if (!projectDir) process.exit(0);
 
-python -c "
-import json, sys, os, glob
+// Find most recent session with subagents
+let sessionDir = null;
+try {
+  const entries = fs.readdirSync(projectDir)
+    .filter(f => !f.endsWith('.jsonl') && fs.statSync(path.join(projectDir, f)).isDirectory())
+    .sort((a, b) => fs.statSync(path.join(projectDir, b)).mtimeMs - fs.statSync(path.join(projectDir, a)).mtimeMs);
+  sessionDir = entries[0] ? path.join(projectDir, entries[0]) : null;
+} catch { process.exit(0); }
+if (!sessionDir) process.exit(0);
 
-cwd = sys.argv[1]
-geas = sys.argv[2]
-home = os.path.expanduser('~')
+// Parse subagent JSONLs
+const totals = { input: 0, output: 0, cache_create: 0, cache_read: 0 };
+const byAgent = {};
 
-# Find Claude project directory
-# cwd path conversion: A:\geas-test3 -> A--geas-test3
-cwd_normalized = cwd.replace('\\\\', '-').replace('/', '-').replace(':', '-')
-project_hash = cwd_normalized.lstrip('-')
-projects_base = os.path.join(home, '.claude', 'projects')
+try {
+  const files = fs.readdirSync(sessionDir).filter(f => f.endsWith('.jsonl'));
+  for (const f of files) {
+    let agentName = 'unknown';
+    const meta = h.readJson(path.join(sessionDir, f.replace('.jsonl', ''), '.meta.json'));
+    if (meta) agentName = meta.agent_type || meta.name || 'unknown';
 
-# Try to find the project directory
-project_dir = None
-if os.path.isdir(projects_base):
-    for d in os.listdir(projects_base):
-        if d == project_hash or project_hash in d:
-            project_dir = os.path.join(projects_base, d)
-            break
+    const lines = fs.readFileSync(path.join(sessionDir, f), 'utf8').split('\\n').filter(Boolean);
+    for (const line of lines) {
+      try {
+        const d = JSON.parse(line);
+        const u = d.usage || {};
+        totals.input += u.input_tokens || 0;
+        totals.output += u.output_tokens || 0;
+        totals.cache_create += u.cache_creation_input_tokens || 0;
+        totals.cache_read += u.cache_read_input_tokens || 0;
 
-if not project_dir:
-    sys.exit(0)
+        if (!byAgent[agentName]) byAgent[agentName] = { input: 0, output: 0 };
+        byAgent[agentName].input += u.input_tokens || 0;
+        byAgent[agentName].output += u.output_tokens || 0;
+      } catch {}
+    }
+  }
+} catch {}
 
-# Find the most recent session with subagents
-session_dir = None
-latest_mtime = 0
-for item in os.listdir(project_dir):
-    sub_path = os.path.join(project_dir, item, 'subagents')
-    if os.path.isdir(sub_path):
-        mtime = os.path.getmtime(sub_path)
-        if mtime > latest_mtime:
-            latest_mtime = mtime
-            session_dir = sub_path
+const summary = { totals, by_agent: byAgent, timestamp: new Date().toISOString().replace(/\\.\\d{3}Z\$/, 'Z') };
+h.writeJson(path.join(geas, 'ledger', 'token-summary.json'), summary);
 
-if not session_dir:
-    sys.exit(0)
-
-# Parse all subagent JSONLs
-total = {'input_tokens': 0, 'output_tokens': 0, 'cache_creation_input_tokens': 0, 'cache_read_input_tokens': 0}
-agent_totals = {}
-agent_count = 0
-
-for jf in glob.glob(os.path.join(session_dir, '*.jsonl')):
-    meta_file = jf.replace('.jsonl', '.meta.json')
-    agent_type = 'unknown'
-    if os.path.isfile(meta_file):
-        try:
-            agent_type = json.load(open(meta_file)).get('agentType', 'unknown')
-        except:
-            pass
-
-    name = agent_type.split(':')[-1] if ':' in agent_type else agent_type
-    subtotal = {'input': 0, 'output': 0, 'cache_create': 0, 'cache_read': 0}
-
-    try:
-        with open(jf) as f:
-            for line in f:
-                try:
-                    d = json.loads(line)
-                    if d.get('type') == 'assistant':
-                        u = d.get('message', {}).get('usage', {})
-                        subtotal['input'] += u.get('input_tokens', 0)
-                        subtotal['output'] += u.get('output_tokens', 0)
-                        subtotal['cache_create'] += u.get('cache_creation_input_tokens', 0)
-                        subtotal['cache_read'] += u.get('cache_read_input_tokens', 0)
-                except:
-                    pass
-    except:
-        continue
-
-    total['input_tokens'] += subtotal['input']
-    total['output_tokens'] += subtotal['output']
-    total['cache_creation_input_tokens'] += subtotal['cache_create']
-    total['cache_read_input_tokens'] += subtotal['cache_read']
-
-    agent_totals.setdefault(name, {'input': 0, 'output': 0, 'spawns': 0})
-    agent_totals[name]['input'] += subtotal['input']
-    agent_totals[name]['output'] += subtotal['output']
-    agent_totals[name]['spawns'] += 1
-    agent_count += 1
-
-from datetime import datetime, timezone
-
-summary = {
-    'tokens': {
-        'input': total['input_tokens'],
-        'output': total['output_tokens'],
-        'cache_creation': total['cache_creation_input_tokens'],
-        'cache_read': total['cache_read_input_tokens']
-    },
-    'agent_count': agent_count,
-    'agents': {k: v for k, v in sorted(agent_totals.items(), key=lambda x: -x[1]['output'])},
-    'calculated_at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-}
-
-# Write summary
-summary_file = os.path.join(geas, 'ledger', 'token-summary.json')
-os.makedirs(os.path.dirname(summary_file), exist_ok=True)
-with open(summary_file, 'w', encoding='utf-8') as f:
-    json.dump(summary, f, indent=2, ensure_ascii=False)
-    f.write(chr(10))
-
-print(f'[Geas] Session tokens: {total[\"input_tokens\"]:,} input, {total[\"output_tokens\"]:,} output ({agent_count} agents)', file=sys.stderr)
-" "$CWD" "$GEAS_DIR" 2>&1 >&2 || true
-
-exit 0
+const agentCount = Object.keys(byAgent).length;
+h.info('Token summary: input=' + totals.input + ' output=' + totals.output + ' agents=' + agentCount);
+" <<< "$(cat)"

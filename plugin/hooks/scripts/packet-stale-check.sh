@@ -1,34 +1,24 @@
-#!/usr/bin/env bash
-# packet-stale-check.sh — warn when context packets may be stale
-# Trigger: PostToolUse on Write matching .geas/state/run.json
-
+#!/bin/bash
+# packet-stale-check.sh — PostToolUse hook (Write on run.json)
+# Warns when context packets may be stale after recovery.
 set -euo pipefail
 
-TOOL_INPUT="${CLAUDE_TOOL_INPUT:-}"
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+node -e "
+const fs = require('fs');
+const path = require('path');
+const h = require(path.join('$HOOK_DIR', 'lib', 'geas-hooks'));
+const {cwd, filePath} = h.parseInput();
+if (!cwd || !filePath) process.exit(0);
+if (!filePath.replace(/\\\\/g,'/').endsWith('.geas/state/run.json')) process.exit(0);
 
-if [[ "$TOOL_INPUT" != *".geas/state/run.json"* ]]; then
-  exit 0
-fi
+const d = h.readJson(filePath);
+if (!d || !d.current_task_id || !d.recovery_class) process.exit(0);
 
-RUN_FILE=".geas/state/run.json"
-if [[ ! -f "$RUN_FILE" ]]; then
-  exit 0
-fi
-
-python3 -c "
-import json, os, glob
-
-run = json.load(open('$RUN_FILE'))
-task_id = run.get('current_task_id', '')
-recovery = run.get('recovery_class')
-
-if not task_id:
-    exit()
-
-packets = glob.glob(f'.geas/packets/{task_id}/*.md')
-if not packets:
-    exit()
-
-if recovery:
-    print(f'Warning: STALE PACKETS: Session recovered ({recovery}). Context packets for {task_id} may be stale. Regenerate before spawning agents.')
-" 2>/dev/null
+const packetsDir = path.join(h.geasDir(cwd), 'packets', d.current_task_id);
+try {
+  const files = fs.readdirSync(packetsDir).filter(f => f.endsWith('.md'));
+  if (files.length)
+    h.warn('Recovery detected (' + d.recovery_class + '). Context packets in packets/' + d.current_task_id + '/ may be stale. Consider regenerating.');
+} catch {}
+" <<< "$(cat)"

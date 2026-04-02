@@ -1,43 +1,30 @@
-#!/usr/bin/env bash
-# memory-promotion-gate.sh — verify promotion conditions when memory entries are written
-# Trigger: PostToolUse on Write matching .geas/memory/entries/*.json
-
+#!/bin/bash
+# memory-promotion-gate.sh — PostToolUse hook (Write on memory entries)
+# Verifies promotion conditions for memory entries.
 set -euo pipefail
 
-TOOL_INPUT="${CLAUDE_TOOL_INPUT:-}"
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+node -e "
+const path = require('path');
+const h = require(path.join('$HOOK_DIR', 'lib', 'geas-hooks'));
+const {cwd, filePath} = h.parseInput();
+if (!cwd || !filePath) process.exit(0);
+if (!filePath.replace(/\\\\/g,'/').includes('/.geas/memory/entries/')) process.exit(0);
 
-if [[ "$TOOL_INPUT" != *".geas/memory/entries/"* ]]; then
-  exit 0
-fi
+const d = h.readJson(filePath);
+if (!d || !d.state) process.exit(0);
 
-ENTRY_FILE=$(echo "$TOOL_INPUT" | grep -oP '\.geas/memory/entries/[^"]+\.json' | head -1)
-if [[ -z "$ENTRY_FILE" || ! -f "$ENTRY_FILE" ]]; then
-  exit 0
-fi
+const warnings = [];
+const refs = (d.evidence_refs || []).length;
+const reuses = d.successful_reuses || 0;
+const contradictions = d.contradiction_count || 0;
 
-python3 -c "
-import json
+if (d.state === 'provisional' && refs < 2 && (d.evidence_count || 0) < 2)
+  warnings.push('provisional requires evidence_refs >= 2 or evidence_count >= 2 (has ' + refs + ')');
+if (d.state === 'stable' && (reuses < 3 || contradictions > 0))
+  warnings.push('stable requires successful_reuses >= 3 AND contradiction_count == 0 (has reuses=' + reuses + ', contradictions=' + contradictions + ')');
+if (d.state === 'canonical' && reuses < 5)
+  warnings.push('canonical requires successful_reuses >= 5 (has ' + reuses + ')');
 
-entry = json.load(open('$ENTRY_FILE'))
-state = entry.get('state', '')
-signals = entry.get('signals', {})
-evidence = entry.get('evidence_refs', [])
-
-warnings = []
-
-if state == 'provisional' and len(evidence) < 2 and signals.get('evidence_count', 0) < 2:
-    warnings.append('provisional promotion requires 2+ evidence_refs or similar incidents')
-
-if state == 'stable':
-    if signals.get('successful_reuses', 0) < 3:
-        warnings.append(f'stable promotion requires 3+ successful_reuses (has {signals.get(\"successful_reuses\", 0)})')
-    if signals.get('contradiction_count', 0) > 0:
-        warnings.append(f'stable promotion requires 0 contradictions (has {signals.get(\"contradiction_count\", 0)})')
-
-if state == 'canonical':
-    if signals.get('successful_reuses', 0) < 5:
-        warnings.append(f'canonical promotion requires 5+ successful_reuses (has {signals.get(\"successful_reuses\", 0)})')
-
-for w in warnings:
-    print(f'Warning: MEMORY PROMOTION: {w}')
-" 2>/dev/null
+warnings.forEach(w => h.warn('Memory ' + (d.memory_id||'?') + ': ' + w));
+" <<< "$(cat)"

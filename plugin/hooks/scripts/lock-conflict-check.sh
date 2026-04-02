@@ -1,41 +1,37 @@
-#!/usr/bin/env bash
-# lock-conflict-check.sh — detect conflicting locks in locks.json
-# Trigger: PostToolUse on Write matching .geas/state/locks.json
-
+#!/bin/bash
+# lock-conflict-check.sh — PostToolUse hook (Write on locks.json)
+# Detects conflicting locks between tasks.
 set -euo pipefail
 
-LOCKS_FILE=".geas/state/locks.json"
-if [[ ! -f "$LOCKS_FILE" ]]; then
-  exit 0
-fi
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+node -e "
+const path = require('path');
+const h = require(path.join('$HOOK_DIR', 'lib', 'geas-hooks'));
+const {cwd, filePath} = h.parseInput();
+if (!cwd || !filePath) process.exit(0);
+if (!filePath.replace(/\\\\/g,'/').endsWith('.geas/state/locks.json')) process.exit(0);
 
-# Check for conflicting targets between held locks of different tasks
-CONFLICTS=$(python3 -c "
-import json
-from collections import defaultdict
+const locks = h.readJson(filePath);
+if (!locks || !locks.locks) process.exit(0);
 
-data = json.load(open('$LOCKS_FILE'))
-locks = data.get('locks', [])
+const held = locks.locks.filter(l => l.status === 'held');
+const byType = {};
+held.forEach(l => { (byType[l.lock_type] = byType[l.lock_type] || []).push(l); });
 
-by_type = defaultdict(list)
-for lock in locks:
-    if lock.get('status') == 'held':
-        by_type[lock['lock_type']].append(lock)
+const conflicts = [];
+Object.entries(byType).forEach(([type, group]) => {
+  for (let i = 0; i < group.length; i++) {
+    for (let j = i+1; j < group.length; j++) {
+      if (group[i].task_id === group[j].task_id) continue;
+      const overlap = (group[i].targets||[]).filter(t => (group[j].targets||[]).includes(t));
+      if (overlap.length)
+        conflicts.push(type + ': ' + group[i].task_id + ' vs ' + group[j].task_id + ' on [' + overlap.join(', ') + ']');
+    }
+  }
+});
 
-conflicts = []
-for lock_type, entries in by_type.items():
-    for i, a in enumerate(entries):
-        for b in entries[i+1:]:
-            if a['task_id'] != b['task_id']:
-                overlap = set(a['targets']) & set(b['targets'])
-                if overlap:
-                    conflicts.append(f'{lock_type}: {a[\"task_id\"]} vs {b[\"task_id\"]} on {list(overlap)}')
-
-for c in conflicts:
-    print(c)
-" 2>/dev/null)
-
-if [[ -n "$CONFLICTS" ]]; then
-  echo "🚨 LOCK CONFLICT DETECTED:"
-  echo "$CONFLICTS"
-fi
+if (conflicts.length) {
+  h.warn('Lock conflicts detected:');
+  conflicts.forEach(c => process.stderr.write('  ' + c + '\\n'));
+}
+" <<< "$(cat)"

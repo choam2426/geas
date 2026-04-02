@@ -1,39 +1,30 @@
-#!/usr/bin/env bash
-# memory-review-cadence.sh — detect memory entries past review_after date
-# Trigger: SessionStart
-
+#!/bin/bash
+# memory-review-cadence.sh — SessionStart hook
+# Detects memory entries past their review_after date.
 set -euo pipefail
 
-INDEX_FILE=".geas/state/memory-index.json"
-if [[ ! -f "$INDEX_FILE" ]]; then
-  exit 0
-fi
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+node -e "
+const path = require('path');
+const h = require(path.join('$HOOK_DIR', 'lib', 'geas-hooks'));
+const {cwd} = h.parseInput();
+if (!cwd) process.exit(0);
 
-python3 -c "
-import json
-from datetime import datetime, timezone
+const mi = h.readJson(path.join(h.geasDir(cwd), 'state', 'memory-index.json'));
+if (!mi || !mi.entries) process.exit(0);
 
-index = json.load(open('$INDEX_FILE'))
-entries = index.get('entries', [])
-now = datetime.now(timezone.utc)
+const now = new Date();
+const reviewable = ['provisional', 'stable', 'canonical'];
+const expired = mi.entries.filter(e =>
+  reviewable.includes(e.state) && e.review_after && new Date(e.review_after) < now
+);
 
-expired = []
-for e in entries:
-    if e.get('state') in ('provisional', 'stable', 'canonical'):
-        review_after = e.get('review_after', '')
-        if review_after:
-            try:
-                ra = datetime.fromisoformat(review_after.replace('Z', '+00:00'))
-                if ra < now:
-                    expired.append(f'{e[\"memory_id\"]} ({e[\"state\"]}, due {review_after})')
-            except (ValueError, TypeError):
-                pass
-
-if expired:
-    print(f'Warning: MEMORY REVIEW DUE: {len(expired)} entries past review_after date:')
-    for item in expired[:10]:
-        print(f'  - {item}')
-    if len(expired) > 10:
-        print(f'  ... and {len(expired)-10} more')
-    print('Run batch review via /geas:memorizing.')
-" 2>/dev/null
+if (expired.length) {
+  h.info(expired.length + ' memory entries past review date:');
+  expired.slice(0, 10).forEach(e =>
+    process.stderr.write('  - ' + e.memory_id + ' (' + e.state + ') due: ' + e.review_after + '\\n')
+  );
+  if (expired.length > 10) process.stderr.write('  ... and ' + (expired.length - 10) + ' more\\n');
+  h.info('Run /geas:memorizing for batch review.');
+}
+" <<< "$(cat)"

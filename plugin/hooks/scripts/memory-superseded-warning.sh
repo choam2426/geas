@@ -1,39 +1,29 @@
-#!/usr/bin/env bash
-# memory-superseded-warning.sh — warn if stale memory is in a context packet
-# Trigger: PostToolUse on Write matching .geas/packets/*.md
-
+#!/bin/bash
+# memory-superseded-warning.sh — PostToolUse hook (Write on packets)
+# Warns if a context packet references stale memory.
 set -euo pipefail
 
-TOOL_INPUT="${CLAUDE_TOOL_INPUT:-}"
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+node -e "
+const fs = require('fs');
+const path = require('path');
+const h = require(path.join('$HOOK_DIR', 'lib', 'geas-hooks'));
+const {cwd, filePath} = h.parseInput();
+if (!cwd || !filePath) process.exit(0);
+if (!filePath.replace(/\\\\/g,'/').includes('/.geas/packets/')) process.exit(0);
 
-if [[ "$TOOL_INPUT" != *".geas/packets/"* ]]; then
-  exit 0
-fi
+const mi = h.readJson(path.join(h.geasDir(cwd), 'state', 'memory-index.json'));
+if (!mi || !mi.entries) process.exit(0);
 
-INDEX_FILE=".geas/state/memory-index.json"
-if [[ ! -f "$INDEX_FILE" ]]; then
-  exit 0
-fi
+const stateMap = {};
+mi.entries.forEach(e => { stateMap[e.memory_id] = e.state; });
 
-PACKET_FILE=$(echo "$TOOL_INPUT" | grep -oP '\.geas/packets/[^"]+\.md' | head -1)
-if [[ -z "$PACKET_FILE" || ! -f "$PACKET_FILE" ]]; then
-  exit 0
-fi
+const content = fs.readFileSync(filePath, 'utf8');
+const ids = (content.match(/\\[mem-[^\\]]+\\]/g) || []).map(m => m.slice(1, -1));
+const stale = ['superseded', 'under_review', 'decayed', 'archived', 'rejected'];
 
-python3 -c "
-import json, re
-
-index = json.load(open('$INDEX_FILE'))
-entries = {e['memory_id']: e['state'] for e in index.get('entries', [])}
-
-with open('$PACKET_FILE') as f:
-    content = f.read()
-
-memory_ids = re.findall(r'\[mem-[^\]]+\]', content)
-memory_ids = [m.strip('[]') for m in memory_ids]
-
-for mid in memory_ids:
-    state = entries.get(mid)
-    if state in ('superseded', 'under_review', 'decayed', 'archived', 'rejected'):
-        print(f'Warning: STALE MEMORY: {mid} has state \"{state}\" — should not be in active packet')
-" 2>/dev/null
+ids.forEach(id => {
+  if (stale.includes(stateMap[id]))
+    h.warn('Packet references ' + id + ' which is ' + stateMap[id] + '. Consider regenerating.');
+});
+" <<< "$(cat)"
