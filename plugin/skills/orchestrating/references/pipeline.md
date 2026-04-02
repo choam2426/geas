@@ -2,6 +2,10 @@
 
 The universal pipeline for every task, regardless of mission scope.
 
+## Universal Requirements
+
+EVERY task, regardless of dependencies or position in the batch, MUST execute ALL pipeline steps. No step may be skipped because "a prior task already did it" or "this is a dependent task."
+
 ## remaining_steps
 
 ```json
@@ -300,11 +304,11 @@ Set `readiness_round: null` initially — may be updated by the critical reviewe
 
 Update run.json checkpoint: `pipeline_step` = "closure_packet"
 
-### Critical Reviewer Challenge [CONDITIONAL — mandatory for high/critical risk]
+### Critical Reviewer Challenge [CONDITIONAL — mandatory for normal/high/critical risk]
 
-**Skip condition:** If `risk_level` is `low` or `normal`, this step is at orchestration_authority's discretion. If skipped: remove `"critical_reviewer"` from `remaining_steps`, update run.json checkpoint, and proceed directly to Final Verdict.
+**Skip condition:** If `risk_level` is `low`, this step is at orchestration_authority's discretion. If skipped: remove `"critical_reviewer"` from `remaining_steps`, update run.json checkpoint, and proceed directly to Final Verdict.
 
-**Mandatory condition:** If `risk_level` is `high` or `critical`, this step MUST run.
+**Mandatory condition:** If `risk_level` is `normal`, `high`, or `critical`, this step MUST run.
 
 Update run.json checkpoint: `pipeline_step` = "critical_reviewer", `agent_in_flight` = "critical-reviewer"
 ```
@@ -332,7 +336,7 @@ Update run.json checkpoint: `pipeline_step` = "critical_reviewer"
 
 ### Final Verdict (product-authority) [MANDATORY]
 **Preconditions:**
-- `.geas/tasks/{task-id}/challenge-review.json` must exist OR `critical_reviewer` was explicitly skipped for low/normal risk
+- `.geas/tasks/{task-id}/challenge-review.json` must exist OR `critical_reviewer` was explicitly skipped for low risk
 - Closure Packet must be assembled (all required fields populated)
 - Do NOT spawn product_authority until both preconditions are verified
 
@@ -351,7 +355,7 @@ Note: "iterate" is only valid as a Final Verdict outcome. Gate verdicts (evidenc
 ### Pre-Resolve Check
 **Before marking any task as "passed", verify:**
 - `.geas/tasks/{task-id}/closure-packet.json` exists (assembled in Closure Packet Assembly)
-- `.geas/tasks/{task-id}/challenge-review.json` exists OR critical_reviewer was explicitly skipped (low/normal risk)
+- `.geas/tasks/{task-id}/challenge-review.json` exists OR critical_reviewer was explicitly skipped (low risk)
 - `.geas/tasks/{task-id}/final-verdict.json` exists with `verdict: "pass"`
 **If ANY is missing: go back and execute the missing step. Do NOT proceed without all three.**
 
@@ -397,14 +401,14 @@ Agent(agent: "process-lead", prompt: "Read all evidence at .geas/evidence/{task-
 
 Verify `.geas/tasks/{task-id}/retrospective.json` exists.
 
-### Memory Extraction [after Retrospective, Ship only]
+### Memory Extraction [MANDATORY after Retrospective, Ship only]
 
-**Skip condition:** Same as retrospective — only run when task was Ship (passed).
+**DO NOT SKIP THIS STEP.** Only skip when task was Cut or Escalate (same as retrospective).
 
-Invoke the `memorizing` skill for per-task candidate extraction:
+Invoke `/geas:memorizing` with the task ID for per-task candidate extraction:
 
 1. Read `.geas/tasks/{task-id}/retrospective.json` -> extract `memory_candidates[]`
-2. If `memory_candidates` is empty: log `{"event": "memory_extraction", "task_id": "...", "candidates": 0, "timestamp": "<actual>"}` and skip.
+2. If `memory_candidates` is empty: still invoke `/geas:memorizing` for auto-extraction from evidence files at `.geas/evidence/{task-id}/`. Do NOT skip.
 3. For each candidate: invoke `/geas:memorizing` candidate extraction procedure:
    - Determine memory_type and scope
    - Run deduplication against memory-index
