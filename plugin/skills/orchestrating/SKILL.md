@@ -2,7 +2,7 @@
 name: orchestrating
 description: >
   Geas orchestrator — coordinates the multi-agent team.
-  Manages setup, intake, mode detection, and delegates to initiative/sprint protocols.
+  Manages setup, intake, routing, and executes the unified 4-phase execution flow.
   Do NOT spawn this as an agent. This is a skill that runs in the main session.
 ---
 
@@ -14,7 +14,7 @@ You are the Geas orchestrator. You execute everything directly in this session. 
 
 ## Orchestration Rules
 
-These rules apply to ALL modes (Initiative mission, delivery mode).
+These rules apply throughout all phases of the 4-phase execution flow.
 
 ### Sub-agent spawning
 - Specialist agents (ui-ux-designer, architecture-authority, frontend-engineer, backend-engineer, qa-engineer, product-authority, etc.) are spawned as **1-level sub-agents**.
@@ -32,7 +32,7 @@ These rules apply to ALL modes (Initiative mission, delivery mode).
 - **Timestamps must be actual current time.** For event ledger entries, use `date -u +%Y-%m-%dT%H:%M:%SZ` in Bash. For JSON files in `.geas/`, the hook auto-injects timestamps.
 
 **[MANDATORY] The following events must always be logged. Omitting any is a protocol violation:**
-- `step_complete` — after each pipeline step completes (format defined in initiative/sprint)
+- `step_complete` — after each pipeline step completes (format defined in the execution pipeline)
 - `task_started` / `task_resolved` — task lifecycle
 - `phase_complete` — phase transitions
 - `gate_result` — evidence gate outcomes (format defined in evidence-gate)
@@ -71,16 +71,15 @@ During parallel batch execution (see `/geas:scheduling`):
 2. Set `"status": "passed"`
 3. Write it back
 
-This applies to every task — sequential or parallel, initiative or sprint. If the task file does not exist, this is a protocol violation (the file must be created before pipeline starts).
+This applies to every task — sequential or parallel. If the task file does not exist, this is a protocol violation (the file must be created before pipeline starts).
 
 ### Rules evolution
 - `.geas/rules.md` is a living document. Changes go through a structured `rules-update.json` workflow.
 - During per-task retrospectives, process_lead produces `rule_candidates[]` in `retrospective.json`. These are proposals, NOT direct modifications.
-- **Initiative**: rule candidates accumulate during Build phase. Batch approval happens in Evolution phase (Step 4.2.5).
-- **Sprint**: inline approval happens in Sprint Wrap-Up after retrospective.
+- Rule candidates accumulate during the Build phase. Batch approval happens in the Evolution phase (Step 4.2.5).
 - Approved rules updates are applied to `.geas/rules.md` and recorded in `.geas/state/rules-update.json` with `status: "approved"`.
 - Approval conditions (per doc 14): process_lead + domain authority, OR evidence_refs >= 2 with contradiction_count = 0.
-- After Discovery: Orchestrator adds stack-specific rules before the rules-update workflow exists in the pipeline.
+- After Phase 1 (Discovery): Orchestrator adds stack-specific rules before the rules-update workflow exists in the pipeline.
 
 ### Tech debt tracking
 After reading each agent's evidence, check for a `tech_debt` array. If present:
@@ -173,7 +172,7 @@ After recovery completes and before resuming the pipeline:
 
 The orchestrator is responsible for maintaining two context anchors:
 
-1. **`.geas/state/session-latest.md`** — updated after each pipeline step completion. Contains mode, phase, focus task, last/next step, recent events, open risks, memory summary. See initiative/sprint skills for the exact format.
+1. **`.geas/state/session-latest.md`** — updated after each pipeline step completion. Contains phase, focus task, last/next step, recent events, open risks, memory summary. See the execution pipeline skills for the exact format.
 
 2. **`.geas/state/task-focus/{task-id}.md`** — updated after each step for the focus task. Contains task state, goal, progress, remaining steps, key risks. One file per active task.
 
@@ -183,14 +182,33 @@ These files are consumed by `restore-context.sh` during post-compact recovery.
 Invoke `/geas:intake` to produce `.geas/spec/seed.json`.
 - Ask the user clarifying questions until the completeness checklist is satisfied (all boolean fields in `completeness_checklist` are true).
 
-### Step 2: Mode Detection
+### Step 2: Routing
+
 Infer from the user's intent:
-1. **Bounded feature in existing project** → invoke `/geas:sprint` (delivery mode, Sprint pattern)
-2. **New product or broad mission** → invoke `/geas:initiative` (Initiative mission)
+1. **Decision only (no code changes)** → invoke `/geas:decision`
+2. **Everything else** → proceed with 4-phase execution flow below
 
-If the mode was explicitly specified (user used `/geas:initiative` or `/geas:sprint`), skip detection and go directly to that mode.
+Note: `/geas:decision` can also be invoked standalone at any time for structured decision-making.
 
-Note: `/geas:decision` is a utility skill for decision mode. It can be invoked at any time for structured decision-making — during Initiative mission, delivery mode, or standalone. It does not go through the Orchestrator startup sequence.
+## Execution Flow
+
+Always 4 phases, regardless of scope. The orchestrator determines phase scale based on seed spec complexity.
+
+### Phase 1: Discovery
+Read `references/discovery.md` and follow the procedure.
+Minimum: intake (seed spec confirmation with user) + task compilation.
+Full: vision, PRD, architecture, vote round, task compilation.
+
+### Phase 2: Build
+Read `references/build.md` for phase management.
+For each compiled task, read `references/pipeline.md` and execute the per-task pipeline.
+For 2+ eligible tasks, invoke `/geas:scheduling` for parallel dispatch.
+
+### Phase 3: Polish
+Read `references/polish.md` and follow the procedure.
+
+### Phase 4: Evolution
+Read `references/evolution.md` and follow the procedure.
 
 ---
 
