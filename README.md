@@ -6,77 +6,68 @@
 
 ### Governance. Traceability. Verification. Evolution.
 
-A governance protocol for multi-agent AI development — so every decision follows a process, every action is traceable, every output is verified, and the team gets smarter over time.
+A governance protocol for multi-agent AI development.
 
 [![Protocol](https://img.shields.io/badge/Protocol-v3-6B4FBB?style=for-the-badge)](#)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
-[![Agents](https://img.shields.io/badge/Agents-12-4A90D9?style=flat-square)](docs/reference/AGENTS.md)
-[![Skills](https://img.shields.io/badge/Skills-27-2ECC71?style=flat-square)](docs/reference/SKILLS.md)
-[![Hooks](https://img.shields.io/badge/Hooks-18-E67E22?style=flat-square)](docs/reference/HOOKS.md)
 
 </div>
 
 ---
 
-## What is Geas?
+## The Problem
 
-Geas is a governance protocol for multi-agent AI development. It defines how decisions are governed, actions are traced, outputs are verified, and teams evolve. The protocol is tool-agnostic; the included Claude Code plugin is one implementation. You describe a mission; Geas runs a governed pipeline of specialist agents that design, build, review, and verify — and records everything.
+Multi-agent AI development is powerful but ungoverned:
 
----
+- **"Done" means nothing** — An agent says the task is complete, but nobody verified it against acceptance criteria
+- **Decisions vanish** — Who chose this architecture? Why was that library picked? No record exists
+- **Zero learning** — The team makes the same mistakes session after session
+- **Parallel chaos** — Two agents modify the same files, and nobody notices until integration breaks
 
-## Four Pillars
-
-| Pillar | Definition | Concrete Example |
-|--------|-----------|-----------------|
-| **Governance** | Every decision follows a defined process with explicit authority. | Architecture choices go through vote rounds with mandatory devil's advocacy. Disagreements trigger structured debates. Trade-offs are recorded. |
-| **Traceability** | Every action is recorded and auditable after the fact. | All transitions log to `.geas/ledger/events.jsonl` with real timestamps. Checkpoint state in `run.json` tracks pipeline position. DecisionRecords capture the *why* behind escalations. |
-| **Verification** | Every output is verified against its contract — "done" means "contract fulfilled." | Evidence Gate runs three tiers: mechanical (build/lint/test), semantic (acceptance criteria + rubric scores), product (final verdict). No tier references specific tools. |
-| **Evolution** | The team gets smarter over time. | Process Lead retrospectives after every task. Lessons go to `.geas/tasks/{task-id}/retrospective.json`. `rules.md` grows with each session. |
+When you scale from one agent to twelve, these problems don't add — they multiply.
 
 ---
 
-## Quick Start
+## What Geas Does
 
-**Claude Code Implementation**: [Claude Code CLI](https://claude.ai/code) installed and authenticated
+Geas is a protocol that governs the entire lifecycle of multi-agent work:
 
-> Geas is a protocol. This Quick Start uses the Claude Code plugin implementation.
-> Other execution engines can implement the same protocol.
+**Every decision follows a process** — Architecture choices go through vote rounds. Disagreements trigger structured decisions. Trade-offs are recorded in decision records.
 
-### 1. Install the plugin
+**Every action is traceable** — State transitions log to an append-only ledger. Checkpoints track pipeline position. Recovery packets enable exact-resume after interruption.
 
-```bash
-/plugin marketplace add choam2426/geas
-/plugin install geas@choam2426-geas
-```
+**Every output is verified against its contract** — Evidence Gate runs three tiers: mechanical (build/lint/test), semantic (acceptance criteria + rubric scoring), then the product authority delivers a final verdict. "Done" means "contract fulfilled."
 
-### 2. Start a mission
+**The team gets smarter** — Retrospectives after every task. Lessons become memory candidates that get promoted through review. Rules evolve. Context packets inject relevant memories into future work.
 
-```text
-/geas:mission
-```
+---
 
-Describe what you want to build, add, or decide. The orchestrator runs a 4-phase execution flow (Discovery, Build, Polish, Evolution) scaled to the request. For decision-only requests, it routes to decision mode.
-
-### 3. Watch the process
+## See It In Action
 
 ```
-[Orchestrator]     Task started. Assigned to frontend-engineer.
+[Orchestrator]     Discovery: intake complete. 3 tasks compiled.
+[Orchestrator]     Build: starting task-001.
+
 [UI/UX Designer]   Mobile-first layout. Vertical card stack.
-[You]              Use bar charts instead of pie charts.
+[You]              Use bar charts instead of pie charts.        ← your input
 [Arch Authority]   Agreed. CSS-only bar chart approach.
 [Frontend Eng]     Implementation complete. 5 components.
-[QA Engineer]      QA: 5/5 criteria passed.
-[Critical Rev]     Risks: no offline fallback, chart reflow on resize.
-[Orchestrator]     Evidence Gate PASSED.
-[Product Auth]     Ship.
-[Process Lead]     Retro: added CSS animation rule to rules.md.
+[QA Engineer]      5/5 acceptance criteria passed.
+[Critical Rev]     Risk: no offline fallback.
+[Orchestrator]     Evidence Gate: PASS. Closure packet assembled.
+[Product Auth]     Final Verdict: PASS.
+[Process Lead]     Retro: CSS animation rule added to rules.md.
+
+[Orchestrator]     Polish: security review, docs, cleanup.
+[Orchestrator]     Evolution: gap assessment, memory promotion, summary.
+[Orchestrator]     Mission complete. 3/3 tasks passed.
 ```
+
+You stay in control. Agents propose; you decide. The protocol ensures nothing ships without verification.
 
 ---
 
 ## How It Works
-
-### 4-Phase Execution Flow
 
 ```mermaid
 graph LR
@@ -91,104 +82,62 @@ graph LR
     E -.- E1["Gap Assessment → Rules\n→ Memory → Summary"]
 ```
 
-### Per-Task Pipeline
+Every phase always runs. Scale adapts to the request — a single feature gets a lightweight pass; a full product gets the full treatment.
 
-```mermaid
-graph TD
-    A[Implementation Contract] --> B[Implementation]
-    B --> C[Worker Self-Check]
-    C --> D[Code Review + Testing]
-    D --> E[Evidence Gate]
-    E -->|FAIL| F[Verify-Fix Loop]
-    F --> B
-    E -->|PASS| G[Closure Packet]
-    G --> H[Critical Reviewer]
-    H --> I[Final Verdict]
-    I -->|PASS| J[Resolve → Retrospective\n→ Memory Extraction]
-    I -->|ITERATE| B
-```
+Each task goes through a **14-step governed pipeline**: implementation contract → implementation → self-check → code review + testing → evidence gate → closure packet → critical reviewer → final verdict → retrospective → memory extraction. [→ Full pipeline details](docs/architecture/DESIGN.md)
 
-Every artifact is written to `.geas/` — the traceable record of the entire run:
+Everything is recorded in `.geas/`:
 
 ```
 .geas/
-├── spec/seed.json              # frozen requirements
-├── state/
-│   ├── run.json                # session checkpoint (pipeline position, recovery)
-│   ├── locks.json              # lock manifest (path/interface/resource/integration)
-│   ├── memory-index.json       # memory entry index for retrieval
-│   ├── debt-register.json      # structured technical debt ledger
-│   ├── gap-assessment.json     # scope delivery comparison
-│   ├── rules-update.json       # proposed/approved rule changes
-│   ├── phase-review.json       # phase transition gate results
-│   ├── health-check.json       # health signal monitoring
-│   ├── session-latest.md       # human-readable session state (post-compact restore)
-│   └── task-focus/             # per-task context anchors
-├── tasks/                      # TaskContracts + per-task artifacts
-│   └── {task-id}/
-│       ├── task-contract.json
-│       ├── worker-self-check.json
-│       ├── gate-result.json
-│       ├── closure-packet.json
-│       ├── final-verdict.json
-│       └── retrospective.json
-├── contracts/                  # implementation contracts
-├── packets/                    # role-specific agent briefings + memory packets
-├── evidence/                   # structured proof of work per task
-├── decisions/                  # vote records, decision records
-├── ledger/events.jsonl         # append-only event log
-├── memory/
-│   ├── _project/conventions.md # project conventions (stack, commands, patterns)
-│   ├── candidates/             # memory candidates from retrospectives
-│   ├── entries/                # promoted memory entries (provisional → canonical)
-│   └── logs/                   # memory application effect logs
-├── recovery/                   # recovery packets from session interruptions
-├── summaries/                  # run summaries (session audit trail)
-└── rules.md                    # shared project rules (grows over time)
+├── state/          # session checkpoint, locks, health signals
+├── tasks/          # contracts, evidence, verdicts per task
+├── memory/         # learned patterns (candidate → canonical)
+├── ledger/         # append-only event log
+└── rules.md        # shared conventions (grows over time)
 ```
+
+[→ Full directory structure](docs/architecture/DESIGN.md)
 
 ---
 
 ## The Team
 
-The protocol defines 12 agent types. Each has a specific authority and responsibility within the governed pipeline:
+The protocol defines **12 agent types** — from Product Authority (product judgment, final verdict) to Process Lead (retrospectives, rules evolution) — each with specific authority and responsibility within the governed pipeline.
 
-| Group | Agent Type | Role |
-|-------|-----------|------|
-| **Leadership** | Product Authority | Product judgment, final verdict |
-| | Architecture Authority | Architecture, code review |
-| **Design** | UI/UX Designer | Interface design |
-| **Engineering** | Frontend Engineer | Frontend implementation |
-| | Backend Engineer | Backend implementation |
-| | Repository Manager | Git, release management |
-| **Quality** | QA Engineer | Testing, quality assurance |
-| **Operations** | DevOps Engineer | CI/CD, deployment |
-| | Security Engineer | Security review |
-| **Strategy** | Critical Reviewer | Devil's advocate, pre-ship challenge |
-| **Documentation** | Technical Writer | Documentation |
-| **Process** | Process Lead | Retrospectives, rules evolution |
+[→ Full team reference](docs/reference/AGENTS.md)
+
+---
+
+## Quick Start
+
+> Geas is a protocol. This Quick Start uses the **Claude Code plugin**, one implementation of the protocol.
+
+**Prerequisites**: [Claude Code CLI](https://claude.ai/code) installed and authenticated
+
+```bash
+# Install
+/plugin marketplace add choam2426/geas
+/plugin install geas@choam2426-geas
+
+# Run
+/geas:mission
+```
+
+Describe what you want to build, add, or decide. The orchestrator handles the rest.
 
 ---
 
 ## Documentation
 
-### Architecture
-| Document | Description |
-|----------|-------------|
-| [Design](docs/architecture/DESIGN.md) | System architecture, data flow, principles |
-
-### Reference
-| Document | Description |
-|----------|-------------|
-| [Skills](docs/reference/SKILLS.md) | 27 skills reference |
-| [Agents](docs/reference/AGENTS.md) | 12 agents reference |
-| [Hooks](docs/reference/HOOKS.md) | 18 hooks reference |
-
-### Protocol
-| Document | Description |
-|----------|-------------|
-| [Protocol](docs/protocol/) | 15 operational protocol documents (canonical) |
-| [Schemas](docs/protocol/schemas/) | 22 JSON Schema definitions (draft 2020-12) |
+| | Document | Description |
+|---|----------|-------------|
+| 📐 | [Architecture](docs/architecture/DESIGN.md) | System design, data flow, principles |
+| 📋 | [Protocol](docs/protocol/) | 15 operational protocol documents |
+| 📦 | [Schemas](docs/protocol/schemas/) | 22 JSON Schema definitions (draft 2020-12) |
+| 🔧 | [Skills](docs/reference/SKILLS.md) | 27 skills reference |
+| 🤖 | [Agents](docs/reference/AGENTS.md) | 12 agent types reference |
+| ⚡ | [Hooks](docs/reference/HOOKS.md) | 18 lifecycle hooks reference |
 
 ---
 
