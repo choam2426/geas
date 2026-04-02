@@ -48,6 +48,14 @@ Write the initial memory index `.geas/state/memory-index.json` conforming to `do
 }
 ```
 
+Write the initial health check `.geas/state/health-check.json`:
+```json
+{
+  "timestamp": "<ISO 8601>",
+  "signals": []
+}
+```
+
 Then ensure `.geas/` is gitignored. Check if `.gitignore` exists:
 - If yes: append `.geas/` if not already present
 - If no: create `.gitignore` with `.geas/` entry
