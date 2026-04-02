@@ -42,6 +42,22 @@
       "items": { "type": "string" },
       "description": "IDs of DecisionRecords created during the session"
     },
+    "session_latest_path": {
+      "type": ["string", "null"],
+      "default": ".geas/state/session-latest.md",
+      "description": "Path to human-readable session summary for post-compact recovery"
+    },
+    "recovery_class": {
+      "type": ["string", "null"],
+      "enum": ["post_compact_resume", "warm_session_resume", "interrupted_subagent_resume", "dirty_state_recovery", "manual_repair_required", null],
+      "description": "Recovery class from last session recovery. Null if clean session."
+    },
+    "scheduler_state": {
+      "type": "string",
+      "enum": ["active", "idle", "paused"],
+      "default": "active",
+      "description": "Scheduler execution state (from doc 04)"
+    },
     "checkpoint": {
       "type": "object",
       "additionalProperties": false,
@@ -84,6 +100,12 @@
           "type": "string",
           "format": "date-time",
           "description": "Timestamp of last checkpoint update"
+        },
+        "checkpoint_phase": {
+          "type": "string",
+          "enum": ["pending", "committed"],
+          "default": "committed",
+          "description": "Two-phase checkpoint state. 'pending' during write, 'committed' after."
         }
       },
       "description": "Pipeline checkpoint for session recovery. Updated before every agent spawn."
