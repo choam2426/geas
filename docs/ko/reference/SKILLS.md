@@ -160,7 +160,7 @@ Geas 오케스트레이터입니다. 멀티 에이전트 팀 전체를 관리합
 - `.geas/ledger/events.jsonl` — `task_compiled` 이벤트 추가
 
 **핵심 동작:**
-- 작업 유형별로 worker와 reviewer를 배정합니다. 프론트엔드는 Frontend Engineer/Architecture Authority, 백엔드는 Backend Engineer/Architecture Authority, 디자인은 UI/UX Designer/Architecture Authority입니다. worker가 건드리면 안 되는 경로는 `prohibited_paths`로 지정합니다.
+- 작업 유형별로 worker와 reviewer를 배정합니다. 프론트엔드는 Frontend Engineer/Architecture Authority, 백엔드는 Backend Engineer/Architecture Authority, 디자인은 UI/UX Designer/Architecture Authority입니다. worker가 수정할 수 있는 경로는 `scope.paths`로 지정합니다.
 - `rubric` 배열로 품질 차원과 임계값을 만듭니다. 기본 차원(`core_interaction`, `feature_completeness`, `code_quality`, `regression_safety`)은 모든 작업에, `ux_clarity`와 `visual_coherence`는 UI 작업에 추가됩니다.
 - `conventions.md`에서 eval 명령을 읽습니다. 없으면 프로젝트 설정 파일(package.json, Makefile, pyproject.toml)에서 자동 감지합니다.
 

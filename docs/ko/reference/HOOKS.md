@@ -218,11 +218,11 @@ Claude Code 세션 시작 시 한 번 실행됩니다.
 
 모든 `Write` 또는 `Edit` 도구 호출 후에 실행됩니다. 세 가지 책임이 있습니다.
 
-**1. 금지 경로 경고**
+**1. 스코프 경로 경고**
 
-`.geas/tasks/<current_task_id>.json`에서 현재 작업의 `prohibited_paths`를 읽습니다. 쓰여진 파일이 해당 glob 패턴과 일치하면(`fnmatch` 사용) stderr에 경고합니다:
+`.geas/tasks/<current_task_id>.json`에서 현재 작업의 `scope.paths` 허용 목록을 읽습니다. 쓰여진 파일이 해당 glob 패턴 중 어느 것과도 일치하지 않으면(`fnmatch` 사용) stderr에 경고합니다:
 ```
-[Geas] WARNING: Write to <rel_path> matches prohibited path "<pattern>" in <task_id>
+[Geas] WARNING: Write to <rel_path> outside scope.paths in <task_id>
 ```
 `.geas/` 내부 경로는 이 검사에서 항상 제외됩니다.
 

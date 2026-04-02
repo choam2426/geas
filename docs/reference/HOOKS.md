@@ -218,11 +218,11 @@ This hook works in tandem with `checkpoint-post-write.sh`, which removes the pen
 
 Fires after every `Write` or `Edit` tool call. Has three distinct responsibilities.
 
-**1. Prohibited path warning**
+**1. Scope path warning**
 
-Reads the current task's `prohibited_paths` list from `.geas/tasks/<current_task_id>.json`. If the written file matches any of those glob patterns (via `fnmatch`), it prints a warning to stderr:
+Reads the current task's `scope.paths` allowlist from `.geas/tasks/<current_task_id>.json`. If the written file does not match any of those glob patterns (via `fnmatch`), it prints a warning to stderr:
 ```
-[Geas] WARNING: Write to <rel_path> matches prohibited path "<pattern>" in <task_id>
+[Geas] WARNING: Write to <rel_path> outside scope.paths in <task_id>
 ```
 Paths inside `.geas/` itself are always exempt from this check.
 

@@ -160,7 +160,7 @@ Compile a user story into a TaskContract -- a machine-readable work agreement wi
 - `.geas/ledger/events.jsonl` -- `task_compiled` event appended
 
 **Key Behaviors:**
-- Assigns worker and reviewer by task type (frontend -> Frontend Engineer/Architecture Authority, backend -> Backend Engineer/Architecture Authority, design -> UI/UX Designer/Architecture Authority, etc.) and sets `prohibited_paths` that workers must not modify.
+- Assigns worker and reviewer by task type (frontend -> Frontend Engineer/Architecture Authority, backend -> Backend Engineer/Architecture Authority, design -> UI/UX Designer/Architecture Authority, etc.) and sets `scope.paths` that define where workers may modify files.
 - Generates a `rubric` array with quality dimensions and thresholds: base dimensions (`core_interaction`, `feature_completeness`, `code_quality`, `regression_safety`) for all tasks, plus `ux_clarity` and `visual_coherence` for UI tasks.
 - Reads eval commands from `conventions.md`; if none exist, detects from project config files (package.json, Makefile, pyproject.toml).
 
