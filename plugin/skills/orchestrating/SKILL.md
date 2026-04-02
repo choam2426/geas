@@ -208,6 +208,25 @@ Read `references/specifying.md` and follow the procedure.
 Minimum: intake (seed spec confirmation with user) + task compilation.
 Full: vision, PRD, architecture, vote round, task compilation.
 
+#### Task Classification Validation [MANDATORY]
+
+After task-compiler produces each TaskContract, verify these fields exist:
+- `risk_level` (low | normal | high | critical)
+- `vote_round_policy` (never | auto | always)
+- `task_kind` (code | docs | config | design | audit | release)
+- `gate_profile` (code_change | artifact_only | closure_ready)
+
+If ANY field is missing:
+1. Read the task's goal, acceptance_criteria, and scope.paths
+2. Apply task-compiler/SKILL.md classification criteria:
+   - Risk Signals for risk_level
+   - Decision Tree for vote_round_policy
+   - Signal tables for task_kind and gate_profile
+3. Write the missing fields to the TaskContract
+4. Log: {"event": "classification_filled", "task_id": "...", "fields_added": [...], "timestamp": "<actual>"}
+
+Do NOT proceed to building phase until ALL tasks have complete classification.
+
 ### Phase 2: Building
 Read `references/building.md` for phase management.
 For each compiled task, read `references/pipeline.md` and execute the per-task pipeline.

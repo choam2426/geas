@@ -19,6 +19,12 @@ The TaskContract MUST be written to `.geas/tasks/{task-id}.json` before the pipe
 
 ## Start Task
 - Read TaskContract. Check dependencies are `"passed"`.
+- **Classification Fallback**: If the TaskContract is missing classification fields at pipeline start:
+  - `risk_level` missing → assign `"normal"`
+  - `vote_round_policy` missing → assign `"auto"`
+  - `task_kind` missing → assign `"code"`
+  - `gate_profile` missing → assign `"code_change"`
+  - Log: `{"event": "classification_defaulted", "task_id": "...", "fields_defaulted": [...], "timestamp": "<actual>"}`
 - Update status to `"implementing"`. Log `task_started` event.
 - **Rubric check**: If the TaskContract is missing `rubric`, insert the default before proceeding:
   ```json
