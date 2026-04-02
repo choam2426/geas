@@ -39,8 +39,8 @@ cat > .geas/state/run.json << 'EOF'
   "decisions": [],
   "checkpoint": {
     "pipeline_step": "implementation",
-    "agent_in_flight": "forge",
-    "pending_evidence": [".geas/evidence/task-chaos-001/forge.json"],
+    "agent_in_flight": "architecture-authority",
+    "pending_evidence": [".geas/evidence/task-chaos-001/architecture-authority.json"],
     "retry_count": 0,
     "parallel_batch": null,
     "completed_in_batch": [],
@@ -238,7 +238,7 @@ tc = {
 }
 json.dump(tc, open('.geas/tasks/task-chaos-005.json','w'), indent=2)
 # Only architecture_authority review exists (qa_engineer missing)
-json.dump({'reviewer':'architecture_authority','status':'approved','summary':'LGTM'}, open('.geas/evidence/task-chaos-005/forge-review.json','w'), indent=2)
+json.dump({'reviewer':'architecture_authority','status':'approved','summary':'LGTM'}, open('.geas/evidence/task-chaos-005/architecture-authority-review.json','w'), indent=2)
 # worker self-check exists
 json.dump({'version':'1.0','artifact_type':'worker_self_check','artifact_id':'wsc-005','producer_type':'backend_engineer','task_id':'task-chaos-005','known_risks':[],'untested_paths':[],'possible_stubs':[],'what_to_test_next':[],'confidence':4,'summary':'Done','created_at':'2026-04-02T00:00:00Z'}, open('.geas/tasks/task-chaos-005/worker-self-check.json','w'), indent=2)
 "

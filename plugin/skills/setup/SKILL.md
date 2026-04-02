@@ -5,7 +5,7 @@ description: First-time setup — initialize .geas/ runtime directory, generate 
 
 # Setup
 
-Compass should invoke this automatically on the first natural-language request in a new project.
+orchestration_authority should invoke this automatically on the first natural-language request in a new project.
 
 Users should not need to run setup manually unless they are troubleshooting.
 

@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 d = json.load(sys.stdin)
 cwd = d.get('cwd', '')
 agent_type = d.get('agent_type', 'unknown')
-# Strip plugin prefix (e.g., "geas:nova" -> "nova")
+# Strip plugin prefix (e.g., "geas:product-authority" -> "product-authority")
 agent_name = agent_type.split(':')[-1] if ':' in agent_type else agent_type
 if not agent_name:
     agent_name = 'unknown'

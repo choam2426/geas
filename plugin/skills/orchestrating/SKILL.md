@@ -17,10 +17,10 @@ You are the Geas orchestrator. You execute everything directly in this session. 
 These rules apply to ALL modes (Initiative mission, delivery mode).
 
 ### Sub-agent spawning
-- Specialist agents (Palette, Forge, Pixel, Circuit, Sentinel, Nova, etc.) are spawned as **1-level sub-agents**.
+- Specialist agents (ui-ux-designer, architecture-authority, frontend-engineer, backend-engineer, qa-engineer, product-authority, etc.) are spawned as **1-level sub-agents**.
 - Sub-agents do their work and return. No nesting — they do not spawn further agents.
 - Use `Agent(agent: "{name}", prompt: "...")` to spawn.
-- Use `Agent(agent: "{name}", isolation: "worktree", prompt: "...")` for implementation agents (Pixel, Circuit).
+- Use `Agent(agent: "{name}", isolation: "worktree", prompt: "...")` for implementation agents (frontend-engineer, backend-engineer).
 
 ### Evidence verification
 - After every Agent() return, **Read the expected evidence file** to verify it exists.
@@ -43,8 +43,8 @@ These rules apply to ALL modes (Initiative mission, delivery mode).
   ```json
   "checkpoint": {
     "pipeline_step": "code_review",
-    "agent_in_flight": "forge",
-    "pending_evidence": ["forge-review.json"],
+    "agent_in_flight": "architecture-authority",
+    "pending_evidence": ["architecture-authority-review.json"],
     "retry_count": 0,
     "parallel_batch": null,
     "completed_in_batch": [],
@@ -75,7 +75,7 @@ This applies to every task — sequential or parallel, initiative or sprint. If 
 
 ### Rules evolution
 - `.geas/rules.md` is a living document. Changes go through a structured `rules-update.json` workflow.
-- During per-task retrospectives, Scrum produces `rule_candidates[]` in `retrospective.json`. These are proposals, NOT direct modifications.
+- During per-task retrospectives, process_lead produces `rule_candidates[]` in `retrospective.json`. These are proposals, NOT direct modifications.
 - **Initiative**: rule candidates accumulate during Build phase. Batch approval happens in Evolution phase (Step 4.2.5).
 - **Sprint**: inline approval happens in Sprint Wrap-Up after retrospective.
 - Approved rules updates are applied to `.geas/rules.md` and recorded in `.geas/state/rules-update.json` with `status: "approved"`.
@@ -95,12 +95,12 @@ When a task resolves a debt item, update its `status` to `"resolved"`.
 Threshold warning is handled automatically by the check-debt hook when you write debt-register.json.
 
 ### Git operations
-- **All git operations (commit, branch, PR) must be done by Keeper.** Do not commit or manage branches directly.
-- Spawn Keeper at task Resolve for commits, and at Evolution for release management.
+- **All git operations (commit, branch, PR) must be done by repository_manager.** Do not commit or manage branches directly.
+- Spawn repository_manager at task Resolve for commits, and at Evolution for release management.
 
 ### Your role boundaries
 - Orchestrate only. Specialist agents implement all code, including bug fixes.
-- All git operations go through Keeper (commits, branches, PRs).
+- All git operations go through repository_manager (commits, branches, PRs).
 - Follow the protocol of the invoked mode completely.
 
 ---

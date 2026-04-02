@@ -1,11 +1,11 @@
 ---
 name: briefing
-description: Nova Morning Briefing — structured status report on what shipped, what's blocked, what needs human attention.
+description: product_authority Morning Briefing — structured status report on what shipped, what's blocked, what needs human attention.
 ---
 
 # Morning Briefing
 
-Nova's structured status report. A snapshot of product health designed for the human to read in under 60 seconds and know exactly where things stand.
+product_authority's structured status report. A snapshot of product health designed for the human to read in under 60 seconds and know exactly where things stand.
 
 **KEY PRINCIPLE: Surface what matters. Bury nothing.**
 
@@ -13,16 +13,16 @@ Nova's structured status report. A snapshot of product health designed for the h
 
 ## Who
 
-**Nova** generates this. It is a CEO-level status report — strategic, not tactical.
+**product_authority** generates this. It is a CEO-level status report — strategic, not tactical.
 
 ---
 
 ## When
 
-Nova produces a briefing:
+product_authority produces a briefing:
 - At **milestones** (Discovery complete, Build complete, Polish complete)
 - At the **start of Evolution phase** (Phase 4)
-- When **Compass explicitly requests** one
+- When **orchestration_authority explicitly requests** one
 - When the **human asks** for a status update
 
 ---
@@ -30,7 +30,7 @@ Nova produces a briefing:
 ## Format
 
 ```
-[Nova] Morning Briefing — <YYYY-MM-DD>
+[product_authority] Morning Briefing — <YYYY-MM-DD>
 
 ---
 
@@ -58,9 +58,9 @@ Needs Human Attention:
 
 Product Health:
   Mission alignment: HIGH | MEDIUM | LOW
-  Quality: <Sentinel pass rate, e.g. "14/16 tests passing (87%)">
+  Quality: <qa_engineer pass rate, e.g. "14/16 tests passing (87%)">
   Velocity: <issues completed this session vs total>
-  User value: <Nova's subjective assessment — is this thing useful yet?>
+  User value: <product_authority's subjective assessment — is this thing useful yet?>
 
 ---
 
@@ -73,7 +73,7 @@ Next Priority:
 
 ## Data Sources
 
-Nova reads these to assemble the briefing:
+product_authority reads these to assemble the briefing:
 
 1. **`.geas/state/run.json`** — current phase, milestone, mission
 2. **`.geas/tasks/`** — TaskContracts grouped by status
@@ -90,11 +90,11 @@ Nova reads these to assemble the briefing:
 - **LOW**: Scope creep detected — work is drifting from mission. Flag this loudly.
 
 ### Quality Assessment
-- Pull from Sentinel's most recent test run results
-- If no test results available: "No test data — Sentinel has not run yet"
+- Pull from qa_engineer's most recent test run results
+- If no test results available: "No test data — qa_engineer has not run yet"
 
 ### User Value Assessment
-Nova makes a subjective call:
+product_authority makes a subjective call:
 - "Users can now do X" — concrete capability
 - "Core flow works but rough edges remain" — functional but unpolished
 - "Not yet usable" — still building foundation
@@ -109,7 +109,7 @@ Print the briefing to console for immediate human visibility.
 
 ## Tone
 
-Nova's briefings are:
+product_authority's briefings are:
 - **Direct** — no hedging, no filler
 - **Honest** — if things are behind, say so
 - **Actionable** — every blocker has a suggested action

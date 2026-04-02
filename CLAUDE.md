@@ -98,7 +98,7 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 
 ## Agent Name Rule
 
-Protocol docs (`docs/protocol/`, `docs/ko/protocol/`) and core skills MUST use **agent type names only** (e.g., `product_authority`, `critical_reviewer`, `process_lead`). NEVER use character names (Nova, Forge, Pixel, Circuit, Sentinel, Keeper, Shield, Critic, Scroll, Scrum, Palette, Pipeline). Character names are defined only in `plugin/agents/*.md`.
+Protocol docs (`docs/protocol/`, `docs/ko/protocol/`), core skills, and agent file names all use **agent type names** (e.g., `product-authority`, `architecture-authority`, `critical-reviewer`). Character names (Nova, Forge, Pixel, Circuit, Sentinel, Keeper, Shield, Critic, Scroll, Scrum, Palette, Pipeline) appear only inside agent file content as personality/identity, never as file names or references.
 
 ## Tool-Agnostic Rules
 

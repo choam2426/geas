@@ -15,7 +15,7 @@ After the evidence gate fails, this loop ensures bugs are actually fixed — not
 
 Read the gate failure details:
 1. **TaskContract** from `.geas/tasks/{task-id}.json` — for retry_budget and escalation_policy
-2. **Failed EvidenceBundle** from `.geas/evidence/{task-id}/sentinel.json` — for specific failures
+2. **Failed EvidenceBundle** from `.geas/evidence/{task-id}/qa-engineer.json` — for specific failures
 3. **Gate verdict** — which tier failed (mechanical or semantic) and why
 
 ---
@@ -39,8 +39,8 @@ Track current iteration count in `.geas/state/run.json` under `current_task_id`.
 ### Iteration N (repeat up to retry_budget times)
 
 #### Step A — Identify the Fixer
-- **Frontend bugs** (UI rendering, form behavior, CSS, client-side logic): spawn **Pixel**
-- **Backend bugs** (API errors, data issues, server logic, database): spawn **Circuit**
+- **Frontend bugs** (UI rendering, form behavior, CSS, client-side logic): spawn **frontend-engineer**
+- **Backend bugs** (API errors, data issues, server logic, database): spawn **backend-engineer**
 - **Both**: spawn both, with clear ownership of which bugs each agent owns
 
 #### Step B — Spawn Fixer with ContextPacket
@@ -57,7 +57,7 @@ Spawn the fixer **with worktree isolation** (implementation agents always use wo
 Agent(agent: "{fixer}", isolation: "worktree", prompt: "Read your ContextPacket at .geas/packets/{task-id}/{fixer}-fix-{N}.md. Fix the specific failures listed in your packet. Write your results to .geas/evidence/{task-id}/{fixer}-fix-{N}.json")
 ```
 
-After the fixer completes, merge the worktree branch before re-running the evidence gate. If merge conflicts arise, follow the Compass merge conflict protocol.
+After the fixer completes, merge the worktree branch before re-running the evidence gate. If merge conflicts arise, follow the orchestration_authority merge conflict protocol.
 
 #### Step C — Re-run Evidence Gate
 After the fixer completes:
@@ -76,26 +76,26 @@ After the fixer completes:
 
 Follow the TaskContract's `escalation_policy`:
 
-### `"forge-review"` (default)
+### `"architecture-authority-review"` (default)
 
-Spawn **Forge** for architectural review:
+Spawn **architecture-authority** for architectural review:
 ```
 The evidence gate has failed {retry_budget} times for task {task-id}.
 Read the TaskContract at .geas/tasks/{task-id}.json
 Read all evidence at .geas/evidence/{task-id}/
 Analyze: Is there a fundamental design issue? Is the approach viable?
-Write your analysis to .geas/evidence/{task-id}/forge-escalation.json
+Write your analysis to .geas/evidence/{task-id}/architecture-authority-escalation.json
 ```
 
-Then evaluate Forge's assessment:
-- If Forge identifies a fixable root cause: apply the fix, re-test one more time.
-- If Forge says the approach is broken: escalate to Nova.
+Then evaluate architecture_authority's assessment:
+- If architecture_authority identifies a fixable root cause: apply the fix, re-test one more time.
+- If architecture_authority says the approach is broken: escalate to product_authority.
 
-### `"nova-decision"`
+### `"product-authority-decision"`
 
-Spawn **Nova** with full context:
+Spawn **product-authority** with full context:
 - TaskContract, all evidence bundles, gate verdicts
-- Nova decides: scope cut, feature drop, alternative approach, or push through.
+- product_authority decides: scope cut, feature drop, alternative approach, or push through.
 
 ### `"pivot"`
 
@@ -114,8 +114,8 @@ For any escalation, write a DecisionRecord to `.geas/decisions/{dec-id}.json`:
   "decision": "...",
   "reasoning": "...",
   "trade_offs": "...",
-  "decided_by": "forge|nova",
-  "participants": ["sentinel", "pixel|circuit", "forge"],
+  "decided_by": "architecture-authority|product-authority",
+  "participants": ["qa-engineer", "frontend-engineer|backend-engineer", "architecture-authority"],
   "related_task_id": "{task-id}",
   "created_at": "..."
 }
@@ -130,15 +130,15 @@ Log the escalation event to `.geas/ledger/events.jsonl`.
 ```
 Evidence Gate PASS?
   YES -> Return to pipeline (Closure Packet -> Critical Reviewer -> Final Verdict)
-  NO  -> Fix (Pixel/Circuit) -> Re-gate
+  NO  -> Fix (frontend-engineer/backend-engineer) -> Re-gate
          PASS? -> Return to pipeline (Closure Packet -> Critical Reviewer -> Final Verdict)
          NO    -> Fix -> Re-gate (iteration 2)
                   PASS? -> Return to pipeline (Closure Packet -> Critical Reviewer -> Final Verdict)
                   NO    -> ... (up to retry_budget)
                            Budget exhausted?
                            -> escalation_policy:
-                              forge-review -> Forge analysis -> fixable? -> one more try
-                              nova-decision -> Nova decides
+                              architecture-authority-review -> architecture_authority analysis -> fixable? -> one more try
+                              product-authority-decision -> product_authority decides
                               pivot -> Pivot Protocol
                            -> Write DecisionRecord
 ```

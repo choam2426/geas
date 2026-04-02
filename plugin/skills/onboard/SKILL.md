@@ -13,7 +13,7 @@ Codebase discovery protocol for delivery mode (Sprint pattern) on existing proje
 
 ## When Triggered
 
-Compass detects no `.geas/state/run.json` during delivery mode. This means the project has never been onboarded by this team.
+orchestration_authority detects no `.geas/state/run.json` during delivery mode. This means the project has never been onboarded by this team.
 
 If `.geas/memory/_project/conventions.md` already exists from a previous session, skip onboarding entirely — the project is already "known."
 
@@ -21,7 +21,7 @@ If `.geas/memory/_project/conventions.md` already exists from a previous session
 
 ## Who Runs It
 
-**Forge only.** Single agent, not parallel. This is a cost-effective reconnaissance step — no reason to spawn multiple agents for a read-only scan.
+**architecture_authority only.** Single agent, not parallel. This is a cost-effective reconnaissance step — no reason to spawn multiple agents for a read-only scan.
 
 ---
 
@@ -77,7 +77,7 @@ Adjust scan depth based on project size. Count source files (exclude `node_modul
 | Medium | 50-500 files | **Focused scan** — `src/` + config files + entry points + key modules |
 | Large | 500+ files | **Targeted scan** — only directories relevant to the Sprint feature. Use `find` to list structure, read selectively. |
 
-For Large projects, ask Compass which directories are relevant to the feature before deep-reading.
+For Large projects, ask orchestration_authority which directories are relevant to the feature before deep-reading.
 
 ### 5. Output Conventions File
 
@@ -139,7 +139,7 @@ Write `.geas/memory/_project/state.json`:
 
 ## Second Sprint Behavior
 
-When Compass triggers delivery mode and `.geas/memory/_project/conventions.md` already exists:
+When orchestration_authority triggers delivery mode and `.geas/memory/_project/conventions.md` already exists:
 
 1. **Skip onboarding entirely** — do not re-scan
 2. Read conventions.md to load project context
@@ -151,7 +151,7 @@ This makes repeat sessions fast: no redundant scanning.
 
 ## Error Handling
 
-- **No marker files found**: Report to Compass: "Cannot detect project stack. No package.json, go.mod, Cargo.toml, or Python config found. Is this the right directory?"
+- **No marker files found**: Report to orchestration_authority: "Cannot detect project stack. No package.json, go.mod, Cargo.toml, or Python config found. Is this the right directory?"
 - **Multiple stacks detected** (e.g. package.json + go.mod): Document both. Note which is primary (usually the one with the entry point).
 - **Existing conventions.md is stale**: If the human says "re-onboard", delete conventions.md and re-run from step 1.
 
@@ -159,10 +159,10 @@ This makes repeat sessions fast: no redundant scanning.
 
 ## Post-Onboard
 
-After writing conventions.md, Forge prints onboarding status to console:
+After writing conventions.md, architecture_authority prints onboarding status to console:
 
 ```
-[Forge] Onboarding complete.
+[architecture_authority] Onboarding complete.
 Stack: <summary>
 Project size: <small/medium/large> (<file count> source files)
 Key paths mapped. Conventions written to `.geas/memory/`.

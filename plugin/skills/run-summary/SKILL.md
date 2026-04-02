@@ -64,14 +64,14 @@ Issues In Progress:
 ---
 
 Verify-Fix Loops: <X> triggered
-  - <ID>: <N> loop(s) — <brief reason, e.g. "Pixel fixed CSS overlap">
-  - <ID>: <N> loop(s) — <brief reason, e.g. "escalated to Forge for arch review">
+  - <ID>: <N> loop(s) — <brief reason, e.g. "frontend-engineer fixed CSS overlap">
+  - <ID>: <N> loop(s) — <brief reason, e.g. "escalated to architecture-authority for arch review">
   (If none: "No verify-fix loops triggered.")
 
 ---
 
 Agents Spawned: <total count>
-  Nova: <N> | Forge: <N> | Palette: <N> | Pixel: <N> | Circuit: <N> | Sentinel: <N> | Pipeline: <N> | Shield: <N> | Scroll: <N>
+  product-authority: <N> | architecture-authority: <N> | ui-ux-designer: <N> | frontend-engineer: <N> | backend-engineer: <N> | qa-engineer: <N> | devops-engineer: <N> | security-engineer: <N> | technical-writer: <N>
   (Only list agents that were actually spawned. Omit zeros.)
 
 ---

@@ -15,9 +15,9 @@ One feature, one pipeline. Skips Discovery.
 ## Pre-conditions
 
 1. `.geas/spec/seed.json` — read-only project context. If it exists (from Initiative or prior Sprint), read it for mission/constraints. If it doesn't exist, intake will create a minimal one. Sprint NEVER modifies seed.json after it exists.
-2. `.geas/memory/_project/conventions.md` — if missing, spawn Forge for onboarding:
+2. `.geas/memory/_project/conventions.md` — if missing, spawn architecture_authority for onboarding:
    ```
-   Agent(agent: "forge", prompt: "Scan this codebase. Write conventions to .geas/memory/_project/conventions.md")
+   Agent(agent: "architecture-authority", prompt: "Scan this codebase. Write conventions to .geas/memory/_project/conventions.md")
    ```
 
 ---
@@ -94,10 +94,10 @@ Exception: `implementation_contract`, `gate_result`, and `task_resolved` have th
 ### Step Groups
 
 Within a single task's pipeline, these steps may run in parallel:
-- **[code_review, testing]** — forge and sentinel do not reference each other's output. Spawn both in one message. After both return, remove both from `remaining_steps` and log `step_complete` for each.
+- **[code_review, testing]** — architecture-authority and qa-engineer do not reference each other's output. Spawn both in one message. After both return, remove both from `remaining_steps` and log `step_complete` for each.
 
 All other steps are strictly sequential. In particular:
-- **critical_reviewer → final_verdict** — Nova's prompt requires `challenge-review.json` as input. Critic MUST complete and file MUST be verified before spawning Nova.
+- **critical_reviewer → final_verdict** — product_authority's prompt requires `challenge-review.json` as input. critical_reviewer MUST complete and file MUST be verified before spawning product_authority.
 
 #### Baseline Check (before implementing)
 
@@ -134,16 +134,16 @@ Before entering `"implementing"`, acquire locks in order (per doc 04):
 
 Write updated `locks.json` after all acquisitions. If any acquisition fails (conflict), release any locks already acquired for this task and do NOT proceed.
 
-### 2. Design (Palette) [DEFAULT — skip-if: no user-facing interface]
+### 2. Design (ui_ux_designer) [DEFAULT — skip-if: no user-facing interface]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
 Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "design", `agent_in_flight` = "palette"
+Update run.json checkpoint: `pipeline_step` = "design", `agent_in_flight` = "ui-ux-designer"
 ```
-Agent(agent: "palette", prompt: "Read .geas/packets/{task-id}/palette.md. Write design to .geas/evidence/{task-id}/palette.json")
+Agent(agent: "ui-ux-designer", prompt: "Read .geas/packets/{task-id}/ui-ux-designer.md. Write design to .geas/evidence/{task-id}/ui-ux-designer.json")
 ```
 Verify evidence exists.
 
-### 3. Tech Guide (Forge) [DEFAULT — skip when ALL: existing pattern, no new libs, single module, no schema change]
+### 3. Tech Guide (architecture_authority) [DEFAULT — skip when ALL: existing pattern, no new libs, single module, no schema change]
 **Skip** when ALL of these are true:
 - Task follows an existing pattern in conventions.md
 - No new external libraries or services
@@ -157,14 +157,14 @@ Verify evidence exists.
 - New data model or schema changes
 
 Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "tech_guide", `agent_in_flight` = "forge"
+Update run.json checkpoint: `pipeline_step` = "tech_guide", `agent_in_flight` = "architecture-authority"
 ```
-Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge.md. Write tech guide to .geas/evidence/{task-id}/forge.json")
+Agent(agent: "architecture-authority", prompt: "Read .geas/packets/{task-id}/architecture-authority.md. Write tech guide to .geas/evidence/{task-id}/architecture-authority.json")
 ```
 Verify evidence exists.
 
 ### 4. Implementation Contract [MANDATORY]
-Invoke `/geas:implementation-contract` — worker writes action plan, Sentinel and Forge approve before coding.
+Invoke `/geas:implementation-contract` — worker writes action plan, qa_engineer and architecture_authority approve before coding.
 Update run.json checkpoint: `pipeline_step` = "implementation_contract", `agent_in_flight` = "{worker}"
 Verify `.geas/contracts/{task-id}.json` exists with `status: "approved"`.
 
@@ -211,21 +211,21 @@ Agent(agent: "{worker}", prompt: "Implementation for {task-id} is complete. Befo
 ```
 Verify `.geas/tasks/{task-id}/worker-self-check.json` exists. Do NOT proceed to Code Review without this file.
 
-### 6. Code Review (Forge) [MANDATORY]
+### 6. Code Review (architecture_authority) [MANDATORY]
 Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "code_review", `agent_in_flight` = "forge"
+Update run.json checkpoint: `pipeline_step` = "code_review", `agent_in_flight` = "architecture-authority"
 ```
-Agent(agent: "forge", prompt: "Read .geas/packets/{task-id}/forge-review.md. Review code. Write to .geas/evidence/{task-id}/forge-review.json")
+Agent(agent: "architecture-authority", prompt: "Read .geas/packets/{task-id}/architecture-authority-review.md. Review code. Write to .geas/evidence/{task-id}/architecture-authority-review.json")
 ```
 Verify evidence.
 Update TaskContract status to `"reviewed"`.
 Update run.json checkpoint: `pipeline_step` = "code_review"
 
-### 7. Testing (Sentinel) [MANDATORY]
+### 7. Testing (qa_engineer) [MANDATORY]
 Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "testing", `agent_in_flight` = "sentinel"
+Update run.json checkpoint: `pipeline_step` = "testing", `agent_in_flight` = "qa-engineer"
 ```
-Agent(agent: "sentinel", prompt: "Read .geas/packets/{task-id}/sentinel.md. Test feature. Write to .geas/evidence/{task-id}/sentinel.json")
+Agent(agent: "qa-engineer", prompt: "Read .geas/packets/{task-id}/qa-engineer.md. Test feature. Write to .geas/evidence/{task-id}/qa-engineer.json")
 ```
 Verify evidence.
 Update run.json checkpoint: `pipeline_step` = "testing"
@@ -243,7 +243,7 @@ orchestration_authority (Orchestrator) assembles the closure packet by reading a
 - TaskContract: `.geas/tasks/{task-id}.json`
 - Worker Self-Check: `.geas/tasks/{task-id}/worker-self-check.json`
 - Gate Result: `.geas/tasks/{task-id}/gate-result.json`
-- Specialist Reviews: `.geas/evidence/{task-id}/forge-review.json`, `.geas/evidence/{task-id}/sentinel.json`
+- Specialist Reviews: `.geas/evidence/{task-id}/architecture-authority-review.json`, `.geas/evidence/{task-id}/qa-engineer.json`
 - Integration Result: from worktree merge (commit hash, conflict status)
 
 **If ANY required artifact is missing: go back and execute the missing step. Do NOT proceed.**
@@ -264,12 +264,12 @@ orchestration_authority (Orchestrator) assembles the closure packet by reading a
     {
       "reviewer_type": "architecture_authority",
       "status": "approved",
-      "summary": "<key finding from forge-review.json>"
+      "summary": "<key finding from architecture-authority-review.json>"
     },
     {
       "reviewer_type": "qa_engineer",
       "status": "approved",
-      "summary": "<key finding from sentinel.json>"
+      "summary": "<key finding from qa-engineer.json>"
     }
   ],
   "integration_result": {
@@ -314,14 +314,14 @@ Update run.json checkpoint: `pipeline_step` = "closure_packet"
 
 **Mandatory condition:** If `risk_level` is `high` or `critical`, this step MUST run.
 
-Update run.json checkpoint: `pipeline_step` = "critical_reviewer", `agent_in_flight` = "critic"
+Update run.json checkpoint: `pipeline_step` = "critical_reviewer", `agent_in_flight` = "critical-reviewer"
 ```
-Agent(agent: "critic", prompt: "Read the closure packet at .geas/tasks/{task-id}/closure-packet.json. Read all evidence at .geas/evidence/{task-id}/. You MUST raise at least 1 substantive concern — surface a real risk, edge case, or technical debt item. For each concern, state clearly whether it is BLOCKING or non-blocking. Write .geas/tasks/{task-id}/challenge-review.json with the following fields: reviewer_type (\"critical_reviewer\"), concerns (array of strings, each prefixed with \"[BLOCKING]\" or \"[non-blocking]\"), blocking (boolean — true if ANY concern is blocking).")
+Agent(agent: "critical-reviewer", prompt: "Read the closure packet at .geas/tasks/{task-id}/closure-packet.json. Read all evidence at .geas/evidence/{task-id}/. You MUST raise at least 1 substantive concern — surface a real risk, edge case, or technical debt item. For each concern, state clearly whether it is BLOCKING or non-blocking. Write .geas/tasks/{task-id}/challenge-review.json with the following fields: reviewer_type (\"critical_reviewer\"), concerns (array of strings, each prefixed with \"[BLOCKING]\" or \"[non-blocking]\"), blocking (boolean — true if ANY concern is blocking).")
 ```
 
 Verify `.geas/tasks/{task-id}/challenge-review.json` exists.
 
-**After critic returns:**
+**After critical_reviewer returns:**
 
 1. Read `.geas/tasks/{task-id}/challenge-review.json`.
 2. Update the closure packet: add a `challenge_review` field populated from the review.
@@ -338,15 +338,15 @@ Verify `.geas/tasks/{task-id}/challenge-review.json` exists.
 
 Update run.json checkpoint: `pipeline_step` = "critical_reviewer"
 
-### 9. Final Verdict (Nova) [MANDATORY — after critical_reviewer only]
+### 9. Final Verdict (product_authority) [MANDATORY — after critical_reviewer only]
 **Preconditions:**
 - `.geas/tasks/{task-id}/challenge-review.json` must exist OR `critical_reviewer` was explicitly skipped for low/normal risk
 - Closure Packet must be assembled (all required fields populated)
-- Do NOT spawn Nova until both preconditions are verified
+- Do NOT spawn product_authority until both preconditions are verified
 
-Update run.json checkpoint: `pipeline_step` = "final_verdict", `agent_in_flight` = "nova"
+Update run.json checkpoint: `pipeline_step` = "final_verdict", `agent_in_flight` = "product-authority"
 ```
-Agent(agent: "nova", prompt: "Read the closure packet at .geas/tasks/{task-id}/closure-packet.json (which includes the challenge_review field if critic ran) and all evidence at .geas/evidence/{task-id}/. Decide: pass, iterate, or escalate. Write .geas/tasks/{task-id}/final-verdict.json conforming to docs/protocol/schemas/final-verdict.schema.json. Required fields: version (\"1.0\"), artifact_type (\"final_verdict\"), artifact_id (e.g. \"verdict-{task-id}\"), producer_type (\"product_authority\"), created_at (ISO 8601 timestamp), task_id, verdict (\"pass\" | \"iterate\" | \"escalate\"), rationale (why this verdict), closure_packet_ref (path to closure packet). If iterate: include rewind_target (\"ready\" | \"implementing\" | \"reviewed\") and iterate_count. If escalate: include escalation_reason. Also write to .geas/evidence/{task-id}/nova-verdict.json for backward compatibility.")
+Agent(agent: "product-authority", prompt: "Read the closure packet at .geas/tasks/{task-id}/closure-packet.json (which includes the challenge_review field if critical_reviewer ran) and all evidence at .geas/evidence/{task-id}/. Decide: pass, iterate, or escalate. Write .geas/tasks/{task-id}/final-verdict.json conforming to docs/protocol/schemas/final-verdict.schema.json. Required fields: version (\"1.0\"), artifact_type (\"final_verdict\"), artifact_id (e.g. \"verdict-{task-id}\"), producer_type (\"product_authority\"), created_at (ISO 8601 timestamp), task_id, verdict (\"pass\" | \"iterate\" | \"escalate\"), rationale (why this verdict), closure_packet_ref (path to closure packet). If iterate: include rewind_target (\"ready\" | \"implementing\" | \"reviewed\") and iterate_count. If escalate: include escalation_reason. Also write to .geas/evidence/{task-id}/product-authority-verdict.json for backward compatibility.")
 ```
 
 **Verdict rules:**
@@ -373,21 +373,21 @@ On task completion (Ship, Cut, or Escalate):
 3. Write updated `locks.json`
 4. Log: `{"event": "locks_released", "task_id": "...", "timestamp": "<actual>"}`
 
-- Ship → Read `.geas/tasks/{task-id}.json`, set `"status": "passed"`, Write it back. Then spawn Keeper for commit:
-  Update run.json checkpoint: `pipeline_step` = "resolve", `agent_in_flight` = "keeper"
+- Ship → Read `.geas/tasks/{task-id}.json`, set `"status": "passed"`, Write it back. Then spawn repository_manager for commit:
+  Update run.json checkpoint: `pipeline_step` = "resolve", `agent_in_flight` = "repository-manager"
   ```
-  Agent(agent: "keeper", prompt: "Commit all changes for {task-id} with conventional commit format. Write to .geas/evidence/{task-id}/keeper.json")
+  Agent(agent: "repository-manager", prompt: "Commit all changes for {task-id} with conventional commit format. Write to .geas/evidence/{task-id}/repository-manager.json")
   ```
-- Iterate (Final Verdict only) → does NOT deduct retry_budget (iterate is a product judgment, not a gate failure). Track iterate_count — after 3 cumulative iterates, escalate to orchestration_authority. Repopulate remaining_steps with full pipeline (same skip conditions). Include Nova's feedback in all ContextPackets. Resume from the rewind_target specified in the final verdict.
+- Iterate (Final Verdict only) → does NOT deduct retry_budget (iterate is a product judgment, not a gate failure). Track iterate_count — after 3 cumulative iterates, escalate to orchestration_authority. Repopulate remaining_steps with full pipeline (same skip conditions). Include product_authority's feedback in all ContextPackets. Resume from the rewind_target specified in the final verdict.
 - Cut → `"cancelled"`, write DecisionRecord
 
-### Retrospective (Scrum) [MANDATORY — Ship only, after Resolve]
+### Retrospective (process_lead) [MANDATORY — Ship only, after Resolve]
 
 **Skip condition:** If the Final Verdict was Cut or Escalate, skip retrospective. Only run when the task has been resolved as Ship (status = `"passed"`).
 
-Update run.json checkpoint: `pipeline_step` = "retrospective", `agent_in_flight` = "scrum"
+Update run.json checkpoint: `pipeline_step` = "retrospective", `agent_in_flight` = "process-lead"
 ```
-Agent(agent: "scrum", prompt: "Read all evidence at .geas/evidence/{task-id}/ and the closure packet at .geas/tasks/{task-id}/closure-packet.json. Write a structured retrospective to .geas/tasks/{task-id}/retrospective.json conforming to docs/protocol/schemas/retrospective.schema.json. Required fields:
+Agent(agent: "process-lead", prompt: "Read all evidence at .geas/evidence/{task-id}/ and the closure packet at .geas/tasks/{task-id}/closure-packet.json. Write a structured retrospective to .geas/tasks/{task-id}/retrospective.json conforming to docs/protocol/schemas/retrospective.schema.json. Required fields:
 - version: '1.0'
 - artifact_type: 'retrospective'
 - artifact_id: 'retro-{task-id}'

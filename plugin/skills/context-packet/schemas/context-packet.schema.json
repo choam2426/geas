@@ -22,11 +22,11 @@
     },
     "design_excerpt": {
       "type": "string",
-      "description": "Relevant design decisions from Palette (if applicable)"
+      "description": "Relevant design decisions from ui_ux_designer (if applicable)"
     },
     "tech_approach": {
       "type": "string",
-      "description": "Technical approach from Forge (if applicable)"
+      "description": "Technical approach from architecture_authority (if applicable)"
     },
     "prohibited_paths": {
       "type": "array",

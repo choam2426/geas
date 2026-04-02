@@ -31,21 +31,21 @@ Load the contract to understand:
 
 Different workers need different context:
 
-#### Designer (Palette)
+#### Designer (ui_ux_designer)
 - Mission context and target user (from seed)
 - User requirements for this specific feature
 - Existing UI patterns in the codebase (if delivery mode)
 - Design constraints (responsive? dark mode? accessibility level?)
 - What NOT to redesign
 
-#### Implementer (Pixel / Circuit)
-- Design spec from Palette (from prior evidence)
-- Technical approach from Forge (from prior evidence)
+#### Implementer (frontend_engineer / backend_engineer)
+- Design spec from ui_ux_designer (from prior evidence)
+- Technical approach from architecture_authority (from prior evidence)
 - Prohibited paths — what to leave alone
 - Eval commands — how to verify their work
 - Known risks or edge cases
 
-#### Reviewer (Forge)
+#### Reviewer (architecture_authority)
 - Files changed (from implementer evidence)
 - Architecture decisions relevant to this area
 - Acceptance criteria to review against
@@ -54,7 +54,7 @@ Different workers need different context:
 - **Worker's `self_check`** — `known_risks` and `possible_stubs` to focus review attention
 - **Rubric dimension**: `code_quality` score and threshold (from TaskContract `rubric`)
 
-#### Tester (Sentinel)
+#### Tester (qa_engineer)
 - Acceptance criteria — what to test
 - Eval commands — mechanical verification
 - Expected behavior for each criterion
@@ -63,15 +63,15 @@ Different workers need different context:
 - **Worker's `self_check`** — `untested_paths`, `known_risks`, and `what_i_would_test_next` from the worker's EvidenceBundle (prioritize testing these areas)
 - **Implementation contract** — read `.geas/contracts/{task-id}.json` for `demo_steps` and `edge_cases` the worker committed to handling
 - **QA tools available** — based on project stack (see QA Tools section below)
-- **Rubric dimensions** — which dimensions Sentinel must score and their thresholds (from TaskContract `rubric`)
+- **Rubric dimensions** — which dimensions qa_engineer must score and their thresholds (from TaskContract `rubric`)
 
-#### Final Verdict Authority (Nova)
+#### Final Verdict Authority (product_authority)
 - Feature goal (from contract)
 - All evidence bundles for this task
 - Acceptance criteria and their status
 - Mission alignment check (from seed)
 
-#### DevOps (Pipeline)
+#### DevOps (devops_engineer)
 - Build/deploy configuration from conventions.md
 - Target deployment environment and constraints (from seed)
 - CI/CD requirements from TaskContract
@@ -80,8 +80,8 @@ Different workers need different context:
 - Eval commands for build/deploy verification
 
 #### Other Specialists
-- **Shield**: files changed, auth/input handling code paths, OWASP concerns
-- **Scroll**: feature description, API endpoints, configuration options
+- **security_engineer**: files changed, auth/input handling code paths, OWASP concerns
+- **technical_writer**: feature description, API endpoints, configuration options
 
 ### Step 3: Extract Relevant Context
 
@@ -198,10 +198,10 @@ Write the packet as a markdown file with this structure:
 {1-3 sentence summary of what's needed and why}
 
 ## Design Context
-{Palette's design spec excerpt, if available}
+{ui_ux_designer's design spec excerpt, if available}
 
 ## Technical Approach
-{Forge's technical guidance excerpt, if available}
+{architecture_authority's technical guidance excerpt, if available}
 
 ## Boundaries
 **Prohibited paths:** {list}
@@ -229,11 +229,11 @@ Write the packet as a markdown file with this structure:
 - Contract: .geas/tasks/{task-id}.json
 ```
 
-Omit sections that have no content (e.g., no design context for a backend task before Palette has worked).
+Omit sections that have no content (e.g., no design context for a backend task before ui_ux_designer has worked).
 
-## QA Tools Section (Sentinel packets only)
+## QA Tools Section (qa_engineer packets only)
 
-When generating a Sentinel packet, include a `## QA Tools Available` section listing available MCP tools and commands from `.geas/memory/_project/conventions.md`:
+When generating a qa_engineer packet, include a `## QA Tools Available` section listing available MCP tools and commands from `.geas/memory/_project/conventions.md`:
 
 ```markdown
 ## QA Tools Available
@@ -246,7 +246,7 @@ When generating a Sentinel packet, include a `## QA Tools Available` section lis
 
 Only include tools that are actually connected or available for the project. Do not assume any specific MCP is present.
 
-## Rubric Section (Sentinel and Forge review packets)
+## Rubric Section (qa_engineer and architecture_authority review packets)
 
 Include a `## Rubric Scoring` section listing the dimensions the evaluator must score:
 
@@ -263,6 +263,6 @@ You MUST include `rubric_scores` in your EvidenceBundle for these dimensions:
 
 1. **Include only what the worker needs** — do not dump the entire project context
 2. **Be specific** — "Implement POST /api/auth/login" beats "implement the auth endpoint"
-3. **Preserve decisions** — if Forge decided on a specific pattern, include it exactly
+3. **Preserve decisions** — if architecture_authority decided on a specific pattern, include it exactly
 4. **Flag conflicts** — if prior evidence contradicts the contract, note it explicitly
 5. **Keep it under 200 lines** — if longer, you're including too much

@@ -13,7 +13,7 @@ Objective verification of whether a worker's output meets the TaskContract requi
 
 1. **TaskContract** — read from `.geas/tasks/{task-id}.json`
 2. **Worker Self-Check** — read from `.geas/tasks/{task-id}/worker-self-check.json`
-3. **Specialist Reviews** — read from `.geas/evidence/{task-id}/` (e.g., `forge-review.json`, `sentinel.json`)
+3. **Specialist Reviews** — read from `.geas/evidence/{task-id}/` (e.g., `architecture-authority-review.json`, `qa-engineer.json`)
 4. **Integration Result** — merge status from worktree integration
 5. **Gate profile** — determines which tiers to run (see below)
 
@@ -274,8 +274,8 @@ Also log a detailed event to `.geas/ledger/events.jsonl`:
    - After fix, re-run the gate
 3. If retries exhausted:
    - Follow the `escalation_policy`:
-     - `"forge-review"`: spawn the `architecture_authority` for architectural review, write a DecisionRecord
-     - `"nova-decision"`: spawn the `product_authority` for a strategic decision (continue/cut/pivot)
+     - `"architecture-authority-review"`: spawn the `architecture_authority` for architectural review, write a DecisionRecord
+     - `"product-authority-decision"`: spawn the `product_authority` for a strategic decision (continue/cut/pivot)
      - `"pivot"`: invoke pivot protocol
    - Update TaskContract status to `"escalated"`
    - Write a DecisionRecord to `.geas/decisions/{dec-id}.json`

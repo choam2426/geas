@@ -78,9 +78,9 @@ The orchestrator manages each task's pipeline independently:
 
 - Each task follows the per-task pipeline defined in initiative/sprint SKILL.md.
 - **Independent progression:** When an agent returns for task A, the orchestrator spawns task A's next step immediately. It does NOT wait for other tasks to reach the same step.
-- **Parallel spawning:** The orchestrator MAY spawn agents for different tasks in the same message (parallel tool calls). Example: `Agent(circuit, "implement STORY-003")` and `Agent(circuit, "implement STORY-009")` in one message.
-- **Step groups:** Within a single task, the orchestrator also applies step group rules from initiative/sprint (e.g., spawning forge + sentinel simultaneously for the same task).
-- **All mandatory steps apply:** Implementation contract, code review, testing, critic review, nova review, retrospective, and resolve are mandatory for every task in the batch. Do NOT skip any because of parallelism.
+- **Parallel spawning:** The orchestrator MAY spawn agents for different tasks in the same message (parallel tool calls). Example: `Agent(backend-engineer, "implement STORY-003")` and `Agent(backend-engineer, "implement STORY-009")` in one message.
+- **Step groups:** Within a single task, the orchestrator also applies step group rules from initiative/sprint (e.g., spawning architecture-authority + qa-engineer simultaneously for the same task).
+- **All mandatory steps apply:** Implementation contract, code review, testing, critical_reviewer challenge, product_authority verdict, retrospective, and resolve are mandatory for every task in the batch. Do NOT skip any because of parallelism.
 
 **Checkpoint during batch:** Before each agent spawn, update `last_updated` in run.json. `agent_in_flight` stays `null` during batches (multiple agents active). The authoritative progress record is the evidence files and task file statuses.
 
@@ -88,7 +88,7 @@ The orchestrator manages each task's pipeline independently:
 
 ## 4. Per-Task Completion
 
-When a task's pipeline finishes (keeper commits, retro done):
+When a task's pipeline finishes (repository_manager commits, retro done):
 
 1. Read task file, set `"status": "passed"`, write back. **No exceptions.**
 2. Add task ID to `completed_in_batch` in run.json, write back.
@@ -116,8 +116,8 @@ When a session resumes and run.json has `parallel_batch` set (non-null):
 1. Read `parallel_batch` and `completed_in_batch`.
 2. Compute remaining: tasks in `parallel_batch` but not in `completed_in_batch`.
 3. For each remaining task, check evidence:
-   - `.geas/evidence/{task-id}/keeper.json` exists AND `.geas/tasks/{task-id}/retrospective.json` exists → task is complete. Set task file status to `"passed"`, add to `completed_in_batch`.
-   - `keeper.json` exists but no retro → resume from retrospective step only.
+   - `.geas/evidence/{task-id}/repository-manager.json` exists AND `.geas/tasks/{task-id}/retrospective.json` exists → task is complete. Set task file status to `"passed"`, add to `completed_in_batch`.
+   - `repository-manager.json` exists but no retro → resume from retrospective step only.
    - Neither exists → re-execute the full pipeline for this task.
 4. Update run.json with corrected `completed_in_batch`.
 5. Continue with section 3 for any remaining tasks.

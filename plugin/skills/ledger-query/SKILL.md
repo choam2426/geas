@@ -57,17 +57,17 @@ Contract status: <status>  |  Worker: <assigned_worker>  |  Reviewer: <reviewer>
 | # | Time | Event | Details |
 |---|------|-------|---------|
 | 1 | 10:00 | task_compiled | Title: [Frontend] Login form |
-| 2 | 10:05 | worker_dispatched | Worker: pixel |
-| 3 | 10:30 | evidence_collected | Worker: pixel |
+| 2 | 10:05 | worker_dispatched | Worker: frontend-engineer |
+| 3 | 10:30 | evidence_collected | Worker: frontend-engineer |
 | 4 | 10:31 | gate_result | Result: fail — TEST failed |
-| 5 | 10:35 | worker_dispatched | Worker: pixel (fix-1) |
+| 5 | 10:35 | worker_dispatched | Worker: frontend-engineer (fix-1) |
 | 6 | 10:50 | gate_result | Result: pass |
 
 Evidence files:
-- palette.json ✓
-- forge.json ✓
-- pixel.json ✓
-- sentinel.json ✓
+- ui-ux-designer.json ✓
+- architecture-authority.json ✓
+- frontend-engineer.json ✓
+- qa-engineer.json ✓
 ```
 
 ---
@@ -119,8 +119,8 @@ Show all gate failures, fix loops, escalations, and merge conflicts.
 | # | Time | Task | Event | Resolution |
 |---|------|------|-------|------------|
 | 1 | 10:31 | task-001 | gate_result: fail (TEST) | Resolved: fix-1 passed |
-| 2 | 11:15 | task-003 | gate_result: fail (semantic) | Escalated to forge-review |
-| 3 | 12:00 | task-005 | merge_conflict | Resolved by forge |
+| 2 | 11:15 | task-003 | gate_result: fail (semantic) | Escalated to architecture-authority-review |
+| 3 | 12:00 | task-005 | merge_conflict | Resolved by architecture-authority |
 
 Unresolved:
 - task-007: gate failed, fix-2 in progress (retry 2/3)
@@ -152,9 +152,9 @@ Role: <role from team roster>
 | # | Time | Task | Action | Result |
 |---|------|------|--------|--------|
 | 1 | 10:05 | task-001 | dispatched | — |
-| 2 | 10:30 | task-001 | evidence_collected | palette.json |
+| 2 | 10:30 | task-001 | evidence_collected | ui-ux-designer.json |
 | 3 | 11:00 | task-003 | dispatched | — |
-| 4 | 11:25 | task-003 | evidence_collected | palette.json |
+| 4 | 11:25 | task-003 | evidence_collected | ui-ux-designer.json |
 
 Evidence files produced: <count>
 Tasks worked on: <count>
@@ -199,9 +199,9 @@ Active Issues:
 
 ## Implementation Approach
 
-This skill is pure instruction — Compass reads files with the Read tool and formats output as markdown. No external scripts needed.
+This skill is pure instruction — orchestration_authority reads files with the Read tool and formats output as markdown. No external scripts needed.
 
-**How Compass executes a ledger query:**
+**How orchestration_authority executes a ledger query:**
 1. Read `.geas/ledger/events.jsonl` using the Read tool
 2. Parse each line as a JSON object (JSONL format — one object per line)
 3. Apply the filter logic for the requested query type

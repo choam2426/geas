@@ -16,13 +16,13 @@ Entropy management. Codebases degrade over rapid iteration — especially when m
 Orchestrator invokes this:
 - After **Phase 2 (Build)** — the first wave of code is done, clean it up before polish
 - During **Phase 4 (Evolution)** — ongoing hygiene as the product matures
-- On **explicit request** from the human or Forge
+- On **explicit request** from the human or architecture_authority
 
 ---
 
 ## Who
 
-**Forge** runs this. Architecture awareness is required to distinguish genuine problems from intentional patterns.
+**architecture_authority** runs this. Architecture awareness is required to distinguish genuine problems from intentional patterns.
 
 ---
 
@@ -135,7 +135,7 @@ After adding items, update `rollup_by_severity` and `rollup_by_kind` counts to m
 Print a summary to console:
 
 ```
-[Forge] Entropy Scan Results
+[architecture_authority] Entropy Scan Results
 
 Files scanned: <X>
 Issues found: <Y> (<Z> high, <W> medium, <V> low)
@@ -182,7 +182,7 @@ Focus exclusively on:
 ## Integration
 
 After the entropy scan:
-1. Forge reviews the created issues and assigns estimates (1-3 points each, typically)
-2. Compass prioritizes them against remaining feature work
+1. architecture_authority reviews the created issues and assigns estimates (1-3 points each, typically)
+2. orchestration_authority prioritizes them against remaining feature work
 3. High-impact issues may get scheduled into the current cycle
 4. Low-impact issues stay in backlog for Evolution phase cleanup

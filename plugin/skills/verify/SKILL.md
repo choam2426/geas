@@ -94,16 +94,16 @@ Start the dev server and check for errors in its output.
 
 ### 5. FUNCTIONALITY
 
-This is Sentinel's domain — E2E testing against acceptance criteria.
+This is qa_engineer's domain — E2E testing against acceptance criteria.
 
-- **If invoked by Sentinel**: Run E2E tests using the browser automation MCP available for this project. Report pass/fail per test.
-- **If invoked by Forge or any other agent**: Mark as `PENDING (Sentinel E2E)`. Do not run E2E tests yourself.
+- **If invoked by qa_engineer**: Run E2E tests using the browser automation MCP available for this project. Report pass/fail per test.
+- **If invoked by architecture_authority or any other agent**: Mark as `PENDING (qa_engineer E2E)`. Do not run E2E tests yourself.
 
 ---
 
-## Forge Pre-Check Mode
+## architecture_authority Pre-Check Mode
 
-When Forge invokes this during code review, run only BUILD + LINT. Skip TEST, ERROR_FREE, and FUNCTIONALITY entirely.
+When architecture_authority invokes this during code review, run only BUILD + LINT. Skip TEST, ERROR_FREE, and FUNCTIONALITY entirely.
 
 Output format:
 
@@ -115,7 +115,7 @@ Output format:
 [Pre-check] BUILD: PASS | LINT: FAIL (3 violations in src/api/routes.ts) -> fix before QA
 ```
 
-This is a fast gate: does the code compile and pass lint? If yes, hand off to Sentinel for the full checklist.
+This is a fast gate: does the code compile and pass lint? If yes, hand off to qa_engineer for the full checklist.
 
 ---
 
@@ -130,7 +130,7 @@ BUILD:         PASS
 LINT:          PASS
 TEST:          FAIL — 3 tests failed (auth.test.ts:42, poll.test.ts:18, poll.test.ts:55)
 ERROR_FREE:    PASS
-FUNCTIONALITY: PENDING (Sentinel E2E)
+FUNCTIONALITY: PENDING (qa_engineer E2E)
 ---
 VERDICT: FAIL — fix TEST before proceeding
 ```
@@ -140,7 +140,7 @@ VERDICT: FAIL — fix TEST before proceeding
 - **PASS** items: single word, no additional details.
 - **FAIL** items: include specific error details — file name, line number, error message.
 - **SKIP** items: include reason (e.g. `SKIP — no build script configured`).
-- **PENDING** items: include who is responsible (e.g. `PENDING (Sentinel E2E)`).
+- **PENDING** items: include who is responsible (e.g. `PENDING (qa_engineer E2E)`).
 - **VERDICT**:
   - `PASS` only if ALL items are PASS (PENDING and SKIP do not block).
   - `FAIL` if ANY item is FAIL. List which items need fixing.
@@ -169,18 +169,18 @@ BUILD:         PASS
 LINT:          PASS
 TEST:          PASS
 ERROR_FREE:    PASS
-FUNCTIONALITY: PENDING (Sentinel E2E)
+FUNCTIONALITY: PENDING (qa_engineer E2E)
 ---
 VERDICT: PASS (1 item deferred)
 ```
 
-Use your agent codename in the prefix (e.g. `[Forge]`, `[Sentinel]`, `[Circuit]`).
+Use your agent type name in the prefix (e.g. `[architecture_authority]`, `[qa_engineer]`, `[backend_engineer]`).
 
 ---
 
 ## Integration with Workflow
 
-- **Forge code review**: Run pre-check (BUILD + LINT) before approving.
-- **Circuit / Pixel implementation**: Run full checklist (minus FUNCTIONALITY) before posting completion.
-- **Sentinel QA**: Run full checklist including FUNCTIONALITY (E2E via browser automation MCP).
-- **Verify-Fix Loop**: After each fix iteration, Sentinel re-runs the full checklist.
+- **architecture_authority code review**: Run pre-check (BUILD + LINT) before approving.
+- **backend_engineer / frontend_engineer implementation**: Run full checklist (minus FUNCTIONALITY) before posting completion.
+- **qa_engineer QA**: Run full checklist including FUNCTIONALITY (E2E via browser automation MCP).
+- **Verify-Fix Loop**: After each fix iteration, qa_engineer re-runs the full checklist.

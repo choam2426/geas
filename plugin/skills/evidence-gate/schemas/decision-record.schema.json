@@ -48,7 +48,7 @@
     },
     "decided_by": {
       "type": "string",
-      "description": "Agent who made the final call (e.g., 'nova', 'forge')"
+      "description": "Agent who made the final call (e.g., 'product-authority', 'architecture-authority')"
     },
     "participants": {
       "type": "array",
