@@ -2,7 +2,8 @@
 # protect-geas-state.sh — PostToolUse hook (Write|Edit)
 # Monitors .geas/ state file integrity. Injects real timestamps. Warns on scope violations.
 set -euo pipefail
-HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+_RAW_DIR="$(cd "$(dirname "$0")" && pwd)"
+HOOK_DIR="$(cygpath -m "$_RAW_DIR" 2>/dev/null || echo "$_RAW_DIR")"
 node -e "
 const fs = require('fs');
 const path = require('path');

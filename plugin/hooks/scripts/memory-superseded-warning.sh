@@ -3,7 +3,8 @@
 # Warns if a context packet references stale memory.
 set -euo pipefail
 
-HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+_RAW_DIR="$(cd "$(dirname "$0")" && pwd)"
+HOOK_DIR="$(cygpath -m "$_RAW_DIR" 2>/dev/null || echo "$_RAW_DIR")"
 node -e "
 const fs = require('fs');
 const path = require('path');

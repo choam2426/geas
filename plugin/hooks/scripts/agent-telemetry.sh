@@ -3,7 +3,8 @@
 # Logs agent spawn metadata (agent name, task, model) for distribution analysis.
 # For actual token costs, see calculate-cost.sh (Stop hook).
 set -euo pipefail
-HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+_RAW_DIR="$(cd "$(dirname "$0")" && pwd)"
+HOOK_DIR="$(cygpath -m "$_RAW_DIR" 2>/dev/null || echo "$_RAW_DIR")"
 node -e "
 const path = require('path');
 const h = require('$HOOK_DIR/lib/geas-hooks');
