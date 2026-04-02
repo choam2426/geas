@@ -41,8 +41,9 @@ for tid in d.get('completed_tasks', []):
         missing.append(f'  - {tid}: architecture-authority-review.json (Code Review) missing')
     if not os.path.isfile(os.path.join(edir, 'qa-engineer.json')):
         missing.append(f'  - {tid}: qa-engineer.json (QA Testing) missing')
-    if not os.path.isfile(os.path.join(edir, 'challenge-review.json')):
-        missing.append(f'  - {tid}: challenge-review.json (Critical Reviewer Challenge) missing')
+    tdir = os.path.join(geas, 'tasks', tid)
+    if not os.path.isfile(os.path.join(tdir, 'challenge-review.json')):
+        missing.append(f'  - {tid}: tasks/{tid}/challenge-review.json (Critical Reviewer) missing')
     if not os.path.isfile(os.path.join(edir, 'product-authority-verdict.json')):
         missing.append(f'  - {tid}: product-authority-verdict.json (Product Authority verdict) missing')
     retro_path = os.path.join(geas, 'tasks', tid, 'retrospective.json')

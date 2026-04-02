@@ -60,7 +60,7 @@ if rel.startswith('.geas/'):
     sys.exit(0)
 
 scope_paths = task.get('scope', {}).get('paths', [])
-if scope_paths and not any(fnmatch.fnmatch(rel, p) for p in scope_paths):
+if scope_paths and not any(fnmatch.fnmatch(rel, p) or rel.startswith(p.rstrip('/') + '/') for p in scope_paths):
     print(f'[Geas] WARNING: Write to {rel} outside scope.paths in {tid}', file=sys.stderr)
 " "$CWD" "$FILE_PATH" 2>&1 >&2 || true
 
