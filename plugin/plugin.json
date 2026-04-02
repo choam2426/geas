@@ -1,7 +1,7 @@
 {
   "name": "geas",
   "version": "0.2.0",
-  "description": "A harness that brings structure to multi-agent AI development — so every decision follows a process, every action is traceable, every output is verified, and the team gets smarter over time.",
+  "description": "A protocol that brings structure to multi-agent AI development — so every decision follows a process, every action is traceable, every output is verified, and the team gets smarter over time.",
   "author": {
     "name": "choam2426",
     "email": "choam2426@gmail.com"
@@ -10,7 +10,7 @@
   "repository": "https://github.com/choam2426/geas",
   "license": "Apache-2.0",
   "keywords": [
-    "harness",
+    "protocol",
     "contract-driven",
     "verification",
     "evidence-gate",

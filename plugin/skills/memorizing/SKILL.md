@@ -124,7 +124,7 @@ For each new candidate, determine the domain authority reviewer:
 | project_rule | orchestration_authority |
 | agent_rule | orchestration_authority |
 
-**Initiative (batch)**: Domain authority reviews during Evolution phase. Spawn the reviewer agent:
+**Mission (batch)**: Domain authority reviews during Evolution phase. Spawn the reviewer agent:
 ```
 Agent(agent: "{reviewer}", prompt: "Review memory candidate at .geas/memory/candidates/{memory-id}.json. Decide: promote_provisional (ready to try applying), keep (needs more evidence), or reject (not useful). Write review to .geas/memory/candidates/{memory-id}-review.json conforming to docs/protocol/schemas/memory-review.schema.json.")
 ```

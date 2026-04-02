@@ -357,7 +357,7 @@ Create a Product Requirements Document from a feature idea or mission.
 
 **User-Invocable:** No
 
-**Invoked By:** Nova during Discovery (Initiative phase 1.3)
+**Invoked By:** Nova during Discovery (mission phase 1.3)
 
 **Inputs:**
 - `$ARGUMENTS` -- feature idea, problem statement, or mission
@@ -381,7 +381,7 @@ Break a feature or mission into user stories with acceptance criteria.
 
 **User-Invocable:** No
 
-**Invoked By:** Nova during Discovery (Initiative phase 1.3), immediately after write-prd
+**Invoked By:** Nova during Discovery (mission phase 1.3), immediately after write-prd
 
 **Inputs:**
 - `$ARGUMENTS` -- feature description, mission statement, or problem to solve

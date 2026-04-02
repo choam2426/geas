@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Geas is a contract-based governance harness for multi-agent AI development. It coordinates multiple AI agents through structured protocols, guaranteeing four control objectives (4 Pillars):
+Geas is a contract-based governance protocol for multi-agent AI development. It coordinates multiple AI agents through structured protocols, guaranteeing four control objectives (4 Pillars):
 
 - **Governance** -- Every decision follows a defined procedure with explicit authority.
 - **Traceability** -- Every action is recorded and auditable after the fact.
@@ -52,7 +52,7 @@ When making any design decision, always ask: **"Does this change make the multi-
 
 ### Missions and Phases
 
-An Initiative mission progresses through four phases:
+A mission progresses through four phases:
 
 ```
 discovery --[gate 1]--> build --[gate 2]--> polish --[gate 3]--> evolution

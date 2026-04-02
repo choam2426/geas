@@ -65,7 +65,7 @@
     "source": {
       "type": "string",
       "enum": ["initiative", "sprint"],
-      "description": "Which mode created this seed. 'sprint' indicates a minimal auto-generated seed (not a full Initiative intake). Initiative may overwrite a sprint-created seed."
+      "description": "Which mode created this seed. 'sprint' indicates a minimal auto-generated seed (not a full mission intake). A mission run may overwrite a sprint-created seed."
     },
     "readiness_override": {
       "type": "boolean",

@@ -5,7 +5,7 @@ description: Mission intake gate — collaborative exploration to freeze a seed 
 
 # Intake Gate
 
-Before any execution mode (Initiative mission, delivery mode), run this gate to freeze the mission specification.
+Before any execution mode (4-phase mission, delivery mode), run this gate to freeze the mission specification.
 
 ## Purpose
 

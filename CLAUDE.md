@@ -170,4 +170,4 @@ All 6 phases of the v3 protocol migration are implemented. Skills are aligned wi
 - Keep skills focused — one skill, one responsibility
 - Update `orchestrating/references/` when changing pipeline behavior
 - Align with protocol — check `docs/protocol/` for the target behavior
-- Test changes by running the harness in `test_session/`
+- Test changes by running the protocol in `test_session/`
