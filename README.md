@@ -11,8 +11,8 @@ A harness that brings structure to multi-agent AI development — so every decis
 [![Claude Code](https://img.shields.io/badge/Built_for-Claude_Code-6B4FBB?style=for-the-badge)](https://claude.ai/code)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
 [![Agents](https://img.shields.io/badge/Agents-12-4A90D9?style=flat-square)](docs/reference/AGENTS.md)
-[![Skills](https://img.shields.io/badge/Skills-23-2ECC71?style=flat-square)](docs/reference/SKILLS.md)
-[![Hooks](https://img.shields.io/badge/Hooks-9-E67E22?style=flat-square)](docs/reference/HOOKS.md)
+[![Skills](https://img.shields.io/badge/Skills-27-2ECC71?style=flat-square)](docs/reference/SKILLS.md)
+[![Hooks](https://img.shields.io/badge/Hooks-18-E67E22?style=flat-square)](docs/reference/HOOKS.md)
 
 </div>
 
@@ -52,21 +52,21 @@ Geas is a contract-driven multi-agent AI development harness built for Claude Co
 /geas:mission
 ```
 
-Describe what you want to build, add, or decide. Compass detects the appropriate mode — Initiative (new product), Sprint (feature addition), or Debate (structured decision) — and runs the governed pipeline.
+Describe what you want to build, add, or decide. The orchestrator runs a 4-phase execution flow (Discovery, Build, Polish, Evolution) scaled to the request. For decision-only requests, it routes to decision mode.
 
 ### 3. Watch the process
 
 ```
-[Compass]  Task started. Assigned to Pixel.
-[Palette]  Mobile-first layout. Vertical card stack.
-[You]      Use bar charts instead of pie charts.        <- your input
-[Forge]    Agreed. CSS-only bar chart approach.
-[Pixel]    Implementation complete. 5 components.
-[Sentinel] QA: 5/5 criteria passed.
-[Critic]   Risks: no offline fallback, chart reflow on resize.
-[Compass]  Evidence Gate PASSED.
-[Nova]     Ship.
-[Scrum]    Retro: added CSS animation rule to rules.md.
+[Orchestrator]  Task started. Assigned to Pixel.
+[Palette]       Mobile-first layout. Vertical card stack.
+[You]           Use bar charts instead of pie charts.        <- your input
+[Forge]         Agreed. CSS-only bar chart approach.
+[Pixel]         Implementation complete. 5 components.
+[Sentinel]      QA: 5/5 criteria passed.
+[Critic]        Risks: no offline fallback, chart reflow on resize.
+[Orchestrator]  Evidence Gate PASSED.
+[Nova]          Ship.
+[Scrum]         Retro: added CSS animation rule to rules.md.
 ```
 
 ---
@@ -104,7 +104,7 @@ Every artifact is written to `.geas/` — the traceable record of the entire run
 
 ## The Team
 
-Compass orchestrates the pipeline. 12 specialist agents execute it, each under their own geas:
+The orchestrator runs the pipeline. 12 specialist agents execute it, each under their own geas:
 
 | Group | Agent | Role |
 |-------|-------|------|
@@ -125,29 +125,23 @@ Compass orchestrates the pipeline. 12 specialist agents execute it, each under t
 
 ## Documentation
 
-### Getting Started
-| Document | Description |
-|----------|-------------|
-| [Quick Start](docs/guides/QUICKSTART.md) | 5-minute getting started |
-| [Initiative Guide](docs/guides/INITIATIVE.md) | Build a new product |
-| [Sprint Guide](docs/guides/SPRINT.md) | Add a feature to existing project |
-| [Debate Guide](docs/guides/DEBATE.md) | Structured decision-making |
-| [Scenarios](docs/guides/SCENARIOS.md) | Real-world examples with test data |
-
 ### Architecture
 | Document | Description |
 |----------|-------------|
 | [Design](docs/architecture/DESIGN.md) | System architecture, data flow, principles |
-| [Pipeline](docs/architecture/PIPELINE.md) | Execution pipeline step-by-step |
-| [Schemas](docs/architecture/SCHEMAS.md) | Data contracts and relationships |
 
 ### Reference
 | Document | Description |
 |----------|-------------|
-| [Skills](docs/reference/SKILLS.md) | 23 skills reference |
+| [Skills](docs/reference/SKILLS.md) | 27 skills reference |
 | [Agents](docs/reference/AGENTS.md) | 12 agents reference |
-| [Hooks](docs/reference/HOOKS.md) | 9 hooks reference |
-| [Governance](docs/reference/GOVERNANCE.md) | Evaluation and quality gates |
+| [Hooks](docs/reference/HOOKS.md) | 18 hooks reference |
+
+### Protocol
+| Document | Description |
+|----------|-------------|
+| [Protocol](docs/protocol/) | 15 operational protocol documents (canonical) |
+| [Schemas](docs/protocol/schemas/) | 19 JSON Schema definitions (draft 2020-12) |
 
 ---
 

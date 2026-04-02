@@ -182,28 +182,64 @@ candidate → provisional → stable → canonical
 ```
 plugin/
   plugin.json              # 매니페스트
-  skills/                  # 공유 스킬
-    intake/                # 소크라테스식 요구사항 수집
-    task-compiler/         # seed → TaskContract
-    context-packet/        # 역할별 브리핑
-    evidence-gate/         # Tier 0/1/2 + Closure Packet + Final Verdict
-    implementation-contract/  # 구현 전 합의
-    verify-fix-loop/       # 실패 → 수정 → 재검증
-    vote-round/            # 구조화된 투표
-    orchestrating/         # 오케스트레이터: 4-phase 실행 파이프라인
+  skills/                    # 공유 스킬 (27개)
+    # --- Contract Engine (핵심) ---
+    intake/                  # 소크라테스식 요구사항 수집
+    task-compiler/           # seed → TaskContract
+    context-packet/          # 역할별 브리핑
+    implementation-contract/ # 구현 전 합의
+    evidence-gate/           # Tier 0/1/2 검증
+    verify-fix-loop/         # 실패 → 수정 → 재검증
+    vote-round/              # 구조화된 투표
+    verify/                  # 검증 유틸리티
+    # --- 실행 ---
+    orchestrating/           # 오케스트레이터: 4-phase 실행 파이프라인
       references/
-        discovery.md       # Discovery phase 절차
-        pipeline.md        # 작업별 14단계 파이프라인
-        build.md           # Build phase 관리
-        polish.md          # Polish phase 절차
-        evolution.md       # Evolution phase 절차
-    decision/              # decision mode: 의사결정
-    ...
-  agents/                  # 에이전트 정의 (.md)
+        discovery.md         # Discovery phase 절차
+        pipeline.md          # 작업별 14단계 파이프라인
+        build.md             # Build phase 관리
+        polish.md            # Polish phase 절차
+        evolution.md         # Evolution phase 절차
+    scheduling/              # 작업 스케줄링 및 병렬화
+    decision/                # Decision mode: 구조적 의사결정
+    mission/                 # 미션 lifecycle 관리
+    # --- Memory & Evolution ---
+    memorizing/              # Memory 수집 및 승격
+    conformance-checking/    # 프로토콜 적합성 점검
+    # --- 지원 ---
+    briefing/                # 에이전트 브리핑 조립
+    onboard/                 # 프로젝트 온보딩
+    setup/                   # 환경 설정
+    cleanup/                 # 세션 정리
+    reporting/               # 상태 보고
+    run-summary/             # 실행 요약 생성
+    ledger-query/            # 원장 조회
+    pivot-protocol/          # 피벗 처리
+    policy-managing/         # 정책 관리
+    coding-conventions/      # 컨벤션 감지
+    chaos-exercising/        # 카오스 테스트
+    write-prd/               # PRD 생성
+    write-stories/           # 스토리 생성
+  agents/                    # 에이전트 정의 (.md)
   hooks/
-    hooks.json             # 훅 설정
-    scripts/               # 훅 스크립트
+    hooks.json               # 훅 설정
+    scripts/                 # 18개 훅 스크립트 (아래 참조)
 ```
+
+### Hooks (18개 스크립트)
+
+훅은 에이전트 협조 없이 거버넌스를 강제하는 lifecycle 이벤트 핸들러다.
+
+| Lifecycle Event | 스크립트 |
+|----------------|----------|
+| **SessionStart** | `session-init.sh`, `memory-review-cadence.sh` |
+| **PreToolUse** | `checkpoint-pre-write.sh` |
+| **PostToolUse (Write/Edit)** | `protect-geas-state.sh`, `verify-task-status.sh`, `check-debt.sh`, `stale-start-check.sh`, `lock-conflict-check.sh`, `memory-promotion-gate.sh`, `memory-superseded-warning.sh`, `checkpoint-post-write.sh`, `packet-stale-check.sh` |
+| **PostToolUse (Bash)** | `integration-lane-check.sh` |
+| **SubagentStart** | `inject-context.sh` |
+| **SubagentStop** | `agent-telemetry.sh` |
+| **Stop** | `verify-pipeline.sh`, `calculate-cost.sh` |
+| **PostCompact** | `restore-context.sh` |
 
 ---
 

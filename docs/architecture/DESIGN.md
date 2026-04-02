@@ -182,28 +182,64 @@ When context compaction occurs, this hook automatically reads `run.json` and re-
 ```
 plugin/
   plugin.json              # Manifest
-  skills/                  # Shared skills
-    intake/                # Socratic requirements gathering
-    task-compiler/         # seed -> TaskContract
-    context-packet/        # Role-specific briefings
-    evidence-gate/         # Tier 0/1/2 + Closure Packet + Final Verdict
-    implementation-contract/  # Pre-implementation agreement
-    verify-fix-loop/       # fail -> fix -> re-verify
-    vote-round/            # Structured voting
-    orchestrating/         # Orchestrator: 4-phase execution pipeline
+  skills/                    # Shared skills (27 total)
+    # --- Contract Engine (core) ---
+    intake/                  # Socratic requirements gathering
+    task-compiler/           # seed -> TaskContract
+    context-packet/          # Role-specific briefings
+    implementation-contract/ # Pre-implementation agreement
+    evidence-gate/           # Tier 0/1/2 verification
+    verify-fix-loop/         # fail -> fix -> re-verify
+    vote-round/              # Structured voting
+    verify/                  # Verification utilities
+    # --- Execution ---
+    orchestrating/           # Orchestrator: 4-phase execution pipeline
       references/
-        discovery.md       # Discovery phase procedure
-        pipeline.md        # Per-task 14-step pipeline
-        build.md           # Build phase management
-        polish.md          # Polish phase procedure
-        evolution.md       # Evolution phase procedure
-    decision/              # decision mode: decision-making
-    ...
-  agents/                  # Agent definitions (.md)
+        discovery.md         # Discovery phase procedure
+        pipeline.md          # Per-task 14-step pipeline
+        build.md             # Build phase management
+        polish.md            # Polish phase procedure
+        evolution.md         # Evolution phase procedure
+    scheduling/              # Task scheduling and parallelism
+    decision/                # Decision mode: structured decision-making
+    mission/                 # Mission lifecycle management
+    # --- Memory & Evolution ---
+    memorizing/              # Memory capture and promotion
+    conformance-checking/    # Protocol conformance checks
+    # --- Support ---
+    briefing/                # Agent briefing assembly
+    onboard/                 # Project onboarding
+    setup/                   # Environment setup
+    cleanup/                 # Session cleanup
+    reporting/               # Status reporting
+    run-summary/             # Run summary generation
+    ledger-query/            # Ledger querying
+    pivot-protocol/          # Pivot handling
+    policy-managing/         # Policy management
+    coding-conventions/      # Convention detection
+    chaos-exercising/        # Chaos testing
+    write-prd/               # PRD generation
+    write-stories/           # Story generation
+  agents/                    # Agent definitions (.md)
   hooks/
-    hooks.json             # Hook configuration
-    scripts/               # Hook scripts
+    hooks.json               # Hook configuration
+    scripts/                 # 18 hook scripts (see below)
 ```
+
+### Hooks (18 scripts)
+
+Hooks are lifecycle event handlers that enforce governance without agent cooperation.
+
+| Lifecycle Event | Scripts |
+|----------------|---------|
+| **SessionStart** | `session-init.sh`, `memory-review-cadence.sh` |
+| **PreToolUse** | `checkpoint-pre-write.sh` |
+| **PostToolUse (Write/Edit)** | `protect-geas-state.sh`, `verify-task-status.sh`, `check-debt.sh`, `stale-start-check.sh`, `lock-conflict-check.sh`, `memory-promotion-gate.sh`, `memory-superseded-warning.sh`, `checkpoint-post-write.sh`, `packet-stale-check.sh` |
+| **PostToolUse (Bash)** | `integration-lane-check.sh` |
+| **SubagentStart** | `inject-context.sh` |
+| **SubagentStop** | `agent-telemetry.sh` |
+| **Stop** | `verify-pipeline.sh`, `calculate-cost.sh` |
+| **PostCompact** | `restore-context.sh` |
 
 ---
 
