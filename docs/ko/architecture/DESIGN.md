@@ -77,7 +77,7 @@ drafted → ready → implementing → reviewed → integrated → verified → 
 |------|--------------|
 | drafted → ready | task-contract.json |
 | ready → implementing | implementation-contract.json (승인됨) |
-| implementing → reviewed | worker-self-check.json + specialist-review.json |
+| implementing → reviewed | worker-self-check.json + specialist reviews (`.geas/evidence/{task_id}/`에 저장) |
 | reviewed → integrated | integration-result.json |
 | integrated → verified | gate-result.json (pass) |
 | verified → passed | closure-packet.json + final-verdict.json (pass) |

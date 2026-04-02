@@ -77,7 +77,7 @@ Each transition requires a mandatory artifact:
 |------------|------------------|
 | drafted -> ready | task-contract.json |
 | ready -> implementing | implementation-contract.json (approved) |
-| implementing -> reviewed | worker-self-check.json + specialist-review.json |
+| implementing -> reviewed | worker-self-check.json + specialist reviews (in `.geas/evidence/{task_id}/`) |
 | reviewed -> integrated | integration-result.json |
 | integrated -> verified | gate-result.json (pass) |
 | verified -> passed | closure-packet.json + final-verdict.json (pass) |
