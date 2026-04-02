@@ -8,7 +8,6 @@
 
 A governance protocol for multi-agent AI development.
 
-[![Protocol](https://img.shields.io/badge/Protocol-v3-6B4FBB?style=for-the-badge)](#)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
 
 </div>

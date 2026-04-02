@@ -8,7 +8,6 @@
 
 멀티 에이전트 AI 개발을 위한 거버넌스 프로토콜.
 
-[![Protocol](https://img.shields.io/badge/Protocol-v3-6B4FBB?style=for-the-badge)](#)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
 
 </div>
