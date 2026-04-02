@@ -43,14 +43,15 @@ fp = sys.argv[1]
 geas = sys.argv[2]
 d = json.load(open(fp))
 if d.get('status') == 'passed':
-    tid = d.get('id', '')
+    tid = d.get('task_id') or d.get('id', '')
     edir = os.path.join(geas, 'evidence', tid)
     if not os.path.isfile(os.path.join(edir, 'architecture-authority-review.json')):
         print(f'[Geas] Warning: {tid} marked as passed but architecture-authority-review.json is missing')
     if not os.path.isfile(os.path.join(edir, 'qa-engineer.json')):
         print(f'[Geas] Warning: {tid} marked as passed but qa-engineer.json is missing')
-    if not os.path.isfile(os.path.join(edir, 'challenge-review.json')):
-        print(f'[Geas] Warning: {tid} marked as passed but challenge-review.json is missing')
+    tdir = os.path.join(geas, 'tasks', tid)
+    if not os.path.isfile(os.path.join(tdir, 'challenge-review.json')):
+        print(f'[Geas] Warning: {tid} marked as passed but tasks/{tid}/challenge-review.json is missing')
     if not os.path.isfile(os.path.join(edir, 'product-authority-verdict.json')):
         print(f'[Geas] Warning: {tid} marked as passed but product-authority-verdict.json is missing')
     retro_path = os.path.join(geas, 'tasks', tid, 'retrospective.json')
