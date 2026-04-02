@@ -113,10 +113,10 @@ Same mandatory steps, same Closure Packet verification, same checkpoint manageme
 
 ### Product-authority Final Briefing [MANDATORY]
 ```
-Agent(agent: "product-authority", prompt: "Final product review. Read .geas/spec/seed.json, .geas/evolution/gap-assessment-evolving.json, .geas/evolution/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write JSON to .geas/evidence/evolving/product-authority-final.json. ALSO write a human-readable markdown summary to .geas/evidence/evolving/mission-summary.md covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
+Agent(agent: "product-authority", prompt: "Final product review. Read .geas/spec/seed.json, .geas/evolution/gap-assessment-evolving.json, .geas/evolution/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write JSON to .geas/evidence/evolving/product-authority-final.json. ALSO write a human-readable markdown summary to .geas/summaries/mission-summary.md covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
 ```
 Verify `.geas/evidence/evolving/product-authority-final.json` exists.
-Verify `.geas/evidence/evolving/mission-summary.md` exists.
+Verify `.geas/summaries/mission-summary.md` exists.
 
 ### Repository-manager Release Management [MANDATORY]
 ```
@@ -134,7 +134,7 @@ Invoke `/geas:run-summary` to generate session audit trail.
 1. `.geas/evolution/gap-assessment-evolving.json` — produced in Gap Assessment step
 2. `.geas/evolution/debt-register.json` — all open debt triaged (no items with `severity: "high"` or `"critical"` and `status: "open"`)
 3. `.geas/evolution/rules-update.json` — exists with `status: "approved"` or `"none"` (produced in Rules Update Approval step)
-4. `.geas/evidence/evolving/mission-summary.md` — produced in product_authority Final Briefing step
+4. `.geas/summaries/mission-summary.md` — produced in product_authority Final Briefing step
 5. `.geas/evolution/phase-review-evolving.json` — write now (see below)
 
 **If ANY artifact is missing: go back and execute the missing step. Do NOT close without all 5.**
