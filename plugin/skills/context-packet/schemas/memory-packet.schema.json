@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GEAS Memory Packet",
+  "type": "object",
+  "properties": {
+    "meta": {
+      "$ref": "_defs.schema.json#/$defs/commonMeta"
+    },
+    "packet_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_agent_type": {
+      "$ref": "_defs.schema.json#/$defs/agentType"
+    },
+    "target_task_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "pinned_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "applicable_memory_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "caution_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "suppressed_memory_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "assembly_reason": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "meta",
+    "packet_id",
+    "target_agent_type",
+    "target_task_id",
+    "pinned_items",
+    "applicable_memory_ids",
+    "caution_items",
+    "suppressed_memory_ids",
+    "assembly_reason"
+  ],
+  "additionalProperties": false
+}

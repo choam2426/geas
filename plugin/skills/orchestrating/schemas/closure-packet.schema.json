@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClosurePacket",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "artifact_type",
+    "artifact_id",
+    "producer_type",
+    "created_at",
+    "task_id",
+    "task_summary",
+    "change_summary",
+    "specialist_reviews",
+    "integration_result",
+    "verification_result",
+    "worker_self_check",
+    "open_risks",
+    "debt_snapshot"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "artifact_type": {
+      "type": "string",
+      "const": "closure_packet"
+    },
+    "artifact_id": {
+      "type": "string"
+    },
+    "producer_type": {
+      "$ref": "_defs.schema.json#/$defs/agentType"
+    },
+    "created_at": {
+      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "task_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "change_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "specialist_reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reviewer_type", "status", "summary"],
+        "properties": {
+          "reviewer_type": {
+            "$ref": "_defs.schema.json#/$defs/agentType"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["approved", "changes_requested", "blocked"]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "integration_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "merge_commit"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["success", "conflict", "failed"]
+        },
+        "merge_commit": {
+          "type": "string"
+        }
+      }
+    },
+    "verification_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gate_verdict", "rubric_scores"],
+      "properties": {
+        "gate_verdict": {
+          "type": "string",
+          "enum": ["pass", "fail", "block", "error"]
+        },
+        "rubric_scores": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["dimension", "score", "passed"],
+            "properties": {
+              "dimension": {
+                "type": "string",
+                "minLength": 1
+              },
+              "score": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5
+              },
+              "passed": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "worker_self_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["confidence", "known_risks", "untested_paths"],
+      "properties": {
+        "confidence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "known_risks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "untested_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "open_risks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "items"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["none", "present"]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "debt_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "items"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["none", "present"]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "readiness_round": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["result", "participants"],
+          "properties": {
+            "result": {
+              "type": "string",
+              "enum": ["ship", "iterate", "escalate"]
+            },
+            "participants": {
+              "type": "array",
+              "items": {
+                "$ref": "_defs.schema.json#/$defs/agentType"
+              },
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "challenge_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewer_type", "concerns", "blocking"],
+      "properties": {
+        "reviewer_type": {
+          "$ref": "_defs.schema.json#/$defs/agentType"
+        },
+        "concerns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "blocking": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

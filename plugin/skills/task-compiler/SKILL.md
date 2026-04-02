@@ -181,7 +181,7 @@ Write the rubric as an object with a `dimensions` array. The orchestration_autho
 
 ## Output
 
-Write the TaskContract to `.geas/tasks/{task_id}.json` conforming to `docs/protocol/schemas/task-contract.schema.json`.
+Write the TaskContract to `.geas/tasks/{task_id}.json` conforming to `schemas/task-contract.schema.json`.
 
 ```bash
 mkdir -p .geas/tasks

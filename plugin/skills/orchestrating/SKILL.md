@@ -85,7 +85,7 @@ This applies to every task — sequential or parallel. If the task file does not
 After reading each agent's evidence, check for a `tech_debt` array. If present:
 1. Read `.geas/state/debt-register.json` (create with initial schema if missing).
 2. For each debt item, check if a similar title already exists (skip duplicates).
-3. Add new items with sequential ID (DEBT-001, DEBT-002...) as structured items conforming to `docs/protocol/schemas/debt-register.schema.json`. Each item requires: `debt_id`, `severity`, `kind`, `title`, `description`, `introduced_by_task_id`, `owner_type`, `status: "open"`, `target_phase`.
+3. Add new items with sequential ID (DEBT-001, DEBT-002...) as structured items conforming to `schemas/debt-register.schema.json`. Each item requires: `debt_id`, `severity`, `kind`, `title`, `description`, `introduced_by_task_id`, `owner_type`, `status: "open"`, `target_phase`.
 4. Update `rollup_by_severity` and `rollup_by_kind` counts.
 5. Write back debt-register.json.
 
@@ -151,7 +151,7 @@ When `run.json` exists with `status: "in_progress"`, classify the recovery:
      - After gate pass
      - After closure packet assembled
    - Inconsistent state (conflicting artifacts) → `manual_repair_required`
-3. Write `.geas/recovery/{recovery-id}.json` conforming to `docs/protocol/schemas/recovery-packet.schema.json`
+3. Write `.geas/recovery/{recovery-id}.json` conforming to `schemas/recovery-packet.schema.json`
 4. Update `run.json`: set `recovery_class` field
 5. Log: `{"event": "recovery", "recovery_class": "...", "recovery_id": "...", "focus_task_id": "...", "timestamp": "<actual>"}`
 

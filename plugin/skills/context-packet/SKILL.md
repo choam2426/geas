@@ -129,7 +129,7 @@ After extracting task context, retrieve applicable memories:
    - specialist agents (`frontend_engineer`, `backend_engineer`, `qa_engineer`, etc.): top 3-5 entries
    - `product_authority`: top 3 entries
 
-5. Write `.geas/packets/{task-id}/memory-packet.json` conforming to `docs/protocol/schemas/memory-packet.schema.json`:
+5. Write `.geas/packets/{task-id}/memory-packet.json` conforming to `schemas/memory-packet.schema.json`:
    ```json
    {
      "meta": {

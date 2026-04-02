@@ -19,7 +19,7 @@ Before anything else, create the runtime directory structure in the project root
 mkdir -p .geas/spec .geas/state .geas/tasks .geas/contracts .geas/packets .geas/evidence .geas/decisions .geas/decisions/pending .geas/ledger .geas/summaries .geas/memory/_project .geas/memory/agents .geas/memory/candidates .geas/memory/entries .geas/memory/logs .geas/recovery .geas/state/task-focus
 ```
 
-Write the initial debt register `.geas/state/debt-register.json` conforming to `docs/protocol/schemas/debt-register.schema.json`:
+Write the initial debt register `.geas/state/debt-register.json` conforming to `schemas/debt-register.schema.json`:
 ```json
 {
   "version": "1.0",
@@ -34,7 +34,7 @@ Write the initial debt register `.geas/state/debt-register.json` conforming to `
 }
 ```
 
-Write the initial memory index `.geas/state/memory-index.json` conforming to `docs/protocol/schemas/memory-index.schema.json`:
+Write the initial memory index `.geas/state/memory-index.json` conforming to `schemas/memory-index.schema.json`:
 ```json
 {
   "meta": {

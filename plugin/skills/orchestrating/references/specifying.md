@@ -24,7 +24,7 @@ If `.geas/memory/_project/conventions.md` is missing, invoke `/geas:onboard` to 
 - scope_in defined
 - Initial tasks compiled
 
-Write `.geas/state/phase-review.json` conforming to `docs/protocol/schemas/phase-review.schema.json`:
+Write `.geas/state/phase-review.json` conforming to `schemas/phase-review.schema.json`:
 ```json
 {
   "version": "1.0",

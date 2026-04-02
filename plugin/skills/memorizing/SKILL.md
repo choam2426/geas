@@ -53,7 +53,7 @@ For each candidate string in `memory_candidates[]`:
    - Applies to the whole project → `project`
    - Applies to a specific agent type → `agent`
    - Applies universally → `global`
-4. Write `.geas/memory/candidates/{memory-id}.json` conforming to `docs/protocol/schemas/memory-candidate.schema.json`:
+4. Write `.geas/memory/candidates/{memory-id}.json` conforming to `schemas/memory-candidate.schema.json`:
    ```json
    {
      "meta": {
@@ -126,7 +126,7 @@ For each new candidate, determine the domain authority reviewer:
 
 **Mission (batch)**: Domain authority reviews during Evolving phase. Spawn the reviewer agent:
 ```
-Agent(agent: "{reviewer}", prompt: "Review memory candidate at .geas/memory/candidates/{memory-id}.json. Decide: promote_provisional (ready to try applying), keep (needs more evidence), or reject (not useful). Write review to .geas/memory/candidates/{memory-id}-review.json conforming to docs/protocol/schemas/memory-review.schema.json.")
+Agent(agent: "{reviewer}", prompt: "Review memory candidate at .geas/memory/candidates/{memory-id}.json. Decide: promote_provisional (ready to try applying), keep (needs more evidence), or reject (not useful). Write review to .geas/memory/candidates/{memory-id}-review.json with fields: version, artifact_type (memory_review), artifact_id, producer_type, memory_id, decision (promote_provisional/keep/reject), rationale, created_at.")
 ```
 
 **Sprint (inline)**: If candidate has evidence_refs >= 2 or comes from a repeated pattern, auto-promote to provisional. Otherwise keep as candidate for future review.
@@ -165,7 +165,7 @@ Agent(agent: "{reviewer}", prompt: "Review memory candidate at .geas/memory/cand
       - Memory had no clear impact on outcome → `neutral`
       - Memory advice contradicted the actual correct approach → `negative` + set followup_action to `weaken`
    c. Determine `usage_surface` from context: `task_packet`, `review_context`, `gate_context`, etc.
-   d. Write `.geas/memory/logs/{task-id}-{memory-id}.json` conforming to `docs/protocol/schemas/memory-application-log.schema.json`:
+   d. Write `.geas/memory/logs/{task-id}-{memory-id}.json` conforming to `schemas/memory-application-log.schema.json`:
       ```json
       {
         "meta": {

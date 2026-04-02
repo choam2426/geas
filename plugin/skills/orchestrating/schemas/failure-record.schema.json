@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FailureRecord",
+  "description": "Records a task failure and rewind. Failure is not a state — the task rewinds to the rewind target. Created by the orchestration_authority when a gate fails, verdict iterates, or an unrecoverable error occurs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "artifact_type",
+    "artifact_id",
+    "producer_type",
+    "task_id",
+    "failed_at_state",
+    "failure_reason",
+    "rewind_target",
+    "retry_budget_before",
+    "retry_budget_after",
+    "created_at"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "artifact_type": {
+      "type": "string",
+      "const": "failure_record"
+    },
+    "artifact_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "producer_type": {
+      "type": "string",
+      "const": "orchestration_authority"
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "failed_at_state": {
+      "type": "string",
+      "enum": [
+        "implementing",
+        "reviewed",
+        "integrated",
+        "verified"
+      ],
+      "description": "The task state at the time of failure"
+    },
+    "failure_reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Summary of the failure cause"
+    },
+    "failure_source": {
+      "type": "string",
+      "enum": [
+        "gate_fail",
+        "gate_block",
+        "verdict_iterate",
+        "integration_failure",
+        "unrecoverable_error"
+      ],
+      "description": "What triggered this failure record"
+    },
+    "rewind_target": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "implementing",
+        "reviewed",
+        "escalated"
+      ],
+      "description": "The state to rewind to"
+    },
+    "retry_budget_before": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Remaining retry_budget at the time of failure"
+    },
+    "retry_budget_after": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Remaining retry_budget after rewind (decremented by 1 for gate_fail, unchanged for gate_block/verdict_iterate)"
+    },
+    "iterate_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Cumulative iterate count for this task (verdict_iterate only). 3 triggers escalation."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

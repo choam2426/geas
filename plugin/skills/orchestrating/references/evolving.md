@@ -13,7 +13,7 @@ Produce a structured gap assessment comparing what was planned vs what was deliv
    - No corresponding task or task cancelled -> `not_delivered`
 5. Check for `scope_out` items that were delivered anyway -> `unexpected_additions` (need traceability note)
 6. Items explicitly dropped by product_authority decision -> `intentional_cuts`
-7. Write `.geas/state/gap-assessment.json` conforming to `docs/protocol/schemas/gap-assessment.schema.json`:
+7. Write `.geas/state/gap-assessment.json` conforming to `schemas/gap-assessment.schema.json`:
 
 ```json
 {
@@ -63,7 +63,7 @@ If no P0 items remain: skip to product_authority Final Briefing.
 4. For each candidate, check approval conditions:
    - `evidence_refs` >= 2 (same pattern observed in 2+ tasks) AND `contradiction_count` = 0 -> auto-approve
    - Otherwise -> spawn domain authority for review
-5. Write `.geas/state/rules-update.json` conforming to `docs/protocol/schemas/rules-update.schema.json`:
+5. Write `.geas/state/rules-update.json` conforming to `schemas/rules-update.schema.json`:
    ```json
    {
      "version": "1.0",

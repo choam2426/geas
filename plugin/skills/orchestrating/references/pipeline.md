@@ -43,7 +43,7 @@ Before transitioning to `"implementing"`, check for staleness:
    d. **Overlap, auto-resolvable** -> classification = `review_sync`. Update `base_commit`, proceed. Flag for specialist re-review after implementation.
    e. **Overlap, not auto-resolvable** -> classification = `replan_required`. Do NOT proceed. Rewind task to `"ready"`. Update implementation contract.
    f. **Preconditions invalidated** -> classification = `blocking_conflict`. Set task status to `"blocked"`.
-   g. Write `.geas/tasks/{task-id}/revalidation-record.json` conforming to `docs/protocol/schemas/revalidation-record.schema.json`
+   g. Write `.geas/tasks/{task-id}/revalidation-record.json` conforming to `schemas/revalidation-record.schema.json`
    h. Log event: `{"event": "revalidation", "task_id": "...", "classification": "...", "timestamp": "<actual>"}`
 
 Only proceed to `"implementing"` if classification is `clean_sync` or `review_sync`.
@@ -192,7 +192,7 @@ After successful merge, status remains `"implementing"` — the task is not yet 
 ### Worker Self-Check [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "self_check", `agent_in_flight` = "{worker}"
 ```
-Agent(agent: "{worker}", prompt: "Implementation for {task-id} is complete. Before handing off to code review, produce your self-check artifact. Write .geas/tasks/{task-id}/worker-self-check.json conforming to docs/protocol/schemas/worker-self-check.schema.json. Required fields: version (\"1.0\"), artifact_type (\"worker_self_check\"), artifact_id (e.g. \"self-check-{task-id}\"), producer_type (your agent type: frontend_engineer | backend_engineer | devops_engineer | technical_writer), task_id, known_risks (string[]), untested_paths (string[]), possible_stubs (string[]), what_to_test_next (string[]), confidence (integer 1-5: 1=very_low ... 5=very_high), summary (string), created_at (ISO 8601 timestamp).")
+Agent(agent: "{worker}", prompt: "Implementation for {task-id} is complete. Before handing off to code review, produce your self-check artifact. Write .geas/tasks/{task-id}/worker-self-check.json. Required fields: version (\"1.0\"), artifact_type (\"worker_self_check\"), artifact_id (e.g. \"self-check-{task-id}\"), producer_type (your agent type: frontend_engineer | backend_engineer | devops_engineer | technical_writer), task_id, known_risks (string[]), untested_paths (string[]), possible_stubs (string[]), what_to_test_next (string[]), confidence (integer 1-5: 1=very_low ... 5=very_high), summary (string), created_at (ISO 8601 timestamp).")
 ```
 Verify `.geas/tasks/{task-id}/worker-self-check.json` exists. Do NOT proceed to Code Review without this file.
 
@@ -236,7 +236,7 @@ orchestration_authority (Orchestrator) assembles the closure packet by reading a
 
 **If ANY required artifact is missing: go back and execute the missing step. Do NOT proceed.**
 
-**Write** `.geas/tasks/{task-id}/closure-packet.json` conforming to `docs/protocol/schemas/closure-packet.schema.json`:
+**Write** `.geas/tasks/{task-id}/closure-packet.json` conforming to `schemas/closure-packet.schema.json`:
 
 ```json
 {
@@ -334,7 +334,7 @@ Update run.json checkpoint: `pipeline_step` = "critical_reviewer"
 
 Update run.json checkpoint: `pipeline_step` = "final_verdict", `agent_in_flight` = "product-authority"
 ```
-Agent(agent: "product-authority", prompt: "Read the closure packet at .geas/tasks/{task-id}/closure-packet.json (which includes the challenge_review field if critical_reviewer ran) and all evidence at .geas/evidence/{task-id}/. Decide: pass, iterate, or escalate. Write .geas/tasks/{task-id}/final-verdict.json conforming to docs/protocol/schemas/final-verdict.schema.json. Required fields: version (\"1.0\"), artifact_type (\"final_verdict\"), artifact_id (e.g. \"verdict-{task-id}\"), producer_type (\"product_authority\"), created_at (ISO 8601 timestamp), task_id, verdict (\"pass\" | \"iterate\" | \"escalate\"), rationale (why this verdict), closure_packet_ref (path to closure packet). If iterate: include rewind_target (\"ready\" | \"implementing\" | \"reviewed\") and iterate_count. If escalate: include escalation_reason. Also write to .geas/evidence/{task-id}/product-authority-verdict.json for backward compatibility.")
+Agent(agent: "product-authority", prompt: "Read the closure packet at .geas/tasks/{task-id}/closure-packet.json (which includes the challenge_review field if critical_reviewer ran) and all evidence at .geas/evidence/{task-id}/. Decide: pass, iterate, or escalate. Write .geas/tasks/{task-id}/final-verdict.json. Required fields: version (\"1.0\"), artifact_type (\"final_verdict\"), artifact_id (e.g. \"verdict-{task-id}\"), producer_type (\"product_authority\"), created_at (ISO 8601 timestamp), task_id, verdict (\"pass\" | \"iterate\" | \"escalate\"), rationale (why this verdict), closure_packet_ref (path to closure packet). If iterate: include rewind_target (\"ready\" | \"implementing\" | \"reviewed\") and iterate_count. If escalate: include escalation_reason. Also write to .geas/evidence/{task-id}/product-authority-verdict.json for backward compatibility.")
 ```
 
 **Verdict rules:**
@@ -375,7 +375,7 @@ On task completion (Ship, Cut, or Escalate):
 
 Update run.json checkpoint: `pipeline_step` = "retrospective", `agent_in_flight` = "process-lead"
 ```
-Agent(agent: "process-lead", prompt: "Read all evidence at .geas/evidence/{task-id}/ and the closure packet at .geas/tasks/{task-id}/closure-packet.json. Write a structured retrospective to .geas/tasks/{task-id}/retrospective.json conforming to docs/protocol/schemas/retrospective.schema.json. Required fields:
+Agent(agent: "process-lead", prompt: "Read all evidence at .geas/evidence/{task-id}/ and the closure packet at .geas/tasks/{task-id}/closure-packet.json. Write a structured retrospective to .geas/tasks/{task-id}/retrospective.json with the following structure. Required fields:
 - version: '1.0'
 - artifact_type: 'retrospective'
 - artifact_id: 'retro-{task-id}'

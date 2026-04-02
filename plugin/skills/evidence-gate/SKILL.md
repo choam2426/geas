@@ -211,7 +211,7 @@ If the gate verdict is `error`:
 
 ## Output
 
-Write to `.geas/tasks/{task-id}/gate-result.json` conforming to `docs/protocol/schemas/gate-result.schema.json`.
+Write to `.geas/tasks/{task-id}/gate-result.json` conforming to `schemas/gate-result.schema.json`.
 
 ```json
 {

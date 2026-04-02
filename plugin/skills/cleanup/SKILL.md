@@ -95,7 +95,7 @@ Patterns common in AI-generated code:
 
 For each finding, add a structured debt item to `.geas/state/debt-register.json`. Read the existing file, append to the `items` array, update rollups, and write back.
 
-Each debt item conforms to `docs/protocol/schemas/debt-register.schema.json`:
+Each debt item conforms to `schemas/debt-register.schema.json`:
 
 ```json
 {
