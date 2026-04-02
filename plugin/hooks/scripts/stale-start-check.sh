@@ -1,35 +1,22 @@
-#!/usr/bin/env bash
-# stale-start-check.sh — warn if a task enters implementing with stale base_commit
-# Trigger: PostToolUse on Write|Edit matching .geas/tasks/*.json
-
+#!/bin/bash
+# stale-start-check.sh — PostToolUse hook (Write|Edit)
+# Warns if task enters implementing with stale base_commit.
 set -euo pipefail
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+node -e "
+const path = require('path');
+const {execSync} = require('child_process');
+const h = require('$HOOK_DIR/lib/geas-hooks');
+const {cwd, filePath} = h.parseInput();
+if (!cwd || !filePath) process.exit(0);
+if (!/\/.geas\/tasks\/[^/]+\.json$/.test(filePath.replace(/\\\\/g,'/'))) process.exit(0);
 
-TOOL_INPUT="${CLAUDE_TOOL_INPUT:-}"
+const d = h.readJson(filePath);
+if (!d || d.status !== 'implementing' || !d.base_commit) process.exit(0);
 
-# Only check task files
-if [[ "$TOOL_INPUT" != *".geas/tasks/"* ]]; then
-  exit 0
-fi
-
-# Extract task file path
-TASK_FILE=$(echo "$TOOL_INPUT" | grep -oP '\.geas/tasks/[^"]+\.json' | head -1)
-if [[ -z "$TASK_FILE" || ! -f "$TASK_FILE" ]]; then
-  exit 0
-fi
-
-# Check if status is being set to implementing
-STATUS=$(python3 -c "import json; d=json.load(open('$TASK_FILE')); print(d.get('status',''))" 2>/dev/null || echo "")
-if [[ "$STATUS" != "implementing" ]]; then
-  exit 0
-fi
-
-# Compare base_commit with current HEAD
-BASE_COMMIT=$(python3 -c "import json; d=json.load(open('$TASK_FILE')); print(d.get('base_commit',''))" 2>/dev/null || echo "")
-if [[ -z "$BASE_COMMIT" ]]; then
-  exit 0
-fi
-
-CURRENT_TIP=$(git rev-parse HEAD 2>/dev/null || echo "")
-if [[ -n "$CURRENT_TIP" && "$BASE_COMMIT" != "$CURRENT_TIP" ]]; then
-  echo "⚠️  STALE BASE_COMMIT: Task base_commit ($BASE_COMMIT) differs from integration tip ($CURRENT_TIP). Run revalidation before proceeding."
-fi
+try {
+  const head = execSync('git rev-parse HEAD', {cwd, encoding: 'utf8'}).trim();
+  if (head !== d.base_commit)
+    h.warn('Task ' + (d.task_id||'') + ' entering implementing with stale base_commit. base=' + d.base_commit.slice(0,8) + ' HEAD=' + head.slice(0,8));
+} catch {}
+" <<< "$(cat)"
