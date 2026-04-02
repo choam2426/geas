@@ -305,7 +305,7 @@ Fires after every `Write` or `Edit` tool call, but only acts when a task file is
 
 Fires after every `Write` or `Edit` tool call, but only acts on the debt ledger.
 
-1. **Filters to `.geas/state/debt-register.json` only.** All other writes are ignored immediately.
+1. **Filters to `.geas/evolution/debt-register.json` only.** All other writes are ignored immediately.
 2. **Reads the debt file** and counts items where `severity == "HIGH"` and `status == "open"`.
 3. **Warns when the count reaches 3 or more:**
    ```
@@ -315,7 +315,7 @@ Fires after every `Write` or `Edit` tool call, but only acts on the debt ledger.
 
 ### Conditions
 
-- Only activates for writes to `.geas/state/debt-register.json`.
+- Only activates for writes to `.geas/evolution/debt-register.json`.
 - Warning threshold is 3 open HIGH items.
 
 ---
@@ -823,7 +823,7 @@ For protocol details on hook failure handling, conformance checking, and metrics
 | `.geas/state/_checkpoint_pending` | checkpoint-pre-write (creates), checkpoint-post-write (removes) |
 | `.geas/state/memory-index.json` | memory-review-cadence, memory-superseded-warning |
 | `.geas/state/locks.json` | lock-conflict-check, integration-lane-check |
-| `.geas/state/debt-register.json` | check-debt |
+| `.geas/evolution/debt-register.json` | check-debt |
 | `.geas/rules.md` | session-init (creates), inject-context (reads), restore-context (reads) |
 | `.geas/memory/agents/<name>.md` | inject-context |
 | `.geas/memory/entries/<id>.json` | memory-promotion-gate |

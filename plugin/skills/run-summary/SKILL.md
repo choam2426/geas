@@ -94,7 +94,7 @@ Present as a markdown table in the summary.
 
 ---
 
-### Tech Debt Report (if `.geas/state/debt-register.json` exists)
+### Tech Debt Report (if `.geas/evolution/debt-register.json` exists)
 
 Read debt-register.json and report:
 - **Open**: count by severity (HIGH / MEDIUM / LOW)

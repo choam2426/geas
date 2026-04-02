@@ -6,7 +6,7 @@ Produce a structured gap assessment comparing what was planned vs what was deliv
 
 1. Read `.geas/spec/seed.json` — extract `scope_in` and `scope_out` items
 2. Read all TaskContracts in `.geas/tasks/` — categorize by status
-3. Read `.geas/state/debt-register.json` — get open items
+3. Read `.geas/evolution/debt-register.json` — get open items
 4. Classify each `scope_in` item:
    - Task exists with `status: "passed"` -> `fully_delivered`
    - Task exists but partially complete or with caveats -> `partially_delivered`
@@ -59,11 +59,11 @@ If no P0 items remain: skip to product_authority Final Briefing.
 
 1. Read all per-task retrospectives: `.geas/tasks/*/retrospective.json`
 2. Collect all `rule_candidates[]` across tasks
-3. If no candidates across any task: write `.geas/state/rules-update.json` with `status: "none"`, `reason: "no rule candidates from any task retrospective"`, `evidence_refs: []`, `applies_to: []`. Skip to next step.
+3. If no candidates across any task: write `.geas/evolution/rules-update.json` with `status: "none"`, `reason: "no rule candidates from any task retrospective"`, `evidence_refs: []`, `applies_to: []`. Skip to next step.
 4. For each candidate, check approval conditions:
    - `evidence_refs` >= 2 (same pattern observed in 2+ tasks) AND `contradiction_count` = 0 -> auto-approve
    - Otherwise -> spawn domain authority for review
-5. Write `.geas/state/rules-update.json` conforming to `schemas/rules-update.schema.json`:
+5. Write `.geas/evolution/rules-update.json` conforming to `schemas/rules-update.schema.json`:
    ```json
    {
      "version": "1.0",
@@ -113,7 +113,7 @@ Same mandatory steps, same Closure Packet verification, same checkpoint manageme
 
 ### Product-authority Final Briefing [MANDATORY]
 ```
-Agent(agent: "product-authority", prompt: "Final product review. Read .geas/spec/seed.json, .geas/state/gap-assessment.json, .geas/state/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write JSON to .geas/evidence/evolving/product-authority-final.json. ALSO write a human-readable markdown summary to .geas/evidence/evolving/mission-summary.md covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
+Agent(agent: "product-authority", prompt: "Final product review. Read .geas/spec/seed.json, .geas/evolution/gap-assessment-evolving.json, .geas/evolution/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write JSON to .geas/evidence/evolving/product-authority-final.json. ALSO write a human-readable markdown summary to .geas/evidence/evolving/mission-summary.md covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
 ```
 Verify `.geas/evidence/evolving/product-authority-final.json` exists.
 Verify `.geas/evidence/evolving/mission-summary.md` exists.
@@ -131,17 +131,17 @@ Invoke `/geas:run-summary` to generate session audit trail.
 
 **Before closing, verify ALL 5 required artifacts exist:**
 
-1. `.geas/state/gap-assessment.json` — produced in Gap Assessment step
-2. `.geas/state/debt-register.json` — all open debt triaged (no items with `severity: "high"` or `"critical"` and `status: "open"`)
-3. `.geas/state/rules-update.json` — exists with `status: "approved"` or `"none"` (produced in Rules Update Approval step)
+1. `.geas/evolution/gap-assessment-evolving.json` — produced in Gap Assessment step
+2. `.geas/evolution/debt-register.json` — all open debt triaged (no items with `severity: "high"` or `"critical"` and `status: "open"`)
+3. `.geas/evolution/rules-update.json` — exists with `status: "approved"` or `"none"` (produced in Rules Update Approval step)
 4. `.geas/evidence/evolving/mission-summary.md` — produced in product_authority Final Briefing step
-5. `.geas/state/phase-review.json` — write now (see below)
+5. `.geas/evolution/phase-review-evolving.json` — write now (see below)
 
 **If ANY artifact is missing: go back and execute the missing step. Do NOT close without all 5.**
 
 **Debt triage check**: Read debt-register.json. If any item has `severity: "critical"` and `status: "open"`, the exit gate fails. Product_authority must decide: (a) immediate fix as task, (b) accept with mandatory rationale, or (c) defer to next mission. Record decision in a DecisionRecord with `decision_type: "critical_debt_triage"`.
 
-Write `.geas/state/phase-review.json`:
+Write `.geas/evolution/phase-review-evolving.json`:
 ```json
 {
   "version": "1.0",

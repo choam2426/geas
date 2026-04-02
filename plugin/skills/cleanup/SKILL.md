@@ -1,6 +1,6 @@
 ---
 name: cleanup
-description: Entropy scan — detect AI slop, unused code, convention drift. Records findings in .geas/state/debt-register.json. Invoke after Building or during Evolving.
+description: Entropy scan — detect AI slop, unused code, convention drift. Records findings in .geas/evolution/debt-register.json. Invoke after Building or during Evolving.
 ---
 
 # Cleanup
@@ -93,7 +93,7 @@ Patterns common in AI-generated code:
 
 ### Per Finding: debt-register.json Entry
 
-For each finding, add a structured debt item to `.geas/state/debt-register.json`. Read the existing file, append to the `items` array, update rollups, and write back.
+For each finding, add a structured debt item to `.geas/evolution/debt-register.json`. Read the existing file, append to the `items` array, update rollups, and write back.
 
 Each debt item conforms to `schemas/debt-register.schema.json`:
 
@@ -145,7 +145,7 @@ Top priorities:
   2. <second highest>
   3. <third highest>
 
-Tech debt items recorded in .geas/state/debt-register.json
+Tech debt items recorded in .geas/evolution/debt-register.json
 ```
 
 ---

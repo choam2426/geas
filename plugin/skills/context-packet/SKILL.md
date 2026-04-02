@@ -96,7 +96,7 @@ From decision records (`.geas/decisions/`):
 - Include the decision rationale and outcome
 - Human-confirmed decisions have the highest priority
 
-From tech debt (`.geas/state/debt-register.json`, if it exists):
+From tech debt (`.geas/evolution/debt-register.json`, if it exists):
 - Read open debt items
 - Include items relevant to the current task's domain
 

@@ -10,7 +10,7 @@ Verify `.geas/evidence/polishing/security-engineer.json` exists.
 ### Triage Findings
 Read `.geas/evidence/polishing/security-engineer.json`. Classify each finding by severity:
 - **CRITICAL / HIGH** -> create a fix task (mini-pipeline, see Fix Critical Security Issues)
-- **MEDIUM / LOW** -> add to `.geas/state/debt-register.json` as structured debt items with severity, kind, status, target_phase
+- **MEDIUM / LOW** -> add to `.geas/evolution/debt-register.json` as structured debt items with severity, kind, status, target_phase
 
 If no CRITICAL/HIGH findings: skip Fix Critical Security Issues and proceed to Documentation.
 
@@ -37,12 +37,12 @@ Verify `.geas/evidence/polishing/technical-writer.json` exists.
 ### Entropy Scan
 Update run.json checkpoint: `pipeline_step` = "cleanup", `agent_in_flight` = "architecture-authority"
 Invoke `/geas:cleanup` — architecture_authority scans for dead code, AI boilerplate, convention drift, and duplication.
-Results are recorded in `.geas/state/debt-register.json`.
+Results are recorded in `.geas/evolution/debt-register.json`.
 
 ### Close Polishing
 
 **Phase review** — verify gate criteria for polishing -> evolving:
-- All high/critical debt triaged in `.geas/state/debt-register.json` (no items with severity high/critical and status "open")
+- All high/critical debt triaged in `.geas/evolution/debt-register.json` (no items with severity high/critical and status "open")
 - Required reviews approved
 - Shipping rationale recorded for every known risk
 - Zero open CRITICAL/HIGH security issues

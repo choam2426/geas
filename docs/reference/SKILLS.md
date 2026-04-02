@@ -27,7 +27,7 @@ All 27 skills in the Geas plugin. Skills are invoked either by users directly (`
 | [briefing](#briefing) | Utility | No | Product Authority or Orchestrator | Console status report |
 | [run-summary](#run-summary) | Utility | No | Orchestrator (end of session) | `.geas/summaries/run-summary-<date>.md` |
 | [ledger-query](#ledger-query) | Utility | No | Orchestrator or User | Formatted query results (read-only) |
-| [cleanup](#cleanup) | Utility | No | Orchestrator (post-Building / Evolving) | `.geas/state/debt-register.json` entries |
+| [cleanup](#cleanup) | Utility | No | Orchestrator (post-Building / Evolving) | `.geas/evolution/debt-register.json` entries |
 | [pivot-protocol](#pivot-protocol) | Utility | No | Orchestrator or any agent | `.geas/decisions/{dec-id}.json` |
 | [conformance-checking](#conformance-checking) | Operational | Yes | User or Orchestrator | 18-scenario conformance report |
 | [chaos-exercising](#chaos-exercising) | Operational | Yes | User | 5-scenario failure test results |
@@ -73,12 +73,12 @@ Geas orchestrator -- coordinates the multi-agent team. Manages setup, intake, an
 - `.geas/state/run.json` -- checked at startup for resume vs fresh run
 - `.geas/spec/seed.json` -- mission context after intake
 - `.geas/ledger/events.jsonl` -- event log for writing transitions
-- `.geas/state/debt-register.json` -- tech debt tracking after each agent return
+- `.geas/evolution/debt-register.json` -- tech debt tracking after each agent return
 
 **Outputs:**
 - `.geas/state/run.json` -- checkpoint updates before every agent spawn
 - `.geas/ledger/events.jsonl` -- event entries for all state transitions
-- `.geas/state/debt-register.json` -- new tech debt items extracted from evidence bundles
+- `.geas/evolution/debt-register.json` -- new tech debt items extracted from evidence bundles
 
 **Key Behaviors:**
 - Before every `Agent()` spawn, reads and writes `.geas/state/run.json` with a checkpoint (`pipeline_step`, `agent_in_flight`, `pending_evidence`). Session recovery depends on this.
@@ -102,7 +102,7 @@ First-time setup -- initialize `.geas/` runtime directory, generate config files
 **Outputs:**
 - `.geas/` directory tree: `spec/`, `state/`, `tasks/`, `contracts/`, `packets/`, `evidence/`, `decisions/`, `decisions/pending/`, `ledger/`, `summaries/`, `memory/_project/`, `memory/agents/`
 - `.geas/state/run.json` -- initial run state (`status: "initialized"`)
-- `.geas/state/debt-register.json` -- empty tech debt register (`{"items": []}`)
+- `.geas/evolution/debt-register.json` -- empty tech debt register (`{"items": []}`)
 - `.geas/rules.md` -- shared agent rules (evidence format, code boundaries)
 - `.gitignore` -- `.geas/` entry appended if not present
 
@@ -182,7 +182,7 @@ Generate a role-specific ContextPacket for a worker -- compressed briefing with 
 - `.geas/decisions/` -- relevant decision records
 - `.geas/spec/seed.json` -- mission context
 - `.geas/contracts/{task-id}.json` -- implementation contract (for Architecture Authority and QA Engineer packets)
-- `.geas/state/debt-register.json` -- open tech debt items relevant to the task
+- `.geas/evolution/debt-register.json` -- open tech debt items relevant to the task
 
 **Outputs:**
 - `.geas/packets/{task-id}/{worker-name}.md` -- role-tailored markdown briefing (target: under 200 lines)
@@ -494,7 +494,7 @@ Generate end-of-session summary -- decisions, issues completed, agent stats, ver
 - `.geas/decisions/` -- DecisionRecords made this session
 - `.geas/ledger/events.jsonl` -- gate results, fix loops, escalations
 - `.geas/ledger/costs.jsonl` -- agent spawn costs (optional)
-- `.geas/state/debt-register.json` -- tech debt state (optional)
+- `.geas/evolution/debt-register.json` -- tech debt state (optional)
 
 **Outputs:**
 - `.geas/summaries/run-summary-<YYYY-MM-DD>.md` -- session audit trail
@@ -538,7 +538,7 @@ Structured search over `.geas/ledger/events.jsonl` -- query by task, phase, agen
 
 ### cleanup
 
-Entropy scan -- detect AI slop, unused code, convention drift. Records findings in `.geas/state/debt-register.json`. Invoke after Building phase or during Evolving.
+Entropy scan -- detect AI slop, unused code, convention drift. Records findings in `.geas/evolution/debt-register.json`. Invoke after Building phase or during Evolving.
 
 **User-Invocable:** No
 
@@ -549,7 +549,7 @@ Entropy scan -- detect AI slop, unused code, convention drift. Records findings 
 - `.geas/memory/_project/conventions.md` -- baseline for detecting convention drift
 
 **Outputs:**
-- `.geas/state/debt-register.json` -- new entries appended for each finding
+- `.geas/evolution/debt-register.json` -- new entries appended for each finding
 - Console summary (files scanned, issue counts by severity, top 3 priorities)
 
 **Key Behaviors:**
@@ -557,7 +557,7 @@ Entropy scan -- detect AI slop, unused code, convention drift. Records findings 
 - Scan depth scales to project size: full scan for small projects; files changed in the current mission plus core modules for medium; only team-modified files and flagged areas for large.
 - Related findings with the same root cause are grouped into one `debt-register.json` entry (not 20 entries for 20 comments in one file).
 
-**Schemas:** None (writes entries to `.geas/state/debt-register.json`; structure is defined in the skill).
+**Schemas:** None (writes entries to `.geas/evolution/debt-register.json`; structure is defined in the skill).
 
 ---
 

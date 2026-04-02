@@ -14,7 +14,7 @@ For each task, read `references/pipeline.md` and execute the full per-task pipel
 **Phase review** — verify gate criteria for building -> polishing:
 - All MVP-critical tasks passed
 - No blocking_conflict active
-- 0 critical debt in `.geas/state/debt-register.json`
+- 0 critical debt in `.geas/evolution/debt-register.json`
 - 0 unmitigated high debt (status must not be "open" for high severity)
 
 Write `.geas/evolution/gap-assessment-building-to-polishing.json` (same procedure as Evolving 4.1 but scoped to building phase).

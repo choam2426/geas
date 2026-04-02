@@ -77,13 +77,13 @@ This applies to every task — sequential or parallel. If the task file does not
 - `.geas/rules.md` is a living document. Changes go through a structured `rules-update.json` workflow.
 - During per-task retrospectives, process_lead produces `rule_candidates[]` in `retrospective.json`. These are proposals, NOT direct modifications.
 - Rule candidates accumulate during the Building phase. Batch approval happens in the Evolving phase (Step 4.2.5).
-- Approved rules updates are applied to `.geas/rules.md` and recorded in `.geas/state/rules-update.json` with `status: "approved"`.
+- Approved rules updates are applied to `.geas/rules.md` and recorded in `.geas/evolution/rules-update.json` with `status: "approved"`.
 - Approval conditions (per doc 14): process_lead + domain authority, OR evidence_refs >= 2 with contradiction_count = 0.
 - After Phase 1 (Specifying): Orchestrator adds stack-specific rules before the rules-update workflow exists in the pipeline.
 
 ### Tech debt tracking
 After reading each agent's evidence, check for a `tech_debt` array. If present:
-1. Read `.geas/state/debt-register.json` (create with initial schema if missing).
+1. Read `.geas/evolution/debt-register.json` (create with initial schema if missing).
 2. For each debt item, check if a similar title already exists (skip duplicates).
 3. Add new items with sequential ID (DEBT-001, DEBT-002...) as structured items conforming to `schemas/debt-register.schema.json`. Each item requires: `debt_id`, `severity`, `kind`, `title`, `description`, `introduced_by_task_id`, `owner_type`, `status: "open"`, `target_phase`.
 4. Update `rollup_by_severity` and `rollup_by_kind` counts.
