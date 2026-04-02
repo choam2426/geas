@@ -81,6 +81,12 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 - `sprint/` — delivery mode: bounded feature addition
 - `decision/` — decision mode: structured decision-making, no code
 
+### Operational tooling
+- `conformance-checking/` — 18-scenario enforcement verification suite
+- `chaos-exercising/` — 5 failure scenario testing with inline scripts
+- `policy-managing/` — rules.md override management
+- `reporting/` — debt/gap dashboard + 8 health signals from doc 12
+
 ## Key Design Principles
 
 1. **Contract Engine is tool-agnostic** — core skills must not reference any specific tool.
@@ -125,24 +131,18 @@ We are upgrading skills to match the v3 protocol. Migration follows 6 phases (se
 - **Phase 3 (Evolution Core)**: structured retrospective (after Resolve, Ship only), rules-update workflow, debt-register.json, gap-assessment.json, phase-review wiring, evolution exit gate, Sprint Wrap-Up
 - **Phase 4 (Memory Core)**: memorizing skill (9-state lifecycle, 6-stage promotion), memory retrieval scoring in context-packet, application logging, memory-index, memory hooks
 - **Phase 5 (Recovery and Context Engine)**: recovery-packet schema, extended run-state, recovery decision table, session-latest.md + task-focus maintenance, two-phase checkpoint hooks, enhanced restore-context.sh with L0 anti-forgetting
+- **Phase 6 (Refinement)**: conformance-checking (18 scenarios), chaos-exercising (5 failure scenarios), policy-managing, reporting (health signals), memory review cadence hook
 
-### Current phase: Phase 6 — Refinement
+### Migration complete
 
-Priority items:
-1. Conformance suite automation
-2. Chaos exercises (5 scenarios)
-3. Memory review cadence tooling
-4. Policy registry tuning
-5. Debt/gap dashboard
-
-### How to work on migration
+All 6 phases of the v3 protocol migration are implemented. Skills are aligned with the protocol. See `docs/protocol/13_MIGRATION_AND_IMPLEMENTATION_ROADMAP.md` for the full roadmap.
+### Working with skills
 
 1. **Read the protocol doc first** — before touching any skill, read the relevant protocol document in `docs/protocol/`.
 2. **Read the skill second** — understand what it currently does vs what the protocol requires.
-3. **Change one gap at a time** — don't mix multiple gaps in one change. Commit after each.
-4. **Protocol schemas are the contract** — `docs/protocol/schemas/` defines the exact artifact shapes. Skills must produce artifacts that validate against these schemas.
-5. **Update both `initiative` and `sprint`** when changing shared pipeline behavior.
-6. **Don't break working functionality** — migration is incremental. Old behavior should keep working until explicitly replaced.
+3. **Protocol schemas are the contract** — `docs/protocol/schemas/` defines the exact artifact shapes. Skills must produce artifacts that validate against these schemas.
+4. **Update both `initiative` and `sprint`** when changing shared pipeline behavior.
+5. **Run `/geas:conformance-checking`** after significant changes to verify enforcement mechanisms still work.
 
 ### Protocol quick reference
 
