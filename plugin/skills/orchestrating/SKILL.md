@@ -125,6 +125,60 @@ Check for `.geas/state/run.json`:
    - Log: `{"event": "lock_orphan_released", "task_id": "...", "lock_type": "...", "targets": [...], "timestamp": "<actual>"}`
 3. Write updated `locks.json`
 
+#### Recovery Decision Table
+
+When `run.json` exists with `status: "in_progress"`, classify the recovery:
+
+**Step 1 — Check for interrupted checkpoint:**
+- If `.geas/state/_checkpoint_pending` exists → the last run.json write was interrupted. Copy `_checkpoint_pending` to `run.json`. Delete `_checkpoint_pending`. Continue with the restored state.
+
+**Step 2 — Read checkpoint and classify:**
+
+| Condition | Recovery Class | Action |
+|-----------|---------------|--------|
+| `agent_in_flight` is not null | `interrupted_subagent_resume` | Check if `pending_evidence` files exist. If yes → step completed, remove from `remaining_steps`, proceed to next. If no → re-execute the step (re-spawn the agent). |
+| `parallel_batch` is not null | `interrupted_subagent_resume` (batch) | Delegate to `/geas:scheduling` recovery section. Check `completed_in_batch` vs `parallel_batch` to determine remaining tasks. |
+| `agent_in_flight` is null, `remaining_steps` is non-empty | `warm_session_resume` | Read `remaining_steps`. Resume from the first remaining step. Read `session-latest.md` for context. |
+| `remaining_steps` is empty, task status is not `"passed"` | `dirty_state_recovery` | Artifact consistency check (see below). |
+
+**Step 3 — Artifact consistency check (for dirty_state_recovery):**
+1. Read the current task's TaskContract and determine expected artifacts for its state
+2. Check each expected artifact exists:
+   - All present → task is further along than checkpoint shows. Update `remaining_steps` and continue.
+   - Some missing → rewind to last **safe boundary**:
+     - After `implementation_contract` approved
+     - After implementation evidence verified
+     - After `code_review` + `testing` complete
+     - After gate pass
+     - After closure packet assembled
+   - Inconsistent state (conflicting artifacts) → `manual_repair_required`
+3. Write `.geas/recovery/{recovery-id}.json` conforming to `docs/protocol/schemas/recovery-packet.schema.json`
+4. Update `run.json`: set `recovery_class` field
+5. Log: `{"event": "recovery", "recovery_class": "...", "recovery_id": "...", "focus_task_id": "...", "timestamp": "<actual>"}`
+
+**Step 4 — If `manual_repair_required`:**
+- Write recovery-packet.json with `detected_problem` and `artifacts_found`/`artifacts_missing`
+- Present the situation to the user: "Session state is inconsistent and cannot be automatically recovered. Recovery packet written to .geas/recovery/{id}.json. Manual intervention required."
+- Do NOT proceed with the pipeline.
+
+#### Stale Packet Check
+
+After recovery completes and before resuming the pipeline:
+1. Check if context packets exist for the focus task at `.geas/packets/{task-id}/`
+2. If packets exist: compare their timestamps against the last event in `events.jsonl`
+3. If packets are older than the last event → packets are stale. Regenerate by invoking `/geas:context-packet` before spawning the next agent.
+4. Also regenerate after: revalidation, rewind, rules.md update, memory state change to under_review/superseded.
+
+#### Session State Maintenance
+
+The orchestrator is responsible for maintaining two context anchors:
+
+1. **`.geas/state/session-latest.md`** — updated after each pipeline step completion. Contains mode, phase, focus task, last/next step, recent events, open risks, memory summary. See initiative/sprint skills for the exact format.
+
+2. **`.geas/state/task-focus/{task-id}.md`** — updated after each step for the focus task. Contains task state, goal, progress, remaining steps, key risks. One file per active task.
+
+These files are consumed by `restore-context.sh` during post-compact recovery.
+
 ### Step 1: Intake Gate
 Invoke `/geas:intake` to produce `.geas/spec/seed.json`.
 - Ask the user clarifying questions until the completeness checklist is satisfied (all boolean fields in `completeness_checklist` are true).
