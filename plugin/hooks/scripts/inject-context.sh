@@ -1,65 +1,51 @@
 #!/bin/bash
 # inject-context.sh — SubagentStart hook
-# Injects rules.md + per-agent memory into every sub-agent's context.
-# Output: JSON with additionalContext field on stdout.
-
+# Injects rules.md + policy overrides + per-agent memory into every sub-agent's context.
 set -euo pipefail
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+node -e "
+const fs = require('fs');
+const path = require('path');
+const h = require('$HOOK_DIR/lib/geas-hooks');
+const {cwd, agentType} = h.parseInput();
+if (!cwd) process.exit(0);
 
-INPUT=$(cat)
+const geas = h.geasDir(cwd);
+if (!fs.existsSync(geas)) process.exit(0);
 
-python -c "
-import json, sys, os
+const parts = [];
 
-d = json.load(sys.stdin)
-cwd = d.get('cwd', '')
-agent_type = d.get('agent_type', '').lower()
-# Strip plugin prefix (e.g., "geas:product-authority" -> "product-authority")
-if ':' in agent_type:
-    agent_type = agent_type.split(':')[-1]
+// Inject rules.md
+const rulesPath = path.join(geas, 'rules.md');
+if (h.exists(rulesPath)) {
+  const content = fs.readFileSync(rulesPath, 'utf8').trim();
+  if (content) {
+    parts.push('--- PROJECT RULES (.geas/rules.md) ---');
+    parts.push(content);
+  }
+}
 
-if not cwd:
-    sys.exit(0)
+// Inject active policy overrides
+const ov = h.readJson(path.join(geas, 'state', 'policy-overrides.json'));
+if (ov) {
+  const active = (ov.overrides || []).filter(o => !o.expired);
+  if (active.length) {
+    parts.push('--- ACTIVE POLICY OVERRIDES (.geas/state/policy-overrides.json) ---');
+    active.forEach(o => parts.push('- ' + (o.rule_id||'?') + ': ' + (o.action||'?') + ' (reason: ' + (o.reason||'?') + ', expires: ' + (o.expires_at||'?') + ')'));
+  }
+}
 
-geas_dir = os.path.join(cwd, '.geas')
-if not os.path.isdir(geas_dir):
-    sys.exit(0)
+// Inject per-agent memory
+if (agentType) {
+  const memPath = path.join(geas, 'memory', 'agents', agentType + '.md');
+  if (h.exists(memPath)) {
+    const content = fs.readFileSync(memPath, 'utf8').trim();
+    if (content) {
+      parts.push('--- YOUR MEMORY (.geas/memory/agents/' + agentType + '.md) ---');
+      parts.push(content);
+    }
+  }
+}
 
-parts = []
-
-# Inject rules.md
-rules_path = os.path.join(geas_dir, 'rules.md')
-if os.path.isfile(rules_path):
-    with open(rules_path, 'r', encoding='utf-8') as f:
-        content = f.read().strip()
-    if content:
-        parts.append('--- PROJECT RULES (.geas/rules.md) ---')
-        parts.append(content)
-
-# Inject active policy overrides
-overrides_path = os.path.join(geas_dir, 'state', 'policy-overrides.json')
-if os.path.isfile(overrides_path):
-    try:
-        with open(overrides_path, 'r', encoding='utf-8') as f:
-            ov = json.load(f)
-        active = [o for o in ov.get('overrides', []) if not o.get('expired', True)]
-        if active:
-            parts.append('--- ACTIVE POLICY OVERRIDES (.geas/state/policy-overrides.json) ---')
-            for o in active:
-                parts.append(f'- {o.get("rule_id", "?")}: {o.get("action", "?")} (reason: {o.get("reason", "?")}, expires: {o.get("expires_at", "?")})')
-    except Exception:
-        pass
-
-# Inject per-agent memory
-if agent_type:
-    memory_path = os.path.join(geas_dir, 'memory', 'agents', f'{agent_type}.md')
-    if os.path.isfile(memory_path):
-        with open(memory_path, 'r', encoding='utf-8') as f:
-            content = f.read().strip()
-        if content:
-            parts.append(f'--- YOUR MEMORY (.geas/memory/agents/{agent_type}.md) ---')
-            parts.append(content)
-
-if parts:
-    context = '\n\n'.join(parts)
-    print(json.dumps({'additionalContext': context}))
-" <<< "$INPUT" 2>/dev/null || true
+if (parts.length) h.outputContext(parts.join('\n\n'));
+" <<< "$(cat)"

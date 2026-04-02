@@ -1,63 +1,44 @@
 #!/bin/bash
 # session-init.sh — SessionStart hook
 # Checks .geas/ state on session start and injects context.
-
 set -euo pipefail
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+node -e "
+const fs = require('fs');
+const path = require('path');
+const h = require('$HOOK_DIR/lib/geas-hooks');
+const {cwd} = h.parseInput();
+if (!cwd) process.exit(0);
 
-INPUT=$(cat)
-CWD=$(echo "$INPUT" | python -c "import json,sys; d=json.load(sys.stdin); print(d.get('cwd',''))" 2>/dev/null || echo "")
+const geas = h.geasDir(cwd);
+if (!fs.existsSync(geas)) process.exit(0);
 
-if [ -z "$CWD" ]; then
-  exit 0
-fi
+const runFile = path.join(geas, 'state', 'run.json');
+if (!h.exists(runFile)) {
+  h.info('.geas/ directory exists but no run.json. Run setup first.');
+  process.exit(0);
+}
 
-GEAS_DIR="$CWD/.geas"
-RUN_FILE="$GEAS_DIR/state/run.json"
+const d = h.readJson(runFile);
+if (d) {
+  const status = d.status || 'unknown';
+  const phase = d.phase || 'unknown';
+  const mission = d.mission || 'unknown';
+  const completed = (d.completed_tasks || []).length;
+  h.info('Session resumed. Mission: ' + mission + ' | Phase: ' + phase + ' | Status: ' + status + ' | Tasks completed: ' + completed);
 
-# Not a Geas project — skip
-if [ ! -d "$GEAS_DIR" ]; then
-  exit 0
-fi
+  const cp = d.checkpoint || {};
+  if (cp.pipeline_step) {
+    const tid = d.current_task_id || '';
+    h.info('Checkpoint: task=' + tid + ', step=' + cp.pipeline_step + ', agent=' + (cp.agent_in_flight || ''));
+  }
+}
 
-# No run.json — prompt setup
-if [ ! -f "$RUN_FILE" ]; then
-  echo "[Geas] .geas/ directory exists but no run.json. Run setup first." >&2
-  exit 0
-fi
-
-# Load previous session state
-python -c "
-import json, sys, os
-d = json.load(open(sys.argv[1]))
-status = d.get('status', 'unknown')
-phase = d.get('phase', 'unknown')
-mission = d.get('mission', 'unknown')
-completed = len(d.get('completed_tasks', []))
-print(f'[Geas] Session resumed. Mission: {mission} | Phase: {phase} | Status: {status} | Tasks completed: {completed}', file=sys.stderr)
-cp = d.get('checkpoint', {})
-if cp:
-    step = cp.get('pipeline_step', '')
-    agent = cp.get('agent_in_flight', '')
-    tid_current = d.get('current_task_id', '')
-    if step:
-        print(f'[Geas] Checkpoint: task={tid_current}, step={step}, agent={agent}', file=sys.stderr)
-
-# Create rules.md if missing
-rules = os.path.join(sys.argv[2], 'rules.md')
-if not os.path.isfile(rules):
-    template = '''# Agent Rules
-
-## Evidence
-- Write results to .geas/evidence/{task-id}/{your-name}.json as JSON
-- Required fields: agent, task_id, summary, files_changed, created_at
-- created_at is auto-injected by the PostToolUse hook. No manual timestamp needed.
-
-## Code
-- Respect scope.paths from the TaskContract — only modify files within the declared scope
-'''
-    with open(rules, 'w', encoding='utf-8') as f:
-        f.write(template)
-    print('[Geas] Created .geas/rules.md with initial template.', file=sys.stderr)
-" "$RUN_FILE" "$GEAS_DIR" 2>&1 >&2 || true
-
-exit 0
+// Create rules.md if missing
+const rulesPath = path.join(geas, 'rules.md');
+if (!h.exists(rulesPath)) {
+  const template = '# Agent Rules\n\n## Evidence\n- Write results to .geas/evidence/{task-id}/{your-name}.json as JSON\n- Required fields: agent, task_id, summary, files_changed, created_at\n- created_at is auto-injected by the PostToolUse hook. No manual timestamp needed.\n\n## Code\n- Respect scope.paths from the TaskContract — only modify files within the declared scope\n- Do not modify files outside the task scope\n';
+  fs.writeFileSync(rulesPath, template, 'utf8');
+  h.info('Created .geas/rules.md with initial template.');
+}
+" <<< "$(cat)"

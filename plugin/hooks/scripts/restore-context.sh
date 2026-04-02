@@ -2,179 +2,118 @@
 # restore-context.sh — PostCompact hook
 # Re-injects critical Geas state after context compaction.
 # Prevents orchestrator from losing track of current phase/task.
-
 set -euo pipefail
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+node -e "
+const fs = require('fs');
+const path = require('path');
+const h = require('$HOOK_DIR/lib/geas-hooks');
+const {cwd} = h.parseInput();
+if (!cwd) process.exit(0);
 
-INPUT=$(cat)
-CWD=$(echo "$INPUT" | python -c "import json,sys; d=json.load(sys.stdin); print(d.get('cwd',''))" 2>/dev/null || echo "")
+const geas = h.geasDir(cwd);
+const runFile = path.join(geas, 'state', 'run.json');
+if (!fs.existsSync(geas) || !h.exists(runFile)) process.exit(0);
 
-if [ -z "$CWD" ]; then
-  exit 0
-fi
+const d = h.readJson(runFile);
+if (!d) process.exit(0);
 
-GEAS_DIR="$CWD/.geas"
-RUN_FILE="$GEAS_DIR/state/run.json"
+const parts = [];
+parts.push('--- GEAS STATE (restored after context compaction) ---');
 
-if [ ! -d "$GEAS_DIR" ] || [ ! -f "$RUN_FILE" ]; then
-  exit 0
-fi
+const status = d.status || 'unknown';
+const phase = d.phase || 'unknown';
+const mission = d.mission || '';
+const tid = d.current_task_id || '';
+const completed = d.completed_tasks || [];
 
-python -c "
-import json, sys, os
+parts.push('Phase: ' + phase + ' | Status: ' + status);
+parts.push('Mission: ' + mission);
+parts.push('Current task: ' + tid);
+const last5 = completed.slice(-5).join(', ') + (completed.length > 5 ? '...' : '');
+parts.push('Completed tasks: ' + completed.length + ' (' + last5 + ')');
 
-geas = sys.argv[1]
-run_file = sys.argv[2]
-d = json.load(open(run_file))
+// Checkpoint info
+const cp = d.checkpoint || {};
+const remaining = cp.remaining_steps || [];
+if (cp.pipeline_step) parts.push('Pipeline step: ' + cp.pipeline_step);
+if (cp.agent_in_flight) parts.push('Agent in flight: ' + cp.agent_in_flight);
+if (remaining.length) {
+  parts.push('Remaining steps: ' + remaining.join(', '));
+  parts.push('NEXT STEP: ' + remaining[0]);
+}
 
-parts = []
-parts.append('--- GEAS STATE (restored after context compaction) ---')
+// Recovery info
+if (d.recovery_class) parts.push('Recovery class: ' + d.recovery_class);
 
-status = d.get('status', 'unknown')
-phase = d.get('phase', 'unknown')
-mission = d.get('mission', '')
-tid = d.get('current_task_id', '')
-completed = d.get('completed_tasks', [])
+// Task contract summary
+let taskGoal = '';
+if (tid) {
+  const task = h.readJson(path.join(geas, 'tasks', tid + '.json'));
+  if (task) {
+    taskGoal = task.goal || '';
+    parts.push('Task goal: ' + taskGoal);
+    const criteria = task.acceptance_criteria || [];
+    if (criteria.length) {
+      parts.push('Acceptance criteria:');
+      criteria.forEach((c, i) => parts.push('  ' + (i+1) + '. ' + c));
+    }
+  }
+}
 
-parts.append(f'Phase: {phase} | Status: {status}')
-parts.append(f'Mission: {mission}')
-parts.append(f'Current task: {tid}')
-parts.append(f'Completed tasks: {len(completed)} ({\", \".join(completed[-5:])}{\"...\" if len(completed) > 5 else \"\"})')
+// SESSION CONTEXT (from session-latest.md)
+const slPath = path.join(geas, 'state', 'session-latest.md');
+if (h.exists(slPath)) {
+  const sc = fs.readFileSync(slPath, 'utf8').trim();
+  if (sc) { parts.push(''); parts.push('--- SESSION CONTEXT ---'); parts.push(sc); }
+}
 
-# Checkpoint info
-cp = d.get('checkpoint', {})
-remaining = []
-if cp:
-    step = cp.get('pipeline_step', '')
-    agent = cp.get('agent_in_flight', '')
-    if step:
-        parts.append(f'Pipeline step: {step}')
-    if agent:
-        parts.append(f'Agent in flight: {agent}')
-    remaining = cp.get('remaining_steps', [])
-    if remaining:
-        parts.append(f'Remaining steps: {", ".join(remaining)}')
-        parts.append(f'NEXT STEP: {remaining[0]}')
+// Open risks from closure packet
+let openRisks = [];
+if (tid) {
+  const cpkt = h.readJson(path.join(geas, 'tasks', tid, 'closure-packet.json'));
+  if (cpkt && cpkt.open_risks) openRisks = cpkt.open_risks.items || [];
+}
 
-# Recovery info
-recovery_class = d.get('recovery_class', None)
-if recovery_class:
-    parts.append(f'Recovery class: {recovery_class}')
+// Rules summary (first 30 lines)
+const rulesPath = path.join(geas, 'rules.md');
+let rulesLines = [];
+if (h.exists(rulesPath)) {
+  rulesLines = fs.readFileSync(rulesPath, 'utf8').split('\n').slice(0, 30);
+  parts.push(''); parts.push('--- KEY RULES ---'); parts.push(rulesLines.join('\n').trim());
+}
 
-# Current task contract summary
-task_goal = ''
-if tid:
-    task_file = os.path.join(geas, 'tasks', f'{tid}.json')
-    if os.path.isfile(task_file):
-        task = json.load(open(task_file))
-        task_goal = task.get('goal', '')
-        parts.append(f'Task goal: {task_goal}')
-        criteria = task.get('acceptance_criteria', [])
-        if criteria:
-            parts.append('Acceptance criteria:')
-            for i, c in enumerate(criteria, 1):
-                parts.append(f'  {i}. {c}')
+// MEMORY STATE SUMMARY
+const mi = h.readJson(path.join(geas, 'state', 'memory-index.json'));
+let memTotal = 0;
+const memCounts = {};
+if (mi && mi.entries) {
+  memTotal = mi.entries.length;
+  mi.entries.forEach(e => { const s = e.state || 'unknown'; memCounts[s] = (memCounts[s]||0)+1; });
+}
+if (memTotal > 0) {
+  parts.push(''); parts.push('--- MEMORY STATE ---');
+  const summary = Object.entries(memCounts).sort().map(([s,c]) => s+': '+c).join(', ');
+  parts.push('Total memories: ' + memTotal + ' (' + summary + ')');
+}
 
-# --- SESSION CONTEXT (from session-latest.md) ---
-session_latest_path = d.get('session_latest_path', '.geas/state/session-latest.md')
-# Resolve relative to project root (parent of .geas)
-project_root = os.path.dirname(geas)
-if not os.path.isabs(session_latest_path):
-    session_latest_abs = os.path.join(project_root, session_latest_path)
-else:
-    session_latest_abs = session_latest_path
-# Also try the default location directly under .geas
-if not os.path.isfile(session_latest_abs):
-    session_latest_abs = os.path.join(geas, 'state', 'session-latest.md')
-if os.path.isfile(session_latest_abs):
-    try:
-        with open(session_latest_abs, 'r', encoding='utf-8') as f:
-            session_content = f.read().strip()
-        if session_content:
-            parts.append('')
-            parts.append('--- SESSION CONTEXT ---')
-            parts.append(session_content)
-    except Exception:
-        pass
+// L0 ANTI-FORGETTING (always-preserved items)
+parts.push(''); parts.push('## L0 ANTI-FORGETTING');
+parts.push('The following items MUST be retained across compaction:');
+const l0 = [];
+l0.push('1. Phase: ' + phase + ' (status: ' + status + ')');
+l0.push('2. Focus task: ' + (tid || '(none)') + (taskGoal ? ' — ' + taskGoal : ''));
+l0.push('3. Rewind reason: ' + (d.recovery_class || '(clean session, no recovery)'));
+l0.push('4. Required next artifact: ' + (remaining.length ? remaining[0] : '(pipeline complete or unknown)'));
+if (openRisks.length) {
+  const strs = openRisks.slice(0,3).map(r => typeof r === 'object' ? (r.description || r.risk || JSON.stringify(r)) : String(r));
+  l0.push('5. Open risks: ' + strs.join('; '));
+} else l0.push('5. Open risks: (none found)');
+l0.push('6. Recovery outcome: ' + (d.recovery_class || '(clean session)'));
+const ruleCount = rulesLines.filter(l => l.trim() && !l.trim().startsWith('#')).length;
+l0.push('7. Active rules: ' + ruleCount + ' lines loaded from rules.md | Memories: ' + memTotal + ' entries');
 
-# --- Open risks from closure packet ---
-open_risks_items = []
-if tid:
-    cp_path = os.path.join(geas, 'tasks', tid, 'closure-packet.json')
-    if os.path.isfile(cp_path):
-        try:
-            cp_data = json.load(open(cp_path))
-            risks = cp_data.get('open_risks', {})
-            open_risks_items = risks.get('items', [])
-        except Exception:
-            pass
+l0.forEach(item => parts.push(item));
 
-# Rules summary (first 30 lines)
-rules_lines = []
-rules_path = os.path.join(geas, 'rules.md')
-if os.path.isfile(rules_path):
-    with open(rules_path, 'r', encoding='utf-8') as f:
-        rules_lines = f.readlines()[:30]
-    parts.append('')
-    parts.append('--- KEY RULES ---')
-    parts.append(''.join(rules_lines).strip())
-
-# --- MEMORY STATE SUMMARY ---
-memory_index_path = os.path.join(geas, 'state', 'memory-index.json')
-memory_counts = {}
-memory_total = 0
-if os.path.isfile(memory_index_path):
-    try:
-        mi = json.load(open(memory_index_path))
-        entries = mi.get('entries', [])
-        memory_total = len(entries)
-        for entry in entries:
-            state = entry.get('state', 'unknown')
-            memory_counts[state] = memory_counts.get(state, 0) + 1
-    except Exception:
-        pass
-
-if memory_total > 0:
-    parts.append('')
-    parts.append('--- MEMORY STATE ---')
-    summary_parts = [f'{s}: {c}' for s, c in sorted(memory_counts.items())]
-    parts.append(f'Total memories: {memory_total} ({", ".join(summary_parts)})')
-
-# === L0 ANTI-FORGETTING (always-preserved items) ===
-parts.append('')
-parts.append('## L0 ANTI-FORGETTING')
-parts.append('The following items MUST be retained across compaction:')
-
-l0 = []
-# 1. Phase
-l0.append(f'1. Phase: {phase} (status: {status})')
-# 2. Focus task state
-l0.append(f'2. Focus task: {tid or \"(none)\"}' + (f' — {task_goal}' if task_goal else ''))
-# 3. Rewind reason (recovery class)
-if recovery_class:
-    l0.append(f'3. Rewind reason: {recovery_class}')
-else:
-    l0.append('3. Rewind reason: (clean session, no recovery)')
-# 4. Required next artifact
-next_artifact = remaining[0] if remaining else '(pipeline complete or unknown)'
-l0.append(f'4. Required next artifact: {next_artifact}')
-# 5. Open risks
-if open_risks_items:
-    risk_strs = [r.get('description', r.get('risk', str(r))) if isinstance(r, dict) else str(r) for r in open_risks_items[:3]]
-    l0.append(f'5. Open risks: {"; ".join(risk_strs)}')
-else:
-    l0.append('5. Open risks: (none found)')
-# 6. Recovery outcome
-if recovery_class:
-    l0.append(f'6. Recovery outcome: {recovery_class}')
-else:
-    l0.append('6. Recovery outcome: (clean session)')
-# 7. Active rules + memory count
-rule_count = len([l for l in rules_lines if l.strip() and not l.strip().startswith('#')])
-l0.append(f'7. Active rules: {rule_count} lines loaded from rules.md | Memories: {memory_total} entries')
-
-for item in l0:
-    parts.append(item)
-
-context = chr(10).join(parts)
-print(json.dumps({'additionalContext': context}))
-" "$GEAS_DIR" "$RUN_FILE" 2>/dev/null || true
+h.outputContext(parts.join('\n'));
+" <<< "$(cat)"
