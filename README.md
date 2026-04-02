@@ -76,15 +76,36 @@ Describe what you want to build, add, or decide. The orchestrator runs a 4-phase
 
 ## How It Works
 
+### 4-Phase Execution Flow
+
 ```mermaid
 graph LR
-    A[User Intent] -->|Socratic questioning| B[Intake Gate]
-    B -->|Frozen requirements| C[Task Compiler]
-    C -->|TaskContracts| D[Agent Execution]
-    D -->|Evidence| E[Evidence Gate]
-    E -->|PASS| F[Ship]
-    E -->|FAIL| G[Verify-Fix Loop]
-    G --> D
+    A[User Intent] --> B[Discovery]
+    B --> C[Build]
+    C --> D[Polish]
+    D --> E[Evolution]
+
+    B -.- B1["Intake → Spec → Architecture\n→ Task Compilation"]
+    C -.- C1["Per-task pipeline × N\n(parallel when safe)"]
+    D -.- D1["Security → Docs → Cleanup"]
+    E -.- E1["Gap Assessment → Rules\n→ Memory → Summary"]
+```
+
+### Per-Task Pipeline
+
+```mermaid
+graph TD
+    A[Implementation Contract] --> B[Implementation]
+    B --> C[Worker Self-Check]
+    C --> D[Code Review + Testing]
+    D --> E[Evidence Gate]
+    E -->|FAIL| F[Verify-Fix Loop]
+    F --> B
+    E -->|PASS| G[Closure Packet]
+    G --> H[Critical Reviewer]
+    H --> I[Final Verdict]
+    I -->|PASS| J[Resolve → Retrospective\n→ Memory Extraction]
+    I -->|ITERATE| B
 ```
 
 Every artifact is written to `.geas/` — the traceable record of the entire run:
