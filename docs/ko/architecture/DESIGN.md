@@ -323,5 +323,4 @@ plugin/
 | Session recovery | `protocol/10_SESSION_RECOVERY_AND_RESUMABILITY.md` |
 | Artifact, schema | `protocol/11_RUNTIME_ARTIFACTS_AND_SCHEMAS.md` |
 | Enforcement, metrics | `protocol/12_ENFORCEMENT_CONFORMANCE_AND_METRICS.md` |
-| Migration roadmap | `protocol/13_MIGRATION_AND_IMPLEMENTATION_ROADMAP.md` |
 | Evolution loop | `protocol/14_EVOLUTION_DEBT_AND_GAP_LOOP.md` |

@@ -49,8 +49,6 @@
   - runtime artifact and memory artifact contract summary, specific drift examples, phase_targeting/review_after field details
 - `12_ENFORCEMENT_CONFORMANCE_AND_METRICS.md`
   - hook/enforcement, conformance suite, metrics, health signal threshold definitions, low-quality incident/stub cap definitions
-- `13_MIGRATION_AND_IMPLEMENTATION_ROADMAP.md`
-  - inter-phase dependency specification, per-phase deliverables, 5 chaos exercise scenario definitions
 - `14_EVOLUTION_DEBT_AND_GAP_LOOP.md`
   - retrospective, rules.md update, role-specific lesson criteria, debt lifecycle (scheduled to resolved transition conditions), gap assessment forward-feeding, harmful reuse feedback loop
 - `schemas/` -- 13 JSON Schemas (draft 2020-12) + `_defs.schema.json` shared definitions

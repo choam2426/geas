@@ -51,7 +51,7 @@ plugin/
 
 docs/
 ├── protocol/                # Operating protocol (English, canonical)
-│   ├── 00-14 .md            # 15 protocol documents
+│   ├── 00-12, 14 .md        # 14 protocol documents
 │   ├── schemas/             # 21 JSON Schema (draft 2020-12)
 │   └── examples/            # 15 example files
 ├── architecture/DESIGN.md   # Architecture overview
@@ -93,7 +93,7 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 3. **Collaboration surface is an adapter** — don't hardcode surface assumptions into core skills.
 4. **Evidence over declaration** — "agent says done" is never enough. Evidence Gate must verify.
 5. **Memory is a behavior-change mechanism** — memory must alter future actions through rules.md, context packets, gate strictness, and scheduling caution.
-6. **Protocol is north star** — skills are upgraded to match the protocol, not the other way around. See `docs/protocol/13_MIGRATION_AND_IMPLEMENTATION_ROADMAP.md`.
+6. **Protocol is north star** — skills are upgraded to match the protocol, not the other way around.
 
 ## Agent Name Rule
 
@@ -121,7 +121,7 @@ All files must be written in English, except `docs/ko/` and `README.ko.md`.
 
 ## Protocol Migration (current work)
 
-We are upgrading skills to match the v3 protocol. Migration follows 6 phases (see `docs/protocol/13_MIGRATION_AND_IMPLEMENTATION_ROADMAP.md`). Each phase depends on the previous one.
+We are upgrading skills to match the v3 protocol. Migration follows 6 phases. Each phase depends on the previous one.
 
 ### Completed phases
 
@@ -134,7 +134,7 @@ We are upgrading skills to match the v3 protocol. Migration follows 6 phases (se
 
 ### Migration complete
 
-All 6 phases of the v3 protocol migration are implemented. Skills are aligned with the protocol. See `docs/protocol/13_MIGRATION_AND_IMPLEMENTATION_ROADMAP.md` for the full roadmap.
+All 6 phases of the v3 protocol migration are implemented. Skills are aligned with the protocol.
 ### Working with skills
 
 1. **Read the protocol doc first** — before touching any skill, read the relevant protocol document in `docs/protocol/`.
@@ -160,7 +160,6 @@ All 6 phases of the v3 protocol migration are implemented. Skills are aligned wi
 | Session recovery | `protocol/10` |
 | Runtime artifacts, schemas | `protocol/11` |
 | Enforcement, metrics | `protocol/12` |
-| Migration roadmap, skill gaps | `protocol/13` |
 | Evolution, debt, gap loop | `protocol/14` |
 
 ## When editing skills or agents
