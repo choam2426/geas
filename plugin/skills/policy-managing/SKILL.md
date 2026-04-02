@@ -1,12 +1,12 @@
 ---
 name: policy-managing
-description: rules.md override management — list active rules, apply temporary overrides, check expiry, and preserve full override history for audit. Writes to .geas/state/policy-overrides.json.
+description: rules.md override management — list active rules, apply temporary overrides, check expiry, and preserve full override history for audit. Writes to .geas/state/policy-overrides.json. Reads from .geas/rules.md.
 user-invocable: true
 ---
 
 # Policy Managing
 
-Override management for `.geas/memory/_project/rules.md`. Lets the team temporarily disable or modify a rule with a reason, an expiry date, and an approver — without permanently altering the canonical rules file.
+Override management for `.geas/rules.md`. Lets the team temporarily disable or modify a rule with a reason, an expiry date, and an approver — without permanently altering the canonical rules file.
 
 **Invocation:** `/geas:policy-managing <capability> [arguments]`
 
@@ -16,11 +16,11 @@ Override management for `.geas/memory/_project/rules.md`. Lets the team temporar
 
 ### 1. List Rules
 
-Show every rule currently defined in `.geas/memory/_project/rules.md`, annotated with its override status.
+Show every rule currently defined in `.geas/rules.md`, annotated with its override status.
 
 **Process:**
 
-1. Read `.geas/memory/_project/rules.md`. Parse each rule entry (expect markdown sections or numbered/bulleted list items). Extract `rule_id` where present, or derive a slug from the heading/first line.
+1. Read `.geas/rules.md`. Parse each rule entry (expect markdown sections or numbered/bulleted list items). Extract `rule_id` where present, or derive a slug from the heading/first line.
 2. Read `.geas/state/policy-overrides.json` (if it does not exist, treat as `{"overrides": []}`).
 3. For each rule, check whether an active (non-expired) override exists in the overrides list.
 4. Print the rule list.
@@ -40,7 +40,7 @@ Show every rule currently defined in `.geas/memory/_project/rules.md`, annotated
 If `rules.md` does not exist, output:
 
 ```
-No rules.md found at .geas/memory/_project/rules.md. Run /geas:setup to initialize the project.
+No rules.md found at .geas/rules.md. Run /geas:setup to initialize the project.
 ```
 
 ---
@@ -208,5 +208,5 @@ No override history found. No overrides have been applied to this project.
 
 | File | Purpose |
 |------|---------|
-| `.geas/memory/_project/rules.md` | Canonical rule definitions (read-only by this skill) |
+| `.geas/rules.md` | Canonical rule definitions (read-only by this skill) |
 | `.geas/state/policy-overrides.json` | Active and historical overrides (written by this skill) |

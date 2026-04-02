@@ -35,6 +35,20 @@ if os.path.isfile(rules_path):
         parts.append('--- PROJECT RULES (.geas/rules.md) ---')
         parts.append(content)
 
+# Inject active policy overrides
+overrides_path = os.path.join(geas_dir, 'state', 'policy-overrides.json')
+if os.path.isfile(overrides_path):
+    try:
+        with open(overrides_path, 'r', encoding='utf-8') as f:
+            ov = json.load(f)
+        active = [o for o in ov.get('overrides', []) if not o.get('expired', True)]
+        if active:
+            parts.append('--- ACTIVE POLICY OVERRIDES (.geas/state/policy-overrides.json) ---')
+            for o in active:
+                parts.append(f'- {o.get("rule_id", "?")}: {o.get("action", "?")} (reason: {o.get("reason", "?")}, expires: {o.get("expires_at", "?")})')
+    except Exception:
+        pass
+
 # Inject per-agent memory
 if agent_type:
     memory_path = os.path.join(geas_dir, 'memory', 'agents', f'{agent_type}.md')
