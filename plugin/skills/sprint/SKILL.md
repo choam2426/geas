@@ -396,5 +396,20 @@ Lightweight post-resolve section for rules and debt processing.
 
 Brief confirmation: what was requested (from seed.json or task goal) vs what was delivered. This is NOT a full gap assessment — just a one-line confirmation for the session record.
 
+#### 11.4 Memory Extraction and Promotion
+
+1. Read `.geas/tasks/{task-id}/retrospective.json` → extract `memory_candidates[]`
+2. If empty: skip.
+3. For each candidate: invoke `/geas:memorizing` candidate extraction:
+   - Determine memory_type and scope
+   - Run deduplication against memory-index
+   - Write candidate to `.geas/memory/candidates/{memory-id}.json`
+4. **Inline promotion check**: If candidate has evidence_refs >= 2 (from deduplication merge) or comes from a repeated pattern (auto-extraction trigger): auto-promote to provisional.
+   - Move from `candidates/` to `entries/`
+   - Update memory-index.json
+   - Otherwise: leave as candidate for future sessions
+5. Run application logging: for memories in this task's packet, record effects.
+6. Update `.geas/state/memory-index.json`
+
 ### 12. Run Summary
 Invoke `/geas:run-summary` to generate session audit trail.
