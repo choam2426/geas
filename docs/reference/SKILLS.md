@@ -96,9 +96,9 @@ First-time setup -- initialize `.geas/` runtime directory, generate config files
 **Inputs:** None (reads `.gitignore` to check for existing entries)
 
 **Outputs:**
-- `.geas/` directory tree: `spec/`, `state/`, `tasks/`, `contracts/`, `packets/`, `evidence/`, `decisions/`, `decisions/pending/`, `ledger/`, `summaries/`, `memory/_project/`, `memory/retro/`, `memory/agents/`
+- `.geas/` directory tree: `spec/`, `state/`, `tasks/`, `contracts/`, `packets/`, `evidence/`, `decisions/`, `decisions/pending/`, `ledger/`, `summaries/`, `memory/_project/`, `memory/agents/`
 - `.geas/state/run.json` -- initial run state (`status: "initialized"`)
-- `.geas/debt.json` -- empty tech debt register (`{"items": []}`)
+- `.geas/state/debt-register.json` -- empty tech debt register (`{"items": []}`)
 - `.geas/rules.md` -- shared agent rules (evidence format, code boundaries)
 - `.gitignore` -- `.geas/` entry appended if not present
 

@@ -25,7 +25,7 @@
     },
     "phase": {
       "type": ["string", "null"],
-      "enum": ["discovery", "mvp", "polish", "evolution", "complete", null],
+      "enum": ["discovery", "build", "polish", "evolution", "complete", null],
       "description": "Current phase within Initiative mode"
     },
     "current_task_id": {

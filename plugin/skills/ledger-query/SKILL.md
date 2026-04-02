@@ -74,7 +74,7 @@ Evidence files:
 
 ### 2. `phase <phase-name>`
 
-Show all events within a phase (discovery, mvp, polish, evolve).
+Show all events within a phase (discovery, build, polish, evolution).
 
 **Process:**
 1. Read `.geas/ledger/events.jsonl`

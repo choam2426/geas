@@ -202,7 +202,7 @@ Before merging the worktree to the integration branch:
 
 This ensures integration is single-flight — only one task merges at a time.
 
-After successful merge, update TaskContract status to `"integrated"`.
+After successful merge, status remains `"implementing"` — the task is not yet reviewed or complete.
 
 ### 5.5 Worker Self-Check [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "self_check", `agent_in_flight` = "{worker}"
@@ -229,6 +229,8 @@ Agent(agent: "qa-engineer", prompt: "Read .geas/packets/{task-id}/qa-engineer.md
 ```
 Verify evidence.
 Update run.json checkpoint: `pipeline_step` = "testing"
+
+After both code_review and testing complete: update TaskContract status to `"integrated"`. The worktree merge has already happened; reviews and testing are now done.
 
 ### 8. Evidence Gate
 Run eval_commands. Check acceptance criteria. Log detailed result.
