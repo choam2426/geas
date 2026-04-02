@@ -31,12 +31,11 @@ parts.append('--- GEAS STATE (restored after context compaction) ---')
 
 status = d.get('status', 'unknown')
 phase = d.get('phase', 'unknown')
-mode = d.get('mode', 'unknown')
 mission = d.get('mission', '')
 tid = d.get('current_task_id', '')
 completed = d.get('completed_tasks', [])
 
-parts.append(f'Mode: {mode} | Phase: {phase} | Status: {status}')
+parts.append(f'Phase: {phase} | Status: {status}')
 parts.append(f'Mission: {mission}')
 parts.append(f'Current task: {tid}')
 parts.append(f'Completed tasks: {len(completed)} ({\", \".join(completed[-5:])}{\"...\" if len(completed) > 5 else \"\"})')
@@ -146,8 +145,8 @@ parts.append('## L0 ANTI-FORGETTING')
 parts.append('The following items MUST be retained across compaction:')
 
 l0 = []
-# 1. Mode and phase
-l0.append(f'1. Mode/Phase: {mode}/{phase} (status: {status})')
+# 1. Phase
+l0.append(f'1. Phase: {phase} (status: {status})')
 # 2. Focus task state
 l0.append(f'2. Focus task: {tid or \"(none)\"}' + (f' — {task_goal}' if task_goal else ''))
 # 3. Rewind reason (recovery class)

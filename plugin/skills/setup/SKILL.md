@@ -89,8 +89,7 @@ Write `.geas/rules.md` — the shared rules that ALL agents must follow:
 - created_at is auto-injected by the PostToolUse hook. No manual timestamp needed.
 
 ## Code
-- Respect prohibited_paths from the TaskContract
-- Do not modify files outside the task scope
+- Respect scope.paths from the TaskContract — only modify files within the declared scope
 ```
 
 ### Phase B: Report Results
