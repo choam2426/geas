@@ -99,6 +99,21 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 
 Protocol docs (`docs/protocol/`, `docs/ko/protocol/`), core skills, and agent file names all use **agent type names** (e.g., `product-authority`, `architecture-authority`, `critical-reviewer`). Character names (Nova, Forge, Pixel, Circuit, Sentinel, Keeper, Shield, Critic, Scroll, Scrum, Palette, Pipeline) appear only inside agent file content as personality/identity, never as file names or references.
 
+## Runtime Accessibility Rule
+
+Skills run inside a plugin runtime. At execution time, agents can ONLY access:
+- Files in the user's project directory (`.geas/`, source code, etc.)
+- The skill's own directory (SKILL.md, schemas/, references/)
+- Other plugin skills (via `/geas:<name>` invocation)
+
+Agents CANNOT access `docs/protocol/`, `docs/architecture/`, or any file outside `plugin/` at runtime. When writing skills:
+- **DO NOT** reference `docs/protocol/schemas/` — use local `schemas/` in the skill directory
+- **DO NOT** reference `docs/protocol/*.md` — inline the protocol requirements in the skill text
+- **DO** put schemas each skill needs in that skill's `schemas/` directory
+- **DO** inline required artifact fields in Agent() prompts (spawned agents can't read schema files)
+
+The `docs/protocol/schemas/` directory is the canonical reference for developers and validation tools. Skill-local `schemas/` copies are the operational copies for runtime use.
+
 ## Tool-Agnostic Rules
 
 Core skills (`plugin/skills/`) MUST NOT hardcode specific tools, frameworks, or package managers.
