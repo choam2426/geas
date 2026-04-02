@@ -133,7 +133,7 @@ graph LR
 | | 문서 | 설명 |
 |---|------|------|
 | 📐 | [아키텍처](docs/ko/architecture/DESIGN.md) | 시스템 설계, 데이터 흐름, 원칙 |
-| 📋 | [프로토콜](docs/ko/protocol/) | 15개 운영 프로토콜 문서 |
+| 📋 | [프로토콜](docs/ko/protocol/) | 14개 운영 프로토콜 문서 |
 | 📦 | [스키마](docs/protocol/schemas/) | 29개 JSON Schema 정의 (draft 2020-12) |
 | 🔧 | [Skills](docs/ko/reference/SKILLS.md) | 27개 스킬 레퍼런스 |
 | 🤖 | [Agents](docs/ko/reference/AGENTS.md) | 12개 에이전트 타입 레퍼런스 |

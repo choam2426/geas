@@ -126,7 +126,7 @@ When these three layers encroach on each other's roles, drift occurs. When drift
 2. **hook-protocol drift**: a hook checks for the existence of a specific artifact, but a protocol change means that artifact is no longer produced
 3. **doc-schema version drift**: the schema version referenced by a prose document does not match the actually deployed schema version
 
-When drift is detected, the canonical split docs definitions take precedence (see doc 13 Migration Rule).
+When drift is detected, the canonical protocol schema definitions take precedence. Update the drifted artifact to match the schema.
 
 ## Artifact Validation Failure Modes
 
@@ -148,4 +148,4 @@ When an artifact's `artifact_type` field does not match the filename or usage co
 
 When an artifact's `version` field is incompatible with the current schema version:
 1. If within backward-compatible range (same `major` version), record a warning and proceed.
-2. If not backward-compatible, reject the artifact and transform it following the migration procedure in doc 13.
+2. If not backward-compatible, reject the artifact and require the producer to regenerate it conforming to the current schema.

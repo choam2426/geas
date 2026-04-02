@@ -204,7 +204,7 @@ Whenever a non-trivial recovery (`dirty_state_recovery` or `manual_repair_requir
        ".geas/tasks/T-078/integration-result.json",
        ".geas/tasks/T-078/specialist-review.json",
        ".geas/tasks/T-078/worker-self-check.json",
-       ".geas/tasks/T-078/implementation-contract.json"
+       ".geas/contracts/T-078.json"
      ]
    }
    ```
@@ -243,8 +243,8 @@ Whenever a non-trivial recovery (`dirty_state_recovery` or `manual_repair_requir
      "recommended_action": "revalidate",
      "required_revalidation": ["worktree_integrity", "implementation_progress"],
      "artifact_refs": [
-       ".geas/tasks/T-115/implementation-contract.json",
-       ".geas/tasks/T-115/task-contract.json"
+       ".geas/contracts/T-115.json",
+       ".geas/tasks/T-115.json"
      ]
    }
    ```

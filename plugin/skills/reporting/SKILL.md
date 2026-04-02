@@ -60,12 +60,12 @@ Calculate all 8 signals from protocol doc 12. For each signal: read the source d
 | Signal | Threshold | Source | Calculation |
 |--------|-----------|--------|-------------|
 | `memory_bloat` | entries > 100 with 0 reuses in last 10 tasks | `.geas/state/memory-index.json` | Count index entries where `reuse_count = 0` |
-| `review_gap` | > 20% miss rate in last 5 tasks | `.geas/state/events.jsonl` | Count tasks without specialist review evidence / total tasks (last 5) |
-| `gate_quality_issue` | > 30% `iterate` rate in last 10 tasks | `.geas/state/events.jsonl` | Count `final_verdict = iterate` events / total final verdict events (last 10) |
+| `review_gap` | > 20% miss rate in last 5 tasks | `.geas/ledger/events.jsonl` | Count tasks without specialist review evidence / total tasks (last 5) |
+| `gate_quality_issue` | > 30% `iterate` rate in last 10 tasks | `.geas/ledger/events.jsonl` | Count `final_verdict = iterate` events / total final verdict events (last 10) |
 | `contradiction_accumulation` | 2+ stable memories with `contradiction_count >= 3` | `.geas/state/memory-index.json` | Count index entries where `state = stable` and `contradiction_count >= 3` |
-| `repeated_failure_class` | same failure class 3+ times | `.geas/state/events.jsonl` | Group gate failure events by `blocking_dimensions`; flag any group with count >= 3 |
+| `repeated_failure_class` | same failure class 3+ times | `.geas/ledger/events.jsonl` | Group gate failure events by `blocking_dimensions`; flag any group with count >= 3 |
 | `debt_stagnation` | `accepted` >= 2x `resolved` per phase | `.geas/evolution/debt-register.json` | `accepted_count / resolved_count` (if resolved = 0 and accepted > 0, value = infinity → triggered) |
-| `scope_control_weakness` | > 30% scope change after impl contract in last 5 tasks | `.geas/state/events.jsonl` | Count `revalidation_triggered` events after `implementation_contract_approved` per task (last 5); flag if > 30% of those tasks have at least one such event |
+| `scope_control_weakness` | > 30% scope change after impl contract in last 5 tasks | `.geas/ledger/events.jsonl` | Count `revalidation_triggered` events after `implementation_contract_approved` per task (last 5); flag if > 30% of those tasks have at least one such event |
 | `worker_low_confidence` | > 25% `confidence <= 2` in last 10 tasks | `.geas/tasks/*/worker-self-check.json` | Count self-check files with `confidence <= 2` / total self-check files (last 10 by `created_at`) |
 
 ### Mandatory Responses

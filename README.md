@@ -133,7 +133,7 @@ Describe what you want to build, add, or decide. The orchestrator handles the re
 | | Document | Description |
 |---|----------|-------------|
 | 📐 | [Architecture](docs/architecture/DESIGN.md) | System design, data flow, principles |
-| 📋 | [Protocol](docs/protocol/) | 15 operational protocol documents |
+| 📋 | [Protocol](docs/protocol/) | 14 operational protocol documents |
 | 📦 | [Schemas](docs/protocol/schemas/) | 29 JSON Schema definitions (draft 2020-12) |
 | 🔧 | [Skills](docs/reference/SKILLS.md) | 27 skills reference |
 | 🤖 | [Agents](docs/reference/AGENTS.md) | 12 agent types reference |
