@@ -16,7 +16,7 @@ Users should not need to run setup manually unless they are troubleshooting.
 Before anything else, create the runtime directory structure in the project root:
 
 ```bash
-mkdir -p .geas/spec .geas/state .geas/tasks .geas/contracts .geas/packets .geas/evidence .geas/decisions .geas/decisions/pending .geas/ledger .geas/summaries .geas/memory/_project .geas/memory/retro .geas/memory/agents
+mkdir -p .geas/spec .geas/state .geas/tasks .geas/contracts .geas/packets .geas/evidence .geas/decisions .geas/decisions/pending .geas/ledger .geas/summaries .geas/memory/_project .geas/memory/retro .geas/memory/agents .geas/memory/candidates .geas/memory/entries .geas/memory/logs
 ```
 
 Write the initial debt register `.geas/state/debt-register.json` conforming to `docs/protocol/schemas/debt-register.schema.json`:
@@ -31,6 +31,20 @@ Write the initial debt register `.geas/state/debt-register.json` conforming to `
   "rollup_by_severity": { "low": 0, "medium": 0, "high": 0, "critical": 0 },
   "rollup_by_kind": { "code_quality": 0, "architecture": 0, "security": 0, "docs": 0, "ops": 0, "test_gap": 0, "product_gap": 0 },
   "created_at": "<ISO 8601>"
+}
+```
+
+Write the initial memory index `.geas/state/memory-index.json` conforming to `docs/protocol/schemas/memory-index.schema.json`:
+```json
+{
+  "meta": {
+    "version": "1.0",
+    "artifact_type": "memory_index",
+    "artifact_id": "mi-init",
+    "producer_type": "orchestration_authority",
+    "created_at": "<ISO 8601>"
+  },
+  "entries": []
 }
 ```
 
