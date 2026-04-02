@@ -36,10 +36,10 @@
     "mission_phase": {
       "type": "string",
       "enum": [
-        "discovery",
-        "build",
-        "polish",
-        "evolution"
+        "specifying",
+        "building",
+        "polishing",
+        "evolving"
       ]
     },
     "status": {
@@ -82,10 +82,10 @@
     "next_phase": {
       "type": "string",
       "enum": [
-        "discovery",
-        "build",
-        "polish",
-        "evolution"
+        "specifying",
+        "building",
+        "polishing",
+        "evolving"
       ],
       "description": "The phase to transition into (when status is ready_to_exit)"
     },

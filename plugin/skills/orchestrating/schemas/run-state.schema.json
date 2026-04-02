@@ -25,7 +25,7 @@
     },
     "phase": {
       "type": ["string", "null"],
-      "enum": ["discovery", "build", "polish", "evolution", "complete", null],
+      "enum": ["specifying", "building", "polishing", "evolving", "complete", null],
       "description": "Current phase within the mission"
     },
     "current_task_id": {

@@ -103,8 +103,8 @@
           "target_phase": {
             "type": "string",
             "enum": [
-              "polish",
-              "evolution",
+              "polishing",
+              "evolving",
               "future"
             ]
           }
