@@ -129,7 +129,7 @@ For each new candidate, determine the domain authority reviewer:
 Agent(agent: "{reviewer}", prompt: "Review memory candidate at .geas/memory/candidates/{memory-id}.json. Decide: promote_provisional (ready to try applying), keep (needs more evidence), or reject (not useful). Write review to .geas/memory/candidates/{memory-id}-review.json with fields: version, artifact_type (memory_review), artifact_id, producer_type, memory_id, decision (promote_provisional/keep/reject), rationale, created_at.")
 ```
 
-**Sprint (inline)**: If candidate has evidence_refs >= 2 or comes from a repeated pattern, auto-promote to provisional. Otherwise keep as candidate for future review.
+**Lightweight (inline)**: If candidate has evidence_refs >= 2 or comes from a repeated pattern, auto-promote to provisional. Otherwise keep as candidate for future review.
 
 ## 4. Promotion Pipeline
 

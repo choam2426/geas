@@ -13,7 +13,7 @@ Produce a structured gap assessment comparing what was planned vs what was deliv
    - No corresponding task or task cancelled -> `not_delivered`
 5. Check for `scope_out` items that were delivered anyway -> `unexpected_additions` (need traceability note)
 6. Items explicitly dropped by product_authority decision -> `intentional_cuts`
-7. Write `.geas/state/gap-assessment.json` conforming to `schemas/gap-assessment.schema.json`:
+7. Write `.geas/evolution/gap-assessment-evolving.json` conforming to `schemas/gap-assessment.schema.json`:
 
 ```json
 {

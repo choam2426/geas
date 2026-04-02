@@ -11,7 +11,7 @@ Transforms a user story (or feature description) into a structured TaskContract 
 
 Invoked during:
 - **4-phase mission**: after Specifying creates issues, compile each into a TaskContract
-- **Sprint pattern**: compile the single feature into a TaskContract
+- **Lightweight mission**: compile the single feature into a TaskContract
 
 ## Inputs
 

@@ -13,7 +13,7 @@ Objective verification of whether a worker's output meets the TaskContract requi
 
 1. **TaskContract** — read from `.geas/tasks/{task-id}.json`
 2. **Worker Self-Check** — read from `.geas/tasks/{task-id}/worker-self-check.json`
-3. **Specialist Reviews** — read from `.geas/evidence/{task-id}/` (e.g., `architecture-authority-review.json`, `qa-engineer.json`)
+3. **Specialist Reviews** — read from `.geas/evidence/{task-id}/`. Naming: `{agent-type}-review.json` when the agent produces multiple artifacts (e.g., `architecture-authority-review.json` for code review, distinct from `architecture-authority.json` tech guide), or `{agent-type}.json` when the agent produces one artifact (e.g., `qa-engineer.json`)
 4. **Integration Result** — merge status from worktree integration
 5. **Gate profile** — determines which tiers to run (see below)
 

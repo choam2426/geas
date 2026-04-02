@@ -203,7 +203,6 @@ Update run.json checkpoint: `pipeline_step` = "code_review", `agent_in_flight` =
 Agent(agent: "architecture-authority", prompt: "Read .geas/packets/{task-id}/architecture-authority-review.md. Review implementation. Write to .geas/evidence/{task-id}/architecture-authority-review.json")
 ```
 Verify `.geas/evidence/{task-id}/architecture-authority-review.json` exists.
-Update TaskContract status to `"reviewed"`.
 Update run.json checkpoint: `pipeline_step` = "code_review"
 
 ### Testing (qa-engineer) [MANDATORY]
@@ -215,7 +214,11 @@ Agent(agent: "qa-engineer", prompt: "Read .geas/packets/{task-id}/qa-engineer.md
 Verify `.geas/evidence/{task-id}/qa-engineer.json` exists.
 Update run.json checkpoint: `pipeline_step` = "testing"
 
-After both code_review and testing complete: update TaskContract status to `"integrated"`. The worktree merge has already happened; reviews and testing are now done.
+After BOTH code_review and testing complete:
+1. Update TaskContract status to `"reviewed"` (specialist reviews done).
+2. Update TaskContract status to `"integrated"` (worktree merge already happened; reviews confirmed the integration is sound).
+
+Do NOT update status to `"reviewed"` until both steps finish. The two status transitions happen atomically after both agents return.
 
 ### Evidence Gate
 Run eval_commands from TaskContract. Check acceptance criteria against all evidence.

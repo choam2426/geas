@@ -96,3 +96,14 @@ Analyze the tech stack from architecture_authority's architecture decision and r
 | Git-hosted | Git platform MCP | repository_manager can manage PRs and issues |
 
 Present recommendations with install commands from the MCP registry.
+
+### Stack-Specific Rules
+
+After architecture decisions are finalized, add stack-specific rules to `.geas/rules.md`. This happens before the Building phase begins (before the rules-update workflow exists in the pipeline).
+
+Examples:
+- If React: "All components must be functional components with hooks"
+- If REST API: "All endpoints must return consistent error shapes"
+- If Python: "Use type hints for all public function signatures"
+
+Read the architecture decision from `.geas/evidence/specifying/architecture-authority.json` and `.geas/memory/_project/conventions.md` to determine which rules to add. Append to the existing `.geas/rules.md` under a `## Stack Rules` section.

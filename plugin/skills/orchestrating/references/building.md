@@ -17,8 +17,8 @@ For each task, read `references/pipeline.md` and execute the full per-task pipel
 - 0 critical debt in `.geas/state/debt-register.json`
 - 0 unmitigated high debt (status must not be "open" for high severity)
 
-Write `.geas/state/gap-assessment.json` if not yet produced for this transition (same procedure as Evolving 4.1 but scoped to building phase).
-Write `.geas/state/phase-review.json` with `mission_phase: "building"`, `next_phase: "polishing"`.
+Write `.geas/evolution/gap-assessment-building-to-polishing.json` (same procedure as Evolving 4.1 but scoped to building phase).
+Write `.geas/evolution/phase-review-building-to-polishing.json` with `mission_phase: "building"`, `next_phase: "polishing"`.
 
 If any gate criteria unmet: set `status: "blocked"`. List unmet criteria. After 3 consecutive failures -> invoke `/geas:decision`.
 

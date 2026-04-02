@@ -5,7 +5,7 @@ description: Mission intake gate — collaborative exploration to freeze a seed 
 
 # Intake Gate
 
-Before any execution (4-phase mission, sprint), run this gate to freeze the mission specification.
+Before any mission execution, run this gate to freeze the mission specification.
 
 ## Purpose
 
@@ -100,9 +100,9 @@ Ask: "Does this capture your intent? Any changes before we start?"
 If confirmed → seed is frozen. Proceed to execution.
 If changes → update and re-confirm.
 
-## Sprint Pattern Variant
+## Lightweight Variant
 
-For sprint pattern (adding a feature to an existing project):
+For lightweight missions (adding a feature to an existing project):
 1. Skip Step 3 (approach proposals) — the approach is constrained by existing codebase
 2. Step 2 limited to 1-2 questions focused on:
    - What exactly does this feature do?

@@ -157,7 +157,7 @@ Read every source file. Full entropy scan.
 
 ### For Medium Projects (50-500 files)
 Focus on:
-- Files changed during the current Sprint/phase (check git log)
+- Files changed during the current mission (check git log)
 - Core modules identified in conventions.md
 - Entry points and shared utilities
 

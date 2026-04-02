@@ -47,8 +47,8 @@ Results are recorded in `.geas/state/debt-register.json`.
 - Shipping rationale recorded for every known risk
 - Zero open CRITICAL/HIGH security issues
 
-Write `.geas/state/gap-assessment.json` if not yet produced for this transition.
-Write `.geas/state/phase-review.json` with `mission_phase: "polishing"`, `next_phase: "evolving"`.
+Write `.geas/evolution/gap-assessment-polishing-to-evolving.json`.
+Write `.geas/evolution/phase-review-polishing-to-evolving.json` with `mission_phase: "polishing"`, `next_phase: "evolving"`.
 
 If any gate criteria unmet: set `status: "blocked"`. List unmet criteria. After 3 consecutive failures -> invoke `/geas:decision`.
 
