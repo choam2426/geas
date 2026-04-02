@@ -7,6 +7,33 @@ Scripts: `plugin/hooks/scripts/`
 
 ---
 
+## Hook Inventory
+
+18 hooks across 7 lifecycle events.
+
+| # | Event | Matcher | Script | Purpose |
+|---|-------|---------|--------|---------|
+| 1 | SessionStart | (all) | session-init.sh | Session initialization |
+| 2 | SessionStart | (all) | memory-review-cadence.sh | Detect expired memory review_after dates |
+| 3 | PreToolUse | Write | checkpoint-pre-write.sh | Backup run.json before write (two-phase checkpoint) |
+| 4 | PostToolUse | Write\|Edit | protect-geas-state.sh | Protect .geas/ state files |
+| 5 | PostToolUse | Write\|Edit | verify-task-status.sh | Verify task status transitions |
+| 6 | PostToolUse | Write\|Edit | check-debt.sh | Debt threshold warnings |
+| 7 | PostToolUse | Write\|Edit | stale-start-check.sh | Warn on stale base_commit at task start |
+| 8 | PostToolUse | Write\|Edit | lock-conflict-check.sh | Detect conflicting lock targets |
+| 9 | PostToolUse | Write\|Edit | memory-promotion-gate.sh | Verify memory promotion conditions |
+| 10 | PostToolUse | Write\|Edit | memory-superseded-warning.sh | Warn on stale memory in packets |
+| 11 | PostToolUse | Write\|Edit | checkpoint-post-write.sh | Cleanup pending checkpoint after write |
+| 12 | PostToolUse | Write\|Edit | packet-stale-check.sh | Warn on stale context packets |
+| 13 | PostToolUse | Bash | integration-lane-check.sh | Warn on merge without integration lock |
+| 14 | SubagentStart | (all) | inject-context.sh | Inject context into subagent |
+| 15 | SubagentStop | (all) | agent-telemetry.sh | Record agent execution telemetry |
+| 16 | Stop | (all) | verify-pipeline.sh | Verify pipeline completion |
+| 17 | Stop | (all) | calculate-cost.sh | Calculate session cost |
+| 18 | PostCompact | (all) | restore-context.sh | Restore state after context compaction |
+
+---
+
 ## Hook Lifecycle
 
 The following diagram shows the order in which hooks fire during a typical Geas session.
@@ -17,12 +44,20 @@ Session begins
 ├─► SessionStart       → session-init.sh
 │     Check .geas/ state, inject rules.md context
 │
+├─► SessionStart       → memory-review-cadence.sh
+│     Warn about memory entries past review_after date
+│
 │   [For each sub-agent spawned]
 │   │
 │   ├─► SubagentStart  → inject-context.sh
 │   │     Inject rules.md + agent memory into sub-agent context
 │   │
-│   │   [For each Write or Edit tool call]
+│   │   [Before each Write tool call to run.json]
+│   │   │
+│   │   ├─► PreToolUse (Write) → checkpoint-pre-write.sh
+│   │   │     Backup run.json before overwrite (two-phase checkpoint)
+│   │   │
+│   │   [After each Write or Edit tool call]
 │   │   │
 │   │   ├─► PostToolUse (Write|Edit) → protect-geas-state.sh
 │   │   │     Timestamp injection, prohibited path warning, seed.json guard
@@ -30,8 +65,31 @@ Session begins
 │   │   ├─► PostToolUse (Write|Edit) → verify-task-status.sh
 │   │   │     Check 5 mandatory evidence files + rubric_scores validation
 │   │   │
-│   │   └─► PostToolUse (Write|Edit) → check-debt.sh
-│   │         Warn when HIGH debt items >= 3
+│   │   ├─► PostToolUse (Write|Edit) → check-debt.sh
+│   │   │     Warn when HIGH debt items >= 3
+│   │   │
+│   │   ├─► PostToolUse (Write|Edit) → stale-start-check.sh
+│   │   │     Warn if task base_commit differs from integration tip
+│   │   │
+│   │   ├─► PostToolUse (Write|Edit) → lock-conflict-check.sh
+│   │   │     Detect overlapping lock targets between tasks
+│   │   │
+│   │   ├─► PostToolUse (Write|Edit) → memory-promotion-gate.sh
+│   │   │     Verify evidence/signal thresholds for memory state promotion
+│   │   │
+│   │   ├─► PostToolUse (Write|Edit) → memory-superseded-warning.sh
+│   │   │     Warn if stale/superseded memory appears in context packets
+│   │   │
+│   │   ├─► PostToolUse (Write|Edit) → checkpoint-post-write.sh
+│   │   │     Remove pending checkpoint backup after successful write
+│   │   │
+│   │   └─► PostToolUse (Write|Edit) → packet-stale-check.sh
+│   │         Warn if context packets may be stale after session recovery
+│   │
+│   │   [After each Bash tool call]
+│   │   │
+│   │   └─► PostToolUse (Bash) → integration-lane-check.sh
+│   │         Warn if git merge/rebase runs without integration lock
 │   │
 │   │   [Context compaction fires]
 │   │   │
@@ -86,38 +144,67 @@ Runs once when a Claude Code session starts.
 
 ---
 
-## Hook 2 — inject-context.sh
+## Hook 2 — memory-review-cadence.sh
 
 | Field | Value |
 |---|---|
-| Event | `SubagentStart` |
-| Script | `plugin/hooks/scripts/inject-context.sh` |
+| Event | `SessionStart` |
+| Script | `plugin/hooks/scripts/memory-review-cadence.sh` |
 | Blocking | No (exits 0 in all cases) |
 | Timeout | 10 s |
+| Added | Phase 1 (memory system) |
 
 ### What it does
 
-Fires every time a sub-agent is spawned. Injects project-wide rules and per-agent memory into the sub-agent's starting context.
+Runs once at session start, after session-init. Scans the memory index for entries whose `review_after` date has passed.
 
-1. **Reads `cwd` and `agent_type` from the hook input JSON.** The `agent_type` field may carry a plugin prefix (e.g., `geas:nova`); the hook strips it to get the bare agent name (`nova`).
-2. **Checks for `.geas/` directory.** If absent, exits silently.
-3. **Reads `.geas/rules.md`** and includes it in the context block under the header `--- PROJECT RULES (.geas/rules.md) ---`.
-4. **Reads `.geas/memory/agents/<agent_name>.md`** if it exists and includes it under the header `--- YOUR MEMORY (.geas/memory/agents/<agent_name>.md) ---`. This gives each agent role-specific memory that persists across sessions.
-5. **Outputs a JSON object** to stdout:
-   ```json
-   { "additionalContext": "..." }
+1. **Reads `.geas/state/memory-index.json`.** If the file does not exist, exits silently.
+2. **Iterates all entries** with state `provisional`, `stable`, or `canonical`.
+3. **Compares each entry's `review_after` date** against the current UTC time.
+4. **Prints a warning** listing up to 10 expired entries:
    ```
-   The harness merges this into the sub-agent's system context before it receives its first message.
+   Warning: MEMORY REVIEW DUE: 3 entries past review_after date:
+     - mem-001 (stable, due 2026-03-15T00:00:00Z)
+     - mem-002 (provisional, due 2026-03-20T00:00:00Z)
+   Run batch review via /geas:memorizing.
+   ```
 
 ### Conditions
 
-- Skips if `cwd` is empty or `.geas/` does not exist.
-- Agent memory injection is skipped if the memory file does not exist for that agent name.
-- Outputs nothing (no JSON) if neither rules.md nor a memory file is found.
+- Skips if `.geas/state/memory-index.json` does not exist.
+- Only checks entries in active states (provisional, stable, canonical).
+- Shows at most 10 expired entries with a count of remaining.
 
 ---
 
-## Hook 3 — protect-geas-state.sh
+## Hook 3 — checkpoint-pre-write.sh
+
+| Field | Value |
+|---|---|
+| Event | `PreToolUse` |
+| Matcher | `Write` |
+| Script | `plugin/hooks/scripts/checkpoint-pre-write.sh` |
+| Blocking | No (exits 0 in all cases) |
+| Timeout | 10 s |
+| Added | Phase 1 (checkpoint system) |
+
+### What it does
+
+Fires before every `Write` tool call. Implements the first half of a two-phase checkpoint for `run.json`.
+
+1. **Checks if the write target is `.geas/state/run.json`.** All other writes are ignored.
+2. **Copies `run.json` to `_checkpoint_pending`** as a backup. If the subsequent write fails or corrupts the file, the pending backup can be used for recovery.
+
+This hook works in tandem with `checkpoint-post-write.sh`, which removes the pending file after a successful write.
+
+### Conditions
+
+- Only acts on writes to `.geas/state/run.json`.
+- Skips if `run.json` does not exist yet (first write).
+
+---
+
+## Hook 4 — protect-geas-state.sh
 
 | Field | Value |
 |---|---|
@@ -163,7 +250,7 @@ If the written file path matches `*/.geas/spec/seed.json`, it prints a warning t
 
 ---
 
-## Hook 4 — verify-task-status.sh
+## Hook 5 — verify-task-status.sh
 
 | Field | Value |
 |---|---|
@@ -204,7 +291,7 @@ Fires after every `Write` or `Edit` tool call, but only acts when a task file is
 
 ---
 
-## Hook 5 — check-debt.sh
+## Hook 6 — check-debt.sh
 
 | Field | Value |
 |---|---|
@@ -233,49 +320,268 @@ Fires after every `Write` or `Edit` tool call, but only acts on the debt ledger.
 
 ---
 
-## Hook 6 — restore-context.sh
+## Hook 7 — stale-start-check.sh
 
 | Field | Value |
 |---|---|
-| Event | `PostCompact` |
-| Script | `plugin/hooks/scripts/restore-context.sh` |
+| Event | `PostToolUse` |
+| Matcher | `Write\|Edit` |
+| Script | `plugin/hooks/scripts/stale-start-check.sh` |
+| Blocking | No (exits 0 in all cases) |
+| Timeout | 10 s |
+| Added | Phase 1 (worktree/parallelism) |
+
+### What it does
+
+Fires after every `Write` or `Edit` tool call, but only acts when a task file transitions to `implementing`.
+
+1. **Filters to `.geas/tasks/*.json` files only.** All other writes are ignored.
+2. **Reads the task file.** Only proceeds if `status` is `"implementing"`.
+3. **Compares the task's `base_commit`** against the current `git rev-parse HEAD`.
+4. **Warns if they differ:**
+   ```
+   STALE BASE_COMMIT: Task base_commit (<hash>) differs from integration tip (<hash>). Run revalidation before proceeding.
+   ```
+
+This catches situations where other tasks have been integrated since the task was compiled, meaning the worker may be building on a stale codebase.
+
+### Conditions
+
+- Only activates for writes to `.geas/tasks/*.json`.
+- Only checks when `status` equals `"implementing"`.
+- Skips if `base_commit` is empty or git is unavailable.
+
+---
+
+## Hook 8 — lock-conflict-check.sh
+
+| Field | Value |
+|---|---|
+| Event | `PostToolUse` |
+| Matcher | `Write\|Edit` |
+| Script | `plugin/hooks/scripts/lock-conflict-check.sh` |
+| Blocking | No (exits 0 in all cases) |
+| Timeout | 10 s |
+| Added | Phase 1 (worktree/parallelism) |
+
+### What it does
+
+Fires after every `Write` or `Edit` tool call, but only acts on the locks file.
+
+1. **Checks for `.geas/state/locks.json`.** Exits silently if absent.
+2. **Groups all held locks by `lock_type`.**
+3. **Detects overlapping targets** between locks held by different tasks within the same lock type.
+4. **Warns on conflict:**
+   ```
+   LOCK CONFLICT DETECTED:
+   edit: TASK-001 vs TASK-002 on ['src/auth.ts']
+   ```
+
+This prevents two parallel tasks from silently modifying the same files.
+
+### Conditions
+
+- Only activates when `.geas/state/locks.json` exists.
+- Only checks locks with `status == "held"`.
+- Compares within the same `lock_type` only.
+
+---
+
+## Hook 9 — memory-promotion-gate.sh
+
+| Field | Value |
+|---|---|
+| Event | `PostToolUse` |
+| Matcher | `Write\|Edit` |
+| Script | `plugin/hooks/scripts/memory-promotion-gate.sh` |
+| Blocking | No (exits 0 in all cases) |
+| Timeout | 10 s |
+| Added | Phase 1 (memory system) |
+
+### What it does
+
+Fires after every `Write` or `Edit` tool call, but only acts on memory entry files.
+
+1. **Filters to `.geas/memory/entries/*.json` files only.** All other writes are ignored.
+2. **Reads the memory entry** and checks promotion conditions based on the current `state`:
+
+   | State | Required conditions |
+   |---|---|
+   | `provisional` | 2+ `evidence_refs` or `evidence_count >= 2` |
+   | `stable` | 3+ `successful_reuses` and 0 `contradiction_count` |
+   | `canonical` | 5+ `successful_reuses` |
+
+3. **Warns if conditions are not met:**
+   ```
+   Warning: MEMORY PROMOTION: stable promotion requires 3+ successful_reuses (has 1)
+   Warning: MEMORY PROMOTION: stable promotion requires 0 contradictions (has 2)
+   ```
+
+### Conditions
+
+- Only activates for writes to `.geas/memory/entries/*.json`.
+- Checks are state-specific — each promotion level has its own thresholds.
+
+---
+
+## Hook 10 — memory-superseded-warning.sh
+
+| Field | Value |
+|---|---|
+| Event | `PostToolUse` |
+| Matcher | `Write\|Edit` |
+| Script | `plugin/hooks/scripts/memory-superseded-warning.sh` |
+| Blocking | No (exits 0 in all cases) |
+| Timeout | 10 s |
+| Added | Phase 1 (memory system) |
+
+### What it does
+
+Fires after every `Write` or `Edit` tool call, but only acts on context packet files.
+
+1. **Filters to `.geas/packets/*.md` files only.** All other writes are ignored.
+2. **Reads `.geas/state/memory-index.json`** to build a map of memory IDs to their current state.
+3. **Scans the packet content** for memory ID references (pattern: `[mem-*]`).
+4. **Warns if any referenced memory has a stale state** (superseded, under_review, decayed, archived, or rejected):
+   ```
+   Warning: STALE MEMORY: mem-003 has state "superseded" — should not be in active packet
+   ```
+
+This prevents agents from acting on outdated memory that has been replaced or invalidated.
+
+### Conditions
+
+- Only activates for writes to `.geas/packets/*.md`.
+- Skips if `.geas/state/memory-index.json` does not exist.
+- Only flags memory in non-active states.
+
+---
+
+## Hook 11 — checkpoint-post-write.sh
+
+| Field | Value |
+|---|---|
+| Event | `PostToolUse` |
+| Matcher | `Write\|Edit` |
+| Script | `plugin/hooks/scripts/checkpoint-post-write.sh` |
+| Blocking | No (exits 0 in all cases) |
+| Timeout | 10 s |
+| Added | Phase 1 (checkpoint system) |
+
+### What it does
+
+Fires after every `Write` or `Edit` tool call. Implements the second half of the two-phase checkpoint for `run.json`.
+
+1. **Checks if the write target is `.geas/state/run.json`.** All other writes are ignored.
+2. **Removes `.geas/state/_checkpoint_pending`** if it exists, confirming the write completed successfully.
+
+This hook works in tandem with `checkpoint-pre-write.sh`. Together they ensure that if a write to `run.json` fails mid-operation, the backup remains available for recovery.
+
+### Conditions
+
+- Only acts on writes to `.geas/state/run.json`.
+- No-op if no pending checkpoint exists.
+
+---
+
+## Hook 12 — packet-stale-check.sh
+
+| Field | Value |
+|---|---|
+| Event | `PostToolUse` |
+| Matcher | `Write\|Edit` |
+| Script | `plugin/hooks/scripts/packet-stale-check.sh` |
+| Blocking | No (exits 0 in all cases) |
+| Timeout | 10 s |
+| Added | Phase 1 (session recovery) |
+
+### What it does
+
+Fires after every `Write` or `Edit` tool call, but only acts when `run.json` is written.
+
+1. **Filters to `.geas/state/run.json` only.** All other writes are ignored.
+2. **Reads `run.json`** and checks if `recovery_class` is set (indicating a recovered session).
+3. **Checks for existing context packets** for the current task under `.geas/packets/<task_id>/`.
+4. **Warns if packets exist in a recovered session:**
+   ```
+   Warning: STALE PACKETS: Session recovered (<recovery_class>). Context packets for <task_id> may be stale. Regenerate before spawning agents.
+   ```
+
+After session recovery, previously generated context packets may reference outdated state. This hook ensures agents are not spawned with stale briefings.
+
+### Conditions
+
+- Only activates for writes to `.geas/state/run.json`.
+- Skips if no `current_task_id` is set.
+- Skips if no context packets exist for the current task.
+- Only warns when `recovery_class` is non-null.
+
+---
+
+## Hook 13 — integration-lane-check.sh
+
+| Field | Value |
+|---|---|
+| Event | `PostToolUse` |
+| Matcher | `Bash` |
+| Script | `plugin/hooks/scripts/integration-lane-check.sh` |
+| Blocking | No (exits 0 in all cases) |
+| Timeout | 10 s |
+| Added | Phase 1 (worktree/parallelism) |
+
+### What it does
+
+Fires after every `Bash` tool call. Enforces the single-flight integration lane rule.
+
+1. **Checks if the Bash command contains `git merge` or `git rebase`.** All other commands are ignored.
+2. **Reads `.geas/state/locks.json`** and looks for a held `integration` lock.
+3. **Warns if no integration lock is held:**
+   ```
+   INTEGRATION LANE: No integration_lock held. Acquire integration_lock before merging to ensure single-flight integration.
+   ```
+
+This prevents concurrent merge operations that could corrupt the integration branch.
+
+### Conditions
+
+- Only activates for Bash commands containing `git merge` or `git rebase`.
+- Warns (but does not block) if `locks.json` is missing entirely.
+- Warns if no lock of type `integration` with status `held` exists.
+
+---
+
+## Hook 14 — inject-context.sh
+
+| Field | Value |
+|---|---|
+| Event | `SubagentStart` |
+| Script | `plugin/hooks/scripts/inject-context.sh` |
 | Blocking | No (exits 0 in all cases) |
 | Timeout | 10 s |
 
 ### What it does
 
-Fires whenever the Claude Code harness compacts the context window. Compaction discards conversation history, which can cause the orchestrator to lose track of the current task and pipeline position. This hook re-injects the critical state.
+Fires every time a sub-agent is spawned. Injects project-wide rules and per-agent memory into the sub-agent's starting context.
 
-1. **Checks for `.geas/` and `run.json`.** Exits silently if either is absent.
-2. **Builds a context block** from `run.json` containing:
-   - `Mode | Phase | Status`
-   - `Mission`
-   - `Current task ID`
-   - `Completed tasks` (last 5 shown)
-3. **Includes checkpoint data** if present:
-   - `Pipeline step` (the step that was in progress)
-   - `Agent in flight` (the agent that was executing)
-   - **`Remaining steps`** — the ordered list of pipeline steps still to execute (recent addition)
-   - **`NEXT STEP`** — the first item from `remaining_steps`, highlighted so the orchestrator immediately knows what to do next
-4. **Includes the current task contract** (goal + acceptance criteria) if a task is active.
-5. **Includes the first 30 lines of `.geas/rules.md`** under a `--- KEY RULES ---` header.
-6. **Outputs a JSON object** to stdout:
+1. **Reads `cwd` and `agent_type` from the hook input JSON.** The `agent_type` field may carry a plugin prefix (e.g., `geas:nova`); the hook strips it to get the bare agent name (`nova`).
+2. **Checks for `.geas/` directory.** If absent, exits silently.
+3. **Reads `.geas/rules.md`** and includes it in the context block under the header `--- PROJECT RULES (.geas/rules.md) ---`.
+4. **Reads `.geas/memory/agents/<agent_name>.md`** if it exists and includes it under the header `--- YOUR MEMORY (.geas/memory/agents/<agent_name>.md) ---`. This gives each agent role-specific memory that persists across sessions.
+5. **Outputs a JSON object** to stdout:
    ```json
    { "additionalContext": "..." }
    ```
-
-**Batch recovery:** When `parallel_batch` is non-null, the hook outputs the batch task list and `completed_in_batch` count. Compass uses this to determine which tasks need re-execution.
+   The harness merges this into the sub-agent's system context before it receives its first message.
 
 ### Conditions
 
-- Skips if `cwd` is empty or `.geas/run.json` does not exist.
-- Checkpoint section is omitted if no checkpoint is recorded.
-- Task contract section is omitted if no `current_task_id` is set or the task file does not exist.
-- Rules section is omitted if `rules.md` does not exist.
+- Skips if `cwd` is empty or `.geas/` does not exist.
+- Agent memory injection is skipped if the memory file does not exist for that agent name.
+- Outputs nothing (no JSON) if neither rules.md nor a memory file is found.
 
 ---
 
-## Hook 7 — agent-telemetry.sh
+## Hook 15 — agent-telemetry.sh
 
 | Field | Value |
 |---|---|
@@ -288,7 +594,7 @@ Fires whenever the Claude Code harness compacts the context window. Compaction d
 
 Fires whenever a sub-agent finishes. Records agent spawn metadata to the ledger for distribution analysis. Note: this hook does **not** record actual token counts — that is done by `calculate-cost.sh` at session end.
 
-1. **Reads `cwd` and `agent_type`** from the hook input. Strips the plugin prefix (e.g., `geas:nova` → `nova`).
+1. **Reads `cwd` and `agent_type`** from the hook input. Strips the plugin prefix (e.g., `geas:nova` -> `nova`).
 2. **Reads `run.json`** to get the current `task_id` and `phase`.
 3. **Determines the model** from a hardcoded mapping:
    - `opus`: nova, forge, circuit, pixel, critic
@@ -313,7 +619,7 @@ Fires whenever a sub-agent finishes. Records agent spawn metadata to the ledger 
 
 ---
 
-## Hook 8 — verify-pipeline.sh
+## Hook 16 — verify-pipeline.sh
 
 | Field | Value |
 |---|---|
@@ -364,7 +670,7 @@ Fires when the session is about to end. This is the only hook in the system that
 
 ---
 
-## Hook 9 — calculate-cost.sh
+## Hook 17 — calculate-cost.sh
 
 | Field | Value |
 |---|---|
@@ -377,7 +683,7 @@ Fires when the session is about to end. This is the only hook in the system that
 
 Fires at session end (after `verify-pipeline.sh`). Parses sub-agent session JSONL files from `~/.claude/projects/` to calculate actual token usage and estimated cost.
 
-1. **Locates the Claude project directory** by normalizing `cwd` into the project hash format Claude uses (e.g., `A:\geas-test3` → `A--geas-test3`). Looks for a matching directory under `~/.claude/projects/`.
+1. **Locates the Claude project directory** by normalizing `cwd` into the project hash format Claude uses (e.g., `A:\geas-test3` -> `A--geas-test3`). Looks for a matching directory under `~/.claude/projects/`.
 2. **Finds the most recently modified session** with a `subagents/` subdirectory.
 3. **Parses all sub-agent JSONL files** in that directory. For each `assistant` message, accumulates:
    - `input_tokens`
@@ -416,6 +722,48 @@ Fires at session end (after `verify-pipeline.sh`). Parses sub-agent session JSON
 
 ---
 
+## Hook 18 — restore-context.sh
+
+| Field | Value |
+|---|---|
+| Event | `PostCompact` |
+| Script | `plugin/hooks/scripts/restore-context.sh` |
+| Blocking | No (exits 0 in all cases) |
+| Timeout | 10 s |
+
+### What it does
+
+Fires whenever the Claude Code harness compacts the context window. Compaction discards conversation history, which can cause the orchestrator to lose track of the current task and pipeline position. This hook re-injects the critical state.
+
+1. **Checks for `.geas/` and `run.json`.** Exits silently if either is absent.
+2. **Builds a context block** from `run.json` containing:
+   - `Mode | Phase | Status`
+   - `Mission`
+   - `Current task ID`
+   - `Completed tasks` (last 5 shown)
+3. **Includes checkpoint data** if present:
+   - `Pipeline step` (the step that was in progress)
+   - `Agent in flight` (the agent that was executing)
+   - **`Remaining steps`** — the ordered list of pipeline steps still to execute (recent addition)
+   - **`NEXT STEP`** — the first item from `remaining_steps`, highlighted so the orchestrator immediately knows what to do next
+4. **Includes the current task contract** (goal + acceptance criteria) if a task is active.
+5. **Includes the first 30 lines of `.geas/rules.md`** under a `--- KEY RULES ---` header.
+6. **Outputs a JSON object** to stdout:
+   ```json
+   { "additionalContext": "..." }
+   ```
+
+**Batch recovery:** When `parallel_batch` is non-null, the hook outputs the batch task list and `completed_in_batch` count. Compass uses this to determine which tasks need re-execution.
+
+### Conditions
+
+- Skips if `cwd` is empty or `.geas/run.json` does not exist.
+- Checkpoint section is omitted if no checkpoint is recorded.
+- Task contract section is omitted if no `current_task_id` is set or the task file does not exist.
+- Rules section is omitted if `rules.md` does not exist.
+
+---
+
 ## Customizing Hooks
 
 Hooks are declared in `plugin/hooks/hooks.json`. The schema is:
@@ -443,8 +791,8 @@ Hooks are declared in `plugin/hooks/hooks.json`. The schema is:
 
 | Field | Description |
 |---|---|
-| `EventName` | One of: `SessionStart`, `SubagentStart`, `PostToolUse`, `SubagentStop`, `PostCompact`, `Stop` |
-| `matcher` | For `PostToolUse`: a pipe-separated regex of tool names (e.g., `Write\|Edit`). Empty string matches all. |
+| `EventName` | One of: `SessionStart`, `PreToolUse`, `PostToolUse`, `SubagentStart`, `SubagentStop`, `PostCompact`, `Stop` |
+| `matcher` | For `PreToolUse`/`PostToolUse`: a pipe-separated regex of tool names (e.g., `Write\|Edit`). Empty string matches all. |
 | `command` | Shell command to run. `${CLAUDE_PLUGIN_ROOT}` resolves to the plugin directory. |
 | `timeout` | Maximum seconds before the hook is killed. |
 
@@ -471,16 +819,21 @@ For protocol details on hook failure handling, conformance checking, and metrics
 
 | Path | Used by |
 |---|---|
-| `.geas/state/run.json` | session-init, restore-context, verify-pipeline, agent-telemetry |
+| `.geas/state/run.json` | session-init, restore-context, verify-pipeline, agent-telemetry, checkpoint-pre-write, checkpoint-post-write, packet-stale-check |
+| `.geas/state/_checkpoint_pending` | checkpoint-pre-write (creates), checkpoint-post-write (removes) |
+| `.geas/state/memory-index.json` | memory-review-cadence, memory-superseded-warning |
+| `.geas/state/locks.json` | lock-conflict-check, integration-lane-check |
+| `.geas/state/debt-register.json` | check-debt |
 | `.geas/rules.md` | session-init (creates), inject-context (reads), restore-context (reads) |
 | `.geas/memory/agents/<name>.md` | inject-context |
-| `.geas/tasks/<tid>.json` | protect-geas-state, verify-task-status |
+| `.geas/memory/entries/<id>.json` | memory-promotion-gate |
+| `.geas/tasks/<tid>.json` | protect-geas-state, verify-task-status, stale-start-check |
 | `.geas/evidence/<tid>/forge-review.json` | verify-task-status, verify-pipeline |
 | `.geas/evidence/<tid>/sentinel.json` | verify-task-status, verify-pipeline |
 | `.geas/evidence/<tid>/critic-review.json` | verify-task-status, verify-pipeline |
 | `.geas/evidence/<tid>/nova-verdict.json` | verify-task-status, verify-pipeline |
 | `.geas/tasks/<tid>/retrospective.json` | verify-task-status, verify-pipeline |
 | `.geas/spec/seed.json` | protect-geas-state (freeze guard) |
-| `.geas/state/debt-register.json` | check-debt |
+| `.geas/packets/<tid>/*.md` | memory-superseded-warning, packet-stale-check |
 | `.geas/ledger/costs.jsonl` | agent-telemetry |
 | `.geas/ledger/cost-summary.json` | calculate-cost |
