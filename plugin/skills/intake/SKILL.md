@@ -97,7 +97,7 @@ Assumptions: <if any>
 ```
 
 Ask: "Does this capture your intent? Any changes before we start?"
-If confirmed → seed is frozen. Proceed to execution mode.
+If confirmed → seed is frozen. Proceed to execution.
 If changes → update and re-confirm.
 
 ## Sprint Pattern Variant

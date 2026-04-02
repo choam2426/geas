@@ -124,5 +124,5 @@ Keep console output identical to the summary file content — no separate format
 ## Edge Cases
 
 - **Session interrupted mid-issue**: Mark the issue as "In Progress" in the summary. State what was in progress and which agent was working on it.
-- **No issues created yet** (e.g. interrupted during Discovery): Summary should still capture decisions made, even if no issues were created.
+- **No issues created yet** (e.g. interrupted during Specifying): Summary should still capture decisions made, even if no issues were created.
 - **Decision-only session**: No issues to report. Summarize the decision topic, positions taken, and outcome (if reached).

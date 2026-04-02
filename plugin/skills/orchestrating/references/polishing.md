@@ -3,12 +3,12 @@
 ### Security Review (security-engineer)
 Update run.json checkpoint: `pipeline_step` = "security_review", `agent_in_flight` = "security-engineer"
 ```
-Agent(agent: "security-engineer", prompt: "Full security review of the project. Check OWASP top 10, auth flows, input validation, secrets exposure, dependency vulnerabilities. Write findings with severity (CRITICAL/HIGH/MEDIUM/LOW) to .geas/evidence/polish/security-engineer.json")
+Agent(agent: "security-engineer", prompt: "Full security review of the project. Check OWASP top 10, auth flows, input validation, secrets exposure, dependency vulnerabilities. Write findings with severity (CRITICAL/HIGH/MEDIUM/LOW) to .geas/evidence/polishing/security-engineer.json")
 ```
-Verify `.geas/evidence/polish/security-engineer.json` exists.
+Verify `.geas/evidence/polishing/security-engineer.json` exists.
 
 ### Triage Findings
-Read `.geas/evidence/polish/security-engineer.json`. Classify each finding by severity:
+Read `.geas/evidence/polishing/security-engineer.json`. Classify each finding by severity:
 - **CRITICAL / HIGH** -> create a fix task (mini-pipeline, see Fix Critical Security Issues)
 - **MEDIUM / LOW** -> add to `.geas/state/debt-register.json` as structured debt items with severity, kind, status, target_phase
 
@@ -20,7 +20,7 @@ For each CRITICAL/HIGH finding, run a reduced pipeline:
 2. Update run.json checkpoint: `pipeline_step` = "security_fix", `agent_in_flight` = "{worker}"
 3. Spawn worker with worktree isolation:
    ```
-   Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/packets/polish/{worker}-fix-{N}.md. Fix the security issue. Write evidence to .geas/evidence/polish/{worker}-fix-{N}.json")
+   Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/packets/polishing/{worker}-fix-{N}.md. Fix the security issue. Write evidence to .geas/evidence/polishing/{worker}-fix-{N}.json")
    ```
 4. Merge worktree branch
 5. Code Review (architecture_authority) — verify the fix is correct and doesn't introduce regressions
@@ -30,9 +30,9 @@ For each CRITICAL/HIGH finding, run a reduced pipeline:
 ### Documentation (technical-writer)
 Update run.json checkpoint: `pipeline_step` = "documentation", `agent_in_flight` = "technical-writer"
 ```
-Agent(agent: "technical-writer", prompt: "Read .geas/spec/seed.json, .geas/spec/prd.md, and all evidence at .geas/evidence/. Write README, API docs, and user-facing documentation. Write to .geas/evidence/polish/technical-writer.json")
+Agent(agent: "technical-writer", prompt: "Read .geas/spec/seed.json, .geas/spec/prd.md, and all evidence at .geas/evidence/. Write README, API docs, and user-facing documentation. Write to .geas/evidence/polishing/technical-writer.json")
 ```
-Verify `.geas/evidence/polish/technical-writer.json` exists.
+Verify `.geas/evidence/polishing/technical-writer.json` exists.
 
 ### Entropy Scan
 Update run.json checkpoint: `pipeline_step` = "cleanup", `agent_in_flight` = "architecture-authority"

@@ -1,6 +1,6 @@
 ---
 name: onboard
-description: Codebase discovery protocol — scan project structure, detect stack, map architecture. Used automatically when delivery mode finds no existing state.
+description: Codebase discovery protocol — scan project structure, detect stack, map architecture. Used automatically when no existing state is found.
 ---
 
 # Onboard
@@ -127,7 +127,6 @@ Write `.geas/memory/_project/state.json`:
 
 ```json
 {
-  "mode": "execution",
   "phase": "active",
   "onboarded_at": "<ISO date>",
   "project_size": "small|medium|large",

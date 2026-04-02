@@ -73,7 +73,7 @@ During parallel batch execution (see `/geas:scheduling`):
 
 This applies to every task — sequential or parallel. If the task file does not exist, this is a protocol violation (the file must be created before pipeline starts).
 
-### Rules evolution
+### Rules evolving
 - `.geas/rules.md` is a living document. Changes go through a structured `rules-update.json` workflow.
 - During per-task retrospectives, process_lead produces `rule_candidates[]` in `retrospective.json`. These are proposals, NOT direct modifications.
 - Rule candidates accumulate during the Building phase. Batch approval happens in the Evolving phase (Step 4.2.5).
@@ -95,12 +95,12 @@ Threshold warning is handled automatically by the check-debt hook when you write
 
 ### Git operations
 - **All git operations (commit, branch, PR) must be done by repository_manager.** Do not commit or manage branches directly.
-- Spawn repository_manager at task Resolve for commits, and at Evolution for release management.
+- Spawn repository_manager at task Resolve for commits, and at Evolving for release management.
 
 ### Your role boundaries
 - Orchestrate only. Specialist agents implement all code, including bug fixes.
 - All git operations go through repository_manager (commits, branches, PRs).
-- Follow the protocol of the invoked mode completely.
+- Follow the protocol of the 4-phase execution flow completely.
 
 ---
 

@@ -310,7 +310,7 @@ echo "GR-2: ${RESULT}${DETAIL:+ —$DETAIL}"
 
 ---
 
-## Category 5: Memory Evolution (ME)
+## Category 5: Memory Evolving (ME)
 
 These scenarios verify that memory lifecycle enforcement scripts and rollback logic are in place.
 
@@ -398,9 +398,9 @@ echo "ME-3: ${RESULT}${DETAIL:+ —$DETAIL}"
 
 ---
 
-## Category 6: Evolution Loop (EL)
+## Category 6: Evolving Loop (EL)
 
-These scenarios verify that evolution phase exit gates, debt tracking, and rules update steps are present in the orchestrating skill.
+These scenarios verify that evolving phase exit gates, debt tracking, and rules update steps are present in the orchestrating skill.
 
 ### EL-1 — Retrospective Required for Passed Tasks
 

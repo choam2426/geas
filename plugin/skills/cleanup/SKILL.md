@@ -1,6 +1,6 @@
 ---
 name: cleanup
-description: Entropy scan — detect AI slop, unused code, convention drift. Records findings in .geas/state/debt-register.json. Invoke after Build or during Evolution.
+description: Entropy scan — detect AI slop, unused code, convention drift. Records findings in .geas/state/debt-register.json. Invoke after Building or during Evolving.
 ---
 
 # Cleanup
@@ -104,10 +104,10 @@ Each debt item conforms to `docs/protocol/schemas/debt-register.schema.json`:
   "kind": "code_quality | architecture | security | docs | ops | test_gap | product_gap",
   "title": "<short description>",
   "description": "<what's wrong and suggested fix>",
-  "introduced_by_task_id": "<task-id or 'polish'>",
+  "introduced_by_task_id": "<task-id or 'polishing'>",
   "owner_type": "<agent type responsible>",
   "status": "open",
-  "target_phase": "polish | evolution | future"
+  "target_phase": "polishing | evolving | future"
 }
 ```
 
