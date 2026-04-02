@@ -6,51 +6,86 @@ This document summarizes the contracts for canonical runtime artifacts and memor
 
 ## Core Runtime Artifacts
 
-- `run.json`
-- `task.json`
-- `implementation-contract.json`
-- `worker-self-check.json`
-- `specialist-review.json`
-- `integration-result.json`
-- `gate-result.json`
-- `readiness-round.json`
-- `closure-packet.json`
-- `final-verdict.json`
-- `failure-record.json`
-- `revalidation-record.json`
-- `recovery-packet.json`
-- `retrospective.json`
-- `rules-update.json`
-- `debt-register.json`
-- `gap-assessment.json`
-- `phase-review.json`
+### Pipeline Artifacts (per-task)
 
-## Memory Artifacts
+| Artifact | Schema | Storage path | Producer |
+|----------|--------|-------------|----------|
+| `task-contract.json` | `task-contract.schema.json` | `.geas/tasks/{task_id}.json` | task_compiler |
+| `implementation-contract.json` | `implementation-contract.schema.json` | `.geas/contracts/{task_id}.json` | primary worker |
+| `worker-self-check.json` | `worker-self-check.schema.json` | `.geas/tasks/{task_id}/worker-self-check.json` | primary worker |
+| `specialist-review.json` | `specialist-review.schema.json` | `.geas/evidence/{task_id}/{agent-type}[-review].json` | specialist agents |
+| `integration-result.json` | `integration-result.schema.json` | `.geas/tasks/{task_id}/integration-result.json` | orchestration_authority |
+| `gate-result.json` | `gate-result.schema.json` | `.geas/tasks/{task_id}/gate-result.json` | orchestration_authority |
+| `closure-packet.json` | `closure-packet.schema.json` | `.geas/tasks/{task_id}/closure-packet.json` | orchestration_authority |
+| `challenge-review.json` | `challenge-review.schema.json` | `.geas/tasks/{task_id}/challenge-review.json` | critical_reviewer |
+| `final-verdict.json` | `final-verdict.schema.json` | `.geas/tasks/{task_id}/final-verdict.json` | product_authority |
+| `vote-round.json` | `vote-round.schema.json` | `.geas/decisions/{dec_id}.json` | orchestration_authority |
+| `failure-record.json` | `failure-record.schema.json` | `.geas/tasks/{task_id}/failure-record-{seq}.json` | orchestration_authority |
+| `retrospective.json` | `retrospective.schema.json` | `.geas/tasks/{task_id}/retrospective.json` | process_lead |
 
-- `memory-candidate.json`
-- `memory-entry.json`
-- `memory-review.json`
-- `memory-application-log.json`
-- `memory-packet.json`
-- `memory-index.json`
+### Session & Orchestration Artifacts
 
-## Evolution Artifact Storage Paths
+| Artifact | Schema | Storage path | Producer |
+|----------|--------|-------------|----------|
+| `run-state.json` | `run-state.schema.json` | `.geas/state/run.json` | orchestration_authority |
+| `lock-manifest.json` | `lock-manifest.schema.json` | `.geas/state/locks.json` | orchestration_authority |
+| `health-check.json` | `health-check.schema.json` | `.geas/state/health-check.json` | orchestration_authority |
+| `revalidation-record.json` | `revalidation-record.schema.json` | `.geas/tasks/{task_id}/revalidation-record.json` | orchestration_authority |
+| `recovery-packet.json` | `recovery-packet.schema.json` | `.geas/recovery/recovery-{id}.json` | orchestration_authority |
 
-| Artifact | Storage path | Scope |
-|---|---|---|
-| `retrospective.json` | `.geas/tasks/{task_id}/retrospective.json` | per task |
-| `rules-update.json` | `.geas/evolution/rules-update-{sequence}.json` | per mission |
-| `debt-register.json` | `.geas/evolution/debt-register.json` | per mission (single file, entries accumulate) |
-| `gap-assessment.json` | `.geas/evolution/gap-assessment-{phase_transition}.json` | per phase transition |
-| `phase-review.json` | `.geas/evolution/phase-review-{phase_transition}.json` | per phase transition |
+### Evolution Artifacts
+
+| Artifact | Schema | Storage path | Scope |
+|----------|--------|-------------|-------|
+| `rules-update.json` | `rules-update.schema.json` | `.geas/evolution/rules-update-{seq}.json` | per mission |
+| `debt-register.json` | `debt-register.schema.json` | `.geas/evolution/debt-register.json` | per mission (entries accumulate) |
+| `gap-assessment.json` | `gap-assessment.schema.json` | `.geas/evolution/gap-assessment-{transition}.json` | per phase transition |
+| `phase-review.json` | `phase-review.schema.json` | `.geas/evolution/phase-review-{transition}.json` | per phase transition |
+| `policy-override.json` | `policy-override.schema.json` | `.geas/state/policy-overrides.json` | per project |
+
+### Memory Artifacts
+
+| Artifact | Schema | Storage path | Producer |
+|----------|--------|-------------|----------|
+| `memory-candidate.json` | `memory-candidate.schema.json` | `.geas/memory/candidates/{memory_id}.json` | orchestration_authority |
+| `memory-entry.json` | `memory-entry.schema.json` | `.geas/memory/entries/{memory_id}.json` | orchestration_authority |
+| `memory-review.json` | `memory-review.schema.json` | `.geas/memory/candidates/{memory_id}-review.json` | domain authority |
+| `memory-application-log.json` | `memory-application-log.schema.json` | `.geas/memory/logs/{task_id}-{memory_id}.json` | orchestration_authority |
+| `memory-packet.json` | `memory-packet.schema.json` | `.geas/packets/{task_id}/memory-packet.json` | orchestration_authority |
+| `memory-index.json` | `memory-index.schema.json` | `.geas/state/memory-index.json` | orchestration_authority |
+
+### Human-Readable Summaries (no schema — markdown)
+
+| File | Storage path | Scope |
+|------|-------------|-------|
+| `session-latest.md` | `.geas/state/session-latest.md` | per session (overwritten on compact) |
+| `task-focus/{id}.md` | `.geas/state/task-focus/{task_id}.md` | per task |
 | `mission-summary.md` | `.geas/summaries/mission-summary.md` | per mission |
-| `session-latest.md` | `.geas/summaries/session-latest.md` | per session (overwritten) |
-| `task-focus/{id}.md` | `.geas/summaries/task-focus/{task_id}.md` | per task |
+| `run-summary-{ts}.md` | `.geas/summaries/run-summary-{timestamp}.md` | per session |
+
+## Schema Inventory
+
+28 JSON Schemas + 1 shared definitions file (`_defs.schema.json`) = 29 files total in `schemas/`.
 
 ## Artifact Purpose Highlights
 
 ### `worker-self-check.json`
 A self-assessment artifact where the worker records known risks, untested paths, possible stubs, and confidence.
+
+### `challenge-review.json`
+Critical reviewer pre-ship challenge. Mandatory for high/critical risk tasks. The reviewer must raise at least 1 substantive concern (protocol doc 05: substantive challenge obligation).
+
+### `vote-round.json`
+Result of a structured vote round — either a `proposal_round` (agree/disagree) or a `readiness_round` (ship/iterate/escalate). Replaces the former separate readiness-round artifact.
+
+### `failure-record.json`
+Records a task failure and rewind. Failure is not a state — the task rewinds to the rewind target. Tracks retry_budget before/after.
+
+### `health-check.json`
+8 health signals from protocol doc 12, each with value, threshold, and triggered flag. Calculated at phase transitions, session start, and evolving phase entry.
+
+### `policy-override.json`
+Machine-readable registry for temporary rules.md overrides. Entries are never deleted — expired ones are marked `expired: true` for audit trail.
 
 ### `retrospective.json`
 Input for the per-task learning loop. Written by `process_lead`.

@@ -6,66 +6,101 @@
 
 ## Core Runtime Artifacts
 
-- `run.json`
-- `task.json`
-- `implementation-contract.json`
-- `worker-self-check.json`
-- `specialist-review.json`
-- `integration-result.json`
-- `gate-result.json`
-- `readiness-round.json`
-- `closure-packet.json`
-- `final-verdict.json`
-- `failure-record.json`
-- `revalidation-record.json`
-- `recovery-packet.json`
-- `retrospective.json`
-- `rules-update.json`
-- `debt-register.json`
-- `gap-assessment.json`
-- `phase-review.json`
+### 파이프라인 Artifact (작업별)
 
-## Memory Artifacts
+| Artifact | Schema | 저장 경로 | 생산자 |
+|----------|--------|----------|--------|
+| `task-contract.json` | `task-contract.schema.json` | `.geas/tasks/{task_id}.json` | task_compiler |
+| `implementation-contract.json` | `implementation-contract.schema.json` | `.geas/contracts/{task_id}.json` | primary worker |
+| `worker-self-check.json` | `worker-self-check.schema.json` | `.geas/tasks/{task_id}/worker-self-check.json` | primary worker |
+| `specialist-review.json` | `specialist-review.schema.json` | `.geas/evidence/{task_id}/{agent-type}[-review].json` | specialist agents |
+| `integration-result.json` | `integration-result.schema.json` | `.geas/tasks/{task_id}/integration-result.json` | orchestration_authority |
+| `gate-result.json` | `gate-result.schema.json` | `.geas/tasks/{task_id}/gate-result.json` | orchestration_authority |
+| `closure-packet.json` | `closure-packet.schema.json` | `.geas/tasks/{task_id}/closure-packet.json` | orchestration_authority |
+| `challenge-review.json` | `challenge-review.schema.json` | `.geas/tasks/{task_id}/challenge-review.json` | critical_reviewer |
+| `final-verdict.json` | `final-verdict.schema.json` | `.geas/tasks/{task_id}/final-verdict.json` | product_authority |
+| `vote-round.json` | `vote-round.schema.json` | `.geas/decisions/{dec_id}.json` | orchestration_authority |
+| `failure-record.json` | `failure-record.schema.json` | `.geas/tasks/{task_id}/failure-record-{seq}.json` | orchestration_authority |
+| `retrospective.json` | `retrospective.schema.json` | `.geas/tasks/{task_id}/retrospective.json` | process_lead |
 
-- `memory-candidate.json`
-- `memory-entry.json`
-- `memory-review.json`
-- `memory-application-log.json`
-- `memory-packet.json`
-- `memory-index.json`
+### 세션 & 오케스트레이션 Artifact
 
-## Evolution Artifact 저장 경로
+| Artifact | Schema | 저장 경로 | 생산자 |
+|----------|--------|----------|--------|
+| `run-state.json` | `run-state.schema.json` | `.geas/state/run.json` | orchestration_authority |
+| `lock-manifest.json` | `lock-manifest.schema.json` | `.geas/state/locks.json` | orchestration_authority |
+| `health-check.json` | `health-check.schema.json` | `.geas/state/health-check.json` | orchestration_authority |
+| `revalidation-record.json` | `revalidation-record.schema.json` | `.geas/tasks/{task_id}/revalidation-record.json` | orchestration_authority |
+| `recovery-packet.json` | `recovery-packet.schema.json` | `.geas/recovery/recovery-{id}.json` | orchestration_authority |
 
-| Artifact | 저장 경로 | 범위 |
-|---|---|---|
-| `retrospective.json` | `.geas/tasks/{task_id}/retrospective.json` | task별 |
-| `rules-update.json` | `.geas/evolution/rules-update-{sequence}.json` | mission별 |
-| `debt-register.json` | `.geas/evolution/debt-register.json` | mission별 (단일 파일, 항목 누적) |
-| `gap-assessment.json` | `.geas/evolution/gap-assessment-{phase_transition}.json` | phase 전이별 |
-| `phase-review.json` | `.geas/evolution/phase-review-{phase_transition}.json` | phase 전이별 |
+### Evolution Artifact
+
+| Artifact | Schema | 저장 경로 | 범위 |
+|----------|--------|----------|------|
+| `rules-update.json` | `rules-update.schema.json` | `.geas/evolution/rules-update-{seq}.json` | mission별 |
+| `debt-register.json` | `debt-register.schema.json` | `.geas/evolution/debt-register.json` | mission별 (항목 누적) |
+| `gap-assessment.json` | `gap-assessment.schema.json` | `.geas/evolution/gap-assessment-{transition}.json` | phase 전이별 |
+| `phase-review.json` | `phase-review.schema.json` | `.geas/evolution/phase-review-{transition}.json` | phase 전이별 |
+| `policy-override.json` | `policy-override.schema.json` | `.geas/state/policy-overrides.json` | 프로젝트별 |
+
+### Memory Artifact
+
+| Artifact | Schema | 저장 경로 | 생산자 |
+|----------|--------|----------|--------|
+| `memory-candidate.json` | `memory-candidate.schema.json` | `.geas/memory/candidates/{memory_id}.json` | orchestration_authority |
+| `memory-entry.json` | `memory-entry.schema.json` | `.geas/memory/entries/{memory_id}.json` | orchestration_authority |
+| `memory-review.json` | `memory-review.schema.json` | `.geas/memory/candidates/{memory_id}-review.json` | domain authority |
+| `memory-application-log.json` | `memory-application-log.schema.json` | `.geas/memory/logs/{task_id}-{memory_id}.json` | orchestration_authority |
+| `memory-packet.json` | `memory-packet.schema.json` | `.geas/packets/{task_id}/memory-packet.json` | orchestration_authority |
+| `memory-index.json` | `memory-index.schema.json` | `.geas/state/memory-index.json` | orchestration_authority |
+
+### 사람이 읽는 요약 (스키마 없음 — 마크다운)
+
+| 파일 | 저장 경로 | 범위 |
+|------|----------|------|
+| `session-latest.md` | `.geas/state/session-latest.md` | session별 (compact 시 덮어쓰기) |
+| `task-focus/{id}.md` | `.geas/state/task-focus/{task_id}.md` | task별 |
 | `mission-summary.md` | `.geas/summaries/mission-summary.md` | mission별 |
-| `session-latest.md` | `.geas/summaries/session-latest.md` | session별 (덮어쓰기) |
-| `task-focus/{id}.md` | `.geas/summaries/task-focus/{task_id}.md` | task별 |
+| `run-summary-{ts}.md` | `.geas/summaries/run-summary-{timestamp}.md` | session별 |
+
+## Schema Inventory
+
+28개 JSON Schema + 1개 공유 정의 파일 (`_defs.schema.json`) = 총 29개 파일 (`schemas/`).
 
 ## Artifact Purpose Highlights
 
 ### `worker-self-check.json`
-worker가 known risks, untested paths, possible stubs, confidence를 남기는 자기 평가 artifact
+worker가 known risks, untested paths, possible stubs, confidence를 남기는 자기 평가 artifact.
+
+### `challenge-review.json`
+Critical reviewer의 pre-ship challenge. high/critical risk 작업에서 필수. reviewer는 최소 1개의 실질적 우려를 제기해야 한다 (protocol doc 05: substantive challenge obligation).
+
+### `vote-round.json`
+구조화된 투표 결과 — `proposal_round` (agree/disagree) 또는 `readiness_round` (ship/iterate/escalate). 이전의 별도 readiness-round artifact를 대체.
+
+### `failure-record.json`
+작업 실패와 되감기를 기록. 실패는 상태가 아님 — 작업이 rewind target으로 돌아감. retry_budget before/after를 추적.
+
+### `health-check.json`
+protocol doc 12의 8개 건강 신호. 각각 value, threshold, triggered 플래그를 가짐. phase 전이, 세션 시작, evolving phase 진입 시 계산.
+
+### `policy-override.json`
+rules.md 임시 오버라이드의 machine-readable 레지스트리. 항목은 삭제하지 않음 — 만료된 항목은 `expired: true`로 표시하여 감사 추적 유지.
 
 ### `retrospective.json`
-per-task learning loop의 입력. process_lead가 작성
+per-task learning loop의 입력. process_lead가 작성.
 
 ### `rules-update.json`
-승인된 규칙 변경을 durable behavior surface에 반영한 기록
+승인된 규칙 변경을 durable behavior surface에 반영한 기록.
 
 ### `debt-register.json`
-mission/phase 수준의 debt rollup artifact
+mission/phase 수준의 debt rollup artifact.
 
 ### `gap-assessment.json`
-`scope_in` 대비 실제 `scope_out`의 차이를 평가한 artifact
+`scope_in` 대비 실제 `scope_out`의 차이를 평가한 artifact.
 
 ### `phase-review.json`
-mission phase transition 전/후 상태를 요약한 artifact
+mission phase transition 전/후 상태를 요약한 artifact.
 
 ## Canonical Fields to Notice
 
