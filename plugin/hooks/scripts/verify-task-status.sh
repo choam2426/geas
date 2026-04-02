@@ -45,31 +45,31 @@ d = json.load(open(fp))
 if d.get('status') == 'passed':
     tid = d.get('id', '')
     edir = os.path.join(geas, 'evidence', tid)
-    if not os.path.isfile(os.path.join(edir, 'forge-review.json')):
-        print(f'[Geas] Warning: {tid} marked as passed but forge-review.json is missing')
-    if not os.path.isfile(os.path.join(edir, 'sentinel.json')):
-        print(f'[Geas] Warning: {tid} marked as passed but sentinel.json is missing')
-    if not os.path.isfile(os.path.join(edir, 'critic-review.json')):
-        print(f'[Geas] Warning: {tid} marked as passed but critic-review.json is missing')
-    if not os.path.isfile(os.path.join(edir, 'nova-verdict.json')):
-        print(f'[Geas] Warning: {tid} marked as passed but nova-verdict.json is missing')
-    retro_path = os.path.join(geas, 'memory', 'retro', tid + '.json')
+    if not os.path.isfile(os.path.join(edir, 'architecture-authority-review.json')):
+        print(f'[Geas] Warning: {tid} marked as passed but architecture-authority-review.json is missing')
+    if not os.path.isfile(os.path.join(edir, 'qa-engineer.json')):
+        print(f'[Geas] Warning: {tid} marked as passed but qa-engineer.json is missing')
+    if not os.path.isfile(os.path.join(edir, 'challenge-review.json')):
+        print(f'[Geas] Warning: {tid} marked as passed but challenge-review.json is missing')
+    if not os.path.isfile(os.path.join(edir, 'product-authority-verdict.json')):
+        print(f'[Geas] Warning: {tid} marked as passed but product-authority-verdict.json is missing')
+    retro_path = os.path.join(geas, 'tasks', tid, 'retrospective.json')
     if not os.path.isfile(retro_path):
-        print(f'[Geas] Warning: {tid} marked as passed but retro/{tid}.json is missing (Scrum retrospective not run)')
-    # Check rubric_scores in sentinel and forge-review evidence
-    sentinel_path = os.path.join(edir, 'sentinel.json')
-    if os.path.isfile(sentinel_path):
+        print(f'[Geas] Warning: {tid} marked as passed but tasks/{tid}/retrospective.json is missing (retrospective not run)')
+    # Check rubric_scores in qa-engineer and architecture-authority-review evidence
+    qa_engineer_path = os.path.join(edir, 'qa-engineer.json')
+    if os.path.isfile(qa_engineer_path):
         try:
-            sentinel = json.load(open(sentinel_path))
-            if 'rubric_scores' not in sentinel or not sentinel.get('rubric_scores'):
-                print(f'[Geas] Warning: {tid} sentinel.json is missing rubric_scores')
+            qa_engineer = json.load(open(qa_engineer_path))
+            if 'rubric_scores' not in qa_engineer or not qa_engineer.get('rubric_scores'):
+                print(f'[Geas] Warning: {tid} qa-engineer.json is missing rubric_scores')
         except: pass
-    forge_review_path = os.path.join(edir, 'forge-review.json')
-    if os.path.isfile(forge_review_path):
+    arch_review_path = os.path.join(edir, 'architecture-authority-review.json')
+    if os.path.isfile(arch_review_path):
         try:
-            forge_review = json.load(open(forge_review_path))
-            if 'rubric_scores' not in forge_review or not forge_review.get('rubric_scores'):
-                print(f'[Geas] Warning: {tid} forge-review.json is missing rubric_scores')
+            arch_review = json.load(open(arch_review_path))
+            if 'rubric_scores' not in arch_review or not arch_review.get('rubric_scores'):
+                print(f'[Geas] Warning: {tid} architecture-authority-review.json is missing rubric_scores')
         except: pass
 " "$FILE_PATH" "$GEAS_DIR" 2>/dev/null || echo "")
   if [ -n "$WARN" ]; then

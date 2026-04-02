@@ -37,17 +37,17 @@ geas = sys.argv[2]
 missing = []
 for tid in d.get('completed_tasks', []):
     edir = os.path.join(geas, 'evidence', tid)
-    if not os.path.isfile(os.path.join(edir, 'forge-review.json')):
-        missing.append(f'  - {tid}: forge-review.json (Code Review) missing')
-    if not os.path.isfile(os.path.join(edir, 'sentinel.json')):
-        missing.append(f'  - {tid}: sentinel.json (QA Testing) missing')
-    if not os.path.isfile(os.path.join(edir, 'critic-review.json')):
-        missing.append(f'  - {tid}: critic-review.json (Critic Pre-ship Review) missing')
-    if not os.path.isfile(os.path.join(edir, 'nova-verdict.json')):
-        missing.append(f'  - {tid}: nova-verdict.json (Nova Product Review) missing')
+    if not os.path.isfile(os.path.join(edir, 'architecture-authority-review.json')):
+        missing.append(f'  - {tid}: architecture-authority-review.json (Code Review) missing')
+    if not os.path.isfile(os.path.join(edir, 'qa-engineer.json')):
+        missing.append(f'  - {tid}: qa-engineer.json (QA Testing) missing')
+    if not os.path.isfile(os.path.join(edir, 'challenge-review.json')):
+        missing.append(f'  - {tid}: challenge-review.json (Critical Reviewer Challenge) missing')
+    if not os.path.isfile(os.path.join(edir, 'product-authority-verdict.json')):
+        missing.append(f'  - {tid}: product-authority-verdict.json (Product Authority verdict) missing')
     retro_path = os.path.join(geas, 'tasks', tid, 'retrospective.json')
     if not os.path.isfile(retro_path):
-        missing.append(f'  - {tid}: tasks/{tid}/retrospective.json (Scrum Retrospective) missing')
+        missing.append(f'  - {tid}: tasks/{tid}/retrospective.json (Retrospective) missing')
 print('\n'.join(missing))
 " "$RUN_FILE" "$GEAS_DIR" 2>/dev/null || echo "")
 
