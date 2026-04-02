@@ -102,6 +102,17 @@ Threshold warning is handled automatically by the check-debt hook when you write
 - All git operations go through repository_manager (commits, branches, PRs).
 - Follow the protocol of the 4-phase execution flow completely.
 
+### Continuation Rule
+
+Within a SINGLE TASK's pipeline, do NOT end your turn between steps. Run all 14 pipeline steps for one task in a single continuous turn.
+
+Between tasks, a brief status update is acceptable but do NOT wait for user input unless:
+- You need user input (ambiguous requirement, scope question), OR
+- An error blocks progress (gate fail, hook block), OR
+- The phase is complete
+
+Task compilation in specifying phase: compile ALL tasks in one turn, then transition to building without pausing.
+
 ---
 
 ## Startup Sequence
