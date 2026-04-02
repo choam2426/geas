@@ -70,6 +70,7 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 - `evidence-gate/` — Tier 0/1/2 verification (pass/fail/block/error)
 - `verify-fix-loop/` — fail → fix → re-verify with retry budget
 - `vote-round/` — structured agent voting (proposal_round + readiness_round)
+- `memorizing/` — memory lifecycle: candidate extraction, promotion, review, application logging
 
 ### Orchestration + scheduling
 - `orchestrating/` — Geas orchestrator: setup, intake, mode routing, pipeline coordination
@@ -122,15 +123,16 @@ We are upgrading skills to match the v3 protocol. Migration follows 6 phases (se
 - **Phase 1 (Minimum Enforceable State)**: 7-state task model, worker self-check, gate/verdict separation, closure packet, critical reviewer, debate→decision rename
 - **Phase 2 (Baseline, Stale, Parallelism)**: revalidation-record/lock-manifest schemas, staleness detection, lock lifecycle, safe parallel conditions, compass→orchestrating + parallel-dispatch→scheduling renames
 - **Phase 3 (Evolution Core)**: structured retrospective (after Resolve, Ship only), rules-update workflow, debt-register.json, gap-assessment.json, phase-review wiring, evolution exit gate, Sprint Wrap-Up
+- **Phase 4 (Memory Core)**: memorizing skill (9-state lifecycle, 6-stage promotion), memory retrieval scoring in context-packet, application logging, memory-index, memory hooks
 
-### Current phase: Phase 4 — Memory Core
+### Current phase: Phase 5 — Recovery and Context Engine
 
 Priority gaps to close:
-1. Memory candidate extraction (automated from retrospective)
-2. Memory entry lifecycle (9-state: candidate → canonical)
-3. Memory review and promotion (6-stage)
-4. Memory packet builder (context injection)
-5. Application logging (effect tracking when memory applied)
+1. Extended run.json schema
+2. Recovery packet (recovery-packet.json)
+3. Session recovery decision table
+4. Packet stale regeneration
+5. Post-compact restore flow
 
 ### How to work on migration
 
