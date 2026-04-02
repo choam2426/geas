@@ -6,9 +6,9 @@
 
 ### Governance. Traceability. Verification. Evolution.
 
-A harness that brings structure to multi-agent AI development — so every decision follows a process, every action is traceable, every output is verified, and the team gets smarter over time.
+A governance protocol for multi-agent AI development — so every decision follows a process, every action is traceable, every output is verified, and the team gets smarter over time.
 
-[![Claude Code](https://img.shields.io/badge/Built_for-Claude_Code-6B4FBB?style=for-the-badge)](https://claude.ai/code)
+[![Protocol](https://img.shields.io/badge/Protocol-v3-6B4FBB?style=for-the-badge)](#)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
 [![Agents](https://img.shields.io/badge/Agents-12-4A90D9?style=flat-square)](docs/reference/AGENTS.md)
 [![Skills](https://img.shields.io/badge/Skills-27-2ECC71?style=flat-square)](docs/reference/SKILLS.md)
@@ -20,7 +20,7 @@ A harness that brings structure to multi-agent AI development — so every decis
 
 ## What is Geas?
 
-Geas is a contract-driven multi-agent AI development harness built for Claude Code. It brings four guarantees to any AI team: **Governance** (every decision follows a defined process), **Traceability** (every action produces a traceable artifact), **Verification** (output is proven against acceptance criteria — not just declared done), and **Evolution** (the team accumulates knowledge across sessions). You describe a mission; Geas runs a governed pipeline of specialist agents that design, build, review, and verify — and records everything.
+Geas is a governance protocol for multi-agent AI development. It defines how decisions are governed, actions are traced, outputs are verified, and teams evolve. The protocol is tool-agnostic; the included Claude Code plugin is one implementation. You describe a mission; Geas runs a governed pipeline of specialist agents that design, build, review, and verify — and records everything.
 
 ---
 
@@ -30,14 +30,17 @@ Geas is a contract-driven multi-agent AI development harness built for Claude Co
 |--------|-----------|-----------------|
 | **Governance** | Every decision follows a defined process with explicit authority. | Architecture choices go through vote rounds with mandatory devil's advocacy. Disagreements trigger structured debates. Trade-offs are recorded. |
 | **Traceability** | Every action is recorded and auditable after the fact. | All transitions log to `.geas/ledger/events.jsonl` with real timestamps. Checkpoint state in `run.json` tracks pipeline position. DecisionRecords capture the *why* behind escalations. |
-| **Verification** | Every output is verified against its contract — "done" means "contract fulfilled." | Evidence Gate runs three tiers: mechanical (build/lint/test), semantic (acceptance criteria + rubric scores), product (Nova judgment). |
-| **Evolution** | The team gets smarter over time. | Scrum retrospectives after every task. Lessons go to `.geas/tasks/{task-id}/retrospective.json`. `rules.md` grows with each session. |
+| **Verification** | Every output is verified against its contract — "done" means "contract fulfilled." | Evidence Gate runs three tiers: mechanical (build/lint/test), semantic (acceptance criteria + rubric scores), product (final verdict). No tier references specific tools. |
+| **Evolution** | The team gets smarter over time. | Process Lead retrospectives after every task. Lessons go to `.geas/tasks/{task-id}/retrospective.json`. `rules.md` grows with each session. |
 
 ---
 
 ## Quick Start
 
-**Prerequisites**: [Claude Code CLI](https://claude.ai/code) installed and authenticated
+**Claude Code Implementation**: [Claude Code CLI](https://claude.ai/code) installed and authenticated
+
+> Geas is a protocol. This Quick Start uses the Claude Code plugin implementation.
+> Other execution engines can implement the same protocol.
 
 ### 1. Install the plugin
 
@@ -57,16 +60,16 @@ Describe what you want to build, add, or decide. The orchestrator runs a 4-phase
 ### 3. Watch the process
 
 ```
-[Orchestrator]  Task started. Assigned to Pixel.
-[Palette]       Mobile-first layout. Vertical card stack.
-[You]           Use bar charts instead of pie charts.        <- your input
-[Forge]         Agreed. CSS-only bar chart approach.
-[Pixel]         Implementation complete. 5 components.
-[Sentinel]      QA: 5/5 criteria passed.
-[Critic]        Risks: no offline fallback, chart reflow on resize.
-[Orchestrator]  Evidence Gate PASSED.
-[Nova]          Ship.
-[Scrum]         Retro: added CSS animation rule to rules.md.
+[Orchestrator]     Task started. Assigned to frontend-engineer.
+[UI/UX Designer]   Mobile-first layout. Vertical card stack.
+[You]              Use bar charts instead of pie charts.
+[Arch Authority]   Agreed. CSS-only bar chart approach.
+[Frontend Eng]     Implementation complete. 5 components.
+[QA Engineer]      QA: 5/5 criteria passed.
+[Critical Rev]     Risks: no offline fallback, chart reflow on resize.
+[Orchestrator]     Evidence Gate PASSED.
+[Product Auth]     Ship.
+[Process Lead]     Retro: added CSS animation rule to rules.md.
 ```
 
 ---
@@ -95,8 +98,9 @@ Every artifact is written to `.geas/` — the traceable record of the entire run
 ├── decisions/               # vote records, decision records
 ├── ledger/events.jsonl      # append-only event log
 ├── memory/
-│   ├── retro/               # retrospective lessons per task
-│   └── agents/              # per-agent memory (grows across sessions)
+│   ├── candidates/          # memory candidates from retrospectives
+│   ├── entries/             # promoted memory entries
+│   └── logs/                # memory application logs
 └── rules.md                 # shared project conventions (grows over time)
 ```
 
@@ -104,22 +108,22 @@ Every artifact is written to `.geas/` — the traceable record of the entire run
 
 ## The Team
 
-The orchestrator runs the pipeline. 12 specialist agents execute it, each under their own geas:
+The protocol defines 12 agent types. Each has a specific authority and responsibility within the governed pipeline:
 
-| Group | Agent | Role |
-|-------|-------|------|
-| **Leadership** | Nova | CEO / Product judgment |
-| | Forge | CTO / Architecture |
-| **Design** | Palette | UI/UX Designer |
-| **Engineering** | Pixel | Frontend |
-| | Circuit | Backend |
-| | Keeper | Git / Release Manager |
-| **Quality** | Sentinel | QA Engineer |
-| **Operations** | Pipeline | DevOps |
-| | Shield | Security |
-| **Strategy** | Critic | Devil's Advocate |
-| **Documentation** | Scroll | Tech Writer |
-| **Process** | Scrum | Agile Master / Retrospectives |
+| Group | Agent Type | Role |
+|-------|-----------|------|
+| **Leadership** | Product Authority | Product judgment, final verdict |
+| | Architecture Authority | Architecture, code review |
+| **Design** | UI/UX Designer | Interface design |
+| **Engineering** | Frontend Engineer | Frontend implementation |
+| | Backend Engineer | Backend implementation |
+| | Repository Manager | Git, release management |
+| **Quality** | QA Engineer | Testing, quality assurance |
+| **Operations** | DevOps Engineer | CI/CD, deployment |
+| | Security Engineer | Security review |
+| **Strategy** | Critical Reviewer | Devil's advocate, pre-ship challenge |
+| **Documentation** | Technical Writer | Documentation |
+| **Process** | Process Lead | Retrospectives, rules evolution |
 
 ---
 
@@ -141,7 +145,7 @@ The orchestrator runs the pipeline. 12 specialist agents execute it, each under 
 | Document | Description |
 |----------|-------------|
 | [Protocol](docs/protocol/) | 15 operational protocol documents (canonical) |
-| [Schemas](docs/protocol/schemas/) | 19 JSON Schema definitions (draft 2020-12) |
+| [Schemas](docs/protocol/schemas/) | 22 JSON Schema definitions (draft 2020-12) |
 
 ---
 
@@ -153,6 +157,6 @@ The orchestrator runs the pipeline. 12 specialist agents execute it, each under 
 
 <div align="center">
 
-**Install the plugin. Describe the mission. Verify the output. Watch the team evolve.**
+**Define the protocol. Describe the mission. Verify the output. Watch the team evolve.**
 
 </div>
