@@ -112,9 +112,9 @@ For delivery mode (adding a feature to an existing project):
 
 ## Output
 
-- **Initiative mission**: `.geas/spec/seed.json`
-- **Delivery mode (Sprint pattern)**:
+- **New product**: `.geas/spec/seed.json`
+- **Existing project**:
   - If `.geas/spec/seed.json` already exists: do NOT modify it. Skip seed creation — the feature scope goes directly into the TaskContract via task-compiler (goal, acceptance_criteria, scope_out).
-  - If `.geas/spec/seed.json` does NOT exist (first time using geas): create a minimal seed.json with project identity (mission, target_user, constraints detected from onboard). Include `"source": "sprint"` to indicate this was auto-generated, not from a full Initiative intake. Feature scope still goes into TaskContract.
+  - If `.geas/spec/seed.json` does NOT exist (first time using geas): create a minimal seed.json with project identity (mission, target_user, constraints detected from onboard). Include `"source": "existing_project"` to indicate this was auto-generated, not from a full intake. Feature scope still goes into TaskContract.
 - **Format**: JSON conforming to `schemas/seed.schema.json`
 - **Immutability**: Once confirmed, the seed should not be modified during execution. If scope must change, trigger `/geas:pivot-protocol` instead.

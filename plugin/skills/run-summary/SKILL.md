@@ -37,9 +37,9 @@ Read these in order to assemble the summary:
 Print to **console** and write to **`.geas/summaries/`**.
 
 ```
-Run Summary — <mission name or Sprint feature>
+Run Summary — <mission name or feature>
 Date: <ISO date, e.g. 2026-03-21>
-Mode: <initiative | sprint | decision>
+Mode: <execution | decision>
 Phase: <discovery | build | polish | evolve | complete>
 Duration: <if available from timestamps, otherwise omit>
 

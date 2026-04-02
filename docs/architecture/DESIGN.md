@@ -62,7 +62,7 @@ discovery --[gate 1]--> build --[gate 2]--> polish --[gate 3]--> evolution
                                                                   close
 ```
 
-Sprint is an execution pattern within delivery mode. It skips discovery and uses the existing seed as read-only context.
+For existing projects, Discovery is scaled down or skipped, and the existing seed is used as read-only context.
 
 > For details on modes, missions, and phases, see `protocol/02_MODES_MISSIONS_AND_RUNTIME.md`.
 
@@ -190,9 +190,13 @@ plugin/
     implementation-contract/  # Pre-implementation agreement
     verify-fix-loop/       # fail -> fix -> re-verify
     vote-round/            # Structured voting
-    orchestrating/         # Orchestrator
-    initiative/            # 4-phase mission (discovery -> build -> polish -> evolution)
-    sprint/                # delivery mode: add features to existing project
+    orchestrating/         # Orchestrator: 4-phase execution pipeline
+      references/
+        discovery.md       # Discovery phase procedure
+        pipeline.md        # Per-task 14-step pipeline
+        build.md           # Build phase management
+        polish.md          # Polish phase procedure
+        evolution.md       # Evolution phase procedure
     decision/              # decision mode: decision-making
     ...
   agents/                  # Agent definitions (.md)

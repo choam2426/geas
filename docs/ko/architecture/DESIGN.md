@@ -62,7 +62,7 @@ discovery ──[gate 1]──> build ──[gate 2]──> polish ──[gate 3
                                                                   close
 ```
 
-Sprint는 delivery mode의 실행 패턴으로, discovery를 건너뛰고 기존 seed를 읽기 전용으로 사용한다.
+기존 프로젝트에서는 Discovery를 축소하거나 건너뛰고, 기존 seed를 읽기 전용으로 사용한다.
 
 > Mode/mission/phase 상세는 `protocol/02_MODES_MISSIONS_AND_RUNTIME.md` 참조.
 
@@ -190,9 +190,13 @@ plugin/
     implementation-contract/  # 구현 전 합의
     verify-fix-loop/       # 실패 → 수정 → 재검증
     vote-round/            # 구조화된 투표
-    orchestrating/         # 오케스트레이터
-    initiative/            # 4-phase mission (discovery → build → polish → evolution)
-    sprint/                # delivery mode: 기존 프로젝트에 기능 추가
+    orchestrating/         # 오케스트레이터: 4-phase 실행 파이프라인
+      references/
+        discovery.md       # Discovery phase 절차
+        pipeline.md        # 작업별 14단계 파이프라인
+        build.md           # Build phase 관리
+        polish.md          # Polish phase 절차
+        evolution.md       # Evolution phase 절차
     decision/              # decision mode: 의사결정
     ...
   agents/                  # 에이전트 정의 (.md)

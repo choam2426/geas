@@ -5,7 +5,7 @@ description: Codebase discovery protocol — scan project structure, detect stac
 
 # Onboard
 
-Codebase discovery protocol for delivery mode (Sprint pattern) on existing projects. A single-agent scan that maps an unknown codebase into a structured conventions file so the rest of the team can work immediately.
+Codebase discovery protocol for delivery mode on existing projects. A single-agent scan that maps an unknown codebase into a structured conventions file so the rest of the team can work immediately.
 
 **KEY PRINCIPLE: Discover first, act second. Never guess what the project uses.**
 
@@ -13,7 +13,7 @@ Codebase discovery protocol for delivery mode (Sprint pattern) on existing proje
 
 ## When Triggered
 
-orchestration_authority detects no `.geas/state/run.json` during delivery mode. This means the project has never been onboarded by this team.
+orchestration_authority detects no `.geas/state/run.json` during execution on an existing project. This means the project has never been onboarded by this team.
 
 If `.geas/memory/_project/conventions.md` already exists from a previous session, skip onboarding entirely — the project is already "known."
 
@@ -75,7 +75,7 @@ Adjust scan depth based on project size. Count source files (exclude `node_modul
 |------|-----------|---------------|
 | Small | ~50 files | **Full scan** — read all source files to understand the full picture |
 | Medium | 50-500 files | **Focused scan** — `src/` + config files + entry points + key modules |
-| Large | 500+ files | **Targeted scan** — only directories relevant to the Sprint feature. Use `find` to list structure, read selectively. |
+| Large | 500+ files | **Targeted scan** — only directories relevant to the requested feature. Use `find` to list structure, read selectively. |
 
 For Large projects, ask orchestration_authority which directories are relevant to the feature before deep-reading.
 
@@ -127,7 +127,7 @@ Write `.geas/memory/_project/state.json`:
 
 ```json
 {
-  "mode": "sprint",
+  "mode": "execution",
   "phase": "active",
   "onboarded_at": "<ISO date>",
   "project_size": "small|medium|large",
@@ -137,13 +137,13 @@ Write `.geas/memory/_project/state.json`:
 
 ---
 
-## Second Sprint Behavior
+## Repeat Execution Behavior
 
-When orchestration_authority triggers delivery mode and `.geas/memory/_project/conventions.md` already exists:
+When orchestration_authority triggers execution on an existing project and `.geas/memory/_project/conventions.md` already exists:
 
 1. **Skip onboarding entirely** — do not re-scan
 2. Read conventions.md to load project context
-3. Proceed directly to delivery mode execution
+3. Proceed directly to the execution pipeline
 
 This makes repeat sessions fast: no redundant scanning.
 

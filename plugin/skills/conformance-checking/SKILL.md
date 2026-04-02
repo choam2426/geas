@@ -153,29 +153,28 @@ echo "DR-1: ${RESULT}${DETAIL:+ —$DETAIL}"
 
 ---
 
-### DR-2 — Revalidation Logic in Initiative and Sprint Skills
+### DR-2 — Revalidation Logic in Orchestrating Pipeline
 
-**Checks:** `initiative/SKILL.md` and `sprint/SKILL.md` both contain a "Baseline Check" section (or keyword), confirming revalidation logic is present in both execution paths.
+**Checks:** `orchestrating/references/pipeline.md` contains a "Baseline Check" section (or keyword), confirming revalidation logic is present in the execution pipeline.
 
 ```bash
 #!/usr/bin/env bash
-# DR-2: initiative and sprint skills must contain "Baseline Check" revalidation logic
+# DR-2: orchestrating pipeline must contain "Baseline Check" revalidation logic
 RESULT="PASS"
 DETAIL=""
 
-for skill in "plugin/skills/initiative/SKILL.md" "plugin/skills/sprint/SKILL.md"; do
-  if [[ ! -f "$skill" ]]; then
-    RESULT="FAIL"
-    DETAIL="${DETAIL} ${skill} does not exist."
-  elif ! grep -qi "Baseline Check" "$skill"; then
-    RESULT="FAIL"
-    DETAIL="${DETAIL} 'Baseline Check' not found in ${skill}."
-  fi
-done
+SKILL="plugin/skills/orchestrating/references/pipeline.md"
+if [[ ! -f "$SKILL" ]]; then
+  RESULT="FAIL"
+  DETAIL=" ${SKILL} does not exist."
+elif ! grep -qi "Baseline Check" "$SKILL"; then
+  RESULT="FAIL"
+  DETAIL=" 'Baseline Check' not found in ${SKILL}."
+fi
 echo "DR-2: ${RESULT}${DETAIL:+ —$DETAIL}"
 ```
 
-**Pass condition:** Both `plugin/skills/initiative/SKILL.md` and `plugin/skills/sprint/SKILL.md` contain the text "Baseline Check" (case-insensitive).
+**Pass condition:** `plugin/skills/orchestrating/references/pipeline.md` contains the text "Baseline Check" (case-insensitive).
 
 ---
 
@@ -401,7 +400,7 @@ echo "ME-3: ${RESULT}${DETAIL:+ —$DETAIL}"
 
 ## Category 6: Evolution Loop (EL)
 
-These scenarios verify that evolution phase exit gates, debt tracking, and rules update steps are present in the initiative skill.
+These scenarios verify that evolution phase exit gates, debt tracking, and rules update steps are present in the orchestrating skill.
 
 ### EL-1 — Retrospective Required for Passed Tasks
 
@@ -433,14 +432,14 @@ echo "EL-1: ${RESULT}${DETAIL:+ —$DETAIL}"
 
 ### EL-2 — Evolution Exit Gate Requires Gap Assessment
 
-**Checks:** `initiative/SKILL.md` contains a reference to `gap-assessment.json` as a prerequisite for closing the Evolution phase.
+**Checks:** `orchestrating/references/evolution.md` contains a reference to `gap-assessment.json` as a prerequisite for closing the Evolution phase.
 
 ```bash
 #!/usr/bin/env bash
-# EL-2: initiative/SKILL.md must require gap-assessment.json before closing evolution phase
+# EL-2: orchestrating/references/evolution.md must require gap-assessment.json before closing evolution phase
 RESULT="PASS"
 DETAIL=""
-SKILL="plugin/skills/initiative/SKILL.md"
+SKILL="plugin/skills/orchestrating/references/evolution.md"
 
 if [[ ! -f "$SKILL" ]]; then
   RESULT="FAIL"
@@ -448,26 +447,26 @@ if [[ ! -f "$SKILL" ]]; then
 else
   if ! grep -q "gap-assessment" "$SKILL"; then
     RESULT="FAIL"
-    DETAIL=" 'gap-assessment' not found in initiative/SKILL.md — evolution exit gate may be missing."
+    DETAIL=" 'gap-assessment' not found in orchestrating/references/evolution.md — evolution exit gate may be missing."
   fi
 fi
 echo "EL-2: ${RESULT}${DETAIL:+ —$DETAIL}"
 ```
 
-**Pass condition:** The string "gap-assessment" appears in `plugin/skills/initiative/SKILL.md`.
+**Pass condition:** The string "gap-assessment" appears in `plugin/skills/orchestrating/references/evolution.md`.
 
 ---
 
 ### EL-3 — Phase Close Requires Debt Register
 
-**Checks:** `initiative/SKILL.md` contains a reference to `debt-register.json` as required when closing the polish or evolution phase.
+**Checks:** `orchestrating/references/evolution.md` contains a reference to `debt-register.json` as required when closing the polish or evolution phase.
 
 ```bash
 #!/usr/bin/env bash
-# EL-3: initiative/SKILL.md must require debt-register.json for phase close
+# EL-3: orchestrating/references/evolution.md must require debt-register.json for phase close
 RESULT="PASS"
 DETAIL=""
-SKILL="plugin/skills/initiative/SKILL.md"
+SKILL="plugin/skills/orchestrating/references/evolution.md"
 
 if [[ ! -f "$SKILL" ]]; then
   RESULT="FAIL"
@@ -475,26 +474,26 @@ if [[ ! -f "$SKILL" ]]; then
 else
   if ! grep -q "debt-register" "$SKILL"; then
     RESULT="FAIL"
-    DETAIL=" 'debt-register' not found in initiative/SKILL.md — phase close debt gate may be missing."
+    DETAIL=" 'debt-register' not found in orchestrating/references/evolution.md — phase close debt gate may be missing."
   fi
 fi
 echo "EL-3: ${RESULT}${DETAIL:+ —$DETAIL}"
 ```
 
-**Pass condition:** The string "debt-register" appears in `plugin/skills/initiative/SKILL.md`.
+**Pass condition:** The string "debt-register" appears in `plugin/skills/orchestrating/references/evolution.md`.
 
 ---
 
 ### EL-4 — Rules Update Approval Step Present
 
-**Checks:** `initiative/SKILL.md` contains a Rules Update Approval step (step 4.2.5 or equivalent), confirming that rules.md changes require product_authority sign-off before taking effect.
+**Checks:** `orchestrating/references/evolution.md` contains a Rules Update Approval step (or equivalent), confirming that rules.md changes require product_authority sign-off before taking effect.
 
 ```bash
 #!/usr/bin/env bash
-# EL-4: initiative/SKILL.md must contain a Rules Update Approval step
+# EL-4: orchestrating/references/evolution.md must contain a Rules Update Approval step
 RESULT="PASS"
 DETAIL=""
-SKILL="plugin/skills/initiative/SKILL.md"
+SKILL="plugin/skills/orchestrating/references/evolution.md"
 
 if [[ ! -f "$SKILL" ]]; then
   RESULT="FAIL"
@@ -503,13 +502,13 @@ else
   HAS_RULES_APPROVAL=$(grep -ci "rules.*update.*approv\|approv.*rules.*update\|4\.2\.5\|rules update approval" "$SKILL" 2>/dev/null || echo 0)
   if [[ "$HAS_RULES_APPROVAL" -eq 0 ]]; then
     RESULT="FAIL"
-    DETAIL=" Rules Update Approval step not found in initiative/SKILL.md (checked for 'rules update approval', '4.2.5')."
+    DETAIL=" Rules Update Approval step not found in orchestrating/references/evolution.md (checked for 'rules update approval', '4.2.5')."
   fi
 fi
 echo "EL-4: ${RESULT}${DETAIL:+ —$DETAIL}"
 ```
 
-**Pass condition:** `plugin/skills/initiative/SKILL.md` contains a Rules Update Approval step, identified by "rules update approval" (case-insensitive) or "4.2.5".
+**Pass condition:** `plugin/skills/orchestrating/references/evolution.md` contains a Rules Update Approval step, identified by "rules update approval" (case-insensitive) or "4.2.5".
 
 ---
 

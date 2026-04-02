@@ -11,7 +11,7 @@ Manages the full memory lifecycle. Orchestrator invokes this skill after retrosp
 
 - **Per-task**: After retrospective completes, extract memory candidates from `memory_candidates[]`
 - **Evolution phase**: Batch review and promotion of accumulated candidates
-- **Sprint Wrap-Up**: Inline extraction and promotion for single-task sprints
+- **Wrap-Up**: Inline extraction and promotion for single-task executions
 - **Session start**: Decay detection on existing entries
 
 ## Directory Structure

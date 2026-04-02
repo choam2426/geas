@@ -7,7 +7,7 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 | Skill | Category | User-Invocable | Invoked By | Key Output |
 |-------|----------|----------------|------------|------------|
 | [mission](#mission) | Entry | Yes | User directly | Invokes Orchestrator |
-| [orchestrating](#orchestrating) | Entry | No | User (via `/geas:mission`) | Orchestrates entire session |
+| [orchestrating](#orchestrating) | Entry | No | User (via `/geas:mission`) | 4-phase execution (Discovery → Build → Polish → Evolution) |
 | [setup](#setup) | Entry | No | Orchestrator (first run) | `.geas/` runtime directory |
 | [intake](#intake) | Core - Contract Engine | No | Orchestrator | `.geas/spec/seed.json` |
 | [task-compiler](#task-compiler) | Core - Contract Engine | No | Orchestrator | `.geas/tasks/{id}.json` |
@@ -17,8 +17,6 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 | [verify-fix-loop](#verify-fix-loop) | Core - Contract Engine | No | Orchestrator (via evidence-gate) | Fix iterations + DecisionRecord |
 | [verify](#verify) | Core - Verification | No | Worker agents | Console checklist report |
 | [vote-round](#vote-round) | Core - Verification | No | Orchestrator (at Discovery) | `.geas/decisions/{dec-id}.json` |
-| [initiative](#initiative) | Team - Execution | Yes | Orchestrator or User | Full product build (4 phases) |
-| [sprint](#sprint) | Team - Execution | Yes | Orchestrator or User | Feature addition to existing project |
 | [decision](#decision) | Team - Execution | Yes | Orchestrator or User | `.geas/decisions/{dec-id}.json` |
 | [write-prd](#write-prd) | Team - Planning | No | Nova (during Discovery) | `.geas/spec/prd.md` |
 | [write-stories](#write-stories) | Team - Planning | No | Nova (during Discovery) | `.geas/spec/stories.md` |
@@ -51,7 +49,7 @@ Entry point -- receives user intent and invokes Orchestrator.
 **Key Behaviors:**
 - Thin entry shell -- receives user input and invokes `/geas:orchestrating`.
 - Does NOT spawn an orchestrator agent. Orchestrating is a skill that runs in the main session, not a sub-agent.
-- Users can also invoke execution missions/modes directly (`/geas:initiative`, `/geas:sprint`, `/geas:decision`).
+- For decision-only requests (no code), routes to `/geas:decision`.
 
 **Schemas:** None.
 
@@ -59,7 +57,7 @@ Entry point -- receives user intent and invokes Orchestrator.
 
 ### orchestrating
 
-Geas orchestrator -- coordinates the multi-agent team. Manages setup, intake, mode routing (discovery/delivery/decision), and delegates to Initiative mission, Sprint pattern, or decision protocol.
+Geas orchestrator -- coordinates the multi-agent team. Manages setup, intake, and the 4-phase execution pipeline (Discovery → Build → Polish → Evolution). Phase execution details are in `references/` files. For decision-only requests, routes to `/geas:decision`.
 
 **User-Invocable:** No (invoked via `/geas:mission`, which calls `/geas:orchestrating`)
 
@@ -79,7 +77,7 @@ Geas orchestrator -- coordinates the multi-agent team. Manages setup, intake, mo
 **Key Behaviors:**
 - Before every `Agent()` spawn, reads and writes `.geas/state/run.json` with a checkpoint (`pipeline_step`, `agent_in_flight`, `pending_evidence`). Session recovery depends on this.
 - After every agent return, reads the expected evidence file to verify it exists. Missing evidence = step failed; retries once then logs error.
-- Routes startup to one of three modes: discovery (new product -- Initiative 4-phase mission), delivery (bounded feature -- Sprint pattern), or decision (decision-only). For details, see `protocol/02_MODES_MISSIONS_AND_RUNTIME.md`.
+- Routes startup to execution (4-phase pipeline: Discovery → Build → Polish → Evolution, scaled to the request) or decision (decision-only). Phase procedures are in `references/discovery.md`, `references/build.md`, `references/polish.md`, `references/evolution.md`. The per-task pipeline is in `references/pipeline.md`. For details, see `protocol/02_MODES_MISSIONS_AND_RUNTIME.md`.
 
 **Schemas:** None owned directly; reads schemas from downstream skills.
 
@@ -123,14 +121,14 @@ Mission intake gate -- collaborative exploration to freeze a seed spec. One ques
 
 **Inputs:**
 - User natural language (the raw mission statement)
-- `.geas/spec/seed.json` -- checked for existence (Sprint variant skips creation if file already exists)
+- `.geas/spec/seed.json` -- checked for existence (existing project variant skips creation if file already exists)
 
 **Outputs:**
 - `.geas/spec/seed.json` -- frozen mission spec conforming to `schemas/seed.schema.json`
 
 **Key Behaviors:**
 - Asks one question at a time (never batches questions) and tracks a mental completeness checklist: `mission`, `acceptance_criteria` (>=3), `scope_out` (>=1), `target_user`, `constraints`. Stops when all are satisfied.
-- Presents 2-3 approach options with trade-offs before finalizing scope (Initiative mission); delivery mode (Sprint pattern) skips approach proposals and limits questions to feature scope.
+- Presents 2-3 approach options with trade-offs before finalizing scope (new product); delivery on an existing project skips approach proposals and limits questions to feature scope.
 - If the user says "just build it," sets `readiness_override: true`, fills best-effort values, and proceeds. Scope changes after freeze must go through `pivot-protocol`.
 
 **Schemas:** `plugin/skills/intake/schemas/seed.schema.json`
@@ -143,7 +141,7 @@ Compile a user story into a TaskContract -- a machine-readable work agreement wi
 
 **User-Invocable:** No
 
-**Invoked By:** Orchestrator during Initiative (Discovery phase, step 1.6) and Sprint (step 1)
+**Invoked By:** Orchestrator during Discovery phase and at Build phase entry
 
 **Inputs:**
 - User story or feature description
@@ -328,59 +326,6 @@ Structured review protocol -- Forge proposes, Critic challenges, Orchestrator sy
 
 ## Team - Execution Skills
 
-### initiative
-
-Start a new product with the Geas team -- a 4-phase Initiative mission: Discovery, Build, Polish, Evolution.
-
-**User-Invocable:** Yes (`/geas:initiative`)
-
-**Invoked By:** Orchestrator (after mode detection) or directly by user
-
-**Inputs:**
-- `.geas/spec/seed.json` -- frozen mission spec from intake
-- `.geas/tasks/` -- compiled TaskContracts for Build phase ordering
-
-**Outputs (per phase):**
-- Discovery: `.geas/evidence/discovery/nova.json`, `.geas/spec/prd.md`, `.geas/spec/stories.md`, `.geas/evidence/discovery/forge.json`, `.geas/decisions/dec-001.json`, `.geas/tasks/*.json`
-- Build (per task): full evidence chain -- `palette.json`, `forge.json`, `contracts/{id}.json`, `{worker}.json`, `forge-review.json`, `sentinel.json`, `critic-review.json`, `nova-verdict.json`, `tasks/{id}/retrospective.json`
-- Polish: `.geas/evidence/polish/shield.json`, `.geas/evidence/polish/scroll.json`
-- Evolution: `.geas/evidence/evolution/nova-final.json`, `.geas/evidence/evolution/keeper-release.json`, `.geas/summaries/run-summary-<date>.md`
-
-**Key Behaviors:**
-- Every Build phase task runs the full 11-step pipeline (Design -> Tech Guide -> Implementation Contract -> Implementation -> Code Review -> Testing -> Evidence Gate -> Critical Reviewer Challenge -> Final Verdict -> Retrospective -> Resolve). Code Review and Testing are mandatory with no exceptions. Protocol task states follow: `drafted -> ready -> implementing -> reviewed -> integrated -> verified -> passed`.
-- The Closure Packet + Critical Reviewer + Final Verdict process enforces four mandatory evidence files before marking a task passed: `forge-review.json`, `sentinel.json`, `critic-review.json`, `nova-verdict.json`. Any missing file triggers execution of the missing step.
-- Scrum retrospective is mandatory after every task, even trivial ones. Produces `.geas/tasks/{task-id}/retrospective.json`; missing file triggers one retry.
-
-**Schemas:** Reads and writes all contract-engine schemas.
-
----
-
-### sprint
-
-Add a bounded feature to an existing project using delivery mode (Sprint pattern).
-
-**User-Invocable:** Yes (`/geas:sprint`)
-
-**Invoked By:** Orchestrator (after mode detection) or directly by user
-
-**Inputs:**
-- `.geas/spec/seed.json` -- read-only project context (Sprint never modifies it after it exists)
-- `.geas/memory/_project/conventions.md` -- if missing, Forge runs onboarding first
-
-**Outputs:**
-- `.geas/tasks/{id}.json` -- single TaskContract for the feature
-- Full evidence chain identical to Initiative Build phase (per task)
-- `.geas/summaries/run-summary-<date>.md` -- session audit trail
-
-**Key Behaviors:**
-- Skips Discovery entirely (no PRD, no stories, no architecture vote). Compiles a single TaskContract directly from the feature description.
-- Runs the same 11-step pipeline as Initiative Build phase. Closure Packet, Critical Reviewer Challenge, Final Verdict, and Scrum retrospective are all mandatory.
-- If `.geas/memory/_project/conventions.md` is missing (first Sprint on an unknown project), Orchestrator spawns Forge to run the `onboard` skill before the pipeline starts.
-
-**Schemas:** Reads and writes all contract-engine schemas.
-
----
-
 ### decision
 
 Run a structured multi-agent decision in decision mode to make a technical or product decision before implementation.
@@ -456,11 +401,11 @@ Break a feature or mission into user stories with acceptance criteria.
 
 ### onboard
 
-Codebase discovery protocol -- scan project structure, detect stack, map architecture. Used automatically when delivery mode (Sprint pattern) finds no existing state.
+Codebase discovery protocol -- scan project structure, detect stack, map architecture. Used automatically when execution on an existing project finds no existing state.
 
 **User-Invocable:** No
 
-**Invoked By:** Orchestrator during delivery mode (Sprint pattern) when `.geas/memory/_project/conventions.md` does not exist
+**Invoked By:** Orchestrator during execution on an existing project when `.geas/memory/_project/conventions.md` does not exist
 
 **Inputs:**
 - Project root files: `package.json`, `go.mod`, `Cargo.toml`, `pyproject.toml`, `requirements.txt`
@@ -473,7 +418,7 @@ Codebase discovery protocol -- scan project structure, detect stack, map archite
 **Key Behaviors:**
 - Run by Forge only (single agent, not parallel). Read-only reconnaissance -- no code changes.
 - Scan depth adapts to project size: full scan for small (~50 files), focused scan of `src/` and entry points for medium (50-500 files), targeted scan of relevant directories for large (500+ files).
-- Second-Sprint behavior: if `conventions.md` already exists, skip onboarding entirely. Orchestrator reads it directly and proceeds to Sprint execution.
+- Repeat execution behavior: if `conventions.md` already exists, skip onboarding entirely. Orchestrator reads it directly and proceeds to the execution pipeline.
 
 **Schemas:** None.
 
@@ -534,7 +479,7 @@ Generate end-of-session summary -- decisions, issues completed, agent stats, ver
 
 **User-Invocable:** No
 
-**Invoked By:** Orchestrator at end of Initiative (Evolution phase) and Sprint, or on human request
+**Invoked By:** Orchestrator at end of Evolution phase, or on human request
 
 **Inputs:**
 - `.geas/state/run.json` -- phase, mode, mission

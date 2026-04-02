@@ -179,7 +179,7 @@ Current run state summary with recent events.
 ## Current Status
 
 Mission: <mission from seed>
-Mode: <initiative | sprint | decision>
+Mode: <execution | decision>
 Phase: <current phase>
 Completeness: <checklist summary>
 

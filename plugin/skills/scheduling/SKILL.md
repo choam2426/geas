@@ -3,14 +3,14 @@ name: scheduling
 description: >
   Protocol for orchestrator to manage multiple tasks simultaneously.
   Defines batch construction, pipeline interleaving, checkpoint management, and recovery.
-  Task-level parallelism only. Step-level parallelism is defined in initiative/sprint.
+  Task-level parallelism only. Step-level parallelism is defined in the execution pipeline.
 ---
 
 # Scheduling
 
 This skill is a protocol document — the orchestrator reads it and executes directly. There is no separate scheduling agent.
 
-The orchestrator assigns multiple tasks to run simultaneously. Each task progresses through its pipeline sequentially (as defined in initiative/sprint). The orchestrator interleaves agent spawns across tasks, spawning agents for different tasks in the same message when possible.
+The orchestrator assigns multiple tasks to run simultaneously. Each task progresses through its pipeline sequentially (as defined in the execution pipeline). The orchestrator interleaves agent spawns across tasks, spawning agents for different tasks in the same message when possible.
 
 ---
 
@@ -51,7 +51,7 @@ After filtering, the batch contains only tasks that can safely run in parallel.
 
 For each task in the batch:
 1. Read task file, set `"status": "implementing"`, write back.
-2. Acquire path/interface/resource locks for the task (same procedure as initiative/sprint Lock Acquisition). Write all locks to `.geas/state/locks.json`.
+2. Acquire path/interface/resource locks for the task (same procedure as the execution pipeline Lock Acquisition). Write all locks to `.geas/state/locks.json`.
 3. Log `task_started` event for each task.
 
 Update `run.json` checkpoint:
@@ -76,10 +76,10 @@ Note: during batch execution, `remaining_steps` is empty at the batch level. Eac
 
 The orchestrator manages each task's pipeline independently:
 
-- Each task follows the per-task pipeline defined in initiative/sprint SKILL.md.
+- Each task follows the per-task pipeline defined in `orchestrating/references/pipeline.md`.
 - **Independent progression:** When an agent returns for task A, the orchestrator spawns task A's next step immediately. It does NOT wait for other tasks to reach the same step.
 - **Parallel spawning:** The orchestrator MAY spawn agents for different tasks in the same message (parallel tool calls). Example: `Agent(backend-engineer, "implement STORY-003")` and `Agent(backend-engineer, "implement STORY-009")` in one message.
-- **Step groups:** Within a single task, the orchestrator also applies step group rules from initiative/sprint (e.g., spawning architecture-authority + qa-engineer simultaneously for the same task).
+- **Step groups:** Within a single task, the orchestrator also applies step group rules from the execution pipeline (e.g., spawning architecture-authority + qa-engineer simultaneously for the same task).
 - **All mandatory steps apply:** Implementation contract, code review, testing, critical_reviewer challenge, product_authority verdict, retrospective, and resolve are mandatory for every task in the batch. Do NOT skip any because of parallelism.
 
 **Checkpoint during batch:** Before each agent spawn, update `last_updated` in run.json. `agent_in_flight` stays `null` during batches (multiple agents active). The authoritative progress record is the evidence files and task file statuses.

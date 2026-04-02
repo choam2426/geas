@@ -21,10 +21,9 @@ Full architecture: `docs/architecture/DESIGN.md`
 
 ## Execution Model
 
-Three top-level modes: `discovery`, `delivery`, `decision`.
+Two top-level modes: `execution` and `decision`.
 
-- **Initiative mission** — 4-phase structure: discovery → build → polish → evolution
-- **Sprint** — delivery mode pattern: bounded feature addition to existing project
+- **Execution** — 4-phase structure: Discovery → Build → Polish → Evolution. Scale adapts to the request — from a single feature to a full product. Always follows the same pipeline order.
 - **Decision** — structured decision-making without code changes
 
 ## Task Lifecycle
@@ -72,13 +71,14 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 - `vote-round/` — structured agent voting (proposal_round + readiness_round)
 - `memorizing/` — memory lifecycle: candidate extraction, promotion, review, application logging
 
-### Orchestration + scheduling
-- `orchestrating/` — Geas orchestrator: setup, intake, mode routing, pipeline coordination
+### Execution pipeline
+- `orchestrating/` — Geas orchestrator: startup, recovery, 4-phase execution (Discovery → Build → Polish → Evolution)
+  - `references/discovery.md` — Discovery phase procedure
+  - `references/pipeline.md` — Per-task 14-step pipeline
+  - `references/build.md` — Build phase management
+  - `references/polish.md` — Polish phase procedure
+  - `references/evolution.md` — Evolution phase procedure
 - `scheduling/` — parallel task scheduling: batch construction, lock checks, safe conditions
-
-### Team skills (execution protocols)
-- `initiative/` — 4-phase mission (discovery → build → polish → evolution)
-- `sprint/` — delivery mode: bounded feature addition
 - `decision/` — decision mode: structured decision-making, no code
 
 ### Operational tooling
@@ -141,7 +141,7 @@ All 6 phases of the v3 protocol migration are implemented. Skills are aligned wi
 1. **Read the protocol doc first** — before touching any skill, read the relevant protocol document in `docs/protocol/`.
 2. **Read the skill second** — understand what it currently does vs what the protocol requires.
 3. **Protocol schemas are the contract** — `docs/protocol/schemas/` defines the exact artifact shapes. Skills must produce artifacts that validate against these schemas.
-4. **Update both `initiative` and `sprint`** when changing shared pipeline behavior.
+4. **Update `orchestrating/references/`** when changing pipeline behavior.
 5. **Run `/geas:conformance-checking`** after significant changes to verify enforcement mechanisms still work.
 
 ### Protocol quick reference
@@ -168,6 +168,6 @@ All 6 phases of the v3 protocol migration are implemented. Skills are aligned wi
 
 - Read the existing file first — understand the current behavior before changing it
 - Keep skills focused — one skill, one responsibility
-- Update both `initiative` and `sprint` when changing shared behavior
+- Update `orchestrating/references/` when changing pipeline behavior
 - Align with protocol — check `docs/protocol/` for the target behavior
 - Test changes by running the harness in `test_session/`

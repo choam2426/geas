@@ -1,15 +1,15 @@
 ---
 name: mission
 description: >
-  Build a product, add a feature to an existing project, or make a technical decision.
+  Build a product, add a feature, or make a technical decision.
   Activates the Geas multi-agent team with contract-driven verification.
-  Use when the user describes a product idea, project goal, feature request, or asks for a structured discussion.
+  Always follows 4 phases: Discovery → Build → Polish → Evolution, scaled to the request.
 ---
 
 # Mission
 
 Invoke `/geas:orchestrating` to start the Geas orchestrator.
 
-The orchestrating skill will handle setup, intake, mode detection, and delegate to the appropriate protocol (Initiative mission, delivery mode via Sprint pattern, or decision mode).
+The orchestrating skill handles setup, intake, and the 4-phase execution pipeline (Discovery → Build → Polish → Evolution). For decision-only requests (no code), it routes to `/geas:decision`.
 
 **Do NOT spawn an orchestrator agent. Orchestrating is a skill, not an agent.**
