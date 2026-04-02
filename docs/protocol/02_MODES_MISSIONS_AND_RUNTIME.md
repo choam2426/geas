@@ -1,4 +1,4 @@
-# 02. Modes, Missions, and Runtime
+# 02. Missions and Runtime
 
 ## Mission Model
 

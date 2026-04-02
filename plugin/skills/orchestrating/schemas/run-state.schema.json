@@ -1,9 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RunState",
-  "description": "Session state and checkpoint for the Geas orchestrator. Written by Orchestrator, read by restore-context hook for session recovery.",
+  "description": "Session state and checkpoint for the Geas orchestrator. Written by orchestration_authority, read by restore-context hook for session recovery. Canonical protocol schema — the skill-local copy at plugin/skills/orchestrating/schemas/ should match this.",
   "type": "object",
   "additionalProperties": false,
+  "required": ["version", "status", "created_at"],
   "properties": {
     "version": {
       "type": "string",
@@ -44,7 +45,14 @@
     },
     "recovery_class": {
       "type": ["string", "null"],
-      "enum": ["post_compact_resume", "warm_session_resume", "interrupted_subagent_resume", "dirty_state_recovery", "manual_repair_required", null],
+      "enum": [
+        "post_compact_resume",
+        "warm_session_resume",
+        "interrupted_subagent_resume",
+        "dirty_state_recovery",
+        "manual_repair_required",
+        null
+      ],
       "description": "Recovery class from last session recovery. Null if clean session."
     },
     "scheduler_state": {
@@ -84,7 +92,7 @@
           "type": "array",
           "items": { "type": "string" },
           "default": [],
-          "description": "Task IDs resolved within the current parallel batch. When this matches parallel_batch, the batch is complete."
+          "description": "Task IDs resolved within the current parallel batch."
         },
         "remaining_steps": {
           "type": "array",
@@ -109,6 +117,5 @@
       "type": "string",
       "format": "date-time"
     }
-  },
-  "required": ["version", "status", "created_at"]
+  }
 }
