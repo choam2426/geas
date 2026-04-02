@@ -112,17 +112,39 @@ graph TD
 
 ```
 .geas/
-├── spec/seed.json           # 고정된 요구사항
-├── tasks/*.json             # 수용 기준이 포함된 TaskContract
-├── packets/                 # 에이전트별 브리핑
-├── evidence/                # 작업별 증거
-├── decisions/               # 투표 기록, 결정 기록
-├── ledger/events.jsonl      # 추가 전용 이벤트 로그
+├── spec/seed.json              # 고정된 요구사항
+├── state/
+│   ├── run.json                # 세션 체크포인트 (파이프라인 위치, 복구)
+│   ├── locks.json              # lock 매니페스트 (path/interface/resource/integration)
+│   ├── memory-index.json       # 메모리 검색 인덱스
+│   ├── debt-register.json      # 구조화된 기술 부채 장부
+│   ├── gap-assessment.json     # 스코프 전달 비교
+│   ├── rules-update.json       # 제안/승인된 규칙 변경
+│   ├── phase-review.json       # phase 전환 gate 결과
+│   ├── health-check.json       # 건강 신호 모니터링
+│   ├── session-latest.md       # 세션 상태 요약 (post-compact 복원용)
+│   └── task-focus/             # 태스크별 컨텍스트 앵커
+├── tasks/                      # TaskContract + 태스크별 아티팩트
+│   └── {task-id}/
+│       ├── task-contract.json
+│       ├── worker-self-check.json
+│       ├── gate-result.json
+│       ├── closure-packet.json
+│       ├── final-verdict.json
+│       └── retrospective.json
+├── contracts/                  # 구현 계약
+├── packets/                    # 에이전트별 브리핑 + 메모리 패킷
+├── evidence/                   # 작업별 증거
+├── decisions/                  # 투표 기록, 결정 기록
+├── ledger/events.jsonl         # 추가 전용 이벤트 로그
 ├── memory/
-│   ├── candidates/          # 회고에서 나온 메모리 후보
-│   ├── entries/             # 승격된 메모리 항목
-│   └── logs/                # 메모리 적용 로그
-└── rules.md                 # 공유 프로젝트 규칙 (시간이 갈수록 성장)
+│   ├── _project/conventions.md # 프로젝트 규칙 (스택, 명령어, 패턴)
+│   ├── candidates/             # 회고에서 나온 메모리 후보
+│   ├── entries/                # 승격된 메모리 항목 (provisional → canonical)
+│   └── logs/                   # 메모리 적용 효과 로그
+├── recovery/                   # 세션 중단 시 복구 패킷
+├── summaries/                  # 세션 요약 (감사 추적)
+└── rules.md                    # 공유 프로젝트 규칙 (시간이 갈수록 성장)
 ```
 
 ---

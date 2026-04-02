@@ -112,17 +112,39 @@ Every artifact is written to `.geas/` — the traceable record of the entire run
 
 ```
 .geas/
-├── spec/seed.json           # frozen requirements
-├── tasks/*.json             # TaskContracts with acceptance criteria
-├── packets/                 # role-specific agent briefings
-├── evidence/                # structured proof of work per task
-├── decisions/               # vote records, decision records
-├── ledger/events.jsonl      # append-only event log
+├── spec/seed.json              # frozen requirements
+├── state/
+│   ├── run.json                # session checkpoint (pipeline position, recovery)
+│   ├── locks.json              # lock manifest (path/interface/resource/integration)
+│   ├── memory-index.json       # memory entry index for retrieval
+│   ├── debt-register.json      # structured technical debt ledger
+│   ├── gap-assessment.json     # scope delivery comparison
+│   ├── rules-update.json       # proposed/approved rule changes
+│   ├── phase-review.json       # phase transition gate results
+│   ├── health-check.json       # health signal monitoring
+│   ├── session-latest.md       # human-readable session state (post-compact restore)
+│   └── task-focus/             # per-task context anchors
+├── tasks/                      # TaskContracts + per-task artifacts
+│   └── {task-id}/
+│       ├── task-contract.json
+│       ├── worker-self-check.json
+│       ├── gate-result.json
+│       ├── closure-packet.json
+│       ├── final-verdict.json
+│       └── retrospective.json
+├── contracts/                  # implementation contracts
+├── packets/                    # role-specific agent briefings + memory packets
+├── evidence/                   # structured proof of work per task
+├── decisions/                  # vote records, decision records
+├── ledger/events.jsonl         # append-only event log
 ├── memory/
-│   ├── candidates/          # memory candidates from retrospectives
-│   ├── entries/             # promoted memory entries
-│   └── logs/                # memory application logs
-└── rules.md                 # shared project conventions (grows over time)
+│   ├── _project/conventions.md # project conventions (stack, commands, patterns)
+│   ├── candidates/             # memory candidates from retrospectives
+│   ├── entries/                # promoted memory entries (provisional → canonical)
+│   └── logs/                   # memory application effect logs
+├── recovery/                   # recovery packets from session interruptions
+├── summaries/                  # run summaries (session audit trail)
+└── rules.md                    # shared project rules (grows over time)
 ```
 
 ---
