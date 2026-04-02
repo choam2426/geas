@@ -124,15 +124,16 @@ We are upgrading skills to match the v3 protocol. Migration follows 6 phases (se
 - **Phase 2 (Baseline, Stale, Parallelism)**: revalidation-record/lock-manifest schemas, staleness detection, lock lifecycle, safe parallel conditions, compass→orchestrating + parallel-dispatch→scheduling renames
 - **Phase 3 (Evolution Core)**: structured retrospective (after Resolve, Ship only), rules-update workflow, debt-register.json, gap-assessment.json, phase-review wiring, evolution exit gate, Sprint Wrap-Up
 - **Phase 4 (Memory Core)**: memorizing skill (9-state lifecycle, 6-stage promotion), memory retrieval scoring in context-packet, application logging, memory-index, memory hooks
+- **Phase 5 (Recovery and Context Engine)**: recovery-packet schema, extended run-state, recovery decision table, session-latest.md + task-focus maintenance, two-phase checkpoint hooks, enhanced restore-context.sh with L0 anti-forgetting
 
-### Current phase: Phase 5 — Recovery and Context Engine
+### Current phase: Phase 6 — Refinement
 
-Priority gaps to close:
-1. Extended run.json schema
-2. Recovery packet (recovery-packet.json)
-3. Session recovery decision table
-4. Packet stale regeneration
-5. Post-compact restore flow
+Priority items:
+1. Conformance suite automation
+2. Chaos exercises (5 scenarios)
+3. Memory review cadence tooling
+4. Policy registry tuning
+5. Debt/gap dashboard
 
 ### How to work on migration
 
