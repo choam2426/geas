@@ -625,12 +625,12 @@ Memory lifecycle management -- candidate extraction, promotion pipeline, review,
 
 **Inputs:**
 - `.geas/tasks/{task_id}/retrospective.json` -- lessons from retrospective
-- `.geas/memory/memory-index.json` -- current memory index
+- `.geas/state/memory-index.json` -- current memory index
 - `.geas/memory/` -- existing memory entries
 
 **Outputs:**
 - `.geas/memory/` -- new or updated memory entries
-- `.geas/memory/memory-index.json` -- updated index
+- `.geas/state/memory-index.json` -- updated index
 
 **Key Behaviors:**
 - 9-state lifecycle: candidate → provisional → stable → canonical (+ under_review, decayed, superseded, archived, rejected)
