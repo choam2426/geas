@@ -59,9 +59,9 @@ rel = os.path.relpath(fp, cwd).replace(chr(92), '/')
 if rel.startswith('.geas/'):
     sys.exit(0)
 
-for pat in task.get('prohibited_paths', []):
-    if fnmatch.fnmatch(rel, pat):
-        print(f'[Geas] WARNING: Write to {rel} matches prohibited path \"{pat}\" in {tid}', file=sys.stderr)
+scope_paths = task.get('scope', {}).get('paths', [])
+if scope_paths and not any(fnmatch.fnmatch(rel, p) for p in scope_paths):
+    print(f'[Geas] WARNING: Write to {rel} outside scope.paths in {tid}', file=sys.stderr)
 " "$CWD" "$FILE_PATH" 2>&1 >&2 || true
 
 # .geas/ file checks
