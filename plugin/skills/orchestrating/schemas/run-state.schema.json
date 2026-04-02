@@ -18,11 +18,6 @@
       "type": ["string", "null"],
       "description": "Mission statement from seed.json"
     },
-    "mode": {
-      "type": ["string", "null"],
-      "enum": ["initiative", "sprint", null],
-      "description": "Execution mode"
-    },
     "phase": {
       "type": ["string", "null"],
       "enum": ["specifying", "building", "polishing", "evolving", "complete", null],

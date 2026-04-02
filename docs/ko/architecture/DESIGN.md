@@ -2,7 +2,7 @@
 
 ## 1. 개요
 
-Geas는 멀티 에이전트 AI 개발을 위한 계약 기반 거버넌스 하네스다. 여러 AI 에이전트를 구조화된 프로토콜로 조율하며, 네 가지 제어 목적(4 Pillars)을 보장한다:
+Geas는 멀티 에이전트 AI 개발을 위한 계약 기반 거버넌스 프로토콜이다. 여러 AI 에이전트를 구조화된 프로토콜로 조율하며, 네 가지 제어 목적(4 Pillars)을 보장한다:
 
 - **Governance** — 모든 의사결정은 명시적 권한이 있는 정해진 절차를 따른다.
 - **Traceability** — 모든 행동은 기록되고 사후에 감사할 수 있다.
@@ -54,7 +54,7 @@ specifying ──[gate 1]──> building ──[gate 2]──> polishing ──
                                                                          close
 ```
 
-기존 프로젝트에서는 Specifying을 축소하거나 건너뛰고, 기존 seed를 읽기 전용으로 사용한다.
+모든 phase가 항상 실행된다. 규모만 요청에 따라 조절 — 기능 하나면 가볍게, 풀 프로덕트면 풀코스.
 
 Decision은 코드 변경 없이 구조적 의사결정을 수행하는 유틸리티 스킬(`decision/`)이다. 별도 실행 모드가 아니다.
 
@@ -165,7 +165,7 @@ candidate → provisional → stable → canonical
 
 ### 방어 2: PostCompact 훅
 
-컨텍스트 압축 시 자동으로 `run.json`을 읽어 현재 상태(mode, phase, task, remaining_steps, rules.md 핵심)를 대화에 재주입한다.
+컨텍스트 압축 시 자동으로 `run.json`을 읽어 현재 상태(phase, task, remaining_steps, rules.md 핵심)를 대화에 재주입한다.
 
 > Session recovery 상세는 `protocol/10_SESSION_RECOVERY_AND_RESUMABILITY.md` 참조.
 
@@ -189,13 +189,13 @@ plugin/
     # --- 실행 ---
     orchestrating/           # 오케스트레이터: 4-phase 미션 파이프라인
       references/
-        discovery.md         # Specifying phase 절차
+        specifying.md        # Specifying phase 절차
         pipeline.md          # 작업별 14단계 파이프라인
-        build.md             # Building phase 관리
-        polish.md            # Polishing phase 절차
-        evolution.md         # Evolving phase 절차
+        building.md          # Building phase 관리
+        polishing.md         # Polishing phase 절차
+        evolving.md          # Evolving phase 절차
     scheduling/              # 작업 스케줄링 및 병렬화
-    decision/                # Decision mode: 구조적 의사결정
+    decision/                # 구조적 의사결정 (유틸리티 스킬)
     mission/                 # 미션 lifecycle 관리
     # --- Memory & Evolution ---
     memorizing/              # Memory 수집 및 승격
@@ -247,6 +247,8 @@ plugin/
     run.json                 # 세션 상태, checkpoint, remaining_steps
     locks.json               # lock manifest
     health-check.json        # health signal 계산 결과
+    session-latest.md        # 컨텍스트 압축 후 복구용
+    task-focus/{task_id}.md  # 작업별 포커스 요약
 
   spec/
     seed.json                # intake에서 동결된 미션 스펙 (불변)
@@ -264,6 +266,17 @@ plugin/
       final-verdict.json
       retrospective.json
 
+  evidence/
+    {task_id}/
+      architecture-authority-review.json
+      qa-engineer.json
+      challenge-review.json
+      product-authority-verdict.json
+
+  packets/
+    {task_id}/
+      {agent_type}.md            # 역할별 컨텍스트 패킷
+
   evolution/
     rules-update-{seq}.json
     debt-register.json
@@ -278,8 +291,6 @@ plugin/
     incidents/{id}.json
 
   summaries/
-    session-latest.md
-    task-focus/{task_id}.md
     mission-summary.md
     run-summary-{timestamp}.md
 
@@ -287,7 +298,6 @@ plugin/
     events.jsonl             # append-only 감사 추적
 
   rules.md                   # 계속 갱신되는 팀 규칙
-  debt.json                  # legacy (→ evolution/debt-register.json으로 이관 예정)
 ```
 
 > Artifact 상세 및 스키마는 `protocol/11_RUNTIME_ARTIFACTS_AND_SCHEMAS.md` 참조.
@@ -302,7 +312,7 @@ plugin/
 
 **허용**: `.geas/memory/_project/conventions.md` 참조, 마커 파일 감지(package.json, go.mod), 복수 대안 예시("예: Jest, pytest").
 
-실제 동작: Forge가 온보딩 시 conventions.md에 프로젝트 규칙을 기록 → TaskContract의 eval_commands가 이를 참조 → Evidence Gate가 프로젝트별 명령어를 실행. 스킬 정의를 바꿀 필요 없다.
+실제 동작: architecture authority가 온보딩 시 conventions.md에 프로젝트 규칙을 기록 → TaskContract의 eval_commands가 이를 참조 → Evidence Gate가 프로젝트별 명령어를 실행. 스킬 정의를 바꿀 필요 없다.
 
 ---
 

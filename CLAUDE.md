@@ -52,7 +52,7 @@ plugin/
 docs/
 ├── protocol/                # Operating protocol (English, canonical)
 │   ├── 00-12, 14 .md        # 14 protocol documents
-│   ├── schemas/             # 21 JSON Schema (draft 2020-12)
+│   ├── schemas/             # 29 JSON Schema (draft 2020-12)
 │   └── examples/            # 15 example files
 ├── architecture/DESIGN.md   # Architecture overview
 └── reference/               # SKILLS.md, HOOKS.md
@@ -72,11 +72,11 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 
 ### Execution pipeline
 - `orchestrating/` — Geas orchestrator: startup, recovery, 4-phase mission (Specifying → Building → Polishing → Evolving)
-  - `references/discovery.md` — Specifying phase procedure
+  - `references/specifying.md` — Specifying phase procedure
   - `references/pipeline.md` — Per-task 14-step pipeline
-  - `references/build.md` — Building phase management
-  - `references/polish.md` — Polishing phase procedure
-  - `references/evolution.md` — Evolving phase procedure
+  - `references/building.md` — Building phase management
+  - `references/polishing.md` — Polishing phase procedure
+  - `references/evolving.md` — Evolving phase procedure
 - `scheduling/` — parallel task scheduling: batch construction, lock checks, safe conditions
 - `decision/` — structured decision-making utility skill, no code
 

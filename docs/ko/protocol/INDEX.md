@@ -51,5 +51,5 @@
   - hook/enforcement, conformance suite, metrics, health signal threshold 정의, low-quality incident/stub cap 정의
 - `14_EVOLUTION_DEBT_AND_GAP_LOOP.md`
   - retrospective, rules.md update, role-specific lesson 판별 기준, debt lifecycle(scheduled→resolved 전환 조건), gap assessment forward-feeding, harmful reuse feedback loop
-- `schemas/` — 13개 JSON Schema (draft 2020-12) + `_defs.schema.json` 공유 정의
-- `examples/` — 9개 예제 파일 (각 schema에 대응)
+- `schemas/` — 28개 JSON Schema (draft 2020-12) + `_defs.schema.json` 공유 정의
+- `examples/` — 15개 예제 파일 (각 schema에 대응)

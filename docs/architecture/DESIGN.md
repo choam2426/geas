@@ -54,7 +54,7 @@ specifying --[gate 1]--> building --[gate 2]--> polishing --[gate 3]--> evolving
                                                                          close
 ```
 
-For existing projects, Specifying is scaled down or skipped, and the existing seed is used as read-only context.
+Every phase always runs. Scale adapts to the request — a single feature gets a lightweight pass; a full product gets the full treatment.
 
 Decision is a utility skill (`decision/`) for structured decision-making without code changes. It is not a separate execution mode.
 
@@ -165,7 +165,7 @@ The `remaining_steps[]` array externalizes the current pipeline position to disk
 
 ### Defense 2: PostCompact Hook
 
-When context compaction occurs, this hook automatically reads `run.json` and re-injects the current state (mode, phase, task, remaining_steps, key rules.md content) into the conversation.
+When context compaction occurs, this hook automatically reads `run.json` and re-injects the current state (phase, task, remaining_steps, key rules.md content) into the conversation.
 
 > For session recovery details, see `protocol/10_SESSION_RECOVERY_AND_RESUMABILITY.md`.
 
@@ -189,13 +189,13 @@ plugin/
     # --- Execution ---
     orchestrating/           # Orchestrator: 4-phase mission pipeline
       references/
-        discovery.md         # Specifying phase procedure
+        specifying.md        # Specifying phase procedure
         pipeline.md          # Per-task 14-step pipeline
-        build.md             # Building phase management
-        polish.md            # Polishing phase procedure
-        evolution.md         # Evolving phase procedure
+        building.md          # Building phase management
+        polishing.md         # Polishing phase procedure
+        evolving.md          # Evolving phase procedure
     scheduling/              # Task scheduling and parallelism
-    decision/                # Decision mode: structured decision-making
+    decision/                # Structured decision-making (utility skill)
     mission/                 # Mission lifecycle management
     # --- Memory & Evolution ---
     memorizing/              # Memory capture and promotion
@@ -247,6 +247,8 @@ Hooks are lifecycle event handlers that enforce governance without agent coopera
     run.json                 # Session state, checkpoint, remaining_steps
     locks.json               # Lock manifest
     health-check.json        # Health signal calculation results
+    session-latest.md        # Post-compact recovery context
+    task-focus/{task_id}.md  # Per-task focus summaries
 
   spec/
     seed.json                # Mission spec frozen at intake (immutable)
@@ -264,6 +266,17 @@ Hooks are lifecycle event handlers that enforce governance without agent coopera
       final-verdict.json
       retrospective.json
 
+  evidence/
+    {task_id}/
+      architecture-authority-review.json
+      qa-engineer.json
+      challenge-review.json
+      product-authority-verdict.json
+
+  packets/
+    {task_id}/
+      {agent_type}.md            # Role-specific context packets
+
   evolution/
     rules-update-{seq}.json
     debt-register.json
@@ -278,8 +291,6 @@ Hooks are lifecycle event handlers that enforce governance without agent coopera
     incidents/{id}.json
 
   summaries/
-    session-latest.md
-    task-focus/{task_id}.md
     mission-summary.md
     run-summary-{timestamp}.md
 
@@ -287,7 +298,6 @@ Hooks are lifecycle event handlers that enforce governance without agent coopera
     events.jsonl             # Append-only audit trail
 
   rules.md                   # Continuously updated team rules
-  debt.json                  # Legacy (migrating to evolution/debt-register.json)
 ```
 
 > For artifact details and schemas, see `protocol/11_RUNTIME_ARTIFACTS_AND_SCHEMAS.md`.
@@ -302,7 +312,7 @@ Core skills (`plugin/skills/`) must not hardcode specific tools.
 
 **Allowed**: Referencing `.geas/memory/_project/conventions.md` for project-specific commands, marker file detection (package.json, go.mod), listing multiple alternatives (e.g., "Jest, pytest").
 
-How it works in practice: Forge records project conventions in conventions.md during onboarding. TaskContract's eval_commands reference those conventions. Evidence Gate runs the project-specific commands. No skill definitions need to change.
+How it works in practice: The architecture authority records project conventions in conventions.md during onboarding. TaskContract's eval_commands reference those conventions. Evidence Gate runs the project-specific commands. No skill definitions need to change.
 
 ---
 

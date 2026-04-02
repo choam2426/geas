@@ -5,14 +5,14 @@
         "email": "choam2426@gmail.com"
     },
     "metadata": {
-        "description": "A harness that brings structure to multi-agent AI development — so every decision follows a process, every action is traceable, every output is verified, and the team gets smarter over time.",
+        "description": "A governance protocol for multi-agent AI development — so every decision follows a process, every action is traceable, every output is verified, and the team gets smarter over time.",
         "version": "0.2.0"
     },
     "plugins": [
         {
             "name": "geas",
             "source": "./plugin",
-            "description": "A harness that brings structure to multi-agent AI development — so every decision follows a process, every action is traceable, every output is verified, and the team gets smarter over time.",
+            "description": "A governance protocol for multi-agent AI development — so every decision follows a process, every action is traceable, every output is verified, and the team gets smarter over time.",
             "version": "0.2.0",
             "author": {
                 "name": "choam2426",
@@ -20,7 +20,7 @@
             },
             "category": "development",
             "keywords": [
-                "harness",
+                "governance-protocol",
                 "contract-driven",
                 "verification",
                 "evidence-gate",

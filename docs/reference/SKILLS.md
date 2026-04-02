@@ -1,6 +1,6 @@
 # Skills Reference
 
-All 23 skills in the Geas plugin. Skills are invoked either by users directly (`/geas:<name>`) or by the Orchestrator as part of execution protocols.
+All 27 skills in the Geas plugin. Skills are invoked either by users directly (`/geas:<name>`) or by the Orchestrator as part of execution protocols.
 
 ## Summary Table
 
@@ -17,16 +17,22 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 | [verify-fix-loop](#verify-fix-loop) | Core - Contract Engine | No | Orchestrator (via evidence-gate) | Fix iterations + DecisionRecord |
 | [verify](#verify) | Core - Verification | No | Worker agents | Console checklist report |
 | [vote-round](#vote-round) | Core - Verification | No | Orchestrator (at Specifying) | `.geas/decisions/{dec-id}.json` |
+| [scheduling](#scheduling) | Core - Execution | No | Orchestrator | Batch construction, parallel dispatch |
 | [decision](#decision) | Team - Execution | Yes | Orchestrator or User | `.geas/decisions/{dec-id}.json` |
-| [write-prd](#write-prd) | Team - Planning | No | Nova (during Specifying) | `.geas/spec/prd.md` |
-| [write-stories](#write-stories) | Team - Planning | No | Nova (during Specifying) | `.geas/spec/stories.md` |
-| [onboard](#onboard) | Team - Planning | No | Orchestrator (Sprint, first run) | `.geas/memory/_project/conventions.md` |
+| [memorizing](#memorizing) | Core - Memory | No | Orchestrator | Memory candidates, promotions, index |
+| [write-prd](#write-prd) | Team - Planning | No | Product Authority (during Specifying) | `.geas/spec/prd.md` |
+| [write-stories](#write-stories) | Team - Planning | No | Product Authority (during Specifying) | `.geas/spec/stories.md` |
+| [onboard](#onboard) | Team - Planning | No | Orchestrator (first run) | `.geas/memory/_project/conventions.md` |
 | [coding-conventions](#coding-conventions) | Utility | No | All agents | Reference guidance only |
-| [briefing](#briefing) | Utility | No | Nova or Orchestrator | Console status report |
+| [briefing](#briefing) | Utility | No | Product Authority or Orchestrator | Console status report |
 | [run-summary](#run-summary) | Utility | No | Orchestrator (end of session) | `.geas/summaries/run-summary-<date>.md` |
 | [ledger-query](#ledger-query) | Utility | No | Orchestrator or User | Formatted query results (read-only) |
 | [cleanup](#cleanup) | Utility | No | Orchestrator (post-Building / Evolving) | `.geas/state/debt-register.json` entries |
 | [pivot-protocol](#pivot-protocol) | Utility | No | Orchestrator or any agent | `.geas/decisions/{dec-id}.json` |
+| [conformance-checking](#conformance-checking) | Operational | Yes | User or Orchestrator | 18-scenario conformance report |
+| [chaos-exercising](#chaos-exercising) | Operational | Yes | User | 5-scenario failure test results |
+| [policy-managing](#policy-managing) | Operational | Yes | User or Orchestrator | `.geas/state/policy-overrides.json` |
+| [reporting](#reporting) | Operational | Yes | User or Orchestrator | `.geas/state/health-check.json` |
 
 ---
 
@@ -77,7 +83,7 @@ Geas orchestrator -- coordinates the multi-agent team. Manages setup, intake, an
 **Key Behaviors:**
 - Before every `Agent()` spawn, reads and writes `.geas/state/run.json` with a checkpoint (`pipeline_step`, `agent_in_flight`, `pending_evidence`). Session recovery depends on this.
 - After every agent return, reads the expected evidence file to verify it exists. Missing evidence = step failed; retries once then logs error.
-- Routes startup to the 4-phase mission pipeline (Specifying → Building → Polishing → Evolving, scaled to the request) or to decision-only via `/geas:decision`. Phase procedures are in `references/discovery.md`, `references/build.md`, `references/polish.md`, `references/evolution.md`. The per-task pipeline is in `references/pipeline.md`. For details, see `protocol/02_MODES_MISSIONS_AND_RUNTIME.md`.
+- Routes startup to the 4-phase mission pipeline (Specifying → Building → Polishing → Evolving, scaled to the request) or to decision-only via `/geas:decision`. Phase procedures are in `references/specifying.md`, `references/building.md`, `references/polishing.md`, `references/evolving.md`. The per-task pipeline is in `references/pipeline.md`. For details, see `protocol/02_MODES_MISSIONS_AND_RUNTIME.md`.
 
 **Schemas:** None owned directly; reads schemas from downstream skills.
 
@@ -102,7 +108,7 @@ First-time setup -- initialize `.geas/` runtime directory, generate config files
 
 **Key Behaviors:**
 - Idempotent directory creation via `mkdir -p` -- safe to call on an existing project.
-- Writes `rules.md` with the baseline evidence and code rules that all agents must follow; Scrum updates this file over time via retrospectives.
+- Writes `rules.md` with the baseline evidence and code rules that all agents must follow; Process Lead updates this file over time via retrospectives.
 - Users should not need to run this manually; Orchestrator triggers it automatically.
 
 **Schemas:** None.
@@ -154,7 +160,7 @@ Compile a user story into a TaskContract -- a machine-readable work agreement wi
 - `.geas/ledger/events.jsonl` -- `task_compiled` event appended
 
 **Key Behaviors:**
-- Assigns worker and reviewer by task type (frontend -> Pixel/Forge, backend -> Circuit/Forge, design -> Palette/Forge, etc.) and sets `prohibited_paths` that workers must not modify.
+- Assigns worker and reviewer by task type (frontend -> Frontend Engineer/Architecture Authority, backend -> Backend Engineer/Architecture Authority, design -> UI/UX Designer/Architecture Authority, etc.) and sets `prohibited_paths` that workers must not modify.
 - Generates a `rubric` array with quality dimensions and thresholds: base dimensions (`core_interaction`, `feature_completeness`, `code_quality`, `regression_safety`) for all tasks, plus `ux_clarity` and `visual_coherence` for UI tasks.
 - Reads eval commands from `conventions.md`; if none exist, detects from project config files (package.json, Makefile, pyproject.toml).
 
@@ -175,15 +181,15 @@ Generate a role-specific ContextPacket for a worker -- compressed briefing with 
 - `.geas/evidence/{task-id}/` -- upstream worker outputs
 - `.geas/decisions/` -- relevant decision records
 - `.geas/spec/seed.json` -- mission context
-- `.geas/contracts/{task-id}.json` -- implementation contract (for Forge and Sentinel packets)
+- `.geas/contracts/{task-id}.json` -- implementation contract (for Architecture Authority and QA Engineer packets)
 - `.geas/state/debt-register.json` -- open tech debt items relevant to the task
 
 **Outputs:**
 - `.geas/packets/{task-id}/{worker-name}.md` -- role-tailored markdown briefing (target: under 200 lines)
 
 **Key Behaviors:**
-- Each worker type receives only the context relevant to their role: Palette gets design constraints and target-user context; Pixel/Circuit get the design spec and eval commands; Forge gets files changed and the worker's `self_check.known_risks`; Sentinel gets the implementation contract's `demo_steps` and `edge_cases` plus available QA tools.
-- Sentinel packets include a `## QA Tools Available` section listing only tools actually connected (from `.geas/config.json`), and a `## Rubric Scoring` section listing the dimensions the evaluator must score.
+- Each worker type receives only the context relevant to their role: UI/UX Designer gets design constraints and target-user context; Frontend Engineer/Backend Engineer get the design spec and eval commands; Architecture Authority gets files changed and the worker's `self_check.known_risks`; QA Engineer gets the implementation contract's `demo_steps` and `edge_cases` plus available QA tools.
+- QA Engineer packets include a `## QA Tools Available` section listing only tools actually connected (from `.geas/config.json`), and a `## Rubric Scoring` section listing the dimensions the evaluator must score.
 - Human-confirmed decisions carry the highest priority when extracted from decision records.
 
 **Schemas:** `plugin/skills/context-packet/schemas/context-packet.schema.json`
@@ -192,11 +198,11 @@ Generate a role-specific ContextPacket for a worker -- compressed briefing with 
 
 ### implementation-contract
 
-Pre-implementation agreement -- worker proposes concrete action plan, Sentinel and Forge approve before coding begins. Prevents wasted implementation cycles from misunderstood requirements.
+Pre-implementation agreement -- worker proposes concrete action plan, QA Engineer and Architecture Authority approve before coding begins. Prevents wasted implementation cycles from misunderstood requirements.
 
 **User-Invocable:** No
 
-**Invoked By:** Orchestrator after Tech Guide (Forge) and before Implementation, for every task
+**Invoked By:** Orchestrator after Tech Guide (Architecture Authority) and before Implementation, for every task
 
 **Inputs:**
 - `.geas/tasks/{task-id}.json` -- TaskContract
@@ -208,8 +214,8 @@ Pre-implementation agreement -- worker proposes concrete action plan, Sentinel a
 - `.geas/ledger/events.jsonl` -- `implementation_contract` event with `approved` or `revision_requested`
 
 **Key Behaviors:**
-- Three-step process: worker drafts contract -> Sentinel reviews for QA coverage (`demo_steps` must cover every acceptance criterion) -> Forge reviews for technical viability. Both must approve before implementation begins.
-- Allows one revision cycle; after that, Forge makes the final call and implementation proceeds.
+- Three-step process: worker drafts contract -> QA Engineer reviews for QA coverage (`demo_steps` must cover every acceptance criterion) -> Architecture Authority reviews for technical viability. Both must approve before implementation begins.
+- Allows one revision cycle; after that, Architecture Authority makes the final call and implementation proceeds.
 - `demo_steps` must cover every acceptance criterion -- a contract missing coverage for any criterion is considered incomplete.
 
 **Schemas:** `plugin/skills/implementation-contract/schemas/implementation-contract.schema.json`
@@ -238,7 +244,7 @@ Evidence Gate v2 quality gate -- evaluates an EvidenceBundle against its TaskCon
 **Key Behaviors:**
 - Tier 0 (Precheck): Checks required artifact existence, task state eligibility, and baseline/integration preconditions. Does not proceed to later tiers on failure.
 - Tier 1 (Mechanical): Actually executes each `eval_command` from the TaskContract and records exit codes. Does not assume pass. Stops on first failure.
-- Tier 2 (Contract + Rubric): Checks each acceptance criterion from worker evidence, then scores rubric dimensions from Forge and Sentinel's `rubric_scores`. All dimensions must meet their threshold; if worker `self_check.confidence` <= 2, every threshold is raised by 1.
+- Tier 2 (Contract + Rubric): Checks each acceptance criterion from worker evidence, then scores rubric dimensions from Architecture Authority and QA Engineer's `rubric_scores`. All dimensions must meet their threshold; if worker `self_check.confidence` <= 2, every threshold is raised by 1.
 - After gate pass: Closure Packet assembly -> Critical Reviewer pre-ship challenge (mandatory for high/critical risk) -> Final Verdict (product_authority issues pass/iterate/escalate). The former Tier 3 (Product) has been separated into this Final Verdict step.
 
 **Schemas:** `plugin/skills/evidence-gate/schemas/evidence-bundle.schema.json`, `plugin/skills/evidence-gate/schemas/decision-record.schema.json`
@@ -265,7 +271,7 @@ Verify-Fix Loop -- bounded fix-verify inner loop. Reads TaskContract for retry b
 - `.geas/ledger/events.jsonl` -- escalation event
 
 **Key Behaviors:**
-- Each iteration: spawns the appropriate fixer (Pixel for frontend bugs, Circuit for backend) with worktree isolation, merges the worktree branch, then re-runs evidence-gate (Tier 1 + Tier 2).
+- Each iteration: spawns the appropriate fixer (Frontend Engineer for frontend bugs, Backend Engineer for backend) with worktree isolation, merges the worktree branch, then re-runs evidence-gate (Tier 1 + Tier 2).
 - Fix-specific ContextPackets include `blocking_dimensions` from the rubric evaluation so the fixer knows exactly which quality thresholds failed.
 - When retry budget is exhausted, follows the TaskContract's `escalation_policy`: `forge-review` (architectural analysis with one additional attempt if fixable), `nova-decision` (strategic direction), or `pivot` (invoke pivot-protocol).
 
@@ -281,7 +287,7 @@ Structured verification checklist -- BUILD, LINT, TEST, ERROR_FREE, FUNCTIONALIT
 
 **User-Invocable:** No
 
-**Invoked By:** Worker agents (Pixel, Circuit, Forge, Sentinel) before posting completion
+**Invoked By:** Worker agents (Frontend Engineer, Backend Engineer, Architecture Authority, QA Engineer) before posting completion
 
 **Inputs:**
 - `.geas/memory/_project/conventions.md` -- project-specific commands (falls back to project config file detection)
@@ -292,8 +298,8 @@ Structured verification checklist -- BUILD, LINT, TEST, ERROR_FREE, FUNCTIONALIT
 
 **Key Behaviors:**
 - Five-item checklist in order: BUILD, LINT, TEST, ERROR_FREE, FUNCTIONALITY. VERDICT is PASS only if all items are PASS (PENDING and SKIP do not block); FAIL if any item fails with specific file/line details.
-- Forge pre-check mode runs only BUILD + LINT -- fast gate before handing off to Sentinel for full QA.
-- FUNCTIONALITY is Sentinel's domain (E2E via browser automation MCP); other agents mark it as `PENDING (Sentinel E2E)` rather than running it themselves.
+- Architecture Authority pre-check mode runs only BUILD + LINT -- fast gate before handing off to QA Engineer for full QA.
+- FUNCTIONALITY is QA Engineer's domain (E2E via browser automation MCP); other agents mark it as `PENDING (QA Engineer E2E)` rather than running it themselves.
 
 **Schemas:** None.
 
@@ -301,24 +307,24 @@ Structured verification checklist -- BUILD, LINT, TEST, ERROR_FREE, FUNCTIONALIT
 
 ### vote-round
 
-Structured review protocol -- Forge proposes, Critic challenges, Orchestrator synthesizes, user confirms. Produces a DecisionRecord.
+Structured review protocol -- Architecture Authority proposes, Critical Reviewer challenges, Orchestrator synthesizes, user confirms. Produces a DecisionRecord.
 
 **User-Invocable:** No
 
 **Invoked By:** Orchestrator at major architectural or cross-cutting decisions (primarily Specifying step 1.5)
 
 **Inputs:**
-- Proposal from Forge (saved to `.geas/decisions/pending/{proposal-id}.md`)
-- Challenge from the designated Critic agent (appended to the same file)
+- Proposal from Architecture Authority (saved to `.geas/decisions/pending/{proposal-id}.md`)
+- Challenge from the designated Critical Reviewer agent (appended to the same file)
 
 **Outputs:**
 - `.geas/decisions/{dec-id}.json` -- DecisionRecord conforming to `schemas/decision-record.schema.json`
 - Cleans up `.geas/decisions/pending/{proposal-id}.md` after resolution
 
 **Key Behaviors:**
-- Four-step process: Forge writes a structured proposal (What / Why / Trade-offs / Alternatives) -> Critic writes a structured challenge (Assessment / Concerns / Alternative / Recommendation) -> Orchestrator synthesizes both and presents options to the user -> user confirms or Orchestrator auto-decides in autonomous mode.
+- Four-step process: Architecture Authority writes a structured proposal (What / Why / Trade-offs / Alternatives) -> Critical Reviewer writes a structured challenge (Assessment / Concerns / Alternative / Recommendation) -> Orchestrator synthesizes both and presents options to the user -> user confirms or Orchestrator auto-decides in autonomous mode.
 - Triggered for architecture/tech stack proposals and design system decisions; not triggered for individual feature specs, per-feature tech guides, bug fixes, or minor refactors.
-- Critic participation is mandatory -- skipping the Critic step is not allowed even when the proposal seems obvious.
+- Critical Reviewer participation is mandatory -- skipping the Critical Reviewer step is not allowed even when the proposal seems obvious.
 
 **Schemas:** `plugin/skills/evidence-gate/schemas/decision-record.schema.json`
 
@@ -342,7 +348,7 @@ Run a structured multi-agent decision to make a technical or product decision be
 
 **Key Behaviors:**
 - No code is produced. The entire output is a DecisionRecord.
-- Spawns four debaters in parallel: Forge (argues for option A with technical rationale), Critic (challenges option A / argues for option B), Circuit (backend/scalability perspective), Palette (UX/frontend perspective).
+- Spawns four debaters in parallel: Architecture Authority (argues for option A with technical rationale), Critical Reviewer (challenges option A / argues for option B), Backend Engineer (backend/scalability perspective), UI/UX Designer (UX/frontend perspective).
 - Orchestrator synthesizes positions, presents trade-offs, asks the user for a final decision, then writes the DecisionRecord.
 
 **Schemas:** `plugin/skills/evidence-gate/schemas/decision-record.schema.json`
@@ -357,7 +363,7 @@ Create a Product Requirements Document from a feature idea or mission.
 
 **User-Invocable:** No
 
-**Invoked By:** Nova during Specifying (mission phase 1.3)
+**Invoked By:** Product Authority during Specifying (mission phase 1.3)
 
 **Inputs:**
 - `$ARGUMENTS` -- feature idea, problem statement, or mission
@@ -381,7 +387,7 @@ Break a feature or mission into user stories with acceptance criteria.
 
 **User-Invocable:** No
 
-**Invoked By:** Nova during Specifying (mission phase 1.3), immediately after write-prd
+**Invoked By:** Product Authority during Specifying (mission phase 1.3), immediately after write-prd
 
 **Inputs:**
 - `$ARGUMENTS` -- feature description, mission statement, or problem to solve
@@ -416,7 +422,7 @@ Codebase discovery protocol -- scan project structure, detect stack, map archite
 - `.geas/memory/_project/state.json` -- onboard metadata (mode, phase, project size, stack summary)
 
 **Key Behaviors:**
-- Run by Forge only (single agent, not parallel). Read-only reconnaissance -- no code changes.
+- Run by Architecture Authority only (single agent, not parallel). Read-only reconnaissance -- no code changes.
 - Scan depth adapts to project size: full scan for small (~50 files), focused scan of `src/` and entry points for medium (50-500 files), targeted scan of relevant directories for large (500+ files).
 - Repeat execution behavior: if `conventions.md` already exists, skip onboarding entirely. Orchestrator reads it directly and proceeds to the execution pipeline.
 
@@ -440,7 +446,7 @@ Universal coding standards for the AI startup workspace -- stack-agnostic.
 
 **Key Behaviors:**
 - Defines universal standards that apply regardless of stack: TypeScript strict mode (if applicable), no `any` types, one responsibility per function/component, graceful error handling, atomic git commits, mobile-first accessible UI.
-- The tech stack itself is NOT predefined here -- Forge proposes it, Nova validates, Orchestrator confirms, and the decision is recorded as a DecisionRecord. Forge then writes the project-specific `conventions.md`.
+- The tech stack itself is NOT predefined here -- Architecture Authority proposes it, Product Authority validates, Orchestrator confirms, and the decision is recorded as a DecisionRecord. Architecture Authority then writes the project-specific `conventions.md`.
 - Serves as the baseline that `conventions.md` extends and specializes.
 
 **Schemas:** None.
@@ -449,11 +455,11 @@ Universal coding standards for the AI startup workspace -- stack-agnostic.
 
 ### briefing
 
-Nova Morning Briefing -- structured status report on what shipped, what's blocked, what needs human attention.
+Product Authority Morning Briefing -- structured status report on what shipped, what's blocked, what needs human attention.
 
 **User-Invocable:** No
 
-**Invoked By:** Nova at milestones, start of Evolving, or on Orchestrator/human request
+**Invoked By:** Product Authority at milestones, start of Evolving, or on Orchestrator/human request
 
 **Inputs:**
 - `.geas/state/run.json` -- current phase and mission
@@ -466,7 +472,7 @@ Nova Morning Briefing -- structured status report on what shipped, what's blocke
 
 **Key Behaviors:**
 - Fixed five-section format: What Shipped, What's Blocked, Needs Human Attention, Product Health (mission alignment / quality / velocity / user value), Next Priority. Human should finish reading in under 60 seconds.
-- Product Health includes Sentinel's pass rate from the most recent test run; Nova makes a subjective user-value assessment ("Users can now do X").
+- Product Health includes QA Engineer's pass rate from the most recent test run; Product Authority makes a subjective user-value assessment ("Users can now do X").
 - Every blocker entry includes a suggested action -- the briefing is actionable, not just descriptive.
 
 **Schemas:** None.
@@ -536,7 +542,7 @@ Entropy scan -- detect AI slop, unused code, convention drift. Records findings 
 
 **User-Invocable:** No
 
-**Invoked By:** Orchestrator after Phase 2 (Building), during Phase 4 (Evolving), or on explicit request from human or Forge
+**Invoked By:** Orchestrator after Phase 2 (Building), during Phase 4 (Evolving), or on explicit request from human or Architecture Authority
 
 **Inputs:**
 - All project source files (respects `.gitignore`; skips `node_modules`, `vendor`, `target`, `dist`, `build`, `.git`)
@@ -548,7 +554,7 @@ Entropy scan -- detect AI slop, unused code, convention drift. Records findings 
 
 **Key Behaviors:**
 - Six scan categories: unnecessary comments (restating the code), dead code (unused exports, unreachable branches, commented-out blocks), duplication (10+ lines of substantially similar code across files), over-abstraction, convention drift (naming, import patterns, file structure), and AI boilerplate (verbose error handling, redundant type annotations, template remnants).
-- Scan depth scales to project size: full scan for small projects; files changed in the current Sprint plus core modules for medium; only team-modified files and flagged areas for large.
+- Scan depth scales to project size: full scan for small projects; files changed in the current mission plus core modules for medium; only team-modified files and flagged areas for large.
 - Related findings with the same root cause are grouped into one `debt-register.json` entry (not 20 entries for 20 comments in one file).
 
 **Schemas:** None (writes entries to `.geas/state/debt-register.json`; structure is defined in the skill).
@@ -561,7 +567,7 @@ When and how to pivot during product development.
 
 **User-Invocable:** No
 
-**Invoked By:** Orchestrator (when triggered by evidence-gate escalation policy `"pivot"`, Nova "Cut" verdict, or any team member surfacing a pivot signal)
+**Invoked By:** Orchestrator (when triggered by evidence-gate escalation policy `"pivot"`, Product Authority "Cut" verdict, or any team member surfacing a pivot signal)
 
 **Inputs:**
 - Full context from Orchestrator: what is wrong, what has been tried, available options
@@ -569,12 +575,158 @@ When and how to pivot during product development.
 - `.geas/decisions/` -- prior decisions for context
 
 **Outputs:**
-- `.geas/decisions/{dec-id}.json` -- DecisionRecord with Nova's chosen pivot direction and rationale
+- `.geas/decisions/{dec-id}.json` -- DecisionRecord with Product Authority's chosen pivot direction and rationale
 - `.geas/tasks/` -- dropped TaskContracts cancelled; new TaskContracts created for the new approach
 
 **Key Behaviors:**
-- Triggers include: Sentinel reporting >50% test failure on core features, a core feature declared technically infeasible, Forge finding a fundamental architecture problem, Nova issuing a "Cut" verdict, or multiple agents raising the same concern.
-- Nova decides the pivot type from five options: scope cut, feature drop, approach change, push through, or simplify. Any team member may suggest a pivot -- no need to wait for failures.
+- Triggers include: QA Engineer reporting >50% test failure on core features, a core feature declared technically infeasible, Architecture Authority finding a fundamental architecture problem, Product Authority issuing a "Cut" verdict, or multiple agents raising the same concern.
+- Product Authority decides the pivot type from five options: scope cut, feature drop, approach change, push through, or simplify. Any team member may suggest a pivot -- no need to wait for failures.
 - A pivot is a strategic direction change, not a code fix. Bug fixes, refactors, and design iterations are NOT pivots.
+
+---
+
+## Execution Skills
+
+### scheduling
+
+Protocol for orchestrator to manage multiple tasks simultaneously. Defines batch construction, pipeline interleaving, checkpoint management, and recovery.
+
+**User-Invocable:** No
+
+**Invoked By:** Orchestrator during Building phase when multiple tasks are ready for parallel execution
+
+**Inputs:**
+- `.geas/state/run.json` -- current session state and checkpoint
+- `.geas/state/locks.json` -- active lock manifest
+- `.geas/tasks/` -- TaskContracts with `scope.paths` for conflict detection
+
+**Outputs:**
+- Batch construction decisions (which tasks can safely run in parallel)
+- Updated `run.json` with `parallel_batch` and `completed_in_batch` fields
+
+**Key Behaviors:**
+- Task-level parallelism only. Step-level parallelism is defined in the execution pipeline.
+- Safe parallel conditions: no path overlap in `scope.paths`, no shared interface locks, no integration dependencies.
+- Batch completion requires all tasks in `parallel_batch` to appear in `completed_in_batch`.
+
+**Schemas:** None owned directly; reads `run-state.schema.json` and `lock-manifest.schema.json`.
+
+---
+
+## Memory & Evolution Skills
+
+### memorizing
+
+Memory lifecycle management -- candidate extraction, promotion pipeline, review, application logging, index maintenance, decay and harmful reuse detection.
+
+**User-Invocable:** No
+
+**Invoked By:** Orchestrator after retrospective (per-task extraction) and during Evolving (batch promotion)
+
+**Inputs:**
+- `.geas/tasks/{task_id}/retrospective.json` -- lessons from retrospective
+- `.geas/memory/memory-index.json` -- current memory index
+- `.geas/memory/` -- existing memory entries
+
+**Outputs:**
+- `.geas/memory/` -- new or updated memory entries
+- `.geas/memory/memory-index.json` -- updated index
+
+**Key Behaviors:**
+- 9-state lifecycle: candidate → provisional → stable → canonical (+ under_review, decayed, superseded, archived, rejected)
+- 6-stage promotion with explicit criteria at each gate
+- Application logging tracks how memories are used and their impact
+- Decay detection flags memories that haven't been applied or that contradict recent evidence
+
+**Schemas:** `memory-candidate.schema.json`, `memory-entry.schema.json`, `memory-index.schema.json`, `memory-review.schema.json`, `memory-application-log.schema.json`
+
+---
+
+## Operational Skills
+
+### conformance-checking
+
+Meta-verification suite -- 18 scenarios that verify existing enforcement mechanisms (hooks, skill directives) are correctly wired and functioning.
+
+**User-Invocable:** Yes (`/geas:conformance-checking`)
+
+**Invoked By:** User or Orchestrator after significant changes to hooks or skills
+
+**Inputs:**
+- `plugin/hooks/hooks.json` -- hook configuration
+- `plugin/hooks/scripts/` -- hook scripts
+- `plugin/skills/` -- skill definitions
+
+**Outputs:**
+- Console report: pass/fail per scenario with details
+
+**Key Behaviors:**
+- Does not implement new behavior -- only checks that existing enforcement is intact.
+- 18 scenarios covering: task state transitions, evidence gate enforcement, lock lifecycle, memory promotion gates, checkpoint integrity, and more.
+
+---
+
+### chaos-exercising
+
+Failure scenario testing -- 5 chaos scenarios with inline setup, trigger, and verification scripts to validate Geas recovery mechanisms.
+
+**User-Invocable:** Yes (`/geas:chaos-exercising`)
+
+**Invoked By:** User
+
+**Inputs:**
+- A working `.geas/` directory with active session state
+
+**Outputs:**
+- Console report: pass/fail per scenario
+
+**Key Behaviors:**
+- 5 failure scenarios: context compaction, orphaned locks, corrupted checkpoint, stale evidence, interrupted subagent.
+- Each scenario has setup → trigger → verify stages with inline bash scripts.
+
+---
+
+### policy-managing
+
+Override management for `.geas/memory/_project/rules.md`. Lets the team temporarily disable or modify a rule with a reason, an expiry date, and an approver.
+
+**User-Invocable:** Yes (`/geas:policy-managing`)
+
+**Invoked By:** User or Orchestrator
+
+**Inputs:**
+- `.geas/memory/_project/rules.md` -- current rules
+- `.geas/state/policy-overrides.json` -- existing overrides
+
+**Outputs:**
+- `.geas/state/policy-overrides.json` -- updated overrides with full audit trail
+
+**Key Behaviors:**
+- List active rules, apply temporary overrides, check expiry.
+- Preserves full override history for audit.
+- Overrides do not modify `rules.md` -- they are applied at runtime.
+
+---
+
+### reporting
+
+Debt/gap dashboard and health signal calculation.
+
+**User-Invocable:** Yes (`/geas:reporting`)
+
+**Invoked By:** User or Orchestrator at phase transitions, session start, and Evolving phase entry
+
+**Inputs:**
+- `.geas/evolution/debt-register.json` -- debt items
+- `.geas/evolution/gap-assessment-*.json` -- gap assessments
+- `.geas/state/health-check.json` -- previous health check
+
+**Outputs:**
+- `.geas/state/health-check.json` -- updated health signals
+- Console markdown summary
+
+**Key Behaviors:**
+- 8 health signals from protocol doc 12: gate pass rate, retry budget utilization, debt severity rollup, memory promotion rate, evidence completeness, lock contention, recovery frequency, rule freshness.
+- Each signal has a threshold; breaching triggers a mandatory response.
 
 **Schemas:** `plugin/skills/evidence-gate/schemas/decision-record.schema.json`

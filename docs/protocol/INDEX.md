@@ -51,5 +51,5 @@
   - hook/enforcement, conformance suite, metrics, health signal threshold definitions, low-quality incident/stub cap definitions
 - `14_EVOLUTION_DEBT_AND_GAP_LOOP.md`
   - retrospective, rules.md update, role-specific lesson criteria, debt lifecycle (scheduled to resolved transition conditions), gap assessment forward-feeding, harmful reuse feedback loop
-- `schemas/` -- 13 JSON Schemas (draft 2020-12) + `_defs.schema.json` shared definitions
-- `examples/` -- 9 example files (corresponding to each schema)
+- `schemas/` -- 28 JSON Schemas (draft 2020-12) + `_defs.schema.json` shared definitions
+- `examples/` -- 15 example files (corresponding to each schema)

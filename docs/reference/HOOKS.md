@@ -1,6 +1,6 @@
 # Hooks Reference
 
-Geas hooks are shell scripts that the Claude Code harness executes automatically at defined lifecycle events. They enforce governance invariants, inject agent context, and record telemetry — without requiring the orchestrator to remember to call them.
+Geas hooks are shell scripts that the Claude Code runtime executes automatically at defined lifecycle events. They enforce governance invariants, inject agent context, and record telemetry — without requiring the orchestrator to remember to call them.
 
 Configuration: `plugin/hooks/hooks.json`
 Scripts: `plugin/hooks/scripts/`
@@ -269,18 +269,18 @@ Fires after every `Write` or `Edit` tool call, but only acts when a task file is
 
    | File | Role |
    |---|---|
-   | `.geas/evidence/<tid>/forge-review.json` | Code Review (Forge) |
-   | `.geas/evidence/<tid>/sentinel.json` | QA Testing (Sentinel) |
-   | `.geas/evidence/<tid>/critic-review.json` | Pre-ship Review (Critic) |
-   | `.geas/evidence/<tid>/nova-verdict.json` | Product Review (Nova) |
-   | `.geas/tasks/<tid>/retrospective.json` | Scrum Retrospective |
+   | `.geas/evidence/<tid>/architecture-authority-review.json` | Code Review (Architecture Authority) |
+   | `.geas/evidence/<tid>/qa-engineer.json` | QA Testing (QA Engineer) |
+   | `.geas/evidence/<tid>/challenge-review.json` | Pre-ship Review (Critical Reviewer) |
+   | `.geas/evidence/<tid>/product-authority-verdict.json` | Product Review (Product Authority) |
+   | `.geas/tasks/<tid>/retrospective.json` | Process Lead Retrospective |
 
    For each missing file, it prints a warning to stderr.
 
-3. **Validates `rubric_scores` in sentinel and forge-review evidence** (recent addition). If `sentinel.json` or `forge-review.json` exists but does not contain a non-empty `rubric_scores` field, prints:
+3. **Validates `rubric_scores` in sentinel and forge-review evidence** (recent addition). If `qa-engineer.json` or `architecture-authority-review.json` exists but does not contain a non-empty `rubric_scores` field, prints:
    ```
-   [Geas] Warning: <tid> sentinel.json is missing rubric_scores
-   [Geas] Warning: <tid> forge-review.json is missing rubric_scores
+   [Geas] Warning: <tid> qa-engineer.json is missing rubric_scores
+   [Geas] Warning: <tid> architecture-authority-review.json is missing rubric_scores
    ```
 
 ### Conditions
@@ -571,7 +571,7 @@ Fires every time a sub-agent is spawned. Injects project-wide rules and per-agen
    ```json
    { "additionalContext": "..." }
    ```
-   The harness merges this into the sub-agent's system context before it receives its first message.
+   The runtime merges this into the sub-agent's system context before it receives its first message.
 
 ### Conditions
 
@@ -638,21 +638,21 @@ Fires when the session is about to end. This is the only hook in the system that
 
    | File | Description |
    |---|---|
-   | `.geas/evidence/<tid>/forge-review.json` | Code Review |
-   | `.geas/evidence/<tid>/sentinel.json` | QA Testing |
-   | `.geas/evidence/<tid>/critic-review.json` | Critical Reviewer Pre-ship Challenge |
-   | `.geas/evidence/<tid>/nova-verdict.json` | Final Verdict (Nova) |
-   | `.geas/tasks/<tid>/retrospective.json` | Scrum Retrospective |
+   | `.geas/evidence/<tid>/architecture-authority-review.json` | Code Review |
+   | `.geas/evidence/<tid>/qa-engineer.json` | QA Testing |
+   | `.geas/evidence/<tid>/challenge-review.json` | Critical Reviewer Pre-ship Challenge |
+   | `.geas/evidence/<tid>/product-authority-verdict.json` | Final Verdict (Product Authority) |
+   | `.geas/tasks/<tid>/retrospective.json` | Process Lead Retrospective |
 
 4. **If any files are missing**, prints to stderr:
    ```
    [Geas] Pipeline incomplete. MANDATORY evidence missing:
-     - TASK-001: sentinel.json (QA Testing) missing
-     - TASK-001: tasks/TASK-001/retrospective.json (Scrum Retrospective) missing
+     - TASK-001: qa-engineer.json (QA Testing) missing
+     - TASK-001: tasks/TASK-001/retrospective.json (Process Lead Retrospective) missing
 
    Execute the missing steps before completing the session.
    ```
-   Then **exits with code 2**, which causes the harness to block the session from closing.
+   Then **exits with code 2**, which causes the runtime to block the session from closing.
 
 5. **If all evidence is present**, exits 0 and allows the session to end normally.
 
@@ -733,7 +733,7 @@ Fires at session end (after `verify-pipeline.sh`). Parses sub-agent session JSON
 
 ### What it does
 
-Fires whenever the Claude Code harness compacts the context window. Compaction discards conversation history, which can cause the orchestrator to lose track of the current task and pipeline position. This hook re-injects the critical state.
+Fires whenever the Claude Code runtime compacts the context window. Compaction discards conversation history, which can cause the orchestrator to lose track of the current task and pipeline position. This hook re-injects the critical state.
 
 1. **Checks for `.geas/` and `run.json`.** Exits silently if either is absent.
 2. **Builds a context block** from `run.json` containing:
@@ -828,10 +828,10 @@ For protocol details on hook failure handling, conformance checking, and metrics
 | `.geas/memory/agents/<name>.md` | inject-context |
 | `.geas/memory/entries/<id>.json` | memory-promotion-gate |
 | `.geas/tasks/<tid>.json` | protect-geas-state, verify-task-status, stale-start-check |
-| `.geas/evidence/<tid>/forge-review.json` | verify-task-status, verify-pipeline |
-| `.geas/evidence/<tid>/sentinel.json` | verify-task-status, verify-pipeline |
-| `.geas/evidence/<tid>/critic-review.json` | verify-task-status, verify-pipeline |
-| `.geas/evidence/<tid>/nova-verdict.json` | verify-task-status, verify-pipeline |
+| `.geas/evidence/<tid>/architecture-authority-review.json` | verify-task-status, verify-pipeline |
+| `.geas/evidence/<tid>/qa-engineer.json` | verify-task-status, verify-pipeline |
+| `.geas/evidence/<tid>/challenge-review.json` | verify-task-status, verify-pipeline |
+| `.geas/evidence/<tid>/product-authority-verdict.json` | verify-task-status, verify-pipeline |
 | `.geas/tasks/<tid>/retrospective.json` | verify-task-status, verify-pipeline |
 | `.geas/spec/seed.json` | protect-geas-state (freeze guard) |
 | `.geas/packets/<tid>/*.md` | memory-superseded-warning, packet-stale-check |

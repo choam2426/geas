@@ -64,8 +64,8 @@
     },
     "source": {
       "type": "string",
-      "enum": ["initiative", "sprint"],
-      "description": "Which mode created this seed. 'sprint' indicates a minimal auto-generated seed (not a full mission intake). A mission run may overwrite a sprint-created seed."
+      "enum": ["full_intake", "quick_intake"],
+      "description": "How this seed was created. 'full_intake' indicates a complete Socratic intake process. 'quick_intake' indicates a minimal auto-generated seed (user skipped detailed intake)."
     },
     "readiness_override": {
       "type": "boolean",

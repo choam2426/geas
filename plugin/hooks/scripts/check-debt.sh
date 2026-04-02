@@ -28,9 +28,9 @@ if [ -z "$CWD" ] || [ -z "$FILE_PATH" ]; then
   exit 0
 fi
 
-# Only process .geas/state/debt-register.json
+# Only process .geas/evolution/debt-register.json
 case "$FILE_PATH" in
-  */.geas/state/debt-register.json) ;;
+  */.geas/evolution/debt-register.json) ;;
   *) exit 0 ;;
 esac
 
