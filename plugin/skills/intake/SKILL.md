@@ -82,6 +82,11 @@ mkdir -p .geas/spec
 
 Write `.geas/spec/seed.json` following the schema at `schemas/seed.schema.json`. Include `"version": "1.0"` and `"created_at"` (actual UTC timestamp) in the seed.
 
+Always include the `source` field:
+- `"full_intake"` — complete Socratic exploration with user
+- `"quick_intake"` — user skipped detailed intake (readiness_override)
+- `"existing_project"` — auto-generated for existing project onboarding
+
 Show the user a final summary:
 ```
 Mission: <refined mission>
