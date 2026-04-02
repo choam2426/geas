@@ -56,6 +56,41 @@ Append to .geas/ledger/events.jsonl:
 ```
 Exception: `implementation_contract`, `gate_result`, and `task_resolved` have their own event formats. Do not duplicate those.
 
+- **[MANDATORY] Session state update**: After each step completes and is logged, update the session context anchors:
+
+  Write `.geas/state/session-latest.md`:
+  ```markdown
+  # Session State — {timestamp}
+
+  **Mode:** sprint
+  **Phase:** {current phase: discovery | build | polish | evolution}
+  **Focus Task:** {task-id} — {title}
+  **Task State:** {current state from task contract}
+  **Last Step:** {step just completed}
+  **Next Step:** {first item in remaining_steps, or "phase transition"}
+
+  ## Recent Events
+  - {last 3 events from .geas/ledger/events.jsonl}
+
+  ## Open Risks
+  - {from closure packet open_risks, or "none yet"}
+
+  ## Active Memory
+  - {count} active memory entries, {count} under review
+  ```
+
+  Write `.geas/state/task-focus/{task-id}.md`:
+  ```markdown
+  # {task-id}: {title}
+
+  **State:** {current state}
+  **Goal:** {from task contract}
+  **Pipeline Progress:** {completed steps count} / {total steps count}
+  **Last Step:** {step name} — {outcome}
+  **Remaining:** {remaining_steps as comma-separated list}
+  **Key Risks:** {from worker self-check known_risks or open_risks, or "none"}
+  ```
+
 ### Step Groups
 
 Within a single task's pipeline, these steps may run in parallel:
