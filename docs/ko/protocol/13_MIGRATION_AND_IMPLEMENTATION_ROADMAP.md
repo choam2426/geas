@@ -147,7 +147,7 @@ chaos exercise는 아래 5개 시나리오를 테스트한다:
 | `readiness_round` | 없음 | `ship \| iterate \| escalate` vote + quorum | `vote-round` |
 | Vote severity | 없음 | `minor \| major` disagree 분류 | `vote-round` |
 | Debt Register 구조화 | `.geas/debt.json` (비정형) | `debt-register.json` with severity/kind/status | `initiative` |
-| Evolution Exit Gate | 없음 | gap-assessment + debt-register + rules-update + mission summary 필수 | `initiative` |
+| Evolving Phase Exit Gate | 없음 | gap-assessment + debt-register + rules-update + mission summary 필수 | `initiative` |
 | Retrospective 시점 | task passed 전에 실행 | task passed 후에 실행 | `initiative`, `sprint` |
 
 ### Phase 4 대상 (memory core)
@@ -176,7 +176,7 @@ chaos exercise는 아래 5개 시나리오를 테스트한다:
 | Critical Reviewer Pre-ship Challenge | gate와 verdict 사이 challenge 단계 | 프로토콜에 추가 (closure packet → critical_reviewer challenge → final verdict) |
 | Ship Gate (4-file check) | evidence bundle 존재 확인 | Tier 0 (Precheck)로 통합 |
 | `remaining_steps` 체크포인트 | 세션 복구 핵심 메커니즘 | doc 10에 반영 |
-| Entropy Scan / Cleanup | polish phase dead code 정리 | doc 02 polish phase에 추가 |
+| Entropy Scan / Cleanup | polishing phase dead code 정리 | doc 02 polishing phase에 추가 |
 | Run Summary | 세션 감사 추적 | doc 12 observability에 추가 |
 
 ## Migration Rule

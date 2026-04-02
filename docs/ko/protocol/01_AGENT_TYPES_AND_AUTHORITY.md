@@ -9,7 +9,7 @@
 ### `orchestration_authority`
 책임:
 - mission 해석
-- mode/phase 선택
+- phase 선택
 - task 분해와 우선순위 조정
 - specialist 배정
 - closure packet 조립
@@ -27,8 +27,8 @@
 
 ### `product_authority`
 책임:
-- discovery에서 방향과 우선순위 판단
-- delivery 끝에서 final verdict (`pass | iterate | escalate`) 결정
+- specifying phase에서 방향과 우선순위 판단
+- building phase 끝에서 final verdict (`pass | iterate | escalate`) 결정
 - disagreement가 남을 때 제품 관점의 trade-off 판단
 
 금지:
@@ -79,7 +79,7 @@
 
 | decision | primary owner | note |
 |---|---|---|
-| mode selection | orchestration_authority | mission signal 기반 |
+| phase selection | orchestration_authority | mission signal 기반 |
 | task routing | orchestration_authority | specialist required set 도출 |
 | implementation approach | primary specialist + architecture_authority | contract review 필요 |
 | evidence gate result | gate runner / verifier | objective verdict |

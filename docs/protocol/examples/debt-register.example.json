@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "artifact_type": "debt_register",
-  "artifact_id": "debt-polish-001",
+  "artifact_id": "debt-polishing-001",
   "producer_type": "process_lead",
   "scope": "phase",
   "items": [
@@ -14,7 +14,7 @@
       "introduced_by_task_id": "task-003",
       "owner_type": "qa_engineer",
       "status": "scheduled",
-      "target_phase": "polish"
+      "target_phase": "polishing"
     },
     {
       "debt_id": "debt-102",
@@ -25,7 +25,7 @@
       "introduced_by_task_id": "task-009",
       "owner_type": "technical_writer",
       "status": "open",
-      "target_phase": "evolution"
+      "target_phase": "evolving"
     }
   ],
   "rollup_by_severity": {

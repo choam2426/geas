@@ -28,7 +28,7 @@
 - `01_AGENT_TYPES_AND_AUTHORITY.md`
   - type-only agent model, 권한 경계, specialist 참여 원칙
 - `02_MODES_MISSIONS_AND_RUNTIME.md`
-  - discovery/delivery/decision, mission 기반 자동 분기, initiative 4-phase model, runtime phase
+  - mission 기반 4-phase model (specifying/building/polishing/evolving), runtime phase
 - `03_TASK_MODEL_AND_LIFECYCLE.md`
   - task classification, lifecycle, implementation contract, worker self-check, transition invariants
 - `04_BASELINE_WORKTREE_SCHEDULER_AND_PARALLELISM.md`

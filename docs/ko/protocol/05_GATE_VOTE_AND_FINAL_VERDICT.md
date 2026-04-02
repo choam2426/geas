@@ -133,8 +133,8 @@ stub cap 기본값 (risk_level별):
 
 ### `proposal_round`
 언제 쓰나:
-- discovery에서 cross-cutting proposal
-- delivery 도중 major design/API boundary decision
+- specifying phase에서 cross-cutting proposal
+- building phase 도중 major design/API boundary decision
 
 quorum 요건: proposer + reviewer 최소 2명 이상이 참여해야 한다.
 

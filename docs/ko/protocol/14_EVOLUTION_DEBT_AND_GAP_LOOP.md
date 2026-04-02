@@ -90,7 +90,7 @@ lesson이 아래 조건 중 하나 이상을 만족하면 role-specific이다:
 - `owner_type`
 - `status = open | accepted | scheduled | resolved | dropped`
   - **`scheduled` → `resolved` 전환 조건**: 해당 debt item을 명시적으로 대상으로 하는 task가 `state=passed`에 도달하고, 해당 task의 evidence에서 debt의 원래 concern이 해소되었음이 검증될 때 전환한다
-- `target_phase = polish | evolution | future`
+- `target_phase = polishing | evolving | future`
 
 ### debt review cadence
 - every task close: add/merge debt candidates
@@ -99,18 +99,18 @@ lesson이 아래 조건 중 하나 이상을 만족하면 role-specific이다:
 
 ### debt action rules
 - `critical` debt는 phase exit 전 triage 필수. triage 없이 phase exit을 시도하면 `phase_transition_review` hook이 차단한다.
-- `high` debt는 `polish` phase에서 해소하거나 `product_authority`의 explicit acceptance이 있어야 한다. acceptance 시 `rationale` 필드에 수용 사유를 기록한다.
+- `high` debt는 `polishing` phase에서 해소하거나 `product_authority`의 explicit acceptance이 있어야 한다. acceptance 시 `rationale` 필드에 수용 사유를 기록한다.
 - `accepted` debt는 `rationale`과 `owner_type` 없이 둘 수 없다. 둘 중 하나라도 비어 있으면 validator가 reject한다.
 - `dropped` debt는 `process_lead`의 승인과 `drop_reason` 기록이 필요하다. 승인 없이 `dropped`로 전환하면 차단한다.
 
 ### Evolution Phase에서 발견된 Critical Debt
 
-evolution phase에서 retrospective 또는 gap assessment를 통해 새로운 critical debt가 발견되면 아래 절차를 따른다:
+evolving phase에서 retrospective 또는 gap assessment를 통해 새로운 critical debt가 발견되면 아래 절차를 따른다:
 
 1. 해당 debt를 `debt-register.json`에 `severity = critical`, `status = open`으로 기록한다.
 2. `product_authority`가 아래 중 하나를 결정한다:
-   - **a. 즉시 수정**: evolution phase 내에서 수정 task를 생성한다. 이 task는 일반 task lifecycle을 따른다 (doc 03 참조).
-   - **b. 수용**: `status = accepted`로 변경하고, `rationale`과 `owner_type`을 필수로 기록한다. 수용 근거 없이는 evolution exit gate를 통과할 수 없다 (위 debt action rules 및 Evolution Exit Gate 참조).
+   - **a. 즉시 수정**: evolving phase 내에서 수정 task를 생성한다. 이 task는 일반 task lifecycle을 따른다 (doc 03 참조).
+   - **b. 수용**: `status = accepted`로 변경하고, `rationale`과 `owner_type`을 필수로 기록한다. 수용 근거 없이는 evolving phase exit gate를 통과할 수 없다 (위 debt action rules 및 Evolving Phase Exit Gate 참조).
    - **c. 다음 mission 이관**: `status = scheduled`, `target_phase = future`로 변경한다. `gap-assessment.json`의 `recommended_followups[]`에 해당 debt를 추가한다.
 3. 결정은 `decision-record.json`에 기록한다. `decision_type`은 `"critical_debt_triage"`, `evidence_refs`에 해당 debt의 `debt_id`를 포함한다.
 
@@ -125,9 +125,9 @@ evolution phase에서 retrospective 또는 gap assessment를 통해 새로운 cr
 `gap-assessment.json`은 원래 `scope_in`과 실제 `scope_out`을 비교한 artifact다.
 
 ### 언제 쓰나
-- `build -> polish`
-- `polish -> evolution`
-- `evolution -> mission close`
+- `building -> polishing`
+- `polishing -> evolving`
+- `evolving -> mission close`
 - major pivot 이후
 
 ### 최소 필드
@@ -143,19 +143,19 @@ evolution phase에서 retrospective 또는 gap assessment를 통해 새로운 cr
 ### 해석 규칙
 - `unexpected_additions`가 있으면 traceability note 필요
 - `not_delivered`가 남았는데 phase close를 원하면 `product_authority` rationale 필요
-- **repeated partial delivery forward-feeding**: `partially_delivered`에 동일 항목이 2회 이상의 gap assessment에서 나타나면, 해당 항목은 다음 discovery phase의 intake에 priority constraint로 자동 추가된다.
+- **repeated partial delivery forward-feeding**: `partially_delivered`에 동일 항목이 2회 이상의 gap assessment에서 나타나면, 해당 항목은 다음 specifying phase의 intake에 priority constraint로 자동 추가된다.
 
   **End-to-end forward-feed 절차:**
   1. **감지**: gap assessment 작성 시 `process_lead`가 `partially_delivered[]`의 각 항목을 이전 gap assessment들과 대조한다. 대조 기준은 항목의 `title`이 동일하거나, `scope_ref`가 동일한 경우이다.
   2. **판정**: 동일 항목이 2회 이상 나타나면 forward-feed 대상으로 mark한다. gap assessment의 해당 항목에 `forward_feed: true`와 `occurrence_count: N`을 기록한다.
-  3. **전파**: 다음 mission의 discovery phase에서 intake skill이 `seed.json`을 생성할 때, forward-feed 대상 항목을 `constraints` 필드에 자동 삽입한다. 각 constraint에는 `source_ref: "{gap_assessment_id}"`, `reason: "repeated_partial_delivery"`, `original_scope: "{항목 title}"`을 포함한다.
+  3. **전파**: 다음 mission의 specifying phase에서 intake skill이 `seed.json`을 생성할 때, forward-feed 대상 항목을 `constraints` 필드에 자동 삽입한다. 각 constraint에는 `source_ref: "{gap_assessment_id}"`, `reason: "repeated_partial_delivery"`, `original_scope: "{항목 title}"`을 포함한다.
   4. **검증**: task compiler가 `seed.json`에서 forward-feed constraint가 있는 경우, 해당 항목을 포함하는 task를 반드시 1개 이상 생성해야 한다. 생성하지 않으면 `product_authority`의 explicit rationale이 필요하다.
   5. **완료 확인**: forward-feed된 항목이 `fully_delivered`로 전환되면, 해당 constraint는 다음 gap assessment에서 제거된다. `partially_delivered`에 남으면 occurrence_count가 증가하고 forward-feed가 반복된다.
   6. **실패 시**: 3회 이상 반복되어도 해소되지 않으면, `process_lead`가 retrospective에서 해당 항목의 실현 가능성을 재평가하고, `product_authority`가 `intentional_cuts`로 전환할지 판단한다
 
-## Initiative Evolution Phase
+## Initiative Evolving Phase
 
-evolution phase는 단순 회고가 아니라 아래 묶음이다.
+evolving phase는 단순 회고가 아니라 아래 묶음이다.
 
 1. all passed tasks retrospective 수집
 2. rules / memory candidates promotion
@@ -164,9 +164,9 @@ evolution phase는 단순 회고가 아니라 아래 묶음이다.
 5. mission summary 생성
 6. next-loop backlog 또는 mission close 결정
 
-## Evolution Exit Gate
+## Evolving Phase Exit Gate
 
-evolution phase를 닫으려면 아래 5개 artifact가 **모두** 존재해야 한다. 하나라도 누락되면 `phase_transition_review` hook이 차단한다.
+evolving phase를 닫으려면 아래 5개 artifact가 **모두** 존재해야 한다. 하나라도 누락되면 `phase_transition_review` hook이 차단한다.
 
 1. `gap-assessment.json` — 이번 phase의 scope_in vs scope_out 비교 완료
 2. updated `debt-register.json` — 모든 debt item의 status가 갱신됨 (`open` 상태의 debt가 남아 있으면 각각 `accepted` 이상으로 triage 필요)

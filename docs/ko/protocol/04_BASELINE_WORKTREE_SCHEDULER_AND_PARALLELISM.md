@@ -94,7 +94,7 @@ deadlock을 방지하기 위해, 하나의 task가 여러 lock을 필요로 할 
 - path lock 비충돌
 - interface lock 비충돌
 - shared mutable resource 비경합 (shared mutable resource 정의: integration branch, `.geas/state/run.json`, `.geas/rules.md`, 프로젝트 공유 설정 파일. worktree 내부의 task-local 파일은 해당하지 않는다)
-- 둘 다 `delivery` mode 내 independent task
+- 둘 다 `building` phase 내 independent task
 - 둘 다 speculative가 아니거나 speculative budget 이내 (동시에 실행 가능한 speculative task는 최대 1개)
 
 ## Unsafe Parallel Combinations

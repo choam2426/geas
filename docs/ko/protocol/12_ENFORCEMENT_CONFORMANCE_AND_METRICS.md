@@ -72,8 +72,8 @@ hook은 외부 명령을 실행하므로 실패할 수 있다. 아래 규칙을 
 
 ### Evolution Loop
 - passed task인데 retrospective 없음 → 첫 번째 발생 시 warning, 연속 2회 발생 시 block. 이 기본 정책을 override하려면 `.geas/rules.md`에 명시적 항목이 필요하다
-- gap assessment 없이 evolution phase 종료 시도 → 차단
-- debt register 없이 polish/evolution phase close 시도 → 차단
+- gap assessment 없이 evolving phase 종료 시도 → 차단
+- debt register 없이 polishing/evolving phase close 시도 → 차단
 - rules update가 있는데 packet builder가 반영하지 않음 → conformance failure
 
 ### Recovery
@@ -123,7 +123,7 @@ hook은 외부 명령을 실행하므로 실패할 수 있다. 아래 규칙을 
 | gate quality 문제 | final verdict `iterate` 비율 > 30% (최근 10개 task 기준) | specialist gate 품질이 낮거나 기준이 불명확함 |
 | contradiction 누적 | `contradiction_count >= 3`인 stable memory가 2개 이상 | memory review cadence 부족. doc 08 Decay Rules에서 `contradiction_count >= 3`이면 `decayed`로 전환하므로, 이 signal이 발생하면 decay rule 집행이 누락된 것이다 |
 | repeated failure class | 동일 `failure_class`가 3회 이상 반복 | memory promotion 또는 process rule 필요 |
-| debt 정체 | `accepted` 상태 debt가 `resolved` 상태 debt의 2배 이상 (phase 단위) | polish/evolution phase가 효과 없음 |
+| debt 정체 | `accepted` 상태 debt가 `resolved` 상태 debt의 2배 이상 (phase 단위) | polishing/evolving phase가 효과 없음 |
 | scope control 약화 | 최근 5개 task 중 > 30%에서 `implementation_contract` 승인 후 scope 변경 발생 | scope control이 약함 |
 | worker low-confidence | `confidence <= 2` 비율 > 25% (최근 10개 task 기준) | task 분할 또는 context packet 개선 필요 |
 

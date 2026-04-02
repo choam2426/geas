@@ -7,7 +7,7 @@ memory가 많아져도 context window를 망치면 시스템은 오히려 나빠
 ## Retrieval Inputs
 
 retrieval은 아래 입력을 본다.
-- current mode / phase / mission phase
+- current phase / mission phase
 - task kind / risk level
 - scope.paths
 - touched paths
@@ -22,7 +22,7 @@ retrieval은 아래 입력을 본다.
 
 ### L0 — pinned invariants
 항상 들어가는 최소 핵심 규칙
-- session mode/phase
+- session phase
 - mission phase
 - focus task id
 - task goal / acceptance
@@ -182,7 +182,7 @@ mission 레벨 상태, 남은 문제, pending decision, outstanding risk 요약.
 ## Anti-Forgetting Guarantee
 
 시스템은 최소한 아래 7개 항목을 잃지 않아야 한다. 각 항목은 `session-latest.md` 또는 `run.json`에서 복원 가능해야 한다.
-1. current mode / phase / mission phase — `run.json`의 `mode`, `phase`, `mission_phase` 필드
+1. current phase / mission phase — `run.json`의 `phase`, `mission_phase` 필드
 2. focus task state — `run.json`의 `focus_task_id`와 해당 `task.json`의 `state`
 3. current rewind reason — 활성 rewind가 없으면 `"none"`을 명시. `run.json`의 `rewind` 필드
 4. required next artifact — 현재 task state에서 다음 전이에 필요한 artifact. `run.json` 또는 `task.json`에서 도출

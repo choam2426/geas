@@ -110,7 +110,7 @@ When new critical debt is discovered during the evolving phase through retrospec
 1. Record the debt in `debt-register.json` with `severity = critical`, `status = open`.
 2. `product_authority` decides one of the following:
    - **a. Immediate fix**: create a fix task within the evolving phase. This task follows the normal task lifecycle (see doc 03).
-   - **b. Accept**: change to `status = accepted` with mandatory `rationale` and `owner_type`. Without acceptance rationale, the evolution exit gate cannot be passed (see debt action rules and Evolution Exit Gate above).
+   - **b. Accept**: change to `status = accepted` with mandatory `rationale` and `owner_type`. Without acceptance rationale, the evolving phase exit gate cannot be passed (see debt action rules and Evolving Phase Exit Gate above).
    - **c. Defer to next mission**: change to `status = scheduled`, `target_phase = future`. Add the debt to `recommended_followups[]` in `gap-assessment.json`.
 3. Record the decision in `decision-record.json`. Set `decision_type` to `"critical_debt_triage"` and include the debt's `debt_id` in `evidence_refs`.
 
