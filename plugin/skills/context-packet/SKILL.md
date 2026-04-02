@@ -114,14 +114,14 @@ After extracting task context, retrieve applicable memories:
          - contradiction_penalty(max 0.15)
    ```
 
-   Where:
-   - **scope_match** (0-0.25): task scope=1.0, mission=0.75, project=0.5, agent=0.5 (if role matches), global=0.25. Multiply by 0.25.
-   - **path_overlap** (0-0.20): proportion of memory's tags that match the task's `scope.paths`. Multiply by 0.20.
-   - **role_match** (0-0.15): 1.0 if memory type is relevant to the target agent's role (e.g., security_pattern for security_engineer). Multiply by 0.15.
-   - **freshness** (0-0.15): 1.0 if created within last 5 tasks, linearly decaying to 0.0 at 20+ tasks. Multiply by 0.15.
+   Where (see protocol/09 for canonical definitions):
+   - **scope_match** (0-0.25): Cross-reference memory scope × task context using the scope match matrix (protocol/09 §Scope Match Calculation). Example: memory scope=`task` (same task) × task context=`task` → 1.0; memory scope=`mission` × task context=`task` → 0.7. Multiply by 0.25.
+   - **path_overlap** (0-0.20): `|memory_paths ∩ task_paths| / |task_paths|` (0.0 if task_paths is empty). Memory paths are extracted from `evidence_refs[]` — if an evidence_ref points to a task, use that task's `scope.paths`. Multiply by 0.20.
+   - **role_match** (0-0.15): 1.0 if memory type is relevant to the target agent's role (e.g., security_pattern for security_engineer); 0.0 otherwise. Multiply by 0.15.
+   - **freshness** (0-0.15): `max(0.0, 1.0 - (days_since_last_confirmed / 180))`. `last_confirmed_at` = `created_at` of the most recent `effect = "positive"` entry in memory-application-log for this memory_id; if none, use the memory-entry's own `created_at`. Multiply by 0.15.
    - **confidence** (0-0.10): directly from `signals.confidence`. Multiply by 0.10.
-   - **reuse_success** (0-0.10): `successful_reuses / max(reuse_count, 1)`. Multiply by 0.10.
-   - **contradiction_penalty** (0-0.15): `contradiction_count * 0.05`, capped at 0.15.
+   - **reuse_success** (0-0.10): `successful_reuses / (successful_reuses + failed_reuses)` (0.5 if no application history). Multiply by 0.10.
+   - **contradiction_penalty** (0-0.15): `min(contradiction_count * 0.05, 0.15)`.
    - **Bonus**: +0.10 for `risk_pattern` type when task `risk_level` is `high` or `critical`.
 
 4. Sort by score descending. Apply role-specific budget:

@@ -100,20 +100,14 @@ if os.path.isfile(session_latest_abs):
 # --- Open risks from closure packet ---
 open_risks_items = []
 if tid:
-    closure_dir = os.path.join(geas, 'closure')
-    if os.path.isdir(closure_dir):
-        # Look for closure packet matching current task
-        for fname in os.listdir(closure_dir):
-            if fname.endswith('.json'):
-                try:
-                    cp_file = os.path.join(closure_dir, fname)
-                    cp_data = json.load(open(cp_file))
-                    if cp_data.get('task_id') == tid or cp_data.get('artifact_id', '').startswith(tid):
-                        risks = cp_data.get('open_risks', {})
-                        open_risks_items = risks.get('items', [])
-                        break
-                except Exception:
-                    pass
+    cp_path = os.path.join(geas, 'tasks', tid, 'closure-packet.json')
+    if os.path.isfile(cp_path):
+        try:
+            cp_data = json.load(open(cp_path))
+            risks = cp_data.get('open_risks', {})
+            open_risks_items = risks.get('items', [])
+        except Exception:
+            pass
 
 # Rules summary (first 30 lines)
 rules_lines = []

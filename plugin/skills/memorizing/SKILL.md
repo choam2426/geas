@@ -84,11 +84,13 @@ For each candidate string in `memory_candidates[]`:
    ```
 5. Add entry to `.geas/state/memory-index.json`
 
-**Automatic extraction triggers** (check during retrospective review):
-- Same failure pattern observed in 2+ tasks → auto-extract with confidence 0.6
-- Recurring reviewer concerns in 2+ tasks → auto-extract with confidence 0.6
-- Recovery incidents → auto-extract with confidence 0.4
-- Worker self-check confidence <= 2 → auto-extract risk_pattern with confidence 0.4
+**Automatic extraction triggers** (check during retrospective review, per protocol/08):
+- Same `failure_class` in failure-record.json repeats 2+ times → auto-extract failure_lesson, confidence 0.6
+- Same reviewer concern `category` in specialist-review.json across 2+ tasks → auto-extract, confidence 0.6
+- Same `recovery_class` recovery incident repeats 2+ times → auto-extract risk_pattern, confidence 0.4
+- A specific demo/test recipe effectively used in 3+ tasks → auto-extract test_strategy, confidence 0.6
+- Conflicts in integration-result.json occur 2+ times for the same path/domain → auto-extract integration_pattern, confidence 0.4
+- `confidence <= 2` in worker-self-check.json repeats 2+ times for the same `task_kind` → auto-extract risk_pattern, confidence 0.4
 
 ## 2. Deduplication
 

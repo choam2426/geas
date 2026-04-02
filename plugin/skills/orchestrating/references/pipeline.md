@@ -216,9 +216,10 @@ Update run.json checkpoint: `pipeline_step` = "testing"
 
 After BOTH code_review and testing complete:
 1. Update TaskContract status to `"reviewed"` (specialist reviews done).
-2. Update TaskContract status to `"integrated"` (worktree merge already happened; reviews confirmed the integration is sound).
+2. Write `.geas/tasks/{task-id}/integration-result.json` with: `merge_commit` (hash from worktree merge), `conflict_status` ("clean" | "resolved" | "failed"), `base_commit`, `timestamp`. This artifact records the integration outcome.
+3. Update TaskContract status to `"integrated"` (worktree merge + reviews confirmed integration is sound).
 
-Do NOT update status to `"reviewed"` until both steps finish. The two status transitions happen atomically after both agents return.
+Do NOT update status to `"reviewed"` until both steps finish. The three operations happen atomically after both agents return.
 
 ### Evidence Gate
 Run eval_commands from TaskContract. Check acceptance criteria against all evidence.

@@ -283,10 +283,22 @@ Hooks are lifecycle event handlers that enforce governance without agent coopera
     gap-assessment-{transition}.json
     phase-review-{transition}.json
 
+  contracts/
+    {task_id}.json             # Implementation contracts
+
+  decisions/
+    {dec_id}.json              # Decision records
+    pending/                   # In-progress proposals
+
+  recovery/
+    recovery-{id}.json         # Recovery packets for session rewind
+
   memory/
-    memory-index.json
     _project/conventions.md
     agents/{type}.md
+    candidates/{memory_id}.json  # Memory candidates (pre-promotion)
+    entries/{memory_id}.json     # Promoted memory entries
+    logs/{task_id}-{memory_id}.json  # Application logs
     retro/{task_id}.json
     incidents/{id}.json
 

@@ -283,10 +283,22 @@ plugin/
     gap-assessment-{transition}.json
     phase-review-{transition}.json
 
+  contracts/
+    {task_id}.json             # 구현 계약
+
+  decisions/
+    {dec_id}.json              # 의사결정 기록
+    pending/                   # 진행 중 제안
+
+  recovery/
+    recovery-{id}.json         # 세션 되감기용 복구 패킷
+
   memory/
-    memory-index.json
     _project/conventions.md
     agents/{type}.md
+    candidates/{memory_id}.json  # 메모리 후보 (승격 전)
+    entries/{memory_id}.json     # 승격된 메모리 항목
+    logs/{task_id}-{memory_id}.json  # 적용 로그
     retro/{task_id}.json
     incidents/{id}.json
 
