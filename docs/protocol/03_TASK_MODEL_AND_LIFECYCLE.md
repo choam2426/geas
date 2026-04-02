@@ -208,12 +208,12 @@ The purpose of this adjustment is to apply a higher verification bar to implemen
 This is the full flow for a typical code task with `task_kind = code`, `risk_level = normal`, `gate_profile = code_change`, `retry_budget = 3`.
 
 **1. `drafted` -> `ready`**
-- **Artifact**: `task-contract.json` (`.geas/tasks/{task_id}/task-contract.json`)
+- **Artifact**: `task-contract.json` (`.geas/tasks/{task_id}.json`)
 - **Performed by**: `task_compiler` (under orchestration_authority direction)
 - **Conditions**: task contract compilation is complete, and `base_commit` must be an ancestor of or equal to `tip(integration_branch)`. `acceptance_criteria[]`, `routing`, and `gate_profile` must all be finalized.
 
 **2. `ready` -> `implementing`**
-- **Artifact**: `implementation-contract.json` (`.geas/tasks/{task_id}/implementation-contract.json`)
+- **Artifact**: `implementation-contract.json` (`.geas/contracts/{task_id}.json`)
 - **Performed by**: primary worker (the agent matching routing.primary_worker_type)
 - **Conditions**: the implementation contract must be written and readable by the designated reviewer. The worktree must be prepared at `worktree.path`. Required path_lock / interface_lock must be acquired.
 

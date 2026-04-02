@@ -247,6 +247,7 @@ Hooks are lifecycle event handlers that enforce governance without agent coopera
     run.json                 # Session state, checkpoint, remaining_steps
     locks.json               # Lock manifest
     health-check.json        # Health signal calculation results
+    memory-index.json        # Memory entry index
     session-latest.md        # Post-compact recovery context
     task-focus/{task_id}.md  # Per-task focus summaries
 
@@ -254,9 +255,8 @@ Hooks are lifecycle event handlers that enforce governance without agent coopera
     seed.json                # Mission spec frozen at intake (immutable)
 
   tasks/
-    {task_id}/
-      task-contract.json
-      implementation-contract.json
+    {task_id}.json               # TaskContract (flat file per task)
+    {task_id}/                   # Per-task artifacts (nested directory)
       worker-self-check.json
       specialist-review.json
       integration-result.json

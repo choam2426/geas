@@ -208,12 +208,12 @@ worker-self-check.json의 `confidence`는 단일 scalar (1-5)이므로, threshol
 `task_kind = code`, `risk_level = normal`, `gate_profile = code_change`, `retry_budget = 3`인 일반적인 코드 task의 전체 흐름이다.
 
 **1. `drafted` → `ready`**
-- **산출물**: `task-contract.json` (`.geas/tasks/{task_id}/task-contract.json`)
+- **산출물**: `task-contract.json` (`.geas/tasks/{task_id}.json`)
 - **수행자**: `task_compiler` (orchestration_authority 지시 하에)
 - **조건**: task contract가 컴파일 완료되고, `base_commit`이 `tip(integration_branch)`의 ancestor이거나 동일해야 한다. `acceptance_criteria[]`, `routing`, `gate_profile`이 모두 확정되어야 한다.
 
 **2. `ready` → `implementing`**
-- **산출물**: `implementation-contract.json` (`.geas/tasks/{task_id}/implementation-contract.json`)
+- **산출물**: `implementation-contract.json` (`.geas/contracts/{task_id}.json`)
 - **수행자**: primary worker (routing.primary_worker_type에 해당하는 agent)
 - **조건**: implementation contract가 작성되고 지정 reviewer가 읽을 수 있는 상태여야 한다. worktree가 `worktree.path`에 준비 완료되어야 한다. 필요한 path_lock / interface_lock이 획득된 상태여야 한다.
 

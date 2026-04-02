@@ -247,6 +247,7 @@ plugin/
     run.json                 # 세션 상태, checkpoint, remaining_steps
     locks.json               # lock manifest
     health-check.json        # health signal 계산 결과
+    memory-index.json        # 메모리 항목 인덱스
     session-latest.md        # 컨텍스트 압축 후 복구용
     task-focus/{task_id}.md  # 작업별 포커스 요약
 
@@ -254,9 +255,8 @@ plugin/
     seed.json                # intake에서 동결된 미션 스펙 (불변)
 
   tasks/
-    {task_id}/
-      task-contract.json
-      implementation-contract.json
+    {task_id}.json               # TaskContract (작업별 flat 파일)
+    {task_id}/                   # 작업별 artifact (nested 디렉토리)
       worker-self-check.json
       specialist-review.json
       integration-result.json
