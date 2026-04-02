@@ -148,7 +148,7 @@ Write updated `locks.json` after all acquisitions. If any acquisition fails (con
 - Update status to `"implementing"`. Log `task_started` event.
 - **Write `remaining_steps` to checkpoint** — the full pipeline for this task:
   ```json
-  "remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "self_check", "code_review", "testing", "evidence_gate", "closure_packet", "critical_reviewer", "final_verdict", "resolve", "retrospective"]
+  "remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "self_check", "code_review", "testing", "evidence_gate", "closure_packet", "critical_reviewer", "final_verdict", "resolve", "retrospective", "memory_extraction"]
   ```
   Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
 - **[MANDATORY] Event logging**: After each step completes and is removed from `remaining_steps`, log:
@@ -450,6 +450,24 @@ Agent(agent: "scrum", prompt: "Read all evidence at .geas/evidence/{task-id}/ an
 
 Verify `.geas/tasks/{task-id}/retrospective.json` exists.
 
+### Memory Extraction [after Retrospective, Ship only]
+
+**Skip condition:** Same as retrospective — only run when task was Ship (passed).
+
+Invoke the `memorizing` skill for per-task candidate extraction:
+
+1. Read `.geas/tasks/{task-id}/retrospective.json` → extract `memory_candidates[]`
+2. If `memory_candidates` is empty: log `{"event": "memory_extraction", "task_id": "...", "candidates": 0, "timestamp": "<actual>"}` and skip.
+3. For each candidate: invoke `/geas:memorizing` candidate extraction procedure:
+   - Determine memory_type and scope
+   - Run deduplication against memory-index
+   - Write candidate to `.geas/memory/candidates/{memory-id}.json`
+   - Update `.geas/state/memory-index.json`
+4. Run application logging: for memories that were in this task's packet, record effects based on task outcome.
+5. Log: `{"event": "memory_extraction", "task_id": "...", "candidates": N, "timestamp": "<actual>"}`
+
+Update run.json checkpoint: `pipeline_step` = "memory_extraction"
+
 ### Close Phase 2
 
 **Phase review** — verify gate criteria for build → polish:
@@ -607,6 +625,26 @@ If no P0 items remain: skip to 4.4.
    ```
 6. If `status: "approved"`: apply changes to `.geas/rules.md`
 7. Log: `{"event": "rules_update", "status": "approved|none", "timestamp": "<actual>"}`
+
+### 4.2.7 Memory Promotion
+
+Batch review and promotion of accumulated memory candidates across the mission.
+
+1. Read all candidates from `.geas/memory/candidates/`
+2. For each candidate:
+   a. Check promotion conditions: evidence_refs >= 2 OR similar incidents >= 2 OR explicit approval
+   b. If conditions met and no domain review yet: spawn domain authority (per memorizing skill section 3)
+   c. If domain authority approves (promote_provisional): promote candidate → provisional
+      - Move from `candidates/` to `entries/`
+      - Update state, set `review_after` to 30 days from now
+      - Update memory-index.json
+   d. If rejected: set state to `rejected` in candidate file, update index
+   e. If keep: leave as candidate for future evidence
+3. Check existing provisional entries for stable promotion:
+   - 3+ successful_reuses + 0 contradictions → spawn domain authority for stable review
+4. Run decay detection (memorizing skill section 6)
+5. Run application logging for all mission tasks (memorizing skill section 5)
+6. Log: `{"event": "memory_promotion_batch", "promoted": N, "rejected": M, "decayed": K, "timestamp": "<actual>"}`
 
 ### 4.3 Execute P0 Items
 For each P0 item, run the **full Phase 2 pipeline**:
