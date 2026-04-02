@@ -94,7 +94,7 @@ Parallel implementation is allowed when all of the following are satisfied.
 - No path lock conflict
 - No interface lock conflict
 - No shared mutable resource contention (shared mutable resources are defined as: integration branch, `.geas/state/run.json`, `.geas/rules.md`, and project-wide shared configuration files. Task-local files within a worktree are excluded)
-- Both are independent tasks within `delivery` mode
+- Both are independent tasks within the `building` phase
 - Both are non-speculative, or within the speculative budget (at most 1 speculative task may run concurrently)
 
 ## Unsafe Parallel Combinations

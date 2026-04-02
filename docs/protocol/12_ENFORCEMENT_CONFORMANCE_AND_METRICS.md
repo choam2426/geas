@@ -72,8 +72,8 @@ Hooks execute external commands and can fail. The following rules apply:
 
 ### Evolution Loop
 - passed task without retrospective -> warning on first occurrence, block on second consecutive occurrence. To override this default policy, an explicit entry in `.geas/rules.md` is required
-- attempting to close evolution phase without gap assessment -> blocked
-- attempting to close polish/evolution phase without debt register -> blocked
+- attempting to close evolving phase without gap assessment -> blocked
+- attempting to close polishing/evolving phase without debt register -> blocked
 - rules update exists but packet builder did not incorporate it -> conformance failure
 
 ### Recovery
@@ -123,7 +123,7 @@ Storage location: `.geas/summaries/run-summary-{timestamp}.md`
 | gate quality issue | final verdict `iterate` rate > 30% (based on last 10 tasks) | specialist gate quality is low or criteria are unclear |
 | contradiction accumulation | 2 or more stable memories with `contradiction_count >= 3` | insufficient memory review cadence. Since doc 08 Decay Rules transition to `decayed` when `contradiction_count >= 3`, this signal indicates decay rule enforcement was missed |
 | repeated failure class | same `failure_class` repeated 3 or more times | memory promotion or process rule needed |
-| debt stagnation | `accepted` debt is 2x or more than `resolved` debt (per phase) | polish/evolution phase is ineffective |
+| debt stagnation | `accepted` debt is 2x or more than `resolved` debt (per phase) | polishing/evolving phase is ineffective |
 | scope control weakness | scope changes after `implementation_contract` approval in > 30% of last 5 tasks | scope control is weak |
 | worker low-confidence | `confidence <= 2` rate > 25% (based on last 10 tasks) | task splitting or context packet improvement needed |
 

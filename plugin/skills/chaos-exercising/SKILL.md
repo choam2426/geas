@@ -32,7 +32,6 @@ cat > .geas/state/run.json << 'EOF'
 {
   "version": "1.0",
   "status": "in_progress",
-  "mode": "sprint",
   "phase": null,
   "current_task_id": "task-chaos-001",
   "completed_tasks": [],

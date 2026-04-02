@@ -7,7 +7,7 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 | Skill | Category | User-Invocable | Invoked By | Key Output |
 |-------|----------|----------------|------------|------------|
 | [mission](#mission) | Entry | Yes | User directly | Invokes Orchestrator |
-| [orchestrating](#orchestrating) | Entry | No | User (via `/geas:mission`) | 4-phase execution (Discovery → Build → Polish → Evolution) |
+| [orchestrating](#orchestrating) | Entry | No | User (via `/geas:mission`) | 4-phase mission (Specifying → Building → Polishing → Evolving) |
 | [setup](#setup) | Entry | No | Orchestrator (first run) | `.geas/` runtime directory |
 | [intake](#intake) | Core - Contract Engine | No | Orchestrator | `.geas/spec/seed.json` |
 | [task-compiler](#task-compiler) | Core - Contract Engine | No | Orchestrator | `.geas/tasks/{id}.json` |
@@ -16,16 +16,16 @@ All 23 skills in the Geas plugin. Skills are invoked either by users directly (`
 | [evidence-gate](#evidence-gate) | Core - Contract Engine | No | Orchestrator | Gate verdict + ledger event |
 | [verify-fix-loop](#verify-fix-loop) | Core - Contract Engine | No | Orchestrator (via evidence-gate) | Fix iterations + DecisionRecord |
 | [verify](#verify) | Core - Verification | No | Worker agents | Console checklist report |
-| [vote-round](#vote-round) | Core - Verification | No | Orchestrator (at Discovery) | `.geas/decisions/{dec-id}.json` |
+| [vote-round](#vote-round) | Core - Verification | No | Orchestrator (at Specifying) | `.geas/decisions/{dec-id}.json` |
 | [decision](#decision) | Team - Execution | Yes | Orchestrator or User | `.geas/decisions/{dec-id}.json` |
-| [write-prd](#write-prd) | Team - Planning | No | Nova (during Discovery) | `.geas/spec/prd.md` |
-| [write-stories](#write-stories) | Team - Planning | No | Nova (during Discovery) | `.geas/spec/stories.md` |
+| [write-prd](#write-prd) | Team - Planning | No | Nova (during Specifying) | `.geas/spec/prd.md` |
+| [write-stories](#write-stories) | Team - Planning | No | Nova (during Specifying) | `.geas/spec/stories.md` |
 | [onboard](#onboard) | Team - Planning | No | Orchestrator (Sprint, first run) | `.geas/memory/_project/conventions.md` |
 | [coding-conventions](#coding-conventions) | Utility | No | All agents | Reference guidance only |
 | [briefing](#briefing) | Utility | No | Nova or Orchestrator | Console status report |
 | [run-summary](#run-summary) | Utility | No | Orchestrator (end of session) | `.geas/summaries/run-summary-<date>.md` |
 | [ledger-query](#ledger-query) | Utility | No | Orchestrator or User | Formatted query results (read-only) |
-| [cleanup](#cleanup) | Utility | No | Orchestrator (post-Build / Evolution) | `.geas/state/debt-register.json` entries |
+| [cleanup](#cleanup) | Utility | No | Orchestrator (post-Building / Evolving) | `.geas/state/debt-register.json` entries |
 | [pivot-protocol](#pivot-protocol) | Utility | No | Orchestrator or any agent | `.geas/decisions/{dec-id}.json` |
 
 ---
@@ -57,7 +57,7 @@ Entry point -- receives user intent and invokes Orchestrator.
 
 ### orchestrating
 
-Geas orchestrator -- coordinates the multi-agent team. Manages setup, intake, and the 4-phase execution pipeline (Discovery → Build → Polish → Evolution). Phase execution details are in `references/` files. For decision-only requests, routes to `/geas:decision`.
+Geas orchestrator -- coordinates the multi-agent team. Manages setup, intake, and the 4-phase mission pipeline (Specifying → Building → Polishing → Evolving). Phase details are in `references/` files. For decision-only requests, routes to `/geas:decision`.
 
 **User-Invocable:** No (invoked via `/geas:mission`, which calls `/geas:orchestrating`)
 
@@ -77,7 +77,7 @@ Geas orchestrator -- coordinates the multi-agent team. Manages setup, intake, an
 **Key Behaviors:**
 - Before every `Agent()` spawn, reads and writes `.geas/state/run.json` with a checkpoint (`pipeline_step`, `agent_in_flight`, `pending_evidence`). Session recovery depends on this.
 - After every agent return, reads the expected evidence file to verify it exists. Missing evidence = step failed; retries once then logs error.
-- Routes startup to execution (4-phase pipeline: Discovery → Build → Polish → Evolution, scaled to the request) or decision (decision-only). Phase procedures are in `references/discovery.md`, `references/build.md`, `references/polish.md`, `references/evolution.md`. The per-task pipeline is in `references/pipeline.md`. For details, see `protocol/02_MODES_MISSIONS_AND_RUNTIME.md`.
+- Routes startup to the 4-phase mission pipeline (Specifying → Building → Polishing → Evolving, scaled to the request) or to decision-only via `/geas:decision`. Phase procedures are in `references/discovery.md`, `references/build.md`, `references/polish.md`, `references/evolution.md`. The per-task pipeline is in `references/pipeline.md`. For details, see `protocol/02_MODES_MISSIONS_AND_RUNTIME.md`.
 
 **Schemas:** None owned directly; reads schemas from downstream skills.
 
@@ -141,7 +141,7 @@ Compile a user story into a TaskContract -- a machine-readable work agreement wi
 
 **User-Invocable:** No
 
-**Invoked By:** Orchestrator during Discovery phase and at Build phase entry
+**Invoked By:** Orchestrator during Specifying phase and at Building phase entry
 
 **Inputs:**
 - User story or feature description
@@ -305,7 +305,7 @@ Structured review protocol -- Forge proposes, Critic challenges, Orchestrator sy
 
 **User-Invocable:** No
 
-**Invoked By:** Orchestrator at major architectural or cross-cutting decisions (primarily Discovery step 1.5)
+**Invoked By:** Orchestrator at major architectural or cross-cutting decisions (primarily Specifying step 1.5)
 
 **Inputs:**
 - Proposal from Forge (saved to `.geas/decisions/pending/{proposal-id}.md`)
@@ -328,7 +328,7 @@ Structured review protocol -- Forge proposes, Critic challenges, Orchestrator sy
 
 ### decision
 
-Run a structured multi-agent decision in decision mode to make a technical or product decision before implementation.
+Run a structured multi-agent decision to make a technical or product decision before implementation. No code changes — utility skill only.
 
 **User-Invocable:** Yes (`/geas:decision`)
 
@@ -357,7 +357,7 @@ Create a Product Requirements Document from a feature idea or mission.
 
 **User-Invocable:** No
 
-**Invoked By:** Nova during Discovery (mission phase 1.3)
+**Invoked By:** Nova during Specifying (mission phase 1.3)
 
 **Inputs:**
 - `$ARGUMENTS` -- feature idea, problem statement, or mission
@@ -381,7 +381,7 @@ Break a feature or mission into user stories with acceptance criteria.
 
 **User-Invocable:** No
 
-**Invoked By:** Nova during Discovery (mission phase 1.3), immediately after write-prd
+**Invoked By:** Nova during Specifying (mission phase 1.3), immediately after write-prd
 
 **Inputs:**
 - `$ARGUMENTS` -- feature description, mission statement, or problem to solve
@@ -453,7 +453,7 @@ Nova Morning Briefing -- structured status report on what shipped, what's blocke
 
 **User-Invocable:** No
 
-**Invoked By:** Nova at milestones, start of Evolution, or on Orchestrator/human request
+**Invoked By:** Nova at milestones, start of Evolving, or on Orchestrator/human request
 
 **Inputs:**
 - `.geas/state/run.json` -- current phase and mission
@@ -479,7 +479,7 @@ Generate end-of-session summary -- decisions, issues completed, agent stats, ver
 
 **User-Invocable:** No
 
-**Invoked By:** Orchestrator at end of Evolution phase, or on human request
+**Invoked By:** Orchestrator at end of Evolving phase, or on human request
 
 **Inputs:**
 - `.geas/state/run.json` -- phase, mode, mission
@@ -532,11 +532,11 @@ Structured search over `.geas/ledger/events.jsonl` -- query by task, phase, agen
 
 ### cleanup
 
-Entropy scan -- detect AI slop, unused code, convention drift. Records findings in `.geas/state/debt-register.json`. Invoke after Build phase or during Evolution.
+Entropy scan -- detect AI slop, unused code, convention drift. Records findings in `.geas/state/debt-register.json`. Invoke after Building phase or during Evolving.
 
 **User-Invocable:** No
 
-**Invoked By:** Orchestrator after Phase 2 (Build), during Phase 4 (Evolution), or on explicit request from human or Forge
+**Invoked By:** Orchestrator after Phase 2 (Building), during Phase 4 (Evolving), or on explicit request from human or Forge
 
 **Inputs:**
 - All project source files (respects `.gitignore`; skips `node_modules`, `vendor`, `target`, `dist`, `build`, `.git`)

@@ -57,7 +57,7 @@ Protocol binding:
 - memory promotion / weakening / supersession
 - debt tracking
 - gap assessment
-- initiative evolution phase
+- initiative evolving phase
 
 ## Design Principles
 
@@ -113,9 +113,8 @@ Who participated must be recorded in the closure packet and artifact matrix.
 
 - **Task**: The sole unit of work that can be closed
 - **Mission**: The higher-level objective a session aims to resolve. May spawn one or more tasks
-- **Mode**: `discovery | delivery | decision`
 - **Runtime Phase**: `bootstrap | planning | scheduling | executing | integrating | verifying | learning | idle`
-- **Mission Phase**: `discovery | build | polish | evolution`
+- **Mission Phase**: `specifying | building | polishing | evolving`
 - **Baseline**: The commit on the integration branch that a task was last validated against
 - **Worktree**: A task-dedicated workspace
 - **Gate**: Objective verification. Result is one of `pass | fail | block | error` (see doc 05)
@@ -125,7 +124,7 @@ Who participated must be recorded in the closure packet and artifact matrix.
 - **Closure Packet**: A compressed evidence bundle for the final verdict
 - **Final Verdict**: The definitive judgment issued by `product_authority` based on the closure packet. `pass | iterate | escalate`
 - **FailureRecord**: A record created on task failure. Includes failure cause, rewind target, and timestamp. Failure is not a separate state; it is tracked through this record
-- **Decision Record**: A result artifact that documents disputes/conflicts/pivots resolved in decision mode
+- **Decision Record**: A result artifact that documents disputes/conflicts/pivots resolved via the decision skill
 - **Memory**: Structured operational knowledge reused at the task/mission/project level
 - **Debt**: A known compromise that is not blocking now but incurs future cost
 - **Gap Assessment**: A procedure that evaluates the difference between the original scope_in and the actually delivered scope_out

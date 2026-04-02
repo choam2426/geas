@@ -7,7 +7,7 @@ Even as the amount of memory grows, the system degrades if it overwhelms the con
 ## Retrieval Inputs
 
 Retrieval considers the following inputs:
-- current mode / phase / mission phase
+- current phase / mission phase
 - task kind / risk level
 - scope.paths
 - touched paths
@@ -22,7 +22,7 @@ Retrieval considers the following inputs:
 
 ### L0 — pinned invariants
 Minimum core rules that are always included:
-- session mode/phase
+- session phase
 - mission phase
 - focus task id
 - task goal / acceptance
@@ -182,7 +182,7 @@ Summary of mission-level status, remaining issues, pending decisions, and outsta
 ## Anti-Forgetting Guarantee
 
 The system must not lose at least the following 7 items. Each must be recoverable from `session-latest.md` or `run.json`:
-1. current mode / phase / mission phase — `mode`, `phase`, `mission_phase` fields in `run.json`
+1. current phase / mission phase — `phase`, `mission_phase` fields in `run.json`
 2. focus task state — `focus_task_id` in `run.json` and the corresponding `task.json` `state`
 3. current rewind reason — state `"none"` explicitly if there is no active rewind. `rewind` field in `run.json`
 4. required next artifact — the artifact needed for the next transition from the current task state. Derived from `run.json` or `task.json`

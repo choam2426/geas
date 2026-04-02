@@ -88,7 +88,7 @@ An artifact summarizing the state before and after a mission phase transition.
 - `items[]`
 - `rollup_by_severity`
 - `rollup_by_kind`
-- `phase_targeting` — a field specifying which mission phase should resolve the debt. `"polish"`: cosmetic/quality debt, `"evolution"`: architectural debt, `"future"`: debt outside current mission scope but still requiring tracking
+- `phase_targeting` — a field specifying which mission phase should resolve the debt. `"polishing"`: cosmetic/quality debt, `"evolving"`: architectural debt, `"future"`: debt outside current mission scope but still requiring tracking
 
 ### Key fields for gap assessment
 - `scope_in_summary`

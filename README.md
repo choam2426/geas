@@ -45,8 +45,8 @@ Geas is a protocol that governs the entire lifecycle of multi-agent work:
 ## See It In Action
 
 ```
-[Orchestrator]     Discovery: intake complete. 3 tasks compiled.
-[Orchestrator]     Build: starting task-001.
+[Orchestrator]     Specifying: intake complete. 3 tasks compiled.
+[Orchestrator]     Building: starting task-001.
 
 [UI/UX Designer]   Mobile-first layout. Vertical card stack.
 [You]              Use bar charts instead of pie charts.        ← your input
@@ -58,8 +58,8 @@ Geas is a protocol that governs the entire lifecycle of multi-agent work:
 [Product Auth]     Final Verdict: PASS.
 [Process Lead]     Retro: CSS animation rule added to rules.md.
 
-[Orchestrator]     Polish: security review, docs, cleanup.
-[Orchestrator]     Evolution: gap assessment, memory promotion, summary.
+[Orchestrator]     Polishing: security review, docs, cleanup.
+[Orchestrator]     Evolving: gap assessment, memory promotion, summary.
 [Orchestrator]     Mission complete. 3/3 tasks passed.
 ```
 
@@ -71,10 +71,10 @@ You stay in control. Agents propose; you decide. The protocol ensures nothing sh
 
 ```mermaid
 graph LR
-    A[User Intent] --> B[Discovery]
-    B --> C[Build]
-    C --> D[Polish]
-    D --> E[Evolution]
+    A[User Intent] --> B[Specifying]
+    B --> C[Building]
+    C --> D[Polishing]
+    D --> E[Evolving]
 
     B -.- B1["Intake → Spec → Architecture\n→ Task Compilation"]
     C -.- C1["Per-task pipeline × N\n(parallel when safe)"]

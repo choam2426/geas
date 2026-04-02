@@ -21,10 +21,9 @@ Full architecture: `docs/architecture/DESIGN.md`
 
 ## Execution Model
 
-Two top-level modes: `execution` and `decision`.
+Every mission follows 4 phases: Specifying → Building → Polishing → Evolving. Scale adapts to the request — from a single feature to a full product. Always follows the same pipeline order.
 
-- **Execution** — 4-phase structure: Discovery → Build → Polish → Evolution. Scale adapts to the request — from a single feature to a full product. Always follows the same pipeline order.
-- **Decision** — structured decision-making without code changes
+Decision is a utility skill (`decision/`) for structured decision-making without code changes. It is not a separate mode.
 
 ## Task Lifecycle
 
@@ -72,14 +71,14 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 - `memorizing/` — memory lifecycle: candidate extraction, promotion, review, application logging
 
 ### Execution pipeline
-- `orchestrating/` — Geas orchestrator: startup, recovery, 4-phase execution (Discovery → Build → Polish → Evolution)
-  - `references/discovery.md` — Discovery phase procedure
+- `orchestrating/` — Geas orchestrator: startup, recovery, 4-phase mission (Specifying → Building → Polishing → Evolving)
+  - `references/discovery.md` — Specifying phase procedure
   - `references/pipeline.md` — Per-task 14-step pipeline
-  - `references/build.md` — Build phase management
-  - `references/polish.md` — Polish phase procedure
-  - `references/evolution.md` — Evolution phase procedure
+  - `references/build.md` — Building phase management
+  - `references/polish.md` — Polishing phase procedure
+  - `references/evolution.md` — Evolving phase procedure
 - `scheduling/` — parallel task scheduling: batch construction, lock checks, safe conditions
-- `decision/` — decision mode: structured decision-making, no code
+- `decision/` — structured decision-making utility skill, no code
 
 ### Operational tooling
 - `conformance-checking/` — 18-scenario enforcement verification suite
@@ -128,7 +127,7 @@ We are upgrading skills to match the v3 protocol. Migration follows 6 phases (se
 
 - **Phase 1 (Minimum Enforceable State)**: 7-state task model, worker self-check, gate/verdict separation, closure packet, critical reviewer, debate→decision rename
 - **Phase 2 (Baseline, Stale, Parallelism)**: revalidation-record/lock-manifest schemas, staleness detection, lock lifecycle, safe parallel conditions, compass→orchestrating + parallel-dispatch→scheduling renames
-- **Phase 3 (Evolution Core)**: structured retrospective (after Resolve, Ship only), rules-update workflow, debt-register.json, gap-assessment.json, phase-review wiring, evolution exit gate, Sprint Wrap-Up
+- **Phase 3 (Evolution Core)**: structured retrospective (after Resolve, Ship only), rules-update workflow, debt-register.json, gap-assessment.json, phase-review wiring, Evolving exit gate, Sprint Wrap-Up
 - **Phase 4 (Memory Core)**: memorizing skill (9-state lifecycle, 6-stage promotion), memory retrieval scoring in context-packet, application logging, memory-index, memory hooks
 - **Phase 5 (Recovery and Context Engine)**: recovery-packet schema, extended run-state, recovery decision table, session-latest.md + task-focus maintenance, two-phase checkpoint hooks, enhanced restore-context.sh with L0 anti-forgetting
 - **Phase 6 (Refinement)**: conformance-checking (18 scenarios), chaos-exercising (5 failure scenarios), policy-managing, reporting (health signals), memory review cadence hook
@@ -150,7 +149,7 @@ All 6 phases of the v3 protocol migration are implemented. Skills are aligned wi
 |-------|-------------|
 | Design principles, 4 Pillars, terminology | `protocol/00` |
 | Agent types, authority, routing | `protocol/01` |
-| Modes, phases, mission model | `protocol/02` |
+| Mission phases, mission model | `protocol/02` |
 | Task states, transitions, self-check | `protocol/03` |
 | Worktree, locks, parallelism | `protocol/04` |
 | Gate, vote, closure, verdict | `protocol/05` |

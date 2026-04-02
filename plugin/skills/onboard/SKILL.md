@@ -5,7 +5,7 @@ description: Codebase discovery protocol — scan project structure, detect stac
 
 # Onboard
 
-Codebase discovery protocol for delivery mode on existing projects. A single-agent scan that maps an unknown codebase into a structured conventions file so the rest of the team can work immediately.
+Codebase discovery protocol for existing projects. A single-agent scan that maps an unknown codebase into a structured conventions file so the rest of the team can work immediately.
 
 **KEY PRINCIPLE: Discover first, act second. Never guess what the project uses.**
 
@@ -166,5 +166,5 @@ After writing conventions.md, architecture_authority prints onboarding status to
 Stack: <summary>
 Project size: <small/medium/large> (<file count> source files)
 Key paths mapped. Conventions written to `.geas/memory/`.
-Ready for delivery mode execution.
+Ready for execution.
 ```

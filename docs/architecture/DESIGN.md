@@ -42,29 +42,23 @@ When making any design decision, always ask: **"Does this change make the multi-
 
 ## 3. Execution Model
 
-### Top-Level Modes
-
-| Mode | Purpose | Code changes |
-|------|---------|-------------|
-| `discovery` | Form direction, scope, structure, task inventory | Prohibited by default (spike exception) |
-| `delivery` | Execute the task backlog: implement, verify, integrate | Allowed |
-| `decision` | Structured decision-making without code | Prohibited |
-
-### Missions and Phases
+### Mission Phases
 
 A mission progresses through four phases:
 
 ```
-discovery --[gate 1]--> build --[gate 2]--> polish --[gate 3]--> evolution
-                                                                    |
-                                                               [gate 4]
-                                                                    |
-                                                                  close
+specifying --[gate 1]--> building --[gate 2]--> polishing --[gate 3]--> evolving
+                                                                           |
+                                                                       [gate 4]
+                                                                           |
+                                                                         close
 ```
 
-For existing projects, Discovery is scaled down or skipped, and the existing seed is used as read-only context.
+For existing projects, Specifying is scaled down or skipped, and the existing seed is used as read-only context.
 
-> For details on modes, missions, and phases, see `protocol/02_MODES_MISSIONS_AND_RUNTIME.md`.
+Decision is a utility skill (`decision/`) for structured decision-making without code changes. It is not a separate execution mode.
+
+> For details on missions and phases, see `protocol/02_MODES_MISSIONS_AND_RUNTIME.md`.
 
 ---
 
@@ -193,13 +187,13 @@ plugin/
     vote-round/              # Structured voting
     verify/                  # Verification utilities
     # --- Execution ---
-    orchestrating/           # Orchestrator: 4-phase execution pipeline
+    orchestrating/           # Orchestrator: 4-phase mission pipeline
       references/
-        discovery.md         # Discovery phase procedure
+        discovery.md         # Specifying phase procedure
         pipeline.md          # Per-task 14-step pipeline
-        build.md             # Build phase management
-        polish.md            # Polish phase procedure
-        evolution.md         # Evolution phase procedure
+        build.md             # Building phase management
+        polish.md            # Polishing phase procedure
+        evolution.md         # Evolving phase procedure
     scheduling/              # Task scheduling and parallelism
     decision/                # Decision mode: structured decision-making
     mission/                 # Mission lifecycle management
@@ -320,7 +314,7 @@ The detailed operational protocol specifications live in `docs/protocol/`. This 
 |-------|-----------|
 | Design principles, 4 Pillars | `protocol/00_PROTOCOL_FOUNDATIONS.md` |
 | Agent types, authority boundaries | `protocol/01_AGENT_TYPES_AND_AUTHORITY.md` |
-| Modes, missions, phases | `protocol/02_MODES_MISSIONS_AND_RUNTIME.md` |
+| Mission phases, mission model | `protocol/02_MODES_MISSIONS_AND_RUNTIME.md` |
 | Task lifecycle, state machine | `protocol/03_TASK_MODEL_AND_LIFECYCLE.md` |
 | Worktree, locks, parallelism | `protocol/04_BASELINE_WORKTREE_SCHEDULER_AND_PARALLELISM.md` |
 | Gate, vote, verdict | `protocol/05_GATE_VOTE_AND_FINAL_VERDICT.md` |

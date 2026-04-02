@@ -1,4 +1,4 @@
-# Build Phase
+# Building Phase
 
 ## Parallel Execution
 
@@ -9,17 +9,17 @@ Before starting the first task, and after each task or batch resolves:
 
 For each task, read `references/pipeline.md` and execute the full per-task pipeline.
 
-## Close Build
+## Close Building
 
-**Phase review** — verify gate criteria for build -> polish:
+**Phase review** — verify gate criteria for building -> polishing:
 - All MVP-critical tasks passed
 - No blocking_conflict active
 - 0 critical debt in `.geas/state/debt-register.json`
 - 0 unmitigated high debt (status must not be "open" for high severity)
 
-Write `.geas/state/gap-assessment.json` if not yet produced for this transition (same procedure as Evolution 4.1 but scoped to build phase).
-Write `.geas/state/phase-review.json` with `mission_phase: "build"`, `next_phase: "polish"`.
+Write `.geas/state/gap-assessment.json` if not yet produced for this transition (same procedure as Evolving 4.1 but scoped to building phase).
+Write `.geas/state/phase-review.json` with `mission_phase: "building"`, `next_phase: "polishing"`.
 
-If any gate criteria unmet: set `status: "blocked"`. List unmet criteria. After 3 consecutive failures -> enter decision mode.
+If any gate criteria unmet: set `status: "blocked"`. List unmet criteria. After 3 consecutive failures -> invoke `/geas:decision`.
 
-Log: `{"event": "phase_complete", "phase": "build", "timestamp": "<actual>"}`
+Log: `{"event": "phase_complete", "phase": "building", "timestamp": "<actual>"}`

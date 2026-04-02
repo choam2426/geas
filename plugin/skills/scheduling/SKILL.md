@@ -131,7 +131,7 @@ All of the following must be satisfied for two tasks to run in parallel (per doc
 1. No path lock conflict (checked in batch construction)
 2. No interface lock conflict (checked in batch construction)
 3. No shared mutable resource contention (`.geas/state/run.json`, `.geas/rules.md`, project-wide config)
-4. Both are independent tasks within `delivery` mode
+4. Both are independent tasks within the building phase
 5. Both are non-speculative
 
 ### Unsafe Parallel Combinations (always rejected)

@@ -133,8 +133,8 @@ When a task set to `never` encounters a readiness_round trigger condition, the o
 
 ### `proposal_round`
 When to use:
-- Cross-cutting proposals during discovery
-- Major design/API boundary decisions during delivery
+- Cross-cutting proposals during the specifying phase
+- Major design/API boundary decisions during the building phase
 
 Quorum requirement: at least 2 participants (proposer + reviewer).
 

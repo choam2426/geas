@@ -66,7 +66,6 @@ Write the initial run state file `.geas/state/run.json`:
   "version": "1.0",
   "status": "initialized",
   "mission": null,
-  "mode": null,
   "phase": null,
   "current_task_id": null,
   "completed_tasks": [],

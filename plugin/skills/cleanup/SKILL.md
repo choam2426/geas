@@ -14,8 +14,8 @@ Entropy management. Codebases degrade over rapid iteration — especially when m
 ## When
 
 Orchestrator invokes this:
-- After **Phase 2 (Build)** — the first wave of code is done, clean it up before polish
-- During **Phase 4 (Evolution)** — ongoing hygiene as the product matures
+- After **Phase 2 (Building)** — the first wave of code is done, clean it up before polishing
+- During **Phase 4 (Evolving)** — ongoing hygiene as the product matures
 - On **explicit request** from the human or architecture_authority
 
 ---
@@ -185,4 +185,4 @@ After the entropy scan:
 1. architecture_authority reviews the created issues and assigns estimates (1-3 points each, typically)
 2. orchestration_authority prioritizes them against remaining feature work
 3. High-impact issues may get scheduled into the current cycle
-4. Low-impact issues stay in backlog for Evolution phase cleanup
+4. Low-impact issues stay in backlog for Evolving phase cleanup

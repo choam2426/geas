@@ -147,7 +147,7 @@ Gaps exist between current skill implementations and the protocol. The protocol 
 | `readiness_round` | none | `ship \| iterate \| escalate` vote + quorum | `vote-round` |
 | Vote severity | none | `minor \| major` disagree classification | `vote-round` |
 | Debt Register structured format | `.geas/debt.json` (unstructured) | `debt-register.json` with severity/kind/status | `initiative` |
-| Evolution Exit Gate | none | gap-assessment + debt-register + rules-update + mission summary required | `initiative` |
+| Evolving Phase Exit Gate | none | gap-assessment + debt-register + rules-update + mission summary required | `initiative` |
 | Retrospective timing | executed before task passed | executed after task passed | `initiative`, `sprint` |
 
 ### Phase 4 Targets (Memory Core)
@@ -176,9 +176,9 @@ The items below exist in skills but not in the protocol. They should either be a
 | Critical Reviewer Pre-ship Challenge | challenge step between gate and verdict | add to protocol (closure packet -> critical_reviewer challenge -> final verdict) |
 | Ship Gate (4-file check) | evidence bundle existence verification | integrate into Tier 0 (Precheck) |
 | `remaining_steps` checkpoint | core mechanism for session recovery | reflect in doc 10 |
-| Entropy Scan / Cleanup | dead code cleanup in polish phase | add to doc 02 polish phase |
+| Entropy Scan / Cleanup | dead code cleanup in polishing phase | add to doc 02 polishing phase |
 | Run Summary | session audit trail | add to doc 12 observability |
-| Initiative/Sprint unification | Single 4-phase execution flow replacing separate initiative and sprint skills. Always runs Discovery→Build→Polish→Evolution with adaptive scaling. | Update doc 02 to replace Initiative mission + Sprint pattern with unified execution model |
+| Initiative/Sprint unification | Single 4-phase execution flow replacing separate initiative and sprint skills. Always runs Specifying→Building→Polishing→Evolving with adaptive scaling. | Update doc 02 to replace Initiative mission + Sprint pattern with unified execution model |
 
 ## Migration Rule
 

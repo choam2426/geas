@@ -10,8 +10,8 @@ Transforms a user story (or feature description) into a structured TaskContract 
 ## When to Use
 
 Invoked during:
-- **4-phase mission**: after Discovery creates issues, compile each into a TaskContract
-- **Delivery mode (Sprint pattern)**: compile the single feature into a TaskContract
+- **4-phase mission**: after Specifying creates issues, compile each into a TaskContract
+- **Sprint pattern**: compile the single feature into a TaskContract
 
 ## Inputs
 

@@ -57,7 +57,7 @@ Protocol binding:
 - memory promotion / weakening / supersession
 - debt tracking
 - gap assessment
-- initiative evolution phase
+- initiative evolving phase
 
 ## 설계 원칙
 
@@ -113,9 +113,8 @@ memory는 future packet, reviewer focus, gate strictness, scheduling caution, ru
 
 - **Task**: 닫히는 유일한 작업 단위
 - **Mission**: 세션이 해결하려는 상위 목적. 하나 이상의 task를 낳을 수 있음
-- **Mode**: `discovery | delivery | decision`
 - **Runtime Phase**: `bootstrap | planning | scheduling | executing | integrating | verifying | learning | idle`
-- **Mission Phase**: `discovery | build | polish | evolution`
+- **Mission Phase**: `specifying | building | polishing | evolving`
 - **Baseline**: task가 마지막으로 유효하다고 확인된 통합 브랜치 기준 커밋
 - **Worktree**: task 전용 작업 공간
 - **Gate**: objective verification. 결과는 `pass | fail | block | error` 중 하나 (doc 05 참조)
@@ -125,7 +124,7 @@ memory는 future packet, reviewer focus, gate strictness, scheduling caution, ru
 - **Closure Packet**: final verdict를 위한 압축 증거 묶음
 - **Final Verdict**: product_authority가 closure packet을 기반으로 내리는 최종 판단. `pass | iterate | escalate`
 - **FailureRecord**: task 실패 시 생성하는 기록. 실패 원인, rewind target, 시점을 포함. 실패는 별도 state가 아니라 이 record로 추적
-- **Decision Record**: decision mode에서 논쟁/충돌/피벗을 정리한 결과 artifact
+- **Decision Record**: decision skill을 통해 논쟁/충돌/피벗을 정리한 결과 artifact
 - **Memory**: task/mission/project 수준에서 재사용되는 구조화된 운영 지식
 - **Debt**: 지금 막지 않지만 future cost를 발생시키는 known compromise
 - **Gap Assessment**: 원래 scope_in과 실제 delivered scope_out 사이의 차이를 평가하는 절차

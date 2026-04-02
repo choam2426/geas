@@ -76,10 +76,10 @@ This applies to every task — sequential or parallel. If the task file does not
 ### Rules evolution
 - `.geas/rules.md` is a living document. Changes go through a structured `rules-update.json` workflow.
 - During per-task retrospectives, process_lead produces `rule_candidates[]` in `retrospective.json`. These are proposals, NOT direct modifications.
-- Rule candidates accumulate during the Build phase. Batch approval happens in the Evolution phase (Step 4.2.5).
+- Rule candidates accumulate during the Building phase. Batch approval happens in the Evolving phase (Step 4.2.5).
 - Approved rules updates are applied to `.geas/rules.md` and recorded in `.geas/state/rules-update.json` with `status: "approved"`.
 - Approval conditions (per doc 14): process_lead + domain authority, OR evidence_refs >= 2 with contradiction_count = 0.
-- After Phase 1 (Discovery): Orchestrator adds stack-specific rules before the rules-update workflow exists in the pipeline.
+- After Phase 1 (Specifying): Orchestrator adds stack-specific rules before the rules-update workflow exists in the pipeline.
 
 ### Tech debt tracking
 After reading each agent's evidence, check for a `tech_debt` array. If present:
@@ -184,31 +184,29 @@ Invoke `/geas:intake` to produce `.geas/spec/seed.json`.
 
 ### Step 2: Routing
 
-Infer from the user's intent:
-1. **Decision only (no code changes)** → invoke `/geas:decision`
-2. **Everything else** → proceed with 4-phase execution flow below
+Always proceed with the 4-phase execution flow below.
 
-Note: `/geas:decision` can also be invoked standalone at any time for structured decision-making.
+Note: `/geas:decision` is available as a utility skill that can be invoked at any time during any phase for structured decision-making.
 
 ## Execution Flow
 
 Always 4 phases, regardless of scope. The orchestrator determines phase scale based on seed spec complexity.
 
-### Phase 1: Discovery
-Read `references/discovery.md` and follow the procedure.
+### Phase 1: Specifying
+Read `references/specifying.md` and follow the procedure.
 Minimum: intake (seed spec confirmation with user) + task compilation.
 Full: vision, PRD, architecture, vote round, task compilation.
 
-### Phase 2: Build
-Read `references/build.md` for phase management.
+### Phase 2: Building
+Read `references/building.md` for phase management.
 For each compiled task, read `references/pipeline.md` and execute the per-task pipeline.
 For 2+ eligible tasks, invoke `/geas:scheduling` for parallel dispatch.
 
-### Phase 3: Polish
-Read `references/polish.md` and follow the procedure.
+### Phase 3: Polishing
+Read `references/polishing.md` and follow the procedure.
 
-### Phase 4: Evolution
-Read `references/evolution.md` and follow the procedure.
+### Phase 4: Evolving
+Read `references/evolving.md` and follow the procedure.
 
 ---
 

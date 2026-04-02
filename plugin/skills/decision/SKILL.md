@@ -1,12 +1,12 @@
 ---
 name: decision
-description: Utility skill — structured multi-agent decision for technical or product decisions. Invocable standalone or within any mode.
+description: Utility skill — structured multi-agent decision-making for technical or product decisions. Invocable standalone or within any phase.
 user-invocable: true
 ---
 
-# Decision Mode
+# Decision
 
-No code is produced. Output is a DecisionRecord.
+Utility skill for structured decision-making. No code is produced. Output is a DecisionRecord.
 
 ---
 

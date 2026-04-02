@@ -15,7 +15,7 @@ Orchestrator invokes this after a major proposal that affects project direction:
 
 | Proposal | Voters |
 |----------|--------|
-| Architecture / tech stack (Discovery) | backend-engineer, ui-ux-designer, critical-reviewer |
+| Architecture / tech stack (Specifying) | backend-engineer, ui-ux-designer, critical-reviewer |
 | Overall design system | architecture-authority, frontend-engineer, critical-reviewer |
 | Cross-cutting decision (state management, API shape, deployment) | Affected agents + critical-reviewer |
 
@@ -81,7 +81,7 @@ After all voters return, read each vote file.
 
 ## Output
 
-Vote evidence files at the location specified by the caller (e.g., `.geas/evidence/discovery/vote-{agent}.json` for Discovery votes).
+Vote evidence files at the location specified by the caller (e.g., `.geas/evidence/specifying/vote-{agent}.json` for Specifying votes).
 
 ---
 

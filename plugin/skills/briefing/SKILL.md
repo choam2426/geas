@@ -20,8 +20,8 @@ product_authority's structured status report. A snapshot of product health desig
 ## When
 
 product_authority produces a briefing:
-- At **milestones** (Discovery complete, Build complete, Polish complete)
-- At the **start of Evolution phase** (Phase 4)
+- At **milestones** (Specifying complete, Building complete, Polishing complete)
+- At the **start of Evolving phase** (Phase 4)
 - When **orchestration_authority explicitly requests** one
 - When the **human asks** for a status update
 

@@ -5,7 +5,7 @@ description: Mission intake gate — collaborative exploration to freeze a seed 
 
 # Intake Gate
 
-Before any execution mode (4-phase mission, delivery mode), run this gate to freeze the mission specification.
+Before any execution (4-phase mission, sprint), run this gate to freeze the mission specification.
 
 ## Purpose
 
@@ -100,9 +100,9 @@ Ask: "Does this capture your intent? Any changes before we start?"
 If confirmed → seed is frozen. Proceed to execution mode.
 If changes → update and re-confirm.
 
-## Delivery Mode (Sprint Pattern) Variant
+## Sprint Pattern Variant
 
-For delivery mode (adding a feature to an existing project):
+For sprint pattern (adding a feature to an existing project):
 1. Skip Step 3 (approach proposals) — the approach is constrained by existing codebase
 2. Step 2 limited to 1-2 questions focused on:
    - What exactly does this feature do?

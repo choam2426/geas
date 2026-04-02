@@ -89,8 +89,7 @@ Write `.geas/state/session-latest.md`:
 ```markdown
 # Session State — {timestamp}
 
-**Mode:** {current mode}
-**Phase:** {current phase: discovery | build | polish | evolution}
+**Phase:** {current phase: specifying | building | polishing | evolving}
 **Focus Task:** {task-id} — {title}
 **Task State:** {current state from task contract}
 **Last Step:** {step just completed}

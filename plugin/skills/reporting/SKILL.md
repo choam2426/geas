@@ -6,7 +6,7 @@ user-invocable: true
 
 # Reporting
 
-Invokable anytime via `/geas:reporting`. The orchestrating skill calls this at phase transitions, session start, and evolution phase entry.
+Invokable anytime via `/geas:reporting`. The orchestrating skill calls this at phase transitions, session start, and evolving phase entry.
 
 Produces a markdown summary to the conversation and writes `.geas/state/health-check.json`.
 

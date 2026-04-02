@@ -1,4 +1,4 @@
-# Evolution Phase [MANDATORY — do not skip]
+# Evolving Phase [MANDATORY — do not skip]
 
 ### Gap Assessment
 
@@ -19,7 +19,7 @@ Produce a structured gap assessment comparing what was planned vs what was deliv
 {
   "version": "1.0",
   "artifact_type": "gap_assessment",
-  "artifact_id": "ga-evolution",
+  "artifact_id": "ga-evolving",
   "producer_type": "product_authority",
   "scope_in_summary": "<what was planned — summarize from seed.json scope_in>",
   "scope_out_summary": "<what was explicitly excluded — from seed.json scope_out>",
@@ -33,8 +33,8 @@ Produce a structured gap assessment comparing what was planned vs what was deliv
 }
 ```
 
-8. **Forward-feeding rule**: Items appearing in `partially_delivered` or `not_delivered` across 2+ gap assessments are automatically fed into the next discovery phase's seed.json constraints.
-9. Reject any work that falls under `scope_out` — Evolution refines, it does not expand.
+8. **Forward-feeding rule**: Items appearing in `partially_delivered` or `not_delivered` across 2+ gap assessments are automatically fed into the next specifying phase's seed.json constraints.
+9. Reject any work that falls under `scope_out` — Evolving refines, it does not expand.
 
 ### Prioritize Remaining Work
 Classify remaining items:
@@ -43,7 +43,7 @@ Classify remaining items:
 
 Present the prioritized list to the user:
 ```
-[Orchestrator] Evolution scope:
+[Orchestrator] Evolving scope:
   P0 (will execute):
     1. <item>
     2. <item>
@@ -105,7 +105,7 @@ Batch review and promotion of accumulated memory candidates across the mission.
 For each P0 item, run the full pipeline from `references/pipeline.md`:
 - Compile TaskContract -> Design -> Tech Guide -> Implementation Contract -> Implementation -> Code Review -> Testing -> Evidence Gate -> Critical Reviewer Challenge -> Final Verdict -> Resolve -> Retrospective
 
-Same mandatory steps, same Closure Packet verification, same checkpoint management as Build phase.
+Same mandatory steps, same Closure Packet verification, same checkpoint management as Building phase.
 
 **Exit criteria** — stop executing when ANY of:
 - All P0 items are complete
@@ -113,28 +113,28 @@ Same mandatory steps, same Closure Packet verification, same checkpoint manageme
 
 ### Product-authority Final Briefing [MANDATORY]
 ```
-Agent(agent: "product-authority", prompt: "Final product review. Read .geas/spec/seed.json, .geas/state/gap-assessment.json, .geas/state/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write JSON to .geas/evidence/evolution/product-authority-final.json. ALSO write a human-readable markdown summary to .geas/evidence/evolution/mission-summary.md covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
+Agent(agent: "product-authority", prompt: "Final product review. Read .geas/spec/seed.json, .geas/state/gap-assessment.json, .geas/state/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write JSON to .geas/evidence/evolving/product-authority-final.json. ALSO write a human-readable markdown summary to .geas/evidence/evolving/mission-summary.md covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
 ```
-Verify `.geas/evidence/evolution/product-authority-final.json` exists.
-Verify `.geas/evidence/evolution/mission-summary.md` exists.
+Verify `.geas/evidence/evolving/product-authority-final.json` exists.
+Verify `.geas/evidence/evolving/mission-summary.md` exists.
 
 ### Repository-manager Release Management [MANDATORY]
 ```
-Agent(agent: "repository-manager", prompt: "Create release: version bump, changelog from .geas/ledger/events.jsonl, final commit. Write to .geas/evidence/evolution/repository-manager-release.json")
+Agent(agent: "repository-manager", prompt: "Create release: version bump, changelog from .geas/ledger/events.jsonl, final commit. Write to .geas/evidence/evolving/repository-manager-release.json")
 ```
-Verify `.geas/evidence/evolution/repository-manager-release.json` exists.
+Verify `.geas/evidence/evolving/repository-manager-release.json` exists.
 
 ### Run Summary
 Invoke `/geas:run-summary` to generate session audit trail.
 
-### Evolution Exit Gate and Close
+### Evolving Exit Gate and Close
 
 **Before closing, verify ALL 5 required artifacts exist:**
 
 1. `.geas/state/gap-assessment.json` — produced in Gap Assessment step
 2. `.geas/state/debt-register.json` — all open debt triaged (no items with `severity: "high"` or `"critical"` and `status: "open"`)
 3. `.geas/state/rules-update.json` — exists with `status: "approved"` or `"none"` (produced in Rules Update Approval step)
-4. `.geas/evidence/evolution/mission-summary.md` — produced in product_authority Final Briefing step
+4. `.geas/evidence/evolving/mission-summary.md` — produced in product_authority Final Briefing step
 5. `.geas/state/phase-review.json` — write now (see below)
 
 **If ANY artifact is missing: go back and execute the missing step. Do NOT close without all 5.**
@@ -146,11 +146,11 @@ Write `.geas/state/phase-review.json`:
 {
   "version": "1.0",
   "artifact_type": "phase_review",
-  "artifact_id": "pr-evolution",
+  "artifact_id": "pr-evolving",
   "producer_type": "orchestration_authority",
-  "mission_phase": "evolution",
+  "mission_phase": "evolving",
   "status": "ready_to_exit",
-  "summary": "<evolution outcomes>",
+  "summary": "<evolving outcomes>",
   "gate_criteria_met": ["gap-assessment exists", "debt triaged", "rules-update exists", "mission-summary exists"],
   "gate_criteria_unmet": [],
   "risk_notes": [],

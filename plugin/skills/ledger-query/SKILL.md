@@ -74,7 +74,7 @@ Evidence files:
 
 ### 2. `phase <phase-name>`
 
-Show all events within a phase (discovery, build, polish, evolution).
+Show all events within a phase (specifying, building, polishing, evolving).
 
 **Process:**
 1. Read `.geas/ledger/events.jsonl`
@@ -179,7 +179,6 @@ Current run state summary with recent events.
 ## Current Status
 
 Mission: <mission from seed>
-Mode: <execution | decision>
 Phase: <current phase>
 Completeness: <checklist summary>
 

@@ -9,7 +9,7 @@ The protocol defines agents by **type**, not by unique name. A type specifies ro
 ### `orchestration_authority`
 Responsibilities:
 - mission interpretation
-- mode/phase selection
+- phase selection
 - task decomposition and priority adjustment
 - specialist assignment
 - closure packet assembly
@@ -27,8 +27,8 @@ Prohibitions:
 
 ### `product_authority`
 Responsibilities:
-- Direction and priority judgment during discovery
-- Final verdict (`pass | iterate | escalate`) at the end of delivery
+- Direction and priority judgment during the specifying phase
+- Final verdict (`pass | iterate | escalate`) at the end of the building phase
 - Product-perspective trade-off judgment when disagreements remain
 
 Prohibitions:
@@ -79,7 +79,7 @@ Prohibitions:
 
 | decision | primary owner | note |
 |---|---|---|
-| mode selection | orchestration_authority | based on mission signals |
+| phase selection | orchestration_authority | based on mission signals |
 | task routing | orchestration_authority | derives the required specialist set |
 | implementation approach | primary specialist + architecture_authority | requires contract review |
 | evidence gate result | gate runner / verifier | objective verdict |

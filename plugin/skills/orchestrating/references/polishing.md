@@ -1,4 +1,4 @@
-# Polish Phase [MANDATORY — do not skip]
+# Polishing Phase [MANDATORY — do not skip]
 
 ### Security Review (security-engineer)
 Update run.json checkpoint: `pipeline_step` = "security_review", `agent_in_flight` = "security-engineer"
@@ -25,7 +25,7 @@ For each CRITICAL/HIGH finding, run a reduced pipeline:
 4. Merge worktree branch
 5. Code Review (architecture_authority) — verify the fix is correct and doesn't introduce regressions
 6. Testing (qa_engineer) — verify the fix with `eval_commands` from conventions.md
-7. If fix fails: retry once (`retry_budget: 2`). If still fails: register as HIGH debt and proceed — do not block Polish phase indefinitely
+7. If fix fails: retry once (`retry_budget: 2`). If still fails: register as HIGH debt and proceed — do not block Polishing phase indefinitely
 
 ### Documentation (technical-writer)
 Update run.json checkpoint: `pipeline_step` = "documentation", `agent_in_flight` = "technical-writer"
@@ -39,17 +39,17 @@ Update run.json checkpoint: `pipeline_step` = "cleanup", `agent_in_flight` = "ar
 Invoke `/geas:cleanup` — architecture_authority scans for dead code, AI boilerplate, convention drift, and duplication.
 Results are recorded in `.geas/state/debt-register.json`.
 
-### Close Polish
+### Close Polishing
 
-**Phase review** — verify gate criteria for polish -> evolution:
+**Phase review** — verify gate criteria for polishing -> evolving:
 - All high/critical debt triaged in `.geas/state/debt-register.json` (no items with severity high/critical and status "open")
 - Required reviews approved
 - Shipping rationale recorded for every known risk
 - Zero open CRITICAL/HIGH security issues
 
 Write `.geas/state/gap-assessment.json` if not yet produced for this transition.
-Write `.geas/state/phase-review.json` with `mission_phase: "polish"`, `next_phase: "evolution"`.
+Write `.geas/state/phase-review.json` with `mission_phase: "polishing"`, `next_phase: "evolving"`.
 
-If any gate criteria unmet: set `status: "blocked"`. List unmet criteria. After 3 consecutive failures -> enter decision mode.
+If any gate criteria unmet: set `status: "blocked"`. List unmet criteria. After 3 consecutive failures -> invoke `/geas:decision`.
 
-Log: `{"event": "phase_complete", "phase": "polish", "timestamp": "<actual>"}`
+Log: `{"event": "phase_complete", "phase": "polishing", "timestamp": "<actual>"}`

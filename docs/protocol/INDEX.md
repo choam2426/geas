@@ -28,7 +28,7 @@
 - `01_AGENT_TYPES_AND_AUTHORITY.md`
   - type-only agent model, authority boundaries, specialist participation principles
 - `02_MODES_MISSIONS_AND_RUNTIME.md`
-  - discovery/delivery/decision, mission-based automatic branching, initiative 4-phase model, runtime phase
+  - mission-based 4-phase model (specifying/building/polishing/evolving), runtime phase
 - `03_TASK_MODEL_AND_LIFECYCLE.md`
   - task classification, lifecycle, implementation contract, worker self-check, transition invariants
 - `04_BASELINE_WORKTREE_SCHEDULER_AND_PARALLELISM.md`

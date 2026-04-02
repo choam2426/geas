@@ -430,16 +430,16 @@ echo "EL-1: ${RESULT}${DETAIL:+ —$DETAIL}"
 
 ---
 
-### EL-2 — Evolution Exit Gate Requires Gap Assessment
+### EL-2 — Evolving Exit Gate Requires Gap Assessment
 
-**Checks:** `orchestrating/references/evolution.md` contains a reference to `gap-assessment.json` as a prerequisite for closing the Evolution phase.
+**Checks:** `orchestrating/references/evolving.md` contains a reference to `gap-assessment.json` as a prerequisite for closing the Evolving phase.
 
 ```bash
 #!/usr/bin/env bash
-# EL-2: orchestrating/references/evolution.md must require gap-assessment.json before closing evolution phase
+# EL-2: orchestrating/references/evolving.md must require gap-assessment.json before closing evolving phase
 RESULT="PASS"
 DETAIL=""
-SKILL="plugin/skills/orchestrating/references/evolution.md"
+SKILL="plugin/skills/orchestrating/references/evolving.md"
 
 if [[ ! -f "$SKILL" ]]; then
   RESULT="FAIL"
@@ -447,26 +447,26 @@ if [[ ! -f "$SKILL" ]]; then
 else
   if ! grep -q "gap-assessment" "$SKILL"; then
     RESULT="FAIL"
-    DETAIL=" 'gap-assessment' not found in orchestrating/references/evolution.md — evolution exit gate may be missing."
+    DETAIL=" 'gap-assessment' not found in orchestrating/references/evolving.md — evolving exit gate may be missing."
   fi
 fi
 echo "EL-2: ${RESULT}${DETAIL:+ —$DETAIL}"
 ```
 
-**Pass condition:** The string "gap-assessment" appears in `plugin/skills/orchestrating/references/evolution.md`.
+**Pass condition:** The string "gap-assessment" appears in `plugin/skills/orchestrating/references/evolving.md`.
 
 ---
 
 ### EL-3 — Phase Close Requires Debt Register
 
-**Checks:** `orchestrating/references/evolution.md` contains a reference to `debt-register.json` as required when closing the polish or evolution phase.
+**Checks:** `orchestrating/references/evolving.md` contains a reference to `debt-register.json` as required when closing the polishing or evolving phase.
 
 ```bash
 #!/usr/bin/env bash
-# EL-3: orchestrating/references/evolution.md must require debt-register.json for phase close
+# EL-3: orchestrating/references/evolving.md must require debt-register.json for phase close
 RESULT="PASS"
 DETAIL=""
-SKILL="plugin/skills/orchestrating/references/evolution.md"
+SKILL="plugin/skills/orchestrating/references/evolving.md"
 
 if [[ ! -f "$SKILL" ]]; then
   RESULT="FAIL"
@@ -474,26 +474,26 @@ if [[ ! -f "$SKILL" ]]; then
 else
   if ! grep -q "debt-register" "$SKILL"; then
     RESULT="FAIL"
-    DETAIL=" 'debt-register' not found in orchestrating/references/evolution.md — phase close debt gate may be missing."
+    DETAIL=" 'debt-register' not found in orchestrating/references/evolving.md — phase close debt gate may be missing."
   fi
 fi
 echo "EL-3: ${RESULT}${DETAIL:+ —$DETAIL}"
 ```
 
-**Pass condition:** The string "debt-register" appears in `plugin/skills/orchestrating/references/evolution.md`.
+**Pass condition:** The string "debt-register" appears in `plugin/skills/orchestrating/references/evolving.md`.
 
 ---
 
 ### EL-4 — Rules Update Approval Step Present
 
-**Checks:** `orchestrating/references/evolution.md` contains a Rules Update Approval step (or equivalent), confirming that rules.md changes require product_authority sign-off before taking effect.
+**Checks:** `orchestrating/references/evolving.md` contains a Rules Update Approval step (or equivalent), confirming that rules.md changes require product_authority sign-off before taking effect.
 
 ```bash
 #!/usr/bin/env bash
-# EL-4: orchestrating/references/evolution.md must contain a Rules Update Approval step
+# EL-4: orchestrating/references/evolving.md must contain a Rules Update Approval step
 RESULT="PASS"
 DETAIL=""
-SKILL="plugin/skills/orchestrating/references/evolution.md"
+SKILL="plugin/skills/orchestrating/references/evolving.md"
 
 if [[ ! -f "$SKILL" ]]; then
   RESULT="FAIL"
@@ -502,13 +502,13 @@ else
   HAS_RULES_APPROVAL=$(grep -ci "rules.*update.*approv\|approv.*rules.*update\|4\.2\.5\|rules update approval" "$SKILL" 2>/dev/null || echo 0)
   if [[ "$HAS_RULES_APPROVAL" -eq 0 ]]; then
     RESULT="FAIL"
-    DETAIL=" Rules Update Approval step not found in orchestrating/references/evolution.md (checked for 'rules update approval', '4.2.5')."
+    DETAIL=" Rules Update Approval step not found in orchestrating/references/evolving.md (checked for 'rules update approval', '4.2.5')."
   fi
 fi
 echo "EL-4: ${RESULT}${DETAIL:+ —$DETAIL}"
 ```
 
-**Pass condition:** `plugin/skills/orchestrating/references/evolution.md` contains a Rules Update Approval step, identified by "rules update approval" (case-insensitive) or "4.2.5".
+**Pass condition:** `plugin/skills/orchestrating/references/evolving.md` contains a Rules Update Approval step, identified by "rules update approval" (case-insensitive) or "4.2.5".
 
 ---
 

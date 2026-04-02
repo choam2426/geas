@@ -45,8 +45,8 @@ Geas는 멀티 에이전트 작업의 전체 생명주기를 통제하는 프로
 ## 실제 동작
 
 ```
-[Orchestrator]     Discovery: intake 완료. 태스크 3개 컴파일됨.
-[Orchestrator]     Build: task-001 시작.
+[Orchestrator]     Specifying: intake 완료. 태스크 3개 컴파일됨.
+[Orchestrator]     Building: task-001 시작.
 
 [UI/UX Designer]   모바일 퍼스트 레이아웃. 세로 카드 스택.
 [사람]              파이차트 대신 막대그래프로 해줘.              ← 사람의 개입
@@ -58,8 +58,8 @@ Geas는 멀티 에이전트 작업의 전체 생명주기를 통제하는 프로
 [Product Auth]     Final Verdict: PASS.
 [Process Lead]     회고: CSS 애니메이션 규칙을 rules.md에 추가.
 
-[Orchestrator]     Polish: 보안 리뷰, 문서, 정리.
-[Orchestrator]     Evolution: gap 평가, 메모리 승격, 요약.
+[Orchestrator]     Polishing: 보안 리뷰, 문서, 정리.
+[Orchestrator]     Evolving: gap 평가, 메모리 승격, 요약.
 [Orchestrator]     미션 완료. 3/3 태스크 통과.
 ```
 
@@ -71,10 +71,10 @@ Geas는 멀티 에이전트 작업의 전체 생명주기를 통제하는 프로
 
 ```mermaid
 graph LR
-    A[사용자 의도] --> B[Discovery]
-    B --> C[Build]
-    C --> D[Polish]
-    D --> E[Evolution]
+    A[사용자 의도] --> B[Specifying]
+    B --> C[Building]
+    C --> D[Polishing]
+    D --> E[Evolving]
 
     B -.- B1["Intake → 스펙 → 아키텍처\n→ 태스크 컴파일"]
     C -.- C1["Per-task 파이프라인 × N\n(안전할 때 병렬)"]

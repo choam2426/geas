@@ -26,12 +26,12 @@ Who is the primary user? What are their characteristics and needs?
 
 ## Scope
 
-### In Scope (Build)
+### In Scope
 - Feature 1
 - Feature 2
 
 ### Out of Scope
-- Feature X (why: too complex for initial Build)
+- Feature X (why: too complex for initial release)
 - Feature Y (why: not validated)
 
 ## User Flows

@@ -24,7 +24,7 @@ Orchestrator invokes this:
 
 Read these in order to assemble the summary:
 
-1. **`.geas/state/run.json`** — current phase, mode, mission, milestone
+1. **`.geas/state/run.json`** — current phase, mission, milestone
 2. **`.geas/ledger/costs.jsonl`** — agent spawn telemetry (agent name, task, phase, timestamp per spawn)
 3. **`.geas/tasks/`** — TaskContracts, check statuses for completion and progress
 4. **`.geas/decisions/`** — DecisionRecords for decisions made this session
@@ -39,8 +39,7 @@ Print to **console** and write to **`.geas/summaries/`**.
 ```
 Run Summary — <mission name or feature>
 Date: <ISO date, e.g. 2026-03-21>
-Mode: <execution | decision>
-Phase: <discovery | build | polish | evolve | complete>
+Phase: <specifying | building | polishing | evolving | complete>
 Duration: <if available from timestamps, otherwise omit>
 
 ---
@@ -126,4 +125,4 @@ Keep console output identical to the summary file content — no separate format
 
 - **Session interrupted mid-issue**: Mark the issue as "In Progress" in the summary. State what was in progress and which agent was working on it.
 - **No issues created yet** (e.g. interrupted during Discovery): Summary should still capture decisions made, even if no issues were created.
-- **Decision mode**: No issues to report. Summarize the decision topic, positions taken, and outcome (if reached).
+- **Decision-only session**: No issues to report. Summarize the decision topic, positions taken, and outcome (if reached).

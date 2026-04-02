@@ -34,7 +34,7 @@ Different workers need different context:
 #### Designer (ui_ux_designer)
 - Mission context and target user (from seed)
 - User requirements for this specific feature
-- Existing UI patterns in the codebase (if delivery mode)
+- Existing UI patterns in the codebase (if existing project)
 - Design constraints (responsive? dark mode? accessibility level?)
 - What NOT to redesign
 
@@ -75,7 +75,7 @@ Different workers need different context:
 - Build/deploy configuration from conventions.md
 - Target deployment environment and constraints (from seed)
 - CI/CD requirements from TaskContract
-- Existing deployment configuration (if delivery mode)
+- Existing deployment configuration (if existing project)
 - Environment variable setup requirements
 - Eval commands for build/deploy verification
 
@@ -142,7 +142,7 @@ After extracting task context, retrieve applicable memories:
      "packet_id": "mp-{task-id}-{agent-type}",
      "target_agent_type": "<agent type>",
      "target_task_id": "{task-id}",
-     "pinned_items": ["<L0 invariants — mode, phase, focus task, rules.md entries>"],
+     "pinned_items": ["<L0 invariants — phase, focus task, rules.md entries>"],
      "applicable_memory_ids": ["mem-xxx", "mem-yyy"],
      "caution_items": ["<memories with confidence < 0.5 or contradiction_count > 0>"],
      "suppressed_memory_ids": ["<memories excluded due to low score or budget>"],

@@ -5,12 +5,12 @@ description: Memory lifecycle management — candidate extraction, promotion pip
 
 # Memorizing
 
-Manages the full memory lifecycle. Orchestrator invokes this skill after retrospective (per-task extraction) and during Evolution (batch promotion).
+Manages the full memory lifecycle. Orchestrator invokes this skill after retrospective (per-task extraction) and during Evolving (batch promotion).
 
 ## When to Use
 
 - **Per-task**: After retrospective completes, extract memory candidates from `memory_candidates[]`
-- **Evolution phase**: Batch review and promotion of accumulated candidates
+- **Evolving phase**: Batch review and promotion of accumulated candidates
 - **Wrap-Up**: Inline extraction and promotion for single-task executions
 - **Session start**: Decay detection on existing entries
 
@@ -124,7 +124,7 @@ For each new candidate, determine the domain authority reviewer:
 | project_rule | orchestration_authority |
 | agent_rule | orchestration_authority |
 
-**Mission (batch)**: Domain authority reviews during Evolution phase. Spawn the reviewer agent:
+**Mission (batch)**: Domain authority reviews during Evolving phase. Spawn the reviewer agent:
 ```
 Agent(agent: "{reviewer}", prompt: "Review memory candidate at .geas/memory/candidates/{memory-id}.json. Decide: promote_provisional (ready to try applying), keep (needs more evidence), or reject (not useful). Write review to .geas/memory/candidates/{memory-id}-review.json conforming to docs/protocol/schemas/memory-review.schema.json.")
 ```
@@ -193,7 +193,7 @@ Agent(agent: "{reviewer}", prompt: "Review memory candidate at .geas/memory/cand
 
 ## 6. Decay Detection
 
-Run during Evolution phase or at session start:
+Run during Evolving phase or at session start:
 
 1. Read `.geas/state/memory-index.json`
 2. For each entry with state `provisional`, `stable`, or `canonical`:
