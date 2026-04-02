@@ -64,8 +64,8 @@
     },
     "source": {
       "type": "string",
-      "enum": ["full_intake", "quick_intake"],
-      "description": "How this seed was created. 'full_intake' indicates a complete Socratic intake process. 'quick_intake' indicates a minimal auto-generated seed (user skipped detailed intake)."
+      "enum": ["full_intake", "quick_intake", "existing_project"],
+      "description": "How this seed was created. 'full_intake' = complete Socratic intake. 'quick_intake' = minimal auto-generated seed (user skipped detailed intake). 'existing_project' = auto-generated for first-time geas usage on an existing project."
     },
     "readiness_override": {
       "type": "boolean",
