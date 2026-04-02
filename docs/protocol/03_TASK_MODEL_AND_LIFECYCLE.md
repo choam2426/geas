@@ -33,7 +33,7 @@
 - `description`
 - `task_kind`
 - `risk_level`
-- `state`
+- `status`
 - `base_commit`
 - `scope.paths`
 - `acceptance_criteria[]`

@@ -148,12 +148,19 @@
       "properties": {
         "status": {
           "type": "string",
-          "enum": ["none", "present"]
+          "enum": ["none", "present", "acknowledged"]
         },
         "items": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["description"],
+            "properties": {
+              "description": { "type": "string" },
+              "acknowledged": { "type": "boolean", "default": false },
+              "source": { "type": "string" }
+            }
           }
         }
       }

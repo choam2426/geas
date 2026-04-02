@@ -13,8 +13,7 @@
     "integration_branch",
     "merge_commit",
     "base_commit",
-    "status",
-    "files_changed"
+    "conflict_status"
   ],
   "properties": {
     "version": {
@@ -46,22 +45,15 @@
     "base_commit": {
       "type": "string"
     },
-    "status": {
+    "conflict_status": {
       "type": "string",
-      "enum": ["success", "conflict", "failed"]
+      "enum": ["clean", "resolved", "failed"]
     },
     "files_changed": {
       "type": "array",
       "items": {
         "type": "string"
       }
-    },
-    "conflict_details": {
-      "type": "string"
-    },
-    "drift_classification": {
-      "type": "string",
-      "enum": ["clean_sync", "review_sync", "replan_required", "blocking_conflict"]
     }
   }
 }
