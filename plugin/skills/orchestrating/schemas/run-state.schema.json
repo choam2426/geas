@@ -19,6 +19,10 @@
       "type": ["string", "null"],
       "description": "Mission statement from seed.json"
     },
+    "mission_id": {
+      "type": ["string", "null"],
+      "description": "Current mission file reference (e.g., mission-003)"
+    },
     "phase": {
       "type": ["string", "null"],
       "enum": ["specifying", "building", "polishing", "evolving", "complete", null],

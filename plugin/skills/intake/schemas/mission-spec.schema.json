@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Seed Spec",
-  "description": "Mission specification produced by the intake gate. Freezes what we're building before execution begins.",
+  "title": "Mission Spec",
+  "description": "Per-mission specification produced by the intake gate. Each mission gets its own spec file.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -9,6 +9,22 @@
       "type": "string",
       "const": "1.0",
       "description": "Schema version"
+    },
+    "artifact_type": {
+      "type": "string",
+      "const": "mission_spec"
+    },
+    "artifact_id": {
+      "type": "string",
+      "description": "e.g., mission-003"
+    },
+    "producer_type": {
+      "type": "string",
+      "description": "Agent type that created this spec"
+    },
+    "mission_id": {
+      "type": "string",
+      "description": "Sequential mission ID matching filename (e.g., mission-003)"
     },
     "mission": {
       "type": "string",
@@ -51,31 +67,16 @@
       "items": { "type": "string" },
       "description": "Remaining ambiguities acknowledged but deferred (with rationale)"
     },
-    "completeness_checklist": {
-      "type": "object",
-      "properties": {
-        "mission": { "type": "boolean" },
-        "acceptance_criteria": { "type": "boolean" },
-        "scope_out": { "type": "boolean" },
-        "target_user": { "type": "boolean" },
-        "constraints": { "type": "boolean" }
-      },
-      "description": "Binary checklist confirming each section was reviewed and approved by the user"
-    },
     "source": {
       "type": "string",
       "enum": ["full_intake", "quick_intake", "existing_project"],
-      "description": "How this seed was created. 'full_intake' = complete Socratic intake. 'quick_intake' = minimal auto-generated seed (user skipped detailed intake). 'existing_project' = auto-generated for first-time geas usage on an existing project."
-    },
-    "readiness_override": {
-      "type": "boolean",
-      "description": "True if user explicitly skipped the intake process ('just build it')"
+      "description": "How this spec was created. 'full_intake' = complete Socratic intake. 'quick_intake' = minimal auto-generated spec (user skipped detailed intake). 'existing_project' = auto-generated for first-time geas usage on an existing project."
     },
     "created_at": {
       "type": "string",
       "format": "date-time",
-      "description": "ISO 8601 timestamp when the seed was frozen"
+      "description": "ISO 8601 timestamp when the spec was frozen"
     }
   },
-  "required": ["version", "mission", "acceptance_criteria", "scope_in", "scope_out", "completeness_checklist", "created_at"]
+  "required": ["version", "artifact_type", "mission_id", "mission", "acceptance_criteria", "scope_in", "scope_out", "created_at"]
 }
