@@ -1,7 +1,7 @@
 {
   "name": "geas",
-  "version": "0.2.0",
-  "description": "A protocol that brings structure to multi-agent AI development — so every decision follows a process, every action is traceable, every output is verified, and the team gets smarter over time.",
+  "version": "1.0.0",
+  "description": "A protocol that brings order to multi-agent team-driven development — governed decisions, traceable artifacts, contract-based verification, and continuous learning.",
   "author": {
     "name": "choam2426",
     "email": "choam2426@gmail.com"
