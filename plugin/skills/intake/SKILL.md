@@ -9,7 +9,7 @@ Before any mission execution, run this gate to freeze the mission specification.
 
 ## Purpose
 
-Missions arrive as natural language with hidden assumptions, ambiguous scope, and implicit constraints. This gate surfaces those gaps through collaborative exploration and produces an immutable `seed.json` before the team starts building.
+Missions arrive as natural language with hidden assumptions, ambiguous scope, and implicit constraints. This gate surfaces those gaps through collaborative exploration and produces an immutable mission spec file (`.geas/spec/mission-{n}.json`) before the team starts building.
 
 ## Process
 
@@ -80,11 +80,16 @@ Ensure `.geas/spec/` directory exists:
 mkdir -p .geas/spec
 ```
 
-Write `.geas/spec/seed.json` following the schema at `schemas/seed.schema.json`. Include `"version": "1.0"` and `"created_at"` (actual UTC timestamp) in the seed.
+Determine the next mission ID by scanning `.geas/spec/mission-*.json` — pick the next sequential number (mission-001, mission-002, etc.). If `.geas/spec/seed.json` exists (legacy), count it as mission-001.
+
+Write `.geas/spec/mission-{n}.json` following the schema at `schemas/mission-spec.schema.json`. Include:
+- `"version": "1.0"`, `"artifact_type": "mission_spec"`, `"artifact_id": "mission-{n}"`
+- `"producer_type": "orchestration_authority"`, `"mission_id": "mission-{n}"`
+- `"created_at"` (actual UTC timestamp)
 
 Always include the `source` field:
 - `"full_intake"` — complete Socratic exploration with user
-- `"quick_intake"` — user skipped detailed intake (readiness_override)
+- `"quick_intake"` — user skipped detailed intake
 - `"existing_project"` — auto-generated for existing project onboarding
 
 Show the user a final summary:
@@ -117,9 +122,10 @@ For lightweight missions (adding a feature to an existing project):
 
 ## Output
 
-- **New product**: `.geas/spec/seed.json`
-- **Existing project**:
-  - If `.geas/spec/seed.json` already exists: do NOT modify it. Skip seed creation — the feature scope goes directly into the TaskContract via task-compiler (goal, acceptance_criteria, scope_out).
-  - If `.geas/spec/seed.json` does NOT exist (first time using geas): create a minimal seed.json with project identity (mission, target_user, constraints detected from onboard). Include `"source": "existing_project"` to indicate this was auto-generated, not from a full intake. Feature scope still goes into TaskContract.
-- **Format**: JSON conforming to `schemas/seed.schema.json`
-- **Immutability**: Once confirmed, the seed should not be modified during execution. If scope must change, trigger `/geas:pivot-protocol` instead.
+- **Every mission** produces `.geas/spec/mission-{n}.json` — both new and existing projects.
+- **New product**: full intake → `mission-001.json` with `source: "full_intake"`
+- **Existing project (first geas usage)**: minimal intake → `mission-001.json` with `source: "existing_project"`
+- **Existing project (subsequent missions)**: lightweight intake → `mission-{n}.json` with `source: "quick_intake"` or `"full_intake"`
+- **Format**: JSON conforming to `schemas/mission-spec.schema.json`
+- **Immutability**: Once confirmed, the mission spec should not be modified during execution. If scope must change, trigger `/geas:pivot-protocol` instead.
+- **Backward compatibility**: If `.geas/spec/seed.json` exists (pre-migration project), treat it as mission-001 equivalent. Next mission creates `mission-002.json`.
