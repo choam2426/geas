@@ -4,7 +4,7 @@
 
 # Geas
 
-### Governance for multi-agent AI development
+### A protocol that brings order to multi-agent team-driven development
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/choam2426/geas?style=for-the-badge)](https://github.com/choam2426/geas/releases)
@@ -20,7 +20,7 @@ Geas is a protocol that makes a team of agents behave like an engineering organi
 
 ## Quick Start
 
-> Geas is a protocol. This Quick Start uses the **Claude Code plugin**, one implementation.
+The current implementation is a **Claude Code plugin**. Install [Claude Code CLI](https://claude.ai/code), then:
 
 ```bash
 /plugin marketplace add choam2426/geas
@@ -28,24 +28,24 @@ Geas is a protocol that makes a team of agents behave like an engineering organi
 /geas:mission
 ```
 
-Describe what you want to build. The orchestrator takes the mission through the full governed workflow.
+Describe what you want to build or improve. The orchestrator drives the work following the Geas protocol.
 
 ## Design principles
 
-- **Humans stay in control** — agents propose, but authority and final judgment remain explicit
-- **Evidence before completion** — no task is "done" without passing verification
-- **State must survive interruption** — checkpoints and recovery artifacts support exact resume
-- **Grows with every mission** — rules and memory are first-class outputs
+- **Completion is judged by evidence** — a task only closes after passing 3-tier verification and a product-level final verdict
+- **Context never breaks** — state and decision history persist through interruptions and session changes
+- **Grows with every mission** — every task's retrospective accumulates into rules and memory, and technical debt is tracked alongside
 
 ---
 
 ## Why Geas exists
 
-Multi-agent development is powerful, but without governance it fails in predictable ways:
+Multi-agent development is fast and powerful, but without control it falls apart in the same ways every time:
 
-- **"Done" without proof** — an agent says the task is complete, but nobody verified it against acceptance criteria
-- **Lost decisions** — architecture choices, trade-offs, and reviewers' reasoning disappear
-- **Parallel chaos** — multiple agents touch overlapping files and conflicts surface late
+- **"Done" without proof** — the agent says it's finished, but nobody actually verified against acceptance criteria
+- **Lost decisions** — why this architecture was chosen, what was discussed in review — gone
+- **Parallel chaos** — multiple agents touch the same files, and conflicts are discovered far too late
+- **Unclear authority** — agents debate, but nobody has defined decision-making power
 - **Zero institutional memory** — the same mistakes repeat across sessions
 
 When you scale from one agent to many, these problems do not add up. They multiply.
@@ -69,18 +69,22 @@ graph LR
 
 A mission always runs all four phases. The scale adapts to the request — a small change gets a lightweight pass; a larger effort gets the full treatment.
 
-Each task goes through a **14-step governed pipeline**: implementation contract -> implementation -> self-check -> code review + testing -> evidence gate -> closure packet -> critical reviewer -> final verdict -> retrospective -> memory extraction. [-> Full pipeline details](docs/architecture/DESIGN.md)
+Each task goes through a **14-step pipeline**. [-> Full pipeline details](docs/architecture/DESIGN.md)
+
+```
+implementation contract -> implementation -> self-check -> code review + testing
+-> evidence gate -> closure packet -> critical reviewer
+-> final verdict -> retrospective -> memory extraction
+```
 
 ### Verification flow
 
-A task is only closed after it passes:
+A task is only closed after passing each step in order:
 
-- **Tier 0** — prechecks, required artifacts, task-state eligibility
-- **Tier 1** — build, lint, test, typecheck
-- **Tier 2** — acceptance criteria and rubric scoring
-- **Final Verdict** — product-level judgment after the evidence is assembled
-
-This is the difference between *an agent saying it is done* and *the protocol proving that the contract was fulfilled*.
+- **Evidence Gate** — Tier 0 (prechecks), Tier 1 (build/lint/test), Tier 2 (acceptance criteria + rubric scoring)
+- **Closure Packet** — all evidence assembled into a single packet after Gate pass
+- **Critical Reviewer** — separate verification for high-risk tasks
+- **Final Verdict** — product-level judgment with all evidence assembled
 
 ### What lands in your repository
 
@@ -88,11 +92,20 @@ Geas writes operational state and evidence to `.geas/`:
 
 ```
 .geas/
-├── state/          # session checkpoint, locks, health signals
-├── tasks/          # contracts, evidence, verdicts per task
-├── memory/         # learned patterns (candidate -> canonical)
-├── ledger/         # append-only event log
-└── rules.md        # shared conventions (grows over time)
+├── state/                        # session checkpoint, locks, health signals
+├── tasks/
+│   ├── task-001.json             # task contract (acceptance criteria, rubric, classification)
+│   └── task-001/
+│       ├── worker-self-check.json    # implementer self-check
+│       ├── integration-result.json   # integration result
+│       ├── gate-result.json          # Evidence Gate verdict
+│       ├── closure-packet.json       # evidence summary packet
+│       ├── challenge-review.json     # Critical Reviewer verification
+│       ├── final-verdict.json        # final verdict
+│       └── retrospective.json        # retrospective
+├── memory/                       # learned patterns (candidate -> canonical)
+├── ledger/                       # append-only event log
+└── rules.md                      # shared conventions (grows over time)
 ```
 
 ---
@@ -112,25 +125,28 @@ The protocol defines **12 agent types** with explicit authority and output respo
 ## See It In Action
 
 ```
-[Orchestrator]     Specifying: intake complete. 3 tasks compiled.
-[Orchestrator]     Building: starting task-001.
+[Orchestrator]     Specifying: intake complete. 2 tasks compiled.
+[Orchestrator]     Building: starting task-001 (JWT auth API).
 
-[UI/UX Designer]   Mobile-first layout. Vertical card stack.
-[You]              Use bar charts instead of pie charts.        <- your input
-[Arch Authority]   Agreed. CSS-only bar chart approach.
-[Frontend Eng]     Implementation complete. 5 components.
-[QA Engineer]      5/5 acceptance criteria passed.
-[Critical Rev]     Risk: no offline fallback.
+[Arch Authority]   Tech guide: bcrypt + JWT, refresh token rotation.
+[Orchestrator]     Implementation contract approved.
+[Backend Eng]      Implementation complete. 4 endpoints. Worktree merged.
+[Backend Eng]      Self-check: confidence 4/5. Token expiry edge case untested.
+[Arch Authority]   Code review: approved.                        <- parallel
+[QA Engineer]      Testing: 6/6 acceptance criteria passed.      <- parallel
 [Orchestrator]     Evidence Gate: PASS. Closure packet assembled.
+[Critical Rev]     Challenge: no rate limiting [BLOCKING].
+[Orchestrator]     Vote round: iterate. Re-implementing.
+[Backend Eng]      Rate limiter added. Re-verification passed.
 [Product Auth]     Final Verdict: PASS.
-[Process Lead]     Retro: CSS animation rule added to rules.md.
+[Repo Manager]     Committed.
+[Process Lead]     Retro: auth APIs must include rate limiting — rule proposed.
+[Orchestrator]     Memory extraction: 3 candidates.
 
 [Orchestrator]     Polishing: security review, docs, cleanup.
-[Orchestrator]     Evolving: gap assessment, memory promotion, summary.
-[Orchestrator]     Mission complete. 3/3 tasks passed.
+[Orchestrator]     Evolving: gap assessment, rules update, memory promotion.
+[Orchestrator]     Mission complete. 2/2 tasks passed.
 ```
-
-You stay in control. Agents propose; you decide. The protocol ensures nothing ships without verification.
 
 ---
 
