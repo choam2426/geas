@@ -1,6 +1,6 @@
 {
   "name": "geas",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A protocol that brings order to multi-agent team-driven development — governed decisions, traceable artifacts, contract-based verification, and continuous learning.",
   "author": {
     "name": "choam2426",

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.1] - 2026-04-03
+
+### Bug Fixes
+
+- Clarify `mission` vs `mission_id` fields in run.json — orchestrator must set both (mission = display string, mission_id = file reference)
+- Remove all remaining stale `seed.json` references across 12 documentation and skill files (SKILLS.md, HOOKS.md, DESIGN.md, CLAUDE.md, Korean mirrors)
+- Fix `prohibited_paths` → `scope_paths` in context-packet schema
+
 ## [1.0.0] - 2026-04-03
 
 First stable release. Complete v3 protocol implementation with 14 protocol documents, 29 JSON schemas, 27 skills, 12 agent types, and 18 enforcement hooks.
