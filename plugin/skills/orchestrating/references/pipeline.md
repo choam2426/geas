@@ -323,6 +323,13 @@ Agent(agent: "critical-reviewer", prompt: "Read the closure packet at .geas/task
 
 Verify `.geas/tasks/{task-id}/challenge-review.json` exists.
 
+**[MANDATORY] Log step_complete immediately after verification:**
+```
+Append to .geas/ledger/events.jsonl:
+{"event": "step_complete", "task_id": "{task-id}", "step": "critical_reviewer", "agent": "critical-reviewer", "timestamp": "<actual>"}
+```
+Do NOT skip this log entry — it is required for conformance verification and session recovery.
+
 **After critical_reviewer returns:**
 
 1. Read `.geas/tasks/{task-id}/challenge-review.json`.

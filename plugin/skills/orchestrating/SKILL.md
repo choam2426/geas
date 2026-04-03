@@ -109,9 +109,9 @@ Within a SINGLE TASK's pipeline, do NOT end your turn between steps. Run all 14 
 Between tasks, a brief status update is acceptable but do NOT wait for user input unless:
 - You need user input (ambiguous requirement, scope question), OR
 - An error blocks progress (gate fail, hook block), OR
-- The phase is complete
+- **Specifying → Building transition** (present task summary, wait for user approval)
 
-Task compilation in specifying phase: compile ALL tasks in one turn, then transition to building without pausing.
+Task compilation in specifying phase: compile ALL tasks in one turn. Then present the specifying summary (see "Specifying → Building Transition" checkpoint) before entering building.
 
 ---
 
@@ -225,7 +225,32 @@ If ANY field is missing:
 3. Write the missing fields to the TaskContract
 4. Log: {"event": "classification_filled", "task_id": "...", "fields_added": [...], "timestamp": "<actual>"}
 
+**vote_round_policy heuristics** — if the Decision Tree result is unclear, apply these rules:
+- Task introduces 2+ new DB tables or data models → `auto` minimum
+- Task adds new middleware, auth layer, or permission system → `always`
+- Task changes public API contract (new endpoints, changed response shapes) → `auto` minimum
+- Task touches 50%+ of source files → `always`
+- When in doubt, prefer `auto` over `never`
+
 Do NOT proceed to building phase until ALL tasks have complete classification.
+
+#### Specifying → Building Transition [CHECKPOINT]
+
+Before entering building phase, present a summary to the user:
+
+```
+[Orchestrator] Specifying complete. Task summary:
+
+| Task | Title | Risk | Vote |
+|------|-------|------|------|
+| task-XXX | ... | high | auto |
+| task-XXX | ... | normal | never |
+
+Dependencies: task-XXX → task-XXX → task-XXX
+Proceed to building?
+```
+
+Wait for user confirmation before starting the building phase.
 
 ### Phase 2: Building
 Read `references/building.md` for phase management.
