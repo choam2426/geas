@@ -17,7 +17,7 @@
     },
     "mission": {
       "type": ["string", "null"],
-      "description": "Mission statement from seed.json"
+      "description": "Mission statement from current mission spec"
     },
     "phase": {
       "type": ["string", "null"],
