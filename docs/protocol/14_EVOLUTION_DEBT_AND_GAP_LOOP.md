@@ -148,8 +148,8 @@ When conflicting debt items exist in the same scope (e.g., "switch API authentic
   **End-to-end forward-feed procedure:**
   1. **Detection**: when writing the gap assessment, `process_lead` cross-references each item in `partially_delivered[]` against previous gap assessments. Matching criteria are identical `title` or identical `scope_ref`.
   2. **Determination**: if the same item appears 2 or more times, it is marked as a forward-feed target. The item in the gap assessment is annotated with `forward_feed: true` and `occurrence_count: N`.
-  3. **Propagation**: during the next mission's specifying phase, when the intake skill generates `seed.json`, forward-feed target items are automatically inserted into the `constraints` field. Each constraint includes `source_ref: "{gap_assessment_id}"`, `reason: "repeated_partial_delivery"`, and `original_scope: "{item title}"`.
-  4. **Verification**: when a forward-feed constraint exists in `seed.json`, the task compiler must create at least one task that covers that item. If none is created, explicit rationale from `product_authority` is required.
+  3. **Propagation**: during the next mission's specifying phase, when the intake skill generates the mission spec file, forward-feed target items are automatically inserted into the `constraints` field. Each constraint includes `source_ref: "{gap_assessment_id}"`, `reason: "repeated_partial_delivery"`, and `original_scope: "{item title}"`.
+  4. **Verification**: when a forward-feed constraint exists in the mission spec, the task compiler must create at least one task that covers that item. If none is created, explicit rationale from `product_authority` is required.
   5. **Completion check**: when a forward-fed item transitions to `fully_delivered`, the constraint is removed from the next gap assessment. If it remains in `partially_delivered`, the occurrence_count increases and forward-feeding repeats.
   6. **On failure**: if the item persists unresolved after 3 or more repetitions, `process_lead` reassesses its feasibility during retrospective, and `product_authority` decides whether to transition it to `intentional_cuts`.
 

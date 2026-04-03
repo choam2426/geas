@@ -18,7 +18,7 @@ Invoked during:
 You need these before compiling:
 
 1. **User story or feature description** — what needs to be built
-2. **Seed spec** — read from `.geas/spec/seed.json` for mission-level context
+2. **Mission spec** — read from `.geas/spec/mission-{mission_id}.json` for mission-level context
 3. **Architecture context** — from `.geas/memory/_project/conventions.md`
 4. **Existing task contracts** — check `.geas/tasks/` for dependencies
 

@@ -16,7 +16,7 @@ Orchestrator invokes this skill before dispatching any worker for a task.
 1. **TaskContract** — read from `.geas/tasks/{task-id}.json`
 2. **Prior evidence** — check `.geas/evidence/{task-id}/` for upstream worker output
 3. **Decision records** — check `.geas/decisions/` for relevant decisions
-4. **Seed spec** — `.geas/spec/seed.json` for mission context
+4. **Mission spec** — `.geas/spec/mission-{mission_id}.json` for mission context
 
 ## Generation Process
 
@@ -225,7 +225,7 @@ Write the packet as a markdown file with this structure:
 {Injected from memory retrieval — see Step 3. Omit if no memories scored above threshold.}
 
 ## Reference
-- Seed: .geas/spec/seed.json
+- Mission spec: .geas/spec/mission-{mission_id}.json
 - Contract: .geas/tasks/{task-id}.json
 ```
 

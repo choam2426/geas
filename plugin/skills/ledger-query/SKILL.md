@@ -32,7 +32,7 @@ All reads, no writes:
 | Evidence bundles | `.geas/evidence/{task-id}/{worker}.json` | JSON |
 | Decision records | `.geas/decisions/{id}.json` | JSON |
 | Run state | `.geas/state/run.json` | JSON |
-| Seed spec | `.geas/spec/seed.json` | JSON |
+| Mission spec | `.geas/spec/mission-{mission_id}.json` | JSON |
 
 ---
 
@@ -169,7 +169,7 @@ Current run state summary with recent events.
 
 **Process:**
 1. Read `.geas/state/run.json` for current state
-2. Read `.geas/spec/seed.json` for mission and completeness_checklist
+2. Read current mission spec for mission and completeness_checklist
 3. Read last 10 events from `.geas/ledger/events.jsonl`
 4. Count completed vs total tasks from `.geas/tasks/`
 5. List any in-progress or failed tasks
