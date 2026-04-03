@@ -118,6 +118,74 @@ Agent(agent: "product-authority", prompt: "Final product review. Read .geas/spec
 Verify `.geas/evidence/evolving/product-authority-final.json` exists.
 Verify `.geas/summaries/mission-summary.md` exists.
 
+### Mission Briefing [MANDATORY — orchestrator writes directly]
+
+Assemble a detailed execution briefing by reading all `.geas/` artifacts. This is NOT an agent spawn — orchestrator reads and writes directly.
+
+**Read these sources:**
+- `events.jsonl` — find `run_started` timestamp for this mission, then all events after it
+- `.geas/tasks/*.json` — filter to tasks with `task_compiled` events after `run_started`
+- `.geas/tasks/{task-id}/gate-result.json` — gate verdict and iteration count
+- `.geas/tasks/{task-id}/challenge-review.json` — critical reviewer execution
+- `.geas/tasks/{task-id}/final-verdict.json` — verdict
+- `.geas/evolution/debt-register.json` — open debt items
+- `.geas/evolution/gap-assessment-evolving.json` — recommended follow-ups
+- `.geas/tasks/{task-id}/closure-packet.json` — open risks
+- `.geas/ledger/token-summary.json` — token usage
+- `.geas/ledger/costs.jsonl` — subagent count
+
+**Write `.geas/summaries/mission-briefing.md`:**
+
+```markdown
+# Mission Briefing — {mission title}
+
+## Task Execution Summary
+
+| Task | Title | Risk | Gate | Retries | Critical Reviewer | Verdict |
+|------|-------|------|------|---------|-------------------|---------|
+| {task_id} | {title} | {risk_level} | {gate verdict} | {retry count} | {in-pipeline/post-backfill/skipped} | {ship/iterate/escalate} |
+
+## Metrics
+
+- **Total duration:** {run_started to phase_complete(complete)}
+- **Phase breakdown:** specifying {Xm} | building {Xm} | polishing {Xm} | evolving {Xm}
+- **Subagents spawned:** {count from costs.jsonl agent_stop events}
+- **Token usage:** input {X}K | output {X}K
+- **Git commits:** {count of task_resolved events with commit field}
+- **Memory candidates:** {count} new
+
+## Open Items
+
+### Technical Debt
+{for each item in debt-register where status == "open":}
+- {debt_id} ({severity}): {title}
+
+### Risks
+{for each task, from closure-packet open_risks.items:}
+- {task_id}: {description}
+
+### Recommended Follow-ups
+{from gap-assessment-evolving recommended_followups:}
+- {item}
+```
+
+**Critical Reviewer detection logic:**
+- Find `step_complete` event where `step == "critical_reviewer"` for each task
+- If timestamp is between `gate_result` and `task_resolved` → `in-pipeline`
+- If timestamp is after `task_resolved` → `post-backfill`
+- If no such event exists → `skipped`
+
+**After writing the file, print a console summary:**
+
+```
+[Orchestrator] Mission briefing written to .geas/summaries/mission-briefing.md
+
+  Tasks: {passed}/{total} passed | Duration: {total} | Commits: {count}
+  Debt: {count} open ({high_count} high) | Memory: {count} new candidates
+```
+
+Verify `.geas/summaries/mission-briefing.md` exists.
+
 ### Repository-manager Release Management [MANDATORY]
 ```
 Agent(agent: "repository-manager", prompt: "Create release: version bump, changelog from .geas/ledger/events.jsonl, final commit. Write to .geas/evidence/evolving/repository-manager-release.json")
