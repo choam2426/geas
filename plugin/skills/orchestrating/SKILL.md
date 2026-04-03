@@ -190,7 +190,7 @@ The orchestrator is responsible for maintaining two context anchors:
 These files are consumed by `restore-context.sh` during post-compact recovery.
 
 ### Step 1: Intake Gate
-Invoke `/geas:intake` to produce `.geas/spec/seed.json`.
+Invoke `/geas:intake` to produce `.geas/spec/mission-{n}.json`.
 - Ask the user clarifying questions until the completeness checklist is satisfied (all boolean fields in `completeness_checklist` are true).
 
 ### Step 2: Routing

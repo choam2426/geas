@@ -5,14 +5,14 @@ Always runs. Scale adapts to the request.
 ## Always Run
 
 ### Seed Check
-- `.geas/spec/seed.json` should exist from intake. If not, invoke `/geas:intake`.
+- `.geas/spec/mission-{mission_id}.json` should exist from intake. If not, invoke `/geas:intake`.
 - If completeness_checklist has any false values and no override: ask the user, re-run intake.
 
 ### Onboard Check
 If `.geas/memory/_project/conventions.md` is missing, invoke `/geas:onboard` to scan the existing project before proceeding.
 
 ### Compile TaskContracts
-- Use `.geas/spec/stories.md` as input (if it exists from PRD step). If stories.md does not exist, compile directly from seed.json user stories or feature description.
+- Use `.geas/spec/stories.md` as input (if it exists from PRD step). If stories.md does not exist, compile directly from the current mission spec's user stories or feature description.
 - For each user story, invoke `/geas:task-compiler`.
 - Each TaskContract MUST include a `rubric` object with a `dimensions` array. Base dimensions: core_interaction(3), feature_completeness(4), code_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
 - Log each: `{"event": "task_compiled", "task_id": "...", "timestamp": "<actual>"}`
@@ -20,7 +20,7 @@ If `.geas/memory/_project/conventions.md` is missing, invoke `/geas:onboard` to 
 ### Close Specifying
 
 **Phase review** — verify gate criteria for specifying -> building:
-- Mission brief exists (seed.json)
+- Mission brief exists (mission-{mission_id}.json)
 - scope_in defined
 - Initial tasks compiled
 
@@ -53,7 +53,7 @@ If any gate criteria unmet: set `status: "blocked"`, list unmet criteria in `gat
 **Skip if** seed describes a single well-defined feature with clear acceptance criteria.
 
 ```
-Agent(agent: "product-authority", prompt: "Then read .geas/spec/seed.json. Deliver vision, MVP scope, user value proposition. Write to .geas/evidence/specifying/product-authority.json")
+Agent(agent: "product-authority", prompt: "Then read .geas/spec/mission-{mission_id}.json (read mission_id from run.json). Deliver vision, MVP scope, user value proposition. Write to .geas/evidence/specifying/product-authority.json")
 ```
 Verify `.geas/evidence/specifying/product-authority.json` exists.
 
@@ -61,7 +61,7 @@ Verify `.geas/evidence/specifying/product-authority.json` exists.
 **Skip if** scope is 1-2 tasks (seed already specific enough to compile directly).
 
 ```
-Agent(agent: "product-authority", prompt: "Read .geas/spec/seed.json and .geas/evidence/specifying/product-authority.json. Create a PRD using write-prd skill, save to .geas/spec/prd.md. Then break it into user stories using write-stories skill, save to .geas/spec/stories.md.")
+Agent(agent: "product-authority", prompt: "Read .geas/spec/mission-{mission_id}.json (read mission_id from run.json) and .geas/evidence/specifying/product-authority.json. Create a PRD using write-prd skill, save to .geas/spec/prd.md. Then break it into user stories using write-stories skill, save to .geas/spec/stories.md.")
 ```
 Verify both `.geas/spec/prd.md` and `.geas/spec/stories.md` exist.
 
@@ -70,7 +70,7 @@ Verify both `.geas/spec/prd.md` and `.geas/spec/stories.md` exist.
 **Always run if**: new project, new architecture patterns, cross-module changes.
 
 ```
-Agent(agent: "architecture-authority", prompt: "Then read .geas/spec/seed.json, .geas/evidence/specifying/product-authority.json, and .geas/spec/prd.md. Propose architecture and tech stack. Write conventions to .geas/memory/_project/conventions.md and evidence to .geas/evidence/specifying/architecture-authority.json")
+Agent(agent: "architecture-authority", prompt: "Then read .geas/spec/mission-{mission_id}.json (read mission_id from run.json), .geas/evidence/specifying/product-authority.json, and .geas/spec/prd.md. Propose architecture and tech stack. Write conventions to .geas/memory/_project/conventions.md and evidence to .geas/evidence/specifying/architecture-authority.json")
 ```
 Verify evidence exists. Write DecisionRecord to `.geas/decisions/dec-001.json`.
 

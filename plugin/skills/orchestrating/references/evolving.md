@@ -4,7 +4,7 @@
 
 Produce a structured gap assessment comparing what was planned vs what was delivered.
 
-1. Read `.geas/spec/seed.json` — extract `scope_in` and `scope_out` items
+1. Read `.geas/spec/mission-{mission_id}.json` (get mission_id from run.json) — extract `scope_in` and `scope_out` items
 2. Read all TaskContracts in `.geas/tasks/` — categorize by status
 3. Read `.geas/evolution/debt-register.json` — get open items
 4. Classify each `scope_in` item:
@@ -21,8 +21,8 @@ Produce a structured gap assessment comparing what was planned vs what was deliv
   "artifact_type": "gap_assessment",
   "artifact_id": "ga-evolving",
   "producer_type": "product_authority",
-  "scope_in_summary": "<what was planned — summarize from seed.json scope_in>",
-  "scope_out_summary": "<what was explicitly excluded — from seed.json scope_out>",
+  "scope_in_summary": "<what was planned — summarize from current mission spec scope_in>",
+  "scope_out_summary": "<what was explicitly excluded — from current mission spec scope_out>",
   "fully_delivered": ["item 1", "item 2"],
   "partially_delivered": ["item 3 — missing error handling"],
   "not_delivered": ["item 4"],
@@ -33,7 +33,7 @@ Produce a structured gap assessment comparing what was planned vs what was deliv
 }
 ```
 
-8. **Forward-feeding rule**: Items appearing in `partially_delivered` or `not_delivered` across 2+ gap assessments are automatically fed into the next specifying phase's seed.json constraints.
+8. **Forward-feeding rule**: Items appearing in `partially_delivered` or `not_delivered` across 2+ gap assessments are automatically fed into the next mission spec's constraints during intake.
 9. Reject any work that falls under `scope_out` — Evolving refines, it does not expand.
 
 ### Prioritize Remaining Work
@@ -113,7 +113,7 @@ Same mandatory steps, same Closure Packet verification, same checkpoint manageme
 
 ### Product-authority Final Briefing [MANDATORY]
 ```
-Agent(agent: "product-authority", prompt: "Final product review. Read .geas/spec/seed.json, .geas/evolution/gap-assessment-evolving.json, .geas/evolution/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write JSON to .geas/evidence/evolving/product-authority-final.json. ALSO write a human-readable markdown summary to .geas/summaries/mission-summary.md covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
+Agent(agent: "product-authority", prompt: "Final product review. Read the current mission spec at .geas/spec/mission-{mission_id}.json (get mission_id from .geas/state/run.json), .geas/evolution/gap-assessment-evolving.json, .geas/evolution/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write JSON to .geas/evidence/evolving/product-authority-final.json. ALSO write a human-readable markdown summary to .geas/summaries/mission-summary.md covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
 ```
 Verify `.geas/evidence/evolving/product-authority-final.json` exists.
 Verify `.geas/summaries/mission-summary.md` exists.
