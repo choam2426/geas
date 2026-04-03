@@ -193,6 +193,12 @@ These files are consumed by `restore-context.sh` during post-compact recovery.
 Invoke `/geas:intake` to produce `.geas/spec/mission-{n}.json`.
 - Ask the user clarifying questions until the completeness checklist is satisfied (all boolean fields in `completeness_checklist` are true).
 
+After intake creates the mission file, update `run.json` with BOTH fields:
+- `mission_id`: the mission file reference (e.g., `"mission-002"`) — used to locate the spec file
+- `mission`: the human-readable mission statement from the spec (e.g., `"할일 검색 기능 추가"`) — used for display
+
+These are distinct fields. Do NOT put the mission ID in the `mission` field.
+
 ### Step 2: Routing
 
 Always proceed with the 4-phase execution flow below.
