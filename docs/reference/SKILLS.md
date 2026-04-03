@@ -9,7 +9,7 @@ All 27 skills in the Geas plugin. Skills are invoked either by users directly (`
 | [mission](#mission) | Entry | Yes | User directly | Invokes Orchestrator |
 | [orchestrating](#orchestrating) | Entry | No | User (via `/geas:mission`) | 4-phase mission (Specifying → Building → Polishing → Evolving) |
 | [setup](#setup) | Entry | No | Orchestrator (first run) | `.geas/` runtime directory |
-| [intake](#intake) | Core - Contract Engine | No | Orchestrator | `.geas/spec/seed.json` |
+| [intake](#intake) | Core - Contract Engine | No | Orchestrator | `.geas/spec/mission-{n}.json` |
 | [task-compiler](#task-compiler) | Core - Contract Engine | No | Orchestrator | `.geas/tasks/{id}.json` |
 | [context-packet](#context-packet) | Core - Contract Engine | No | Orchestrator | `.geas/packets/{task-id}/{worker}.md` |
 | [implementation-contract](#implementation-contract) | Core - Contract Engine | No | Orchestrator | `.geas/contracts/{task-id}.json` |
@@ -71,7 +71,7 @@ Geas orchestrator -- coordinates the multi-agent team. Manages setup, intake, an
 
 **Inputs:**
 - `.geas/state/run.json` -- checked at startup for resume vs fresh run
-- `.geas/spec/seed.json` -- mission context after intake
+- `.geas/spec/mission-{n}.json` -- mission context after intake
 - `.geas/ledger/events.jsonl` -- event log for writing transitions
 - `.geas/evolution/debt-register.json` -- tech debt tracking after each agent return
 
@@ -119,7 +119,7 @@ First-time setup -- initialize `.geas/` runtime directory, generate config files
 
 ### intake
 
-Mission intake gate -- collaborative exploration to freeze a seed spec. One question at a time, section-by-section approval.
+Mission intake gate -- collaborative exploration to freeze a mission spec. One question at a time, section-by-section approval.
 
 **User-Invocable:** No
 
@@ -127,17 +127,17 @@ Mission intake gate -- collaborative exploration to freeze a seed spec. One ques
 
 **Inputs:**
 - User natural language (the raw mission statement)
-- `.geas/spec/seed.json` -- checked for existence (existing project variant skips creation if file already exists)
+- `.geas/spec/mission-{n}.json` -- checked for existence (existing project variant skips creation if file already exists)
 
 **Outputs:**
-- `.geas/spec/seed.json` -- frozen mission spec conforming to `schemas/seed.schema.json`
+- `.geas/spec/mission-{n}.json` -- frozen mission spec conforming to `schemas/mission-spec.schema.json`
 
 **Key Behaviors:**
 - Asks one question at a time (never batches questions) and tracks a mental completeness checklist: `mission`, `acceptance_criteria` (>=3), `scope_out` (>=1), `target_user`, `constraints`. Stops when all are satisfied.
 - Presents 2-3 approach options with trade-offs before finalizing scope (new product); delivery on an existing project skips approach proposals and limits questions to feature scope.
 - If the user says "just build it," sets `readiness_override: true`, fills best-effort values, and proceeds. Scope changes after freeze must go through `pivot-protocol`.
 
-**Schemas:** `plugin/skills/intake/schemas/seed.schema.json`
+**Schemas:** `plugin/skills/intake/schemas/mission-spec.schema.json`
 
 ---
 
@@ -151,7 +151,7 @@ Compile a user story into a TaskContract -- a machine-readable work agreement wi
 
 **Inputs:**
 - User story or feature description
-- `.geas/spec/seed.json` -- mission-level context
+- `.geas/spec/mission-{n}.json` -- mission-level context
 - `.geas/memory/_project/conventions.md` -- build/lint/test commands
 - `.geas/tasks/` -- existing contracts for dependency checking and ID sequencing
 
@@ -180,7 +180,7 @@ Generate a role-specific ContextPacket for a worker -- compressed briefing with 
 - `.geas/tasks/{task-id}.json` -- TaskContract
 - `.geas/evidence/{task-id}/` -- upstream worker outputs
 - `.geas/decisions/` -- relevant decision records
-- `.geas/spec/seed.json` -- mission context
+- `.geas/spec/mission-{n}.json` -- mission context
 - `.geas/contracts/{task-id}.json` -- implementation contract (for Architecture Authority and QA Engineer packets)
 - `.geas/evolution/debt-register.json` -- open tech debt items relevant to the task
 
@@ -367,7 +367,7 @@ Create a Product Requirements Document from a feature idea or mission.
 
 **Inputs:**
 - `$ARGUMENTS` -- feature idea, problem statement, or mission
-- `.geas/spec/seed.json` -- mission context and accepted scope
+- `.geas/spec/mission-{n}.json` -- mission context and accepted scope
 
 **Outputs:**
 - `.geas/spec/prd.md` -- structured PRD (Problem, Objective, Target Users, Scope In/Out, User Flows, Functional/Non-Functional Requirements, Success Metrics, Open Questions)
@@ -522,7 +522,7 @@ Structured search over `.geas/ledger/events.jsonl` -- query by task, phase, agen
 - `.geas/tasks/{id}.json` -- cross-reference for contract status
 - `.geas/evidence/{task-id}/{worker}.json` -- cross-reference for evidence files
 - `.geas/decisions/{id}.json` -- cross-reference for decision records
-- `.geas/state/run.json`, `.geas/spec/seed.json` -- for `status` query type
+- `.geas/state/run.json`, `.geas/spec/mission-{n}.json` -- for `status` query type
 
 **Outputs:**
 - Formatted markdown query results printed to console (no files written)

@@ -119,7 +119,7 @@ Workers must not modify files outside `scope.paths`. Scope compliance is verifie
 
 ### Step 6: Define Acceptance Criteria
 
-Inherit from the seed spec and refine for this specific task:
+Inherit from the mission spec and refine for this specific task:
 - Each criterion must be verifiable (yes/no answer)
 - Minimum 3 criteria per task
 - Include functional, edge case, and integration criteria

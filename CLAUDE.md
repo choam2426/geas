@@ -62,7 +62,7 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 
 ### Core skills (contract engine)
 - `intake/` — Socratic requirements gathering → mission-{n}.json
-- `task-compiler/` — seed → TaskContracts with classification, rubric, routing
+- `task-compiler/` — mission spec → TaskContracts with classification, rubric, routing
 - `context-packet/` — role-specific briefings (Phase 4: + memory retrieval)
 - `implementation-contract/` — pre-implementation agreement between worker and reviewers
 - `evidence-gate/` — Tier 0/1/2 verification (pass/fail/block/error)

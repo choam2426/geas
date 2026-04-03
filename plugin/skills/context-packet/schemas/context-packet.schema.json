@@ -28,10 +28,10 @@
       "type": "string",
       "description": "Technical approach from architecture_authority (if applicable)"
     },
-    "prohibited_paths": {
+    "scope_paths": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Inherited from TaskContract"
+      "description": "Allowed file paths for this worker, inherited from TaskContract scope.paths"
     },
     "acceptance_criteria": {
       "type": "array",

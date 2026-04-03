@@ -179,7 +179,7 @@ plugin/
   skills/                    # Shared skills (27 total)
     # --- Contract Engine (core) ---
     intake/                  # Socratic requirements gathering
-    task-compiler/           # seed -> TaskContract
+    task-compiler/           # mission spec -> TaskContract
     context-packet/          # Role-specific briefings
     implementation-contract/ # Pre-implementation agreement
     evidence-gate/           # Tier 0/1/2 verification
@@ -252,7 +252,7 @@ Hooks are lifecycle event handlers that enforce governance without agent coopera
     task-focus/{task_id}.md  # Per-task focus summaries
 
   spec/
-    seed.json                # Mission spec frozen at intake (immutable)
+    mission-{n}.json         # Mission spec frozen at intake (immutable)
 
   tasks/
     {task_id}.json               # TaskContract (flat file per task)

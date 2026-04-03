@@ -179,7 +179,7 @@ plugin/
   skills/                    # 공유 스킬 (27개)
     # --- Contract Engine (핵심) ---
     intake/                  # 소크라테스식 요구사항 수집
-    task-compiler/           # seed → TaskContract
+    task-compiler/           # mission spec → TaskContract
     context-packet/          # 역할별 브리핑
     implementation-contract/ # 구현 전 합의
     evidence-gate/           # Tier 0/1/2 검증
@@ -252,7 +252,7 @@ plugin/
     task-focus/{task_id}.md  # 작업별 포커스 요약
 
   spec/
-    seed.json                # intake에서 동결된 미션 스펙 (불변)
+    mission-{n}.json         # intake에서 동결된 미션 스펙 (불변)
 
   tasks/
     {task_id}.json               # TaskContract (작업별 flat 파일)

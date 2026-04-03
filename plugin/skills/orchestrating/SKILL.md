@@ -207,11 +207,11 @@ Note: `/geas:decision` is available as a utility skill that can be invoked at an
 
 ## Execution Flow
 
-Always 4 phases, regardless of scope. The orchestrator determines phase scale based on seed spec complexity.
+Always 4 phases, regardless of scope. The orchestrator determines phase scale based on mission spec complexity.
 
 ### Phase 1: Specifying
 Read `references/specifying.md` and follow the procedure.
-Minimum: intake (seed spec confirmation with user) + task compilation.
+Minimum: intake (mission spec confirmation with user) + task compilation.
 Full: vision, PRD, architecture, vote round, task compilation.
 
 #### Task Classification Validation [MANDATORY]

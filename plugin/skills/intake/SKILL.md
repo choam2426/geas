@@ -1,6 +1,6 @@
 ---
 name: intake
-description: Mission intake gate — collaborative exploration to freeze a seed spec. One question at a time, section-by-section approval.
+description: Mission intake gate — collaborative exploration to freeze a mission spec. One question at a time, section-by-section approval.
 ---
 
 # Intake Gate

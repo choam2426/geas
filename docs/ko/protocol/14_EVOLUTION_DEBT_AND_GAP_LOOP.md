@@ -148,8 +148,8 @@ evolving phase에서 retrospective 또는 gap assessment를 통해 새로운 cri
   **End-to-end forward-feed 절차:**
   1. **감지**: gap assessment 작성 시 `process_lead`가 `partially_delivered[]`의 각 항목을 이전 gap assessment들과 대조한다. 대조 기준은 항목의 `title`이 동일하거나, `scope_ref`가 동일한 경우이다.
   2. **판정**: 동일 항목이 2회 이상 나타나면 forward-feed 대상으로 mark한다. gap assessment의 해당 항목에 `forward_feed: true`와 `occurrence_count: N`을 기록한다.
-  3. **전파**: 다음 mission의 specifying phase에서 intake skill이 `seed.json`을 생성할 때, forward-feed 대상 항목을 `constraints` 필드에 자동 삽입한다. 각 constraint에는 `source_ref: "{gap_assessment_id}"`, `reason: "repeated_partial_delivery"`, `original_scope: "{항목 title}"`을 포함한다.
-  4. **검증**: task compiler가 `seed.json`에서 forward-feed constraint가 있는 경우, 해당 항목을 포함하는 task를 반드시 1개 이상 생성해야 한다. 생성하지 않으면 `product_authority`의 explicit rationale이 필요하다.
+  3. **전파**: 다음 mission의 specifying phase에서 intake skill이 `mission-{n}.json`을 생성할 때, forward-feed 대상 항목을 `constraints` 필드에 자동 삽입한다. 각 constraint에는 `source_ref: "{gap_assessment_id}"`, `reason: "repeated_partial_delivery"`, `original_scope: "{항목 title}"`을 포함한다.
+  4. **검증**: task compiler가 `mission-{n}.json`에서 forward-feed constraint가 있는 경우, 해당 항목을 포함하는 task를 반드시 1개 이상 생성해야 한다. 생성하지 않으면 `product_authority`의 explicit rationale이 필요하다.
   5. **완료 확인**: forward-feed된 항목이 `fully_delivered`로 전환되면, 해당 constraint는 다음 gap assessment에서 제거된다. `partially_delivered`에 남으면 occurrence_count가 증가하고 forward-feed가 반복된다.
   6. **실패 시**: 3회 이상 반복되어도 해소되지 않으면, `process_lead`가 retrospective에서 해당 항목의 실현 가능성을 재평가하고, `product_authority`가 `intentional_cuts`로 전환할지 판단한다
 

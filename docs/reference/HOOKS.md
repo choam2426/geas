@@ -60,7 +60,7 @@ Session begins
 │   │   [After each Write or Edit tool call]
 │   │   │
 │   │   ├─► PostToolUse (Write|Edit) → protect-geas-state.sh
-│   │   │     Timestamp injection, prohibited path warning, seed.json guard
+│   │   │     Timestamp injection, prohibited path warning, mission spec freeze guard
 │   │   │
 │   │   ├─► PostToolUse (Write|Edit) → verify-task-status.sh
 │   │   │     Check 5 mandatory evidence files + rubric_scores validation
@@ -234,11 +234,11 @@ If the written file path matches `*/.geas/*.json`, the hook reads the file and i
 
 This means agents never need to manually set `created_at`; the hook corrects it automatically after the write.
 
-**3. seed.json freeze guard**
+**3. mission spec freeze guard**
 
-If the written file path matches `*/.geas/spec/seed.json`, it prints a warning to stderr:
+If the written file path matches `*/.geas/spec/mission-*.json`, it prints a warning to stderr:
 ```
-[Geas] Warning: seed.json was modified. Seed should be frozen after intake. Use /geas:pivot-protocol for scope changes.
+[Geas] Warning: mission spec was modified. Mission spec should be frozen after intake. Use /geas:pivot-protocol for scope changes.
 ```
 
 ### Conditions
@@ -246,7 +246,7 @@ If the written file path matches `*/.geas/spec/seed.json`, it prints a warning t
 - Skips immediately if `cwd` or `file_path` cannot be parsed from the hook input.
 - Prohibited path check skips if there is no active `current_task_id` in `run.json`, or if the task file does not exist.
 - Timestamp injection only applies to files under `.geas/` with a `.json` extension.
-- seed.json warning fires on any write to that exact path, regardless of content.
+- Mission spec warning fires on any write to that path pattern, regardless of content.
 
 ---
 
@@ -833,7 +833,7 @@ For protocol details on hook failure handling, conformance checking, and metrics
 | `.geas/evidence/<tid>/challenge-review.json` | verify-task-status, verify-pipeline |
 | `.geas/evidence/<tid>/product-authority-verdict.json` | verify-task-status, verify-pipeline |
 | `.geas/tasks/<tid>/retrospective.json` | verify-task-status, verify-pipeline |
-| `.geas/spec/seed.json` | protect-geas-state (freeze guard) |
+| `.geas/spec/mission-{n}.json` | protect-geas-state (freeze guard) |
 | `.geas/packets/<tid>/*.md` | memory-superseded-warning, packet-stale-check |
 | `.geas/ledger/costs.jsonl` | agent-telemetry |
 | `.geas/ledger/cost-summary.json` | calculate-cost |
