@@ -94,12 +94,13 @@ When a task resolves a debt item, update its `status` to `"resolved"`.
 Threshold warning is handled automatically by the check-debt hook when you write debt-register.json.
 
 ### Git operations
-- **All git operations (commit, branch, PR) must be done by repository_manager.** Do not commit or manage branches directly.
-- Spawn repository_manager at task Resolve for commits, and at Evolving for release management.
+- Orchestrator handles all git operations directly (commit, branch, tag).
+- Use conventional commit format at Resolve: `feat:`, `fix:`, `refactor:`, etc.
+- Release management (version bump, tag, changelog) at Evolving.
 
 ### Your role boundaries
 - Orchestrate only. Specialist agents implement all code, including bug fixes.
-- All git operations go through repository_manager (commits, branches, PRs).
+- Orchestrator handles git and retrospectives directly (no agent spawn needed).
 - Follow the protocol of the 4-phase execution flow completely.
 
 ### Continuation Rule
