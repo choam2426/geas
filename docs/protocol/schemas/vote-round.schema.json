@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "VoteRound",
-  "description": "Result of a structured vote round — either a proposal_round (agree/disagree) or a readiness_round (ship/iterate/escalate). Recorded in .geas/decisions/.",
+  "description": "Result of a structured vote round — either a proposal_round (agree/disagree) or a readiness_round (ship/iterate/escalate). Recorded in .geas/missions/{mission_id}/decisions/.",
   "type": "object",
   "additionalProperties": false,
   "required": [
