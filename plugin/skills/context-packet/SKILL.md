@@ -13,10 +13,10 @@ Orchestrator invokes this skill before dispatching any worker for a task.
 
 ## Inputs
 
-1. **TaskContract** — read from `.geas/tasks/{task-id}.json`
-2. **Prior evidence** — check `.geas/evidence/{task-id}/` for upstream worker output
-3. **Decision records** — check `.geas/decisions/` for relevant decisions
-4. **Mission spec** — `.geas/spec/mission-{mission_id}.json` for mission context
+1. **TaskContract** — read from `.geas/missions/{mission_id}/tasks/{task-id}.json`
+2. **Prior evidence** — check `.geas/missions/{mission_id}/evidence/{task-id}/` for upstream worker output
+3. **Decision records** — check `.geas/missions/{mission_id}/decisions/` for relevant decisions
+4. **Mission spec** — `.geas/missions/{mission_id}/spec.json` for mission context
 
 ## Generation Process
 
@@ -50,7 +50,7 @@ Different workers need different context:
 - Architecture decisions relevant to this area
 - Acceptance criteria to review against
 - Known anti-patterns to watch for
-- **Implementation contract** — read `.geas/contracts/{task-id}.json` to verify the implementation matches the agreed plan
+- **Implementation contract** — read `.geas/missions/{mission_id}/contracts/{task-id}.json` to verify the implementation matches the agreed plan
 - **Worker's `self_check`** — `known_risks` and `possible_stubs` to focus review attention
 - **Rubric dimension**: `code_quality` score and threshold (from TaskContract `rubric`)
 
@@ -61,7 +61,7 @@ Different workers need different context:
 - Edge cases to probe
 - UI flows to exercise (if frontend)
 - **Worker's `self_check`** — `untested_paths`, `known_risks`, and `what_i_would_test_next` from the worker's EvidenceBundle (prioritize testing these areas)
-- **Implementation contract** — read `.geas/contracts/{task-id}.json` for `demo_steps` and `edge_cases` the worker committed to handling
+- **Implementation contract** — read `.geas/missions/{mission_id}/contracts/{task-id}.json` for `demo_steps` and `edge_cases` the worker committed to handling
 - **QA tools available** — based on project stack (see QA Tools section below)
 - **Rubric dimensions** — which dimensions qa_engineer must score and their thresholds (from TaskContract `rubric`)
 
@@ -85,18 +85,18 @@ Different workers need different context:
 
 ### Step 3: Extract Relevant Context
 
-From prior evidence (`.geas/evidence/{task-id}/`):
+From prior evidence (`.geas/missions/{mission_id}/evidence/{task-id}/`):
 - Read each upstream worker's evidence bundle
 - Extract the `summary` and `files_changed` fields
 - For design evidence: extract the full design spec
 - For tech guide evidence: extract the approach and constraints
 
-From decision records (`.geas/decisions/`):
+From decision records (`.geas/missions/{mission_id}/decisions/`):
 - Read any decisions relevant to this task's domain
 - Include the decision rationale and outcome
 - Human-confirmed decisions have the highest priority
 
-From tech debt (`.geas/evolution/debt-register.json`, if it exists):
+From tech debt (`.geas/missions/{mission_id}/evolution/debt-register.json`, if it exists):
 - Read open debt items
 - Include items relevant to the current task's domain
 
@@ -129,7 +129,7 @@ After extracting task context, retrieve applicable memories:
    - specialist agents (`frontend_engineer`, `backend_engineer`, `qa_engineer`, etc.): top 3-5 entries
    - `product_authority`: top 3 entries
 
-5. Write `.geas/packets/{task-id}/memory-packet.json` conforming to `schemas/memory-packet.schema.json`:
+5. Write `.geas/missions/{mission_id}/packets/{task-id}/memory-packet.json` conforming to `schemas/memory-packet.schema.json`:
    ```json
    {
      "meta": {
@@ -178,10 +178,10 @@ Regenerate the memory packet when any of these occur:
 
 ### Step 4: Write the Packet
 
-Write to `.geas/packets/{task-id}/{worker-name}.md`
+Write to `.geas/missions/{mission_id}/packets/{task-id}/{worker-name}.md`
 
 ```bash
-mkdir -p .geas/packets/{task-id}
+mkdir -p .geas/missions/{mission_id}/packets/{task-id}
 ```
 
 ## Packet Format
@@ -225,8 +225,8 @@ Write the packet as a markdown file with this structure:
 {Injected from memory retrieval — see Step 3. Omit if no memories scored above threshold.}
 
 ## Reference
-- Mission spec: .geas/spec/mission-{mission_id}.json
-- Contract: .geas/tasks/{task-id}.json
+- Mission spec: .geas/missions/{mission_id}/spec.json
+- Contract: .geas/missions/{mission_id}/tasks/{task-id}.json
 ```
 
 Omit sections that have no content (e.g., no design context for a backend task before ui_ux_designer has worked).

@@ -27,7 +27,7 @@ Simulates a session crash mid-implementation. The run.json shows an in-flight ag
 ### Setup
 
 ```bash
-mkdir -p .geas/state .geas/tasks
+mkdir -p .geas/state .geas/missions/mission-chaos/tasks
 cat > .geas/state/run.json << 'EOF'
 {
   "version": "1.0",
@@ -39,7 +39,7 @@ cat > .geas/state/run.json << 'EOF'
   "checkpoint": {
     "pipeline_step": "implementation",
     "agent_in_flight": "architecture-authority",
-    "pending_evidence": [".geas/evidence/task-chaos-001/architecture-authority.json"],
+    "pending_evidence": [".geas/missions/mission-chaos/evidence/task-chaos-001/architecture-authority.json"],
     "retry_count": 0,
     "parallel_batch": null,
     "completed_in_batch": [],
@@ -77,8 +77,9 @@ Simulates a task with a base_commit that is 5+ commits behind HEAD. The stale-st
 ### Setup
 
 ```bash
+mkdir -p .geas/missions/mission-chaos/tasks
 OLD_COMMIT=$(git log --skip=5 -1 --format=%H 2>/dev/null || git log -1 --format=%H)
-cat > .geas/tasks/task-chaos-002.json << EOF
+cat > .geas/missions/mission-chaos/tasks/task-chaos-002.json << EOF
 {
   "version": "1.0",
   "artifact_type": "task_contract",
@@ -113,7 +114,7 @@ Attempt to start task-chaos-002 (baseline check should fire).
 ```bash
 python3 -c "
 import os
-exists = os.path.exists('.geas/tasks/task-chaos-002/revalidation-record.json')
+exists = os.path.exists('.geas/missions/mission-chaos/tasks/task-chaos-002/revalidation-record.json')
 # Alternatively check if stale-start-check hook warned
 print('PASS: Stale detection triggered' if exists else 'PARTIAL: Check stale-start-check.sh output')
 "
@@ -203,7 +204,7 @@ Generate context packet for a task with scope.paths including caching-related pa
 ```bash
 python3 -c "
 import json, glob
-packets = glob.glob('.geas/packets/*/memory-packet.json')
+packets = glob.glob('.geas/missions/*/packets/*/memory-packet.json')
 if not packets:
     print('SKIP: No memory packet generated (trigger context-packet manually)')
 else:
@@ -222,7 +223,7 @@ Creates a task in "integrated" state where two reviewer types are required but o
 ### Setup
 
 ```bash
-mkdir -p .geas/tasks/task-chaos-005 .geas/evidence/task-chaos-005
+mkdir -p .geas/missions/mission-chaos/tasks/task-chaos-005 .geas/missions/mission-chaos/evidence/task-chaos-005
 # Task contract with two required reviewers
 python3 -c "
 import json
@@ -235,11 +236,11 @@ tc = {
   'retry_budget':3,'scope':{'paths':['src/']},'routing':{'primary_worker_type':'backend_engineer','required_reviewer_types':['architecture_authority','qa_engineer']},
   'base_commit':'abc123','status':'integrated'
 }
-json.dump(tc, open('.geas/tasks/task-chaos-005.json','w'), indent=2)
+json.dump(tc, open('.geas/missions/mission-chaos/tasks/task-chaos-005.json','w'), indent=2)
 # Only architecture_authority review exists (qa_engineer missing)
-json.dump({'reviewer':'architecture_authority','status':'approved','summary':'LGTM'}, open('.geas/evidence/task-chaos-005/architecture-authority-review.json','w'), indent=2)
+json.dump({'reviewer':'architecture_authority','status':'approved','summary':'LGTM'}, open('.geas/missions/mission-chaos/evidence/task-chaos-005/architecture-authority-review.json','w'), indent=2)
 # worker self-check exists
-json.dump({'version':'1.0','artifact_type':'worker_self_check','artifact_id':'wsc-005','producer_type':'backend_engineer','task_id':'task-chaos-005','known_risks':[],'untested_paths':[],'possible_stubs':[],'what_to_test_next':[],'confidence':4,'summary':'Done','created_at':'2026-04-02T00:00:00Z'}, open('.geas/tasks/task-chaos-005/worker-self-check.json','w'), indent=2)
+json.dump({'version':'1.0','artifact_type':'worker_self_check','artifact_id':'wsc-005','producer_type':'backend_engineer','task_id':'task-chaos-005','known_risks':[],'untested_paths':[],'possible_stubs':[],'what_to_test_next':[],'confidence':4,'summary':'Done','created_at':'2026-04-02T00:00:00Z'}, open('.geas/missions/mission-chaos/tasks/task-chaos-005/worker-self-check.json','w'), indent=2)
 "
 ```
 
@@ -252,7 +253,7 @@ Run evidence gate on task-chaos-005.
 ```bash
 python3 -c "
 import json, os
-gf = '.geas/tasks/task-chaos-005/gate-result.json'
+gf = '.geas/missions/mission-chaos/tasks/task-chaos-005/gate-result.json'
 if os.path.exists(gf):
     g = json.load(open(gf))
     assert g['verdict'] == 'block', f'FAIL: Expected block, got {g[\"verdict\"]}'

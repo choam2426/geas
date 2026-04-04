@@ -28,11 +28,11 @@ All reads, no writes:
 | Source | Path | Format |
 |--------|------|--------|
 | Event log | `.geas/ledger/events.jsonl` | JSONL (one JSON object per line) |
-| Task contracts | `.geas/tasks/{id}.json` | JSON |
-| Evidence bundles | `.geas/evidence/{task-id}/{worker}.json` | JSON |
-| Decision records | `.geas/decisions/{id}.json` | JSON |
+| Task contracts | `.geas/missions/{mission_id}/tasks/{id}.json` | JSON |
+| Evidence bundles | `.geas/missions/{mission_id}/evidence/{task-id}/{worker}.json` | JSON |
+| Decision records | `.geas/missions/{mission_id}/decisions/{id}.json` | JSON |
 | Run state | `.geas/state/run.json` | JSON |
-| Mission spec | `.geas/spec/mission-{mission_id}.json` | JSON |
+| Mission spec | `.geas/missions/{mission_id}/spec.json` | JSON |
 
 ---
 
@@ -46,8 +46,8 @@ Show all events for a specific task in chronological order.
 1. Read `.geas/ledger/events.jsonl`
 2. Filter lines where `task_id` matches
 3. Sort by `timestamp` ascending
-4. Cross-reference: read `.geas/tasks/<task-id>.json` for contract status
-5. Cross-reference: list evidence files in `.geas/evidence/<task-id>/`
+4. Cross-reference: read `.geas/missions/{mission_id}/tasks/<task-id>.json` for contract status
+5. Cross-reference: list evidence files in `.geas/missions/{mission_id}/evidence/<task-id>/`
 
 **Output format:**
 ```
@@ -171,7 +171,7 @@ Current run state summary with recent events.
 1. Read `.geas/state/run.json` for current state
 2. Read current mission spec for mission and completeness_checklist
 3. Read last 10 events from `.geas/ledger/events.jsonl`
-4. Count completed vs total tasks from `.geas/tasks/`
+4. Count completed vs total tasks from `.geas/missions/{mission_id}/tasks/`
 5. List any in-progress or failed tasks
 
 **Output format:**

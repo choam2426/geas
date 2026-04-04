@@ -26,8 +26,8 @@ Read these in order to assemble the summary:
 
 1. **`.geas/state/run.json`** — current phase, mission, milestone
 2. **`.geas/ledger/costs.jsonl`** — agent spawn telemetry (agent name, task, phase, timestamp per spawn)
-3. **`.geas/tasks/`** — TaskContracts, check statuses for completion and progress
-4. **`.geas/decisions/`** — DecisionRecords for decisions made this session
+3. **`.geas/missions/{mission_id}/tasks/`** — TaskContracts, check statuses for completion and progress
+4. **`.geas/missions/{mission_id}/decisions/`** — DecisionRecords for decisions made this session
 5. **`.geas/ledger/events.jsonl`** — gate results, verify-fix loops, escalations
 
 ---
@@ -94,7 +94,7 @@ Present as a markdown table in the summary.
 
 ---
 
-### Tech Debt Report (if `.geas/evolution/debt-register.json` exists)
+### Tech Debt Report (if `.geas/missions/{mission_id}/evolution/debt-register.json` exists)
 
 Read debt-register.json and report:
 - **Open**: count by severity (HIGH / MEDIUM / LOW)

@@ -27,4 +27,4 @@ Agent(agent: "ui-ux-designer", prompt: "Evaluate both from UX/frontend perspecti
 Present summary: arguments, trade-offs, agent recommendations.
 
 ### 4. Decision
-Ask user. Write DecisionRecord to `.geas/decisions/{dec-id}.json`.
+Ask user. Write DecisionRecord to `.geas/missions/{mission_id}/decisions/{dec-id}.json`.

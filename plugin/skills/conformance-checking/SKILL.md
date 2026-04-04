@@ -28,19 +28,20 @@ These scenarios verify that task state transitions are guarded by the required a
 
 ### SI-1 — Implementation Contract Required Before Implementing
 
-**Checks:** Hook or skill directive that blocks `ready -> implementing` unless `.geas/contracts/{task-id}.json` exists with status "approved".
+**Checks:** Hook or skill directive that blocks `ready -> implementing` unless `.geas/missions/{mission_id}/contracts/{task-id}.json` exists with status "approved".
 
 ```bash
 #!/usr/bin/env bash
 # SI-1: Every task in status "implementing" must have an approved implementation contract
 RESULT="PASS"
 DETAIL=""
-for task_file in .geas/tasks/*.json; do
+for task_file in .geas/missions/*/tasks/*.json; do
   [[ -f "$task_file" ]] || continue
+  mission_dir=$(echo "$task_file" | sed 's|/tasks/[^/]*$||')
   status=$(python3 -c "import json,sys; d=json.load(open('$task_file')); print(d.get('status',''))" 2>/dev/null)
   if [[ "$status" == "implementing" ]]; then
     task_id=$(python3 -c "import json,sys; d=json.load(open('$task_file')); print(d.get('task_id',''))" 2>/dev/null)
-    contract=".geas/contracts/${task_id}.json"
+    contract="${mission_dir}/contracts/${task_id}.json"
     if [[ ! -f "$contract" ]]; then
       RESULT="FAIL"
       DETAIL="${DETAIL} Missing contract for ${task_id}."
@@ -56,25 +57,26 @@ done
 echo "SI-1: ${RESULT}${DETAIL:+ —$DETAIL}"
 ```
 
-**Pass condition:** All tasks with status "implementing" have a corresponding `.geas/contracts/{task-id}.json` with `status = "approved"`. If no "implementing" tasks exist, reports PASS (nothing to violate).
+**Pass condition:** All tasks with status "implementing" have a corresponding `.geas/missions/{mission_id}/contracts/{task-id}.json` with `status = "approved"`. If no "implementing" tasks exist, reports PASS (nothing to violate).
 
 ---
 
 ### SI-2 — Worker Self-Check Required Before Reviewed
 
-**Checks:** Hook or skill directive that blocks `implementing -> reviewed` unless `.geas/tasks/{task-id}/worker-self-check.json` exists.
+**Checks:** Hook or skill directive that blocks `implementing -> reviewed` unless `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json` exists.
 
 ```bash
 #!/usr/bin/env bash
 # SI-2: Every task in status "reviewed" must have a worker-self-check.json
 RESULT="PASS"
 DETAIL=""
-for task_file in .geas/tasks/*.json; do
+for task_file in .geas/missions/*/tasks/*.json; do
   [[ -f "$task_file" ]] || continue
+  mission_dir=$(echo "$task_file" | sed 's|/tasks/[^/]*$||')
   status=$(python3 -c "import json; d=json.load(open('$task_file')); print(d.get('status',''))" 2>/dev/null)
   if [[ "$status" == "reviewed" ]]; then
     task_id=$(python3 -c "import json; d=json.load(open('$task_file')); print(d.get('task_id',''))" 2>/dev/null)
-    self_check=".geas/tasks/${task_id}/worker-self-check.json"
+    self_check="${mission_dir}/tasks/${task_id}/worker-self-check.json"
     if [[ ! -f "$self_check" ]]; then
       RESULT="FAIL"
       DETAIL="${DETAIL} Missing worker-self-check for ${task_id}."
@@ -84,25 +86,26 @@ done
 echo "SI-2: ${RESULT}${DETAIL:+ —$DETAIL}"
 ```
 
-**Pass condition:** All tasks with status "reviewed" have a corresponding `.geas/tasks/{task-id}/worker-self-check.json`. If no "reviewed" tasks exist, reports PASS.
+**Pass condition:** All tasks with status "reviewed" have a corresponding `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json`. If no "reviewed" tasks exist, reports PASS.
 
 ---
 
 ### SI-3 — Final Verdict Required Before Passed
 
-**Checks:** Hook or skill directive that blocks `verified -> passed` unless `.geas/tasks/{task-id}/final-verdict.json` exists.
+**Checks:** Hook or skill directive that blocks `verified -> passed` unless `.geas/missions/{mission_id}/tasks/{task-id}/final-verdict.json` exists.
 
 ```bash
 #!/usr/bin/env bash
 # SI-3: Every task in status "passed" must have a final-verdict.json
 RESULT="PASS"
 DETAIL=""
-for task_file in .geas/tasks/*.json; do
+for task_file in .geas/missions/*/tasks/*.json; do
   [[ -f "$task_file" ]] || continue
+  mission_dir=$(echo "$task_file" | sed 's|/tasks/[^/]*$||')
   status=$(python3 -c "import json; d=json.load(open('$task_file')); print(d.get('status',''))" 2>/dev/null)
   if [[ "$status" == "passed" ]]; then
     task_id=$(python3 -c "import json; d=json.load(open('$task_file')); print(d.get('task_id',''))" 2>/dev/null)
-    verdict_file=".geas/tasks/${task_id}/final-verdict.json"
+    verdict_file="${mission_dir}/tasks/${task_id}/final-verdict.json"
     if [[ ! -f "$verdict_file" ]]; then
       RESULT="FAIL"
       DETAIL="${DETAIL} Missing final-verdict for ${task_id}."
@@ -112,7 +115,7 @@ done
 echo "SI-3: ${RESULT}${DETAIL:+ —$DETAIL}"
 ```
 
-**Pass condition:** All tasks with status "passed" have a corresponding `.geas/tasks/{task-id}/final-verdict.json`. If no "passed" tasks exist, reports PASS.
+**Pass condition:** All tasks with status "passed" have a corresponding `.geas/missions/{mission_id}/tasks/{task-id}/final-verdict.json`. If no "passed" tasks exist, reports PASS.
 
 ---
 
@@ -404,19 +407,20 @@ These scenarios verify that evolving phase exit gates, debt tracking, and rules 
 
 ### EL-1 — Retrospective Required for Passed Tasks
 
-**Checks:** For each task with status "passed" in `.geas/tasks/`, verify that `.geas/tasks/{task-id}/retrospective.json` exists.
+**Checks:** For each task with status "passed" in `.geas/missions/{mission_id}/tasks/`, verify that `.geas/missions/{mission_id}/tasks/{task-id}/retrospective.json` exists.
 
 ```bash
 #!/usr/bin/env bash
 # EL-1: Every task in status "passed" must have a retrospective.json
 RESULT="PASS"
 DETAIL=""
-for task_file in .geas/tasks/*.json; do
+for task_file in .geas/missions/*/tasks/*.json; do
   [[ -f "$task_file" ]] || continue
+  mission_dir=$(echo "$task_file" | sed 's|/tasks/[^/]*$||')
   status=$(python3 -c "import json; d=json.load(open('$task_file')); print(d.get('status',''))" 2>/dev/null)
   if [[ "$status" == "passed" ]]; then
     task_id=$(python3 -c "import json; d=json.load(open('$task_file')); print(d.get('task_id',''))" 2>/dev/null)
-    retro=".geas/tasks/${task_id}/retrospective.json"
+    retro="${mission_dir}/tasks/${task_id}/retrospective.json"
     if [[ ! -f "$retro" ]]; then
       RESULT="FAIL"
       DETAIL="${DETAIL} Missing retrospective for ${task_id}."
@@ -426,7 +430,7 @@ done
 echo "EL-1: ${RESULT}${DETAIL:+ —$DETAIL}"
 ```
 
-**Pass condition:** All tasks with status "passed" have a corresponding `.geas/tasks/{task-id}/retrospective.json`. If no "passed" tasks exist, reports PASS.
+**Pass condition:** All tasks with status "passed" have a corresponding `.geas/missions/{mission_id}/tasks/{task-id}/retrospective.json`. If no "passed" tasks exist, reports PASS.
 
 ---
 
@@ -518,19 +522,20 @@ These scenarios verify that gate result artifacts and recovery decision logic ar
 
 ### RC-1 — Gate Result Required for Verified Tasks
 
-**Checks:** For each task with status "verified" in `.geas/tasks/`, verify that `.geas/tasks/{task-id}/gate-result.json` exists. A verified claim without a gate result triggers a rewind.
+**Checks:** For each task with status "verified" in `.geas/missions/{mission_id}/tasks/`, verify that `.geas/missions/{mission_id}/tasks/{task-id}/gate-result.json` exists. A verified claim without a gate result triggers a rewind.
 
 ```bash
 #!/usr/bin/env bash
 # RC-1: Every task in status "verified" must have a gate-result.json
 RESULT="PASS"
 DETAIL=""
-for task_file in .geas/tasks/*.json; do
+for task_file in .geas/missions/*/tasks/*.json; do
   [[ -f "$task_file" ]] || continue
+  mission_dir=$(echo "$task_file" | sed 's|/tasks/[^/]*$||')
   status=$(python3 -c "import json; d=json.load(open('$task_file')); print(d.get('status',''))" 2>/dev/null)
   if [[ "$status" == "verified" ]]; then
     task_id=$(python3 -c "import json; d=json.load(open('$task_file')); print(d.get('task_id',''))" 2>/dev/null)
-    gate_result=".geas/tasks/${task_id}/gate-result.json"
+    gate_result="${mission_dir}/tasks/${task_id}/gate-result.json"
     if [[ ! -f "$gate_result" ]]; then
       RESULT="FAIL"
       DETAIL="${DETAIL} Missing gate-result for verified task ${task_id} — rewind required."
@@ -540,7 +545,7 @@ done
 echo "RC-1: ${RESULT}${DETAIL:+ —$DETAIL}"
 ```
 
-**Pass condition:** All tasks with status "verified" have a corresponding `.geas/tasks/{task-id}/gate-result.json`. If no "verified" tasks exist, reports PASS.
+**Pass condition:** All tasks with status "verified" have a corresponding `.geas/missions/{mission_id}/tasks/{task-id}/gate-result.json`. If no "verified" tasks exist, reports PASS.
 
 ---
 

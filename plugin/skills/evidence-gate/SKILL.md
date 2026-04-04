@@ -11,9 +11,9 @@ Objective verification of whether a worker's output meets the TaskContract requi
 
 ## Inputs
 
-1. **TaskContract** — read from `.geas/tasks/{task-id}.json`
-2. **Worker Self-Check** — read from `.geas/tasks/{task-id}/worker-self-check.json`
-3. **Specialist Reviews** — read from `.geas/evidence/{task-id}/`. Naming: `{agent-type}-review.json` when the agent produces multiple artifacts (e.g., `architecture-authority-review.json` for code review, distinct from `architecture-authority.json` tech guide), or `{agent-type}.json` when the agent produces one artifact (e.g., `qa-engineer.json`)
+1. **TaskContract** — read from `.geas/missions/{mission_id}/tasks/{task-id}.json`
+2. **Worker Self-Check** — read from `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json`
+3. **Specialist Reviews** — read from `.geas/missions/{mission_id}/evidence/{task-id}/`. Naming: `{agent-type}-review.json` when the agent produces multiple artifacts (e.g., `architecture-authority-review.json` for code review, distinct from `architecture-authority.json` tech guide), or `{agent-type}.json` when the agent produces one artifact (e.g., `qa-engineer.json`)
 4. **Integration Result** — merge status from worktree integration
 5. **Gate profile** — determines which tiers to run (see below)
 
@@ -34,7 +34,7 @@ Verify that all prerequisites are in place before running expensive checks.
 ### Checks
 
 1. **Required artifacts existence**
-   - `worker-self-check.json` must exist at `.geas/tasks/{task-id}/worker-self-check.json`
+   - `worker-self-check.json` must exist at `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json`
    - Specialist reviews must exist (per the task's required reviewer set)
    - Integration result must be recorded (for `code_change` profile)
 
@@ -119,7 +119,7 @@ Compare files changed against the task's `scope.paths`:
 Verify that each item in the implementation contract's `known_risks` has been handled:
 - **Mitigated**: evidence shows the risk was addressed
 - **Accepted with rationale**: explicit rationale recorded for accepting the risk
-- **Deferred to debt**: recorded in `.geas/evolution/debt-register.json`
+- **Deferred to debt**: recorded in `.geas/missions/{mission_id}/evolution/debt-register.json`
 
 Any `known_risk` with no handling status -> Tier 2 fails.
 
@@ -211,7 +211,7 @@ If the gate verdict is `error`:
 
 ## Output
 
-Write to `.geas/tasks/{task-id}/gate-result.json` conforming to `schemas/gate-result.schema.json`.
+Write to `.geas/missions/{mission_id}/tasks/{task-id}/gate-result.json` conforming to `schemas/gate-result.schema.json`.
 
 ```json
 {
@@ -261,7 +261,7 @@ Also log a detailed event to `.geas/ledger/events.jsonl`:
 
 ## On Pass
 
-1. Update TaskContract status to `"verified"` in `.geas/tasks/{task-id}.json`
+1. Update TaskContract status to `"verified"` in `.geas/missions/{mission_id}/tasks/{task-id}.json`
 2. Log the gate_result event (see Output above)
 3. Return to the pipeline — next step is **Closure Packet assembly**, then **Critical Reviewer Challenge**, then **Final Verdict**
 
@@ -278,7 +278,7 @@ Also log a detailed event to `.geas/ledger/events.jsonl`:
      - `"product-authority-decision"`: spawn the `product_authority` for a strategic decision (continue/cut/pivot)
      - `"pivot"`: invoke pivot protocol
    - Update TaskContract status to `"escalated"`
-   - Write a DecisionRecord to `.geas/decisions/{dec-id}.json`
+   - Write a DecisionRecord to `.geas/missions/{mission_id}/decisions/{dec-id}.json`
 
 ## On Block
 
@@ -294,9 +294,9 @@ Also log a detailed event to `.geas/ledger/events.jsonl`:
 When the gate results in an escalation or significant decision, write a DecisionRecord:
 
 ```bash
-mkdir -p .geas/decisions
+mkdir -p .geas/missions/{mission_id}/decisions
 ```
 
-Write to `.geas/decisions/{dec-id}.json` conforming to `schemas/decision-record.schema.json`.
+Write to `.geas/missions/{mission_id}/decisions/{dec-id}.json` conforming to `schemas/decision-record.schema.json`.
 
 This creates a durable record of WHY a decision was made, not just WHAT happened.

@@ -14,8 +14,8 @@ After the evidence gate fails, this loop ensures bugs are actually fixed — not
 ## Entry Point
 
 Read the gate failure details:
-1. **TaskContract** from `.geas/tasks/{task-id}.json` — for retry_budget and escalation_policy
-2. **Failed EvidenceBundle** from `.geas/evidence/{task-id}/qa-engineer.json` — for specific failures
+1. **TaskContract** from `.geas/missions/{mission_id}/tasks/{task-id}.json` — for retry_budget and escalation_policy
+2. **Failed EvidenceBundle** from `.geas/missions/{mission_id}/evidence/{task-id}/qa-engineer.json` — for specific failures
 3. **Gate verdict** — which tier failed (mechanical or semantic) and why
 
 ---
@@ -54,7 +54,7 @@ Generate a fix-specific ContextPacket:
 
 Spawn the fixer **with worktree isolation** (implementation agents always use worktree):
 ```
-Agent(agent: "{fixer}", isolation: "worktree", prompt: "Read your ContextPacket at .geas/packets/{task-id}/{fixer}-fix-{N}.md. Fix the specific failures listed in your packet. Write your results to .geas/evidence/{task-id}/{fixer}-fix-{N}.json")
+Agent(agent: "{fixer}", isolation: "worktree", prompt: "Read your ContextPacket at .geas/missions/{mission_id}/packets/{task-id}/{fixer}-fix-{N}.md. Fix the specific failures listed in your packet. Write your results to .geas/missions/{mission_id}/evidence/{task-id}/{fixer}-fix-{N}.json")
 ```
 
 After the fixer completes, merge the worktree branch before re-running the evidence gate. If merge conflicts arise, follow the orchestration_authority merge conflict protocol.
@@ -81,10 +81,10 @@ Follow the TaskContract's `escalation_policy`:
 Spawn **architecture-authority** for architectural review:
 ```
 The evidence gate has failed {retry_budget} times for task {task-id}.
-Read the TaskContract at .geas/tasks/{task-id}.json
-Read all evidence at .geas/evidence/{task-id}/
+Read the TaskContract at .geas/missions/{mission_id}/tasks/{task-id}.json
+Read all evidence at .geas/missions/{mission_id}/evidence/{task-id}/
 Analyze: Is there a fundamental design issue? Is the approach viable?
-Write your analysis to .geas/evidence/{task-id}/architecture-authority-escalation.json
+Write your analysis to .geas/missions/{mission_id}/evidence/{task-id}/architecture-authority-escalation.json
 ```
 
 Then evaluate architecture_authority's assessment:
@@ -103,7 +103,7 @@ Invoke `/pivot-protocol` with full context.
 
 ### Write DecisionRecord
 
-For any escalation, write a DecisionRecord to `.geas/decisions/{dec-id}.json`:
+For any escalation, write a DecisionRecord to `.geas/missions/{mission_id}/decisions/{dec-id}.json`:
 ```json
 {
   "version": "1.0",

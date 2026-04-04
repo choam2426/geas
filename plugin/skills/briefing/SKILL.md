@@ -76,8 +76,8 @@ Next Priority:
 product_authority reads these to assemble the briefing:
 
 1. **`.geas/state/run.json`** — current phase, milestone, mission
-2. **`.geas/tasks/`** — TaskContracts grouped by status
-3. **`.geas/evidence/`** — recent activity, blockers, decisions
+2. **`.geas/missions/{mission_id}/tasks/`** — TaskContracts grouped by status
+3. **`.geas/missions/{mission_id}/evidence/`** — recent activity, blockers, decisions
 4. **Previous briefings** — check for prior "Run Summary" or "Morning Briefing" documents to track delta
 
 ---
