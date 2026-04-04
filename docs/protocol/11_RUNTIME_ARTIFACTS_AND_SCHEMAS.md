@@ -10,25 +10,25 @@ This document summarizes the contracts for canonical runtime artifacts and memor
 
 | Artifact | Schema | Storage path | Producer |
 |----------|--------|-------------|----------|
-| `mission-spec.json` | `mission-spec.schema.json` | `.geas/spec/mission-{n}.json` (migration to `.geas/missions/` pending) | orchestration_authority |
+| `mission-spec.json` | `mission-spec.schema.json` | `.geas/missions/{mission_id}/spec.json` | orchestration_authority |
 | `design-brief.json` | `design-brief.schema.json` | `.geas/missions/{mission_id}/design-brief.json` | orchestration_authority |
 
 ### Pipeline Artifacts (per-task)
 
 | Artifact | Schema | Storage path | Producer |
 |----------|--------|-------------|----------|
-| `task-contract.json` | `task-contract.schema.json` | `.geas/tasks/{task_id}.json` | task_compiler |
-| `implementation-contract.json` | `implementation-contract.schema.json` | `.geas/contracts/{task_id}.json` | primary worker |
-| `worker-self-check.json` | `worker-self-check.schema.json` | `.geas/tasks/{task_id}/worker-self-check.json` | primary worker |
-| `specialist-review.json` | `specialist-review.schema.json` | `.geas/evidence/{task_id}/{agent-type}[-review].json` | specialist agents |
-| `integration-result.json` | `integration-result.schema.json` | `.geas/tasks/{task_id}/integration-result.json` | orchestration_authority |
-| `gate-result.json` | `gate-result.schema.json` | `.geas/tasks/{task_id}/gate-result.json` | orchestration_authority |
-| `closure-packet.json` | `closure-packet.schema.json` | `.geas/tasks/{task_id}/closure-packet.json` | orchestration_authority |
-| `challenge-review.json` | `challenge-review.schema.json` | `.geas/tasks/{task_id}/challenge-review.json` | critical_reviewer |
-| `final-verdict.json` | `final-verdict.schema.json` | `.geas/tasks/{task_id}/final-verdict.json` | product_authority |
-| `vote-round.json` | `vote-round.schema.json` | `.geas/decisions/{dec_id}.json` | orchestration_authority |
-| `failure-record.json` | `failure-record.schema.json` | `.geas/tasks/{task_id}/failure-record-{seq}.json` | orchestration_authority |
-| `retrospective.json` | `retrospective.schema.json` | `.geas/tasks/{task_id}/retrospective.json` | process_lead |
+| `task-contract.json` | `task-contract.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}.json` | task_compiler |
+| `implementation-contract.json` | `implementation-contract.schema.json` | `.geas/missions/{mission_id}/contracts/{task_id}.json` | primary worker |
+| `worker-self-check.json` | `worker-self-check.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/worker-self-check.json` | primary worker |
+| `specialist-review.json` | `specialist-review.schema.json` | `.geas/missions/{mission_id}/evidence/{task_id}/{agent-type}[-review].json` | specialist agents |
+| `integration-result.json` | `integration-result.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/integration-result.json` | orchestration_authority |
+| `gate-result.json` | `gate-result.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/gate-result.json` | orchestration_authority |
+| `closure-packet.json` | `closure-packet.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/closure-packet.json` | orchestration_authority |
+| `challenge-review.json` | `challenge-review.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/challenge-review.json` | critical_reviewer |
+| `final-verdict.json` | `final-verdict.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/final-verdict.json` | product_authority |
+| `vote-round.json` | `vote-round.schema.json` | `.geas/missions/{mission_id}/decisions/{dec_id}.json` | orchestration_authority |
+| `failure-record.json` | `failure-record.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/failure-record-{seq}.json` | orchestration_authority |
+| `retrospective.json` | `retrospective.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/retrospective.json` | process_lead |
 
 ### Session & Orchestration Artifacts
 
@@ -37,17 +37,17 @@ This document summarizes the contracts for canonical runtime artifacts and memor
 | `run-state.json` | `run-state.schema.json` | `.geas/state/run.json` | orchestration_authority |
 | `lock-manifest.json` | `lock-manifest.schema.json` | `.geas/state/locks.json` | orchestration_authority |
 | `health-check.json` | `health-check.schema.json` | `.geas/state/health-check.json` | orchestration_authority |
-| `revalidation-record.json` | `revalidation-record.schema.json` | `.geas/tasks/{task_id}/revalidation-record.json` | orchestration_authority |
+| `revalidation-record.json` | `revalidation-record.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/revalidation-record.json` | orchestration_authority |
 | `recovery-packet.json` | `recovery-packet.schema.json` | `.geas/recovery/recovery-{id}.json` | orchestration_authority |
 
 ### Evolution Artifacts
 
 | Artifact | Schema | Storage path | Scope |
 |----------|--------|-------------|-------|
-| `rules-update.json` | `rules-update.schema.json` | `.geas/evolution/rules-update-{seq}.json` | per mission |
-| `debt-register.json` | `debt-register.schema.json` | `.geas/evolution/debt-register.json` | per mission (entries accumulate) |
-| `gap-assessment.json` | `gap-assessment.schema.json` | `.geas/evolution/gap-assessment-{transition}.json` | per phase transition |
-| `phase-review.json` | `phase-review.schema.json` | `.geas/evolution/phase-review-{transition}.json` | per phase transition |
+| `rules-update.json` | `rules-update.schema.json` | `.geas/missions/{mission_id}/evolution/rules-update-{seq}.json` | per mission |
+| `debt-register.json` | `debt-register.schema.json` | `.geas/missions/{mission_id}/evolution/debt-register.json` | per mission (entries accumulate) |
+| `gap-assessment.json` | `gap-assessment.schema.json` | `.geas/missions/{mission_id}/evolution/gap-assessment-{transition}.json` | per phase transition |
+| `phase-review.json` | `phase-review.schema.json` | `.geas/missions/{mission_id}/phase-reviews/{transition}.json` | per phase transition |
 | `policy-override.json` | `policy-override.schema.json` | `.geas/state/policy-overrides.json` | per project |
 
 ### Memory Artifacts
@@ -58,7 +58,7 @@ This document summarizes the contracts for canonical runtime artifacts and memor
 | `memory-entry.json` | `memory-entry.schema.json` | `.geas/memory/entries/{memory_id}.json` | orchestration_authority |
 | `memory-review.json` | `memory-review.schema.json` | `.geas/memory/candidates/{memory_id}-review.json` | domain authority |
 | `memory-application-log.json` | `memory-application-log.schema.json` | `.geas/memory/logs/{task_id}-{memory_id}.json` | orchestration_authority |
-| `memory-packet.json` | `memory-packet.schema.json` | `.geas/packets/{task_id}/memory-packet.json` | orchestration_authority |
+| `memory-packet.json` | `memory-packet.schema.json` | `.geas/missions/{mission_id}/packets/{task_id}/memory-packet.json` | orchestration_authority |
 | `memory-index.json` | `memory-index.schema.json` | `.geas/state/memory-index.json` | orchestration_authority |
 
 ### Human-Readable Summaries (no schema — markdown)
@@ -67,7 +67,7 @@ This document summarizes the contracts for canonical runtime artifacts and memor
 |------|-------------|-------|
 | `session-latest.md` | `.geas/state/session-latest.md` | per session (overwritten on compact) |
 | `task-focus/{id}.md` | `.geas/state/task-focus/{task_id}.md` | per task |
-| `mission-summary.md` | `.geas/summaries/mission-summary.md` | per mission |
+| `mission-summary.md` | `.geas/missions/{mission_id}/mission-summary.md` | per mission |
 | `run-summary-{ts}.md` | `.geas/summaries/run-summary-{timestamp}.md` | per session |
 
 ## Schema Inventory

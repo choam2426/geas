@@ -77,7 +77,7 @@ Each transition requires a mandatory artifact:
 |------------|------------------|
 | drafted -> ready | task-contract.json |
 | ready -> implementing | implementation-contract.json (approved) |
-| implementing -> reviewed | worker-self-check.json + specialist reviews (in `.geas/evidence/{task_id}/`) |
+| implementing -> reviewed | worker-self-check.json + specialist reviews (in `.geas/missions/{mission_id}/evidence/{task_id}/`) |
 | reviewed -> integrated | integration-result.json |
 | integrated -> verified | gate-result.json (pass) |
 | verified -> passed | closure-packet.json + final-verdict.json (pass) |
@@ -253,47 +253,40 @@ Hooks are lifecycle event handlers that enforce governance without agent coopera
 
   missions/
     {mission_id}/
-      design-brief.json        # Design brief (user-approved)
-      phase-reviews/           # Per-mission phase review artifacts
-
-  spec/
-    mission-{n}.json         # Mission spec frozen at intake (immutable, path migration pending)
-
-  tasks/
-    {task_id}.json               # TaskContract (flat file per task)
-    {task_id}/                   # Per-task artifacts (nested directory)
-      worker-self-check.json
-      specialist-review.json
-      integration-result.json
-      gate-result.json
-      closure-packet.json
-      challenge-review.json
-      final-verdict.json
-      retrospective.json
-
-  evidence/
-    {task_id}/
-      architecture-authority-review.json
-      qa-engineer.json
-      challenge-review.json
-      product-authority-verdict.json
-
-  packets/
-    {task_id}/
-      {agent_type}.md            # Role-specific context packets
-
-  evolution/
-    rules-update-{seq}.json
-    debt-register.json
-    gap-assessment-{transition}.json
-    phase-review-{transition}.json
-
-  contracts/
-    {task_id}.json             # Implementation contracts
-
-  decisions/
-    {dec_id}.json              # Decision records
-    pending/                   # In-progress proposals
+      spec.json                  # Mission spec (frozen at intake)
+      design-brief.json          # Design brief (user-approved)
+      mission-summary.md         # Per-mission summary
+      tasks/
+        {task_id}.json               # TaskContract (flat file per task)
+        {task_id}/                   # Per-task artifacts (nested directory)
+          worker-self-check.json
+          specialist-review.json
+          integration-result.json
+          gate-result.json
+          closure-packet.json
+          challenge-review.json
+          final-verdict.json
+          retrospective.json
+      evidence/
+        {task_id}/
+          architecture-authority-review.json
+          qa-engineer.json
+          challenge-review.json
+          product-authority-verdict.json
+      contracts/
+        {task_id}.json             # Implementation contracts
+      packets/
+        {task_id}/
+          {agent_type}.md            # Role-specific context packets
+      decisions/
+        {dec_id}.json              # Decision records
+        pending/                   # In-progress proposals
+      evolution/
+        rules-update-{seq}.json
+        debt-register.json
+        gap-assessment-{transition}.json
+      phase-reviews/
+        {transition}.json          # Phase transition review artifacts
 
   recovery/
     recovery-{id}.json         # Recovery packets for session rewind
@@ -308,7 +301,6 @@ Hooks are lifecycle event handlers that enforce governance without agent coopera
     incidents/{id}.json
 
   summaries/
-    mission-summary.md
     run-summary-{timestamp}.md
 
   ledger/
