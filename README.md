@@ -11,6 +11,9 @@
 
 </div>
 
+> *"One of our tasks will be to maintain appropriate discipline, so that we do not lose track of what we are doing."*
+> — Alan Turing
+
 Geas is a protocol that makes a team of agents behave like an engineering organization.
 
 - **Governed decisions** — 12 agent types with explicit authority scopes. Architecture choices go through vote rounds. Disagreements trigger structured resolution with escalation paths. Every role has defined permissions and output responsibilities.
