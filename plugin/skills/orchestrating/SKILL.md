@@ -109,9 +109,11 @@ Within a SINGLE TASK's pipeline, do NOT end your turn between steps. Run all 14 
 Between tasks, a brief status update is acceptable but do NOT wait for user input unless:
 - You need user input (ambiguous requirement, scope question), OR
 - An error blocks progress (gate fail, hook block), OR
-- **Specifying → Building transition** (present task summary, wait for user approval)
+- **Design-brief approval** (user must approve design before task compilation)
+- **Task list approval** (user must approve compiled tasks before building)
+- **Specifying → Building transition** (after environment setup completes)
 
-Task compilation in specifying phase: compile ALL tasks in one turn. Then present the specifying summary (see "Specifying → Building Transition" checkpoint) before entering building.
+Design-brief and task list each require user approval. Do NOT batch these — present design-brief first, get approval, then compile tasks, then present task list for approval.
 
 ---
 
@@ -211,8 +213,8 @@ Always 4 phases, regardless of scope. The orchestrator determines phase scale ba
 
 ### Phase 1: Specifying
 Read `references/specifying.md` and follow the procedure.
-Minimum: intake (mission spec confirmation with user) + task compilation.
-Full: vision, PRD, architecture, vote round, task compilation.
+All missions: intake + design-brief (with arch-authority review) + task compilation + user approvals.
+Full depth adds: alternatives analysis, architecture decisions, risk assessment, vote round.
 
 #### Task Classification Validation [MANDATORY]
 

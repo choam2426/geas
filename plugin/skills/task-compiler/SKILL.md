@@ -19,8 +19,9 @@ You need these before compiling:
 
 1. **User story or feature description** — what needs to be built
 2. **Mission spec** — read from `.geas/spec/mission-{mission_id}.json` for mission-level context
-3. **Architecture context** — from `.geas/memory/_project/conventions.md`
-4. **Existing task contracts** — check `.geas/tasks/` for dependencies
+3. **Design-brief** — read from `.geas/missions/{mission_id}/design-brief.json` for approach context and architecture decisions
+4. **Architecture context** — from `.geas/memory/_project/conventions.md`
+5. **Existing task contracts** — check `.geas/tasks/` for dependencies
 
 ## Compilation Process
 

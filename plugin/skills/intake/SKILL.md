@@ -80,7 +80,7 @@ Ensure `.geas/spec/` directory exists:
 mkdir -p .geas/spec
 ```
 
-Determine the next mission ID by scanning `.geas/spec/mission-*.json` — pick the next sequential number (mission-001, mission-002, etc.). If `.geas/spec/seed.json` exists (legacy), count it as mission-001.
+Determine the next mission ID by scanning `.geas/spec/mission-*.json` — pick the next sequential number (mission-001, mission-002, etc.).
 
 Write `.geas/spec/mission-{n}.json` following the schema at `schemas/mission-spec.schema.json`. Include:
 - `"version": "1.0"`, `"artifact_type": "mission_spec"`, `"artifact_id": "mission-{n}"`
@@ -128,4 +128,3 @@ For lightweight missions (adding a feature to an existing project):
 - **Existing project (subsequent missions)**: lightweight intake → `mission-{n}.json` with `source: "quick_intake"` or `"full_intake"`
 - **Format**: JSON conforming to `schemas/mission-spec.schema.json`
 - **Immutability**: Once confirmed, the mission spec should not be modified during execution. If scope must change, trigger `/geas:pivot-protocol` instead.
-- **Backward compatibility**: If `.geas/spec/seed.json` exists (pre-migration project), treat it as mission-001 equivalent. Next mission creates `mission-002.json`.
