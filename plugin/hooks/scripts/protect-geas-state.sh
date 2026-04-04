@@ -18,7 +18,9 @@ const rel = h.relPath(filePath, cwd);
 if (!rel.startsWith('.geas/') && !rel.startsWith('.geas\\\\')) {
   const run = h.readJson(path.join(geas, 'state', 'run.json'));
   if (run && run.current_task_id) {
-    const task = h.readJson(path.join(geas, 'tasks', run.current_task_id + '.json'));
+    const mid = run.mission_id || '';
+    const mdir = mid ? path.join(geas, 'missions', mid) : geas;
+    const task = h.readJson(path.join(mdir, 'tasks', run.current_task_id + '.json'));
     if (task) {
       const scopePaths = (task.scope && task.scope.paths) || [];
       if (scopePaths.length && !h.matchScope(rel, scopePaths))
@@ -40,6 +42,6 @@ if (/\/.geas\/.*\.json$/.test(filePath.replace(/\\\\/g,'/')) && h.exists(filePat
 }
 
 // Mission spec frozen warning
-if (/\/.geas\/spec\/mission-\d+\.json$/.test(filePath.replace(/\\\\/g,'/')))
+if (/\/.geas\/missions\/[^/]+\/spec\.json$/.test(filePath.replace(/\\\\/g,'/')))
   h.warn('Mission spec was modified. Mission specs should be frozen after intake. Use /geas:pivot-protocol for scope changes.');
 " <<< "$(cat)"

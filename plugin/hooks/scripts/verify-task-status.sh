@@ -8,7 +8,7 @@ node -e "
 const h = require('$HOOK_DIR/lib/geas-hooks');
 const {cwd, filePath} = h.parseInput();
 if (!cwd || !filePath) process.exit(0);
-if (!/\/.geas\/tasks\/[^/]+\.json$/.test(filePath.replace(/\\\\/g,'/'))) process.exit(0);
+if (!/\/.geas\/missions\/[^/]+\/tasks\/[^/]+\.json$/.test(filePath.replace(/\\\\/g,'/'))) process.exit(0);
 
 const d = h.readJson(filePath);
 if (!d || d.status !== 'passed') process.exit(0);
@@ -16,8 +16,12 @@ if (!d || d.status !== 'passed') process.exit(0);
 const tid = d.task_id || d.id || '';
 if (!tid) process.exit(0);
 const geas = h.geasDir(cwd);
-const edir = require('path').join(geas, 'evidence', tid);
-const tdir = require('path').join(geas, 'tasks', tid);
+const run = h.readJson(require('path').join(geas, 'state', 'run.json'));
+const mid = run && run.mission_id;
+if (!mid) process.exit(0);
+const mdir = require('path').join(geas, 'missions', mid);
+const edir = require('path').join(mdir, 'evidence', tid);
+const tdir = require('path').join(mdir, 'tasks', tid);
 
 if (!h.exists(require('path').join(edir, 'architecture-authority-review.json')))
   h.warn(tid + ' marked as passed but architecture-authority-review.json is missing');

@@ -17,10 +17,14 @@ if (!run) process.exit(0);
 const completed = run.completed_tasks || [];
 if (!completed.length) process.exit(0);
 
+const mid = run.mission_id;
+if (!mid) process.exit(0);
+const mdir = path.join(geas, 'missions', mid);
+
 const missing = [];
 for (const tid of completed) {
-  const edir = path.join(geas, 'evidence', tid);
-  const tdir = path.join(geas, 'tasks', tid);
+  const edir = path.join(mdir, 'evidence', tid);
+  const tdir = path.join(mdir, 'tasks', tid);
   if (!h.exists(path.join(edir, 'architecture-authority-review.json')))
     missing.push('  - ' + tid + ': architecture-authority-review.json (Code Review) missing');
   if (!h.exists(path.join(edir, 'qa-engineer.json')))

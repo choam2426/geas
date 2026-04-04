@@ -48,9 +48,11 @@ if (remaining.length) {
 if (d.recovery_class) parts.push('Recovery class: ' + d.recovery_class);
 
 // Task contract summary
+const mid = d.mission_id || '';
+const mdir = mid ? path.join(geas, 'missions', mid) : geas;
 let taskGoal = '';
 if (tid) {
-  const task = h.readJson(path.join(geas, 'tasks', tid + '.json'));
+  const task = h.readJson(path.join(mdir, 'tasks', tid + '.json'));
   if (task) {
     taskGoal = task.goal || '';
     parts.push('Task goal: ' + taskGoal);
@@ -72,7 +74,7 @@ if (h.exists(slPath)) {
 // Open risks from closure packet
 let openRisks = [];
 if (tid) {
-  const cpkt = h.readJson(path.join(geas, 'tasks', tid, 'closure-packet.json'));
+  const cpkt = h.readJson(path.join(mdir, 'tasks', tid, 'closure-packet.json'));
   if (cpkt && cpkt.open_risks) openRisks = cpkt.open_risks.items || [];
 }
 
