@@ -61,7 +61,7 @@ graph LR
     C --> D[Polishing]
     D --> E[Evolving]
 
-    B -.- B1["Intake -> Spec -> Architecture\n-> Task Compilation"]
+    B -.- B1["Intake -> Design Brief\n-> Task Compilation"]
     C -.- C1["Per-task pipeline x N\n(parallel when safe)"]
     D -.- D1["Security -> Docs -> Cleanup"]
     E -.- E1["Gap Assessment -> Rules\n-> Memory -> Summary"]

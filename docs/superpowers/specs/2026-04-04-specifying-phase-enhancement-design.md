@@ -264,7 +264,7 @@ Vote round runs only for full-depth design-briefs. If the user rejects after vot
 
 ```
 1. Seed Check
-   .geas/missions/{mission_id}/spec.json exists?
+   .geas/spec/mission-{mission_id}.json exists?
    No -> invoke /geas:intake
    completeness_checklist has false values and no override? -> ask user, re-run intake
 

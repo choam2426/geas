@@ -212,8 +212,8 @@ plugin/
     policy-managing/         # Policy management
     coding-conventions/      # Convention detection
     chaos-exercising/        # Chaos testing
-    write-prd/               # PRD generation
-    write-stories/           # Story generation
+    write-prd/               # PRD generation (standalone utility, not part of core pipeline)
+    write-stories/           # Story generation (standalone utility, not part of core pipeline)
   agents/                    # Agent definitions (.md)
   hooks/
     hooks.json               # Hook configuration
@@ -251,8 +251,13 @@ Hooks are lifecycle event handlers that enforce governance without agent coopera
     session-latest.md        # Post-compact recovery context
     task-focus/{task_id}.md  # Per-task focus summaries
 
+  missions/
+    {mission_id}/
+      design-brief.json        # Design brief (user-approved)
+      phase-reviews/           # Per-mission phase review artifacts
+
   spec/
-    mission-{n}.json         # Mission spec frozen at intake (immutable)
+    mission-{n}.json         # Mission spec frozen at intake (immutable, path migration pending)
 
   tasks/
     {task_id}.json               # TaskContract (flat file per task)
