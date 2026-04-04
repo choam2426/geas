@@ -31,7 +31,8 @@
     },
     "producer_type": {
       "type": "string",
-      "description": "orchestration_authority"
+      "const": "orchestration_authority",
+      "description": "Always orchestration_authority for design briefs"
     },
     "mission_id": {
       "type": "string"

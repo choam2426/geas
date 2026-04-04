@@ -20,6 +20,11 @@ If `.geas/memory/_project/conventions.md` is missing, invoke `/geas:onboard` to 
 
 Orchestrator reads the mission spec at `.geas/spec/mission-{mission_id}.json` and explores the codebase. Then:
 
+Ensure the mission directory exists:
+```bash
+mkdir -p .geas/missions/{mission_id}
+```
+
 1. Write an initial design-brief draft to `.geas/missions/{mission_id}/design-brief.json` conforming to `schemas/design-brief.schema.json` with `status: "draft"`.
 2. Propose a depth level to the user:
    - **`lightweight`**: Mission has clear scope, existing codebase patterns apply, low ambiguity. Only minimum fields: `chosen_approach`, `non_goals`, `verification_strategy`.

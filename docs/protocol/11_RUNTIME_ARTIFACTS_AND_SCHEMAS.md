@@ -10,7 +10,7 @@ This document summarizes the contracts for canonical runtime artifacts and memor
 
 | Artifact | Schema | Storage path | Producer |
 |----------|--------|-------------|----------|
-| `mission-spec.json` | `mission-spec.schema.json` | `.geas/missions/{mission_id}/spec.json` | orchestration_authority |
+| `mission-spec.json` | `mission-spec.schema.json` | `.geas/spec/mission-{n}.json` (migration to `.geas/missions/` pending) | orchestration_authority |
 | `design-brief.json` | `design-brief.schema.json` | `.geas/missions/{mission_id}/design-brief.json` | orchestration_authority |
 
 ### Pipeline Artifacts (per-task)
