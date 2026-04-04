@@ -16,7 +16,7 @@
 
 Geas is a protocol that makes a team of agents behave like an engineering organization.
 
-- **Governed decisions** — 12 agent types with explicit authority scopes. Architecture choices go through vote rounds. Disagreements trigger structured resolution with escalation paths. Every role has defined permissions and output responsibilities.
+- **Governed decisions** — 10 agent types with explicit authority scopes. Architecture choices go through vote rounds. Disagreements trigger structured resolution with escalation paths. Every role has defined permissions and output responsibilities.
 - **Traceable artifacts** — task contracts, state transitions, evidence, and verdicts are recorded in `.geas/` as append-only artifacts. Session checkpoints enable exact resume after interruption. An event ledger tracks every significant action.
 - **Contract-based verification** — each task has acceptance criteria and a rubric. A 3-tier Evidence Gate checks preconditions, runs build/lint/test, and scores against the rubric. A Critical Reviewer challenges high-risk work. A product-level Final Verdict closes the loop.
 - **Continuous learning** — every task produces a retrospective. Lessons become memory candidates that get promoted through review. Rules evolve in a shared `rules.md`. Technical debt is tracked in a debt register and feeds back into future priorities. Context packets inject relevant memories into future work.
@@ -121,11 +121,11 @@ Geas writes operational state and evidence to `.geas/`:
 
 ## The Team
 
-The protocol defines **12 agent types** with explicit authority and output responsibilities.
+The protocol defines **10 agent types** with explicit authority and output responsibilities.
 
-**Core authorities** — Product Authority, Architecture Authority, Critical Reviewer, Process Lead
+**Core authorities** — Product Authority, Architecture Authority, Critical Reviewer
 
-**Specialist roles** — Frontend Engineer, Backend Engineer, QA Engineer, Security Engineer, UI/UX Designer, DevOps Engineer, Technical Writer, Repository Manager
+**Specialist roles** — Frontend Engineer, Backend Engineer, QA Engineer, Security Engineer, UI/UX Designer, DevOps Engineer, Technical Writer
 
 [-> Full team reference](docs/reference/AGENTS.md)
 
@@ -148,8 +148,7 @@ The protocol defines **12 agent types** with explicit authority and output respo
 [Orchestrator]     Vote round: iterate. Re-implementing.
 [Backend Eng]      Rate limiter added. Re-verification passed.
 [Product Auth]     Final Verdict: PASS.
-[Repo Manager]     Committed.
-[Process Lead]     Retro: auth APIs must include rate limiting — rule proposed.
+[Orchestrator]     Committed. Retro: auth APIs must include rate limiting — rule proposed.
 [Orchestrator]     Memory extraction: 3 candidates.
 
 [Orchestrator]     Polishing: security review, docs, cleanup.
@@ -166,7 +165,7 @@ The protocol defines **12 agent types** with explicit authority and output respo
 | [Architecture](docs/architecture/DESIGN.md) | System design, data flow, principles |
 | [Protocol](docs/protocol/) | 14 operational protocol documents |
 | [Schemas](docs/protocol/schemas/) | 29 JSON Schema definitions (draft 2020-12) |
-| [Agents](docs/reference/AGENTS.md) | 12 agent types with explicit authority model |
+| [Agents](docs/reference/AGENTS.md) | 10 agent types with explicit authority model |
 | [Skills](docs/reference/SKILLS.md) | 27 skills reference |
 | [Hooks](docs/reference/HOOKS.md) | 18 lifecycle hooks reference |
 

@@ -145,7 +145,7 @@ Promotion criteria:
 ### Evolution Loop
 
 After every task completion:
-1. **Retrospective**: process_lead extracts lessons, rule/memory/debt candidates
+1. **Retrospective**: orchestration_authority extracts lessons, rule/memory/debt candidates
 2. **Rules.md Update**: Verified lessons promoted to team rules
 3. **Memory Promotion**: candidate -> provisional -> stable -> canonical
 4. **Debt Tracking**: Record debt, classify, resolve per phase

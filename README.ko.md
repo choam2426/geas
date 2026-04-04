@@ -16,7 +16,7 @@
 
 Geas는 에이전트 팀이 엔지니어링 조직처럼 동작하도록 만드는 프로토콜입니다.
 
-- **통제된 의사결정** — 12개 에이전트 타입마다 권한 범위가 정해져 있고, 아키텍처 선택은 투표를 거칩니다. 의견이 갈리면 구조화된 절차와 에스컬레이션 경로로 풀고, 역할마다 낼 수 있는 결과물이 명시되어 있습니다.
+- **통제된 의사결정** — 10개 에이전트 타입마다 권한 범위가 정해져 있고, 아키텍처 선택은 투표를 거칩니다. 의견이 갈리면 구조화된 절차와 에스컬레이션 경로로 풀고, 역할마다 낼 수 있는 결과물이 명시되어 있습니다.
 - **추적 가능한 기록** — 태스크 계약, 상태 전이, 증거, 판결이 `.geas/`에 쌓입니다. 세션 체크포인트 덕분에 중단됐던 지점에서 그대로 재개할 수 있고, 이벤트 원장이 주요 행동을 전부 남깁니다.
 - **계약 기반 검증** — 태스크마다 수용 기준과 루브릭이 붙습니다. 3단계 Evidence Gate가 사전 조건, 빌드/린트/테스트, 루브릭 점수를 차례로 확인합니다. 위험도가 높으면 Critical Reviewer가 따로 검증하고, 마지막에 제품 수준 Final Verdict로 닫습니다.
 - **지속적 학습** — 태스크가 끝날 때마다 회고가 남고, 거기서 나온 교훈은 메모리 후보로 올라가 리뷰를 거쳐 승격됩니다. 규칙은 공유 `rules.md`에서 계속 갱신되고, 기술 부채는 debt register에 기록되어 다음 미션의 우선순위에 반영됩니다. 컨텍스트 패킷이 다음 작업에 관련 메모리를 넣어줍니다.
@@ -121,11 +121,11 @@ Geas는 운영 상태와 증거를 `.geas/`에 남깁니다:
 
 ## 팀
 
-프로토콜이 정의하는 에이전트 타입은 **12개**이고, 역할마다 권한 범위와 결과물 책임이 정해져 있습니다.
+프로토콜이 정의하는 에이전트 타입은 **10개**이고, 역할마다 권한 범위와 결과물 책임이 정해져 있습니다.
 
-**핵심 권한 역할** — Product Authority, Architecture Authority, Critical Reviewer, Process Lead
+**핵심 권한 역할** — Product Authority, Architecture Authority, Critical Reviewer
 
-**전문 역할** — Frontend Engineer, Backend Engineer, QA Engineer, Security Engineer, UI/UX Designer, DevOps Engineer, Technical Writer, Repository Manager
+**전문 역할** — Frontend Engineer, Backend Engineer, QA Engineer, Security Engineer, UI/UX Designer, DevOps Engineer, Technical Writer
 
 [-> 전체 팀 레퍼런스](docs/ko/reference/AGENTS.md)
 
@@ -148,8 +148,7 @@ Geas는 운영 상태와 증거를 `.geas/`에 남깁니다:
 [Orchestrator]     Vote round: iterate 결정. 재구현.
 [Backend Eng]      rate limiter 추가. 재검증 통과.
 [Product Auth]     Final Verdict: PASS.
-[Repo Manager]     커밋 완료.
-[Process Lead]     회고: 인증 API는 rate limiting 필수 규칙 제안.
+[Orchestrator]     커밋 완료. 회고: 인증 API는 rate limiting 필수 규칙 제안.
 [Orchestrator]     메모리 추출: 후보 3건.
 
 [Orchestrator]     Polishing: 보안 리뷰, 문서, 정리.
@@ -166,7 +165,7 @@ Geas는 운영 상태와 증거를 `.geas/`에 남깁니다:
 | [아키텍처](docs/ko/architecture/DESIGN.md) | 시스템 설계, 데이터 흐름, 원칙 |
 | [프로토콜](docs/ko/protocol/) | 14개 운영 프로토콜 문서 |
 | [스키마](docs/protocol/schemas/) | 29개 JSON Schema 정의 (draft 2020-12) |
-| [Agents](docs/ko/reference/AGENTS.md) | 12개 에이전트 타입과 권한 모델 |
+| [Agents](docs/ko/reference/AGENTS.md) | 10개 에이전트 타입과 권한 모델 |
 | [Skills](docs/ko/reference/SKILLS.md) | 27개 스킬 레퍼런스 |
 | [Hooks](docs/ko/reference/HOOKS.md) | 18개 라이프사이클 hook 레퍼런스 |
 
