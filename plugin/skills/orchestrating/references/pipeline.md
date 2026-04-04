@@ -382,34 +382,39 @@ On task completion (Ship, Cut, or Escalate):
 3. Write updated `locks.json`
 4. Log: `{"event": "locks_released", "task_id": "...", "timestamp": "<actual>"}`
 
-- **Ship**: Read `.geas/missions/{mission_id}/tasks/{task-id}.json`, set `"status": "passed"`, Write it back. Then spawn repository_manager for commit:
-  Update run.json checkpoint: `pipeline_step` = "resolve", `agent_in_flight` = "repository-manager"
+- **Ship**: Read `.geas/missions/{mission_id}/tasks/{task-id}.json`, set `"status": "passed"`, Write it back. Then commit directly:
+  Update run.json checkpoint: `pipeline_step` = "resolve"
+  ```bash
+  git add -A && git commit -m "{conventional commit message for task-id}"
   ```
-  Agent(agent: "repository-manager", prompt: "Commit all changes for {task-id} with conventional commit format. Write to .geas/missions/{mission_id}/evidence/{task-id}/repository-manager.json")
-  ```
+  Log: `{"event": "task_resolved", "task_id": "{task-id}", "commit": "{hash from git rev-parse HEAD}", "timestamp": "<actual>"}`
 - **Iterate** (Final Verdict only): does NOT deduct retry_budget (iterate is a product judgment, not a gate failure). Track iterate_count — after 3 cumulative iterates, escalate to orchestration_authority. Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include product_authority's feedback in all subsequent ContextPackets. Resume from the rewind_target specified in the final verdict.
 - **Cut**: status -> `"cancelled"`. Write DecisionRecord.
 
-### Retrospective (process-lead) [MANDATORY — Ship only, after Resolve]
+### Retrospective [MANDATORY — Ship only, after Resolve]
 
 **Skip condition:** If the Final Verdict was Cut or Escalate, skip retrospective. Only run when the task has been resolved as Ship (status = `"passed"`).
 
-Update run.json checkpoint: `pipeline_step` = "retrospective", `agent_in_flight` = "process-lead"
-```
-Agent(agent: "process-lead", prompt: "Read all evidence at .geas/missions/{mission_id}/evidence/{task-id}/ and the closure packet at .geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json. Write a structured retrospective to .geas/missions/{mission_id}/tasks/{task-id}/retrospective.json with the following structure. Required fields:
-- version: '1.0'
-- artifact_type: 'retrospective'
-- artifact_id: 'retro-{task-id}'
-- producer_type: 'process_lead'
-- task_id: '{task-id}'
-- what_went_well: things that worked in this task
-- what_broke: problems encountered during implementation, review, or gate
-- what_was_surprising: unexpected findings or outcomes
-- rule_candidates: proposed changes to rules.md (DO NOT modify rules.md directly — list proposals here)
-- memory_candidates: lessons worth remembering for future tasks
-- debt_candidates: new technical debt discovered during retrospective review
-- next_time_guidance: specific advice for similar future tasks
-- created_at: ISO 8601 timestamp")
+Update run.json checkpoint: `pipeline_step` = "retrospective"
+
+Orchestrator reads all evidence at `.geas/missions/{mission_id}/evidence/{task-id}/` and the closure packet at `.geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json`. Then writes `.geas/missions/{mission_id}/tasks/{task-id}/retrospective.json`:
+
+```json
+{
+  "version": "1.0",
+  "artifact_type": "retrospective",
+  "artifact_id": "retro-{task-id}",
+  "producer_type": "orchestration_authority",
+  "task_id": "{task-id}",
+  "what_went_well": ["things that worked in this task"],
+  "what_broke": ["problems encountered during implementation, review, or gate"],
+  "what_was_surprising": ["unexpected findings or outcomes"],
+  "rule_candidates": ["proposed changes to rules.md — DO NOT modify rules.md directly"],
+  "memory_candidates": ["lessons worth remembering for future tasks"],
+  "debt_candidates": ["new technical debt discovered during retrospective review"],
+  "next_time_guidance": ["specific advice for similar future tasks"],
+  "created_at": "<ISO 8601>"
+}
 ```
 
 Verify `.geas/missions/{mission_id}/tasks/{task-id}/retrospective.json` exists.

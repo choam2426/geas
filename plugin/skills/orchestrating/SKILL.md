@@ -75,10 +75,10 @@ This applies to every task — sequential or parallel. If the task file does not
 
 ### Rules evolving
 - `.geas/rules.md` is a living document. Changes go through a structured `rules-update.json` workflow.
-- During per-task retrospectives, process_lead produces `rule_candidates[]` in `retrospective.json`. These are proposals, NOT direct modifications.
+- During per-task retrospectives, orchestration_authority produces `rule_candidates[]` in `retrospective.json`. These are proposals, NOT direct modifications.
 - Rule candidates accumulate during the Building phase. Batch approval happens in the Evolving phase (Step 4.2.5).
 - Approved rules updates are applied to `.geas/rules.md` and recorded in `.geas/missions/{mission_id}/evolution/rules-update.json` with `status: "approved"`.
-- Approval conditions (per doc 14): process_lead + domain authority, OR evidence_refs >= 2 with contradiction_count = 0.
+- Approval conditions (per doc 14): orchestration_authority + domain authority, OR evidence_refs >= 2 with contradiction_count = 0.
 - After Phase 1 (Specifying): Orchestrator adds stack-specific rules before the rules-update workflow exists in the pipeline.
 
 ### Tech debt tracking
@@ -94,12 +94,13 @@ When a task resolves a debt item, update its `status` to `"resolved"`.
 Threshold warning is handled automatically by the check-debt hook when you write debt-register.json.
 
 ### Git operations
-- **All git operations (commit, branch, PR) must be done by repository_manager.** Do not commit or manage branches directly.
-- Spawn repository_manager at task Resolve for commits, and at Evolving for release management.
+- Orchestrator handles all git operations directly (commit, branch, tag).
+- Use conventional commit format at Resolve: `feat:`, `fix:`, `refactor:`, etc.
+- Release management (version bump, tag, changelog) at Evolving.
 
 ### Your role boundaries
 - Orchestrate only. Specialist agents implement all code, including bug fixes.
-- All git operations go through repository_manager (commits, branches, PRs).
+- Orchestrator handles git and retrospectives directly (no agent spawn needed).
 - Follow the protocol of the 4-phase execution flow completely.
 
 ### Continuation Rule

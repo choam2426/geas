@@ -49,7 +49,7 @@ Memory candidates originate from the following signals:
 
 After every `passed` task, the following loop runs at minimum:
 
-1. `process_lead` writes `retrospective.json`
+1. `orchestration_authority` writes `retrospective.json`
 2. Extract lessons / debt / memory candidates / rules candidates from the retrospective
 3. Domain authority reviews candidates
 4. If approved:
@@ -118,7 +118,7 @@ Regardless of method, the merge decision rationale is recorded in the `rationale
 
 ### Stage 3 — review
 The relevant domain owner verifies the memory quality:
-- Process memory -> `process_lead`
+- Process memory -> `orchestration_authority`
 - Architecture precedent -> `architecture_authority`
 - Product precedent -> `product_authority`
 - QA recipe -> `qa_engineer`
@@ -150,7 +150,7 @@ At least one of the following must be met:
 ### stable -> canonical
 **All** of the following must be met:
 - 5+ successful application logs, spanning 3+ different tasks
-- Joint approval from process_lead + the relevant domain authority
+- Joint approval from orchestration_authority + the relevant domain authority
 
 ## Rules.md Update Loop
 
@@ -219,8 +219,8 @@ Required fields (per `memory-entry.schema.json`):
 ### Decayed State Exit Transitions
 
 Memory in `decayed` state can transition as follows:
-- `decayed` -> `under_review`: when the process_lead or domain authority manually requests re-examination. Based on re-examination results, transition to reinstate (restore previous state), archive, or reject.
-- `decayed` -> `archived`: when cleanup is needed without re-examination. Executed by repository_manager or process_lead.
+- `decayed` -> `under_review`: when the orchestration_authority or domain authority manually requests re-examination. Based on re-examination results, transition to reinstate (restore previous state), archive, or reject.
+- `decayed` -> `archived`: when cleanup is needed without re-examination. Executed by orchestration_authority.
 - There is no automatic restoration from `decayed` state. An explicit human/authority action is always required.
 
 ## Supersession
@@ -241,7 +241,7 @@ Rules:
 ### Superseded State Exit Transitions
 
 Memory in `superseded` state can transition as follows:
-- `superseded` -> `archived`: cleanup after the audit trail is fully preserved. Executed by process_lead or repository_manager.
+- `superseded` -> `archived`: cleanup after the audit trail is fully preserved. Executed by orchestration_authority.
 - If the memory pointed to by `superseded_by` is `rejected`: transition `superseded` -> `under_review` to re-examine the original memory's validity. Based on re-examination results, reinstate to the previous state or archive.
 
 ## Negative Learning
@@ -289,7 +289,7 @@ Note: `failed` is not a task state (see doc 03). Task failure is recorded as a F
 When a promoted memory (provisional or above) accumulates **2+ negative application logs**, the following procedure is triggered:
 
 1. **Automatic state change**: change the memory's state to `"under_review"`.
-2. **Review convened**: process_lead + domain authority review the memory and negative logs.
+2. **Review convened**: orchestration_authority + domain authority review the memory and negative logs.
 3. **Possible decisions** (values in parentheses are `decision` enum values from `memory-review.schema.json`):
    - **supersede** (`supersede`): create a corrected new memory and change the existing entry to `superseded`
    - **demote** (`weaken`): demote to `provisional` (if it was stable/canonical)
@@ -301,7 +301,7 @@ When a promoted memory (provisional or above) accumulates **2+ negative applicat
 **Entry conditions** (any of the following):
 - 2+ accumulated negative application logs (Harmful Reuse Rollback)
 - `confidence < 0.3` decay review trigger (see doc 07)
-- Manual re-examination request from process_lead or domain authority
+- Manual re-examination request from orchestration_authority or domain authority
 
 **Behavior on entry**:
 - Change the memory's `state` to `"under_review"`
@@ -314,7 +314,7 @@ When a promoted memory (provisional or above) accumulates **2+ negative applicat
 4. **archive** (`archive`): change to `archived` state and apply the `"invalidated"` tag
 5. **reject** (`reject`): change to `rejected` if the evidence is completely invalidated
 
-**When review is incomplete**: if left in under_review state without review for 30+ days, the process_lead must handle it in the next retrospective. After 60+ days, it is automatically changed to `archived`.
+**When review is incomplete**: if left in under_review state without review for 30+ days, the orchestration_authority must handle it in the next retrospective. After 60+ days, it is automatically changed to `archived`.
 
 ### Reinstate Circuit Breaker
 

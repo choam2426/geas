@@ -49,7 +49,7 @@ Gate verdicts: `pass | fail | block | error`. `iterate` is Final Verdict only.
 plugin/
 ├── plugin.json              # Claude plugin manifest
 ├── skills/                  # Shared skills (core + team + surface)
-└── agents/                  # 12 agent definitions
+└── agents/                  # 10 agent definitions
 
 docs/
 ├── protocol/                # Operating protocol (English, canonical)
@@ -91,7 +91,7 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 ## Key Design Principles
 
 1. **Contract Engine is tool-agnostic** — core skills must not reference any specific tool.
-2. **Agents are templates, not identity** — the 12-agent team is one configuration. The contract engine works with any agent setup.
+2. **Agents are templates, not identity** — the 10-agent team is one configuration. The contract engine works with any agent setup.
 3. **Collaboration surface is an adapter** — don't hardcode surface assumptions into core skills.
 4. **Evidence over declaration** — "agent says done" is never enough. Evidence Gate must verify.
 5. **Memory is a behavior-change mechanism** — memory must alter future actions through rules.md, context packets, gate strictness, and scheduling caution.
@@ -99,7 +99,7 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 
 ## Agent Name Rule
 
-Protocol docs (`docs/protocol/`, `docs/ko/protocol/`), core skills, and agent file names all use **agent type names** (e.g., `product-authority`, `architecture-authority`, `critical-reviewer`). Character names (Nova, Forge, Pixel, Circuit, Sentinel, Keeper, Shield, Critic, Scroll, Scrum, Palette, Pipeline) appear only inside agent file content as personality/identity, never as file names or references.
+Protocol docs (`docs/protocol/`, `docs/ko/protocol/`), core skills, and agent file names all use **agent type names** (e.g., `product-authority`, `architecture-authority`, `critical-reviewer`). Character names (Nova, Forge, Pixel, Circuit, Sentinel, Keeper, Shield, Critic, Scrum, Palette) appear only inside agent file content as personality/identity, never as file names or references.
 
 ## Runtime Accessibility Rule
 

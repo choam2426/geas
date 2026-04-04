@@ -140,11 +140,11 @@ health signal은 `orchestration_authority`가 아래 시점에 계산한다:
 
 health signal이 threshold를 초과하면 아래 대응이 **반드시** 수행되어야 한다:
 
-1. **memory bloat**: `process_lead`가 다음 retrospective에서 reuse 0인 memory를 일괄 review한다. `review_after`가 경과한 항목은 `decayed`로 전환한다.
+1. **memory bloat**: `orchestration_authority`가 다음 retrospective에서 reuse 0인 memory를 일괄 review한다. `review_after`가 경과한 항목은 `decayed`로 전환한다.
 2. **review gap**: `orchestration_authority`가 다음 task부터 specialist review 누락 시 `pre_gate` hook에서 block을 활성화한다.
-3. **gate quality 문제**: `process_lead`가 rubric 기준 명확화를 위한 rule candidate를 생성한다. 필요 시 evidence gate threshold를 조정한다.
+3. **gate quality 문제**: `orchestration_authority`가 rubric 기준 명확화를 위한 rule candidate를 생성한다. 필요 시 evidence gate threshold를 조정한다.
 4. **contradiction 누적**: 해당 memory를 즉시 `under_review`로 전환하고 doc 08의 decay rule을 적용한다.
 5. **repeated failure class**: 해당 failure pattern을 memory candidate로 자동 등록하고, doc 14의 Retrospective -> Rule Update 프로세스를 trigger한다.
-6. **debt 정체**: `process_lead`가 phase review에서 debt 해소 계획을 수립한다. 다음 phase에서 debt resolution task를 우선 scheduling한다.
+6. **debt 정체**: `orchestration_authority`가 phase review에서 debt 해소 계획을 수립한다. 다음 phase에서 debt resolution task를 우선 scheduling한다.
 7. **scope control 약화**: `orchestration_authority`가 implementation contract 승인 절차를 강화한다. scope 변경 시 re-approval을 필수로 한다.
 8. **worker low-confidence**: `orchestration_authority`가 task granularity를 검토하고 context packet의 L1/L2 memory 품질을 개선한다.

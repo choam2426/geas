@@ -1,6 +1,6 @@
 # Agents Reference
 
-All 12 agent types in the Geas plugin. Agents are spawned as sub-agents by the Orchestrator during mission execution. Each agent type has a defined authority scope, pipeline responsibilities, and artifact outputs.
+All 10 agent types in the Geas plugin. Agents are spawned as sub-agents by the Orchestrator during mission execution. Each agent type has a defined authority scope, pipeline responsibilities, and artifact outputs.
 
 Canonical definitions: `docs/protocol/01_AGENT_TYPES_AND_AUTHORITY.md`
 Agent files: `plugin/agents/`
@@ -12,7 +12,6 @@ Agent files: `plugin/agents/`
 | [product-authority](#product-authority) | Core Authority | opus | Final verdict (pass/iterate/escalate) | `final-verdict.json` |
 | [architecture-authority](#architecture-authority) | Core Authority | opus | Architecture decisions, code review | `specialist-review.json`, conventions |
 | [critical-reviewer](#critical-reviewer) | Core Authority | opus | Constructive opposition, ship risk challenge | Pre-ship challenge in `closure-packet.json` |
-| [process-lead](#process-lead) | Core Authority | sonnet | Retrospective, memory, rules management | `rules.md`, memory entries, retrospective |
 | [frontend-engineer](#frontend-engineer) | Specialist | opus | Frontend implementation | Implementation code, `self-check` |
 | [backend-engineer](#backend-engineer) | Specialist | opus | Backend implementation | Implementation code, `self-check` |
 | [qa-engineer](#qa-engineer) | Specialist | sonnet | Test verdicts, bug reports, rubric scoring | `specialist-review.json`, bug reports |
@@ -20,7 +19,6 @@ Agent files: `plugin/agents/`
 | [ui-ux-designer](#ui-ux-designer) | Specialist | sonnet | Design specs, accessibility requirements | Design specs, `specialist-review.json` |
 | [devops-engineer](#devops-engineer) | Specialist | sonnet | CI/CD, deployment, build verification | Pipeline configs, smoke test results |
 | [technical-writer](#technical-writer) | Specialist | sonnet | Documentation standards, clarity audits | README, API docs, setup guides |
-| [repository-manager](#repository-manager) | Specialist | sonnet | Branching, versioning, release hygiene | Changelogs, release notes, version tags |
 
 ---
 
@@ -108,34 +106,6 @@ The devil's advocate. Stress tests proposals, architectures, and plans to find t
 **Reviewer Routing:** Automatically added for tasks with `risk_level: high` or `risk_level: critical`.
 
 ---
-
-### process-lead
-
-The team's institutional memory. Extracts lasting value from every task and drives continuous improvement.
-
-**Model:** sonnet
-
-**Authority Scope:**
-- Retrospective facilitation after tasks pass the ship gate
-- Rules and conventions management (`.geas/rules.md`)
-- Per-agent memory updates with task-specific lessons
-- Pattern detection across tasks: recurring bugs, repeated mistakes, process friction
-
-**Pipeline Responsibilities:**
-- Reads all evidence for completed tasks: worker output, code review, QA report, product verdict, design spec, security review
-- Updates rules with actionable conventions
-- Writes per-agent memory entries that are concise and specific
-- Escalates when the same mistake happens across multiple tasks
-- Leads retrospective collection at phase boundaries
-- Obtains endorsing authority approval for memory promotions
-
-**Key Artifacts:**
-- `.geas/rules.md` -- updated rules and conventions
-- `memory-entry.json` -- per-agent memory entries
-- `memory-review.json` -- promotion history
-- Retrospective records with `what_was_surprising[]`
-
-**Reviewer Routing:** Not a default reviewer. Activated during Evolving phase and after task closure.
 
 ---
 
@@ -346,35 +316,6 @@ The documentation craftsperson. Believes undocumented code is unfinished code.
 
 ---
 
-### repository-manager
-
-The meticulous guardian of code history and release integrity.
-
-**Model:** sonnet
-
-**Authority Scope:**
-- Branching strategy and merge policies
-- Commit convention enforcement
-- Release versioning (semantic versioning)
-- Changelog generation and release notes
-- Git hygiene: no secrets, no binaries, no orphaned branches
-
-**Pipeline Responsibilities:**
-- Feature branches: `feature/<issue-key>-<short-description>`
-- Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
-- Pull requests with clear title and description (what + why)
-- Squash merge to keep history clean
-- Tag releases with semantic versions
-- Flags PRs that are too large and suggests splitting
-- Coordinates version bumps with deployment
-
-**Key Artifacts:**
-- Changelogs and release notes
-- Version tags
-- Branch and merge policies
-
-**Reviewer Routing:** Default reviewer for `task_kind: release`. Supports integration hygiene, commit structure, and repo cleanliness.
-
 ---
 
 ## Decision Boundary
@@ -389,7 +330,7 @@ Summary of which agent type owns which decisions. See `protocol/01` for the full
 | Evidence gate result | Gate runner / verifier |
 | Readiness round result | Reviewer set |
 | Final closure | product-authority |
-| Durable memory promotion | process-lead + endorsing authority |
+| Durable memory promotion | orchestration_authority + endorsing authority |
 
 ## Reviewer Routing Algorithm
 

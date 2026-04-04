@@ -166,7 +166,7 @@ python3 -c "
 import json
 
 entry_a = {
-  'meta': {'version':'1.0','artifact_type':'memory_entry','artifact_id':'mem-conflict-a','producer_type':'process_lead','created_at':'2026-04-02T00:00:00Z'},
+  'meta': {'version':'1.0','artifact_type':'memory_entry','artifact_id':'mem-conflict-a','producer_type':'orchestration_authority','created_at':'2026-04-02T00:00:00Z'},
   'memory_id':'mem-conflict-a','memory_type':'architecture_precedent','state':'stable',
   'title':'Always use approach X for caching',
   'summary':'Caching should always use approach X based on performance testing',
@@ -175,7 +175,7 @@ entry_a = {
   'review_after':'2026-07-01T00:00:00Z','supersedes':[],'superseded_by':None,'tags':['caching','architecture'],'body':['Use approach X']
 }
 entry_b = {
-  'meta': {'version':'1.0','artifact_type':'memory_entry','artifact_id':'mem-conflict-b','producer_type':'process_lead','created_at':'2026-04-02T00:00:00Z'},
+  'meta': {'version':'1.0','artifact_type':'memory_entry','artifact_id':'mem-conflict-b','producer_type':'orchestration_authority','created_at':'2026-04-02T00:00:00Z'},
   'memory_id':'mem-conflict-b','memory_type':'architecture_precedent','state':'stable',
   'title':'Never use approach X for caching',
   'summary':'Approach X causes memory leaks in production; use approach Y instead',

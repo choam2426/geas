@@ -60,7 +60,7 @@ For each candidate string in `memory_candidates[]`:
        "version": "1.0",
        "artifact_type": "memory_candidate",
        "artifact_id": "{memory-id}",
-       "producer_type": "process_lead",
+       "producer_type": "orchestration_authority",
        "created_at": "<ISO 8601>"
      },
      "memory_id": "{memory-id}",
@@ -119,10 +119,10 @@ For each new candidate, determine the domain authority reviewer:
 | performance_tip | architecture_authority |
 | integration_pattern | architecture_authority |
 | ux_pattern | ui_ux_designer |
-| process_improvement | process_lead |
-| failure_lesson | process_lead |
+| process_improvement | orchestration_authority |
+| failure_lesson | orchestration_authority |
 | decision_precedent | product_authority |
-| risk_pattern | process_lead |
+| risk_pattern | orchestration_authority |
 | project_rule | orchestration_authority |
 | agent_rule | orchestration_authority |
 
@@ -141,7 +141,7 @@ Agent(agent: "{reviewer}", prompt: "Review memory candidate at .geas/memory/cand
 |------|----|-----------|
 | candidate | provisional | 2+ evidence_refs OR 2+ similar incidents OR domain authority approval |
 | provisional | stable | 3+ successful_reuses + 0 contradictions + domain authority review |
-| stable | canonical | 5+ successful_reuses (3+ different tasks) + joint approval (process_lead + domain authority) |
+| stable | canonical | 5+ successful_reuses (3+ different tasks) + joint approval (orchestration_authority + domain authority) |
 | any active | under_review | failed_reuses >= 2 OR confidence < 0.3 OR manual request |
 | under_review | reinstated/superseded/archived/rejected | Review decision |
 | any | decayed | review_after passed + 0 reuses in period, OR contradiction_count >= 3, OR confidence < 0.3 |
@@ -211,7 +211,7 @@ Run during Evolving phase or at session start:
 When `failed_reuses >= 2` for any memory entry:
 
 1. Transition to `under_review`
-2. process_lead convenes review with the memory's domain authority
+2. orchestration_authority convenes review with the memory's domain authority
 3. Review decision options:
    - **reinstate**: update guidance text, reset failed_reuses, resume from previous state
    - **supersede**: create new memory entry that replaces this one, set `superseded_by` on old entry

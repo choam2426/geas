@@ -72,12 +72,12 @@ Calculate all 8 signals from protocol doc 12. For each signal: read the source d
 
 When a signal is triggered, include the mandatory response in the output and take the described action:
 
-1. **memory_bloat** — `process_lead` batch-reviews memories with 0 reuses at the next retrospective. Items past their `review_after` date are transitioned to `decayed`.
+1. **memory_bloat** — `orchestration_authority` batch-reviews memories with 0 reuses at the next retrospective. Items past their `review_after` date are transitioned to `decayed`.
 2. **review_gap** — `orchestration_authority` activates blocking at the `pre_gate` hook for specialist review omissions starting from the next task.
-3. **gate_quality_issue** — `process_lead` creates a rule candidate for rubric criteria clarification. Adjusts evidence gate thresholds if needed.
+3. **gate_quality_issue** — `orchestration_authority` creates a rule candidate for rubric criteria clarification. Adjusts evidence gate thresholds if needed.
 4. **contradiction_accumulation** — immediately transition the affected memory entries to `under_review` and apply doc 08 decay rules.
 5. **repeated_failure_class** — automatically register the failure pattern as a memory candidate and trigger the Retrospective to Rule Update process from doc 14.
-6. **debt_stagnation** — `process_lead` creates a debt resolution plan during phase review. Prioritize debt resolution tasks in the next phase scheduling.
+6. **debt_stagnation** — `orchestration_authority` creates a debt resolution plan during phase review. Prioritize debt resolution tasks in the next phase scheduling.
 7. **scope_control_weakness** — `orchestration_authority` strengthens the implementation contract approval process. Makes re-approval mandatory on scope changes.
 8. **worker_low_confidence** — `orchestration_authority` reviews task granularity and improves L1/L2 memory quality in context packets.
 
@@ -106,7 +106,7 @@ Write `.geas/state/health-check.json`:
       "value": 2.5,
       "threshold": 2.0,
       "triggered": true,
-      "mandatory_response": "process_lead creates a debt resolution plan during phase review. Prioritize debt resolution tasks in the next phase scheduling."
+      "mandatory_response": "orchestration_authority creates a debt resolution plan during phase review. Prioritize debt resolution tasks in the next phase scheduling."
     }
   ]
 }
@@ -134,7 +134,7 @@ Then print a markdown summary to the conversation:
 ...
 
 ### Required Actions
-- debt_stagnation: process_lead creates a debt resolution plan during phase review.
+- debt_stagnation: orchestration_authority creates a debt resolution plan during phase review.
 ...
 ```
 

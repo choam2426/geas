@@ -145,7 +145,7 @@ candidate → provisional → stable → canonical
 ### Evolution 루프
 
 매 task 완료 후:
-1. **Retrospective**: process_lead가 교훈, rule/memory/debt candidate 추출
+1. **Retrospective**: orchestration_authority가 교훈, rule/memory/debt candidate 추출
 2. **Rules.md Update**: 검증된 교훈을 팀 규칙으로 승격
 3. **Memory Promotion**: candidate → provisional → stable → canonical
 4. **Debt Tracking**: 부채 기록, 분류, phase별 해소
