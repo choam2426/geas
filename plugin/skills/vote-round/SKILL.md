@@ -81,7 +81,7 @@ After all voters return, read each vote file.
 
 ## Output
 
-Vote evidence files at the location specified by the caller (e.g., `.geas/evidence/specifying/vote-{agent}.json` for Specifying votes).
+Vote evidence files at the location specified by the caller (e.g., `.geas/missions/{mission_id}/evidence/specifying/vote-{agent}.json` for Specifying votes).
 
 ---
 

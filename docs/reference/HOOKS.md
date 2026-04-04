@@ -220,7 +220,7 @@ Fires after every `Write` or `Edit` tool call. Has three distinct responsibiliti
 
 **1. Scope path warning**
 
-Reads the current task's `scope.paths` allowlist from `.geas/tasks/<current_task_id>.json`. If the written file does not match any of those glob patterns (via `fnmatch`), it prints a warning to stderr:
+Reads the current task's `scope.paths` allowlist from `.geas/missions/<mission_id>/tasks/<current_task_id>.json`. If the written file does not match any of those glob patterns (via `fnmatch`), it prints a warning to stderr:
 ```
 [Geas] WARNING: Write to <rel_path> outside scope.paths in <task_id>
 ```
@@ -236,7 +236,7 @@ This means agents never need to manually set `created_at`; the hook corrects it 
 
 **3. mission spec freeze guard**
 
-If the written file path matches `*/.geas/spec/mission-*.json`, it prints a warning to stderr:
+If the written file path matches `*/.geas/missions/*/spec.json`, it prints a warning to stderr:
 ```
 [Geas] Warning: mission spec was modified. Mission spec should be frozen after intake. Use /geas:pivot-protocol for scope changes.
 ```
@@ -246,7 +246,7 @@ If the written file path matches `*/.geas/spec/mission-*.json`, it prints a warn
 - Skips immediately if `cwd` or `file_path` cannot be parsed from the hook input.
 - Prohibited path check skips if there is no active `current_task_id` in `run.json`, or if the task file does not exist.
 - Timestamp injection only applies to files under `.geas/` with a `.json` extension.
-- Mission spec warning fires on any write to that path pattern, regardless of content.
+- Mission spec warning fires on any write to `.geas/missions/*/spec.json`, regardless of content.
 
 ---
 
@@ -264,16 +264,16 @@ If the written file path matches `*/.geas/spec/mission-*.json`, it prints a warn
 
 Fires after every `Write` or `Edit` tool call, but only acts when a task file is being written.
 
-1. **Filters to `.geas/tasks/*.json` files only.** All other writes are ignored immediately.
+1. **Filters to `.geas/missions/*/tasks/*.json` files only.** All other writes are ignored immediately.
 2. **Reads the task file.** If `status` is `"passed"`, checks for the presence of 5 mandatory evidence artifacts:
 
    | File | Role |
    |---|---|
-   | `.geas/evidence/<tid>/architecture-authority-review.json` | Code Review (Architecture Authority) |
-   | `.geas/evidence/<tid>/qa-engineer.json` | QA Testing (QA Engineer) |
-   | `.geas/evidence/<tid>/challenge-review.json` | Pre-ship Review (Critical Reviewer) |
-   | `.geas/evidence/<tid>/product-authority-verdict.json` | Product Review (Product Authority) |
-   | `.geas/tasks/<tid>/retrospective.json` | Process Lead Retrospective |
+   | `.geas/missions/<mid>/evidence/<tid>/architecture-authority-review.json` | Code Review (Architecture Authority) |
+   | `.geas/missions/<mid>/evidence/<tid>/qa-engineer.json` | QA Testing (QA Engineer) |
+   | `.geas/missions/<mid>/evidence/<tid>/challenge-review.json` | Pre-ship Review (Critical Reviewer) |
+   | `.geas/missions/<mid>/evidence/<tid>/product-authority-verdict.json` | Product Review (Product Authority) |
+   | `.geas/missions/<mid>/tasks/<tid>/retrospective.json` | Process Lead Retrospective |
 
    For each missing file, it prints a warning to stderr.
 
@@ -285,7 +285,7 @@ Fires after every `Write` or `Edit` tool call, but only acts when a task file is
 
 ### Conditions
 
-- Only activates for writes to `.geas/tasks/*.json`.
+- Only activates for writes to `.geas/missions/*/tasks/*.json`.
 - Only checks evidence when the task `status` field equals `"passed"`.
 - rubric_scores check only runs if the respective evidence file already exists.
 
@@ -305,7 +305,7 @@ Fires after every `Write` or `Edit` tool call, but only acts when a task file is
 
 Fires after every `Write` or `Edit` tool call, but only acts on the debt ledger.
 
-1. **Filters to `.geas/evolution/debt-register.json` only.** All other writes are ignored immediately.
+1. **Filters to `.geas/missions/*/evolution/debt-register.json` only.** All other writes are ignored immediately.
 2. **Reads the debt file** and counts items where `severity == "HIGH"` and `status == "open"`.
 3. **Warns when the count reaches 3 or more:**
    ```
@@ -315,7 +315,7 @@ Fires after every `Write` or `Edit` tool call, but only acts on the debt ledger.
 
 ### Conditions
 
-- Only activates for writes to `.geas/evolution/debt-register.json`.
+- Only activates for writes to `.geas/missions/*/evolution/debt-register.json`.
 - Warning threshold is 3 open HIGH items.
 
 ---
@@ -335,7 +335,7 @@ Fires after every `Write` or `Edit` tool call, but only acts on the debt ledger.
 
 Fires after every `Write` or `Edit` tool call, but only acts when a task file transitions to `implementing`.
 
-1. **Filters to `.geas/tasks/*.json` files only.** All other writes are ignored.
+1. **Filters to `.geas/missions/*/tasks/*.json` files only.** All other writes are ignored.
 2. **Reads the task file.** Only proceeds if `status` is `"implementing"`.
 3. **Compares the task's `base_commit`** against the current `git rev-parse HEAD`.
 4. **Warns if they differ:**
@@ -347,7 +347,7 @@ This catches situations where other tasks have been integrated since the task wa
 
 ### Conditions
 
-- Only activates for writes to `.geas/tasks/*.json`.
+- Only activates for writes to `.geas/missions/*/tasks/*.json`.
 - Only checks when `status` equals `"implementing"`.
 - Skips if `base_commit` is empty or git is unavailable.
 
@@ -439,7 +439,7 @@ Fires after every `Write` or `Edit` tool call, but only acts on memory entry fil
 
 Fires after every `Write` or `Edit` tool call, but only acts on context packet files.
 
-1. **Filters to `.geas/packets/*.md` files only.** All other writes are ignored.
+1. **Filters to `.geas/missions/` path files only.** All other writes are ignored.
 2. **Reads `.geas/state/memory-index.json`** to build a map of memory IDs to their current state.
 3. **Scans the packet content** for memory ID references (pattern: `[mem-*]`).
 4. **Warns if any referenced memory has a stale state** (superseded, under_review, decayed, archived, or rejected):
@@ -451,7 +451,7 @@ This prevents agents from acting on outdated memory that has been replaced or in
 
 ### Conditions
 
-- Only activates for writes to `.geas/packets/*.md`.
+- Only activates for writes to paths under `.geas/missions/`.
 - Skips if `.geas/state/memory-index.json` does not exist.
 - Only flags memory in non-active states.
 
@@ -501,7 +501,7 @@ Fires after every `Write` or `Edit` tool call, but only acts when `run.json` is 
 
 1. **Filters to `.geas/state/run.json` only.** All other writes are ignored.
 2. **Reads `run.json`** and checks if `recovery_class` is set (indicating a recovered session).
-3. **Checks for existing context packets** for the current task under `.geas/packets/<task_id>/`.
+3. **Checks for existing context packets** for the current task under `.geas/missions/<mission_id>/packets/<task_id>/`.
 4. **Warns if packets exist in a recovered session:**
    ```
    Warning: STALE PACKETS: Session recovered (<recovery_class>). Context packets for <task_id> may be stale. Regenerate before spawning agents.
@@ -513,7 +513,7 @@ After session recovery, previously generated context packets may reference outda
 
 - Only activates for writes to `.geas/state/run.json`.
 - Skips if no `current_task_id` is set.
-- Skips if no context packets exist for the current task.
+- Skips if no context packets exist for the current task under `.geas/missions/<mission_id>/packets/<task_id>/`.
 - Only warns when `recovery_class` is non-null.
 
 ---
@@ -638,17 +638,17 @@ Fires when the session is about to end. This is the only hook in the system that
 
    | File | Description |
    |---|---|
-   | `.geas/evidence/<tid>/architecture-authority-review.json` | Code Review |
-   | `.geas/evidence/<tid>/qa-engineer.json` | QA Testing |
-   | `.geas/evidence/<tid>/challenge-review.json` | Critical Reviewer Pre-ship Challenge |
-   | `.geas/evidence/<tid>/product-authority-verdict.json` | Final Verdict (Product Authority) |
-   | `.geas/tasks/<tid>/retrospective.json` | Process Lead Retrospective |
+   | `.geas/missions/<mid>/evidence/<tid>/architecture-authority-review.json` | Code Review |
+   | `.geas/missions/<mid>/evidence/<tid>/qa-engineer.json` | QA Testing |
+   | `.geas/missions/<mid>/evidence/<tid>/challenge-review.json` | Critical Reviewer Pre-ship Challenge |
+   | `.geas/missions/<mid>/evidence/<tid>/product-authority-verdict.json` | Final Verdict (Product Authority) |
+   | `.geas/missions/<mid>/tasks/<tid>/retrospective.json` | Process Lead Retrospective |
 
 4. **If any files are missing**, prints to stderr:
    ```
    [Geas] Pipeline incomplete. MANDATORY evidence missing:
-     - TASK-001: qa-engineer.json (QA Testing) missing
-     - TASK-001: tasks/TASK-001/retrospective.json (Process Lead Retrospective) missing
+     - TASK-001: missions/<mid>/evidence/TASK-001/qa-engineer.json (QA Testing) missing
+     - TASK-001: missions/<mid>/tasks/TASK-001/retrospective.json (Process Lead Retrospective) missing
 
    Execute the missing steps before completing the session.
    ```
@@ -823,17 +823,17 @@ For protocol details on hook failure handling, conformance checking, and metrics
 | `.geas/state/_checkpoint_pending` | checkpoint-pre-write (creates), checkpoint-post-write (removes) |
 | `.geas/state/memory-index.json` | memory-review-cadence, memory-superseded-warning |
 | `.geas/state/locks.json` | lock-conflict-check, integration-lane-check |
-| `.geas/evolution/debt-register.json` | check-debt |
+| `.geas/missions/<mid>/evolution/debt-register.json` | check-debt |
 | `.geas/rules.md` | session-init (creates), inject-context (reads), restore-context (reads) |
 | `.geas/memory/agents/<name>.md` | inject-context |
 | `.geas/memory/entries/<id>.json` | memory-promotion-gate |
-| `.geas/tasks/<tid>.json` | protect-geas-state, verify-task-status, stale-start-check |
-| `.geas/evidence/<tid>/architecture-authority-review.json` | verify-task-status, verify-pipeline |
-| `.geas/evidence/<tid>/qa-engineer.json` | verify-task-status, verify-pipeline |
-| `.geas/evidence/<tid>/challenge-review.json` | verify-task-status, verify-pipeline |
-| `.geas/evidence/<tid>/product-authority-verdict.json` | verify-task-status, verify-pipeline |
-| `.geas/tasks/<tid>/retrospective.json` | verify-task-status, verify-pipeline |
-| `.geas/spec/mission-{n}.json` | protect-geas-state (freeze guard) |
-| `.geas/packets/<tid>/*.md` | memory-superseded-warning, packet-stale-check |
+| `.geas/missions/<mid>/tasks/<tid>.json` | protect-geas-state, verify-task-status, stale-start-check |
+| `.geas/missions/<mid>/evidence/<tid>/architecture-authority-review.json` | verify-task-status, verify-pipeline |
+| `.geas/missions/<mid>/evidence/<tid>/qa-engineer.json` | verify-task-status, verify-pipeline |
+| `.geas/missions/<mid>/evidence/<tid>/challenge-review.json` | verify-task-status, verify-pipeline |
+| `.geas/missions/<mid>/evidence/<tid>/product-authority-verdict.json` | verify-task-status, verify-pipeline |
+| `.geas/missions/<mid>/tasks/<tid>/retrospective.json` | verify-task-status, verify-pipeline |
+| `.geas/missions/<mid>/spec.json` | protect-geas-state (freeze guard) |
+| `.geas/missions/<mid>/packets/<tid>/*.md` | memory-superseded-warning, packet-stale-check |
 | `.geas/ledger/costs.jsonl` | agent-telemetry |
 | `.geas/ledger/cost-summary.json` | calculate-cost |

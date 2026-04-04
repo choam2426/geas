@@ -4,16 +4,16 @@
 
 Produce a structured gap assessment comparing what was planned vs what was delivered.
 
-1. Read `.geas/spec/mission-{mission_id}.json` (get mission_id from run.json) — extract `scope_in` and `scope_out` items
-2. Read all TaskContracts in `.geas/tasks/` — categorize by status
-3. Read `.geas/evolution/debt-register.json` — get open items
+1. Read `.geas/missions/{mission_id}/spec.json` (get mission_id from run.json) — extract `scope_in` and `scope_out` items
+2. Read all TaskContracts in `.geas/missions/{mission_id}/tasks/` — categorize by status
+3. Read `.geas/missions/{mission_id}/evolution/debt-register.json` — get open items
 4. Classify each `scope_in` item:
    - Task exists with `status: "passed"` -> `fully_delivered`
    - Task exists but partially complete or with caveats -> `partially_delivered`
    - No corresponding task or task cancelled -> `not_delivered`
 5. Check for `scope_out` items that were delivered anyway -> `unexpected_additions` (need traceability note)
 6. Items explicitly dropped by product_authority decision -> `intentional_cuts`
-7. Write `.geas/evolution/gap-assessment-evolving.json` conforming to `schemas/gap-assessment.schema.json`:
+7. Write `.geas/missions/{mission_id}/evolution/gap-assessment-evolving.json` conforming to `schemas/gap-assessment.schema.json`:
 
 ```json
 {
@@ -57,13 +57,13 @@ If no P0 items remain: skip to product_authority Final Briefing.
 
 ### Rules Update Approval
 
-1. Read all per-task retrospectives: `.geas/tasks/*/retrospective.json`
+1. Read all per-task retrospectives: `.geas/missions/{mission_id}/tasks/*/retrospective.json`
 2. Collect all `rule_candidates[]` across tasks
-3. If no candidates across any task: write `.geas/evolution/rules-update.json` with `status: "none"`, `reason: "no rule candidates from any task retrospective"`, `evidence_refs: []`, `applies_to: []`. Skip to next step.
+3. If no candidates across any task: write `.geas/missions/{mission_id}/evolution/rules-update.json` with `status: "none"`, `reason: "no rule candidates from any task retrospective"`, `evidence_refs: []`, `applies_to: []`. Skip to next step.
 4. For each candidate, check approval conditions:
    - `evidence_refs` >= 2 (same pattern observed in 2+ tasks) AND `contradiction_count` = 0 -> auto-approve
    - Otherwise -> spawn domain authority for review
-5. Write `.geas/evolution/rules-update.json` conforming to `schemas/rules-update.schema.json`:
+5. Write `.geas/missions/{mission_id}/evolution/rules-update.json` conforming to `schemas/rules-update.schema.json`:
    ```json
    {
      "version": "1.0",
@@ -113,10 +113,10 @@ Same mandatory steps, same Closure Packet verification, same checkpoint manageme
 
 ### Product-authority Final Briefing [MANDATORY]
 ```
-Agent(agent: "product-authority", prompt: "Final product review. Read the current mission spec at .geas/spec/mission-{mission_id}.json (get mission_id from .geas/state/run.json), .geas/evolution/gap-assessment-evolving.json, .geas/evolution/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write JSON to .geas/evidence/evolving/product-authority-final.json. ALSO write a human-readable markdown summary to .geas/summaries/mission-summary.md covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
+Agent(agent: "product-authority", prompt: "Final product review. Read the current mission spec at .geas/missions/{mission_id}/spec.json (get mission_id from .geas/state/run.json), .geas/missions/{mission_id}/evolution/gap-assessment-evolving.json, .geas/missions/{mission_id}/evolution/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write JSON to .geas/missions/{mission_id}/evidence/evolving/product-authority-final.json. ALSO write a human-readable markdown summary to .geas/missions/{mission_id}/mission-summary.md covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
 ```
-Verify `.geas/evidence/evolving/product-authority-final.json` exists.
-Verify `.geas/summaries/mission-summary.md` exists.
+Verify `.geas/missions/{mission_id}/evidence/evolving/product-authority-final.json` exists.
+Verify `.geas/missions/{mission_id}/mission-summary.md` exists.
 
 ### Mission Briefing [MANDATORY — orchestrator writes directly]
 
@@ -124,17 +124,17 @@ Assemble a detailed execution briefing by reading all `.geas/` artifacts. This i
 
 **Read these sources:**
 - `events.jsonl` — find `run_started` timestamp for this mission, then all events after it
-- `.geas/tasks/*.json` — filter to tasks with `task_compiled` events after `run_started`
-- `.geas/tasks/{task-id}/gate-result.json` — gate verdict and iteration count
-- `.geas/tasks/{task-id}/challenge-review.json` — critical reviewer execution
-- `.geas/tasks/{task-id}/final-verdict.json` — verdict
-- `.geas/evolution/debt-register.json` — open debt items
-- `.geas/evolution/gap-assessment-evolving.json` — recommended follow-ups
-- `.geas/tasks/{task-id}/closure-packet.json` — open risks
+- `.geas/missions/{mission_id}/tasks/*.json` — filter to tasks with `task_compiled` events after `run_started`
+- `.geas/missions/{mission_id}/tasks/{task-id}/gate-result.json` — gate verdict and iteration count
+- `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` — critical reviewer execution
+- `.geas/missions/{mission_id}/tasks/{task-id}/final-verdict.json` — verdict
+- `.geas/missions/{mission_id}/evolution/debt-register.json` — open debt items
+- `.geas/missions/{mission_id}/evolution/gap-assessment-evolving.json` — recommended follow-ups
+- `.geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json` — open risks
 - `.geas/ledger/token-summary.json` — token usage
 - `.geas/ledger/costs.jsonl` — subagent count
 
-**Write `.geas/summaries/mission-briefing.md`:**
+**Write `.geas/missions/{mission_id}/mission-briefing.md`:**
 
 ```markdown
 # Mission Briefing — {mission title}
@@ -178,19 +178,19 @@ Assemble a detailed execution briefing by reading all `.geas/` artifacts. This i
 **After writing the file, print a console summary:**
 
 ```
-[Orchestrator] Mission briefing written to .geas/summaries/mission-briefing.md
+[Orchestrator] Mission briefing written to .geas/missions/{mission_id}/mission-briefing.md
 
   Tasks: {passed}/{total} passed | Duration: {total} | Commits: {count}
   Debt: {count} open ({high_count} high) | Memory: {count} new candidates
 ```
 
-Verify `.geas/summaries/mission-briefing.md` exists.
+Verify `.geas/missions/{mission_id}/mission-briefing.md` exists.
 
 ### Repository-manager Release Management [MANDATORY]
 ```
-Agent(agent: "repository-manager", prompt: "Create release: version bump, changelog from .geas/ledger/events.jsonl, final commit. Write to .geas/evidence/evolving/repository-manager-release.json")
+Agent(agent: "repository-manager", prompt: "Create release: version bump, changelog from .geas/ledger/events.jsonl, final commit. Write to .geas/missions/{mission_id}/evidence/evolving/repository-manager-release.json")
 ```
-Verify `.geas/evidence/evolving/repository-manager-release.json` exists.
+Verify `.geas/missions/{mission_id}/evidence/evolving/repository-manager-release.json` exists.
 
 ### Run Summary
 Invoke `/geas:run-summary` to generate session audit trail.
@@ -199,17 +199,17 @@ Invoke `/geas:run-summary` to generate session audit trail.
 
 **Before closing, verify ALL 5 required artifacts exist:**
 
-1. `.geas/evolution/gap-assessment-evolving.json` — produced in Gap Assessment step
-2. `.geas/evolution/debt-register.json` — all open debt triaged (no items with `severity: "high"` or `"critical"` and `status: "open"`)
-3. `.geas/evolution/rules-update.json` — exists with `status: "approved"` or `"none"` (produced in Rules Update Approval step)
-4. `.geas/summaries/mission-summary.md` — produced in product_authority Final Briefing step
-5. `.geas/evolution/phase-review-evolving.json` — write now (see below)
+1. `.geas/missions/{mission_id}/evolution/gap-assessment-evolving.json` — produced in Gap Assessment step
+2. `.geas/missions/{mission_id}/evolution/debt-register.json` — all open debt triaged (no items with `severity: "high"` or `"critical"` and `status: "open"`)
+3. `.geas/missions/{mission_id}/evolution/rules-update.json` — exists with `status: "approved"` or `"none"` (produced in Rules Update Approval step)
+4. `.geas/missions/{mission_id}/mission-summary.md` — produced in product_authority Final Briefing step
+5. `.geas/missions/{mission_id}/phase-reviews/evolving.json` — write now (see below)
 
 **If ANY artifact is missing: go back and execute the missing step. Do NOT close without all 5.**
 
 **Debt triage check**: Read debt-register.json. If any item has `severity: "critical"` and `status: "open"`, the exit gate fails. Product_authority must decide: (a) immediate fix as task, (b) accept with mandatory rationale, or (c) defer to next mission. Record decision in a DecisionRecord with `decision_type: "critical_debt_triage"`.
 
-Write `.geas/evolution/phase-review-evolving.json`:
+Write `.geas/missions/{mission_id}/phase-reviews/evolving.json`:
 ```json
 {
   "version": "1.0",

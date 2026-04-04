@@ -61,7 +61,7 @@ graph LR
     C --> D[Polishing]
     D --> E[Evolving]
 
-    B -.- B1["Intake -> 스펙 -> 아키텍처\n-> 태스크 컴파일"]
+    B -.- B1["Intake -> 디자인 브리프\n-> 태스크 컴파일"]
     C -.- C1["태스크별 파이프라인 x N\n(안전하면 병렬)"]
     D -.- D1["보안 -> 문서 -> 정리"]
     E -.- E1["Gap 평가 -> 규칙\n-> 메모리 -> 요약"]
@@ -93,16 +93,22 @@ Geas는 운영 상태와 증거를 `.geas/`에 남깁니다:
 ```
 .geas/
 ├── state/                        # 세션 체크포인트, 락, 상태 신호
-├── tasks/
-│   ├── task-001.json             # 태스크 계약 (수용 기준, 루브릭, 분류)
-│   └── task-001/
-│       ├── worker-self-check.json    # 구현자 셀프체크
-│       ├── integration-result.json   # 통합 결과
-│       ├── gate-result.json          # Evidence Gate 판정
-│       ├── closure-packet.json       # 증거 종합 패킷
-│       ├── challenge-review.json     # Critical Reviewer 검증
-│       ├── final-verdict.json        # 최종 판정
-│       └── retrospective.json        # 회고
+├── missions/
+│   └── {mission_id}/
+│       ├── spec.json                 # 미션 스펙 (intake에서 동결)
+│       ├── design-brief.json         # 디자인 브리프 (사용자 승인됨)
+│       ├── tasks/
+│       │   ├── task-001.json         # 태스크 계약
+│       │   └── task-001/
+│       │       ├── worker-self-check.json
+│       │       ├── gate-result.json
+│       │       ├── closure-packet.json
+│       │       ├── challenge-review.json
+│       │       ├── final-verdict.json
+│       │       └── retrospective.json
+│       ├── evidence/                 # 전문가 리뷰 증거
+│       ├── evolution/                # 부채 등록부, gap 평가
+│       └── phase-reviews/            # 단계 전이 리뷰
 ├── memory/                       # 학습 패턴 (candidate -> canonical)
 ├── ledger/                       # 추가 전용 이벤트 로그
 └── rules.md                      # 공유 규칙 (시간이 갈수록 쌓임)

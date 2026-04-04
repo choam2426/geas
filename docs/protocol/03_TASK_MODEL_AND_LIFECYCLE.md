@@ -208,37 +208,37 @@ The purpose of this adjustment is to apply a higher verification bar to implemen
 This is the full flow for a typical code task with `task_kind = code`, `risk_level = normal`, `gate_profile = code_change`, `retry_budget = 3`.
 
 **1. `drafted` -> `ready`**
-- **Artifact**: `task-contract.json` (`.geas/tasks/{task_id}.json`)
+- **Artifact**: `task-contract.json` (`.geas/missions/{mission_id}/tasks/{task_id}.json`)
 - **Performed by**: `task_compiler` (under orchestration_authority direction)
 - **Conditions**: task contract compilation is complete, and `base_commit` must be an ancestor of or equal to `tip(integration_branch)`. `acceptance_criteria[]`, `routing`, and `gate_profile` must all be finalized.
 
 **2. `ready` -> `implementing`**
-- **Artifact**: `implementation-contract.json` (`.geas/contracts/{task_id}.json`)
+- **Artifact**: `implementation-contract.json` (`.geas/missions/{mission_id}/contracts/{task_id}.json`)
 - **Performed by**: primary worker (the agent matching routing.primary_worker_type)
 - **Conditions**: the implementation contract must be written and readable by the designated reviewer. The worktree must be prepared at `worktree.path`. Required path_lock / interface_lock must be acquired.
 
 **3. `implementing` (implementation work)**
-- **Artifacts**: code changes (commits in the worktree), `worker-self-check.json` (`.geas/tasks/{task_id}/worker-self-check.json`)
+- **Artifacts**: code changes (commits in the worktree), `worker-self-check.json` (`.geas/missions/{mission_id}/tasks/{task_id}/worker-self-check.json`)
 - **Performed by**: primary worker
 - **Conditions**: the worker completes implementation and fills in all required fields of `worker-self-check.json` including `confidence`, `known_risks[]`, `untested_paths[]`, etc.
 
 **4. `implementing` -> `reviewed`**
-- **Artifact**: `specialist-review.json` (`.geas/tasks/{task_id}/specialist-review.json`, created separately per reviewer type)
+- **Artifact**: `specialist-review.json` (`.geas/missions/{mission_id}/tasks/{task_id}/specialist-review.json`, created separately per reviewer type)
 - **Performed by**: specialist agents designated in `routing.required_reviewer_types[]` (e.g., `architecture_authority`, `qa_engineer`)
 - **Conditions**: `worker-self-check.json` must exist, and all required specialist reviews must be complete. Each review must have no blocking defects, or if there were any, they must be resolved.
 
 **5. `reviewed` -> `integrated`**
-- **Artifact**: `integration-result.json` (`.geas/tasks/{task_id}/integration-result.json`)
+- **Artifact**: `integration-result.json` (`.geas/missions/{mission_id}/tasks/{task_id}/integration-result.json`)
 - **Performed by**: orchestration_authority (manages the integration lane)
 - **Conditions**: `integration_lock` must be acquired, and the worktree changes merged into the integration branch. The staleness classification must be `clean_sync` or `review_sync` (rewind if `replan_required` or `blocking_conflict`). The integration-result.json records the merge commit hash, conflict status, and drift information.
 
 **6. `integrated` -> `verified`**
-- **Artifact**: `gate-result.json` (`.geas/tasks/{task_id}/gate-result.json`)
+- **Artifact**: `gate-result.json` (`.geas/missions/{mission_id}/tasks/{task_id}/gate-result.json`)
 - **Performed by**: evidence gate (3-tier verification: mechanical -> semantic+rubric -> product)
 - **Conditions**: gate result must be `pass`. In this example, all tiers pass and `verdict = pass` is recorded.
 
 **7. `verified` -> `passed`**
-- **Artifact**: `closure-packet.json` (`.geas/tasks/{task_id}/closure-packet.json`)
+- **Artifact**: `closure-packet.json` (`.geas/missions/{mission_id}/tasks/{task_id}/closure-packet.json`)
 - **Performed by**: orchestration_authority
 - **Conditions**: closure packet must be complete. Final verdict is `pass`, and all acceptance criteria are recorded as met. Any debt is registered in `debt-register.json`. All locks for the task are released, and the worktree becomes a cleanup candidate.
 

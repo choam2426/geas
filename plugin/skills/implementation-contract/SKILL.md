@@ -17,8 +17,8 @@ Eliminates the waste cycle: "worker misunderstands requirement → builds wrong 
 
 ## Inputs
 
-1. **TaskContract** — from `.geas/tasks/{task-id}.json`
-2. **ContextPacket** — the worker's packet at `.geas/packets/{task-id}/{worker}.md`
+1. **TaskContract** — from `.geas/missions/{mission_id}/tasks/{task-id}.json`
+2. **ContextPacket** — the worker's packet at `.geas/missions/{mission_id}/packets/{task-id}/{worker}.md`
 3. **Prior evidence** — ui_ux_designer design, architecture_authority tech guide (if available)
 
 ## Process
@@ -28,7 +28,7 @@ Eliminates the waste cycle: "worker misunderstands requirement → builds wrong 
 Spawn the assigned worker to read their ContextPacket and write a contract:
 
 ```
-Agent(agent: "{worker}", prompt: "Read .geas/packets/{task-id}/{worker}.md and .geas/tasks/{task-id}.json. Before implementing, write your implementation contract to .geas/contracts/{task-id}.json with these fields:
+Agent(agent: "{worker}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{worker}.md and .geas/missions/{mission_id}/tasks/{task-id}.json. Before implementing, write your implementation contract to .geas/missions/{mission_id}/contracts/{task-id}.json with these fields:
 - planned_actions: concrete steps you will take
 - edge_cases: edge cases you plan to handle
 - state_transitions: state changes your implementation introduces (if any)
@@ -37,14 +37,14 @@ Agent(agent: "{worker}", prompt: "Read .geas/packets/{task-id}/{worker}.md and .
 Set status to 'draft'.")
 ```
 
-Verify `.geas/contracts/{task-id}.json` exists.
+Verify `.geas/missions/{mission_id}/contracts/{task-id}.json` exists.
 
 ### Step 2: qa_engineer Reviews
 
 Spawn qa_engineer to review the contract from a QA perspective:
 
 ```
-Agent(agent: "qa-engineer", prompt: "Read .geas/contracts/{task-id}.json and .geas/tasks/{task-id}.json. Review this implementation contract:
+Agent(agent: "qa-engineer", prompt: "Read .geas/missions/{mission_id}/contracts/{task-id}.json and .geas/missions/{mission_id}/tasks/{task-id}.json. Review this implementation contract:
 - Are demo_steps sufficient to verify all acceptance criteria?
 - Are there missing edge_cases that should be handled?
 - Are non_goals reasonable — anything critical being excluded?
@@ -57,7 +57,7 @@ Write your assessment. If acceptable, approve. If not, list specific concerns.")
 Spawn architecture_authority to review the contract from a technical perspective:
 
 ```
-Agent(agent: "architecture-authority", prompt: "Read .geas/contracts/{task-id}.json, .geas/tasks/{task-id}.json, and any prior tech guide at .geas/evidence/{task-id}/architecture-authority.json. Review this implementation contract:
+Agent(agent: "architecture-authority", prompt: "Read .geas/missions/{mission_id}/contracts/{task-id}.json, .geas/missions/{mission_id}/tasks/{task-id}.json, and any prior tech guide at .geas/missions/{mission_id}/evidence/{task-id}/architecture-authority.json. Review this implementation contract:
 - Are planned_actions consistent with the tech guide?
 - Are non_goals appropriate — nothing critical being excluded?
 - Are there technical edge_cases the worker missed?
@@ -72,10 +72,10 @@ Write your assessment. If acceptable, approve. If not, list specific concerns.")
 
 ## Output
 
-Write the contract to `.geas/contracts/{task-id}.json` conforming to `schemas/implementation-contract.schema.json`.
+Write the contract to `.geas/missions/{mission_id}/contracts/{task-id}.json` conforming to `schemas/implementation-contract.schema.json`.
 
 ```bash
-mkdir -p .geas/contracts
+mkdir -p .geas/missions/{mission_id}/contracts
 ```
 
 Log the event:

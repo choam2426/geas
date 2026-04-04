@@ -147,7 +147,7 @@ Whenever a non-trivial recovery (`dirty_state_recovery` or `manual_repair_requir
 - Task `T-042` is in `verifying` state.
 - During evidence gate 3-tier verification, tier 1 (mechanical check) passed and `gate-result.json` has `tier1.verdict = pass` recorded.
 - Session terminated abnormally during tier 2 (semantic+rubric) execution.
-- `.geas/tasks/T-042/gate-result.json` contains only `tier1` results; the `tier2` field is `in_progress` or absent.
+- `.geas/missions/{mission_id}/tasks/T-042/gate-result.json` contains only `tier1` results; the `tier2` field is `in_progress` or absent.
 
 **Recovery class:** `interrupted_subagent_resume`
 
@@ -166,9 +166,9 @@ Whenever a non-trivial recovery (`dirty_state_recovery` or `manual_repair_requir
      "recommended_action": "replay_step",
      "required_revalidation": ["gate_tier2", "gate_tier3"],
      "artifact_refs": [
-       ".geas/tasks/T-042/gate-result.json",
-       ".geas/tasks/T-042/integration-result.json",
-       ".geas/tasks/T-042/worker-self-check.json"
+       ".geas/missions/{mission_id}/tasks/T-042/gate-result.json",
+       ".geas/missions/{mission_id}/tasks/T-042/integration-result.json",
+       ".geas/missions/{mission_id}/tasks/T-042/worker-self-check.json"
      ]
    }
    ```
@@ -179,7 +179,7 @@ Whenever a non-trivial recovery (`dirty_state_recovery` or `manual_repair_requir
 
 **Situation:**
 - Task `T-078` is in `integrating` state.
-- `.geas/tasks/T-078/integration-result.json` exists with merge commit hash and `status = success` recorded.
+- `.geas/missions/{mission_id}/tasks/T-078/integration-result.json` exists with merge commit hash and `status = success` recorded.
 - However, `closure-packet.json` has not yet been created, and `gate-result.json` has no gate execution record after this integration.
 - The `integration_lock` is still held by `T-078` when the session terminated.
 
@@ -201,10 +201,10 @@ Whenever a non-trivial recovery (`dirty_state_recovery` or `manual_repair_requir
      "recommended_action": "exact_resume",
      "required_revalidation": [],
      "artifact_refs": [
-       ".geas/tasks/T-078/integration-result.json",
-       ".geas/tasks/T-078/specialist-review.json",
-       ".geas/tasks/T-078/worker-self-check.json",
-       ".geas/contracts/T-078.json"
+       ".geas/missions/{mission_id}/tasks/T-078/integration-result.json",
+       ".geas/missions/{mission_id}/tasks/T-078/specialist-review.json",
+       ".geas/missions/{mission_id}/tasks/T-078/worker-self-check.json",
+       ".geas/missions/{mission_id}/contracts/T-078.json"
      ]
    }
    ```
@@ -243,8 +243,8 @@ Whenever a non-trivial recovery (`dirty_state_recovery` or `manual_repair_requir
      "recommended_action": "revalidate",
      "required_revalidation": ["worktree_integrity", "implementation_progress"],
      "artifact_refs": [
-       ".geas/contracts/T-115.json",
-       ".geas/tasks/T-115.json"
+       ".geas/missions/{mission_id}/contracts/T-115.json",
+       ".geas/missions/{mission_id}/tasks/T-115.json"
      ]
    }
    ```

@@ -30,7 +30,7 @@ Central index: `.geas/state/memory-index.json`
 
 ## 1. Candidate Extraction
 
-Input: `.geas/tasks/{task-id}/retrospective.json` → `memory_candidates[]`
+Input: `.geas/missions/{mission_id}/tasks/{task-id}/retrospective.json` → `memory_candidates[]`
 
 For each candidate string in `memory_candidates[]`:
 
@@ -79,7 +79,7 @@ For each candidate string in `memory_candidates[]`:
        "confidence": 0.4
      },
      "candidate_reason": "Extracted from task {task-id} retrospective",
-     "source_artifacts": [".geas/tasks/{task-id}/retrospective.json"]
+     "source_artifacts": [".geas/missions/{mission_id}/tasks/{task-id}/retrospective.json"]
    }
    ```
 5. Add entry to `.geas/state/memory-index.json`

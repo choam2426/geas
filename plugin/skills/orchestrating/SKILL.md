@@ -25,7 +25,7 @@ These rules apply throughout all phases of the 4-phase execution flow.
 ### Evidence verification
 - After every Agent() return, **Read the expected evidence file** to verify it exists.
 - If missing: the step failed. Retry once, then log error and proceed.
-- Evidence paths: `.geas/evidence/{task-id}/{agent-name}.json`
+- Evidence paths: `.geas/missions/{mission_id}/evidence/{task-id}/{agent-name}.json`
 
 ### Event logging
 - Log every transition to `.geas/ledger/events.jsonl`.
@@ -67,7 +67,7 @@ During parallel batch execution (see `/geas:scheduling`):
 
 ### Task file status updates
 **[MANDATORY]** When resolving a task (Ship verdict):
-1. Read `.geas/tasks/{task-id}.json`
+1. Read `.geas/missions/{mission_id}/tasks/{task-id}.json`
 2. Set `"status": "passed"`
 3. Write it back
 
@@ -77,13 +77,13 @@ This applies to every task — sequential or parallel. If the task file does not
 - `.geas/rules.md` is a living document. Changes go through a structured `rules-update.json` workflow.
 - During per-task retrospectives, process_lead produces `rule_candidates[]` in `retrospective.json`. These are proposals, NOT direct modifications.
 - Rule candidates accumulate during the Building phase. Batch approval happens in the Evolving phase (Step 4.2.5).
-- Approved rules updates are applied to `.geas/rules.md` and recorded in `.geas/evolution/rules-update.json` with `status: "approved"`.
+- Approved rules updates are applied to `.geas/rules.md` and recorded in `.geas/missions/{mission_id}/evolution/rules-update.json` with `status: "approved"`.
 - Approval conditions (per doc 14): process_lead + domain authority, OR evidence_refs >= 2 with contradiction_count = 0.
 - After Phase 1 (Specifying): Orchestrator adds stack-specific rules before the rules-update workflow exists in the pipeline.
 
 ### Tech debt tracking
 After reading each agent's evidence, check for a `tech_debt` array. If present:
-1. Read `.geas/evolution/debt-register.json` (create with initial schema if missing).
+1. Read `.geas/missions/{mission_id}/evolution/debt-register.json` (create with initial schema if missing).
 2. For each debt item, check if a similar title already exists (skip duplicates).
 3. Add new items with sequential ID (DEBT-001, DEBT-002...) as structured items conforming to `schemas/debt-register.schema.json`. Each item requires: `debt_id`, `severity`, `kind`, `title`, `description`, `introduced_by_task_id`, `owner_type`, `status: "open"`, `target_phase`.
 4. Update `rollup_by_severity` and `rollup_by_kind` counts.
@@ -109,9 +109,11 @@ Within a SINGLE TASK's pipeline, do NOT end your turn between steps. Run all 14 
 Between tasks, a brief status update is acceptable but do NOT wait for user input unless:
 - You need user input (ambiguous requirement, scope question), OR
 - An error blocks progress (gate fail, hook block), OR
-- **Specifying → Building transition** (present task summary, wait for user approval)
+- **Design-brief approval** (user must approve design before task compilation)
+- **Task list approval** (user must approve compiled tasks before building)
+- **Specifying → Building transition** (after environment setup completes)
 
-Task compilation in specifying phase: compile ALL tasks in one turn. Then present the specifying summary (see "Specifying → Building Transition" checkpoint) before entering building.
+Design-brief and task list each require user approval. Do NOT batch these — present design-brief first, get approval, then compile tasks, then present task list for approval.
 
 ---
 
@@ -174,7 +176,7 @@ When `run.json` exists with `status: "in_progress"`, classify the recovery:
 #### Stale Packet Check
 
 After recovery completes and before resuming the pipeline:
-1. Check if context packets exist for the focus task at `.geas/packets/{task-id}/`
+1. Check if context packets exist for the focus task at `.geas/missions/{mission_id}/packets/{task-id}/`
 2. If packets exist: compare their timestamps against the last event in `events.jsonl`
 3. If packets are older than the last event → packets are stale. Regenerate by invoking `/geas:context-packet` before spawning the next agent.
 4. Also regenerate after: revalidation, rewind, rules.md update, memory state change to under_review/superseded.
@@ -190,7 +192,7 @@ The orchestrator is responsible for maintaining two context anchors:
 These files are consumed by `restore-context.sh` during post-compact recovery.
 
 ### Step 1: Intake Gate
-Invoke `/geas:intake` to produce `.geas/spec/mission-{n}.json`.
+Invoke `/geas:intake` to produce `.geas/missions/{mission_id}/spec.json`.
 - Ask the user clarifying questions until the completeness checklist is satisfied (all boolean fields in `completeness_checklist` are true).
 
 After intake creates the mission file, update `run.json` with BOTH fields:
@@ -211,8 +213,8 @@ Always 4 phases, regardless of scope. The orchestrator determines phase scale ba
 
 ### Phase 1: Specifying
 Read `references/specifying.md` and follow the procedure.
-Minimum: intake (mission spec confirmation with user) + task compilation.
-Full: vision, PRD, architecture, vote round, task compilation.
+All missions: intake + design-brief (with arch-authority review) + task compilation + user approvals.
+Full depth adds: alternatives analysis, architecture decisions, risk assessment, vote round.
 
 #### Task Classification Validation [MANDATORY]
 

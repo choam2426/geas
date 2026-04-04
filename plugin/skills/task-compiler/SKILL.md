@@ -18,16 +18,17 @@ Invoked during:
 You need these before compiling:
 
 1. **User story or feature description** — what needs to be built
-2. **Mission spec** — read from `.geas/spec/mission-{mission_id}.json` for mission-level context
-3. **Architecture context** — from `.geas/memory/_project/conventions.md`
-4. **Existing task contracts** — check `.geas/tasks/` for dependencies
+2. **Mission spec** — read from `.geas/missions/{mission_id}/spec.json` for mission-level context
+3. **Design-brief** — read from `.geas/missions/{mission_id}/design-brief.json` for approach context and architecture decisions
+4. **Architecture context** — from `.geas/memory/_project/conventions.md`
+5. **Existing task contracts** — check `.geas/missions/{mission_id}/tasks/` for dependencies
 
 ## Compilation Process
 
 ### Step 1: Determine Task Identity
 
 - Generate a sequential ID: `task-001`, `task-002`, etc.
-- Check `.geas/tasks/` for existing contracts to avoid ID collision
+- Check `.geas/missions/{mission_id}/tasks/` for existing contracts to avoid ID collision
 - Title should be actionable: "[Backend] User authentication API", "[Frontend] Login form"
 
 ### Step 2: Classify the Task
@@ -164,7 +165,7 @@ Examples:
 
 ### Step 9: Check Dependencies
 
-Look at existing TaskContracts in `.geas/tasks/`:
+Look at existing TaskContracts in `.geas/missions/{mission_id}/tasks/`:
 - If this task needs another task's output (e.g., frontend needs backend API) → add to `dependencies`
 - If this task blocks others → note for scheduling
 
@@ -196,10 +197,10 @@ Write the rubric as an object with a `dimensions` array. The orchestration_autho
 
 ## Output
 
-Write the TaskContract to `.geas/tasks/{task_id}.json` conforming to `schemas/task-contract.schema.json`.
+Write the TaskContract to `.geas/missions/{mission_id}/tasks/{task_id}.json` conforming to `schemas/task-contract.schema.json`.
 
 ```bash
-mkdir -p .geas/tasks
+mkdir -p .geas/missions/{mission_id}/tasks
 ```
 
 Example output:

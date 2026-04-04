@@ -38,7 +38,7 @@ specifying --[gate 1]--> building --[gate 2]--> polishing --[gate 3]--> evolving
                                                                            close
                                                                         (or next mission)
 
-gate 1: mission brief + scope_in + initial tasks exist
+gate 1: mission frozen + design-brief approved + tasks compiled + task list approved + environment setup completed
 gate 2: all MVP-critical tasks passed + no blocking_conflict + 0 critical debt + 0 unmitigated high debt
          required artifacts: phase-review.json, gap-assessment.json
 gate 3: all high/critical debt triaged + required reviews approved + shipping rationale recorded for every known risk
@@ -50,16 +50,18 @@ gate 4: gap-assessment.json + retrospective.json + rules update + debt snapshot 
 ### 1) `specifying`
 Goals:
 - Finalize the mission definition
-- Produce the MVP scope_in
+- Produce a user-approved design-brief (HOW decisions)
 - Settle architecture / conventions decisions
-- Compile the initial backlog
+- Compile and approve the initial backlog
+- Set up the development environment
 
 Required deliverables:
-- mission brief
-- `scope_in`
-- decision records
-- initial tasks
+- mission spec (frozen)
+- design-brief (user-approved, architecture-authority reviewed)
+- decision records (from design-brief architecture_decisions, when applicable)
+- initial tasks (user-approved)
 - conventions / project memory seed
+- environment setup (when applicable)
 
 ### 2) `building`
 Goals:
@@ -140,7 +142,7 @@ Runtime phase describes where within the current work the session currently is; 
 
 | transition | required artifact |
 |---|---|
-| `specifying` -> `building` | (phase-review.json recommended, not required) |
+| `specifying` -> `building` | `phase-review.json` (required: mission frozen, design-brief approved, tasks compiled, task list approved, environment setup completed) |
 | `building` -> `polishing` | `phase-review.json`, `gap-assessment.json` |
 | `polishing` -> `evolving` | `phase-review.json`, `gap-assessment.json` |
 | `evolving` -> close/next mission | `phase-review.json`, `gap-assessment.json` |

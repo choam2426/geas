@@ -9,7 +9,7 @@ Before any mission execution, run this gate to freeze the mission specification.
 
 ## Purpose
 
-Missions arrive as natural language with hidden assumptions, ambiguous scope, and implicit constraints. This gate surfaces those gaps through collaborative exploration and produces an immutable mission spec file (`.geas/spec/mission-{n}.json`) before the team starts building.
+Missions arrive as natural language with hidden assumptions, ambiguous scope, and implicit constraints. This gate surfaces those gaps through collaborative exploration and produces an immutable mission spec file (`.geas/missions/{mission_id}/spec.json`) before the team starts building.
 
 ## Process
 
@@ -75,14 +75,14 @@ Check the completeness checklist — all items must be true:
 - `target_user`: approved
 - `constraints`: approved
 
-Ensure `.geas/spec/` directory exists:
+Determine the next mission ID by scanning `.geas/missions/mission-*/` directories — pick the next sequential number (mission-001, mission-002, etc.).
+
+Create the mission directory structure:
 ```bash
-mkdir -p .geas/spec
+mkdir -p .geas/missions/{mission_id}/tasks .geas/missions/{mission_id}/evidence .geas/missions/{mission_id}/contracts .geas/missions/{mission_id}/packets .geas/missions/{mission_id}/decisions/pending .geas/missions/{mission_id}/evolution .geas/missions/{mission_id}/phase-reviews
 ```
 
-Determine the next mission ID by scanning `.geas/spec/mission-*.json` — pick the next sequential number (mission-001, mission-002, etc.). If `.geas/spec/seed.json` exists (legacy), count it as mission-001.
-
-Write `.geas/spec/mission-{n}.json` following the schema at `schemas/mission-spec.schema.json`. Include:
+Write `.geas/missions/{mission_id}/spec.json` following the schema at `schemas/mission-spec.schema.json`. Include:
 - `"version": "1.0"`, `"artifact_type": "mission_spec"`, `"artifact_id": "mission-{n}"`
 - `"producer_type": "orchestration_authority"`, `"mission_id": "mission-{n}"`
 - `"created_at"` (actual UTC timestamp)
@@ -122,10 +122,9 @@ For lightweight missions (adding a feature to an existing project):
 
 ## Output
 
-- **Every mission** produces `.geas/spec/mission-{n}.json` — both new and existing projects.
-- **New product**: full intake → `mission-001.json` with `source: "full_intake"`
-- **Existing project (first geas usage)**: minimal intake → `mission-001.json` with `source: "existing_project"`
-- **Existing project (subsequent missions)**: lightweight intake → `mission-{n}.json` with `source: "quick_intake"` or `"full_intake"`
+- **Every mission** produces `.geas/missions/{mission_id}/spec.json` — both new and existing projects.
+- **New product**: full intake → `.geas/missions/mission-001/spec.json` with `source: "full_intake"`
+- **Existing project (first geas usage)**: minimal intake → `.geas/missions/mission-001/spec.json` with `source: "existing_project"`
+- **Existing project (subsequent missions)**: lightweight intake → `.geas/missions/mission-{n}/spec.json` with `source: "quick_intake"` or `"full_intake"`
 - **Format**: JSON conforming to `schemas/mission-spec.schema.json`
 - **Immutability**: Once confirmed, the mission spec should not be modified during execution. If scope must change, trigger `/geas:pivot-protocol` instead.
-- **Backward compatibility**: If `.geas/spec/seed.json` exists (pre-migration project), treat it as mission-001 equivalent. Next mission creates `mission-002.json`.

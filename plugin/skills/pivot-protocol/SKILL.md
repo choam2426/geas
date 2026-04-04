@@ -32,12 +32,12 @@ A pivot is triggered when ANY of these occur:
    - **Push through**: if the issue is fixable with reasonable effort
    - **Simplify**: keep the goal but drastically reduce complexity
 
-3. **product_authority records decision** as a DecisionRecord in `.geas/decisions/` with clear rationale
+3. **product_authority records decision** as a DecisionRecord in `.geas/missions/{mission_id}/decisions/` with clear rationale
 
 4. **orchestration_authority restructures** the task board:
    - Cancel dropped TaskContracts with explanation
    - Create new TaskContracts for the new approach
-   - Update priorities in `.geas/tasks/`
+   - Update priorities in `.geas/missions/{mission_id}/tasks/`
 
 5. **Team redirects** and continues from the new plan
 

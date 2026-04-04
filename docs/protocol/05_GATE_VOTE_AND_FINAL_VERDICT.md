@@ -133,6 +133,7 @@ When a task set to `never` encounters a readiness_round trigger condition, the o
 
 ### `proposal_round`
 When to use:
+- Design-brief approval during the specifying phase (mandatory for full-depth, skipped for lightweight)
 - Cross-cutting proposals during the specifying phase
 - Major design/API boundary decisions during the building phase
 

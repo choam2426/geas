@@ -10,18 +10,18 @@
 
 | Artifact | Schema | 저장 경로 | 생산자 |
 |----------|--------|----------|--------|
-| `task-contract.json` | `task-contract.schema.json` | `.geas/tasks/{task_id}.json` | task_compiler |
-| `implementation-contract.json` | `implementation-contract.schema.json` | `.geas/contracts/{task_id}.json` | primary worker |
-| `worker-self-check.json` | `worker-self-check.schema.json` | `.geas/tasks/{task_id}/worker-self-check.json` | primary worker |
-| `specialist-review.json` | `specialist-review.schema.json` | `.geas/evidence/{task_id}/{agent-type}[-review].json` | specialist agents |
-| `integration-result.json` | `integration-result.schema.json` | `.geas/tasks/{task_id}/integration-result.json` | orchestration_authority |
-| `gate-result.json` | `gate-result.schema.json` | `.geas/tasks/{task_id}/gate-result.json` | orchestration_authority |
-| `closure-packet.json` | `closure-packet.schema.json` | `.geas/tasks/{task_id}/closure-packet.json` | orchestration_authority |
-| `challenge-review.json` | `challenge-review.schema.json` | `.geas/tasks/{task_id}/challenge-review.json` | critical_reviewer |
-| `final-verdict.json` | `final-verdict.schema.json` | `.geas/tasks/{task_id}/final-verdict.json` | product_authority |
-| `vote-round.json` | `vote-round.schema.json` | `.geas/decisions/{dec_id}.json` | orchestration_authority |
-| `failure-record.json` | `failure-record.schema.json` | `.geas/tasks/{task_id}/failure-record-{seq}.json` | orchestration_authority |
-| `retrospective.json` | `retrospective.schema.json` | `.geas/tasks/{task_id}/retrospective.json` | process_lead |
+| `task-contract.json` | `task-contract.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}.json` | task_compiler |
+| `implementation-contract.json` | `implementation-contract.schema.json` | `.geas/missions/{mission_id}/contracts/{task_id}.json` | primary worker |
+| `worker-self-check.json` | `worker-self-check.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/worker-self-check.json` | primary worker |
+| `specialist-review.json` | `specialist-review.schema.json` | `.geas/missions/{mission_id}/evidence/{task_id}/{agent-type}[-review].json` | specialist agents |
+| `integration-result.json` | `integration-result.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/integration-result.json` | orchestration_authority |
+| `gate-result.json` | `gate-result.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/gate-result.json` | orchestration_authority |
+| `closure-packet.json` | `closure-packet.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/closure-packet.json` | orchestration_authority |
+| `challenge-review.json` | `challenge-review.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/challenge-review.json` | critical_reviewer |
+| `final-verdict.json` | `final-verdict.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/final-verdict.json` | product_authority |
+| `vote-round.json` | `vote-round.schema.json` | `.geas/missions/{mission_id}/decisions/{dec_id}.json` | orchestration_authority |
+| `failure-record.json` | `failure-record.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/failure-record-{seq}.json` | orchestration_authority |
+| `retrospective.json` | `retrospective.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/retrospective.json` | process_lead |
 
 ### 세션 & 오케스트레이션 Artifact
 
@@ -30,17 +30,17 @@
 | `run-state.json` | `run-state.schema.json` | `.geas/state/run.json` | orchestration_authority |
 | `lock-manifest.json` | `lock-manifest.schema.json` | `.geas/state/locks.json` | orchestration_authority |
 | `health-check.json` | `health-check.schema.json` | `.geas/state/health-check.json` | orchestration_authority |
-| `revalidation-record.json` | `revalidation-record.schema.json` | `.geas/tasks/{task_id}/revalidation-record.json` | orchestration_authority |
+| `revalidation-record.json` | `revalidation-record.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/revalidation-record.json` | orchestration_authority |
 | `recovery-packet.json` | `recovery-packet.schema.json` | `.geas/recovery/recovery-{id}.json` | orchestration_authority |
 
 ### Evolution Artifact
 
 | Artifact | Schema | 저장 경로 | 범위 |
 |----------|--------|----------|------|
-| `rules-update.json` | `rules-update.schema.json` | `.geas/evolution/rules-update-{seq}.json` | mission별 |
-| `debt-register.json` | `debt-register.schema.json` | `.geas/evolution/debt-register.json` | mission별 (항목 누적) |
-| `gap-assessment.json` | `gap-assessment.schema.json` | `.geas/evolution/gap-assessment-{transition}.json` | phase 전이별 |
-| `phase-review.json` | `phase-review.schema.json` | `.geas/evolution/phase-review-{transition}.json` | phase 전이별 |
+| `rules-update.json` | `rules-update.schema.json` | `.geas/missions/{mission_id}/evolution/rules-update-{seq}.json` | mission별 |
+| `debt-register.json` | `debt-register.schema.json` | `.geas/missions/{mission_id}/evolution/debt-register.json` | mission별 (항목 누적) |
+| `gap-assessment.json` | `gap-assessment.schema.json` | `.geas/missions/{mission_id}/evolution/gap-assessment-{transition}.json` | phase 전이별 |
+| `phase-review.json` | `phase-review.schema.json` | `.geas/missions/{mission_id}/phase-reviews/{transition}.json` | phase 전이별 |
 | `policy-override.json` | `policy-override.schema.json` | `.geas/state/policy-overrides.json` | 프로젝트별 |
 
 ### Memory Artifact
@@ -51,7 +51,7 @@
 | `memory-entry.json` | `memory-entry.schema.json` | `.geas/memory/entries/{memory_id}.json` | orchestration_authority |
 | `memory-review.json` | `memory-review.schema.json` | `.geas/memory/candidates/{memory_id}-review.json` | domain authority |
 | `memory-application-log.json` | `memory-application-log.schema.json` | `.geas/memory/logs/{task_id}-{memory_id}.json` | orchestration_authority |
-| `memory-packet.json` | `memory-packet.schema.json` | `.geas/packets/{task_id}/memory-packet.json` | orchestration_authority |
+| `memory-packet.json` | `memory-packet.schema.json` | `.geas/missions/{mission_id}/packets/{task_id}/memory-packet.json` | orchestration_authority |
 | `memory-index.json` | `memory-index.schema.json` | `.geas/state/memory-index.json` | orchestration_authority |
 
 ### 사람이 읽는 요약 (스키마 없음 — 마크다운)
@@ -60,7 +60,7 @@
 |------|----------|------|
 | `session-latest.md` | `.geas/state/session-latest.md` | session별 (compact 시 덮어쓰기) |
 | `task-focus/{id}.md` | `.geas/state/task-focus/{task_id}.md` | task별 |
-| `mission-summary.md` | `.geas/summaries/mission-summary.md` | mission별 |
+| `mission-summary.md` | `.geas/missions/{mission_id}/mission-summary.md` | mission별 |
 | `run-summary-{ts}.md` | `.geas/summaries/run-summary-{timestamp}.md` | session별 |
 
 ## Schema Inventory

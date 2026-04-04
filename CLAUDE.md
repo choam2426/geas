@@ -23,6 +23,8 @@ Full architecture: `docs/architecture/DESIGN.md`
 
 Every mission follows 4 phases: Specifying → Building → Polishing → Evolving. Scale adapts to the request — from a single feature to a full product. Always follows the same pipeline order.
 
+Specifying produces three user-approved artifacts: mission spec (WHAT/WHY), design-brief (HOW), and task list (UNITS OF WORK). Architecture-authority reviews every design-brief. Full-depth briefs also go through a vote round.
+
 Decision is a utility skill (`decision/`) for structured decision-making without code changes. It is not a separate mode.
 
 ## Task Lifecycle
@@ -52,7 +54,7 @@ plugin/
 docs/
 ├── protocol/                # Operating protocol (English, canonical)
 │   ├── 00-12, 14 .md        # 14 protocol documents
-│   ├── schemas/             # 29 JSON Schema (draft 2020-12)
+│   ├── schemas/             # 30 JSON Schema (draft 2020-12)
 │   └── examples/            # 15 example files
 ├── architecture/DESIGN.md   # Architecture overview
 └── reference/               # SKILLS.md, HOOKS.md
@@ -62,7 +64,7 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 
 ### Core skills (contract engine)
 - `intake/` — Socratic requirements gathering → mission-{n}.json
-- `task-compiler/` — mission spec → TaskContracts with classification, rubric, routing
+- `task-compiler/` — mission spec + design-brief → TaskContracts with classification, rubric, routing
 - `context-packet/` — role-specific briefings (Phase 4: + memory retrieval)
 - `implementation-contract/` — pre-implementation agreement between worker and reviewers
 - `evidence-gate/` — Tier 0/1/2 verification (pass/fail/block/error)

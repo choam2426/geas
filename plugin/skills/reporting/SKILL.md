@@ -14,7 +14,7 @@ Produces a markdown summary to the conversation and writes `.geas/state/health-c
 
 ## Section 1: Debt Summary
 
-Read `.geas/evolution/debt-register.json`.
+Read `.geas/missions/{mission_id}/evolution/debt-register.json`.
 
 Report the following counts:
 
@@ -33,7 +33,7 @@ If the file does not exist, report: "No debt register found — run after at lea
 
 ## Section 2: Gap Summary
 
-Read the latest `.geas/evolution/gap-assessment-*.json` file (most recent by timestamp).
+Read the latest `.geas/missions/{mission_id}/evolution/gap-assessment-*.json` file (most recent by timestamp).
 
 Report:
 
@@ -64,9 +64,9 @@ Calculate all 8 signals from protocol doc 12. For each signal: read the source d
 | `gate_quality_issue` | > 30% `iterate` rate in last 10 tasks | `.geas/ledger/events.jsonl` | Count `final_verdict = iterate` events / total final verdict events (last 10) |
 | `contradiction_accumulation` | 2+ stable memories with `contradiction_count >= 3` | `.geas/state/memory-index.json` | Count index entries where `state = stable` and `contradiction_count >= 3` |
 | `repeated_failure_class` | same failure class 3+ times | `.geas/ledger/events.jsonl` | Group gate failure events by `blocking_dimensions`; flag any group with count >= 3 |
-| `debt_stagnation` | `accepted` >= 2x `resolved` per phase | `.geas/evolution/debt-register.json` | `accepted_count / resolved_count` (if resolved = 0 and accepted > 0, value = infinity → triggered) |
+| `debt_stagnation` | `accepted` >= 2x `resolved` per phase | `.geas/missions/{mission_id}/evolution/debt-register.json` | `accepted_count / resolved_count` (if resolved = 0 and accepted > 0, value = infinity → triggered) |
 | `scope_control_weakness` | > 30% scope change after impl contract in last 5 tasks | `.geas/ledger/events.jsonl` | Count `revalidation_triggered` events after `implementation_contract_approved` per task (last 5); flag if > 30% of those tasks have at least one such event |
-| `worker_low_confidence` | > 25% `confidence <= 2` in last 10 tasks | `.geas/tasks/*/worker-self-check.json` | Count self-check files with `confidence <= 2` / total self-check files (last 10 by `created_at`) |
+| `worker_low_confidence` | > 25% `confidence <= 2` in last 10 tasks | `.geas/missions/{mission_id}/tasks/*/worker-self-check.json` | Count self-check files with `confidence <= 2` / total self-check files (last 10 by `created_at`) |
 
 ### Mandatory Responses
 

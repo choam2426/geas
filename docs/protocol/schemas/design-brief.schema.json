@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DesignBrief",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "artifact_type",
+    "artifact_id",
+    "producer_type",
+    "mission_id",
+    "depth",
+    "status",
+    "chosen_approach",
+    "non_goals",
+    "verification_strategy",
+    "created_at"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "artifact_type": {
+      "type": "string",
+      "const": "design_brief"
+    },
+    "artifact_id": {
+      "type": "string",
+      "description": "e.g., design-brief-mission-003"
+    },
+    "producer_type": {
+      "type": "string",
+      "const": "orchestration_authority",
+      "description": "Always orchestration_authority for design briefs"
+    },
+    "mission_id": {
+      "type": "string"
+    },
+    "depth": {
+      "type": "string",
+      "enum": ["lightweight", "full"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "reviewing", "approved"]
+    },
+    "chosen_approach": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Selected implementation direction and rationale"
+    },
+    "non_goals": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "What this mission explicitly will not do"
+    },
+    "verification_strategy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "How completion will be verified"
+    },
+    "alternatives_considered": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["approach", "rejected_reason"],
+        "additionalProperties": false,
+        "properties": {
+          "approach": { "type": "string" },
+          "rejected_reason": { "type": "string" }
+        }
+      },
+      "description": "Full depth only. Other approaches and why they were rejected."
+    },
+    "architecture_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["decision", "rationale"],
+        "additionalProperties": false,
+        "properties": {
+          "decision": { "type": "string" },
+          "rationale": { "type": "string" },
+          "constraints": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "description": "Full depth only. Technical decisions with rationale."
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["description", "mitigation"],
+        "additionalProperties": false,
+        "properties": {
+          "description": { "type": "string" },
+          "mitigation": { "type": "string" }
+        }
+      },
+      "description": "Full depth only. Identified risks with mitigation plans."
+    },
+    "preserve_list": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Full depth only. Existing behavior/files that must not change."
+    },
+    "unresolved_assumptions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Full depth only. Assumptions not yet validated."
+    },
+    "arch_review": {
+      "type": "object",
+      "required": ["reviewer_type", "summary"],
+      "additionalProperties": false,
+      "properties": {
+        "reviewer_type": {
+          "type": "string",
+          "const": "architecture_authority"
+        },
+        "summary": {
+          "type": "string",
+          "description": "Review summary from architecture-authority"
+        },
+        "additions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Items added or modified by the reviewer"
+        }
+      }
+    },
+    "vote_round_ref": {
+      "type": ["string", "null"],
+      "description": "Path to vote round artifact, or null if no vote"
+    },
+    "rejection_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reason", "revision_summary", "rejected_at"],
+        "additionalProperties": false,
+        "properties": {
+          "reason": { "type": "string" },
+          "revision_summary": { "type": "string" },
+          "rejected_at": { "type": "string" }
+        }
+      },
+      "description": "Record of user rejections and subsequent revisions"
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO 8601 timestamp"
+    },
+    "approved_at": {
+      "type": ["string", "null"],
+      "description": "ISO 8601 timestamp when user approved, or null"
+    }
+  }
+}

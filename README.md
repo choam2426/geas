@@ -61,7 +61,7 @@ graph LR
     C --> D[Polishing]
     D --> E[Evolving]
 
-    B -.- B1["Intake -> Spec -> Architecture\n-> Task Compilation"]
+    B -.- B1["Intake -> Design Brief\n-> Task Compilation"]
     C -.- C1["Per-task pipeline x N\n(parallel when safe)"]
     D -.- D1["Security -> Docs -> Cleanup"]
     E -.- E1["Gap Assessment -> Rules\n-> Memory -> Summary"]
@@ -93,16 +93,22 @@ Geas writes operational state and evidence to `.geas/`:
 ```
 .geas/
 ├── state/                        # session checkpoint, locks, health signals
-├── tasks/
-│   ├── task-001.json             # task contract (acceptance criteria, rubric, classification)
-│   └── task-001/
-│       ├── worker-self-check.json    # implementer self-check
-│       ├── integration-result.json   # integration result
-│       ├── gate-result.json          # Evidence Gate verdict
-│       ├── closure-packet.json       # evidence summary packet
-│       ├── challenge-review.json     # Critical Reviewer verification
-│       ├── final-verdict.json        # final verdict
-│       └── retrospective.json        # retrospective
+├── missions/
+│   └── {mission_id}/
+│       ├── spec.json                 # mission spec (frozen at intake)
+│       ├── design-brief.json         # design brief (user-approved)
+│       ├── tasks/
+│       │   ├── task-001.json         # task contract
+│       │   └── task-001/
+│       │       ├── worker-self-check.json
+│       │       ├── gate-result.json
+│       │       ├── closure-packet.json
+│       │       ├── challenge-review.json
+│       │       ├── final-verdict.json
+│       │       └── retrospective.json
+│       ├── evidence/                 # specialist review evidence
+│       ├── evolution/                # debt register, gap assessments
+│       └── phase-reviews/            # phase transition reviews
 ├── memory/                       # learned patterns (candidate -> canonical)
 ├── ledger/                       # append-only event log
 └── rules.md                      # shared conventions (grows over time)

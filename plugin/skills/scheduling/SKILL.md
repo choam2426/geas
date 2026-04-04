@@ -25,7 +25,7 @@ The orchestrator assigns multiple tasks to run simultaneously. Each task progres
 
 When the orchestrator reaches a point where new tasks could start (Phase 2 entry, or after a task/batch resolves):
 
-1. Read all task files in `.geas/tasks/`.
+1. Read all task files in `.geas/missions/{mission_id}/tasks/`.
 2. Filter: `status == "ready"` AND every ID in `depends_on` has a task file with `status == "passed"`.
 3. **Staleness check per task**: For each candidate, compare `base_commit` with `tip(integration_branch)`.
    - If `base_commit == tip`: eligible
@@ -116,7 +116,7 @@ When a session resumes and run.json has `parallel_batch` set (non-null):
 1. Read `parallel_batch` and `completed_in_batch`.
 2. Compute remaining: tasks in `parallel_batch` but not in `completed_in_batch`.
 3. For each remaining task, check evidence:
-   - `.geas/evidence/{task-id}/repository-manager.json` exists AND `.geas/tasks/{task-id}/retrospective.json` exists → task is complete. Set task file status to `"passed"`, add to `completed_in_batch`.
+   - `.geas/missions/{mission_id}/evidence/{task-id}/repository-manager.json` exists AND `.geas/missions/{mission_id}/tasks/{task-id}/retrospective.json` exists → task is complete. Set task file status to `"passed"`, add to `completed_in_batch`.
    - `repository-manager.json` exists but no retro → resume from retrospective step only.
    - Neither exists → re-execute the full pipeline for this task.
 4. Update run.json with corrected `completed_in_batch`.

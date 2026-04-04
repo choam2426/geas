@@ -9,26 +9,26 @@ All 27 skills in the Geas plugin. Skills are invoked either by users directly (`
 | [mission](#mission) | Entry | Yes | User directly | Invokes Orchestrator |
 | [orchestrating](#orchestrating) | Entry | No | User (via `/geas:mission`) | 4-phase mission (Specifying → Building → Polishing → Evolving) |
 | [setup](#setup) | Entry | No | Orchestrator (first run) | `.geas/` runtime directory |
-| [intake](#intake) | Core - Contract Engine | No | Orchestrator | `.geas/spec/mission-{n}.json` |
-| [task-compiler](#task-compiler) | Core - Contract Engine | No | Orchestrator | `.geas/tasks/{id}.json` |
-| [context-packet](#context-packet) | Core - Contract Engine | No | Orchestrator | `.geas/packets/{task-id}/{worker}.md` |
-| [implementation-contract](#implementation-contract) | Core - Contract Engine | No | Orchestrator | `.geas/contracts/{task-id}.json` |
+| [intake](#intake) | Core - Contract Engine | No | Orchestrator | `.geas/missions/{mission_id}/spec.json` |
+| [task-compiler](#task-compiler) | Core - Contract Engine | No | Orchestrator | `.geas/missions/{mission_id}/tasks/{id}.json` |
+| [context-packet](#context-packet) | Core - Contract Engine | No | Orchestrator | `.geas/missions/{mission_id}/packets/{task-id}/{worker}.md` |
+| [implementation-contract](#implementation-contract) | Core - Contract Engine | No | Orchestrator | `.geas/missions/{mission_id}/contracts/{task-id}.json` |
 | [evidence-gate](#evidence-gate) | Core - Contract Engine | No | Orchestrator | Gate verdict + ledger event |
 | [verify-fix-loop](#verify-fix-loop) | Core - Contract Engine | No | Orchestrator (via evidence-gate) | Fix iterations + DecisionRecord |
 | [verify](#verify) | Core - Verification | No | Worker agents | Console checklist report |
-| [vote-round](#vote-round) | Core - Verification | No | Orchestrator (at Specifying) | `.geas/decisions/{dec-id}.json` |
+| [vote-round](#vote-round) | Core - Verification | No | Orchestrator (at Specifying) | `.geas/missions/{mission_id}/decisions/{dec-id}.json` |
 | [scheduling](#scheduling) | Core - Execution | No | Orchestrator | Batch construction, parallel dispatch |
-| [decision](#decision) | Team - Execution | Yes | Orchestrator or User | `.geas/decisions/{dec-id}.json` |
+| [decision](#decision) | Team - Execution | Yes | Orchestrator or User | `.geas/missions/{mission_id}/decisions/{dec-id}.json` |
 | [memorizing](#memorizing) | Core - Memory | No | Orchestrator | Memory candidates, promotions, index |
-| [write-prd](#write-prd) | Team - Planning | No | Product Authority (during Specifying) | `.geas/spec/prd.md` |
-| [write-stories](#write-stories) | Team - Planning | No | Product Authority (during Specifying) | `.geas/spec/stories.md` |
+| [write-prd](#write-prd) | Team - Planning | No | Product Authority (during Specifying) | `.geas/missions/{mission_id}/prd.md` |
+| [write-stories](#write-stories) | Team - Planning | No | Product Authority (during Specifying) | `.geas/missions/{mission_id}/stories.md` |
 | [onboard](#onboard) | Team - Planning | No | Orchestrator (first run) | `.geas/memory/_project/conventions.md` |
 | [coding-conventions](#coding-conventions) | Utility | No | All agents | Reference guidance only |
 | [briefing](#briefing) | Utility | No | Product Authority or Orchestrator | Console status report |
 | [run-summary](#run-summary) | Utility | No | Orchestrator (end of session) | `.geas/summaries/run-summary-<date>.md` |
 | [ledger-query](#ledger-query) | Utility | No | Orchestrator or User | Formatted query results (read-only) |
-| [cleanup](#cleanup) | Utility | No | Orchestrator (post-Building / Evolving) | `.geas/evolution/debt-register.json` entries |
-| [pivot-protocol](#pivot-protocol) | Utility | No | Orchestrator or any agent | `.geas/decisions/{dec-id}.json` |
+| [cleanup](#cleanup) | Utility | No | Orchestrator (post-Building / Evolving) | `.geas/missions/{mission_id}/evolution/debt-register.json` entries |
+| [pivot-protocol](#pivot-protocol) | Utility | No | Orchestrator or any agent | `.geas/missions/{mission_id}/decisions/{dec-id}.json` |
 | [conformance-checking](#conformance-checking) | Operational | Yes | User or Orchestrator | 18-scenario conformance report |
 | [chaos-exercising](#chaos-exercising) | Operational | Yes | User | 5-scenario failure test results |
 | [policy-managing](#policy-managing) | Operational | Yes | User or Orchestrator | `.geas/state/policy-overrides.json` |
@@ -71,14 +71,14 @@ Geas orchestrator -- coordinates the multi-agent team. Manages setup, intake, an
 
 **Inputs:**
 - `.geas/state/run.json` -- checked at startup for resume vs fresh run
-- `.geas/spec/mission-{n}.json` -- mission context after intake
+- `.geas/missions/{mission_id}/spec.json` -- mission context after intake
 - `.geas/ledger/events.jsonl` -- event log for writing transitions
-- `.geas/evolution/debt-register.json` -- tech debt tracking after each agent return
+- `.geas/missions/{mission_id}/evolution/debt-register.json` -- tech debt tracking after each agent return
 
 **Outputs:**
 - `.geas/state/run.json` -- checkpoint updates before every agent spawn
 - `.geas/ledger/events.jsonl` -- event entries for all state transitions
-- `.geas/evolution/debt-register.json` -- new tech debt items extracted from evidence bundles
+- `.geas/missions/{mission_id}/evolution/debt-register.json` -- new tech debt items extracted from evidence bundles
 
 **Key Behaviors:**
 - Before every `Agent()` spawn, reads and writes `.geas/state/run.json` with a checkpoint (`pipeline_step`, `agent_in_flight`, `pending_evidence`). Session recovery depends on this.
@@ -100,9 +100,9 @@ First-time setup -- initialize `.geas/` runtime directory, generate config files
 **Inputs:** None (reads `.gitignore` to check for existing entries)
 
 **Outputs:**
-- `.geas/` directory tree: `spec/`, `state/`, `tasks/`, `contracts/`, `packets/`, `evidence/`, `decisions/`, `decisions/pending/`, `ledger/`, `summaries/`, `memory/_project/`, `memory/agents/`
+- `.geas/` directory tree: `state/`, `missions/{mission_id}/`, `ledger/`, `summaries/`, `memory/_project/`, `memory/agents/`
 - `.geas/state/run.json` -- initial run state (`status: "initialized"`)
-- `.geas/evolution/debt-register.json` -- empty tech debt register (`{"items": []}`)
+- `.geas/missions/{mission_id}/evolution/debt-register.json` -- empty tech debt register (`{"items": []}`)
 - `.geas/rules.md` -- shared agent rules (evidence format, code boundaries)
 - `.gitignore` -- `.geas/` entry appended if not present
 
@@ -127,10 +127,10 @@ Mission intake gate -- collaborative exploration to freeze a mission spec. One q
 
 **Inputs:**
 - User natural language (the raw mission statement)
-- `.geas/spec/mission-{n}.json` -- checked for existence (existing project variant skips creation if file already exists)
+- `.geas/missions/{mission_id}/spec.json` -- checked for existence (existing project variant skips creation if file already exists)
 
 **Outputs:**
-- `.geas/spec/mission-{n}.json` -- frozen mission spec conforming to `schemas/mission-spec.schema.json`
+- `.geas/missions/{mission_id}/spec.json` -- frozen mission spec conforming to `schemas/mission-spec.schema.json`
 
 **Key Behaviors:**
 - Asks one question at a time (never batches questions) and tracks a mental completeness checklist: `mission`, `acceptance_criteria` (>=3), `scope_out` (>=1), `target_user`, `constraints`. Stops when all are satisfied.
@@ -151,12 +151,12 @@ Compile a user story into a TaskContract -- a machine-readable work agreement wi
 
 **Inputs:**
 - User story or feature description
-- `.geas/spec/mission-{n}.json` -- mission-level context
+- `.geas/missions/{mission_id}/spec.json` -- mission-level context
 - `.geas/memory/_project/conventions.md` -- build/lint/test commands
-- `.geas/tasks/` -- existing contracts for dependency checking and ID sequencing
+- `.geas/missions/{mission_id}/tasks/` -- existing contracts for dependency checking and ID sequencing
 
 **Outputs:**
-- `.geas/tasks/{id}.json` -- TaskContract conforming to `schemas/task-contract.schema.json`
+- `.geas/missions/{mission_id}/tasks/{id}.json` -- TaskContract conforming to `schemas/task-contract.schema.json`
 - `.geas/ledger/events.jsonl` -- `task_compiled` event appended
 
 **Key Behaviors:**
@@ -177,15 +177,15 @@ Generate a role-specific ContextPacket for a worker -- compressed briefing with 
 **Invoked By:** Orchestrator before dispatching any worker for a task
 
 **Inputs:**
-- `.geas/tasks/{task-id}.json` -- TaskContract
-- `.geas/evidence/{task-id}/` -- upstream worker outputs
-- `.geas/decisions/` -- relevant decision records
-- `.geas/spec/mission-{n}.json` -- mission context
-- `.geas/contracts/{task-id}.json` -- implementation contract (for Architecture Authority and QA Engineer packets)
-- `.geas/evolution/debt-register.json` -- open tech debt items relevant to the task
+- `.geas/missions/{mission_id}/tasks/{task-id}.json` -- TaskContract
+- `.geas/missions/{mission_id}/evidence/{task-id}/` -- upstream worker outputs
+- `.geas/missions/{mission_id}/decisions/` -- relevant decision records
+- `.geas/missions/{mission_id}/spec.json` -- mission context
+- `.geas/missions/{mission_id}/contracts/{task-id}.json` -- implementation contract (for Architecture Authority and QA Engineer packets)
+- `.geas/missions/{mission_id}/evolution/debt-register.json` -- open tech debt items relevant to the task
 
 **Outputs:**
-- `.geas/packets/{task-id}/{worker-name}.md` -- role-tailored markdown briefing (target: under 200 lines)
+- `.geas/missions/{mission_id}/packets/{task-id}/{worker-name}.md` -- role-tailored markdown briefing (target: under 200 lines)
 
 **Key Behaviors:**
 - Each worker type receives only the context relevant to their role: UI/UX Designer gets design constraints and target-user context; Frontend Engineer/Backend Engineer get the design spec and eval commands; Architecture Authority gets files changed and the worker's `self_check.known_risks`; QA Engineer gets the implementation contract's `demo_steps` and `edge_cases` plus available QA tools.
@@ -205,12 +205,12 @@ Pre-implementation agreement -- worker proposes concrete action plan, QA Enginee
 **Invoked By:** Orchestrator after Tech Guide (Architecture Authority) and before Implementation, for every task
 
 **Inputs:**
-- `.geas/tasks/{task-id}.json` -- TaskContract
-- `.geas/packets/{task-id}/{worker}.md` -- worker's ContextPacket
-- `.geas/evidence/{task-id}/palette.json`, `.geas/evidence/{task-id}/forge.json` -- prior design and tech guide evidence (if available)
+- `.geas/missions/{mission_id}/tasks/{task-id}.json` -- TaskContract
+- `.geas/missions/{mission_id}/packets/{task-id}/{worker}.md` -- worker's ContextPacket
+- `.geas/missions/{mission_id}/evidence/{task-id}/palette.json`, `.geas/missions/{mission_id}/evidence/{task-id}/forge.json` -- prior design and tech guide evidence (if available)
 
 **Outputs:**
-- `.geas/contracts/{task-id}.json` -- implementation contract conforming to `schemas/implementation-contract.schema.json` (fields: `planned_actions`, `edge_cases`, `state_transitions`, `non_goals`, `demo_steps`, `status`)
+- `.geas/missions/{mission_id}/contracts/{task-id}.json` -- implementation contract conforming to `schemas/implementation-contract.schema.json` (fields: `planned_actions`, `edge_cases`, `state_transitions`, `non_goals`, `demo_steps`, `status`)
 - `.geas/ledger/events.jsonl` -- `implementation_contract` event with `approved` or `revision_requested`
 
 **Key Behaviors:**
@@ -231,14 +231,14 @@ Evidence Gate v2 quality gate -- evaluates an EvidenceBundle against its TaskCon
 **Invoked By:** Orchestrator after each implementation, code review, or QA step
 
 **Inputs:**
-- `.geas/evidence/{task-id}/{worker-name}.json` -- EvidenceBundle
-- `.geas/tasks/{task-id}.json` -- TaskContract (acceptance criteria, eval commands, rubric, retry budget)
+- `.geas/missions/{mission_id}/evidence/{task-id}/{worker-name}.json` -- EvidenceBundle
+- `.geas/missions/{mission_id}/tasks/{task-id}.json` -- TaskContract (acceptance criteria, eval commands, rubric, retry budget)
 
 **Outputs:**
 - Gate verdict (pass/fail/block/error) with tier breakdown. `iterate` is not a gate verdict; it is used only in the Final Verdict.
-- `.geas/tasks/{task-id}.json` -- status updated to `"passed"` on pass
+- `.geas/missions/{mission_id}/tasks/{task-id}.json` -- status updated to `"passed"` on pass
 - `.geas/ledger/events.jsonl` -- detailed `gate_result` event with tier results
-- `.geas/decisions/{dec-id}.json` -- DecisionRecord on escalation
+- `.geas/missions/{mission_id}/decisions/{dec-id}.json` -- DecisionRecord on escalation
 - Triggers `verify-fix-loop` on fail (if retry budget remains)
 
 **Key Behaviors:**
@@ -260,14 +260,14 @@ Verify-Fix Loop -- bounded fix-verify inner loop. Reads TaskContract for retry b
 **Invoked By:** Orchestrator (triggered by evidence-gate on failure)
 
 **Inputs:**
-- `.geas/tasks/{task-id}.json` -- TaskContract (retry budget, escalation policy)
-- `.geas/evidence/{task-id}/sentinel.json` -- failed EvidenceBundle with specific failures
+- `.geas/missions/{mission_id}/tasks/{task-id}.json` -- TaskContract (retry budget, escalation policy)
+- `.geas/missions/{mission_id}/evidence/{task-id}/sentinel.json` -- failed EvidenceBundle with specific failures
 - Gate verdict -- which tier failed and why (including `blocking_dimensions` from rubric)
 
 **Outputs:**
-- `.geas/packets/{task-id}/{fixer}-fix-{N}.md` -- fix-specific ContextPacket per iteration
-- `.geas/evidence/{task-id}/{fixer}-fix-{N}.json` -- EvidenceBundle from each fix attempt
-- `.geas/decisions/{dec-id}.json` -- DecisionRecord when budget exhausted
+- `.geas/missions/{mission_id}/packets/{task-id}/{fixer}-fix-{N}.md` -- fix-specific ContextPacket per iteration
+- `.geas/missions/{mission_id}/evidence/{task-id}/{fixer}-fix-{N}.json` -- EvidenceBundle from each fix attempt
+- `.geas/missions/{mission_id}/decisions/{dec-id}.json` -- DecisionRecord when budget exhausted
 - `.geas/ledger/events.jsonl` -- escalation event
 
 **Key Behaviors:**
@@ -314,12 +314,12 @@ Structured review protocol -- Architecture Authority proposes, Critical Reviewer
 **Invoked By:** Orchestrator at major architectural or cross-cutting decisions (primarily Specifying step 1.5)
 
 **Inputs:**
-- Proposal from Architecture Authority (saved to `.geas/decisions/pending/{proposal-id}.md`)
+- Proposal from Architecture Authority (saved to `.geas/missions/{mission_id}/decisions/pending/{proposal-id}.md`)
 - Challenge from the designated Critical Reviewer agent (appended to the same file)
 
 **Outputs:**
-- `.geas/decisions/{dec-id}.json` -- DecisionRecord conforming to `schemas/decision-record.schema.json`
-- Cleans up `.geas/decisions/pending/{proposal-id}.md` after resolution
+- `.geas/missions/{mission_id}/decisions/{dec-id}.json` -- DecisionRecord conforming to `schemas/decision-record.schema.json`
+- Cleans up `.geas/missions/{mission_id}/decisions/pending/{proposal-id}.md` after resolution
 
 **Key Behaviors:**
 - Four-step process: Architecture Authority writes a structured proposal (What / Why / Trade-offs / Alternatives) -> Critical Reviewer writes a structured challenge (Assessment / Concerns / Alternative / Recommendation) -> Orchestrator synthesizes both and presents options to the user -> user confirms or Orchestrator auto-decides in autonomous mode.
@@ -344,7 +344,7 @@ Run a structured multi-agent decision to make a technical or product decision be
 - User's question or decision to frame (natural language)
 
 **Outputs:**
-- `.geas/decisions/{dec-id}.json` -- DecisionRecord with the chosen direction
+- `.geas/missions/{mission_id}/decisions/{dec-id}.json` -- DecisionRecord with the chosen direction
 
 **Key Behaviors:**
 - No code is produced. The entire output is a DecisionRecord.
@@ -367,10 +367,10 @@ Create a Product Requirements Document from a feature idea or mission.
 
 **Inputs:**
 - `$ARGUMENTS` -- feature idea, problem statement, or mission
-- `.geas/spec/mission-{n}.json` -- mission context and accepted scope
+- `.geas/missions/{mission_id}/spec.json` -- mission context and accepted scope
 
 **Outputs:**
-- `.geas/spec/prd.md` -- structured PRD (Problem, Objective, Target Users, Scope In/Out, User Flows, Functional/Non-Functional Requirements, Success Metrics, Open Questions)
+- `.geas/missions/{mission_id}/prd.md` -- structured PRD (Problem, Objective, Target Users, Scope In/Out, User Flows, Functional/Non-Functional Requirements, Success Metrics, Open Questions)
 
 **Key Behaviors:**
 - Formats output as a structured markdown document with a standard section order -- Problem through Open Questions.
@@ -391,10 +391,10 @@ Break a feature or mission into user stories with acceptance criteria.
 
 **Inputs:**
 - `$ARGUMENTS` -- feature description, mission statement, or problem to solve
-- `.geas/spec/prd.md` -- PRD output used as input context
+- `.geas/missions/{mission_id}/prd.md` -- PRD output used as input context
 
 **Outputs:**
-- `.geas/spec/stories.md` -- ordered user stories in standard format (As a / I want to / So that + Acceptance Criteria + Priority + Estimate)
+- `.geas/missions/{mission_id}/stories.md` -- ordered user stories in standard format (As a / I want to / So that + Acceptance Criteria + Priority + Estimate)
 
 **Key Behaviors:**
 - Each story must be independent (shippable alone) and testable (specific, verifiable acceptance criteria).
@@ -463,8 +463,8 @@ Product Authority Morning Briefing -- structured status report on what shipped, 
 
 **Inputs:**
 - `.geas/state/run.json` -- current phase and mission
-- `.geas/tasks/` -- TaskContracts grouped by status
-- `.geas/evidence/` -- recent activity and gate results
+- `.geas/missions/{mission_id}/tasks/` -- TaskContracts grouped by status
+- `.geas/missions/{mission_id}/evidence/` -- recent activity and gate results
 - Previous briefings (for delta tracking)
 
 **Outputs:**
@@ -490,11 +490,11 @@ Generate end-of-session summary -- decisions, issues completed, agent stats, ver
 **Inputs:**
 - `.geas/state/run.json` -- phase, mode, mission
 - `.geas/memory/_project/agent-log.jsonl` -- agent spawn history
-- `.geas/tasks/` -- TaskContract statuses
-- `.geas/decisions/` -- DecisionRecords made this session
+- `.geas/missions/{mission_id}/tasks/` -- TaskContract statuses
+- `.geas/missions/{mission_id}/decisions/` -- DecisionRecords made this session
 - `.geas/ledger/events.jsonl` -- gate results, fix loops, escalations
 - `.geas/ledger/costs.jsonl` -- agent spawn costs (optional)
-- `.geas/evolution/debt-register.json` -- tech debt state (optional)
+- `.geas/missions/{mission_id}/evolution/debt-register.json` -- tech debt state (optional)
 
 **Outputs:**
 - `.geas/summaries/run-summary-<YYYY-MM-DD>.md` -- session audit trail
@@ -519,10 +519,10 @@ Structured search over `.geas/ledger/events.jsonl` -- query by task, phase, agen
 
 **Inputs (read-only):**
 - `.geas/ledger/events.jsonl` -- primary event log
-- `.geas/tasks/{id}.json` -- cross-reference for contract status
-- `.geas/evidence/{task-id}/{worker}.json` -- cross-reference for evidence files
-- `.geas/decisions/{id}.json` -- cross-reference for decision records
-- `.geas/state/run.json`, `.geas/spec/mission-{n}.json` -- for `status` query type
+- `.geas/missions/{mission_id}/tasks/{id}.json` -- cross-reference for contract status
+- `.geas/missions/{mission_id}/evidence/{task-id}/{worker}.json` -- cross-reference for evidence files
+- `.geas/missions/{mission_id}/decisions/{id}.json` -- cross-reference for decision records
+- `.geas/state/run.json`, `.geas/missions/{mission_id}/spec.json` -- for `status` query type
 
 **Outputs:**
 - Formatted markdown query results printed to console (no files written)
@@ -538,7 +538,7 @@ Structured search over `.geas/ledger/events.jsonl` -- query by task, phase, agen
 
 ### cleanup
 
-Entropy scan -- detect AI slop, unused code, convention drift. Records findings in `.geas/evolution/debt-register.json`. Invoke after Building phase or during Evolving.
+Entropy scan -- detect AI slop, unused code, convention drift. Records findings in `.geas/missions/{mission_id}/evolution/debt-register.json`. Invoke after Building phase or during Evolving.
 
 **User-Invocable:** No
 
@@ -549,7 +549,7 @@ Entropy scan -- detect AI slop, unused code, convention drift. Records findings 
 - `.geas/memory/_project/conventions.md` -- baseline for detecting convention drift
 
 **Outputs:**
-- `.geas/evolution/debt-register.json` -- new entries appended for each finding
+- `.geas/missions/{mission_id}/evolution/debt-register.json` -- new entries appended for each finding
 - Console summary (files scanned, issue counts by severity, top 3 priorities)
 
 **Key Behaviors:**
@@ -557,7 +557,7 @@ Entropy scan -- detect AI slop, unused code, convention drift. Records findings 
 - Scan depth scales to project size: full scan for small projects; files changed in the current mission plus core modules for medium; only team-modified files and flagged areas for large.
 - Related findings with the same root cause are grouped into one `debt-register.json` entry (not 20 entries for 20 comments in one file).
 
-**Schemas:** None (writes entries to `.geas/evolution/debt-register.json`; structure is defined in the skill).
+**Schemas:** None (writes entries to `.geas/missions/{mission_id}/evolution/debt-register.json`; structure is defined in the skill).
 
 ---
 
@@ -571,12 +571,12 @@ When and how to pivot during product development.
 
 **Inputs:**
 - Full context from Orchestrator: what is wrong, what has been tried, available options
-- `.geas/tasks/` -- existing TaskContracts to cancel or restructure
-- `.geas/decisions/` -- prior decisions for context
+- `.geas/missions/{mission_id}/tasks/` -- existing TaskContracts to cancel or restructure
+- `.geas/missions/{mission_id}/decisions/` -- prior decisions for context
 
 **Outputs:**
-- `.geas/decisions/{dec-id}.json` -- DecisionRecord with Product Authority's chosen pivot direction and rationale
-- `.geas/tasks/` -- dropped TaskContracts cancelled; new TaskContracts created for the new approach
+- `.geas/missions/{mission_id}/decisions/{dec-id}.json` -- DecisionRecord with Product Authority's chosen pivot direction and rationale
+- `.geas/missions/{mission_id}/tasks/` -- dropped TaskContracts cancelled; new TaskContracts created for the new approach
 
 **Key Behaviors:**
 - Triggers include: QA Engineer reporting >50% test failure on core features, a core feature declared technically infeasible, Architecture Authority finding a fundamental architecture problem, Product Authority issuing a "Cut" verdict, or multiple agents raising the same concern.
@@ -598,7 +598,7 @@ Protocol for orchestrator to manage multiple tasks simultaneously. Defines batch
 **Inputs:**
 - `.geas/state/run.json` -- current session state and checkpoint
 - `.geas/state/locks.json` -- active lock manifest
-- `.geas/tasks/` -- TaskContracts with `scope.paths` for conflict detection
+- `.geas/missions/{mission_id}/tasks/` -- TaskContracts with `scope.paths` for conflict detection
 
 **Outputs:**
 - Batch construction decisions (which tasks can safely run in parallel)
@@ -624,7 +624,7 @@ Memory lifecycle management -- candidate extraction, promotion pipeline, review,
 **Invoked By:** Orchestrator after retrospective (per-task extraction) and during Evolving (batch promotion)
 
 **Inputs:**
-- `.geas/tasks/{task_id}/retrospective.json` -- lessons from retrospective
+- `.geas/missions/{mission_id}/tasks/{task_id}/retrospective.json` -- lessons from retrospective
 - `.geas/state/memory-index.json` -- current memory index
 - `.geas/memory/` -- existing memory entries
 
@@ -717,8 +717,8 @@ Debt/gap dashboard and health signal calculation.
 **Invoked By:** User or Orchestrator at phase transitions, session start, and Evolving phase entry
 
 **Inputs:**
-- `.geas/evolution/debt-register.json` -- debt items
-- `.geas/evolution/gap-assessment-*.json` -- gap assessments
+- `.geas/missions/{mission_id}/evolution/debt-register.json` -- debt items
+- `.geas/missions/{mission_id}/evolution/gap-assessment-*.json` -- gap assessments
 - `.geas/state/health-check.json` -- previous health check
 
 **Outputs:**
