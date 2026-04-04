@@ -208,37 +208,37 @@ worker-self-check.json의 `confidence`는 단일 scalar (1-5)이므로, threshol
 `task_kind = code`, `risk_level = normal`, `gate_profile = code_change`, `retry_budget = 3`인 일반적인 코드 task의 전체 흐름이다.
 
 **1. `drafted` → `ready`**
-- **산출물**: `task-contract.json` (`.geas/tasks/{task_id}.json`)
+- **산출물**: `task-contract.json` (`.geas/missions/{mission_id}/tasks/{task_id}.json`)
 - **수행자**: `task_compiler` (orchestration_authority 지시 하에)
 - **조건**: task contract가 컴파일 완료되고, `base_commit`이 `tip(integration_branch)`의 ancestor이거나 동일해야 한다. `acceptance_criteria[]`, `routing`, `gate_profile`이 모두 확정되어야 한다.
 
 **2. `ready` → `implementing`**
-- **산출물**: `implementation-contract.json` (`.geas/contracts/{task_id}.json`)
+- **산출물**: `implementation-contract.json` (`.geas/missions/{mission_id}/contracts/{task_id}.json`)
 - **수행자**: primary worker (routing.primary_worker_type에 해당하는 agent)
 - **조건**: implementation contract가 작성되고 지정 reviewer가 읽을 수 있는 상태여야 한다. worktree가 `worktree.path`에 준비 완료되어야 한다. 필요한 path_lock / interface_lock이 획득된 상태여야 한다.
 
 **3. `implementing` (구현 작업 수행)**
-- **산출물**: 코드 변경사항 (worktree 내 커밋), `worker-self-check.json` (`.geas/tasks/{task_id}/worker-self-check.json`)
+- **산출물**: 코드 변경사항 (worktree 내 커밋), `worker-self-check.json` (`.geas/missions/{mission_id}/tasks/{task_id}/worker-self-check.json`)
 - **수행자**: primary worker
 - **조건**: worker가 구현을 완료하고, `worker-self-check.json`의 `confidence`, `known_risks[]`, `untested_paths[]` 등 필수 필드를 모두 작성해야 한다.
 
 **4. `implementing` → `reviewed`**
-- **산출물**: `specialist-review.json` (`.geas/tasks/{task_id}/specialist-review.json`, reviewer type별로 각각 생성)
+- **산출물**: `specialist-review.json` (`.geas/missions/{mission_id}/tasks/{task_id}/specialist-review.json`, reviewer type별로 각각 생성)
 - **수행자**: `routing.required_reviewer_types[]`에 지정된 specialist agents (예: `architecture_authority`, `qa_engineer`)
 - **조건**: `worker-self-check.json`이 존재하고, 모든 required specialist review가 완료되어야 한다. 각 review에 blocking defect가 없거나, 있었다면 해결 완료 상태여야 한다.
 
 **5. `reviewed` → `integrated`**
-- **산출물**: `integration-result.json` (`.geas/tasks/{task_id}/integration-result.json`)
+- **산출물**: `integration-result.json` (`.geas/missions/{mission_id}/tasks/{task_id}/integration-result.json`)
 - **수행자**: orchestration_authority (integration lane 관리)
 - **조건**: `integration_lock`을 획득하고, worktree의 변경사항을 integration branch에 병합한다. staleness 분류가 `clean_sync` 또는 `review_sync`여야 한다 (`replan_required`나 `blocking_conflict`이면 rewind). integration-result.json에 merge commit hash, conflict 유무, drift 정보를 기록한다.
 
 **6. `integrated` → `verified`**
-- **산출물**: `gate-result.json` (`.geas/tasks/{task_id}/gate-result.json`)
+- **산출물**: `gate-result.json` (`.geas/missions/{mission_id}/tasks/{task_id}/gate-result.json`)
 - **수행자**: evidence gate (3-tier 검증: mechanical → semantic+rubric → product)
 - **조건**: gate 결과가 `pass`여야 한다. 이 예시에서는 모든 tier를 통과하여 `verdict = pass`가 기록된다.
 
 **7. `verified` → `passed`**
-- **산출물**: `closure-packet.json` (`.geas/tasks/{task_id}/closure-packet.json`)
+- **산출물**: `closure-packet.json` (`.geas/missions/{mission_id}/tasks/{task_id}/closure-packet.json`)
 - **수행자**: orchestration_authority
 - **조건**: closure packet이 완성되어야 한다. final verdict가 `pass`이고, 모든 acceptance criteria가 충족되었음이 기록된다. debt가 있다면 `debt-register.json`에 등록된다. task의 모든 lock이 해제되고, worktree는 cleanup candidate로 전환된다.
 

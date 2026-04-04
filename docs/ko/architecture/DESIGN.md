@@ -77,7 +77,7 @@ drafted → ready → implementing → reviewed → integrated → verified → 
 |------|--------------|
 | drafted → ready | task-contract.json |
 | ready → implementing | implementation-contract.json (승인됨) |
-| implementing → reviewed | worker-self-check.json + specialist reviews (`.geas/evidence/{task_id}/`에 저장) |
+| implementing → reviewed | worker-self-check.json + specialist reviews (`.geas/missions/{mission_id}/evidence/{task_id}/`에 저장) |
 | reviewed → integrated | integration-result.json |
 | integrated → verified | gate-result.json (pass) |
 | verified → passed | closure-packet.json + final-verdict.json (pass) |
@@ -251,44 +251,42 @@ plugin/
     session-latest.md        # 컨텍스트 압축 후 복구용
     task-focus/{task_id}.md  # 작업별 포커스 요약
 
-  spec/
-    mission-{n}.json         # intake에서 동결된 미션 스펙 (불변)
-
-  tasks/
-    {task_id}.json               # TaskContract (작업별 flat 파일)
-    {task_id}/                   # 작업별 artifact (nested 디렉토리)
-      worker-self-check.json
-      specialist-review.json
-      integration-result.json
-      gate-result.json
-      closure-packet.json
-      challenge-review.json
-      final-verdict.json
-      retrospective.json
-
-  evidence/
-    {task_id}/
-      architecture-authority-review.json
-      qa-engineer.json
-      challenge-review.json
-      product-authority-verdict.json
-
-  packets/
-    {task_id}/
-      {agent_type}.md            # 역할별 컨텍스트 패킷
-
-  evolution/
-    rules-update-{seq}.json
-    debt-register.json
-    gap-assessment-{transition}.json
-    phase-review-{transition}.json
-
-  contracts/
-    {task_id}.json             # 구현 계약
-
-  decisions/
-    {dec_id}.json              # 의사결정 기록
-    pending/                   # 진행 중 제안
+  missions/
+    {mission_id}/
+      spec.json                  # 미션 스펙 (intake에서 동결)
+      design-brief.json          # 디자인 브리프 (사용자 승인됨)
+      mission-summary.md         # 미션별 요약
+      tasks/
+        {task_id}.json               # TaskContract (작업별 flat 파일)
+        {task_id}/                   # 작업별 artifact (nested 디렉토리)
+          worker-self-check.json
+          specialist-review.json
+          integration-result.json
+          gate-result.json
+          closure-packet.json
+          challenge-review.json
+          final-verdict.json
+          retrospective.json
+      evidence/
+        {task_id}/
+          architecture-authority-review.json
+          qa-engineer.json
+          challenge-review.json
+          product-authority-verdict.json
+      contracts/
+        {task_id}.json             # 구현 계약
+      packets/
+        {task_id}/
+          {agent_type}.md            # 역할별 컨텍스트 패킷
+      decisions/
+        {dec_id}.json              # 의사결정 기록
+        pending/                   # 진행 중 제안
+      evolution/
+        rules-update-{seq}.json
+        debt-register.json
+        gap-assessment-{transition}.json
+      phase-reviews/
+        {transition}.json          # 단계 전이 리뷰 artifact
 
   recovery/
     recovery-{id}.json         # 세션 되감기용 복구 패킷
@@ -303,7 +301,6 @@ plugin/
     incidents/{id}.json
 
   summaries/
-    mission-summary.md
     run-summary-{timestamp}.md
 
   ledger/

@@ -147,7 +147,7 @@ non-trivial recovery(`dirty_state_recovery` 또는 `manual_repair_required`)가 
 - task `T-042`가 `verifying` 상태에 있다.
 - evidence gate 3-tier 검증 중 tier 1 (mechanical check)은 통과하여 `gate-result.json`에 `tier1.verdict = pass`가 기록된 상태이다.
 - tier 2 (semantic+rubric) 실행 중 session이 비정상 종료되었다.
-- `.geas/tasks/T-042/gate-result.json`에는 `tier1` 결과만 존재하고, `tier2` 필드는 `in_progress` 또는 부재.
+- `.geas/missions/{mission_id}/tasks/T-042/gate-result.json`에는 `tier1` 결과만 존재하고, `tier2` 필드는 `in_progress` 또는 부재.
 
 **Recovery class:** `interrupted_subagent_resume`
 
@@ -166,9 +166,9 @@ non-trivial recovery(`dirty_state_recovery` 또는 `manual_repair_required`)가 
      "recommended_action": "replay_step",
      "required_revalidation": ["gate_tier2", "gate_tier3"],
      "artifact_refs": [
-       ".geas/tasks/T-042/gate-result.json",
-       ".geas/tasks/T-042/integration-result.json",
-       ".geas/tasks/T-042/worker-self-check.json"
+       ".geas/missions/{mission_id}/tasks/T-042/gate-result.json",
+       ".geas/missions/{mission_id}/tasks/T-042/integration-result.json",
+       ".geas/missions/{mission_id}/tasks/T-042/worker-self-check.json"
      ]
    }
    ```
@@ -179,7 +179,7 @@ non-trivial recovery(`dirty_state_recovery` 또는 `manual_repair_required`)가 
 
 **상황 설명:**
 - task `T-078`이 `integrating` 상태에 있다.
-- `.geas/tasks/T-078/integration-result.json`이 존재하며, merge commit hash와 `status = success`가 기록되어 있다.
+- `.geas/missions/{mission_id}/tasks/T-078/integration-result.json`이 존재하며, merge commit hash와 `status = success`가 기록되어 있다.
 - 그러나 `closure-packet.json`은 아직 생성되지 않았고, `gate-result.json`도 이 integration 이후의 gate 실행 기록이 없다.
 - `integration_lock`이 `T-078`에 의해 보유된 채 session이 종료되었다.
 
@@ -201,10 +201,10 @@ non-trivial recovery(`dirty_state_recovery` 또는 `manual_repair_required`)가 
      "recommended_action": "exact_resume",
      "required_revalidation": [],
      "artifact_refs": [
-       ".geas/tasks/T-078/integration-result.json",
-       ".geas/tasks/T-078/specialist-review.json",
-       ".geas/tasks/T-078/worker-self-check.json",
-       ".geas/contracts/T-078.json"
+       ".geas/missions/{mission_id}/tasks/T-078/integration-result.json",
+       ".geas/missions/{mission_id}/tasks/T-078/specialist-review.json",
+       ".geas/missions/{mission_id}/tasks/T-078/worker-self-check.json",
+       ".geas/missions/{mission_id}/contracts/T-078.json"
      ]
    }
    ```
@@ -243,8 +243,8 @@ non-trivial recovery(`dirty_state_recovery` 또는 `manual_repair_required`)가 
      "recommended_action": "revalidate",
      "required_revalidation": ["worktree_integrity", "implementation_progress"],
      "artifact_refs": [
-       ".geas/contracts/T-115.json",
-       ".geas/tasks/T-115.json"
+       ".geas/missions/{mission_id}/contracts/T-115.json",
+       ".geas/missions/{mission_id}/tasks/T-115.json"
      ]
    }
    ```
