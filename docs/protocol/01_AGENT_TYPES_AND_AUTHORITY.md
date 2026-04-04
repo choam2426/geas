@@ -66,15 +66,6 @@ Prohibitions:
 - Must be included in required_reviewer_types for any task where `risk_level` is `high` or `critical` (automatically added in Step 2)
 - Pre-ship challenge: must raise at least one reason not to ship before the closure packet is finalized, and must provide evidence that the concern has been addressed
 
-### `repository_manager`
-- Supports integration hygiene, commit structure, release hygiene, and repo cleanliness
-
-### `process_lead`
-- Drives retrospective, memory promotion hygiene, and protocol drift improvement
-- Leads retrospective collection at phase boundaries, identifies recurring patterns, and proposes candidates for promotion to rules.md
-- Obtains endorsing authority approval for memory promotions and records promotion history in `memory-review.json`
-- When protocol drift is detected, writes a deviation report and delivers it to orchestration_authority
-
 ## Decision Boundary
 
 | decision | primary owner | note |
@@ -85,7 +76,7 @@ Prohibitions:
 | evidence gate result | gate runner / verifier | objective verdict |
 | readiness round result | reviewers set | deliberative |
 | final closure | product_authority | task only |
-| durable memory promotion | process_lead + endorsing authority | requires approver per type |
+| durable memory promotion | orchestration_authority + endorsing authority | requires approver per type |
 
 ## Required Reviewer Routing Algorithm
 
@@ -100,7 +91,7 @@ A task's `required_reviewer_types[]` is determined by the following algorithm. E
 | `config` | `devops_engineer` |
 | `design` | `ui_ux_designer` |
 | `audit` | `security_engineer` |
-| `release` | `devops_engineer`, `repository_manager` |
+| `release` | `devops_engineer` |
 
 ### Step 2 -- Additional reviewers based on risk_level
 

@@ -30,8 +30,6 @@ All specialist reviews follow this common format:
 | devops_engineer | `task_kind=config` or `task_kind=release`, when env/service/deploy/migration paths are modified | runtime readiness, bootstrap, rollout | specialist_reviews[] | environment fact / ops debt |
 | ui_ux_designer | `task_kind=design`, when user-facing UI paths are modified | UX consistency, user flow | specialist_reviews[] | design precedent |
 | technical_writer | `task_kind=docs` or when docs-impact changes are included | operator/user docs completeness | specialist_reviews[] | docs rule / style memory |
-| repository_manager | `task_kind=release`, merge hygiene task | repo cleanliness, changelog, integration hygiene | specialist_reviews[] or integration_result note | release checklist memory |
-| process_lead | every passed task, every phase boundary | retro, rules update, debt rollup, memory hygiene | not part of task closure gate by default | retrospective / rules update / debt register / gap assessment |
 | product_authority | every task final closure, phase boundary | user value, scope fit, ship/iterate | final_verdict / phase review | product precedent / scope decisions |
 
 ## Worker Artifacts Consumed by Specialists
@@ -69,7 +67,7 @@ A task missing a required reviewer cannot transition to `reviewed`. Specifically
 
 ## Evolution Handoff Rule
 
-Specialist reviews do not end at helping with closure. If any of the following are present, the `process_lead` passes them to the evolution pipeline as input:
+Specialist reviews do not end at helping with closure. If any of the following are present, the `orchestration_authority` passes them to the evolution pipeline as input:
 - Reusable lesson
 - Repeated risk pattern
 - Debt flag
@@ -80,7 +78,7 @@ Specialist reviews do not end at helping with closure. If any of the following a
 
 ### Memory Candidate Priority
 
-When a single specialist review contains multiple types of memory candidates, the `process_lead` processes them in the following priority order:
+When a single specialist review contains multiple types of memory candidates, the `orchestration_authority` processes them in the following priority order:
 1. Safety/security items (security warning, abuse path, secret leak, etc.)
 2. Architectural precedent (boundary decision, coupling rule, technical fit judgment)
 3. Operational lesson (environment fact, ops debt, runtime readiness)
