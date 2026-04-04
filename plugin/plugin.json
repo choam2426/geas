@@ -28,9 +28,7 @@
     "./agents/security-engineer.md",
     "./agents/devops-engineer.md",
     "./agents/critical-reviewer.md",
-    "./agents/technical-writer.md",
-    "./agents/process-lead.md",
-    "./agents/repository-manager.md"
+    "./agents/technical-writer.md"
   ],
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
