@@ -273,7 +273,7 @@ Claude Code 세션 시작 시 한 번 실행됩니다.
    | `.geas/missions/<mid>/evidence/<tid>/qa-engineer.json` | QA Testing (QA Engineer) |
    | `.geas/missions/<mid>/evidence/<tid>/challenge-review.json` | Critical Reviewer Pre-ship Challenge |
    | `.geas/missions/<mid>/evidence/<tid>/product-authority-verdict.json` | Final Verdict (Product Authority) |
-   | `.geas/missions/<mid>/tasks/<tid>/retrospective.json` | Process Lead 회고 |
+   | `.geas/missions/<mid>/tasks/<tid>/retrospective.json` | Orchestrator 회고 |
 
    누락 파일마다 stderr에 경고합니다.
 
@@ -642,13 +642,13 @@ Claude Code 세션 시작 시 한 번 실행됩니다.
    | `.geas/missions/<mid>/evidence/<tid>/qa-engineer.json` | QA Testing |
    | `.geas/missions/<mid>/evidence/<tid>/challenge-review.json` | Critical Reviewer Pre-ship Challenge |
    | `.geas/missions/<mid>/evidence/<tid>/product-authority-verdict.json` | Final Verdict (Product Authority) |
-   | `.geas/missions/<mid>/tasks/<tid>/retrospective.json` | Process Lead 회고 |
+   | `.geas/missions/<mid>/tasks/<tid>/retrospective.json` | Orchestrator 회고 |
 
 4. **파일이 빠져 있으면** stderr에 출력합니다:
    ```
    [Geas] Pipeline incomplete. MANDATORY evidence missing:
      - TASK-001: qa-engineer.json (QA Testing) missing
-     - TASK-001: tasks/TASK-001/retrospective.json (Process Lead Retrospective) missing
+     - TASK-001: tasks/TASK-001/retrospective.json (Orchestrator Retrospective) missing
 
    Execute the missing steps before completing the session.
    ```

@@ -21,7 +21,7 @@
 | `final-verdict.json` | `final-verdict.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/final-verdict.json` | product_authority |
 | `vote-round.json` | `vote-round.schema.json` | `.geas/missions/{mission_id}/decisions/{dec_id}.json` | orchestration_authority |
 | `failure-record.json` | `failure-record.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/failure-record-{seq}.json` | orchestration_authority |
-| `retrospective.json` | `retrospective.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/retrospective.json` | process_lead |
+| `retrospective.json` | `retrospective.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/retrospective.json` | orchestration_authority |
 
 ### 세션 & 오케스트레이션 Artifact
 
@@ -88,7 +88,7 @@ protocol doc 12의 8개 건강 신호. 각각 value, threshold, triggered 플래
 rules.md 임시 오버라이드의 machine-readable 레지스트리. 항목은 삭제하지 않음 — 만료된 항목은 `expired: true`로 표시하여 감사 추적 유지.
 
 ### `retrospective.json`
-per-task learning loop의 입력. process_lead가 작성.
+per-task learning loop의 입력. orchestration_authority가 작성.
 
 ### `rules-update.json`
 승인된 규칙 변경을 durable behavior surface에 반영한 기록.

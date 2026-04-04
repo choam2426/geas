@@ -134,7 +134,7 @@ non-trivial recovery(`dirty_state_recovery` 또는 `manual_repair_required`)가 
 - 필수 필드: `recovery_id`, `recovery_class`, `focus_task_id`, `root_cause`, `resolution_steps`, `time_to_recover`, `prevention_suggestion`
 
 ### 학습 루프
-1. `process_lead`는 retrospective에서 해당 세션의 recovery incident를 검토한다.
+1. `orchestration_authority`는 retrospective에서 해당 세션의 recovery incident를 검토한다.
 2. 동일한 `recovery_class`가 **2회 이상** 발생하면, 해당 패턴은 rule candidate로 자동 등록된다.
 3. rule candidate는 doc 14의 Retrospective → Rule Update 프로세스를 따라 승인·적용된다.
 4. 승인된 rule은 해당 recovery class의 재발을 예방하는 checkpoint 또는 hook으로 구현된다.
