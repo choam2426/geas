@@ -30,7 +30,7 @@ For each CRITICAL/HIGH finding, run a reduced pipeline:
 ### Documentation (technical-writer)
 Update run.json checkpoint: `pipeline_step` = "documentation", `agent_in_flight` = "technical-writer"
 ```
-Agent(agent: "technical-writer", prompt: "Read the current mission spec at .geas/spec/mission-{mission_id}.json (get mission_id from .geas/state/run.json), .geas/spec/prd.md, and all evidence at .geas/evidence/. Write README, API docs, and user-facing documentation. Write to .geas/evidence/polishing/technical-writer.json")
+Agent(agent: "technical-writer", prompt: "Read the current mission spec at .geas/spec/mission-{mission_id}.json (get mission_id from .geas/state/run.json), the design-brief at .geas/missions/{mission_id}/design-brief.json, and all evidence at .geas/evidence/. Write README, API docs, and user-facing documentation. Write to .geas/evidence/polishing/technical-writer.json")
 ```
 Verify `.geas/evidence/polishing/technical-writer.json` exists.
 
