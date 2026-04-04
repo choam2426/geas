@@ -6,7 +6,7 @@ Always runs. Scale adapts to the request.
 
 ### 1. Seed Check
 
-- `.geas/spec/mission-{mission_id}.json` should exist from intake (read `mission_id` from `run.json`).
+- `.geas/missions/{mission_id}/spec.json` should exist from intake (read `mission_id` from `run.json`).
 - If not, invoke `/geas:intake`.
 - If `completeness_checklist` has any false values and no override: ask the user, re-run intake.
 
@@ -18,7 +18,7 @@ If `.geas/memory/_project/conventions.md` is missing, invoke `/geas:onboard` to 
 
 #### 3a. Draft
 
-Orchestrator reads the mission spec at `.geas/spec/mission-{mission_id}.json` and explores the codebase. Then:
+Orchestrator reads the mission spec at `.geas/missions/{mission_id}/spec.json` and explores the codebase. Then:
 
 Ensure the mission directory exists:
 ```bash
@@ -37,7 +37,7 @@ mkdir -p .geas/missions/{mission_id}
 Spawn architecture-authority to review and enrich the design-brief:
 
 ```
-Agent(agent: "architecture-authority", prompt: "Read the design-brief at .geas/missions/{mission_id}/design-brief.json and the mission spec at .geas/spec/mission-{mission_id}.json. Review the design brief: verify the chosen approach is sound, check for missing risks or architectural concerns, and add any necessary architecture decisions. If the project requires stack-specific rules, add them to .geas/rules.md under a '## Stack Rules' section. Update the design-brief: populate the arch_review field with your review summary and any additions you made. Write the updated design-brief back to .geas/missions/{mission_id}/design-brief.json with status: 'reviewing'.")
+Agent(agent: "architecture-authority", prompt: "Read the design-brief at .geas/missions/{mission_id}/design-brief.json and the mission spec at .geas/missions/{mission_id}/spec.json. Review the design brief: verify the chosen approach is sound, check for missing risks or architectural concerns, and add any necessary architecture decisions. If the project requires stack-specific rules, add them to .geas/rules.md under a '## Stack Rules' section. Update the design-brief: populate the arch_review field with your review summary and any additions you made. Write the updated design-brief back to .geas/missions/{mission_id}/design-brief.json with status: 'reviewing'.")
 ```
 
 Verify: Read `.geas/missions/{mission_id}/design-brief.json` and confirm `arch_review` is populated.
@@ -54,7 +54,7 @@ Invoke `/geas:vote-round` as a `proposal_round`:
   - Frontend work → include `ui-ux-designer`
   - Backend work → include `backend-engineer`
   - High risk → include `critical-reviewer`
-- Output: vote-round artifact in `.geas/decisions/`
+- Output: vote-round artifact in `.geas/missions/{mission_id}/decisions/`
 - Record `vote_round_ref` in the design-brief.
 
 If any disagree: invoke `/geas:decision`, then re-vote.
@@ -82,10 +82,10 @@ Present the design-brief to the user. Show:
 
 ### 4. Compile TaskContracts
 
-- Input: mission spec (`.geas/spec/mission-{mission_id}.json`) + approved design-brief (`.geas/missions/{mission_id}/design-brief.json`)
+- Input: mission spec (`.geas/missions/{mission_id}/spec.json`) + approved design-brief (`.geas/missions/{mission_id}/design-brief.json`)
 - For each logical unit of work, invoke `/geas:task-compiler`.
 - Each TaskContract MUST include a `rubric` object with a `dimensions` array. Base dimensions: core_interaction(3), feature_completeness(4), code_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
-- Output: `.geas/tasks/{task-id}.json`
+- Output: `.geas/missions/{mission_id}/tasks/{task-id}.json`
 - Log each: `{"event": "task_compiled", "task_id": "...", "timestamp": "<actual>"}`
 
 ### 5. Task List User Approval
@@ -124,9 +124,9 @@ If no dependencies are needed:
 **Phase review** — verify gate criteria for specifying -> building.
 
 All conditions must be true:
-- Mission spec frozen (`.geas/spec/mission-{mission_id}.json` exists)
+- Mission spec frozen (`.geas/missions/{mission_id}/spec.json` exists)
 - Design-brief approved (`status: "approved"` AND `arch_review` exists in `.geas/missions/{mission_id}/design-brief.json`)
-- Tasks compiled (at least 1 task in `.geas/tasks/` for this mission)
+- Tasks compiled (at least 1 task in `.geas/missions/{mission_id}/tasks/` for this mission)
 - Task list approved (`task_list_approved` event in ledger for this mission)
 - Environment setup completed (`environment_setup_complete` event in ledger for this mission)
 
