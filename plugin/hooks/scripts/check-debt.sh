@@ -9,7 +9,7 @@ const path = require('path');
 const h = require('$HOOK_DIR/lib/geas-hooks');
 const {cwd, filePath} = h.parseInput();
 if (!cwd || !filePath) process.exit(0);
-if (!filePath.replace(/\\\\/g,'/').endsWith('.geas/evolution/debt-register.json')) process.exit(0);
+if (!filePath.replace(/\\\\/g,'/').includes('.geas/missions/')) process.exit(0);
 
 const d = h.readJson(filePath);
 if (!d || !d.items) process.exit(0);

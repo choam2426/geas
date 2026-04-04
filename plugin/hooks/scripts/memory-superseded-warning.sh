@@ -11,7 +11,7 @@ const path = require('path');
 const h = require(path.join('$HOOK_DIR', 'lib', 'geas-hooks'));
 const {cwd, filePath} = h.parseInput();
 if (!cwd || !filePath) process.exit(0);
-if (!filePath.replace(/\\\\/g,'/').includes('/.geas/packets/')) process.exit(0);
+if (!filePath.replace(/\\\\/g,'/').includes('/.geas/missions/')) process.exit(0);
 
 const mi = h.readJson(path.join(h.geasDir(cwd), 'state', 'memory-index.json'));
 if (!mi || !mi.entries) process.exit(0);

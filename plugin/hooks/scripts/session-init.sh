@@ -38,7 +38,7 @@ if (d) {
 // Create rules.md if missing
 const rulesPath = path.join(geas, 'rules.md');
 if (!h.exists(rulesPath)) {
-  const template = '# Agent Rules\n\n## Evidence\n- Write results to .geas/evidence/{task-id}/{your-name}.json as JSON\n- Required fields: agent, task_id, summary, files_changed, created_at\n- created_at is auto-injected by the PostToolUse hook. No manual timestamp needed.\n\n## Code\n- Respect scope.paths from the TaskContract — only modify files within the declared scope\n- Do not modify files outside the task scope\n';
+  const template = '# Agent Rules\n\n## Evidence\n- Write results to .geas/missions/{mission_id}/evidence/{task-id}/{your-name}.json as JSON (read mission_id from .geas/state/run.json)\n- Required fields: agent, task_id, summary, files_changed, created_at\n- created_at is auto-injected by the PostToolUse hook. No manual timestamp needed.\n\n## Code\n- Respect scope.paths from the TaskContract — only modify files within the declared scope\n- Do not modify files outside the task scope\n';
   fs.writeFileSync(rulesPath, template, 'utf8');
   h.info('Created .geas/rules.md with initial template.');
 }
