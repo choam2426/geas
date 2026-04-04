@@ -6,6 +6,13 @@ This document summarizes the contracts for canonical runtime artifacts and memor
 
 ## Core Runtime Artifacts
 
+### Specifying Artifacts
+
+| Artifact | Schema | Storage path | Producer |
+|----------|--------|-------------|----------|
+| `mission-spec.json` | `mission-spec.schema.json` | `.geas/missions/{mission_id}/spec.json` | orchestration_authority |
+| `design-brief.json` | `design-brief.schema.json` | `.geas/missions/{mission_id}/design-brief.json` | orchestration_authority |
+
 ### Pipeline Artifacts (per-task)
 
 | Artifact | Schema | Storage path | Producer |
@@ -65,7 +72,7 @@ This document summarizes the contracts for canonical runtime artifacts and memor
 
 ## Schema Inventory
 
-28 JSON Schemas + 1 shared definitions file (`_defs.schema.json`) = 29 files total in `schemas/`.
+29 JSON Schemas + 1 shared definitions file (`_defs.schema.json`) = 30 files total in `schemas/`.
 
 ## Artifact Purpose Highlights
 
@@ -77,6 +84,9 @@ Critical reviewer pre-ship challenge. Mandatory for high/critical risk tasks. Th
 
 ### `vote-round.json`
 Result of a structured vote round — either a `proposal_round` (agree/disagree) or a `readiness_round` (ship/iterate/escalate). Replaces the former separate readiness-round artifact.
+
+### `design-brief.json`
+Captures the HOW decisions between mission spec (WHAT/WHY) and task contracts (UNIT OF WORK). Always reviewed by architecture-authority. Full-depth briefs also go through a vote round. Must be user-approved before tasks are compiled.
 
 ### `failure-record.json`
 Records a task failure and rewind. Failure is not a state — the task rewinds to the rewind target. Tracks retry_budget before/after.
