@@ -4,37 +4,144 @@ Always runs. Scale adapts to the request.
 
 ## Always Run
 
-### Seed Check
-- `.geas/spec/mission-{mission_id}.json` should exist from intake. If not, invoke `/geas:intake`.
-- If completeness_checklist has any false values and no override: ask the user, re-run intake.
+### 1. Seed Check
 
-### Onboard Check
+- `.geas/spec/mission-{mission_id}.json` should exist from intake (read `mission_id` from `run.json`).
+- If not, invoke `/geas:intake`.
+- If `completeness_checklist` has any false values and no override: ask the user, re-run intake.
+
+### 2. Onboard Check
+
 If `.geas/memory/_project/conventions.md` is missing, invoke `/geas:onboard` to scan the existing project before proceeding.
 
-### Compile TaskContracts
-- Use `.geas/spec/stories.md` as input (if it exists from PRD step). If stories.md does not exist, compile directly from the current mission spec's user stories or feature description.
-- For each user story, invoke `/geas:task-compiler`.
+### 3. Design Brief
+
+#### 3a. Draft
+
+Orchestrator reads the mission spec at `.geas/spec/mission-{mission_id}.json` and explores the codebase. Then:
+
+1. Write an initial design-brief draft to `.geas/missions/{mission_id}/design-brief.json` conforming to `schemas/design-brief.schema.json` with `status: "draft"`.
+2. Propose a depth level to the user:
+   - **`lightweight`**: Mission has clear scope, existing codebase patterns apply, low ambiguity. Only minimum fields: `chosen_approach`, `non_goals`, `verification_strategy`.
+   - **`full`**: Mission has architectural decisions, multiple valid approaches, cross-module impact, or significant risk. Adds: `alternatives_considered`, `architecture_decisions`, `risks`, `preserve_list`, `unresolved_assumptions`.
+3. User confirms or overrides the depth level.
+4. If user overrides to `full`: populate the additional fields before proceeding.
+
+#### 3b. Architecture Review (always)
+
+Spawn architecture-authority to review and enrich the design-brief:
+
+```
+Agent(agent: "architecture-authority", prompt: "Read the design-brief at .geas/missions/{mission_id}/design-brief.json and the mission spec at .geas/spec/mission-{mission_id}.json. Review the design brief: verify the chosen approach is sound, check for missing risks or architectural concerns, and add any necessary architecture decisions. If the project requires stack-specific rules, add them to .geas/rules.md under a '## Stack Rules' section. Update the design-brief: populate the arch_review field with your review summary and any additions you made. Write the updated design-brief back to .geas/missions/{mission_id}/design-brief.json with status: 'reviewing'.")
+```
+
+Verify: Read `.geas/missions/{mission_id}/design-brief.json` and confirm `arch_review` is populated.
+
+Log: `{"event": "step_complete", "step": "design_brief_arch_review", "agent": "architecture-authority", "timestamp": "<actual>"}`
+
+#### 3c. Vote Round (full depth only)
+
+**Skip if** `depth` is `lightweight`.
+
+Invoke `/geas:vote-round` as a `proposal_round`:
+- Proposal: `.geas/missions/{mission_id}/design-brief.json`
+- Voters: orchestrator selects based on design-brief content. Minimum quorum: architecture-authority + 1 specialist (per doc 05 proposal_round rules).
+  - Frontend work → include `ui-ux-designer`
+  - Backend work → include `backend-engineer`
+  - High risk → include `critical-reviewer`
+- Output: vote-round artifact in `.geas/decisions/`
+- Record `vote_round_ref` in the design-brief.
+
+If any disagree: invoke `/geas:decision`, then re-vote.
+
+#### 3d. User Approval
+
+Present the design-brief to the user. Show:
+- Chosen approach and rationale
+- Non-goals
+- Verification strategy
+- [Full] Alternatives considered and why rejected
+- [Full] Architecture decisions
+- [Full] Risks and mitigations
+- Architecture-authority review summary
+- [Full] Vote round result
+
+**If approved**: update design-brief `status` to `"approved"`, set `approved_at`.
+
+**If rejected**:
+1. Record the rejection reason in `rejection_history[]` with timestamp
+2. Revise the design-brief based on user feedback
+3. Return to step 3b (architecture-authority re-reviews the revised version)
+4. [Full only] Run a new vote round (step 3c)
+5. Present to user again (step 3d)
+
+### 4. Compile TaskContracts
+
+- Input: mission spec (`.geas/spec/mission-{mission_id}.json`) + approved design-brief (`.geas/missions/{mission_id}/design-brief.json`)
+- For each logical unit of work, invoke `/geas:task-compiler`.
 - Each TaskContract MUST include a `rubric` object with a `dimensions` array. Base dimensions: core_interaction(3), feature_completeness(4), code_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
+- Output: `.geas/tasks/{task-id}.json`
 - Log each: `{"event": "task_compiled", "task_id": "...", "timestamp": "<actual>"}`
 
-### Close Specifying
+### 5. Task List User Approval
 
-**Phase review** — verify gate criteria for specifying -> building:
-- Mission brief exists (mission-{mission_id}.json)
-- scope_in defined
-- Initial tasks compiled
+Present the compiled task list to the user:
+- Task ID, title, goal
+- Dependencies between tasks
+- Suggested execution order
+- Risk level per task
 
-Write `.geas/evolution/phase-review-specifying-to-building.json` conforming to `schemas/phase-review.schema.json`:
+**If approved**: log `{"event": "task_list_approved", "mission_id": "...", "task_count": N, "timestamp": "<actual>"}`
+
+**If rejected**: take user feedback, adjust tasks (re-compile, split, merge, reorder), then re-present.
+
+### 6. Environment Setup
+
+Orchestrator analyzes the design-brief and task contracts to identify required environment dependencies:
+- Runtimes/languages (e.g., Node.js, Go, Python)
+- External services (e.g., PostgreSQL, Redis)
+- MCP servers relevant to the tech stack
+- Package manager initialization
+- Other required tooling
+
+Present a checklist to the user:
+- **Auto-installable items**: execute with user consent
+- **Manual items**: provide clear instructions for the user to follow
+
+After all items are resolved:
+- Log `{"event": "environment_setup_complete", "mission_id": "...", "items": [...], "timestamp": "<actual>"}`
+
+If no dependencies are needed:
+- Log `{"event": "environment_setup_complete", "mission_id": "...", "items": [], "timestamp": "<actual>"}`
+
+### 7. Close Specifying
+
+**Phase review** — verify gate criteria for specifying -> building.
+
+All conditions must be true:
+- Mission spec frozen (`.geas/spec/mission-{mission_id}.json` exists)
+- Design-brief approved (`status: "approved"` AND `arch_review` exists in `.geas/missions/{mission_id}/design-brief.json`)
+- Tasks compiled (at least 1 task in `.geas/tasks/` for this mission)
+- Task list approved (`task_list_approved` event in ledger for this mission)
+- Environment setup completed (`environment_setup_complete` event in ledger for this mission)
+
+Write `.geas/missions/{mission_id}/phase-reviews/specifying-to-building.json` conforming to `schemas/phase-review.schema.json`:
 ```json
 {
   "version": "1.0",
   "artifact_type": "phase_review",
-  "artifact_id": "pr-specifying",
+  "artifact_id": "pr-specifying-{mission_id}",
   "producer_type": "orchestration_authority",
   "mission_phase": "specifying",
   "status": "ready_to_exit",
   "summary": "<specifying outcomes>",
-  "gate_criteria_met": ["mission brief exists", "scope_in defined", "tasks compiled"],
+  "gate_criteria_met": [
+    "mission spec frozen",
+    "design-brief approved",
+    "tasks compiled",
+    "task list approved",
+    "environment setup completed"
+  ],
   "gate_criteria_unmet": [],
   "risk_notes": [],
   "next_phase": "building",
@@ -46,64 +153,3 @@ If any gate criteria unmet: set `status: "blocked"`, list unmet criteria in `gat
 
 - Update run state: `{ "phase": "building", "status": "in_progress" }`
 - Log: `{"event": "phase_complete", "phase": "specifying", "timestamp": "<actual>"}`
-
-## Conditional (orchestrator judges based on seed complexity)
-
-### Vision (product-authority)
-**Skip if** seed describes a single well-defined feature with clear acceptance criteria.
-
-```
-Agent(agent: "product-authority", prompt: "Then read .geas/spec/mission-{mission_id}.json (read mission_id from run.json). Deliver vision, MVP scope, user value proposition. Write to .geas/evidence/specifying/product-authority.json")
-```
-Verify `.geas/evidence/specifying/product-authority.json` exists.
-
-### PRD & User Stories (product-authority)
-**Skip if** scope is 1-2 tasks (seed already specific enough to compile directly).
-
-```
-Agent(agent: "product-authority", prompt: "Read .geas/spec/mission-{mission_id}.json (read mission_id from run.json) and .geas/evidence/specifying/product-authority.json. Create a PRD using write-prd skill, save to .geas/spec/prd.md. Then break it into user stories using write-stories skill, save to .geas/spec/stories.md.")
-```
-Verify both `.geas/spec/prd.md` and `.geas/spec/stories.md` exist.
-
-### Architecture (architecture-authority) + Vote Round
-**Skip if** existing project with conventions.md AND no new external services/libs AND single module scope.
-**Always run if**: new project, new architecture patterns, cross-module changes.
-
-```
-Agent(agent: "architecture-authority", prompt: "Then read .geas/spec/mission-{mission_id}.json (read mission_id from run.json), .geas/evidence/specifying/product-authority.json, and .geas/spec/prd.md. Propose architecture and tech stack. Write conventions to .geas/memory/_project/conventions.md and evidence to .geas/evidence/specifying/architecture-authority.json")
-```
-Verify evidence exists. Write DecisionRecord to `.geas/decisions/dec-001.json`.
-
-Invoke `/geas:vote-round` with:
-- Proposal: `.geas/evidence/specifying/architecture-authority.json`
-- Voters: backend-engineer, ui-ux-designer, critical-reviewer
-- Output: `.geas/evidence/specifying/vote-{agent}.json`
-
-If all agree: proceed. If any disagree: `/geas:decision` runs, then re-vote.
-Verify all vote files exist before continuing.
-
-### MCP Server Recommendations
-**Skip if** existing project (already configured).
-
-Analyze the tech stack from architecture_authority's architecture decision and recommend helpful MCP servers to the user. Match by category, not by specific tool name:
-
-| Stack category | MCP category | Reason |
-|---------------|--------------|--------|
-| Relational database | Database query MCP | Workers can inspect schemas and run read-only queries |
-| Document database | Database query MCP | Workers can explore collections |
-| Web frontend | Web standards MCP | Workers can reference specification docs |
-| Has deploy target | Performance audit MCP | qa_engineer can audit performance and accessibility |
-| Git-hosted | Git platform MCP | repository_manager can manage PRs and issues |
-
-Present recommendations with install commands from the MCP registry.
-
-### Stack-Specific Rules
-
-After architecture decisions are finalized, add stack-specific rules to `.geas/rules.md`. This happens before the Building phase begins (before the rules-update workflow exists in the pipeline).
-
-Examples:
-- If React: "All components must be functional components with hooks"
-- If REST API: "All endpoints must return consistent error shapes"
-- If Python: "Use type hints for all public function signatures"
-
-Read the architecture decision from `.geas/evidence/specifying/architecture-authority.json` and `.geas/memory/_project/conventions.md` to determine which rules to add. Append to the existing `.geas/rules.md` under a `## Stack Rules` section.
