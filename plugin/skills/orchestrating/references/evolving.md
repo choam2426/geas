@@ -69,7 +69,7 @@ If no P0 items remain: skip to product_authority Final Briefing.
      "version": "1.0",
      "artifact_type": "rules_update",
      "artifact_id": "ru-{mission-id}",
-     "producer_type": "process_lead",
+     "producer_type": "orchestration_authority",
      "status": "approved",
      "affected_rule_ids": ["rule-001", "rule-002"],
      "reason": "<aggregated rationale>",
@@ -186,11 +186,14 @@ Assemble a detailed execution briefing by reading all `.geas/` artifacts. This i
 
 Verify `.geas/missions/{mission_id}/mission-briefing.md` exists.
 
-### Repository-manager Release Management [MANDATORY]
-```
-Agent(agent: "repository-manager", prompt: "Create release: version bump, changelog from .geas/ledger/events.jsonl, final commit. Write to .geas/missions/{mission_id}/evidence/evolving/repository-manager-release.json")
-```
-Verify `.geas/missions/{mission_id}/evidence/evolving/repository-manager-release.json` exists.
+### Release Management [MANDATORY]
+
+Orchestrator runs release directly:
+1. Determine version bump (from gap-assessment and debt status)
+2. Generate changelog from `.geas/ledger/events.jsonl`
+3. Commit version bump and changelog
+4. Tag release with semantic version
+5. Log: `{"event": "release_created", "version": "...", "timestamp": "<actual>"}`
 
 ### Run Summary
 Invoke `/geas:run-summary` to generate session audit trail.
