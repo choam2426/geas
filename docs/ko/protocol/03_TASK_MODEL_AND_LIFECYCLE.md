@@ -252,6 +252,7 @@ task에 반드시 있어야 하는 것:
 | `what_to_test_next[]` | 리뷰어가 우선 확인해야 할 항목 |
 | `confidence` | 구현 완성도에 대한 worker의 자체 평가 (1-5) |
 | `summary` | 작업 내용 요약 |
+| `memory_suggestions[]` | 같은 worker 타입의 미래 호출을 위해 보존할 만한 지식 |
 
 ### 활용 방식
 

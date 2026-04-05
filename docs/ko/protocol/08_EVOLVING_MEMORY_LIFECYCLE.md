@@ -182,6 +182,16 @@ Rule candidate는 다음 중 하나 이상을 충족해야 한다:
 
 그 외의 경우에는 project-level memory를 선호한다.
 
+### Agent memory 흐름
+
+1. 에이전트가 산출물에 `memory_suggestions[]`를 포함
+2. Orchestrator가 회고 시 제안을 검토
+3. 유용한 제안을 `.geas/memory/agents/{agent_type}.md`에 반영
+4. 다음 호출 시 에이전트의 context packet에 이 파일 포함
+5. memory가 도움이 되었으면 유지하고, 낡았거나 해로웠으면 제거 또는 갱신
+
+Agent memory 파일은 doc 07의 memory item과 다르다 — Orchestrator가 직접 관리하는 작업 문서로서 승격 파이프라인을 거치지 않는다. 프로젝트 전체에 영향을 주거나 에이전트 경계를 넘는 교훈은 정식 `agent_rule` memory 타입을 통해 표준 승격 파이프라인으로 처리한다.
+
 ## Confidence and Freshness
 
 confidence와 freshness는 memory 신뢰의 관련되지만 구별되는 두 차원이다.

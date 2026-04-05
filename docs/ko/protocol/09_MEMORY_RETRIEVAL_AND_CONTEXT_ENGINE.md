@@ -126,6 +126,12 @@ packet 빌더는 다음 항목에 할인을 적용해야 한다:
 6. Retrieval 메타데이터 또는 출처 요약 첨부
 7. Packet이 이후 결정에 영향을 미칠 경우 runtime state에 packet 참조 저장
 
+### Agent memory 주입
+
+에이전트를 위한 context packet을 조립할 때, `.geas/memory/agents/{agent_type}.md`가 존재하면 그 내용을 포함해야 한다. L2 (applicable memory) 우선순위로 주입된다.
+
+Agent memory는 retrieval heuristic으로 점수를 매기지 않는다 — 해당 에이전트 타입에 대해 무조건 포함된다. Orchestrator가 검수한 역할별 지침이기 때문이다. Agent memory 파일은 일반적으로 작으므로 budget 압박 시에도 보존해야 한다.
+
 ## Packet Versioning
 
 context packet은 시스템이 packet이 다음의 실질적 변경보다 이전인지 판단할 수 있도록 암시적 또는 명시적으로 버전을 관리해야 한다:
