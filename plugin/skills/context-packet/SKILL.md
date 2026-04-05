@@ -222,6 +222,9 @@ Write the packet as a markdown file with this structure:
 {Open debt items relevant to this task. Workers should be aware but fix only if the task explicitly addresses them.}
 
 ## Applicable Memory
+
+**Agent Memory:** Before assembling the general applicable memory, check if `.geas/memory/agents/{agent_type}.md` exists for the target agent. If it does, include its contents at the top of the Applicable Memory section. This file is included unconditionally (not scored by the retrieval heuristic) as it contains Orchestrator-curated, role-specific guidance. Agent memory files are typically small and SHOULD be preserved even under context budget pressure.
+
 {Injected from memory retrieval — see Step 3. Omit if no memories scored above threshold.}
 
 ## Reference
