@@ -2,9 +2,9 @@
   "version": "1.0",
   "artifact_type": "challenge_review",
   "artifact_id": "challenge-task-001",
-  "producer_type": "critical_reviewer",
+  "producer_type": "challenger",
   "task_id": "task-001",
-  "reviewer_type": "critical_reviewer",
+  "reviewer_type": "challenger",
   "concerns": [
     {
       "severity": "blocking",

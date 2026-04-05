@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EvidenceBundle",
+  "description": "Structured output from a worker. Reviewers and QA read this to assess task completion.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Reference to the parent TaskContract"
+    },
+    "worker": {
+      "type": "string",
+      "description": "Agent name who produced this evidence"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["design", "implementation", "review", "qa", "security", "performance", "documentation", "product-review"],
+      "description": "Category of evidence"
+    },
+    "files_changed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of file paths created or modified"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Brief summary of what was done and key decisions made"
+    },
+    "verify_results": {
+      "type": "object",
+      "properties": {
+        "build": { "type": "string", "enum": ["pass", "fail", "skip"] },
+        "lint": { "type": "string", "enum": ["pass", "fail", "skip"] },
+        "test": { "type": "string", "enum": ["pass", "fail", "skip"] },
+        "typecheck": { "type": "string", "enum": ["pass", "fail", "skip"] }
+      },
+      "description": "Results of mechanical verification (from /verify)"
+    },
+    "criteria_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "criterion": { "type": "string" },
+          "met": { "type": "boolean" },
+          "evidence": { "type": "string" }
+        },
+        "required": ["criterion", "met"]
+      },
+      "description": "Per-criterion assessment against TaskContract acceptance_criteria"
+    },
+    "screenshots": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Paths to screenshot files (for UI work)"
+    },
+    "issues_found": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "severity": { "type": "string", "enum": ["critical", "major", "minor", "suggestion"] },
+          "description": { "type": "string" },
+          "file": { "type": "string" },
+          "line": { "type": "integer" }
+        },
+        "required": ["severity", "description"]
+      },
+      "description": "Issues discovered during review, QA, or security audit"
+    },
+    "tech_debt": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "severity": { "type": "string", "enum": ["HIGH", "MEDIUM", "LOW"] },
+          "title": { "type": "string" },
+          "description": { "type": "string" }
+        },
+        "required": ["severity", "title"]
+      },
+      "description": "Technical debt identified during review — not blocking but should be addressed"
+    },
+    "self_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "known_risks": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Risks the worker is aware of in their implementation"
+        },
+        "untested_paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Code paths the worker did not test"
+        },
+        "possible_stubs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Implementations left as stubs or placeholders"
+        },
+        "what_i_would_test_next": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Suggested test areas for QA to prioritize"
+        },
+        "confidence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Worker's self-assessed confidence. 1=very uncertain, 5=very confident. Score ≤2 triggers stricter rubric thresholds."
+        }
+      },
+      "required": ["known_risks", "untested_paths", "confidence"],
+      "description": "Worker's honest self-assessment. Guides quality_specialist on where to focus testing."
+    },
+    "rubric_scores": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "dimension": { "type": "string" },
+          "score": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "rationale": { "type": "string", "description": "Brief justification for the score" }
+        },
+        "required": ["dimension", "score"]
+      },
+      "description": "Rubric dimension scores produced by evaluators (quality_specialist, design_authority). Evidence Gate aggregates these."
+    },
+    "state_verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "api_checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "endpoint": { "type": "string" },
+              "expected_status": { "type": "integer" },
+              "actual_status": { "type": "integer" },
+              "pass": { "type": "boolean" },
+              "notes": { "type": "string" }
+            },
+            "required": ["endpoint", "expected_status", "actual_status", "pass"]
+          },
+          "description": "Direct API endpoint verification results"
+        },
+        "db_checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "description": { "type": "string" },
+              "query": { "type": "string" },
+              "expected": { "type": "string" },
+              "actual": { "type": "string" },
+              "pass": { "type": "boolean" }
+            },
+            "required": ["description", "pass"]
+          },
+          "description": "Read-only database state verification results"
+        }
+      },
+      "description": "Stateful QA results — API responses and DB state beyond UI surface testing"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional context or observations"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["version", "task_id", "worker", "type", "summary", "created_at"]
+}

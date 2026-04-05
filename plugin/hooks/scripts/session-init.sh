@@ -42,4 +42,22 @@ if (!h.exists(rulesPath)) {
   fs.writeFileSync(rulesPath, template, 'utf8');
   h.info('Created .geas/rules.md with initial template.');
 }
+
+// Memory review cadence check
+const mi = h.readJson(path.join(geas, 'state', 'memory-index.json'));
+if (mi && mi.entries) {
+  const now = new Date();
+  const reviewable = ['provisional', 'stable', 'canonical'];
+  const expired = mi.entries.filter(e =>
+    reviewable.includes(e.state) && e.review_after && new Date(e.review_after) < now
+  );
+  if (expired.length) {
+    h.info(expired.length + ' memory entries past review date:');
+    expired.slice(0, 10).forEach(e =>
+      process.stderr.write('  - ' + e.memory_id + ' (' + e.state + ') due: ' + e.review_after + '\\n')
+    );
+    if (expired.length > 10) process.stderr.write('  ... and ' + (expired.length - 10) + ' more\\n');
+    h.info('Run /geas:memorizing for batch review.');
+  }
+}
 " <<< "$(cat)"

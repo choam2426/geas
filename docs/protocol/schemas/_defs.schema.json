@@ -138,14 +138,18 @@
         "orchestration_authority",
         "product_authority",
         "design_authority",
-        "ui_ux_designer",
-        "frontend_engineer",
-        "backend_engineer",
+        "challenger",
+        "software_engineer",
         "qa_engineer",
         "security_engineer",
-        "devops_engineer",
-        "critical_reviewer",
-        "technical_writer"
+        "platform_engineer",
+        "technical_writer",
+        "literature_analyst",
+        "research_analyst",
+        "methodology_reviewer",
+        "research_integrity_reviewer",
+        "research_engineer",
+        "research_writer"
       ]
     },
     "effectKind": {

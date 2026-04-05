@@ -53,7 +53,7 @@ Canonical type names for authority slots:
 | Orchestrator | `orchestration_authority` |
 | Decision Maker | `product_authority` |
 | Design Authority | `design_authority` |
-| Challenger | `critical_reviewer` |
+| Challenger | `challenger` |
 
 ### Specialist Slots
 
@@ -77,30 +77,30 @@ A domain profile maps specialist slots to concrete role types. The protocol defi
 
 | slot | concrete types | area of expertise |
 |---|---|---|
-| Implementer | `frontend_engineer`, `backend_engineer` | UI code and browser behavior; APIs, services, persistence, business logic |
+| Implementer | `software_engineer` | full-stack implementation — UI, APIs, services, persistence, business logic, interaction design |
 | Quality Specialist | `qa_engineer` | acceptance criteria, tests, failure paths, regression risk |
 | Risk Specialist | `security_engineer` | auth, permissions, secret handling, abuse paths |
-| Operations Specialist | `devops_engineer` | CI/CD, environments, deployability, runtime operations |
-| Communication Specialist | `technical_writer`, `ui_ux_designer` | docs, migrations, operator guidance; user flows, visual intent, interaction clarity |
+| Operations Specialist | `platform_engineer` | CI/CD, environments, deployability, runtime operations |
+| Communication Specialist | `technical_writer` | docs, migrations, operator guidance |
 
 #### Research Profile (example)
 
 | slot | concrete types | area of expertise |
 |---|---|---|
-| Implementer | `literature_analyst`, `experiment_runner` | literature search and synthesis; experiment design and execution |
+| Implementer | `literature_analyst`, `research_analyst` | literature search and synthesis; experiment design, data analysis, modeling, simulation |
 | Quality Specialist | `methodology_reviewer` | statistical rigor, reproducibility, methodological soundness |
-| Risk Specialist | `ethics_reviewer` | research ethics, data privacy, bias assessment |
-| Operations Specialist | `data_engineer` | data pipelines, storage, computation infrastructure |
-| Communication Specialist | `academic_writer` | paper drafting, citation management, audience-appropriate presentation |
+| Risk Specialist | `research_integrity_reviewer` | research ethics, data privacy, bias assessment, validity threats |
+| Operations Specialist | `research_engineer` | data pipelines, compute infrastructure, reproducibility environments |
+| Communication Specialist | `research_writer` | paper drafting, reports, presentations, audience-appropriate communication |
 
 #### Content Creation Profile (example)
 
 | slot | concrete types | area of expertise |
 |---|---|---|
-| Implementer | `writer`, `designer` | content drafting; visual design and layout |
+| Implementer | `content_writer`, `content_designer` | content drafting; visual design and layout |
 | Quality Specialist | `fact_checker` | source verification, claim accuracy, consistency |
 | Risk Specialist | `legal_reviewer` | copyright, liability, regulatory compliance |
-| Operations Specialist | `publishing_ops` | CMS, distribution, scheduling, format conversion |
+| Operations Specialist | `publishing_engineer` | CMS, distribution, scheduling, format conversion |
 | Communication Specialist | `editor` | tone, clarity, audience fit, style consistency |
 
 A conformant implementation MAY define additional domain profiles or extend existing ones, but MUST NOT weaken the authority model.
@@ -161,7 +161,7 @@ Prohibitions:
 - MUST NOT assume quality, risk, or product approval by default
 - MUST NOT replace missing execution evidence with design confidence alone
 
-### Challenger (`critical_reviewer`)
+### Challenger (`challenger`)
 
 Responsibilities:
 

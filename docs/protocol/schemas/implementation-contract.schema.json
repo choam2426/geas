@@ -42,7 +42,7 @@
     },
     "worker": {
       "type": "string",
-      "description": "Agent type who will implement (e.g., 'frontend_engineer', 'backend_engineer')"
+      "description": "Agent type who will implement (e.g., 'software_engineer', 'platform_engineer')"
     },
     "plan": {
       "type": "string",
