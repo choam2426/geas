@@ -52,10 +52,14 @@ if (['high', 'critical'].includes(riskLevel)) {
 if (!h.exists(path.join(tdir, 'retrospective.json')))
   h.warn(tid + ' marked as passed but retrospective.json is missing');
 
-// Rubric scores check on design authority review
-const daReview = h.readJson(path.join(edir, 'design-authority-review.json'))
-  || h.readJson(path.join(edir, 'design_authority-review.json'))
-  || h.readJson(path.join(edir, 'design-authority.json'));
-if (daReview && (!daReview.rubric_scores || !Object.keys(daReview.rubric_scores).length))
-  h.warn(tid + ' design authority review is missing rubric_scores');
+// Rubric scores check on all reviewer evidence (domain-agnostic)
+const fs = require('fs');
+try {
+  const files = fs.readdirSync(edir).filter(f => f.endsWith('.json'));
+  for (const f of files) {
+    const review = h.readJson(path.join(edir, f));
+    if (review && review.reviewer_type && (!review.rubric_scores || !Object.keys(review.rubric_scores).length))
+      h.warn(tid + ' ' + f + ' is missing rubric_scores');
+  }
+} catch {}
 " <<< "$(cat)"
