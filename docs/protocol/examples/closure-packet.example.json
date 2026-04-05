@@ -14,7 +14,7 @@
       "summary": "All acceptance criteria verified. Minor concern about login rate limiting logged as non-blocking."
     },
     {
-      "reviewer_type": "architecture_authority",
+      "reviewer_type": "design_authority",
       "status": "approved",
       "summary": "Token storage approach is sound. API client structure follows existing patterns. No architectural concerns."
     }
@@ -57,7 +57,7 @@
   },
   "readiness_round": null,
   "challenge_review": {
-    "reviewer_type": "critical_reviewer",
+    "reviewer_type": "challenger",
     "concerns": [
       "Token storage in localStorage may be vulnerable to XSS; consider httpOnly cookie approach in follow-up"
     ],

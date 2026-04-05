@@ -8,7 +8,7 @@
     "updated_at": "2026-04-01T12:05:00Z"
   },
   "packet_id": "mp-001",
-  "target_agent_type": "frontend_engineer",
+  "target_agent_type": "software_engineer",
   "target_task_id": "task-009",
   "pinned_items": [
     "task goal: auth UI error flow",
