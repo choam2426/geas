@@ -1,7 +1,7 @@
 {
   "name": "geas",
-  "version": "1.2.0",
-  "description": "A protocol that brings order to multi-agent team-driven development — governed decisions, traceable artifacts, contract-based verification, and continuous learning.",
+  "version": "2.0.0",
+  "description": "A protocol that brings order to multi-agent team-driven work — governed decisions, traceable artifacts, contract-based verification, and continuous learning.",
   "author": {
     "name": "choam2426",
     "email": "choam2426@gmail.com"
@@ -16,19 +16,23 @@
     "evidence-gate",
     "multi-agent",
     "orchestration",
-    "ai-development"
+    "domain-agnostic"
   ],
   "agents": [
-    "./agents/product-authority.md",
-    "./agents/architecture-authority.md",
-    "./agents/ui-ux-designer.md",
-    "./agents/frontend-engineer.md",
-    "./agents/backend-engineer.md",
-    "./agents/qa-engineer.md",
-    "./agents/security-engineer.md",
-    "./agents/devops-engineer.md",
-    "./agents/critical-reviewer.md",
-    "./agents/technical-writer.md"
+    "./agents/authority/product-authority.md",
+    "./agents/authority/design-authority.md",
+    "./agents/authority/challenger.md",
+    "./agents/software/software-engineer.md",
+    "./agents/software/qa-engineer.md",
+    "./agents/software/security-engineer.md",
+    "./agents/software/platform-engineer.md",
+    "./agents/software/technical-writer.md",
+    "./agents/research/literature-analyst.md",
+    "./agents/research/research-analyst.md",
+    "./agents/research/methodology-reviewer.md",
+    "./agents/research/research-integrity-reviewer.md",
+    "./agents/research/research-engineer.md",
+    "./agents/research/research-writer.md"
   ],
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
