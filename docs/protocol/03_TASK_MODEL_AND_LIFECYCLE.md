@@ -282,7 +282,7 @@ Any task MAY emit debt during implementation, review, verification, or closure.
 
 ### Minimum debt classification
 
-- `severity = low | medium | high | critical`
+- `severity = low | normal | high | critical`
 - `kind = output_quality | verification_gap | structural | risk | process | documentation | operations`
 
 Debt differs from blockers:
@@ -307,7 +307,7 @@ A team MUST NOT classify a blocker as debt merely to preserve throughput.
 | any active | `cancelled` | explicit cancellation with recorded reason |
 | `blocked` | `ready` | blocking cause resolved and revalidation passed |
 | `escalated` | `ready` | escalation resolved and task re-entered deliberately |
-| `verified` | `implementing` | gate fail causes verify-fix loop |
+| `integrated` | `implementing` | gate fail causes verify-fix loop |
 | `integrated` | `reviewed` | integration failure or divergence requires reconciliation |
 | `verified` | `ready` / `implementing` / `reviewed` | final verdict = `iterate` with explicit restoration target |
 
@@ -405,7 +405,7 @@ Cancellation MUST NOT silently erase evidence already produced.
 
 ### Verify-fix path
 
-`ready -> implementing -> reviewed -> integrated -> verified(fail) -> implementing -> reviewed -> integrated -> verified(pass) -> passed`
+`ready -> implementing -> reviewed -> integrated(fail) -> implementing -> reviewed -> integrated -> verified(pass) -> passed`
 
 ### Product-iterate path
 
