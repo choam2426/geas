@@ -419,6 +419,31 @@ Orchestrator reads all evidence at `.geas/missions/{mission_id}/evidence/{task-i
 
 Verify `.geas/missions/{mission_id}/tasks/{task-id}/retrospective.json` exists.
 
+#### Agent Memory Update
+
+After the retrospective, harvest `memory_suggestions` from the task's artifacts to update per-agent memory files.
+
+Collect `memory_suggestions` from:
+- All specialist reviews at `.geas/missions/{mission_id}/evidence/{task-id}/`
+- Challenge review at `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` (if exists)
+- Worker self-check at `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json`
+
+Agent type mapping:
+- For specialist reviews and challenge review: read from the artifact's `producer_type` or `reviewer_type` field
+- For worker self-check: use the task's `routing.primary_worker_type`
+
+Items written to agent memory files SHOULD NOT be duplicated in `retrospective.json`'s `memory_candidates[]`.
+
+For each agent type that produced suggestions:
+1. Read `.geas/memory/agents/{agent_type}.md` (if exists)
+2. Review each suggestion: useful beyond this task? already known? contradicts existing content?
+3. Rewrite the file: merge new suggestions, remove contradicted or stale entries (when uncertain, keep existing content)
+4. Write the complete updated file
+
+Additionally, update Orchestrator's own memory file (`.geas/memory/agents/orchestration_authority.md`) based on `next_time_guidance[]` from the retrospective.
+
+Agent memory update is performed regardless of mission mode.
+
 ### Memory Extraction [MANDATORY after Retrospective, Ship only]
 
 **DO NOT SKIP THIS STEP.** Only skip when task was Cut or Escalate (same as retrospective).
