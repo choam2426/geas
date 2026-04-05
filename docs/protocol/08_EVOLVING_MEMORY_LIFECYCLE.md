@@ -182,6 +182,16 @@ Role-specific lessons SHOULD prefer `agent_memory` when:
 
 Otherwise, prefer project-level memory.
 
+### Agent memory flow
+
+1. Agent produces `memory_suggestions[]` in output artifact
+2. Orchestrator reviews suggestions during retrospective
+3. Useful suggestions are written to `.geas/memory/agents/{agent_type}.md`
+4. On next invocation, the agent's context packet includes this file
+5. If the memory helped, the Orchestrator keeps it; if it became stale or caused harm, the Orchestrator removes or updates it
+
+Agent memory files are not memory items in the doc 07 sense — they are Orchestrator-maintained working documents that bypass the promotion pipeline. This keeps them lightweight and practical. For lessons that should affect the entire project or cross agent boundaries, use the formal `agent_rule` memory type through the standard promotion pipeline.
+
 ## Confidence and Freshness
 
 Confidence and freshness are related but distinct dimensions of memory trust.

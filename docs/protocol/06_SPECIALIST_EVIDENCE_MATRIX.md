@@ -20,6 +20,7 @@ Every specialist review SHOULD include, at minimum:
 | `evidence_refs[]` | artifacts examined during review |
 | `notes_on_risk[]` | risk observations relevant to the specialist's jurisdiction |
 | `rubric_scores[]` | optional rubric dimension scores |
+| `memory_suggestions[]` | knowledge worth persisting for future invocations of this specialist type |
 
 A review with no evidence reference MAY still exist, but it SHOULD be treated as lower-confidence input and SHOULD NOT be enough to justify closure by itself on higher-assurance work.
 
@@ -147,6 +148,8 @@ Specialists SHOULD emit memory and rule candidates when they observe:
 | reviewer checklist gap | medium — improves future review quality |
 | domain-specific anti-pattern | medium — prevents recurrence |
 | lower-value advisory observation | low — capture if evidence is strong |
+
+Agents SHOULD also produce memory_suggestions in their output artifacts when they encounter reusable knowledge. The Orchestrator harvests these during retrospective and writes confirmed suggestions to the agent's memory file at `.geas/memory/agents/{agent_type}.md`.
 
 ## Key Statement
 

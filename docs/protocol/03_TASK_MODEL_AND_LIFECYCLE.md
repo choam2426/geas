@@ -250,6 +250,7 @@ Before claiming implementation completion, the primary worker MUST produce a wor
 - `what_to_test_next[]`
 - `confidence`
 - `summary`
+- `memory_suggestions[]` — knowledge worth persisting for future invocations of this worker type
 
 ### Interpretation rules
 

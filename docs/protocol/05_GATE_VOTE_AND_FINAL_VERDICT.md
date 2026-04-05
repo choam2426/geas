@@ -248,6 +248,7 @@ The system MUST consume `worker-self-check.json` as more than a note. It directl
 - stub verification
 - threshold tightening
 - debt and memory extraction
+- agent memory extraction
 
 Ignoring the self-check while still collecting it is non-conformant review theater.
 

@@ -126,6 +126,12 @@ A conformant packet builder SHOULD follow this assembly sequence:
 6. Append retrieval metadata or provenance summary
 7. Store packet references in runtime state if the packet will influence later decisions
 
+### Agent memory injection
+
+When assembling a context packet for any agent, the packet builder SHOULD include the contents of `.geas/memory/agents/{agent_type}.md` if the file exists. This is injected at L2 (applicable memory) priority.
+
+Agent memory is not scored by the retrieval heuristic — it is included unconditionally for the matching agent type, as it represents curated, Orchestrator-approved guidance specific to that role. Agent memory files are typically small, so they SHOULD be preserved even under budget pressure.
+
 ## Packet Versioning
 
 Context packets SHOULD be versioned implicitly or explicitly so the system can tell whether a packet predates a material change to:

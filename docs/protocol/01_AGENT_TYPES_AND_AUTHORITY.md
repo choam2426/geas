@@ -119,6 +119,8 @@ Responsibilities:
 - assemble closure packets
 - coordinate learning artifacts at phase boundaries
 - manage memory lifecycle: extraction, promotion review, decay monitoring, and application logging
+- manage agent memory: review memory_suggestions from agent outputs during retrospective, update agent memory files when useful
+- update own agent memory file based on next_time_guidance from retrospective
 
 Prohibitions:
 
@@ -150,6 +152,7 @@ Responsibilities:
 - review structural decisions, interfaces, dependencies, and maintainability
 - challenge hidden complexity, layering violations, and contract ambiguity
 - approve or reject implementation contracts for implementation-bearing tasks
+- SHOULD produce memory_suggestions when discovering information that would help future invocations of the same agent type
 
 In software: architecture review. In research: methodology review. In content: editorial direction review.
 
@@ -165,6 +168,7 @@ Responsibilities:
 - perform adversarial pre-ship challenge
 - search for assumptions the main path ignored
 - force articulation of why shipping may be unsafe, incomplete, or strategically weak
+- SHOULD produce memory_suggestions when discovering information that would help future invocations of the same agent type
 
 Prohibitions:
 
@@ -183,6 +187,7 @@ MUST consider:
 - interface correctness and boundary behavior
 - regression risk from the change
 - whether the change requires involvement from other specialist slots
+- SHOULD produce memory_suggestions when discovering information that would help future invocations of the same agent type
 
 ### Quality Specialist
 
@@ -192,6 +197,7 @@ MUST consider:
 - negative paths and regressions
 - whether untested paths remain material
 - reproducibility of the submitted evidence
+- SHOULD produce memory_suggestions when discovering information that would help future invocations of the same agent type
 
 ### Risk Specialist
 
@@ -201,6 +207,7 @@ MUST consider:
 - sensitive data exposure or mishandling
 - abuse paths and adversarial scenarios relevant to the domain
 - compliance with applicable policies
+- SHOULD produce memory_suggestions when discovering information that would help future invocations of the same agent type
 
 ### Operations Specialist
 
@@ -210,6 +217,7 @@ MUST consider:
 - operational readiness and rollback capability
 - configuration drift
 - environment or infrastructure implications
+- SHOULD produce memory_suggestions when discovering information that would help future invocations of the same agent type
 
 ### Communication Specialist
 
@@ -219,6 +227,7 @@ MUST consider:
 - migration, upgrade, or transition guidance
 - clarity and accuracy of user-facing content
 - whether examples or references have become stale
+- SHOULD produce memory_suggestions when discovering information that would help future invocations of the same agent type
 
 ## Task Kind Taxonomy
 

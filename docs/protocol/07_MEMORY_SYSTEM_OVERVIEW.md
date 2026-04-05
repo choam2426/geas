@@ -67,6 +67,17 @@ The memory system organizes information into logical layers. Each layer serves a
 | `agent_memory` | role-specific guidance | long-term |
 | `risk_memory` | patterns tied to repeated hazards or sensitive surfaces | long-term |
 
+### Agent memory mechanism
+
+Agent memory is implemented as per-agent markdown files at `.geas/memory/agents/{agent_type}.md`. These files are:
+
+- **read**: included in the agent's context packet at invocation time
+- **written**: by the Orchestrator during retrospective, based on memory_suggestions from specialist reviews, challenge reviews, and worker self-checks
+- **format**: free-form markdown, fully rewritten on each update
+- **scope**: project-wide, persists across missions and sessions
+
+Agent memory is the simplest memory mechanism in Geas. A plain file that the agent reads before working and the Orchestrator updates after learning what was useful.
+
 ## Memory Scope
 
 Every memory item declares a scope that controls where it applies and how broadly it can influence behavior. Broader scope requires stronger justification.
