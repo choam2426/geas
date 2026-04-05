@@ -43,5 +43,5 @@ if (/\/.geas\/.*\.json$/.test(filePath.replace(/\\\\/g,'/')) && h.exists(filePat
 
 // Mission spec frozen warning
 if (/\/.geas\/missions\/[^/]+\/spec\.json$/.test(filePath.replace(/\\\\/g,'/')))
-  h.warn('Mission spec was modified. Mission specs should be frozen after intake. Use /geas:pivot-protocol for scope changes.');
+  h.warn('Mission spec was modified. Mission specs should be frozen after intake. Use a vote round for scope changes.');
 " <<< "$(cat)"
