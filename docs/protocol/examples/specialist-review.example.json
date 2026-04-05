@@ -23,5 +23,9 @@
   "recommendations": [
     "Add client-side throttle for repeated login failures",
     "Consider adding E2E test for token refresh expiry path"
+  ],
+  "memory_suggestions": [
+    "This project uses a custom ESLint config at .eslintrc.cjs — do not assume standard extends",
+    "API responses are wrapped in { data: ..., meta: ... } envelope — always unwrap before validation"
   ]
 }
