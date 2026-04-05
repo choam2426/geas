@@ -137,7 +137,7 @@
       "enum": [
         "orchestration_authority",
         "product_authority",
-        "architecture_authority",
+        "design_authority",
         "ui_ux_designer",
         "frontend_engineer",
         "backend_engineer",
@@ -145,9 +145,7 @@
         "security_engineer",
         "devops_engineer",
         "critical_reviewer",
-        "technical_writer",
-        "process_lead",
-        "repository_manager"
+        "technical_writer"
       ]
     },
     "effectKind": {

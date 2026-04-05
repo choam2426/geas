@@ -12,7 +12,7 @@
     "task_id",
     "integration_branch",
     "merge_commit",
-    "base_commit",
+    "base_snapshot",
     "conflict_status"
   ],
   "properties": {
@@ -42,7 +42,7 @@
     "merge_commit": {
       "type": "string"
     },
-    "base_commit": {
+    "base_snapshot": {
       "type": "string"
     },
     "conflict_status": {

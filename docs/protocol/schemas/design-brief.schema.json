@@ -121,7 +121,7 @@
       "properties": {
         "reviewer_type": {
           "type": "string",
-          "const": "architecture_authority"
+          "const": "design_authority"
         },
         "summary": {
           "type": "string",

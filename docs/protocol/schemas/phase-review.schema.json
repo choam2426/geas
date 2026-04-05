@@ -29,8 +29,7 @@
       "type": "string",
       "enum": [
         "orchestration_authority",
-        "product_authority",
-        "process_lead"
+        "product_authority"
       ]
     },
     "mission_phase": {

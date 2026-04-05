@@ -32,7 +32,7 @@
     },
     "producer_type": {
       "type": "string",
-      "const": "process_lead"
+      "const": "orchestration_authority"
     },
     "task_id": {
       "type": "string"

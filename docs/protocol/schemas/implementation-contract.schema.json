@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ImplementationContract",
-  "description": "Pre-implementation agreement between worker and reviewers. Worker proposes concrete actions, edge case handling, and demo steps. qa_engineer and architecture_authority approve before implementation begins. Canonical protocol schema.",
+  "description": "Pre-implementation agreement between worker and reviewers. Worker proposes concrete actions, edge case handling, and demo steps. qa_engineer and design_authority approve before implementation begins. Canonical protocol schema.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -44,9 +44,9 @@
       "type": "string",
       "description": "Agent type who will implement (e.g., 'frontend_engineer', 'backend_engineer')"
     },
-    "plan_summary": {
+    "plan": {
       "type": "string",
-      "description": "Brief summary of the implementation approach"
+      "description": "Implementation approach plan"
     },
     "planned_actions": {
       "type": "array",
@@ -54,10 +54,10 @@
       "minItems": 1,
       "description": "Concrete actions the worker will take to fulfill the TaskContract"
     },
-    "touched_paths": {
+    "affected_surfaces": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "File paths the implementation will create or modify"
+      "description": "Surfaces the implementation will create or modify"
     },
     "edge_cases": {
       "type": "array",
@@ -95,7 +95,7 @@
     "approved_by": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Agent types who approved the contract (e.g., ['qa_engineer', 'architecture_authority'])"
+      "description": "Agent types who approved the contract (e.g., ['qa_engineer', 'design_authority'])"
     },
     "approval_notes": {
       "type": "string",

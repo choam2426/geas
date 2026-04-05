@@ -34,8 +34,7 @@
       "type": "string",
       "enum": [
         "product_authority",
-        "orchestration_authority",
-        "process_lead"
+        "orchestration_authority"
       ]
     },
     "scope_in_summary": {
