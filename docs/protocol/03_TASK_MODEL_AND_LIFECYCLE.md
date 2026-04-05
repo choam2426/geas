@@ -90,7 +90,7 @@ A task MUST contain at least:
 
 ### Additional recommended fields
 
-Assurance profiles (doc 13) define how much rigor a mission requires: `prototype` (lightest) → `delivery` → `hardened` → `regulated` (strictest). These fields are optional under `prototype`, expected under `delivery`, and effectively required under `hardened` and `regulated`.
+Mission mode defines how much rigor a mission requires: `lightweight` (lightest) → `standard` → `full_depth` (strictest). These fields are optional under `lightweight`, expected under `standard`, and effectively required under `full_depth`.
 
 | field | description |
 |---|---|

@@ -38,14 +38,13 @@ A mission MUST contain at least the following fields:
 
 ### Additional recommended metadata
 
-Assurance profiles (doc 13) define rigor levels: `prototype` (lightest) → `delivery` → `hardened` → `regulated` (strictest). These fields are optional under `prototype`, expected under `delivery`, and effectively required under `hardened` and `regulated`. They capture context that improves recovery, traceability, and scope discipline.
+Mission mode defines rigor levels: `lightweight` (lightest) → `standard` → `full_depth` (strictest). These fields are optional under `lightweight`, expected under `standard`, and effectively required under `full_depth`. They capture context that improves recovery, traceability, and scope discipline.
 
 | field | description |
 |---|---|
 | excluded scope / non-goals | explicitly out-of-scope items to prevent creep |
 | risk summary | known risks and their mitigations |
 | external dependency summary | dependencies outside the team's control |
-| active assurance profile reference | link to the assurance profile governing this mission |
 | phase owner notes | per-phase context from the Orchestrator |
 | initial debt or known constraints | pre-existing technical or process debt |
 | rollback / de-scope strategy | plan for controlled retreat if needed |
@@ -184,12 +183,11 @@ The runtime anchor is the persistent state object that tracks session progress. 
 
 ### Additional recommended fields
 
-Assurance profiles (doc 13) define rigor levels: `prototype` (lightest) → `delivery` → `hardened` → `regulated` (strictest). These fields are optional under `prototype`, expected under `delivery`, and effectively required under `hardened` and `regulated`.
+Mission mode defines rigor levels: `lightweight` (lightest) → `standard` → `full_depth` (strictest). These fields are optional under `lightweight`, expected under `standard`, and effectively required under `full_depth`.
 
 | field | description |
 |---|---|
 | selected mission mode | the operating mode governing this mission |
-| assurance profile | the active assurance profile reference |
 | current integration lane owner | which agent holds the integration lane |
 | remaining steps | estimated steps to phase or mission completion |
 | last safe boundary | the most recent safe recovery point |
@@ -233,7 +231,7 @@ The Phase Semantics section above lists all artifacts each phase produces. This 
 
 ### Additional recommended artifacts
 
-These preserve decision history across the mission. Higher assurance profiles make their inclusion increasingly expected.
+These preserve decision history across the mission. Higher mission mode rigor makes their inclusion increasingly expected.
 
 | artifact | what it captures |
 |---|---|
@@ -264,7 +262,6 @@ Amendment is REQUIRED when any of the following become true:
 - design assumptions change
 - risk level rises materially
 - an external dependency invalidates the original plan
-- the selected assurance profile no longer fits the work
 
 An amendment SHOULD produce:
 
@@ -281,7 +278,7 @@ If a phase transition fails, the protocol requires explicit recovery rather than
 
 1. The Orchestrator MUST identify which exit condition was not met.
 2. Missing items MUST be converted into explicit work, not dismissed.
-3. Repeated failed attempts SHOULD cause re-scope, escalation, or assurance-profile review.
+3. Repeated failed attempts SHOULD cause re-scope or escalation.
 4. The failure history MUST remain visible in the phase-review record.
 
 ## Emergency Exception

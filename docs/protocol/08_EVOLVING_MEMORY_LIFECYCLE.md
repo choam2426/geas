@@ -134,7 +134,7 @@ Recommended only when all of the following hold:
 - Successful reuse is repeated across multiple tasks or missions
 - The lesson has remained valid across time or contexts
 - The item strongly influences future process, safety, or quality
-- Stronger assurance profiles require it as pinned guidance
+- Higher mission mode rigor requires it as pinned guidance
 
 A project SHOULD keep the number of canonical items small.
 

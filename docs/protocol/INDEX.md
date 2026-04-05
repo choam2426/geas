@@ -15,8 +15,7 @@
 6. `07_MEMORY_SYSTEM_OVERVIEW.md`
 7. `10_SESSION_RECOVERY_AND_RESUMABILITY.md`
 8. `12_ENFORCEMENT_CONFORMANCE_AND_METRICS.md`
-9. `13_ASSURANCE_PROFILES_AND_STANDARDS_ALIGNMENT.md`
-10. `14_EVOLUTION_DEBT_AND_GAP_LOOP.md`
+9. `14_EVOLUTION_DEBT_AND_GAP_LOOP.md`
 
 ### Implementation-oriented path
 
@@ -42,19 +41,18 @@
 - `09_MEMORY_RETRIEVAL_AND_CONTEXT_ENGINE.md` — context packet assembly, provenance, stale packet rules, injection hygiene
 - `10_SESSION_RECOVERY_AND_RESUMABILITY.md` — checkpointing, safe boundaries, recovery decisions, replay vs restore
 - `11_RUNTIME_ARTIFACTS_AND_SCHEMAS.md` — artifact contract philosophy, canonical artifact families, validation failures
-- `12_ENFORCEMENT_CONFORMANCE_AND_METRICS.md` — hooks, conformance scenarios, observability, health signals, mandatory responses
-- `13_ASSURANCE_PROFILES_AND_STANDARDS_ALIGNMENT.md` — assurance profiles, external standards alignment, override posture
+- `12_ENFORCEMENT_CONFORMANCE_AND_METRICS.md` — hooks, conformance scenarios, observability, health signals, policy overrides
 - `14_EVOLUTION_DEBT_AND_GAP_LOOP.md` — retrospectives, debt, gap assessment, mission carry-forward
 
 ## 2. Recommended Reading by Use Case
 
 ### I want to implement Geas
 
-Read: `00`, `01`, `02`, `03`, `04`, `05`, `10`, `11`, `12`, `13`
+Read: `00`, `01`, `02`, `03`, `04`, `05`, `10`, `11`, `12`
 
-### I want to harden Geas for production AI development
+### I want to harden Geas for production AI work
 
-Read: `00`, `05`, `09`, `10`, `12`, `13`, `14`
+Read: `00`, `05`, `09`, `10`, `12`, `14`
 
 ### I want to understand the learning system
 
@@ -69,7 +67,7 @@ Read: `03`, `04`, `05`, `10`, `11`, `12`
 The v2 protocol intentionally preserves the canonical artifact-first model while adding:
 
 - stronger normative language
-- assurance profiles
+- domain-agnostic role architecture (authority slots + specialist slots)
 - clearer conformance and override expectations
 - stronger context and recovery hygiene
-- clearer distinction between schema-minimum fields and hardening recommendations
+- clearer distinction between required and recommended fields

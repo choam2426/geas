@@ -189,7 +189,7 @@ A task MAY begin speculative implementation before a sibling task completes only
 - assumptions are recorded explicitly
 - the task can be cleanly restored to a prior state if assumptions fail
 - interface risk is low or strongly bounded
-- the selected assurance profile allows speculation
+- the selected mission mode allows speculation
 
 Speculative execution MUST NOT be used to hide unresolved design disagreement.
 

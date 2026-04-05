@@ -241,7 +241,6 @@ Evolution outputs SHOULD influence the next mission through:
 - memory packets
 - debt priorities
 - reviewer focus
-- assurance profile selection
 
 Mission close is therefore not an ending; it is a handoff.
 

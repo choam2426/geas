@@ -240,7 +240,7 @@ Projects MAY define local sub-kinds (e.g., `implementation:frontend`, `review:se
 
 | decision | primary owner | mandatory participants / notes |
 |---|---|---|
-| mission phase selection | Orchestrator | informed by mission intent, assurance profile, and current evidence |
+| mission phase selection | Orchestrator | informed by mission intent, mission mode, and current evidence |
 | task decomposition and routing | Orchestrator | Design Authority input recommended for large or cross-cutting work |
 | design-brief approval | Decision Maker | Design Authority review REQUIRED for full-depth work |
 | implementation contract approval | reviewer set led by Design Authority | may include domain specialist sign-off |
@@ -248,7 +248,7 @@ Projects MAY define local sub-kinds (e.g., `implementation:frontend`, `review:se
 | readiness vote | reviewer participants | governed by task risk and vote policy |
 | final verdict | Decision Maker | based on closure packet, not intuition alone |
 | memory promotion | Orchestrator plus endorsing authority | see docs 07 and 08 |
-| policy override | local governance path | see doc 13; MUST be explicit and audited |
+| policy override | local governance path | see doc 12; MUST be explicit and audited |
 
 ## Required Reviewer Routing Algorithm
 

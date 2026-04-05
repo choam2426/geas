@@ -122,7 +122,7 @@ The following scenarios define what SHOULD happen when specific protocol violati
 |---|---|
 | confidence tightening omitted when policy requires it | blocked |
 | stub cap check omitted when placeholders are present | blocked |
-| required eval evidence missing on agentic-control changes where the selected assurance profile requires it | blocked |
+| required eval evidence missing on agentic-control changes where mission mode or risk level requires it | blocked |
 
 ### Memory evolution
 
@@ -300,6 +300,20 @@ At minimum, projects SHOULD review conformance at:
 - after repeated recovery incidents
 - after meaningful protocol changes
 - after any policy override that weakened a normal hard-stop
+
+## Policy Overrides
+
+An override exists when a project intentionally weakens a normal hard-stop or requirement for a limited circumstance.
+
+Override rules:
+
+- MUST be explicit
+- MUST have owner and rationale
+- MUST state scope and expiration
+- MUST NOT erase evidence obligations
+- SHOULD trigger follow-up debt or review work
+
+Higher-risk work SHOULD make overrides rarer and more visible, not easier.
 
 ## Key Statement
 

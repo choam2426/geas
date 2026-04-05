@@ -36,7 +36,7 @@ A context assembly request SHOULD consider the following inputs when selecting a
 - Current task metadata
 - Affected paths or surfaces
 - Reviewer slot or worker slot
-- Current assurance profile
+- Current mission mode
 - Recent failures or debt
 - Last safe boundary or recovery context
 - Relevant rules

@@ -82,7 +82,6 @@ Governance is bound to the protocol through:
 - vote-round and escalation rules
 - final-verdict ownership
 - phase review and exception handling
-- assurance profile selection (doc 13)
 
 ### 2) Traceability
 
@@ -200,10 +199,10 @@ Geas is designed to reduce the following recurrent failure classes.
 | scope creep after approval | contract amendments, gap assessment, phase review |
 | review theater without real checking | required reviewer matrix, closure completeness, critical challenge |
 | prompt / context contamination from stale or hostile inputs | packet priority bands, provenance weighting, memory state controls |
-| tool misuse or over-delegation | structured tool contracts, authority boundaries, assurance profiles |
+| tool misuse or over-delegation | structured tool contracts, authority boundaries, mission mode rigor |
 | recovery hallucination after interruption | two-phase checkpoints, safe boundaries, recovery tables |
 | memory bloat or harmful reuse | confidence scoring, decay, supersession, under-review circuit breaker |
-| supply-chain or provenance ambiguity | artifact lineage, validation, release and assurance expectations |
+| supply-chain or provenance ambiguity | artifact lineage, validation, release expectations |
 | silent weakening of protocol rigor | conformance hooks, health signals, rules audit, explicit overrides |
 
 Geas does **not** claim to eliminate these threats completely. It claims to make them visible, attributable, and structurally harder to ignore.
@@ -262,8 +261,6 @@ This rule exists to preserve validator predictability while allowing the standar
 - **Baseline** — the last verified snapshot of the work state that a task was validated against (e.g., a Git commit, a document version, a dataset checkpoint)
 - **Workspace** — an isolated task execution context (e.g., a Git worktree, a sandboxed environment, a dedicated working directory)
 - **Integration** — the process of merging a task's outputs into the shared baseline (e.g., a Git merge, a document version publish, a dataset update)
-- **Assurance Profile** — the selected rigor bundle that governs minimum control expectations (doc 13)
-
 ### Verification concepts
 
 - **Evidence** — a traceable, independently verifiable artifact that supports a claim about task completion. In software this may be test results; in research, cited sources; in content, verified claims with provenance
@@ -326,7 +323,6 @@ A project adopting Geas SHOULD maintain a visible protocol version. Any change t
 - artifact completeness conditions
 - recovery safety boundaries
 - memory promotion semantics
-- assurance profile minimum controls
 
 Protocol changes SHOULD be introduced by:
 

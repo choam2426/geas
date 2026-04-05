@@ -241,7 +241,6 @@ Evolution output은 아래를 통해 다음 mission에 영향을 미쳐야 한�
 - memory packet
 - debt 우선순위
 - reviewer focus
-- assurance profile 선택
 
 Mission 종료는 따라서 끝이 아니다; handoff다.
 

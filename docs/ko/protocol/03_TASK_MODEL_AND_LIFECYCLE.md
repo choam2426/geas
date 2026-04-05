@@ -90,7 +90,7 @@ task에 반드시 있어야 하는 것:
 
 ### 추가 권장 필드
 
-Assurance profile(doc 13)은 미션에 얼마나 엄격한 통제가 필요한지를 정한다: `prototype`(가장 가벼움) → `delivery` → `hardened` → `regulated`(가장 엄격). 아래 필드는 `prototype`에서는 생략 가능, `delivery`에서는 포함 권장, `hardened`·`regulated`에서는 사실상 필수.
+미션 mode에 따라 엄격도가 결정된다: `lightweight`(가장 가벼움) → `standard` → `full_depth`(가장 엄격). 아래 필드는 `lightweight`에서는 생략 가능, `standard`에서는 포함 권장, `full_depth`에서는 사실상 필수.
 
 | 필드 | 설명 |
 |---|---|
