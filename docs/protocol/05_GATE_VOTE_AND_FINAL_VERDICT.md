@@ -296,6 +296,10 @@ A readiness round triggers when any of the following are true:
 
 A vote result MUST include the participant list. If consensus was not unanimous, dissenting positions MUST be recorded.
 
+### Vote round repetition cap
+
+A single vote round topic MUST NOT exceed 3 rounds of deliberation. If consensus is not reached within 3 rounds, the vote result MUST be `escalate`.
+
 ## Closure Packet
 
 The closure packet is the compressed evidence bundle that tells the full story of a task. The Decision Maker renders the final verdict based solely on this packet. If the packet is incomplete, no verdict may be issued.
@@ -313,6 +317,7 @@ The closure packet is the compressed evidence bundle that tells the full story o
 | `open_risks` | risks acknowledged but not fully resolved |
 | `debt_snapshot` | debt introduced or carried by this task |
 | `readiness_round` | vote round result, or explicit null if not required |
+| `challenge_review` | Challenger's pre-ship verification result. Required for high/critical risk; explicit null for low/normal risk |
 
 ### Completeness rules
 
