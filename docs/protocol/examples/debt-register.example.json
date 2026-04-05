@@ -18,7 +18,7 @@
     },
     {
       "debt_id": "debt-102",
-      "severity": "medium",
+      "severity": "normal",
       "kind": "documentation",
       "title": "Operator reset flow doc missing",
       "description": "Support runbook lacks password reset troubleshooting",
@@ -30,7 +30,7 @@
   ],
   "rollup_by_severity": {
     "high": 1,
-    "medium": 1
+    "normal": 1
   },
   "rollup_by_kind": {
     "verification_gap": 1,

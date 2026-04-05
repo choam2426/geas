@@ -61,7 +61,7 @@
             "type": "string",
             "enum": [
               "low",
-              "medium",
+              "normal",
               "high",
               "critical"
             ]
@@ -115,7 +115,7 @@
       "type": "object",
       "properties": {
         "low": { "type": "integer", "minimum": 0 },
-        "medium": { "type": "integer", "minimum": 0 },
+        "normal": { "type": "integer", "minimum": 0 },
         "high": { "type": "integer", "minimum": 0 },
         "critical": { "type": "integer", "minimum": 0 }
       },
