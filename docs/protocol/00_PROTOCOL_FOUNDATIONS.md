@@ -351,7 +351,7 @@ Domain-specific configuration is expressed through:
 
 | configuration surface | examples by domain |
 |---|---|
-| role catalog | software: frontend_engineer, backend_engineer, qa_engineer / research: literature_specialist, methodology_reviewer, domain_expert / content: writer, editor, fact_checker |
+| role catalog | software: software_engineer, platform_engineer, qa_engineer / research: literature_specialist, methodology_reviewer, domain_expert / content: writer, editor, fact_checker |
 | evidence types | software: test results, build logs / research: cited sources with DOI, statistical analyses / content: source-verified claims, style-checked drafts |
 | Tier 1 verification | software: build, lint, test / research: source verification, citation check / content: grammar, style lint, fact verification / data: schema validation, pipeline reproducibility |
 | workspace model | software: Git worktree / research: literature corpus + notes / content: draft versioning / data: dataset snapshots |
