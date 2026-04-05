@@ -222,27 +222,24 @@ A mission MUST enter `evolving` before closure for any non-trivial change. A pro
 
 ## Phase Review Artifacts
 
-Phase review artifacts are the evidence produced at each phase transition. This artifact chain creates the traceability link from mission intent to delivered outcomes. Attempting a phase transition without the required artifacts is a protocol violation.
+The Phase Semantics section above lists all artifacts each phase produces. This section defines which of those artifacts **must exist before transitioning** to the next phase. Attempting a transition without these is a protocol violation.
 
-### Required artifacts per transition
-
-| transition | what is needed |
-|---|---|
-| `specifying` → `building` | `phase-review.json`: confirms mission freeze, task readiness, design-brief approval (when required) |
-| `building` → `polishing` | `phase-review.json`, `gap-assessment.json` |
-| `polishing` → `evolving` | `phase-review.json`, `gap-assessment.json`, current debt view |
-| `evolving` → close | `phase-review.json`, `gap-assessment.json`, retrospective bundle, debt snapshot, mission summary |
+| transition | must exist | what it confirms |
+|---|---|---|
+| `specifying` → `building` | phase review | mission frozen, tasks ready, design brief approved (when required) |
+| `building` → `polishing` | phase review, gap assessment | all MVP tasks passed, scope vs delivery status |
+| `polishing` → `evolving` | phase review, gap assessment, debt register | specialist reviews complete, debt triaged |
+| `evolving` → close | phase review, gap assessment, retrospective, debt register, mission summary | lessons extracted, debt finalized, mission documented |
 
 ### Additional recommended artifacts
 
-These preserve mission context and decision history. Higher assurance profiles make their inclusion increasingly expected.
+These preserve decision history across the mission. Higher assurance profiles make their inclusion increasingly expected.
 
 | artifact | what it captures |
 |---|---|
-| `debt-register.json` | technical and process debt accumulated during the mission |
-| `rules-update.json` | rule changes derived from the mission |
-| `decision-record.json` | rationale for major scope changes or conflict resolution |
-| `run-summary.md` | human-readable summary of the mission run |
+| decision record | rationale for major scope changes or conflict resolution |
+| rules update | rule changes derived from the mission |
+| run summary | human-readable summary of the mission run |
 
 ## Scope In / Scope Out
 
