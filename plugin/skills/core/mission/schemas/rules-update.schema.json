@@ -30,10 +30,10 @@
       "type": "string",
       "enum": [
         "process_lead",
-        "architecture_authority",
+        "design_authority",
         "product_authority",
-        "qa_engineer",
-        "security_engineer"
+        "quality_specialist",
+        "risk_specialist"
       ]
     },
     "status": {

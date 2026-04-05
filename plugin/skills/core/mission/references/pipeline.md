@@ -9,7 +9,7 @@ EVERY task, regardless of dependencies or position in the batch, MUST execute AL
 ## remaining_steps
 
 ```json
-"remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "self_check", "code_review", "testing", "evidence_gate", "closure_packet", "critical_reviewer", "final_verdict", "resolve", "retrospective", "memory_extraction"]
+"remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "self_check", "code_review", "testing", "evidence_gate", "closure_packet", "challenger", "final_verdict", "resolve", "retrospective", "memory_extraction"]
 ```
 
 Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
@@ -22,8 +22,8 @@ The TaskContract MUST be written to `.geas/missions/{mission_id}/tasks/{task-id}
 - **Classification Fallback**: If the TaskContract is missing classification fields at pipeline start:
   - `risk_level` missing → assign `"normal"`
   - `vote_round_policy` missing → assign `"auto"`
-  - `task_kind` missing → assign `"code"`
-  - `gate_profile` missing → assign `"code_change"`
+  - `task_kind` missing → assign `"implementation"`
+  - `gate_profile` missing → assign `"implementation_change"`
   - Log: `{"event": "classification_defaulted", "task_id": "...", "fields_defaulted": [...], "timestamp": "<actual>"}`
 - Update status to `"implementing"`. Log `task_started` event.
 - **Rubric check**: If the TaskContract is missing `rubric`, insert the default before proceeding:
@@ -77,10 +77,10 @@ Write updated `locks.json` after all acquisitions. If any acquisition fails (con
 ## Step Groups
 
 Within a single task's pipeline, these steps may run in parallel:
-- **[code_review, testing]** — architecture-authority and qa-engineer do not reference each other's output. Spawn both in one message. After both return, remove both from `remaining_steps` and log `step_complete` for each.
+- **[code_review, testing]** — design-authority and quality_specialist do not reference each other's output. Spawn both in one message. After both return, remove both from `remaining_steps` and log `step_complete` for each.
 
 All other steps are strictly sequential. In particular:
-- **critical_reviewer -> final_verdict** — product_authority's prompt requires `challenge-review.json` as input. critical_reviewer MUST complete and file MUST be verified before spawning product_authority.
+- **challenger -> final_verdict** — product_authority's prompt requires `challenge-review.json` as input. challenger MUST complete and file MUST be verified before spawning product_authority.
 
 ## [MANDATORY] Event Logging
 
@@ -129,16 +129,17 @@ Write `.geas/state/task-focus/{task-id}.md`:
 
 ## Pipeline Steps
 
-### Design (ui-ux-designer) [DEFAULT — skip-if: no user-facing interface]
+### Design (implementer — design-capable) [DEFAULT — skip-if: no user-facing interface]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
+Resolve the implementer slot via profiles.json. If the profile provides a design-capable implementer, spawn it. Otherwise, the primary implementer handles design.
 Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "design", `agent_in_flight` = "ui-ux-designer"
+Update run.json checkpoint: `pipeline_step` = "design", `agent_in_flight` = "{resolved-implementer}"
 ```
-Agent(agent: "ui-ux-designer", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/ui-ux-designer.md. Write design spec to .geas/missions/{mission_id}/evidence/{task-id}/ui-ux-designer.json")
+Agent(agent: "{resolved-implementer}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-implementer}.md. Write design spec to .geas/missions/{mission_id}/evidence/{task-id}/{resolved-implementer}-design.json")
 ```
-Verify `.geas/missions/{mission_id}/evidence/{task-id}/ui-ux-designer.json` exists.
+Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-implementer}-design.json` exists.
 
-### Tech Guide (architecture-authority) [DEFAULT — skip when ALL: existing pattern, no new libs, single module, no schema change]
+### Tech Guide (design-authority) [DEFAULT — skip when ALL: existing pattern, no new libs, single module, no schema change]
 **Skip** when ALL of these are true:
 - Task follows an existing pattern in conventions.md
 - No new external libraries or services
@@ -151,15 +152,15 @@ Verify `.geas/missions/{mission_id}/evidence/{task-id}/ui-ux-designer.json` exis
 - Cross-module dependencies
 - New data model or schema changes
 
-Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "tech_guide", `agent_in_flight` = "architecture-authority"
+Resolve the design-authority slot via profiles.json. Generate ContextPacket, then:
+Update run.json checkpoint: `pipeline_step` = "tech_guide", `agent_in_flight` = "{resolved-design-authority}"
 ```
-Agent(agent: "architecture-authority", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/architecture-authority.md. Write tech guide to .geas/missions/{mission_id}/evidence/{task-id}/architecture-authority.json")
+Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-design-authority}.md. Write tech guide to .geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}.json")
 ```
-Verify `.geas/missions/{mission_id}/evidence/{task-id}/architecture-authority.json` exists.
+Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}.json` exists.
 
 ### Implementation Contract [MANDATORY]
-Invoke `/geas:implementation-contract` — worker writes action plan, qa_engineer and architecture_authority approve before coding.
+Invoke `/geas:implementation-contract` — worker writes action plan, quality_specialist and design_authority approve before implementation.
 Update run.json checkpoint: `pipeline_step` = "implementation_contract", `agent_in_flight` = "{worker}"
 Verify `.geas/missions/{mission_id}/contracts/{task-id}.json` exists with `status: "approved"`.
 
@@ -202,26 +203,26 @@ After successful merge, status remains `"implementing"` — the task is not yet 
 ### Worker Self-Check [MANDATORY]
 Update run.json checkpoint: `pipeline_step` = "self_check", `agent_in_flight` = "{worker}"
 ```
-Agent(agent: "{worker}", prompt: "Implementation for {task-id} is complete. Before handing off to code review, produce your self-check artifact. Write .geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json. Required fields: version (\"1.0\"), artifact_type (\"worker_self_check\"), artifact_id (e.g. \"self-check-{task-id}\"), producer_type (your agent type: frontend_engineer | backend_engineer | devops_engineer | technical_writer), task_id, known_risks (string[]), untested_paths (string[]), possible_stubs (string[]), what_to_test_next (string[]), confidence (integer 1-5: 1=very_low ... 5=very_high), summary (string), created_at (ISO 8601 timestamp).")
+Agent(agent: "{worker}", prompt: "Implementation for {task-id} is complete. Before handing off to review, produce your self-check artifact. Write .geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json. Required fields: version (\"1.0\"), artifact_type (\"worker_self_check\"), artifact_id (e.g. \"self-check-{task-id}\"), producer_type (your agent type from the domain profile), task_id, known_risks (string[]), untested_paths (string[]), possible_stubs (string[]), what_to_test_next (string[]), confidence (integer 1-5: 1=very_low ... 5=very_high), summary (string), created_at (ISO 8601 timestamp).")
 ```
 Verify `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json` exists. Do NOT proceed to Code Review without this file.
 
-### Code Review (architecture-authority) [MANDATORY]
-Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "code_review", `agent_in_flight` = "architecture-authority"
+### Code Review (design-authority) [MANDATORY]
+Resolve the design-authority slot via profiles.json. Generate ContextPacket, then:
+Update run.json checkpoint: `pipeline_step` = "code_review", `agent_in_flight` = "{resolved-design-authority}"
 ```
-Agent(agent: "architecture-authority", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/architecture-authority-review.md. Review implementation. Write to .geas/missions/{mission_id}/evidence/{task-id}/architecture-authority-review.json")
+Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-design-authority}-review.md. Review implementation. Write to .geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}-review.json")
 ```
-Verify `.geas/missions/{mission_id}/evidence/{task-id}/architecture-authority-review.json` exists.
+Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}-review.json` exists.
 Update run.json checkpoint: `pipeline_step` = "code_review"
 
-### Testing (qa-engineer) [MANDATORY]
-Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "testing", `agent_in_flight` = "qa-engineer"
+### Testing (quality_specialist) [MANDATORY]
+Resolve the quality_specialist slot via profiles.json. Generate ContextPacket, then:
+Update run.json checkpoint: `pipeline_step` = "testing", `agent_in_flight` = "{resolved-quality-specialist}"
 ```
-Agent(agent: "qa-engineer", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/qa-engineer.md. Test the feature. Write QA results to .geas/missions/{mission_id}/evidence/{task-id}/qa-engineer.json")
+Agent(agent: "{resolved-quality-specialist}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-quality-specialist}.md. Test the implementation. Write results to .geas/missions/{mission_id}/evidence/{task-id}/{resolved-quality-specialist}.json")
 ```
-Verify `.geas/missions/{mission_id}/evidence/{task-id}/qa-engineer.json` exists.
+Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-quality-specialist}.json` exists.
 Update run.json checkpoint: `pipeline_step` = "testing"
 
 After BOTH code_review and testing complete:
@@ -245,7 +246,7 @@ orchestration_authority (Orchestrator) assembles the closure packet by reading a
 - TaskContract: `.geas/missions/{mission_id}/tasks/{task-id}.json`
 - Worker Self-Check: `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json`
 - Gate Result: `.geas/missions/{mission_id}/tasks/{task-id}/gate-result.json`
-- Specialist Reviews: `.geas/missions/{mission_id}/evidence/{task-id}/architecture-authority-review.json`, `.geas/missions/{mission_id}/evidence/{task-id}/qa-engineer.json`
+- Specialist Reviews: `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}-review.json`, `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-quality-specialist}.json`
 - Integration Result: from worktree merge (commit hash, conflict status)
 
 **If ANY required artifact is missing: go back and execute the missing step. Do NOT proceed.**
@@ -264,14 +265,14 @@ orchestration_authority (Orchestrator) assembles the closure packet by reading a
   "change_summary": "<brief description of what was implemented>",
   "specialist_reviews": [
     {
-      "reviewer_type": "architecture_authority",
+      "reviewer_type": "design_authority",
       "status": "approved",
-      "summary": "<key finding from architecture-authority-review.json>"
+      "summary": "<key finding from design-authority review>"
     },
     {
-      "reviewer_type": "qa_engineer",
+      "reviewer_type": "quality_specialist",
       "status": "approved",
-      "summary": "<key finding from qa-engineer.json>"
+      "summary": "<key finding from quality_specialist review>"
     }
   ],
   "integration_result": {
@@ -304,21 +305,21 @@ orchestration_authority (Orchestrator) assembles the closure packet by reading a
 }
 ```
 
-Set `readiness_round: null` initially — may be updated by the critical reviewer step.
+Set `readiness_round: null` initially — may be updated by the challenger step.
 
 **Verify** `.geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json` exists and all required fields are populated before proceeding.
 
 Update run.json checkpoint: `pipeline_step` = "closure_packet"
 
-### Critical Reviewer Challenge [CONDITIONAL — mandatory for normal/high/critical risk]
+### Challenger Review [CONDITIONAL — mandatory for normal/high/critical risk]
 
-**Skip condition:** If `risk_level` is `low`, this step is at orchestration_authority's discretion. If skipped: remove `"critical_reviewer"` from `remaining_steps`, update run.json checkpoint, and proceed directly to Final Verdict.
+**Skip condition:** If `risk_level` is `low`, this step is at orchestration_authority's discretion. If skipped: remove `"challenger"` from `remaining_steps`, update run.json checkpoint, and proceed directly to Final Verdict.
 
 **Mandatory condition:** If `risk_level` is `normal`, `high`, or `critical`, this step MUST run.
 
-Update run.json checkpoint: `pipeline_step` = "critical_reviewer", `agent_in_flight` = "critical-reviewer"
+Resolve the challenger agent. Update run.json checkpoint: `pipeline_step` = "challenger", `agent_in_flight` = "challenger"
 ```
-Agent(agent: "critical-reviewer", prompt: "Read the closure packet at .geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json. Read all evidence at .geas/missions/{mission_id}/evidence/{task-id}/. You MUST raise at least 1 substantive concern — surface a real risk, edge case, or technical debt item. For each concern, state clearly whether it is BLOCKING or non-blocking. Write .geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json with the following fields: reviewer_type (\"critical_reviewer\"), concerns (array of strings, each prefixed with \"[BLOCKING]\" or \"[non-blocking]\"), blocking (boolean — true if ANY concern is blocking).")
+Agent(agent: "challenger", prompt: "Read the closure packet at .geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json. Read all evidence at .geas/missions/{mission_id}/evidence/{task-id}/. You MUST raise at least 1 substantive concern — surface a real risk, edge case, or technical debt item. For each concern, state clearly whether it is BLOCKING or non-blocking. Write .geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json with the following fields: reviewer_type (\"challenger\"), concerns (array of strings, each prefixed with \"[BLOCKING]\" or \"[non-blocking]\"), blocking (boolean — true if ANY concern is blocking).")
 ```
 
 Verify `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` exists.
@@ -326,11 +327,11 @@ Verify `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` exist
 **[MANDATORY] Log step_complete immediately after verification:**
 ```
 Append to .geas/ledger/events.jsonl:
-{"event": "step_complete", "task_id": "{task-id}", "step": "critical_reviewer", "agent": "critical-reviewer", "timestamp": "<actual>"}
+{"event": "step_complete", "task_id": "{task-id}", "step": "challenger", "agent": "challenger", "timestamp": "<actual>"}
 ```
 Do NOT skip this log entry — it is required for conformance verification and session recovery.
 
-**After critical_reviewer returns:**
+**After challenger returns:**
 
 1. Read `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json`.
 2. Update the closure packet: add a `challenge_review` field populated from the review.
@@ -345,17 +346,17 @@ Do NOT skip this log entry — it is required for conformance verification and s
    - **If escalate:** set task status to `"escalated"`. Write a DecisionRecord. Stop pipeline.
 4. **If `blocking` is false:** record concerns in the closure packet `challenge_review` field. Proceed to Final Verdict.
 
-Update run.json checkpoint: `pipeline_step` = "critical_reviewer"
+Update run.json checkpoint: `pipeline_step` = "challenger"
 
 ### Final Verdict (product-authority) [MANDATORY]
 **Preconditions:**
-- `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` must exist OR `critical_reviewer` was explicitly skipped for low risk
+- `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` must exist OR challenger was explicitly skipped for low risk
 - Closure Packet must be assembled (all required fields populated)
-- Do NOT spawn product_authority until both preconditions are verified
+- Do NOT spawn product-authority until both preconditions are verified
 
 Update run.json checkpoint: `pipeline_step` = "final_verdict", `agent_in_flight` = "product-authority"
 ```
-Agent(agent: "product-authority", prompt: "Read the closure packet at .geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json (which includes the challenge_review field if critical_reviewer ran) and all evidence at .geas/missions/{mission_id}/evidence/{task-id}/. Decide: pass, iterate, or escalate. Write .geas/missions/{mission_id}/tasks/{task-id}/final-verdict.json. Required fields: version (\"1.0\"), artifact_type (\"final_verdict\"), artifact_id (e.g. \"verdict-{task-id}\"), producer_type (\"product_authority\"), created_at (ISO 8601 timestamp), task_id, verdict (\"pass\" | \"iterate\" | \"escalate\"), rationale (why this verdict), closure_packet_ref (path to closure packet). If iterate: include rewind_target (\"ready\" | \"implementing\" | \"reviewed\") and iterate_count. If escalate: include escalation_reason. Also write to .geas/missions/{mission_id}/evidence/{task-id}/product-authority-verdict.json for backward compatibility.")
+Agent(agent: "product-authority", prompt: "Read the closure packet at .geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json (which includes the challenge_review field if challenger ran) and all evidence at .geas/missions/{mission_id}/evidence/{task-id}/. Decide: pass, iterate, or escalate. Write .geas/missions/{mission_id}/tasks/{task-id}/final-verdict.json. Required fields: version (\"1.0\"), artifact_type (\"final_verdict\"), artifact_id (e.g. \"verdict-{task-id}\"), producer_type (\"product_authority\"), created_at (ISO 8601 timestamp), task_id, verdict (\"pass\" | \"iterate\" | \"escalate\"), rationale (why this verdict), closure_packet_ref (path to closure packet). If iterate: include rewind_target (\"ready\" | \"implementing\" | \"reviewed\") and iterate_count. If escalate: include escalation_reason. Also write to .geas/missions/{mission_id}/evidence/{task-id}/product-authority-verdict.json for backward compatibility.")
 ```
 
 **Verdict rules:**
@@ -368,7 +369,7 @@ Note: "iterate" is only valid as a Final Verdict outcome. Gate verdicts (evidenc
 ### Pre-Resolve Check
 **Before marking any task as "passed", verify:**
 - `.geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json` exists (assembled in Closure Packet Assembly)
-- `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` exists OR critical_reviewer was explicitly skipped (low risk)
+- `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` exists OR challenger was explicitly skipped (low risk)
 - `.geas/missions/{mission_id}/tasks/{task-id}/final-verdict.json` exists with `verdict: "pass"`
 **If ANY is missing: go back and execute the missing step. Do NOT proceed without all three.**
 

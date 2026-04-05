@@ -34,15 +34,15 @@ mkdir -p .geas/missions/{mission_id}
 
 #### 3b. Architecture Review (always)
 
-Spawn architecture-authority to review and enrich the design-brief:
+Resolve the design-authority slot via profiles.json. Spawn the resolved agent to review and enrich the design-brief:
 
 ```
-Agent(agent: "architecture-authority", prompt: "Read the design-brief at .geas/missions/{mission_id}/design-brief.json and the mission spec at .geas/missions/{mission_id}/spec.json. Review the design brief: verify the chosen approach is sound, check for missing risks or architectural concerns, and add any necessary architecture decisions. If the project requires stack-specific rules, add them to .geas/rules.md under a '## Stack Rules' section. Update the design-brief: populate the arch_review field with your review summary and any additions you made. Write the updated design-brief back to .geas/missions/{mission_id}/design-brief.json with status: 'reviewing'.")
+Agent(agent: "{resolved-design-authority}", prompt: "Read the design-brief at .geas/missions/{mission_id}/design-brief.json and the mission spec at .geas/missions/{mission_id}/spec.json. Review the design brief: verify the chosen approach is sound, check for missing risks or concerns, and add any necessary architecture decisions. If the project requires stack-specific rules, add them to .geas/rules.md under a '## Stack Rules' section. Update the design-brief: populate the arch_review field with your review summary and any additions you made. Write the updated design-brief back to .geas/missions/{mission_id}/design-brief.json with status: 'reviewing'.")
 ```
 
 Verify: Read `.geas/missions/{mission_id}/design-brief.json` and confirm `arch_review` is populated.
 
-Log: `{"event": "step_complete", "step": "design_brief_arch_review", "agent": "architecture-authority", "timestamp": "<actual>"}`
+Log: `{"event": "step_complete", "step": "design_brief_arch_review", "agent": "{resolved-design-authority}", "timestamp": "<actual>"}`
 
 #### 3c. Vote Round (full depth only)
 
@@ -50,10 +50,9 @@ Log: `{"event": "step_complete", "step": "design_brief_arch_review", "agent": "a
 
 Invoke `/geas:vote-round` as a `proposal_round`:
 - Proposal: `.geas/missions/{mission_id}/design-brief.json`
-- Voters: orchestrator selects based on design-brief content. Minimum quorum: architecture-authority + 1 specialist (per doc 05 proposal_round rules).
-  - Frontend work → include `ui-ux-designer`
-  - Backend work → include `backend-engineer`
-  - High risk → include `critical-reviewer`
+- Voters: orchestrator selects based on design-brief content. Minimum quorum: design-authority + 1 specialist (per doc 05 proposal_round rules).
+  - Implementation work → include relevant implementer (resolved via profiles.json)
+  - High risk → include `challenger`
 - Output: vote-round artifact in `.geas/missions/{mission_id}/decisions/`
 - Record `vote_round_ref` in the design-brief.
 
@@ -76,7 +75,7 @@ Present the design-brief to the user. Show:
 **If rejected**:
 1. Record the rejection reason in `rejection_history[]` with timestamp
 2. Revise the design-brief based on user feedback
-3. Return to step 3b (architecture-authority re-reviews the revised version)
+3. Return to step 3b (design-authority re-reviews the revised version)
 4. [Full only] Run a new vote round (step 3c)
 5. Present to user again (step 3d)
 

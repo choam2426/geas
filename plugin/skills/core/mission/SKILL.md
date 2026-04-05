@@ -1,12 +1,13 @@
 ---
-name: orchestrating
+name: mission
 description: >
-  Geas orchestrator — coordinates the multi-agent team.
+  Geas orchestrator — coordinates the multi-agent team through domain-agnostic slot resolution.
   Manages setup, intake, routing, and executes the unified 4-phase execution flow.
+  Resolves agent slots to concrete types via domain profiles before spawning.
   Do NOT spawn this as an agent. This is a skill that runs in the main session.
 ---
 
-# Orchestrating
+# Mission
 
 You are the Geas orchestrator. You execute everything directly in this session. **There is no separate orchestrator agent to spawn.**
 
@@ -17,10 +18,22 @@ You are the Geas orchestrator. You execute everything directly in this session. 
 These rules apply throughout all phases of the 4-phase execution flow.
 
 ### Sub-agent spawning
-- Specialist agents (ui-ux-designer, architecture-authority, frontend-engineer, backend-engineer, qa-engineer, product-authority, etc.) are spawned as **1-level sub-agents**.
+- Specialist agents (design-authority, implementer, quality_specialist, product-authority, etc.) are spawned as **1-level sub-agents**.
 - Sub-agents do their work and return. No nesting — they do not spawn further agents.
-- Use `Agent(agent: "{name}", prompt: "...")` to spawn.
-- Use `Agent(agent: "{name}", isolation: "worktree", prompt: "...")` for implementation agents (frontend-engineer, backend-engineer).
+- Use `Agent(agent: "{concrete-type}", prompt: "...")` to spawn. The concrete type is resolved from the slot via profiles.json (see Slot resolution below).
+- Use `Agent(agent: "{concrete-type}", isolation: "worktree", prompt: "...")` for implementer agents.
+
+### Slot resolution
+
+Before spawning any specialist agent, resolve the slot to a concrete agent type:
+
+1. Read the mission's `domain_profile` from `.geas/state/run.json`
+2. Load `references/profiles.json` to get the slot mapping for that profile
+3. Resolve: slot name → concrete agent type(s) from the mapping
+4. If a slot maps to multiple types (e.g., research implementer: literature_analyst, research_analyst), select based on `task_kind` and `scope.surfaces`
+5. Spawn: `Agent(agent: "{concrete-type-kebab-case}", prompt: "...")`
+
+Example: mission has `domain_profile: "software"`, pipeline says "spawn quality_specialist" → profiles.json maps quality_specialist to qa_engineer → `Agent(agent: "qa-engineer", prompt: "...")`.
 
 ### Evidence verification
 - After every Agent() return, **Read the expected evidence file** to verify it exists.
@@ -43,8 +56,8 @@ These rules apply throughout all phases of the 4-phase execution flow.
   ```json
   "checkpoint": {
     "pipeline_step": "code_review",
-    "agent_in_flight": "architecture-authority",
-    "pending_evidence": ["architecture-authority-review.json"],
+    "agent_in_flight": "design-authority",
+    "pending_evidence": ["design-authority-review.json"],
     "retry_count": 0,
     "parallel_batch": null,
     "completed_in_batch": [],
@@ -214,7 +227,7 @@ Always 4 phases, regardless of scope. The orchestrator determines phase scale ba
 
 ### Phase 1: Specifying
 Read `references/specifying.md` and follow the procedure.
-All missions: intake + design-brief (with arch-authority review) + task compilation + user approvals.
+All missions: intake + design-brief (with design-authority review) + task compilation + user approvals.
 Full depth adds: alternatives analysis, architecture decisions, risk assessment, vote round.
 
 #### Task Classification Validation [MANDATORY]
@@ -222,8 +235,8 @@ Full depth adds: alternatives analysis, architecture decisions, risk assessment,
 After task-compiler produces each TaskContract, verify these fields exist:
 - `risk_level` (low | normal | high | critical)
 - `vote_round_policy` (never | auto | always)
-- `task_kind` (code | docs | config | design | audit | release)
-- `gate_profile` (code_change | artifact_only | closure_ready)
+- `task_kind` (implementation | docs | config | design | audit | release)
+- `gate_profile` (implementation_change | artifact_only | closure_ready)
 
 If ANY field is missing:
 1. Read the task's goal, acceptance_criteria, and scope.paths

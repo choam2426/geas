@@ -126,7 +126,7 @@ Assemble a detailed execution briefing by reading all `.geas/` artifacts. This i
 - `events.jsonl` — find `run_started` timestamp for this mission, then all events after it
 - `.geas/missions/{mission_id}/tasks/*.json` — filter to tasks with `task_compiled` events after `run_started`
 - `.geas/missions/{mission_id}/tasks/{task-id}/gate-result.json` — gate verdict and iteration count
-- `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` — critical reviewer execution
+- `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` — challenger execution
 - `.geas/missions/{mission_id}/tasks/{task-id}/final-verdict.json` — verdict
 - `.geas/missions/{mission_id}/evolution/debt-register.json` — open debt items
 - `.geas/missions/{mission_id}/evolution/gap-assessment-evolving.json` — recommended follow-ups
@@ -170,7 +170,7 @@ Assemble a detailed execution briefing by reading all `.geas/` artifacts. This i
 ```
 
 **Critical Reviewer detection logic:**
-- Find `step_complete` event where `step == "critical_reviewer"` for each task
+- Find `step_complete` event where `step == "challenger"` for each task
 - If timestamp is between `gate_result` and `task_resolved` → `in-pipeline`
 - If timestamp is after `task_resolved` → `post-backfill`
 - If no such event exists → `skipped`

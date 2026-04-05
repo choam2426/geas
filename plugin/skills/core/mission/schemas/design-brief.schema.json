@@ -121,11 +121,11 @@
       "properties": {
         "reviewer_type": {
           "type": "string",
-          "const": "architecture_authority"
+          "const": "design_authority"
         },
         "summary": {
           "type": "string",
-          "description": "Review summary from architecture-authority"
+          "description": "Review summary from design-authority"
         },
         "additions": {
           "type": "array",
