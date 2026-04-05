@@ -59,7 +59,7 @@ Write the initial run state file `.geas/state/run.json`:
 }
 ```
 
-The run state must conform to the RunState schema. Refer to the orchestrating skill's `schemas/run-state.schema.json` for the full field list.
+The run state must conform to the RunState schema. Refer to the mission skill's `schemas/run-state.schema.json` for the full field list.
 
 ### Phase A-1.5: Codebase Discovery (Onboarding)
 
@@ -76,6 +76,22 @@ Phase A also includes codebase discovery — scan project structure, detect stac
    - Project structure notes
 
 If the project is empty (no source files yet), write a minimal conventions.md noting that commands will be populated as the project develops.
+
+### Phase A-1.6: Agent Memory Migration
+
+If `.geas/memory/agents/` already exists with files from a previous version, migrate old agent type names:
+
+| old file | action |
+|---|---|
+| `frontend_engineer.md` + `backend_engineer.md` | merge into `software_engineer.md` (concatenate with `---` separator) |
+| `devops_engineer.md` | rename to `platform_engineer.md` |
+| `critical_reviewer.md` | rename to `challenger.md` |
+| `ui_ux_designer.md` | merge relevant content into `software_engineer.md` |
+| `architecture_authority.md` | rename to `design_authority.md` |
+
+Migration is best-effort. Log what was migrated. Do not delete originals until migration is confirmed successful.
+
+If `.geas/memory/agents/` does not exist or has no old-named files, skip this step.
 
 ### Phase A-2: Generate `.geas/rules.md`
 
