@@ -53,7 +53,7 @@ plugin/
 
 docs/
 ├── protocol/                # Operating protocol (English, canonical)
-│   ├── 00-12, 14 .md        # 13 protocol documents
+│   ├── 00-13 .md             # 14 protocol documents
 │   ├── schemas/             # 30 JSON Schema (draft 2020-12)
 │   └── examples/            # 15 example files
 ├── architecture/DESIGN.md   # Architecture overview
@@ -177,7 +177,7 @@ All 6 phases of the v3 protocol migration are implemented. Skills are aligned wi
 | Session recovery | `protocol/10` |
 | Runtime artifacts, schemas | `protocol/11` |
 | Enforcement, metrics | `protocol/12` |
-| Evolution, debt, gap loop | `protocol/14` |
+| Evolution, debt, gap loop | `protocol/13` |
 
 ## When editing skills or agents
 

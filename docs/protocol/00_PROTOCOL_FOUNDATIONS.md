@@ -269,6 +269,8 @@ This rule exists to preserve validator predictability while allowing the standar
 - **Closure Packet** — the compressed, final evidence bundle submitted for product judgment
 - **Final Verdict** — the product-level task decision: `pass | iterate | escalate`
 - **Vote Round** — a structured deliberation used for proposal resolution or ship readiness
+- **Approval** — an explicit, recorded act by an authorized role that permits a transition or accepts an artifact. Approval is not implied by silence or inactivity
+- **Evidence Integrity** — the property that evidence has not been fabricated, silently altered, or disconnected from its source artifact
 
 ### Role concepts
 
@@ -278,6 +280,7 @@ This rule exists to preserve validator predictability while allowing the standar
 - **Worker** — the agent assigned as primary implementer for a task
 - **Reviewer** — an agent that evaluates a worker's output within a specific jurisdiction
 - **Critical Reviewer** — an adversarial reviewer that challenges assumptions before product judgment
+- **Independent Reviewer** — a reviewer whose specialist slot differs from the primary worker's slot and who did not produce the artifact being reviewed
 
 ### Lifecycle concepts
 
@@ -286,6 +289,7 @@ This rule exists to preserve validator predictability while allowing the standar
 - **Failure Record** — the artifact describing a failure, restoration target, and retry impact
 - **Decision Record** — a persistent record of conflicting positions, chosen outcome, and rationale
 - **Retrospective** — a structured post-task reflection producing rule, memory, and debt candidates
+- **Safe Boundary** — a task state where all preceding artifacts are complete and validated, making exact resume or conservative restoration possible (e.g., implementation complete with self-check persisted, all reviews persisted, gate result persisted)
 
 ### Evolution concepts
 
@@ -301,6 +305,7 @@ This rule exists to preserve validator predictability while allowing the standar
 - **Ledger** — the append-only event log recording significant protocol actions
 - **Packet** — an assembled context bundle delivered to an agent for a specific task or decision
 - **Context Engineering** — the practice of curating the minimal high-signal token set for each agent interaction (doc 09)
+- **Canonical** — the single authoritative version of a given artifact, state, or definition. When multiple representations exist, the canonical one is the source of truth
 
 ## Canonical Ownership
 

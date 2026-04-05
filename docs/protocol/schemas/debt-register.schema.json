@@ -69,13 +69,13 @@
           "kind": {
             "type": "string",
             "enum": [
-              "code_quality",
-              "architecture",
-              "security",
-              "docs",
-              "ops",
-              "test_gap",
-              "product_gap"
+              "output_quality",
+              "verification_gap",
+              "structural",
+              "risk",
+              "process",
+              "documentation",
+              "operations"
             ]
           },
           "title": {
@@ -124,13 +124,13 @@
     "rollup_by_kind": {
       "type": "object",
       "properties": {
-        "code_quality": { "type": "integer", "minimum": 0 },
-        "architecture": { "type": "integer", "minimum": 0 },
-        "security": { "type": "integer", "minimum": 0 },
-        "docs": { "type": "integer", "minimum": 0 },
-        "ops": { "type": "integer", "minimum": 0 },
-        "test_gap": { "type": "integer", "minimum": 0 },
-        "product_gap": { "type": "integer", "minimum": 0 }
+        "output_quality": { "type": "integer", "minimum": 0 },
+        "verification_gap": { "type": "integer", "minimum": 0 },
+        "structural": { "type": "integer", "minimum": 0 },
+        "risk": { "type": "integer", "minimum": 0 },
+        "process": { "type": "integer", "minimum": 0 },
+        "documentation": { "type": "integer", "minimum": 0 },
+        "operations": { "type": "integer", "minimum": 0 }
       },
       "additionalProperties": false
     },

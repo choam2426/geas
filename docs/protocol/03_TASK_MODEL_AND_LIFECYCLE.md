@@ -272,7 +272,7 @@ Any task MAY emit debt during implementation, review, verification, or closure.
 ### Minimum debt classification
 
 - `severity = low | medium | high | critical`
-- `kind = output_quality | verification_gap | structural | risk | documentation | operations | product_gap`
+- `kind = output_quality | verification_gap | structural | risk | process | documentation | operations`
 
 Debt differs from blockers:
 

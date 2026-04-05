@@ -151,7 +151,7 @@ After every task completion:
 4. **Debt Tracking**: Record debt, classify, resolve per phase
 5. **Gap Assessment**: Compare scope_in vs scope_out, forward-feed shortfalls
 
-> For memory details, see `protocol/07`, `08`, `09`. For the evolution loop, see `protocol/14`.
+> For memory details, see `protocol/07`, `08`, `09`. For the evolution loop, see `protocol/13`.
 
 ---
 
@@ -342,4 +342,4 @@ The detailed operational protocol specifications live in `docs/protocol/`. This 
 | Session recovery | `protocol/10_SESSION_RECOVERY_AND_RESUMABILITY.md` |
 | Artifacts, schemas | `protocol/11_RUNTIME_ARTIFACTS_AND_SCHEMAS.md` |
 | Enforcement, metrics | `protocol/12_ENFORCEMENT_CONFORMANCE_AND_METRICS.md` |
-| Evolution loop | `protocol/14_EVOLUTION_DEBT_AND_GAP_LOOP.md` |
+| Evolution loop | `protocol/13_EVOLUTION_DEBT_AND_GAP_LOOP.md` |

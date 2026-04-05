@@ -8,7 +8,7 @@
     {
       "debt_id": "debt-101",
       "severity": "high",
-      "kind": "test_gap",
+      "kind": "verification_gap",
       "title": "Auth recovery E2E missing",
       "description": "No E2E coverage for refresh token expiry path",
       "introduced_by_task_id": "task-003",
@@ -19,7 +19,7 @@
     {
       "debt_id": "debt-102",
       "severity": "medium",
-      "kind": "docs",
+      "kind": "documentation",
       "title": "Operator reset flow doc missing",
       "description": "Support runbook lacks password reset troubleshooting",
       "introduced_by_task_id": "task-009",
@@ -33,8 +33,8 @@
     "medium": 1
   },
   "rollup_by_kind": {
-    "test_gap": 1,
-    "docs": 1
+    "verification_gap": 1,
+    "documentation": 1
   },
   "created_at": "2026-04-01T18:10:00Z"
 }

@@ -1,4 +1,4 @@
-# 14. Evolution, Debt, and Gap Loop
+# 13. Evolution, Debt, and Gap Loop
 
 > **기준 문서.**
 > 이 문서는 retrospective loop, debt 모델, gap assessment, mission 간 학습 메커니즘을 정의하며, 이를 통해 Geas가 시간이 지남에 따라 운영 역량을 축적하게 한다.
@@ -123,9 +123,10 @@ Debt kind는 타협의 성격을 분류한다:
 | `output_quality` | 일시적으로 수용된 결과물의 품질 문제 |
 | `verification_gap` | 누락되거나 불충분한 검증 coverage |
 | `structural` | 향후 수정이 필요한 설계 또는 architecture 결정 |
+| `risk` | 나중으로 미룬 알려진 security, safety, trust concern |
 | `process` | 시간 압박 하에 취한 workflow 또는 프로세스 shortcut |
 | `documentation` | 누락되거나 오래된 문서 |
-| `security` | 나중으로 미룬 알려진 security concern |
+| `operations` | 나중으로 미룬 운영 준비 gap |
 
 ### Recommended debt statuses
 

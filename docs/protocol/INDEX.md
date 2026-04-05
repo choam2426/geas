@@ -15,7 +15,7 @@
 6. `07_MEMORY_SYSTEM_OVERVIEW.md`
 7. `10_SESSION_RECOVERY_AND_RESUMABILITY.md`
 8. `12_ENFORCEMENT_CONFORMANCE_AND_METRICS.md`
-9. `14_EVOLUTION_DEBT_AND_GAP_LOOP.md`
+9. `13_EVOLUTION_DEBT_AND_GAP_LOOP.md`
 
 ### Implementation-oriented path
 
@@ -42,7 +42,7 @@
 - `10_SESSION_RECOVERY_AND_RESUMABILITY.md` — checkpointing, safe boundaries, recovery decisions, replay vs restore
 - `11_RUNTIME_ARTIFACTS_AND_SCHEMAS.md` — artifact contract philosophy, canonical artifact families, validation failures
 - `12_ENFORCEMENT_CONFORMANCE_AND_METRICS.md` — hooks, conformance scenarios, observability, health signals, policy overrides
-- `14_EVOLUTION_DEBT_AND_GAP_LOOP.md` — retrospectives, debt, gap assessment, mission carry-forward
+- `13_EVOLUTION_DEBT_AND_GAP_LOOP.md` — retrospectives, debt, gap assessment, mission carry-forward
 
 ## 2. Recommended Reading by Use Case
 

@@ -15,7 +15,7 @@
 6. `07_MEMORY_SYSTEM_OVERVIEW.md`
 7. `10_SESSION_RECOVERY_AND_RESUMABILITY.md`
 8. `12_ENFORCEMENT_CONFORMANCE_AND_METRICS.md`
-9. `14_EVOLUTION_DEBT_AND_GAP_LOOP.md`
+9. `13_EVOLUTION_DEBT_AND_GAP_LOOP.md`
 
 ### 구현 중심 경로
 
@@ -42,7 +42,7 @@
 - `10_SESSION_RECOVERY_AND_RESUMABILITY.md` — checkpoint, safe boundary, recovery 결정, replay vs restore
 - `11_RUNTIME_ARTIFACTS_AND_SCHEMAS.md` — artifact 계약 철학, artifact 패밀리, 검증 실패 처리
 - `12_ENFORCEMENT_CONFORMANCE_AND_METRICS.md` — hook, conformance 시나리오, observability, health signal, policy override
-- `14_EVOLUTION_DEBT_AND_GAP_LOOP.md` — retrospective, debt, gap assessment, 미션 간 이월
+- `13_EVOLUTION_DEBT_AND_GAP_LOOP.md` — retrospective, debt, gap assessment, 미션 간 이월
 
 ## 2. 용도별 권장 읽기
 

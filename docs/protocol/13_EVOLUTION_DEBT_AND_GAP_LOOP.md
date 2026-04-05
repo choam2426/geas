@@ -1,4 +1,4 @@
-# 14. Evolution, Debt, and Gap Loop
+# 13. Evolution, Debt, and Gap Loop
 
 > **Normative document.**
 > This document defines the retrospective loop, debt model, gap assessment, and mission-to-mission learning mechanisms that make Geas accumulate operational competence over time.
@@ -123,9 +123,10 @@ Debt kinds classify the nature of the compromise:
 | `output_quality` | quality issues in deliverables that were accepted temporarily |
 | `verification_gap` | missing or insufficient verification coverage |
 | `structural` | design or architecture decisions that need future revision |
+| `risk` | known security, safety, or trust concerns deferred for later |
 | `process` | workflow or process shortcuts taken under time pressure |
 | `documentation` | missing or outdated documentation |
-| `security` | known security concerns deferred for later |
+| `operations` | operational readiness gaps deferred for later |
 
 ### Recommended debt statuses
 

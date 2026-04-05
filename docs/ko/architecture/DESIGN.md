@@ -151,7 +151,7 @@ candidate → provisional → stable → canonical
 4. **Debt Tracking**: 부채 기록, 분류, phase별 해소
 5. **Gap Assessment**: scope_in vs scope_out 비교, 미달 항목 forward-feed
 
-> Memory 상세는 `protocol/07`, `08`, `09` 참조. Evolution 루프 상세는 `protocol/14` 참조.
+> Memory 상세는 `protocol/07`, `08`, `09` 참조. Evolution 루프 상세는 `protocol/13` 참조.
 
 ---
 
@@ -342,4 +342,4 @@ plugin/
 | Session recovery | `protocol/10_SESSION_RECOVERY_AND_RESUMABILITY.md` |
 | Artifact, schema | `protocol/11_RUNTIME_ARTIFACTS_AND_SCHEMAS.md` |
 | Enforcement, metrics | `protocol/12_ENFORCEMENT_CONFORMANCE_AND_METRICS.md` |
-| Evolution loop | `protocol/14_EVOLUTION_DEBT_AND_GAP_LOOP.md` |
+| Evolution loop | `protocol/13_EVOLUTION_DEBT_AND_GAP_LOOP.md` |

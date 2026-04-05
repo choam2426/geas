@@ -5,7 +5,7 @@
   "producer_type": "orchestration_authority",
   "created_at": "2026-04-01T14:00:00Z",
   "task_id": "task-003",
-  "gate_profile": "code_change",
+  "gate_profile": "implementation_change",
   "verdict": "pass",
   "tier_results": {
     "tier_0": {
@@ -23,8 +23,8 @@
   },
   "rubric_scores": [
     { "dimension": "core_interaction", "score": 4, "threshold": 3, "passed": true },
-    { "dimension": "feature_completeness", "score": 4, "threshold": 4, "passed": true },
-    { "dimension": "code_quality", "score": 4, "threshold": 4, "passed": true },
+    { "dimension": "output_completeness", "score": 4, "threshold": 4, "passed": true },
+    { "dimension": "output_quality", "score": 4, "threshold": 4, "passed": true },
     { "dimension": "regression_safety", "score": 4, "threshold": 4, "passed": true }
   ],
   "blocking_dimensions": [],
