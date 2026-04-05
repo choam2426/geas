@@ -4,7 +4,7 @@
 
 # Geas
 
-### A protocol that brings order to multi-agent team-driven development
+### A protocol that brings order to multi-agent team-driven work
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/choam2426/geas?style=for-the-badge)](https://github.com/choam2426/geas/releases)
@@ -14,11 +14,11 @@
 > *"One of our tasks will be to maintain appropriate discipline, so that we do not lose track of what we are doing."*
 > — Alan Turing
 
-Geas is a protocol that makes a team of agents behave like an engineering organization.
+Geas is a protocol that makes a team of agents behave like a governed organization.
 
-- **Governed decisions** — 10 agent types with explicit authority scopes. Architecture choices go through vote rounds. Disagreements trigger structured resolution with escalation paths. Every role has defined permissions and output responsibilities.
+- **Governed decisions** — 14 agent types across authority, software, and research domains. Design choices go through vote rounds. Disagreements trigger structured resolution with escalation paths. Every role has defined permissions and output responsibilities.
 - **Traceable artifacts** — task contracts, state transitions, evidence, and verdicts are recorded in `.geas/` as append-only artifacts. Session checkpoints enable exact resume after interruption. An event ledger tracks every significant action.
-- **Contract-based verification** — each task has acceptance criteria and a rubric. A 3-tier Evidence Gate checks preconditions, runs build/lint/test, and scores against the rubric. A Critical Reviewer challenges high-risk work. A product-level Final Verdict closes the loop.
+- **Contract-based verification** — each task has acceptance criteria and a rubric. A 3-tier Evidence Gate checks preconditions, runs build/lint/test, and scores against the rubric. A Challenger reviews high-risk work. A product-level Final Verdict closes the loop.
 - **Continuous learning** — every task produces a retrospective. Lessons become memory candidates that get promoted through review. Rules evolve in a shared `rules.md`. Technical debt is tracked in a debt register and feeds back into future priorities. Context packets inject relevant memories into future work.
 
 ## Quick Start
@@ -43,7 +43,7 @@ Describe what you want to build or improve. The orchestrator drives the work fol
 
 ## Why Geas exists
 
-Multi-agent development is fast and powerful, but without control it falls apart in the same ways every time:
+Multi-agent work is fast and powerful, but without control it falls apart in the same ways every time:
 
 - **"Done" without proof** — the agent says it's finished, but nobody actually verified against acceptance criteria
 - **Lost decisions** — why this architecture was chosen, what was discussed in review — gone
@@ -76,7 +76,7 @@ Each task goes through a **14-step pipeline**. [-> Full pipeline details](docs/a
 
 ```
 implementation contract -> implementation -> self-check -> code review + testing
--> evidence gate -> closure packet -> critical reviewer
+-> evidence gate -> closure packet -> challenger review
 -> final verdict -> retrospective -> memory extraction
 ```
 
@@ -86,7 +86,7 @@ A task is only closed after passing each step in order:
 
 - **Evidence Gate** — Tier 0 (prechecks), Tier 1 (build/lint/test), Tier 2 (acceptance criteria + rubric scoring)
 - **Closure Packet** — all evidence assembled into a single packet after Gate pass
-- **Critical Reviewer** — separate verification for high-risk tasks
+- **Challenger** — separate verification for high-risk tasks
 - **Final Verdict** — product-level judgment with all evidence assembled
 
 ### What lands in your repository
@@ -121,11 +121,15 @@ Geas writes operational state and evidence to `.geas/`:
 
 ## The Team
 
-The protocol defines **10 agent types** with explicit authority and output responsibilities.
+The protocol defines **14 agent types** organized by domain profile, each with explicit authority and output responsibilities.
 
-**Core authorities** — Product Authority, Architecture Authority, Critical Reviewer
+**Authority** (always active) — Product Authority, Design Authority, Challenger
 
-**Specialist roles** — Frontend Engineer, Backend Engineer, QA Engineer, Security Engineer, UI/UX Designer, DevOps Engineer, Technical Writer
+**Software domain** — Software Engineer, QA Engineer, Security Engineer, Platform Engineer, Technical Writer
+
+**Research domain** — Research Analyst, Research Engineer, Research Writer, Literature Analyst, Methodology Reviewer, Research Integrity Reviewer
+
+A mission declares its domain profile (software, research, or both). Authority agents are always active; domain-specific agents activate based on the profile.
 
 [-> Full team reference](docs/reference/AGENTS.md)
 
@@ -137,16 +141,16 @@ The protocol defines **10 agent types** with explicit authority and output respo
 [Orchestrator]     Specifying: intake complete. 2 tasks compiled.
 [Orchestrator]     Building: starting task-001 (JWT auth API).
 
-[Arch Authority]   Tech guide: bcrypt + JWT, refresh token rotation.
+[Design Auth]      Tech guide: bcrypt + JWT, refresh token rotation.
 [Orchestrator]     Implementation contract approved.
-[Backend Eng]      Implementation complete. 4 endpoints. Worktree merged.
-[Backend Eng]      Self-check: confidence 4/5. Token expiry edge case untested.
-[Arch Authority]   Code review: approved.                        <- parallel
+[SW Engineer]      Implementation complete. 4 endpoints. Worktree merged.
+[SW Engineer]      Self-check: confidence 4/5. Token expiry edge case untested.
+[Design Auth]      Code review: approved.                        <- parallel
 [QA Engineer]      Testing: 6/6 acceptance criteria passed.      <- parallel
 [Orchestrator]     Evidence Gate: PASS. Closure packet assembled.
-[Critical Rev]     Challenge: no rate limiting [BLOCKING].
+[Challenger]       Challenge: no rate limiting [BLOCKING].
 [Orchestrator]     Vote round: iterate. Re-implementing.
-[Backend Eng]      Rate limiter added. Re-verification passed.
+[SW Engineer]      Rate limiter added. Re-verification passed.
 [Product Auth]     Final Verdict: PASS.
 [Orchestrator]     Committed. Retro: auth APIs must include rate limiting — rule proposed.
 [Orchestrator]     Memory extraction: 3 candidates.
@@ -164,10 +168,10 @@ The protocol defines **10 agent types** with explicit authority and output respo
 |----------|-------------|
 | [Architecture](docs/architecture/DESIGN.md) | System design, data flow, principles |
 | [Protocol](docs/protocol/) | 14 operational protocol documents |
-| [Schemas](docs/protocol/schemas/) | 29 JSON Schema definitions (draft 2020-12) |
-| [Agents](docs/reference/AGENTS.md) | 10 agent types with explicit authority model |
-| [Skills](docs/reference/SKILLS.md) | 27 skills reference |
-| [Hooks](docs/reference/HOOKS.md) | 18 lifecycle hooks reference |
+| [Schemas](docs/protocol/schemas/) | 30 JSON Schema definitions (draft 2020-12) |
+| [Agents](docs/reference/AGENTS.md) | 14 agent types with slot-based authority model |
+| [Skills](docs/reference/SKILLS.md) | 15 skills reference (13 core + 2 utility) |
+| [Hooks](docs/reference/HOOKS.md) | 16 lifecycle hooks reference |
 
 ---
 
