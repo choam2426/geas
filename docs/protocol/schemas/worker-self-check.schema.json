@@ -76,6 +76,11 @@
     },
     "created_at": {
       "type": "string"
+    },
+    "memory_suggestions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Knowledge the worker recommends persisting for future invocations of this worker type"
     }
   }
 }

@@ -84,6 +84,11 @@
     "created_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "memory_suggestions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Knowledge the Challenger recommends persisting for future critical review invocations"
     }
   }
 }

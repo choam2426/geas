@@ -97,6 +97,11 @@
         "type": "string",
         "minLength": 1
       }
+    },
+    "memory_suggestions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Knowledge the specialist recommends persisting for future invocations of this specialist type"
     }
   }
 }
