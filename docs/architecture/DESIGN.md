@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-Geas is a contract-based governance protocol for multi-agent AI development. It coordinates multiple AI agents through structured protocols, guaranteeing four control objectives (4 Pillars):
+Geas is a contract-based governance protocol for multi-agent AI work. It coordinates multiple AI agents through structured protocols, guaranteeing four control objectives (4 Pillars):
 
 - **Governance** -- Every decision follows a defined procedure with explicit authority.
 - **Traceability** -- Every action is recorded and auditable after the fact.
@@ -23,7 +23,7 @@ When making any design decision, always ask: **"Does this change make the multi-
 +---------------------------+
 | Collaboration Surface     |  <-- Replaceable (Dashboard, CLI, ...)
 +---------------------------+
-| Agent Teams               |  <-- Replaceable (Geas-12, Lean-4, Custom)
+| Agent Teams               |  <-- Replaceable (Geas-14, Lean-4, Custom)
 +---------------------------+
 | Contract Engine           |  <-- Core (immutable)
 +---------------------------+
@@ -34,8 +34,8 @@ When making any design decision, always ask: **"Does this change make the multi-
 | Layer | Role | Replaceable? |
 |-------|------|--------------|
 | **Collaboration Surface** | The interface through which humans interact with the system. Dashboards, CLI, chat threads, etc. | Fully replaceable. |
-| **Agent Teams** | The set of specialized agents that perform work. The default Geas-12 team is one configuration; other team compositions are possible. | Replaceable. The Contract Engine's data flow works with any agent configuration. |
-| **Contract Engine** | The core set of skills that define the workflow: intake, task compilation, context packet, implementation contract, evidence gate, verify-fix loop, vote round. Tool-agnostic. | **Not replaceable** -- this is the immutable core. |
+| **Agent Teams** | The set of specialized agents that perform work. The default team (14 agents across 3 authority + 5 software + 6 research) is one configuration; other team compositions are possible. Domain profiles (software, research) activate the relevant agent slots. | Replaceable. The Contract Engine's data flow works with any agent configuration. |
+| **Contract Engine** | The core set of skills that define the workflow: intake, task compilation, context packet, implementation contract, evidence gate, verify-fix loop, vote round, memorizing. Tool-agnostic. | **Not replaceable** -- this is the immutable core. |
 | **Tool Adapters** | Runtime tools agents use to do their work (file I/O, bash, MCP servers, etc.). | Fully replaceable. Core skills reference tools by functional category. |
 
 ---
@@ -99,7 +99,7 @@ Evidence Gate (Tier 0 -> Tier 1 -> Tier 2)
 Closure Packet assembly
     |
     v
-Critical Reviewer Challenge (mandatory for high/critical)
+Challenger Review (mandatory for high/critical)
     |
     v
 Final Verdict (product_authority: pass / iterate / escalate)
@@ -176,63 +176,80 @@ When context compaction occurs, this hook automatically reads `run.json` and re-
 ```
 plugin/
   plugin.json              # Manifest
-  skills/                    # Shared skills (27 total)
-    # --- Contract Engine (core) ---
-    intake/                  # Socratic requirements gathering
-    task-compiler/           # mission spec -> TaskContract
-    context-packet/          # Role-specific briefings
-    implementation-contract/ # Pre-implementation agreement
-    evidence-gate/           # Tier 0/1/2 verification
-    verify-fix-loop/         # fail -> fix -> re-verify
-    vote-round/              # Structured voting
-    verify/                  # Verification utilities
-    # --- Execution ---
-    orchestrating/           # Orchestrator: 4-phase mission pipeline
-      references/
-        specifying.md        # Specifying phase procedure
-        pipeline.md          # Per-task 14-step pipeline
-        building.md          # Building phase management
-        polishing.md         # Polishing phase procedure
-        evolving.md          # Evolving phase procedure
-    scheduling/              # Task scheduling and parallelism
-    decision/                # Structured decision-making (utility skill)
-    mission/                 # Mission lifecycle management
-    # --- Memory & Evolution ---
-    memorizing/              # Memory capture and promotion
-    conformance-checking/    # Protocol conformance checks
-    # --- Support ---
-    briefing/                # Agent briefing assembly
-    onboard/                 # Project onboarding
-    setup/                   # Environment setup
-    cleanup/                 # Session cleanup
-    reporting/               # Status reporting
-    run-summary/             # Run summary generation
-    ledger-query/            # Ledger querying
-    pivot-protocol/          # Pivot handling
-    policy-managing/         # Policy management
-    coding-conventions/      # Convention detection
-    chaos-exercising/        # Chaos testing
-    write-prd/               # PRD generation (standalone utility, not part of core pipeline)
-    write-stories/           # Story generation (standalone utility, not part of core pipeline)
-  agents/                    # Agent definitions (.md)
+  skills/                    # 15 skills (13 core + 2 utility)
+    core/
+      # --- Contract Engine ---
+      intake/                  # Socratic requirements gathering
+      task-compiler/           # mission spec -> TaskContract
+      context-packet/          # Role-specific briefings
+      implementation-contract/ # Pre-implementation agreement
+      evidence-gate/           # Tier 0/1/2 verification
+      verify-fix-loop/         # fail -> fix -> re-verify
+      vote-round/              # Structured voting
+      # --- Execution ---
+      mission/                 # Orchestrator: 4-phase mission pipeline
+        references/
+          specifying.md        # Specifying phase procedure
+          pipeline.md          # Per-task 14-step pipeline
+          building.md          # Building phase management
+          polishing.md         # Polishing phase procedure
+          evolving.md          # Evolving phase procedure
+      scheduling/              # Task scheduling and parallelism
+      setup/                   # Environment setup
+      # --- Memory & Evolution ---
+      memorizing/              # Memory capture and promotion
+      policy-managing/         # Policy management
+      reporting/               # Status reporting and health signals
+    utility/
+      software/
+        write-prd/             # PRD generation (software domain)
+        write-stories/         # Story generation (software domain)
+  agents/                      # 14 agent definitions (.md)
+    authority/                 # 3 authority agents
+      product-authority.md
+      design-authority.md
+      challenger.md
+    software/                  # 5 software domain agents
+      software-engineer.md
+      qa-engineer.md
+      security-engineer.md
+      platform-engineer.md
+      technical-writer.md
+    research/                  # 6 research domain agents
+      research-analyst.md
+      research-engineer.md
+      research-writer.md
+      literature-analyst.md
+      methodology-reviewer.md
+      research-integrity-reviewer.md
   hooks/
     hooks.json               # Hook configuration
-    scripts/                 # 18 hook scripts (see below)
+    scripts/                 # 16 hook scripts (see below)
 ```
 
-### Hooks (18 scripts)
+### Agents (14 agents, slot-based architecture)
+
+Agent slots are organized by domain profile. Authority agents are always active; domain-specific agents activate based on the mission's declared domain profile.
+
+| Category | Agents |
+|----------|--------|
+| **Authority** (always active) | Product Authority, Design Authority, Challenger |
+| **Software** (software profile) | Software Engineer, QA Engineer, Security Engineer, Platform Engineer, Technical Writer |
+| **Research** (research profile) | Research Analyst, Research Engineer, Research Writer, Literature Analyst, Methodology Reviewer, Research Integrity Reviewer |
+
+### Hooks (16 scripts)
 
 Hooks are lifecycle event handlers that enforce governance without agent cooperation.
 
 | Lifecycle Event | Scripts |
 |----------------|---------|
-| **SessionStart** | `session-init.sh`, `memory-review-cadence.sh` |
+| **SessionStart** | `session-init.sh` |
 | **PreToolUse** | `checkpoint-pre-write.sh` |
-| **PostToolUse (Write/Edit)** | `protect-geas-state.sh`, `verify-task-status.sh`, `check-debt.sh`, `stale-start-check.sh`, `lock-conflict-check.sh`, `memory-promotion-gate.sh`, `memory-superseded-warning.sh`, `checkpoint-post-write.sh`, `packet-stale-check.sh` |
+| **PostToolUse (Write/Edit)** | `protect-geas-state.sh`, `verify-task-status.sh`, `check-debt.sh`, `lock-conflict-check.sh`, `memory-promotion-gate.sh`, `memory-superseded-warning.sh`, `checkpoint-post-write.sh`, `packet-stale-check.sh` |
 | **PostToolUse (Bash)** | `integration-lane-check.sh` |
 | **SubagentStart** | `inject-context.sh` |
 | **SubagentStop** | `agent-telemetry.sh` |
-| **Stop** | `verify-pipeline.sh`, `calculate-cost.sh` |
+| **Stop** | `calculate-cost.sh` |
 | **PostCompact** | `restore-context.sh` |
 
 ---
@@ -269,7 +286,7 @@ Hooks are lifecycle event handlers that enforce governance without agent coopera
           retrospective.json
       evidence/
         {task_id}/
-          architecture-authority-review.json
+          design-authority-review.json
           qa-engineer.json
           challenge-review.json
           product-authority-verdict.json
@@ -321,7 +338,7 @@ Core skills (`plugin/skills/`) must not hardcode specific tools.
 
 **Allowed**: Referencing `.geas/memory/_project/conventions.md` for project-specific commands, marker file detection (package.json, go.mod), listing multiple alternatives (e.g., "Jest, pytest").
 
-How it works in practice: The architecture authority records project conventions in conventions.md during onboarding. TaskContract's eval_commands reference those conventions. Evidence Gate runs the project-specific commands. No skill definitions need to change.
+How it works in practice: The design authority records project conventions in conventions.md during onboarding. TaskContract's eval_commands reference those conventions. Evidence Gate runs the project-specific commands. No skill definitions need to change.
 
 ---
 
