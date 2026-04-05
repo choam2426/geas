@@ -57,13 +57,11 @@ For projects using the software development domain profile, slots map to concret
 
 | slot | concrete types | domain-specific inspection focus |
 |---|---|---|
-| Implementer | `frontend_engineer` | changed UI paths, interaction states, responsive behavior, a11y surfaces |
-| Implementer | `backend_engineer` | API contracts, data flows, migration safety, error semantics, idempotency |
+| Implementer | `software_engineer` | changed UI paths, interaction states, responsive behavior, a11y surfaces, API contracts, data flows, migration safety, error semantics, idempotency |
 | Quality Specialist | `qa_engineer` | test coverage against criteria, negative paths, demo validation |
 | Risk Specialist | `security_engineer` | authn/authz boundaries, secret handling, injection surfaces, abuse paths |
-| Operations Specialist | `devops_engineer` | CI reliability, deploy implications, config drift, provenance |
+| Operations Specialist | `platform_engineer` | CI reliability, deploy implications, config drift, provenance |
 | Communication Specialist | `technical_writer` | docs completeness, migration notes, operator caveats |
-| Communication Specialist | `ui_ux_designer` | user flow coherence, copy clarity, visual consistency |
 
 ## Matrix by Task Kind
 

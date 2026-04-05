@@ -57,13 +57,11 @@ Evidence 참조가 없는 리뷰도 존재할 수 있지만, 신뢰도가 낮은
 
 | 슬롯 | 구체 타입 | 도메인별 검토 초점 |
 |---|---|---|
-| Implementer | `frontend_engineer` | 변경된 UI 경로, 인터랙션 상태, 반응형 동작, 접근성 |
-| Implementer | `backend_engineer` | API 계약, 데이터 흐름, 마이그레이션 안전, 오류 처리, 멱등성 |
+| Implementer | `software_engineer` | 변경된 UI 경로, 인터랙션 상태, 반응형 동작, 접근성, API 계약, 데이터 흐름, 마이그레이션 안전, 오류 처리, 멱등성 |
 | Quality Specialist | `qa_engineer` | 기준 대비 테스트 커버리지, 부정 경로, 시연 검증 |
 | Risk Specialist | `security_engineer` | 인증/인가 경계, 비밀 관리, 인젝션 표면, 남용 경로 |
-| Operations Specialist | `devops_engineer` | CI 안정성, 배포 영향, 설정 드리프트, 출처 관리 |
+| Operations Specialist | `platform_engineer` | CI 안정성, 배포 영향, 설정 드리프트, 출처 관리 |
 | Communication Specialist | `technical_writer` | 문서 완전성, 마이그레이션 안내, 운영자 주의사항 |
-| Communication Specialist | `ui_ux_designer` | 사용자 흐름 일관성, 문구 명확성, 시각적 일관성 |
 
 ## Task 종류별 매트릭스
 
