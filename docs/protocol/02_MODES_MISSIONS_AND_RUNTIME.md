@@ -5,7 +5,7 @@
 
 ## Purpose
 
-A mission converts an open-ended request into an executable protocol object. The mission layer exists so that Geas can answer all of the following before any implementation begins:
+A mission converts a user request into an executable protocol object. The mission layer exists so that Geas can answer all of the following before any implementation begins:
 
 - what problem is being solved
 - what scope was committed
@@ -29,6 +29,7 @@ A mission MUST contain at least the following fields:
 | `mission_id` | unique identifier for the mission |
 | `intent` | canonical intent enum value describing the mission's purpose |
 | `goal` | human-readable description of the desired outcome |
+| `done_when` | verifiable condition that must be true for the mission to be considered complete |
 | `constraints` | boundaries and limitations that scope the work |
 | `source_request` | the original user request that triggered the mission |
 | `entry_signals` | conditions that were true when the mission was created |
@@ -41,7 +42,6 @@ Assurance profiles (doc 13) define rigor levels: `prototype` (lightest) → `del
 
 | field | description |
 |---|---|
-| success criteria summary | measurable conditions for mission completion |
 | excluded scope / non-goals | explicitly out-of-scope items to prevent creep |
 | risk summary | known risks and their mitigations |
 | external dependency summary | dependencies outside the team's control |
@@ -113,83 +113,43 @@ Phase gates are hard boundaries between phases. They exist to prevent premature 
 
 ### 1) `specifying`
 
-The specifying phase converts a raw request into a structured, executable mission definition. It ends when the team has enough clarity to begin implementation safely.
+Converts a user request into a structured, executable mission definition. Ends when the team has enough clarity to begin implementation safely.
 
-Purpose:
-
-- normalize the request into mission language
-- freeze a first-pass understanding of `scope_in`
-- resolve or record major design decisions
-- compile initial tasks
-- decide how rigorous the mission must be
-
-Required outputs:
-
-- mission spec
-- approved design brief for `standard` or `full_depth` work when design decisions are material
-- initial task set
-- initial risk / constraint summary
-- environment readiness determination
-
-Exit gate expectations:
-
-- mission definition is stable enough to execute
-- task list is actionable
-- blocking ambiguity has either been resolved or converted into explicit exploratory tasks
-- design brief approval is recorded when required
+| aspect | content |
+|---|---|
+| **what it does** | normalize request into mission language / freeze `scope_in` / resolve or record major design decisions / compile initial tasks / determine required rigor |
+| **outputs** | mission spec, design brief (when required), task contracts, vote-round result (full_depth), phase review |
+| **exit conditions** | mission definition stable enough to execute / task list actionable / blocking ambiguity resolved or converted to exploratory tasks / design brief approval recorded when required |
 
 ### 2) `building`
 
-The building phase implements the essential value path of the mission. It is the primary phase where tasks move through the full lifecycle from ready to passed.
+Implements the essential value path of the mission. The primary phase where tasks move through the full lifecycle from `ready` to `passed`.
 
-Purpose:
-
-- implement the essential value path of the mission
-- iterate through task closures
-- convert intent into validated change sets
-
-Exit gate expectations:
-
-- all MVP-critical tasks are `passed`
-- no unresolved blocking conflict remains
-- critical debt is absent or formally escalated
-- scope creep is visible and assessed, not hidden
+| aspect | content |
+|---|---|
+| **what it does** | implement core value path / iterate through task closures / convert intent into validated change sets |
+| **outputs** | per task: implementation contract, worker self-check, specialist review, gate result, closure packet, challenge review (high/critical), final verdict, retrospective · phase level: gap assessment, debt register, phase review |
+| **exit conditions** | all MVP-critical tasks `passed` / no unresolved blocking conflict / critical debt absent or formally escalated / scope creep visible and assessed |
 
 ### 3) `polishing`
 
-The polishing phase hardens the result for release, adoption, or internal trust. It applies specialist-slot reviews across all relevant quality dimensions -- quality assurance, usability, documentation, operations, security, and maintainability.
+Hardens the result for delivery, adoption, or internal trust. Applies specialist-slot reviews across all relevant quality dimensions.
 
-Purpose:
-
-- harden the result for release, adoption, or internal trust
-- perform specialist-slot reviews across all relevant quality dimensions
-- identify entropy such as dead artifacts, boilerplate, drift, or hidden shortcuts
-
-Exit gate expectations:
-
-- high and critical debt are triaged
-- required specialist reviews for shipping surfaces are complete
-- known risks have recorded rationale
-- documentation and operational readiness are not obviously stale
+| aspect | content |
+|---|---|
+| **what it does** | harden result for delivery readiness / perform specialist-slot reviews across all quality dimensions / identify entropy: dead artifacts, boilerplate, drift, hidden shortcuts |
+| **outputs** | specialist-slot reviews (security, documentation, entropy), debt register updates, gap assessment, phase review |
+| **exit conditions** | high and critical debt triaged / required specialist reviews for delivery surfaces complete / known risks have recorded rationale / documentation and operational readiness not stale |
 
 ### 4) `evolving`
 
-The evolving phase captures what was learned and prepares the system for future work. It prevents missions from ending with amnesia by extracting lessons, consolidating debt, and feeding the memory system.
+Captures what was learned and prepares the system for future work. Prevents missions from ending with amnesia by extracting lessons, consolidating debt, and feeding the memory system.
 
-Purpose:
-
-- compare promised scope with delivered scope
-- extract lessons, memories, and rules
-- consolidate debt
-- prepare future work rather than ending with amnesia
-
-Exit gate expectations:
-
-- gap assessment exists
-- retrospective bundle exists
-- rules and memory actions are recorded
-- debt snapshot is captured
-- mission summary exists
+| aspect | content |
+|---|---|
+| **what it does** | compare promised scope with delivered scope / extract lessons, memories, and rules / consolidate debt / prepare carry-forward for next mission |
+| **outputs** | gap assessment, rules update, debt register (final), mission summary, phase review, memory promotion records |
+| **exit conditions** | gap assessment exists / retrospective bundle exists / rules and memory actions recorded / debt snapshot captured / mission summary exists |
 
 ## Runtime Phases
 
@@ -262,24 +222,26 @@ A mission MUST enter `evolving` before closure for any non-trivial change. A pro
 
 ## Phase Review Artifacts
 
-Phase review artifacts are the evidence produced at each phase transition. They form the traceability chain that connects mission intent to delivered outcomes.
+Phase review artifacts are the evidence produced at each phase transition. This artifact chain creates the traceability link from mission intent to delivered outcomes. Attempting a phase transition without the required artifacts is a protocol violation.
 
-### Required artifacts
+### Required artifacts per transition
 
-| transition | minimum required artifact set |
+| transition | what is needed |
 |---|---|
-| `specifying -> building` | `phase-review.json` confirming mission freeze, task readiness, design-brief approval when required |
-| `building -> polishing` | `phase-review.json`, `gap-assessment.json` |
-| `polishing -> evolving` | `phase-review.json`, `gap-assessment.json`, current debt view |
-| `evolving -> close` | `phase-review.json`, `gap-assessment.json`, retrospective bundle, debt snapshot, mission summary |
+| `specifying` → `building` | `phase-review.json`: confirms mission freeze, task readiness, design-brief approval (when required) |
+| `building` → `polishing` | `phase-review.json`, `gap-assessment.json` |
+| `polishing` → `evolving` | `phase-review.json`, `gap-assessment.json`, current debt view |
+| `evolving` → close | `phase-review.json`, `gap-assessment.json`, retrospective bundle, debt snapshot, mission summary |
 
-### Recommended artifacts
+### Additional recommended artifacts
 
-| artifact | purpose |
+These preserve mission context and decision history. Higher assurance profiles make their inclusion increasingly expected.
+
+| artifact | what it captures |
 |---|---|
-| `debt-register.json` | accumulated technical and process debt |
-| `rules-update.json` | rule changes produced during the mission |
-| `decision-record.json` | rationale for major re-scope or conflict resolution |
+| `debt-register.json` | technical and process debt accumulated during the mission |
+| `rules-update.json` | rule changes derived from the mission |
+| `decision-record.json` | rationale for major scope changes or conflict resolution |
 | `run-summary.md` | human-readable summary of the mission run |
 
 ## Scope In / Scope Out
