@@ -1,0 +1,22 @@
+{
+  "software": {
+    "description": "Software development",
+    "slot_mapping": {
+      "implementer": ["software_engineer"],
+      "quality_specialist": ["qa_engineer"],
+      "risk_specialist": ["security_engineer"],
+      "operations_specialist": ["platform_engineer"],
+      "communication_specialist": ["technical_writer"]
+    }
+  },
+  "research": {
+    "description": "Research",
+    "slot_mapping": {
+      "implementer": ["literature_analyst", "research_analyst"],
+      "quality_specialist": ["methodology_reviewer"],
+      "risk_specialist": ["research_integrity_reviewer"],
+      "operations_specialist": ["research_engineer"],
+      "communication_specialist": ["research_writer"]
+    }
+  }
+}
