@@ -41,7 +41,7 @@
     },
     "gate_profile": {
       "type": "string",
-      "enum": ["code_change", "artifact_only", "closure_ready"]
+      "enum": ["implementation_change", "artifact_only", "closure_ready"]
     },
     "verdict": {
       "type": "string",

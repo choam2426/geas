@@ -15,7 +15,7 @@ After the evidence gate fails, this loop ensures bugs are actually fixed — not
 
 Read the gate failure details:
 1. **TaskContract** from `.geas/missions/{mission_id}/tasks/{task-id}.json` — for retry_budget and escalation_policy
-2. **Failed EvidenceBundle** from `.geas/missions/{mission_id}/evidence/{task-id}/qa-engineer.json` — for specific failures
+2. **Failed EvidenceBundle** from `.geas/missions/{mission_id}/evidence/{task-id}/quality-specialist.json` — for specific failures
 3. **Gate verdict** — which tier failed (mechanical or semantic) and why
 
 ---
@@ -39,9 +39,8 @@ Track current iteration count in `.geas/state/run.json` under `current_task_id`.
 ### Iteration N (repeat up to retry_budget times)
 
 #### Step A — Identify the Fixer
-- **Frontend bugs** (UI rendering, form behavior, CSS, client-side logic): spawn **frontend-engineer**
-- **Backend bugs** (API errors, data issues, server logic, database): spawn **backend-engineer**
-- **Both**: spawn both, with clear ownership of which bugs each agent owns
+- Spawn the **implementer** assigned to this task (from `routing.primary_worker_type` in the TaskContract)
+- If the task requires multiple implementers, spawn each with clear ownership of which bugs each agent owns
 
 #### Step B — Spawn Fixer with ContextPacket
 Generate a fix-specific ContextPacket:
@@ -76,20 +75,20 @@ After the fixer completes:
 
 Follow the TaskContract's `escalation_policy`:
 
-### `"architecture-authority-review"` (default)
+### `"design-authority-review"` (default)
 
-Spawn **architecture-authority** for architectural review:
+Spawn **design-authority** for architectural review:
 ```
 The evidence gate has failed {retry_budget} times for task {task-id}.
 Read the TaskContract at .geas/missions/{mission_id}/tasks/{task-id}.json
 Read all evidence at .geas/missions/{mission_id}/evidence/{task-id}/
 Analyze: Is there a fundamental design issue? Is the approach viable?
-Write your analysis to .geas/missions/{mission_id}/evidence/{task-id}/architecture-authority-escalation.json
+Write your analysis to .geas/missions/{mission_id}/evidence/{task-id}/design-authority-escalation.json
 ```
 
-Then evaluate architecture_authority's assessment:
-- If architecture_authority identifies a fixable root cause: apply the fix, re-test one more time.
-- If architecture_authority says the approach is broken: escalate to product_authority.
+Then evaluate design_authority's assessment:
+- If design_authority identifies a fixable root cause: apply the fix, re-test one more time.
+- If design_authority says the approach is broken: escalate to product_authority.
 
 ### `"product-authority-decision"`
 
@@ -114,8 +113,8 @@ For any escalation, write a DecisionRecord to `.geas/missions/{mission_id}/decis
   "decision": "...",
   "reasoning": "...",
   "trade_offs": "...",
-  "decided_by": "architecture-authority|product-authority",
-  "participants": ["qa-engineer", "frontend-engineer|backend-engineer", "architecture-authority"],
+  "decided_by": "design-authority|product-authority",
+  "participants": ["quality-specialist", "implementer", "design-authority"],
   "related_task_id": "{task-id}",
   "created_at": "..."
 }
@@ -130,14 +129,14 @@ Log the escalation event to `.geas/ledger/events.jsonl`.
 ```
 Evidence Gate PASS?
   YES -> Return to pipeline (Closure Packet -> Critical Reviewer -> Final Verdict)
-  NO  -> Fix (frontend-engineer/backend-engineer) -> Re-gate
+  NO  -> Fix (implementer) -> Re-gate
          PASS? -> Return to pipeline (Closure Packet -> Critical Reviewer -> Final Verdict)
          NO    -> Fix -> Re-gate (iteration 2)
                   PASS? -> Return to pipeline (Closure Packet -> Critical Reviewer -> Final Verdict)
                   NO    -> ... (up to retry_budget)
                            Budget exhausted?
                            -> escalation_policy:
-                              architecture-authority-review -> architecture_authority analysis -> fixable? -> one more try
+                              design-authority-review -> design_authority analysis -> fixable? -> one more try
                               product-authority-decision -> product_authority decides
                               pivot -> Pivot Protocol
                            -> Write DecisionRecord

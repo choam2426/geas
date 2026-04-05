@@ -13,7 +13,7 @@ Objective verification of whether a worker's output meets the TaskContract requi
 
 1. **TaskContract** — read from `.geas/missions/{mission_id}/tasks/{task-id}.json`
 2. **Worker Self-Check** — read from `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json`
-3. **Specialist Reviews** — read from `.geas/missions/{mission_id}/evidence/{task-id}/`. Naming: `{agent-type}-review.json` when the agent produces multiple artifacts (e.g., `architecture-authority-review.json` for code review, distinct from `architecture-authority.json` tech guide), or `{agent-type}.json` when the agent produces one artifact (e.g., `qa-engineer.json`)
+3. **Specialist Reviews** — read from `.geas/missions/{mission_id}/evidence/{task-id}/`. Naming: `{agent-type}-review.json` when the agent produces multiple artifacts (e.g., `design-authority-review.json` for code review, distinct from `design-authority.json` tech guide), or `{agent-type}.json` when the agent produces one artifact (e.g., `quality-specialist.json`)
 4. **Integration Result** — merge status from worktree integration
 5. **Gate profile** — determines which tiers to run (see below)
 
@@ -21,7 +21,7 @@ Objective verification of whether a worker's output meets the TaskContract requi
 
 | gate_profile | Tier 0 | Tier 1 | Tier 2 | Description |
 |---|---|---|---|---|
-| `code_change` | Run | Run | Run | Standard task involving code changes |
+| `implementation_change` | Run | Run | Run | Standard task involving implementation changes |
 | `artifact_only` | Run | Skip | Run (rubric only, no build/test) | Tasks without code changes such as documentation or design |
 | `closure_ready` | Run | Skip | Simplified (completeness check only) | Final cleanup tasks such as release or config |
 
@@ -36,15 +36,15 @@ Verify that all prerequisites are in place before running expensive checks.
 1. **Required artifacts existence**
    - `worker-self-check.json` must exist at `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json`
    - Specialist reviews must exist (per the task's required reviewer set)
-   - Integration result must be recorded (for `code_change` profile)
+   - Integration result must be recorded (for `implementation_change` profile)
 
 2. **Task state eligibility**
-   - `code_change` profile: task must be in `integrated` state
+   - `implementation_change` profile: task must be in `integrated` state
    - `artifact_only` profile: task must be in `reviewed` state
    - `closure_ready` profile: task must be in `reviewed` or `integrated` state
 
 3. **Baseline check**
-   - For `code_change`: verify `base_commit` ancestry — the integration branch must contain the declared base commit
+   - For `implementation_change`: verify `base_commit` ancestry — the integration branch must contain the declared base commit
 
 4. **Required reviewer presence**
    - All agent types listed in the task's required reviewer set must have submitted reviews
@@ -128,9 +128,9 @@ Any `known_risk` with no handling status -> Tier 2 fails.
 Read the `rubric` array from the TaskContract. For each dimension:
 
 1. Identify the evaluator's evidence:
-   - `architecture_authority` review evidence -> `code_quality` score
-   - `qa_engineer` evidence -> `core_interaction`, `feature_completeness`, `regression_safety` scores
-   - `qa_engineer` or `ui_ux_designer` evidence -> `ux_clarity`, `visual_coherence` scores (UI-sensitive tasks)
+   - `design_authority` review evidence -> `code_quality` score
+   - `quality_specialist` evidence -> `core_interaction`, `feature_completeness`, `regression_safety` scores
+   - `quality_specialist` or `communication_specialist` evidence -> `ux_clarity`, `visual_coherence` scores (UI-sensitive tasks)
 2. Read the evaluator's `rubric_scores` from their review
 3. Compare each score against the dimension's `threshold`
 
@@ -138,17 +138,17 @@ Read the `rubric` array from the TaskContract. For each dimension:
 
 | dimension | evaluator | default threshold |
 |---|---|---:|
-| `core_interaction` | `qa_engineer` | 3 |
-| `feature_completeness` | `qa_engineer` | 4 |
-| `code_quality` | `architecture_authority` | 4 |
-| `regression_safety` | `qa_engineer` | 4 |
+| `core_interaction` | `quality_specialist` | 3 |
+| `feature_completeness` | `quality_specialist` | 4 |
+| `code_quality` | `design_authority` | 4 |
+| `regression_safety` | `quality_specialist` | 4 |
 
 UI-sensitive tasks add:
 
 | dimension | evaluator | default threshold |
 |---|---|---:|
-| `ux_clarity` | `qa_engineer` or `ui_ux_designer` | 3 |
-| `visual_coherence` | `qa_engineer` or `ui_ux_designer` | 3 |
+| `ux_clarity` | `quality_specialist` or `communication_specialist` | 3 |
+| `visual_coherence` | `quality_specialist` or `communication_specialist` | 3 |
 
 #### Low Confidence Threshold Adjustment
 
@@ -218,10 +218,10 @@ Write to `.geas/missions/{mission_id}/tasks/{task-id}/gate-result.json` conformi
   "version": "1.0",
   "artifact_type": "gate_result",
   "artifact_id": "gate-{task-id}-{timestamp}",
-  "producer_type": "qa_engineer",
+  "producer_type": "quality_specialist",
   "created_at": "<actual ISO 8601 from date -u>",
   "task_id": "{task-id}",
-  "gate_profile": "code_change",
+  "gate_profile": "implementation_change",
   "verdict": "pass",
   "tier_results": {
     "tier_0": { "status": "pass", "details": "All prerequisites verified" },
@@ -246,7 +246,7 @@ Also log a detailed event to `.geas/ledger/events.jsonl`:
   "event": "gate_result",
   "task_id": "{task-id}",
   "result": "pass",
-  "gate_profile": "code_change",
+  "gate_profile": "implementation_change",
   "tier_results": {
     "tier_0": { "status": "pass" },
     "tier_1": { "status": "pass" },
@@ -274,7 +274,7 @@ Also log a detailed event to `.geas/ledger/events.jsonl`:
    - After fix, re-run the gate
 3. If retries exhausted:
    - Follow the `escalation_policy`:
-     - `"architecture-authority-review"`: spawn the `architecture_authority` for architectural review, write a DecisionRecord
+     - `"design-authority-review"`: spawn the `design_authority` for architectural review, write a DecisionRecord
      - `"product-authority-decision"`: spawn the `product_authority` for a strategic decision (continue/cut/pivot)
      - `"pivot"`: invoke pivot protocol
    - Update TaskContract status to `"escalated"`

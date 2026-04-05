@@ -39,7 +39,7 @@ Determine the four classification fields based on the task nature:
 
 | Signal | task_kind |
 |--------|-----------|
-| Writing or modifying application code | `code` |
+| Writing or modifying application code | `implementation` |
 | Writing documentation, README, guides | `docs` |
 | CI/CD, environment, infrastructure files | `config` |
 | UI/UX wireframes, design specs | `design` |
@@ -66,7 +66,7 @@ Determine the four classification fields based on the task nature:
 
 | Signal | gate_profile |
 |--------|-------------|
-| Produces code that must build/test/lint | `code_change` |
+| Produces implementation that must build/test/lint | `implementation_change` |
 | Produces docs, designs, or config only (no build) | `artifact_only` |
 | Wrap-up task: changelog, release notes, final packaging | `closure_ready` |
 
@@ -98,15 +98,15 @@ Assign a primary worker type and required reviewer types using the agentType enu
 
 | Task Nature | primary_worker_type | required_reviewer_types |
 |-------------|-------------------|------------------------|
-| Frontend UI | `frontend_engineer` | `architecture_authority`, `qa_engineer` |
-| Backend API / Database | `backend_engineer` | `architecture_authority`, `qa_engineer` |
-| Design spec | `ui_ux_designer` | `architecture_authority` |
-| DevOps / deployment | `devops_engineer` | `architecture_authority`, `security_engineer` |
-| Documentation | `technical_writer` | `architecture_authority` |
-| Full-stack feature | `frontend_engineer` or `backend_engineer` (primary) | `architecture_authority`, `qa_engineer` |
-| Security audit | `security_engineer` | `architecture_authority`, `qa_engineer` |
+| Frontend UI | `implementer` | `design_authority`, `quality_specialist` |
+| Backend API / Database | `implementer` | `design_authority`, `quality_specialist` |
+| Design spec | `communication_specialist` | `design_authority` |
+| DevOps / deployment | `operations_specialist` | `design_authority`, `risk_specialist` |
+| Documentation | `communication_specialist` | `design_authority` |
+| Full-stack feature | `implementer` (primary) | `design_authority`, `quality_specialist` |
+| Security audit | `risk_specialist` | `design_authority`, `quality_specialist` |
 
-Always include at least one reviewer type. For `high` or `critical` risk_level, add `security_engineer` to required_reviewer_types if not already present.
+Always include at least one reviewer type. For `high` or `critical` risk_level, add `risk_specialist` to required_reviewer_types if not already present.
 
 ### Step 5: Define Scope
 
@@ -149,7 +149,7 @@ Determine the initial retry_budget from the gate_profile:
 
 | gate_profile | initial retry_budget |
 |-------------|---------------------|
-| `code_change` | 3 |
+| `implementation_change` | 3 |
 | `artifact_only` | 3 |
 | `closure_ready` | 2 |
 
@@ -159,8 +159,8 @@ Then apply risk_level adjustment:
 - Minimum value is always **1**
 
 Examples:
-- `code_change` + `normal` = 3
-- `code_change` + `high` = 2
+- `implementation_change` + `normal` = 3
+- `implementation_change` + `high` = 2
 - `closure_ready` + `critical` = 1
 
 ### Step 9: Check Dependencies
@@ -186,7 +186,7 @@ Assign quality rubric dimensions based on task type. Every task gets the base di
 | `code_quality` | 4 |
 | `regression_safety` | 4 |
 
-**Additional dimensions (when `primary_worker_type` is `frontend_engineer` or `ui_ux_designer`, or task has UI component):**
+**Additional dimensions (when `primary_worker_type` is `implementer` with UI focus or `communication_specialist`, or task has UI component):**
 
 | Dimension | Default Threshold |
 |-----------|-------------------|
@@ -214,9 +214,9 @@ Example output:
   "task_id": "task-003",
   "title": "[Frontend] Login form with email/password",
   "goal": "Create a login form component that submits to POST /api/auth/login and handles success/error states",
-  "task_kind": "code",
+  "task_kind": "implementation",
   "risk_level": "normal",
-  "gate_profile": "code_change",
+  "gate_profile": "implementation_change",
   "vote_round_policy": "never",
   "acceptance_criteria": [
     "Login form renders with email and password fields",
@@ -241,8 +241,8 @@ Example output:
     "paths": ["src/components/auth/", "src/styles/auth/", "tests/components/auth/"]
   },
   "routing": {
-    "primary_worker_type": "frontend_engineer",
-    "required_reviewer_types": ["architecture_authority", "qa_engineer"]
+    "primary_worker_type": "implementer",
+    "required_reviewer_types": ["design_authority", "quality_specialist"]
   },
   "base_commit": "a1b2c3d4e5f6...",
   "status": "drafted"

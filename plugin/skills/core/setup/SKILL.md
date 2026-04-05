@@ -61,6 +61,22 @@ Write the initial run state file `.geas/state/run.json`:
 
 The run state must conform to the RunState schema. Refer to the orchestrating skill's `schemas/run-state.schema.json` for the full field list.
 
+### Phase A-1.5: Codebase Discovery (Onboarding)
+
+Phase A also includes codebase discovery — scan project structure, detect stack, and generate `.geas/memory/_project/conventions.md`. This absorbs the functionality of the former onboard skill.
+
+1. Scan project root for configuration files (package.json, go.mod, pyproject.toml, Cargo.toml, Makefile, etc.)
+2. Detect the project stack (language, framework, package manager, test runner)
+3. Read existing build/lint/test commands from configuration files
+4. Write `.geas/memory/_project/conventions.md` with detected conventions:
+   - Build commands
+   - Lint commands
+   - Test commands
+   - Dev server start command
+   - Project structure notes
+
+If the project is empty (no source files yet), write a minimal conventions.md noting that commands will be populated as the project develops.
+
 ### Phase A-2: Generate `.geas/rules.md`
 
 Write `.geas/rules.md` — the shared rules that ALL agents must follow:

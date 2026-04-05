@@ -55,7 +55,7 @@
     },
     "task_kind": {
       "type": "string",
-      "enum": ["code", "docs", "config", "design", "audit", "release"]
+      "enum": ["implementation", "docs", "config", "design", "audit", "release"]
     },
     "risk_level": {
       "type": "string",
@@ -63,7 +63,7 @@
     },
     "gate_profile": {
       "type": "string",
-      "enum": ["code_change", "artifact_only", "closure_ready"]
+      "enum": ["implementation_change", "artifact_only", "closure_ready"]
     },
     "vote_round_policy": {
       "type": "string",

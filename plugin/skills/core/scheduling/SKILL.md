@@ -78,9 +78,9 @@ The orchestrator manages each task's pipeline independently:
 
 - Each task follows the per-task pipeline defined in `orchestrating/references/pipeline.md`.
 - **Independent progression:** When an agent returns for task A, the orchestrator spawns task A's next step immediately. It does NOT wait for other tasks to reach the same step.
-- **Parallel spawning:** The orchestrator MAY spawn agents for different tasks in the same message (parallel tool calls). Example: `Agent(backend-engineer, "implement STORY-003")` and `Agent(backend-engineer, "implement STORY-009")` in one message.
-- **Step groups:** Within a single task, the orchestrator also applies step group rules from the execution pipeline (e.g., spawning architecture-authority + qa-engineer simultaneously for the same task).
-- **All mandatory steps apply:** Implementation contract, code review, testing, critical_reviewer challenge, product_authority verdict, retrospective, and resolve are mandatory for every task in the batch. Do NOT skip any because of parallelism.
+- **Parallel spawning:** The orchestrator MAY spawn agents for different tasks in the same message (parallel tool calls). Example: `Agent(implementer, "implement STORY-003")` and `Agent(implementer, "implement STORY-009")` in one message.
+- **Step groups:** Within a single task, the orchestrator also applies step group rules from the execution pipeline (e.g., spawning design-authority + quality-specialist simultaneously for the same task).
+- **All mandatory steps apply:** Implementation contract, code review, testing, challenger challenge, product_authority verdict, retrospective, and resolve are mandatory for every task in the batch. Do NOT skip any because of parallelism.
 
 **Checkpoint during batch:** Before each agent spawn, update `last_updated` in run.json. `agent_in_flight` stays `null` during batches (multiple agents active). The authoritative progress record is the evidence files and task file statuses.
 

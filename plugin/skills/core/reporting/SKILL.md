@@ -139,3 +139,25 @@ Then print a markdown summary to the conversation:
 ```
 
 If no signals are triggered, print: "All health signals within thresholds."
+
+---
+
+## Section 5: Product Authority Briefing
+
+The reporting skill also generates product authority briefings at key milestones (phase transitions, mission completion). When invoked at a milestone:
+
+1. Summarize completed tasks, their verdicts, and any open debt
+2. List key decisions made since the last briefing
+3. Highlight risks or signals that require product authority attention
+4. Write the briefing to `.geas/missions/{mission_id}/phase-reviews/{phase}-briefing.md`
+
+---
+
+## Section 6: Session End Summary
+
+At session end, generate an audit-trail summary of decisions, tasks, and agent telemetry:
+
+1. Read `.geas/ledger/events.jsonl` for all events in the current session
+2. Summarize: tasks started/completed, gate results, decisions made, escalations
+3. Include agent spawn counts and which agents were most active
+4. Write to `.geas/summaries/session-{timestamp}.md`

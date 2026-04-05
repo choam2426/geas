@@ -113,12 +113,12 @@ For each new candidate, determine the domain authority reviewer:
 
 | memory_type | reviewer_type |
 |-------------|--------------|
-| security_pattern | security_engineer |
-| architecture_precedent | architecture_authority |
-| test_strategy | qa_engineer |
-| performance_tip | architecture_authority |
-| integration_pattern | architecture_authority |
-| ux_pattern | ui_ux_designer |
+| security_pattern | risk_specialist |
+| architecture_precedent | design_authority |
+| test_strategy | quality_specialist |
+| performance_tip | design_authority |
+| integration_pattern | design_authority |
+| ux_pattern | communication_specialist |
 | process_improvement | orchestration_authority |
 | failure_lesson | orchestration_authority |
 | decision_precedent | product_authority |

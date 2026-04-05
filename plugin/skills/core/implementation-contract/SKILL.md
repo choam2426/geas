@@ -1,6 +1,6 @@
 ---
 name: implementation-contract
-description: Pre-implementation agreement — worker proposes concrete action plan, qa_engineer and architecture_authority approve before coding begins. Prevents wasted implementation cycles from misunderstood requirements.
+description: Pre-implementation agreement — worker proposes concrete action plan, quality_specialist and design_authority approve before implementation begins. Prevents wasted implementation cycles from misunderstood requirements.
 ---
 
 # Implementation Contract
@@ -9,17 +9,17 @@ Worker and reviewers agree on "what done looks like" before any code is written.
 
 ## When to Use
 
-Orchestrator invokes this skill after Tech Guide (architecture_authority) and before Implementation, for every task.
+Orchestrator invokes this skill after Tech Guide (design_authority) and before Implementation, for every task.
 
 ## Purpose
 
-Eliminates the waste cycle: "worker misunderstands requirement → builds wrong thing → QA catches it → rework." The worker reads the ContextPacket (including ui_ux_designer's design and architecture_authority's tech guide), then explicitly states what they plan to do and how they'll prove it's done. qa_engineer and architecture_authority approve before implementation begins.
+Eliminates the waste cycle: "worker misunderstands requirement → builds wrong thing → QA catches it → rework." The worker reads the ContextPacket (including communication_specialist's design and design_authority's tech guide), then explicitly states what they plan to do and how they'll prove it's done. quality_specialist and design_authority approve before implementation begins.
 
 ## Inputs
 
 1. **TaskContract** — from `.geas/missions/{mission_id}/tasks/{task-id}.json`
 2. **ContextPacket** — the worker's packet at `.geas/missions/{mission_id}/packets/{task-id}/{worker}.md`
-3. **Prior evidence** — ui_ux_designer design, architecture_authority tech guide (if available)
+3. **Prior evidence** — communication_specialist design, design_authority tech guide (if available)
 
 ## Process
 
@@ -39,12 +39,12 @@ Set status to 'draft'.")
 
 Verify `.geas/missions/{mission_id}/contracts/{task-id}.json` exists.
 
-### Step 2: qa_engineer Reviews
+### Step 2: quality_specialist Reviews
 
-Spawn qa_engineer to review the contract from a QA perspective:
+Spawn quality_specialist to review the contract from a QA perspective:
 
 ```
-Agent(agent: "qa-engineer", prompt: "Read .geas/missions/{mission_id}/contracts/{task-id}.json and .geas/missions/{mission_id}/tasks/{task-id}.json. Review this implementation contract:
+Agent(agent: "quality-specialist", prompt: "Read .geas/missions/{mission_id}/contracts/{task-id}.json and .geas/missions/{mission_id}/tasks/{task-id}.json. Review this implementation contract:
 - Are demo_steps sufficient to verify all acceptance criteria?
 - Are there missing edge_cases that should be handled?
 - Are non_goals reasonable — anything critical being excluded?
@@ -52,12 +52,12 @@ Agent(agent: "qa-engineer", prompt: "Read .geas/missions/{mission_id}/contracts/
 Write your assessment. If acceptable, approve. If not, list specific concerns.")
 ```
 
-### Step 3: architecture_authority Reviews
+### Step 3: design_authority Reviews
 
-Spawn architecture_authority to review the contract from a technical perspective:
+Spawn design_authority to review the contract from a technical perspective:
 
 ```
-Agent(agent: "architecture-authority", prompt: "Read .geas/missions/{mission_id}/contracts/{task-id}.json, .geas/missions/{mission_id}/tasks/{task-id}.json, and any prior tech guide at .geas/missions/{mission_id}/evidence/{task-id}/architecture-authority.json. Review this implementation contract:
+Agent(agent: "design-authority", prompt: "Read .geas/missions/{mission_id}/contracts/{task-id}.json, .geas/missions/{mission_id}/tasks/{task-id}.json, and any prior tech guide at .geas/missions/{mission_id}/evidence/{task-id}/design-authority.json. Review this implementation contract:
 - Are planned_actions consistent with the tech guide?
 - Are non_goals appropriate — nothing critical being excluded?
 - Are there technical edge_cases the worker missed?
@@ -68,7 +68,7 @@ Write your assessment. If acceptable, approve. If not, list specific concerns.")
 ### Step 4: Resolve
 
 - **Both approve** → Update contract status to `"approved"`, set `approved_by`. Proceed to Implementation.
-- **Revision requested** → Return concerns to worker. Worker updates contract and resubmits. Allow 1 revision cycle, then architecture_authority makes final call.
+- **Revision requested** → Return concerns to worker. Worker updates contract and resubmits. Allow 1 revision cycle, then design_authority makes final call.
 
 ## Output
 
@@ -89,5 +89,5 @@ Append to .geas/ledger/events.jsonl:
 1. **Every implementation task gets a contract** — no skipping even for "simple" tasks
 2. **Workers must be honest about non_goals** — undeclared scope is the top source of rework
 3. **demo_steps must cover every acceptance criterion** — if a criterion has no demo step, the contract is incomplete
-4. **One revision cycle maximum** — after that, architecture_authority decides and we move forward
+4. **One revision cycle maximum** — after that, design_authority decides and we move forward
 5. **Contract does not replace TaskContract** — it supplements it with the worker's concrete plan

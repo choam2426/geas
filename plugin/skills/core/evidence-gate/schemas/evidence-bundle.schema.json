@@ -118,7 +118,7 @@
         }
       },
       "required": ["known_risks", "untested_paths", "confidence"],
-      "description": "Worker's honest self-assessment. Guides qa_engineer on where to focus testing."
+      "description": "Worker's honest self-assessment. Guides quality_specialist on where to focus testing."
     },
     "rubric_scores": {
       "type": "array",
@@ -132,7 +132,7 @@
         },
         "required": ["dimension", "score"]
       },
-      "description": "Rubric dimension scores produced by evaluators (qa_engineer, architecture_authority). Evidence Gate aggregates these."
+      "description": "Rubric dimension scores produced by evaluators (quality_specialist, design_authority). Evidence Gate aggregates these."
     },
     "state_verification": {
       "type": "object",

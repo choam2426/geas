@@ -31,21 +31,22 @@ Load the contract to understand:
 
 Different workers need different context:
 
-#### Designer (ui_ux_designer)
+#### Designer (communication_specialist)
 - Mission context and target user (from seed)
 - User requirements for this specific feature
 - Existing UI patterns in the codebase (if existing project)
 - Design constraints (responsive? dark mode? accessibility level?)
 - What NOT to redesign
 
-#### Implementer (frontend_engineer / backend_engineer)
-- Design spec from ui_ux_designer (from prior evidence)
-- Technical approach from architecture_authority (from prior evidence)
+#### Implementer
+- Design spec from communication_specialist (from prior evidence, if applicable)
+- Technical approach from design_authority (from prior evidence)
 - Prohibited paths — what to leave alone
 - Eval commands — how to verify their work
 - Known risks or edge cases
+- **Project conventions** — when assembling a packet for any implementer, include `.geas/memory/_project/conventions.md` if it exists
 
-#### Reviewer (architecture_authority)
+#### Reviewer (design_authority)
 - Files changed (from implementer evidence)
 - Architecture decisions relevant to this area
 - Acceptance criteria to review against
@@ -54,7 +55,7 @@ Different workers need different context:
 - **Worker's `self_check`** — `known_risks` and `possible_stubs` to focus review attention
 - **Rubric dimension**: `code_quality` score and threshold (from TaskContract `rubric`)
 
-#### Tester (qa_engineer)
+#### Tester (quality_specialist)
 - Acceptance criteria — what to test
 - Eval commands — mechanical verification
 - Expected behavior for each criterion
@@ -63,7 +64,7 @@ Different workers need different context:
 - **Worker's `self_check`** — `untested_paths`, `known_risks`, and `what_i_would_test_next` from the worker's EvidenceBundle (prioritize testing these areas)
 - **Implementation contract** — read `.geas/missions/{mission_id}/contracts/{task-id}.json` for `demo_steps` and `edge_cases` the worker committed to handling
 - **QA tools available** — based on project stack (see QA Tools section below)
-- **Rubric dimensions** — which dimensions qa_engineer must score and their thresholds (from TaskContract `rubric`)
+- **Rubric dimensions** — which dimensions quality_specialist must score and their thresholds (from TaskContract `rubric`)
 
 #### Final Verdict Authority (product_authority)
 - Feature goal (from contract)
@@ -71,7 +72,7 @@ Different workers need different context:
 - Acceptance criteria and their status
 - Mission alignment check (from seed)
 
-#### DevOps (devops_engineer)
+#### Operations (operations_specialist)
 - Build/deploy configuration from conventions.md
 - Target deployment environment and constraints (from seed)
 - CI/CD requirements from TaskContract
@@ -80,8 +81,8 @@ Different workers need different context:
 - Eval commands for build/deploy verification
 
 #### Other Specialists
-- **security_engineer**: files changed, auth/input handling code paths, OWASP concerns
-- **technical_writer**: feature description, API endpoints, configuration options
+- **risk_specialist**: files changed, auth/input handling code paths, OWASP concerns
+- **communication_specialist**: feature description, API endpoints, configuration options
 
 ### Step 3: Extract Relevant Context
 
@@ -117,7 +118,7 @@ After extracting task context, retrieve applicable memories:
    Where (see protocol/09 for canonical definitions):
    - **scope_match** (0-0.25): Cross-reference memory scope × task context using the scope match matrix (protocol/09 §Scope Match Calculation). Example: memory scope=`task` (same task) × task context=`task` → 1.0; memory scope=`mission` × task context=`task` → 0.7. Multiply by 0.25.
    - **path_overlap** (0-0.20): `|memory_paths ∩ task_paths| / |task_paths|` (0.0 if task_paths is empty). Memory paths are extracted from `evidence_refs[]` — if an evidence_ref points to a task, use that task's `scope.paths`. Multiply by 0.20.
-   - **role_match** (0-0.15): 1.0 if memory type is relevant to the target agent's role (e.g., security_pattern for security_engineer); 0.0 otherwise. Multiply by 0.15.
+   - **role_match** (0-0.15): 1.0 if memory type is relevant to the target agent's role (e.g., security_pattern for risk_specialist); 0.0 otherwise. Multiply by 0.15.
    - **freshness** (0-0.15): `max(0.0, 1.0 - (days_since_last_confirmed / 180))`. `last_confirmed_at` = `created_at` of the most recent `effect = "positive"` entry in memory-application-log for this memory_id; if none, use the memory-entry's own `created_at`. Multiply by 0.15.
    - **confidence** (0-0.10): directly from `signals.confidence`. Multiply by 0.10.
    - **reuse_success** (0-0.10): `successful_reuses / (successful_reuses + failed_reuses)` (0.5 if no application history). Multiply by 0.10.
@@ -126,7 +127,7 @@ After extracting task context, retrieve applicable memories:
 
 4. Sort by score descending. Apply role-specific budget:
    - `orchestration_authority`: top 5-8 entries
-   - specialist agents (`frontend_engineer`, `backend_engineer`, `qa_engineer`, etc.): top 3-5 entries
+   - specialist agents (implementer, quality_specialist, etc.): top 3-5 entries
    - `product_authority`: top 3 entries
 
 5. Write `.geas/missions/{mission_id}/packets/{task-id}/memory-packet.json` conforming to `schemas/memory-packet.schema.json`:
@@ -198,10 +199,10 @@ Write the packet as a markdown file with this structure:
 {1-3 sentence summary of what's needed and why}
 
 ## Design Context
-{ui_ux_designer's design spec excerpt, if available}
+{communication_specialist's design spec excerpt, if available}
 
 ## Technical Approach
-{architecture_authority's technical guidance excerpt, if available}
+{design_authority's technical guidance excerpt, if available}
 
 ## Boundaries
 **Prohibited paths:** {list}
@@ -232,11 +233,11 @@ Write the packet as a markdown file with this structure:
 - Contract: .geas/missions/{mission_id}/tasks/{task-id}.json
 ```
 
-Omit sections that have no content (e.g., no design context for a backend task before ui_ux_designer has worked).
+Omit sections that have no content (e.g., no design context for a task before the communication_specialist has worked).
 
-## QA Tools Section (qa_engineer packets only)
+## QA Tools Section (quality_specialist packets only)
 
-When generating a qa_engineer packet, include a `## QA Tools Available` section listing available MCP tools and commands from `.geas/memory/_project/conventions.md`:
+When generating a quality_specialist packet, include a `## QA Tools Available` section listing available MCP tools and commands from `.geas/memory/_project/conventions.md`:
 
 ```markdown
 ## QA Tools Available
@@ -249,7 +250,7 @@ When generating a qa_engineer packet, include a `## QA Tools Available` section 
 
 Only include tools that are actually connected or available for the project. Do not assume any specific MCP is present.
 
-## Rubric Section (qa_engineer and architecture_authority review packets)
+## Rubric Section (quality_specialist and design_authority review packets)
 
 Include a `## Rubric Scoring` section listing the dimensions the evaluator must score:
 
@@ -266,6 +267,6 @@ You MUST include `rubric_scores` in your EvidenceBundle for these dimensions:
 
 1. **Include only what the worker needs** — do not dump the entire project context
 2. **Be specific** — "Implement POST /api/auth/login" beats "implement the auth endpoint"
-3. **Preserve decisions** — if architecture_authority decided on a specific pattern, include it exactly
+3. **Preserve decisions** — if design_authority decided on a specific pattern, include it exactly
 4. **Flag conflicts** — if prior evidence contradicts the contract, note it explicitly
 5. **Keep it under 200 lines** — if longer, you're including too much

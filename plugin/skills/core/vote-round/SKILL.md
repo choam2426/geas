@@ -1,6 +1,6 @@
 ---
 name: vote-round
-description: Parallel agent voting on a proposal — agree/disagree with rationale. critical_reviewer always participates. Disagreement triggers decision.
+description: Parallel agent voting on a proposal — agree/disagree with rationale. challenger always participates. Disagreement triggers decision.
 ---
 
 # Vote Round
@@ -15,11 +15,13 @@ Orchestrator invokes this after a major proposal that affects project direction:
 
 | Proposal | Voters |
 |----------|--------|
-| Architecture / tech stack (Specifying) | backend-engineer, ui-ux-designer, critical-reviewer |
-| Overall design system | architecture-authority, frontend-engineer, critical-reviewer |
-| Cross-cutting decision (state management, API shape, deployment) | Affected agents + critical-reviewer |
+| Architecture / tech stack (Specifying) | implementer, communication_specialist, challenger |
+| Overall design system | design-authority, implementer, challenger |
+| Cross-cutting decision (state management, API shape, deployment) | Affected agents + challenger |
 
-**critical_reviewer MUST participate in every vote round.** The critical_reviewer is instructed to play devil's advocate and identify risks even when broadly in agreement.
+**challenger MUST participate in every vote round.** The challenger is instructed to play devil's advocate and identify risks even when broadly in agreement.
+
+Vote rounds also handle structured decisions (previously decision skill) and pivot decisions (previously pivot-protocol).
 
 ## What NOT to Vote On
 
@@ -36,7 +38,7 @@ Trust the agents on these. Keep moving.
 
 ### Step 1: Identify Voters
 
-orchestration_authority selects 2-4 voters based on the proposal's domain. critical_reviewer is always included.
+orchestration_authority selects 2-4 voters based on the proposal's domain. challenger is always included.
 
 ### Step 2: Spawn Voters in Parallel
 
@@ -87,7 +89,7 @@ Vote evidence files at the location specified by the caller (e.g., `.geas/missio
 
 ## Rules
 
-1. **critical_reviewer always participates** — no exceptions, even if the proposal seems obvious
+1. **challenger always participates** — no exceptions, even if the proposal seems obvious
 2. **Voters are independent** — they do not see each other's votes before voting
 3. **Disagreement is not failure** — minor disagreements become amendments, major disagreements trigger structured decision. Both produce better decisions than ignoring dissent.
 4. **One re-vote maximum** — after decision, one more vote round. If still no consensus, orchestration_authority synthesizes and the user decides.

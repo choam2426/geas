@@ -22,11 +22,11 @@
     },
     "design_excerpt": {
       "type": "string",
-      "description": "Relevant design decisions from ui_ux_designer (if applicable)"
+      "description": "Relevant design decisions from communication_specialist (if applicable)"
     },
     "tech_approach": {
       "type": "string",
-      "description": "Technical approach from architecture_authority (if applicable)"
+      "description": "Technical approach from design_authority (if applicable)"
     },
     "scope_paths": {
       "type": "array",
