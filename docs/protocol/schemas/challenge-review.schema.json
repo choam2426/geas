@@ -30,7 +30,7 @@
     },
     "producer_type": {
       "type": "string",
-      "const": "critical_reviewer"
+      "const": "challenger"
     },
     "task_id": {
       "type": "string",
@@ -38,7 +38,7 @@
     },
     "reviewer_type": {
       "type": "string",
-      "const": "critical_reviewer"
+      "const": "challenger"
     },
     "concerns": {
       "type": "array",

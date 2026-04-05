@@ -32,9 +32,8 @@
     "producer_type": {
       "type": "string",
       "enum": [
-        "frontend_engineer",
-        "backend_engineer",
-        "devops_engineer",
+        "software_engineer",
+        "platform_engineer",
         "technical_writer"
       ]
     },
