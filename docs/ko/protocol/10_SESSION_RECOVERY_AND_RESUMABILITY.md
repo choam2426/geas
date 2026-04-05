@@ -1,254 +1,256 @@
 # 10. Session Recovery and Resumability
 
+> **기준 문서.**
+> 이 문서는 Geas가 중단된 작업을 확실성을 가장하지 않으면서 재개하기 위해 사용하는 checkpoint, safe boundary, recovery class, recovery packet, 그리고 보수적 규칙을 정의한다.
+
 ## 목적
 
-긴 세션, compaction, subagent interruption, 비정상 종료가 있어도 **안전한 경계에서 재개**할 수 있어야 한다.
+구조화된 작업 세션은 길고, 도구에 의존적이며, 실패에 취약하다. Recovery는 다음과 같은 원인으로 중단이 발생했을 때 무결성을 보존하기 위해 존재한다:
+
+- 세션 compaction
+- sub-agent 유실
+- 도구 타임아웃
+- 크래시 또는 연결 끊김
+- 손상된 workspace
+- 모호한 부분 진행
+
+Recovery의 목적은 어떤 대가를 치르더라도 연속성을 극대화하는 것이 **아니다**. 그 목적은 가능한 한 많은 유효한 작업을 복구하면서 정확성을 보존하는 것이다.
 
 ## Recovery Classes
 
-- `post_compact_resume`
-- `warm_session_resume`
-- `interrupted_subagent_resume`
-- `dirty_state_recovery`
-- `manual_repair_required`
+각 recovery class는 세션 중단의 범주와 기대되는 복구 자세를 설명한다. 프로젝트는 추가 하위 유형을 정의할 수 있지만, 아래의 정규 class는 인식 가능하게 유지해야 한다.
+
+| class | 설명 |
+|---|---|
+| `post_compact_resume` | 호스트 플랫폼에 의해 세션이 compaction됨. 컨텍스트는 일부 또는 전부 유실되었으나 디스크의 artifact는 온전할 수 있음 |
+| `warm_session_resume` | 세션이 정상적으로 또는 거의 정상적으로 종료됨. 대부분의 컨텍스트가 유지되고 artifact가 일관된 상태 |
+| `interrupted_subagent_resume` | 위임된 sub-agent가 실행 중 유실됨. 부모 세션은 온전하나 sub-agent의 작업은 불확실 |
+| `dirty_state_recovery` | 커밋되지 않았거나 모호한 로컬 변경이 존재함. workspace 상태가 알려진 어떤 checkpoint와도 일치하지 않음 |
+| `manual_repair_required` | 자동 복구가 안전하게 진행될 수 없음. 작업 재개 전 사용자 개입이 필요 |
 
 ## Recovery Anchor
 
-최소 anchor:
+Recovery anchor는 엔진이 상황을 판단하고 복구 경로를 결정하는 데 필요한 최소 정보 집합이다. Recovery 시도 시 최소한 다음을 수집해야 한다:
+
 - `run.json`
-- `session-latest.md`
-- `task-focus/<task-id>.md`
-- latest `recovery-packet.json` (있다면)
-- active task artifacts
+- 최신 세션 요약
+- 활성 task에 대한 최신 task-focus 요약
+- 사용 가능한 경우 최신 `recovery-packet.json`
+- 활성 task artifact
+- workspace 상태
+
+Anchor가 불완전하면, 엔진은 덜 보수적이 아니라 더 보수적으로 동작해야 한다.
 
 ## Checkpoint Protocol
 
-### write-before-launch
-새 subagent / risky step 시작 전 checkpoint 기록
+Checkpoint는 진행 상황을 기록하여 recovery가 작업이 중단된 지점을 식별할 수 있게 한다. 프로토콜은 두 가지 checkpoint 시점과 권장 two-phase 패턴을 정의한다.
 
-### write-after-step
-상태가 실제로 바뀐 뒤 checkpoint 갱신
+### `write-before-launch`
 
-### two-phase checkpoint
-1. intent write — 의도한 state transition을 `run.json`에 기록
-2. artifact creation / state transition — 실제 artifact를 생성하고 상태를 변경
-3. commit checkpoint — `run.json`의 intent를 완료 상태로 갱신
+위험한 단계나 위임된 sub-agent 실행이 시작되기 전에, 런타임은 의도된 다음 단계 메타데이터를 기록해야 한다.
 
-**phase 2에서 실패 시**: intent write가 존재하지만 commit checkpoint가 없으면, 해당 transition은 미완료로 간주한다. recovery 시 intent write의 내용을 읽어 어떤 transition이 시도됐는지 파악하고, artifact가 실제 생성됐는지 확인한 후 Recovery Decision Table에 따라 처리한다.
+### `write-after-step`
 
-### Step-Level Checkpoint (`remaining_steps`)
+단계가 실제로 완료되고 artifact가 존재한 후, 런타임은 checkpoint를 갱신해야 한다.
 
-`run.json`에 `remaining_steps[]` 배열을 유지하여 현재 pipeline 진행 상태를 추적한다.
+### Two-phase checkpoint
 
-규칙:
-- pipeline 시작 시 전체 step 목록을 `remaining_steps`에 기록한다
-- 각 step 완료 시 해당 step을 배열에서 제거한다
-- session 재개 시 `remaining_steps[0]`부터 실행한다
-- `remaining_steps`가 비어 있으면 pipeline 완료로 간주한다
-- step 제거는 해당 step의 artifact가 확인된 후에만 수행한다 (two-phase checkpoint와 동일 원칙)
+권장 흐름:
 
-## Safe Boundary
+1. intent write
+2. 단계 수행 및 artifact 생성
+3. checkpoint를 완료로 commit
 
-safe boundary에서만 exact resume를 허용한다. 예:
-- task admitted, but implementation not started
-- implementation finished and artifact persisted
-- integration finished and result artifact persisted
-- gate completed and result artifact persisted
-- closure packet frozen
+Phase 2가 실패하면, 런타임은 artifact의 존재와 유효성이 달리 증명하지 않는 한 해당 transition을 미완료로 처리해야 한다.
 
-unsafe in-flight 상태에서는 replay 또는 rewind가 필요하다.
+## Step-Level Progress
+
+런타임은 `remaining_steps[]` 개념 또는 동등한 것을 유지해야 한다. 이 목록은 sub-pipeline에서 아직 완료가 확인되지 않은 단계를 추적한다.
+
+| 규칙 | 설명 |
+|---|---|
+| 실행 전 추가 | 단계가 시작되기 전에 목록에 추가 |
+| 확인 후 제거 | 성공이 확인된 후에만 단계를 제거 |
+| 다음 미완료 단계부터 재개 | recovery는 다음 확인된 미완료 단계부터 시작 |
+| 빈 목록은 완료를 의미 | 목록이 비어 있으면 로컬 sub-pipeline이 완료된 것 |
+
+## Safe Boundary와 Unsafe Boundary
+
+Exact resume는 safe boundary에서만 허용된다. Safe boundary란 이전의 모든 작업이 완전히 저장되어 있고 완료된 내용에 대한 모호함이 없는 지점이다.
+
+### Safe boundary
+
+| boundary | 설명 |
+|---|---|
+| task 승인됨, implementation 미시작 | task contract는 존재하나 workspace 변경이 없는 상태 |
+| implementation 완료, self-check 저장됨 | implementation이 끝나고 worker의 self-check artifact가 저장됨 |
+| review 세트 완료 및 저장됨 | 모든 필수 specialist review가 저장됨 |
+| integration result 저장됨 | integration result artifact가 작성되고 유효한 상태 |
+| gate result 저장됨 | evidence gate result artifact가 작성되고 유효한 상태 |
+| closure packet 저장됨, final verdict 미발행 | closure packet은 조립되었으나 Decision Maker가 아직 verdict를 내리지 않은 상태 |
+
+### Unsafe boundary
+
+| boundary | 설명 |
+|---|---|
+| 부분 편집된 workspace, 신뢰할 수 있는 checkpoint 없음 | workspace에 변경이 있으나 의도되거나 완료된 내용을 확인하는 checkpoint가 없음 |
+| gate 실행 중, 확인된 결과 없음 | evidence gate가 실행 중이나 저장된 결과가 없음 |
+| integration 진행 중, 모호한 상태 | integration이 시도되었으나 성공 여부가 불분명 |
+| final verdict 주장되었으나 packet 누락 | verdict가 기록되었으나 이를 뒷받침하는 closure packet이 존재하지 않음 |
+
+Unsafe boundary는 replay 또는 상태 복원이 필요하다. 완료로 표현해서는 안 된다.
 
 ## Recovery Decision Table
 
-| observed state | artifact completeness | recovery outcome |
+이 테이블은 관찰된 상태를 권장 recovery 결과에 매핑한다. 상황이 어떤 행과도 정확히 일치하지 않으면 가장 보수적인 호환 가능한 결과를 선택한다.
+
+| 관찰된 상태 | artifact completeness | 기본 결과 |
 |---|---|---|
-| task implementing, worktree clean, contract exists | high | `resume_with_revalidation` |
-| task implementing, worktree dirty, partial artifacts | medium | `replay_current_step` or `rewind_to_safe_boundary` |
-| integrated state claimed but no integration artifact | low | `rewind_to_safe_boundary` |
-| verified claimed but gate result missing | low | `rewind_to_safe_boundary` |
-| passed claimed but final verdict missing | invalid | hard block |
-| multiple tasks in-flight, conflicting states | varies | 각 task를 개별 평가. 가장 보수적인 recovery outcome 적용 |
-| run.json 자체가 손상/누락 | none | `manual_repair_required`. `.geas/` 하위 artifact를 순회하여 상태 재구축 |
+| implementation 진행 중, workspace 깨끗, contract 존재 | high | `resume_with_revalidation` |
+| implementation 진행 중, workspace dirty, 부분 artifact | medium | `replay_current_step` 또는 `restore_to_safe_boundary` |
+| integration 주장, result artifact 누락 | low | `restore_to_safe_boundary` |
+| verified 주장, gate result 누락 | low | `restore_to_safe_boundary` |
+| passed 주장, final verdict 누락 | invalid | hard block |
+| 여러 in-flight task, 상충하는 신호 | varies | task별로 평가하여 가장 보수적인 호환 가능한 결과 선택 |
+| 런타임 anchor 누락 또는 손상 | none | `manual_repair_required` |
 
-### Artifact Completeness 분류
+## Artifact Completeness Classification
 
-recovery decision table에서 사용하는 artifact completeness는 아래 기준으로 결정한다:
+Artifact completeness는 recovery 엔진이 주장된 상태를 얼마나 신뢰할 수 있는지를 결정한다. 다음 등급은 recovery 결정을 위한 공유 어휘를 제공한다.
 
-| 등급 | 조건 |
+| 등급 | 의미 |
 |---|---|
-| `high` | 현재 task state까지 필요한 모든 artifact가 존재하고 schema validation을 통과함 |
-| `medium` | 필요한 artifact의 50% 이상이 존재하고 validation 통과함 |
-| `low` | 필요한 artifact의 50% 미만이 존재하거나, 존재하는 artifact 중 validation 실패가 있음 |
-| `none` | task 관련 artifact가 하나도 존재하지 않음 |
-| `invalid` | artifact 파일은 존재하지만 JSON parse 실패 또는 schema validation 전체 실패 |
+| `high` | 주장된 상태에 필요한 모든 artifact가 존재하고 검증을 통과 |
+| `medium` | 많은 필수 artifact가 존재하지만 연속성이 불완전 |
+| `low` | 필수 artifact가 거의 없거나 일부가 검증 실패 |
+| `none` | 신뢰할 수 있는 task evidence가 없음 |
+| `invalid` | artifact가 존재하지만 손상, 모순, 또는 파싱 불가 |
 
-"필요한 artifact"는 task의 현재 state에 따라 결정된다 (doc 03 전이 테이블의 각 전이에 필요한 artifact 기준).
+## Recovery Matching Rules
 
-### Decision Table 매칭 규칙
+가능한 해석이 여러 개 존재할 때, recovery 엔진은 가정이 가장 적은 해석을 선택해야 한다.
 
-- observed state가 여러 행에 해당할 수 있으면, artifact completeness가 가장 낮은 행의 recovery outcome을 적용한다 (보수적 원칙).
-- table에 해당하지 않는 상태 조합은 `manual_repair_required`로 처리한다.
+예:
+
+- integration 성공이 불분명하면, integration이 완료되지 **않았다**고 가정
+- gate 출력이 누락되면, 검증이 완료되지 **않았다**고 가정
+- workspace에 편집이 있지만 self-check가 없으면, implementation이 미완료라고 가정
 
 ## Recovery Packet
 
-필수 필드:
-- `recovery_id` — 고유 식별자. 형식: `"recovery-{ISO8601 timestamp}"` (예: `"recovery-2026-04-01T09-30-00Z"`)
-- `recovery_class` — 위 5개 Recovery Classes 중 하나의 enum 값 (`post_compact_resume` | `warm_session_resume` | `interrupted_subagent_resume` | `dirty_state_recovery` | `manual_repair_required`)
-- `focus_task_id` — 중단 시점에 작업 중이던 task의 ID
-- `detected_problem` — 감지된 문제의 구체적 서술
-- `last_safe_boundary` — 마지막으로 확인된 safe boundary 상태
-- `recommended_action` — 권장 복구 행동. enum: `exact_resume` | `replay_step` | `revalidate` | `rewind` | `manual_repair`
-- `required_revalidation` — 재검증이 필요한 항목 목록
-- `artifact_refs[]` — 존재가 검증 완료된 artifact 목록. 복구 시점에 실제로 존재하는 artifact만 포함해야 한다
+`recovery-packet`은 중단된 상태에 대한 엔진의 판단을 캡처하여 다음 세션이 충분한 정보를 바탕으로 결정할 수 있게 한다. Recovery packet 또는 동등한 것은 다음을 포함해야 한다:
 
-## Worktree Recovery Rules
+| 필드 | 설명 |
+|---|---|
+| recovery class | 적용되는 정규 recovery class |
+| 관찰된 상태 요약 | 엔진이 상황을 평가했을 때 발견한 내용 |
+| 활성 task와 마지막 safe boundary | task별 안전한 재개가 가능한 지점 기록 |
+| 부실 또는 손상된 artifact 노트 | 어떤 artifact가 의심스러운지와 그 이유 |
+| 권장 다음 행동 | 엔진이 제안하는 복구 경로 |
+| 누락되거나 의심스러운 evidence | 예상되는 artifact 중 부재하거나 신뢰할 수 없는 것 |
+| 수동 개입 필요 여부 | 작업 재개 전 사용자 개입이 필요한지 여부 |
 
-- worktree exists + dirty: fingerprint 남기고 safe resume 가능 여부 판단
-- worktree missing + task implementing: implementation 재실행 또는 manual repair
-- passed/cancelled task worktree still exists: cleanup candidate
-- paused task + integration branch moved: resume 전 revalidation 필수
+## Workspace Recovery Rules
+
+Workspace recovery는 workspace 청결도와 checkpoint 품질의 조합에 따라 달라진다. 이 규칙은 recovery class에 관계없이 적용된다.
+
+### 깨끗한 workspace, 양호한 checkpoint
+
+Freshness 확인 후 resume가 가능할 수 있다.
+
+### Dirty workspace, 일관된 변경
+
+시스템은 변경사항을 보존할 수 있지만, 진행이 이미 이루어졌다고 주장하는 대신 해당 변경에서 다음 공식 artifact를 replay하거나 재도출해야 한다.
+
+### Dirty workspace, 비일관적이거나 상충하는 변경
+
+마지막 safe boundary로 상태를 복원하거나 수동 복구를 진행한다.
+
+### 누락된 workspace
+
+Artifact가 뒷받침하는 경우 baseline에서 재생성하고 마지막 safe boundary에서 replay한다.
 
 ## Recovery Safety Rules
 
-1. evidence 없는 claimed state를 믿지 않는다. 모든 claimed state는 해당 artifact의 존재와 내용을 검증한 후에만 수용한다.
-2. missing artifact가 있으면 더 앞 단계로 rewinding 한다. rewind 대상 단계는 Recovery Decision Table의 `recovery outcome`을 따른다.
-3. unsafe ambiguous 상태에서 `passed`는 절대 유지하지 않는다. 해당 task는 `rewind_to_safe_boundary`로 처리한다.
-4. recovery outcome은 반드시 `recovery-packet.json` artifact로 기록한다.
-5. **evidence 보존 원칙**: recovery 과정에서 기존 evidence artifact를 삭제하거나 덮어쓸 수 없다. recovery는 새 artifact를 append하거나, recovery 전용 artifact(예: `recovery-packet.json`, `revalidation-record.json`)만 생성할 수 있다.
+이 규칙은 타협할 수 없다. Class나 컨텍스트에 관계없이 모든 recovery 시도에 적용된다.
 
-### Recovery 중 실패 (Nested Recovery)
+1. Recovery는 낙관적 계속보다 보수적 상태 복원을 선호해야 한다.
+2. Recovery는 이미 검증된 evidence를 가능한 한 보존해야 한다.
+3. Recovery는 부분 artifact를 canonical로 간주하지 않고 격리해야 한다.
+4. Recovery는 알려진 blocker, 위험, 또는 debt를 제거해서는 안 된다.
+5. Recovery는 불확실성을 명시적으로 표시해야 한다.
 
-recovery 절차 자체가 실패하는 경우 (예: recovery-packet.json 기록 중 세션 중단, revalidation 실행 중 오류):
+## Partial Artifact Quarantine
 
-1. **감지**: 다음 세션 시작 시 `recovery-packet.json`의 `recommended_action`이 기록되어 있으나 해당 action의 completion artifact가 없으면 nested failure로 판단한다.
-2. **escalation**: nested recovery는 자동 해소를 시도하지 않는다. `recovery_class`를 `manual_repair_required`로 설정하고 `orchestration_authority`에게 상태를 보고한다.
-3. **안전 보장**: nested failure 상태에서는 어떤 task도 `implementing` 이상으로 진행할 수 없다. `orchestration_authority`가 수동으로 safe boundary를 확인하고 `recovery-packet.json`을 완성해야 진행 가능하다.
+Hook이나 에이전트가 부분 artifact를 남기면:
 
-## Recovery → Evolution Feedback
+- 격리 표시자 또는 보조 노트와 함께 보존
+- 유효한 canonical evidence로 취급하지 않음
+- 보조 recovery 정보로만 검사
 
-non-trivial recovery(`dirty_state_recovery` 또는 `manual_repair_required`)가 발생할 때마다 recovery incident record를 생성한다.
+## Nested Recovery
 
-### recovery incident record
-- 저장 위치: `.geas/memory/incidents/`
-- 파일명: `incident-{recovery_id}.json`
-- 필수 필드: `recovery_id`, `recovery_class`, `focus_task_id`, `root_cause`, `resolution_steps`, `time_to_recover`, `prevention_suggestion`
+Recovery 시도 자체가 실패할 수 있다. 이 경우:
 
-### 학습 루프
-1. `orchestration_authority`는 retrospective에서 해당 세션의 recovery incident를 검토한다.
-2. 동일한 `recovery_class`가 **2회 이상** 발생하면, 해당 패턴은 rule candidate로 자동 등록된다.
-3. rule candidate는 doc 14의 Retrospective → Rule Update 프로세스를 따라 승인·적용된다.
-4. 승인된 rule은 해당 recovery class의 재발을 예방하는 checkpoint 또는 hook으로 구현된다.
+- recovery 실패를 기록
+- 무한 재귀 recovery 방지
+- 수동 복구 또는 더 넓은 상태 복원과 같은 더 단순한 결과로 격하
+- 여전히 읽을 수 있는 모든 evidence 보존
 
-## Recovery Scenarios
+## Dirty State Recovery
 
-### Scenario 1: Gate 실행 중 session이 중단된 경우
+Dirty state는 커밋되지 않았거나 모호한 로컬 변경이 존재함을 의미한다. Workspace가 알려진 어떤 checkpoint와도 일치하지 않기 때문에, 가장 흔하면서도 가장 위험한 recovery 상황 중 하나이다.
 
-**상황 설명:**
-- task `T-042`가 `verifying` 상태에 있다.
-- evidence gate 3-tier 검증 중 tier 1 (mechanical check)은 통과하여 `gate-result.json`에 `tier1.verdict = pass`가 기록된 상태이다.
-- tier 2 (semantic+rubric) 실행 중 session이 비정상 종료되었다.
-- `.geas/missions/{mission_id}/tasks/T-042/gate-result.json`에는 `tier1` 결과만 존재하고, `tier2` 필드는 `in_progress` 또는 부재.
+규칙:
 
-**Recovery class:** `interrupted_subagent_resume`
+- dirty state에서의 exact resume는 checkpoint와 artifact가 다음 단계를 명확하게 만드는 경우에만 허용
+- 그 외에는 replay 또는 safe boundary로 상태 복원
+- high-risk dirty state는 수동 검사가 가능하지 않는 한 상태 복원 쪽으로 기울어야 한다
 
-**Recovery 절차:**
+## Manual Repair Required
 
-1. **상태 감지**: session 재시작 시 `run.json`에서 `T-042`의 상태가 `verifying`임을 확인한다. `gate-result.json`을 읽어 tier1은 완료, tier2는 미완료임을 감지한다.
-2. **safe boundary 판단**: tier 1 완료는 safe boundary에 해당한다 (artifact가 persist된 상태). tier 2는 unsafe in-flight 상태이다.
-3. **recovery packet 생성**:
-   ```json
-   {
-     "recovery_id": "recovery-2026-04-01T14-30-00Z",
-     "recovery_class": "interrupted_subagent_resume",
-     "focus_task_id": "T-042",
-     "detected_problem": "gate tier 2 (semantic+rubric) 실행 중 session 중단. tier1 pass 완료, tier2 미완료.",
-     "last_safe_boundary": "gate tier 1 completed",
-     "recommended_action": "replay_step",
-     "required_revalidation": ["gate_tier2", "gate_tier3"],
-     "artifact_refs": [
-       ".geas/missions/{mission_id}/tasks/T-042/gate-result.json",
-       ".geas/missions/{mission_id}/tasks/T-042/integration-result.json",
-       ".geas/missions/{mission_id}/tasks/T-042/worker-self-check.json"
-     ]
-   }
-   ```
-4. **실행**: tier 2를 처음부터 재실행한다 (idempotent — 동일 입력에 대해 동일 결과). tier 1 결과는 보존된다 (evidence 보존 원칙). tier 2 결과가 나오면 closure packet 조립 → critical reviewer challenge → final verdict 순서로 진행한다.
-5. **완료**: gate 전체 결과가 확정되면 정상 흐름으로 복귀한다.
+수동 복구는 다음과 같은 경우 적절하다:
 
-### Scenario 2: Integration 완료 후 verdict 생성 전 session이 crash된 경우
+- 런타임 anchor가 누락
+- artifact 손상이 심각
+- 안전하게 해결할 수 없는 여러 모순된 상태 주장
+- 로컬 정책이 계속하기 전 사용자의 review를 요구
 
-**상황 설명:**
-- task `T-078`이 `integrating` 상태에 있다.
-- `.geas/missions/{mission_id}/tasks/T-078/integration-result.json`이 존재하며, merge commit hash와 `status = success`가 기록되어 있다.
-- 그러나 `closure-packet.json`은 아직 생성되지 않았고, `gate-result.json`도 이 integration 이후의 gate 실행 기록이 없다.
-- `integration_lock`이 `T-078`에 의해 보유된 채 session이 종료되었다.
+수동 복구는 다음 세션이 무엇이 결정되었는지 알 수 있도록 작은 복구 노트를 생성해야 한다.
 
-**Recovery class:** `warm_session_resume`
+## Recovery to Evolution Feedback
 
-**Recovery 절차:**
+Recovery incident는 가치 있는 학습 입력이다. 중요한 recovery 이벤트는 다음에 반영되어야 한다:
 
-1. **상태 감지**: session 재시작 시 `run.json`에서 `T-078`의 상태가 `integrating`임을 확인한다. `integration-result.json`이 존재하고 `status = success`이므로 integration 자체는 완료된 것으로 판단한다.
-2. **orphan lock 정리**: `.geas/state/locks.json`에서 `T-078`이 보유한 `integration_lock`을 감지한다. 소유 session이 종료되었으므로 orphan lock으로 분류하여 해제한다.
-3. **safe boundary 판단**: integration 완료 + result artifact persist는 safe boundary에 해당한다.
-4. **recovery packet 생성**:
-   ```json
-   {
-     "recovery_id": "recovery-2026-04-01T16-45-00Z",
-     "recovery_class": "warm_session_resume",
-     "focus_task_id": "T-078",
-     "detected_problem": "integration 완료(integration-result.json 존재, status=success) 후 gate 실행 및 closure packet 생성 전 session crash.",
-     "last_safe_boundary": "integration completed and result persisted",
-     "recommended_action": "exact_resume",
-     "required_revalidation": [],
-     "artifact_refs": [
-       ".geas/missions/{mission_id}/tasks/T-078/integration-result.json",
-       ".geas/missions/{mission_id}/tasks/T-078/specialist-review.json",
-       ".geas/missions/{mission_id}/tasks/T-078/worker-self-check.json",
-       ".geas/missions/{mission_id}/contracts/T-078.json"
-     ]
-   }
-   ```
-5. **실행**: task 상태를 `integrated`로 전환하고, evidence gate 실행부터 정확히 재개한다 (exact_resume). integration을 재실행하지 않는다 — `integration-result.json`이 이미 존재하므로.
-6. **완료**: gate → closure packet → passed의 정상 흐름을 이어간다.
+- retrospective 노트
+- memory candidate
+- 규칙 candidate
+- scheduler 또는 checkpoint 강화
 
-### Scenario 3: Uncommitted 변경이 있는 dirty worktree
+같은 실패에서 반복적으로 복구하면서 프로세스를 변경하지 않는 팀은 학습하지 않는 것이다.
 
-**상황 설명:**
-- task `T-115`가 `implementing` 상태에 있다.
-- worktree (`worktree.path = .geas/worktrees/T-115`)에 uncommitted 변경사항이 있다: 3개 파일 수정, 1개 파일 신규 추가.
-- `worker-self-check.json`은 아직 생성되지 않았다. `worker-evidence.json`도 없다.
-- session이 비정상 종료되었다.
+## 대표 시나리오
 
-**Recovery class:** `dirty_state_recovery`
+### Scenario 1 — gate 실행 중 중단
 
-**Recovery 절차:**
+명령 출력이 불완전하고 검증된 gate artifact가 없으면:
 
-1. **상태 감지**: session 재시작 시 `run.json`에서 `T-115`의 상태가 `implementing`임을 확인한다. worktree 경로를 확인하여 dirty 상태(uncommitted changes)를 감지한다.
-2. **fingerprint 생성**: worktree의 현재 상태를 fingerprint한다. 변경된 파일 목록, diff 크기, 마지막 커밋 hash를 기록한다.
-   ```
-   fingerprint:
-     last_commit: a1b2c3d
-     dirty_files: ["src/api/handler.ts", "src/api/validator.ts", "src/api/types.ts", "src/api/errors.ts (new)"]
-     diff_lines: +187 / -23
-     worktree_exists: true
-   ```
-3. **recovery packet 생성**:
-   ```json
-   {
-     "recovery_id": "recovery-2026-04-01T20-15-00Z",
-     "recovery_class": "dirty_state_recovery",
-     "focus_task_id": "T-115",
-     "detected_problem": "worktree dirty — 4 files with uncommitted changes, no worker-self-check.json, no worker-evidence.json. 구현 진행 중 session 비정상 종료.",
-     "last_safe_boundary": "implementation started, implementation-contract.json exists",
-     "recommended_action": "revalidate",
-     "required_revalidation": ["worktree_integrity", "implementation_progress"],
-     "artifact_refs": [
-       ".geas/missions/{mission_id}/contracts/T-115.json",
-       ".geas/missions/{mission_id}/tasks/T-115.json"
-     ]
-   }
-   ```
-4. **orchestration_authority에게 diff 제시**: fingerprint와 함께 전체 diff를 orchestration_authority에게 보여주고, 아래 두 선택지를 제시한다:
-   - **commit-and-continue**: 현재 변경사항을 worktree에 커밋하고, `implementing` 상태를 유지하여 구현을 이어간다. `implementation-contract.json`의 `touched_paths`와 현재 변경 파일을 대조하여 scope 이탈 여부를 확인한다.
-   - **rewind**: uncommitted 변경을 폐기하고 마지막 커밋(`a1b2c3d`)으로 되돌린 뒤, `implementing` 상태에서 구현을 재시작한다. 변경사항은 recovery packet에 diff로 보존되므로 참고 자료로 활용 가능하다.
-5. **결정 후**: 선택된 action을 실행하고, recovery outcome을 `recovery-packet.json`에 기록한다. `dirty_state_recovery` 발생 자체를 `.geas/memory/incidents/incident-recovery-2026-04-01T20-15-00Z.json`에 incident record로 남긴다.
+- `verified`를 주장하지 않음
+- 명령을 안전하게 재실행할 수 있는지 검사
+- 일반적으로 gate를 replay
+
+### Scenario 2 — 로컬에서 integration 완료, verdict 미생성
+
+Integration 결과가 존재하고 유효하면:
+
+- post-integration, pre-verdict safe boundary에서 복구
+- 기본적으로 implementation을 재실행하지 않음
+- baseline이 다시 변경되었으면 packet freshness를 갱신
+
+### Scenario 3 — checkpoint가 누락된 dirty workspace
+
+Exact resume는 금지된다. Artifact에서 보수적 경로를 재구성하거나 safe boundary로 상태를 복원한다.
+
+## 핵심 문장
+
+Geas에서의 recovery는 의도적으로 회의적이다. 이 프로토콜은 나중에 디버깅 불가능한 false green이 되는 모호함을 승인하는 것보다 단계를 replay하는 것을 선호한다.

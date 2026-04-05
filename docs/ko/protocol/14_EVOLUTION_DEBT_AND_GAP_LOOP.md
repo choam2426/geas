@@ -1,194 +1,250 @@
 # 14. Evolution, Debt, and Gap Loop
 
+> **기준 문서.**
+> 이 문서는 retrospective loop, debt 모델, gap assessment, mission 간 학습 메커니즘을 정의하며, 이를 통해 Geas가 시간이 지남에 따라 운영 역량을 축적하게 한다.
+
 ## 목적
 
-이 문서는 Geas의 차별점인 **Evolution**을 운영 루프로 정의한다. 핵심 질문은 아래와 같다.
+Evolution은 Geas를 단순한 gating workflow 이상으로 만드는 핵심이다. 이 문서는 아래 질문에 답한다:
 
-1. task가 끝난 뒤 팀은 무엇을 배워야 하는가?
-2. 그 학습은 어디에 저장되고, 어떻게 다음 행동을 바꾸는가?
-3. 구현 범위와 원래 약속한 scope 사이 차이는 어떻게 측정하는가?
-4. 기술 부채는 어떻게 누적·검토·해소하는가?
+- task 또는 mission 이후 팀이 무엇을 배워야 하는가
+- 타협이 잊히지 않고 어떻게 추적되는가
+- 약속한 scope와 전달된 scope의 차이를 어떻게 비교하는가
+- 유해한 패턴이 어떻게 더 나은 미래 행동으로 변환되는가
 
 ## Per-Task Retrospective Loop
 
-모든 `passed` task 뒤에는 `orchestration_authority`가 `retrospective.json`을 작성한다.
+모든 `passed` task 이후, 프로젝트는 retrospective 또는 retrospective 기여를 생성해야 한다. Retrospective는 task 중 발생한 것을 포착하여 이후 task가 그 경험으로부터 혜택을 받게 한다.
 
-최소 항목:
-- `what_went_well[]`
-- `what_broke[]`
-- `what_was_surprising[]`
-- `rule_candidates[]`
-- `memory_candidates[]`
-- `debt_candidates[]`
-- `next_time_guidance[]`
+### Minimum retrospective topics
 
-## Retrospective -> Rule Update
+각 retrospective는 최소한 아래 영역을 다루어야 한다:
 
-### rule candidate 생성
-다음 조건이면 rule candidate를 만들 수 있다.
-- 같은 failure pattern이 2회 이상 반복
-- 같은 reviewer concern이 2회 이상 반복
-- same integration/recovery mistake 재발
-- 분명한 process fix가 존재
+| topic | 포착 대상 |
+|---|---|
+| `what_went_well[]` | 좋은 결과를 낸 실천, 도구, 결정 |
+| `what_broke[]` | failure, regression, 예상치 못한 문제 |
+| `what_was_surprising[]` | 틀린 것으로 판명된 가정, 예상치 못한 복잡성 |
+| `rule_candidates[]` | 반복 문제를 방지할 행동 변화 |
+| `memory_candidates[]` | 미래 context를 위해 보존할 가치가 있는 교훈 |
+| `debt_candidates[]` | 명시적 추적이 필요한 타협 |
+| `next_time_guidance[]` | 다음 유사 task를 위한 구체적 조언 |
 
-### rule update 승인
-아래 중 하나 필요:
-- `orchestration_authority` + domain authority 승인
-- evidence_refs 2개 이상 + `contradiction_count = 0`
+Retrospective는 구체적이어야 한다. "더 조심해야 함"은 너무 약하다. "Rate limit 없는 Auth endpoint가 challenge review에서 계속 실패함"은 유용하다.
 
-### behavior change
-승인된 rule은 아래를 바꾼다.
-- packet L0 pinned invariants
-- task compiler default checks
-- implementation contract checklist
-- reviewer focus prompts
-- readiness auto trigger
+## Retrospective to Rule Update
 
-즉 rule은 문서가 아니라 **future behavior modifier**다.
+Retrospective에서 반복 문제가 발견되면, 프로젝트는 해당 패턴을 enforcement 가능한 rule로 변환하는 것을 고려해야 한다.
+
+### When a rule candidate is justified
+
+Rule candidate는 특히 아래 경우에 정당화된다:
+
+- 동일 failure가 반복될 때
+- 동일 reviewer concern이 반복될 때
+- 동일 recovery 실수가 반복될 때
+- 동일 scope-control drift가 반복될 때
+- 명확한 behavior change가 문제를 방지했을 때
+
+### Rule approval expectations
+
+Rule은 아래를 갖추어야 한다:
+
+| 요건 | 목적 |
+|---|---|
+| 뒷받침하는 evidence | 문제가 실재하고 반복됨을 증명 |
+| 명확한 behavior 영향 | rule로 인해 무엇이 변하는지 명시 |
+| 소유자 | enforcement에 책임 있는 주체 |
+| 범위 명시 | rule이 어디에, 언제 적용되는지 |
+| enforcement 계획 | rule이 어떻게 표면화되거나 검사되는지 |
+
+### Behavior-change requirement
+
+Rule은 그것으로 인해 무엇이 변할지 프로젝트가 설명할 수 있을 때까지 완성되지 않는다. 예:
+
+- 더 엄격한 contract checklist
+- review checklist 추가
+- gate focus 변경
+- scheduler caution
+- packet-builder pinning
 
 ## Agent Memory Feedback Loop
 
-retrospective에서 나온 lesson은 role-specific이면 `agent_memory`로, 그렇지 않으면 project-level memory로 들어간다.
+Role 특화 교훈은 agent memory가 되어야 한다. Cross-role 교훈은 project memory 또는 rules가 되어야 한다.
 
-### role-specific lesson 판별 기준
+### Role-specific lesson criteria
 
-lesson이 아래 조건 중 하나 이상을 만족하면 role-specific이다:
-- (a) 해당 agent type만 사용하는 tool/technique을 참조하는 경우
-- (b) 해당 agent type만 생산하는 artifact type에 적용되는 경우
-- (c) 해당 agent type의 review에서 생성된 경우
+교훈이 주로 아래와 관련될 때 role-specific이다:
 
-위 조건을 만족하지 않으면 project-level memory로 분류한다.
-
-### 예:
-- qa lesson → `qa_engineer`
-- security lesson → `security_engineer`
-- architecture precedent → `architecture_authority`
-- implementation smell → relevant engineer type
-- 프로세스 개선 관련 lesson → project-level (특정 agent type에 종속되지 않음)
-
-다음 spawn 시 packet builder는 applicable agent_memory를 주입한다.
+- 해당 slot이 주로 사용하는 tool 또는 technique
+- 해당 slot이 주로 생산하는 artifact
+- 해당 slot의 반복적 review blind spot
+- 해당 slot의 반복적 도메인 특화 성공 패턴
 
 ## Debt Tracking Model
 
-`debt-register.json`은 mission/phase 수준의 부채 장부다.
+Debt는 수용된 타협의 명시적 장부다. 모든 프로젝트는 debt를 축적하며, 프로토콜은 debt가 숨기거나 잊히지 않고 가시적이며, 소유되고, 추적되도록 요구한다.
 
-### debt source
-- worker self-check
-- specialist reviews
-- integration result
-- final verdict notes
-- retrospective
-- gap assessment
+### Debt sources
 
-### debt fields
-- `debt_id`
-- `severity = low | medium | high | critical`
-- `kind = code_quality | architecture | security | docs | ops | test_gap | product_gap`
-- `title`
-- `description`
-- `introduced_by_task_id`
-- `owner_type`
-- `status = open | accepted | scheduled | resolved | dropped`
-  - **`scheduled` → `resolved` 전환 조건**: 해당 debt item을 명시적으로 대상으로 하는 task가 `state=passed`에 도달하고, 해당 task의 evidence에서 debt의 원래 concern이 해소되었음이 검증될 때 전환한다
-- `target_phase = polishing | evolving | future`
+Debt는 타협이 식별되는 pipeline의 어느 지점에서든 발생할 수 있다:
 
-### debt review cadence
-- every task close: add/merge debt candidates
-- every phase transition: rollup review
-- mission close: unresolved debt snapshot mandatory
+| 출처 | 예시 |
+|---|---|
+| worker self-check | "X에 대한 우회 방안을 구현함; 적절한 해결책은 Y가 필요" |
+| specialist review | reviewer가 수용되었으나 지금 수정하지 않는 concern을 표시 |
+| integration result | integration은 성공하나 알려진 제한 사항이 도입됨 |
+| gate finding | evidence gate가 noted caveat과 함께 통과 |
+| final verdict note | Decision Maker가 조건부로 수용 |
+| retrospective | task 후 회고에서 취한 shortcut 식별 |
+| gap assessment | scope 비교에서 전이된 risk 발견 |
+| policy override follow-up | override가 향후 remediation 의무를 생성 |
 
-### debt action rules
-- `critical` debt는 phase exit 전 triage 필수. triage 없이 phase exit을 시도하면 `phase_transition_review` hook이 차단한다.
-- `high` debt는 `polishing` phase에서 해소하거나 `product_authority`의 explicit acceptance이 있어야 한다. acceptance 시 `rationale` 필드에 수용 사유를 기록한다.
-- `accepted` debt는 `rationale`과 `owner_type` 없이 둘 수 없다. 둘 중 하나라도 비어 있으면 validator가 reject한다.
-- `dropped` debt는 `orchestration_authority`의 승인과 `drop_reason` 기록이 필요하다. 승인 없이 `dropped`로 전환하면 차단한다.
+### Minimum debt fields
 
-### Evolution Phase에서 발견된 Critical Debt
+각 debt item은 최소한 아래 필드를 포함해야 한다:
 
-evolving phase에서 retrospective 또는 gap assessment를 통해 새로운 critical debt가 발견되면 아래 절차를 따른다:
+| 필드 | 설명 |
+|---|---|
+| `debt_id` | 고유 식별자 |
+| `severity` | `critical`, `high`, `normal`, `low` |
+| `kind` | debt 범주 (아래 참조) |
+| `title` | 짧은 사람이 읽을 수 있는 요약 |
+| `description` | 타협의 상세 설명 |
+| `introduced_by_task_id` | 이 debt를 생성한 task |
+| `owner_type` | 해결 책임이 있는 slot 또는 팀 |
+| `status` | 현재 lifecycle 상태 |
+| target timing 또는 phase | 해결이 예상되는 시점 |
 
-1. 해당 debt를 `debt-register.json`에 `severity = critical`, `status = open`으로 기록한다.
-2. `product_authority`가 아래 중 하나를 결정한다:
-   - **a. 즉시 수정**: evolving phase 내에서 수정 task를 생성한다. 이 task는 일반 task lifecycle을 따른다 (doc 03 참조).
-   - **b. 수용**: `status = accepted`로 변경하고, `rationale`과 `owner_type`을 필수로 기록한다. 수용 근거 없이는 evolving phase exit gate를 통과할 수 없다 (위 debt action rules 및 Evolving Phase Exit Gate 참조).
-   - **c. 다음 mission 이관**: `status = scheduled`, `target_phase = future`로 변경한다. `gap-assessment.json`의 `recommended_followups[]`에 해당 debt를 추가한다.
-3. 결정은 `decision-record.json`에 기록한다. `decision_type`은 `"critical_debt_triage"`, `evidence_refs`에 해당 debt의 `debt_id`를 포함한다.
+Debt kind는 타협의 성격을 분류한다:
 
-### debt 충돌 해소
-동일 scope에서 상충하는 debt 항목이 존재하는 경우 (예: "API 인증을 OAuth로 전환" vs "현재 API key 방식 유지"):
-1. `orchestration_authority`가 해당 domain authority와 함께 검토한다.
-2. 하나를 `dropped`로 전환하고 `drop_reason`에 상충 해소 사유를 기록한다.
-3. 결정 결과를 `retrospective.json`의 `what_was_surprising[]`에 기록한다.
+| kind | 의미 |
+|---|---|
+| `output_quality` | 일시적으로 수용된 결과물의 품질 문제 |
+| `verification_gap` | 누락되거나 불충분한 검증 coverage |
+| `structural` | 향후 수정이 필요한 설계 또는 architecture 결정 |
+| `process` | 시간 압박 하에 취한 workflow 또는 프로세스 shortcut |
+| `documentation` | 누락되거나 오래된 문서 |
+| `security` | 나중으로 미룬 알려진 security concern |
+
+### Recommended debt statuses
+
+| status | 의미 |
+|---|---|
+| `open` | 식별되었으나 아직 triage되지 않음 |
+| `accepted` | triage되어 실재하는 debt로 인정됨 |
+| `scheduled` | 특정 미래 task 또는 phase에 배정됨 |
+| `resolved` | evidence와 함께 해결됨 |
+| `dropped` | 더 이상 관련 없는 것으로 판단됨 |
+
+## Debt Action Rules
+
+- `critical` debt는 관련 phase exit 전에 반드시 triage되어야 한다
+- `high` debt는 근거 없이 delivery readiness를 통과해서는 안 된다
+- accepted debt도 소유자와 review cadence를 가져야 한다
+- resolved debt는 해결한 task 또는 evidence를 참조해야 한다
+- dropped debt는 더 이상 중요하지 않은 이유를 설명해야 한다
+
+팀은 debt를 unknown blocker의 은신처로 사용해서는 안 된다.
+
+## Scheduled-to-Resolved Transition
+
+Debt item은 아래 경우에만 `resolved`가 된다:
+
+- 해당 debt를 명시적으로 대상으로 하는 task가 `passed`에 도달했을 때
+- 또는 동등한 evidence가 원래 concern이 더 이상 유효하지 않음을 증명할 때
+
+"아마 수정됨"은 resolution이 아니다.
 
 ## Gap Assessment
 
-`gap-assessment.json`은 원래 `scope_in`과 실제 `scope_out`을 비교한 artifact다.
+Gap assessment는 약속된 것과 실제 전달된 것을 비교하여, scope 정직성을 프로토콜의 핵심 관심사로 만든다.
 
-### 언제 쓰나
-- `building -> polishing`
-- `polishing -> evolving`
-- `evolving -> mission close`
-- major pivot 이후
+- `scope_in` — 약속된 것
+- `scope_out` — 전달되고 입증된 것
 
-### 최소 필드
-- `scope_in_summary`
-- `scope_out_summary`
-- `fully_delivered[]`
-- `partially_delivered[]`
-- `not_delivered[]`
-- `intentional_cuts[]`
-- `unexpected_additions[]`
-- `recommended_followups[]`
+### When to perform it
 
-### 해석 규칙
-- `unexpected_additions`가 있으면 traceability note 필요
-- `not_delivered`가 남았는데 phase close를 원하면 `product_authority` rationale 필요
-- **repeated partial delivery forward-feeding**: `partially_delivered`에 동일 항목이 2회 이상의 gap assessment에서 나타나면, 해당 항목은 다음 specifying phase의 intake에 priority constraint로 자동 추가된다.
+Gap assessment는 아래 시점에 수행되어야 한다:
 
-  **End-to-end forward-feed 절차:**
-  1. **감지**: gap assessment 작성 시 `orchestration_authority`가 `partially_delivered[]`의 각 항목을 이전 gap assessment들과 대조한다. 대조 기준은 항목의 `title`이 동일하거나, `scope_ref`가 동일한 경우이다.
-  2. **판정**: 동일 항목이 2회 이상 나타나면 forward-feed 대상으로 mark한다. gap assessment의 해당 항목에 `forward_feed: true`와 `occurrence_count: N`을 기록한다.
-  3. **전파**: 다음 mission의 specifying phase에서 intake skill이 `mission-{n}.json`을 생성할 때, forward-feed 대상 항목을 `constraints` 필드에 자동 삽입한다. 각 constraint에는 `source_ref: "{gap_assessment_id}"`, `reason: "repeated_partial_delivery"`, `original_scope: "{항목 title}"`을 포함한다.
-  4. **검증**: task compiler가 `mission-{n}.json`에서 forward-feed constraint가 있는 경우, 해당 항목을 포함하는 task를 반드시 1개 이상 생성해야 한다. 생성하지 않으면 `product_authority`의 explicit rationale이 필요하다.
-  5. **완료 확인**: forward-feed된 항목이 `fully_delivered`로 전환되면, 해당 constraint는 다음 gap assessment에서 제거된다. `partially_delivered`에 남으면 occurrence_count가 증가하고 forward-feed가 반복된다.
-  6. **실패 시**: 3회 이상 반복되어도 해소되지 않으면, `orchestration_authority`가 retrospective에서 해당 항목의 실현 가능성을 재평가하고, `product_authority`가 `intentional_cuts`로 전환할지 판단한다
+- phase 경계에서
+- mission 종료 시
+- 의미 있는 re-scope 이후
+- 비상 또는 hotfix shortcut 이후
+
+### Minimum questions
+
+각 gap assessment는 최소한 아래 질문을 다루어야 한다:
+
+| 질문 | 드러나는 것 |
+|---|---|
+| 약속했으나 전달되지 않은 것은 무엇인가? | under-delivery 또는 이연된 scope |
+| 전달되었으나 원래 약속하지 않은 것은 무엇인가? | scope creep 또는 기회적 개선 |
+| 위험, 비용, 유지보수성에서 무엇이 변했는가? | 숨겨진 비용 전이 |
+| 어떤 미래 작업이 이제 암시되는가? | 하류 의무 |
+| 무엇이 debt, memory, 또는 새 mission input이 되어야 하는가? | carry-forward 행동 |
+
+## Gap Interpretation Rules
+
+모든 gap이 실패는 아니다. Assessment는 gap을 단순 나열이 아니라 분류해야 한다.
+
+| 해석 | 의미 |
+|---|---|
+| **under-delivery** | 약속한 scope 미달 |
+| **over-delivery** | 사전 승인 없이 추가 작업 수행 |
+| **risk transfer** | 핵심 기능은 전달되었으나 숨겨진 비용이 debt로 이전 |
+| **learning gain** | 원래 계획이 잘못되었고 변경이 현실을 개선했기 때문에 scope가 변경됨 |
 
 ## Initiative Evolving Phase
 
-evolving phase는 단순 회고가 아니라 아래 묶음이다.
+Evolving phase는 mission이 배운 것을 통합하기 위해 존재한다. Mission의 마지막 phase로서, 교훈, debt, gap이 유실되지 않고 처리되도록 보장한다.
 
-1. all passed tasks retrospective 수집
-2. rules / memory candidates promotion
-3. debt register rollup
-4. gap assessment 수행
-5. mission summary 생성
-6. next-loop backlog 또는 mission close 결정
+일반적인 evolving 작업은 아래를 포함한다:
+
+- memory promotion 및 review
+- rules update
+- debt rollup
+- gap analysis
+- mission summary
+- carry-forward backlog 구성
+
+Evolving phase는 non-trivial 작업에서 생략되어서는 안 된다.
 
 ## Evolving Phase Exit Gate
 
-evolving phase를 닫으려면 아래 5개 artifact가 **모두** 존재해야 한다. 하나라도 누락되면 `phase_transition_review` hook이 차단한다.
+Mission은 아래 조건이 충족될 때까지 깔끔하게 종료되어서는 안 된다:
 
-1. `gap-assessment.json` — 이번 phase의 scope_in vs scope_out 비교 완료
-2. updated `debt-register.json` — 모든 debt item의 status가 갱신됨 (`open` 상태의 debt가 남아 있으면 각각 `accepted` 이상으로 triage 필요)
-3. approved `rules-update.json` — rule candidate가 있으면 승인/반려 완료. candidate가 없으면 `"no_candidates": true` 필드를 포함한 artifact를 생성한다
-4. `mission-summary.md` — mission 수준 상태, 남은 문제, pending decision, outstanding risk 요약
-5. `phase-review.json` — `product_authority`의 phase review 완료. `verdict` 필드가 `"approve"` 또는 `"approve_with_conditions"`여야 한다
-
-**Exit gate 실패 시**: 누락된 artifact 목록을 `orchestration_authority`에게 반환하고, 해당 artifact가 생성될 때까지 phase는 열린 상태로 유지된다.
+- gap assessment 존재
+- retrospective bundle 존재
+- debt snapshot 존재
+- 승인된 rules 또는 memory 변경이 기록됨
+- mission summary 존재
 
 ## Harmful Reuse Feedback Loop
 
-memory 기반으로 생성된 rule이 `rules.md`에 존재하는데, 해당 memory가 weakening 또는 supersession 된 경우(doc 08 참조), 아래 절차를 따른다:
+팀이 이전 가이던스로 인한 반복적 유해 패턴을 발견했을 때:
 
-1. `orchestration_authority`는 해당 rule의 memory 의존성을 검토한다.
-2. memory가 weakened/superseded된 이유가 rule의 유효성에 영향을 미치는 경우:
-   - rule을 업데이트하여 memory 의존성을 제거하고 독립적 근거로 재정립하거나,
-   - rule을 archive하고 `rules-update.json`에 archive 사유를 기록한다.
-3. memory가 weakened/superseded됐으나 rule 자체의 논리가 여전히 유효한 경우:
-   - rule의 `evidence_refs`에서 해당 memory 참조를 제거하고 대체 근거를 추가한다.
+1. 관련된 memory 또는 rule을 식별한다
+2. 필요 시 memory를 review로 이동한다
+3. 필요 시 rule을 업데이트한다
+4. 부정적 패턴을 명시적으로 기록한다
+5. 미래 packet이 잘못된 가이던스 전파를 중단하는지 검증한다
 
-이 검토는 memory review cadence 또는 retrospective에서 수행한다.
+유해한 가이던스를 rollback 없이 계속 재사용하는 시스템은 진화하고 있는 것이 아니다.
 
-## 핵심 문장
+## Mission-to-Mission Carry Forward
 
-> Evolution은 “이번에 끝났다”를 넘어서 “다음에는 더 잘하게 만든다”를 보장하는 프로토콜 단계다.
+Evolution output은 아래를 통해 다음 mission에 영향을 미쳐야 한다:
+
+- task template
+- rules
+- memory packet
+- debt 우선순위
+- reviewer focus
+- assurance profile 선택
+
+Mission 종료는 따라서 끝이 아니다; handoff다.
+
+## Key Statement
+
+프로토콜은 학습 loop만큼만 강하다. Debt는 타협을 가시화하고, gap assessment는 scope를 정직하게 만들며, retrospective는 반복되는 고통을 더 나은 미래 기본값으로 변환한다.

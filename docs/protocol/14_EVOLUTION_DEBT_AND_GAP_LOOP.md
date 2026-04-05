@@ -1,194 +1,250 @@
 # 14. Evolution, Debt, and Gap Loop
 
+> **Normative document.**
+> This document defines the retrospective loop, debt model, gap assessment, and mission-to-mission learning mechanisms that make Geas accumulate operational competence over time.
+
 ## Purpose
 
-This document defines Geas's differentiating feature -- **Evolution** -- as an operational loop. The core questions are:
+Evolution is what makes Geas more than a gating workflow. This document answers:
 
-1. What should the team learn after a task is completed?
-2. Where is that learning stored, and how does it change future behavior?
-3. How is the gap between implementation scope and the originally promised scope measured?
-4. How is technical debt accumulated, reviewed, and resolved?
+- what the team must learn after each task or mission
+- how compromises are tracked instead of forgotten
+- how promised scope is compared to delivered scope
+- how harmful patterns get converted into better future behavior
 
 ## Per-Task Retrospective Loop
 
-After every `passed` task, `process_lead` writes a `retrospective.json`.
+After every `passed` task, the project SHOULD produce a retrospective or retrospective contribution. The retrospective captures what happened during the task so that future tasks benefit from the experience.
 
-Minimum items:
-- `what_went_well[]`
-- `what_broke[]`
-- `what_was_surprising[]`
-- `rule_candidates[]`
-- `memory_candidates[]`
-- `debt_candidates[]`
-- `next_time_guidance[]`
+### Minimum retrospective topics
+
+Each retrospective SHOULD address at least the following areas:
+
+| topic | what to capture |
+|---|---|
+| `what_went_well[]` | practices, tools, or decisions that produced good outcomes |
+| `what_broke[]` | failures, regressions, or unexpected problems |
+| `what_was_surprising[]` | assumptions that turned out wrong, unexpected complexity |
+| `rule_candidates[]` | behavioral changes that would prevent repeated problems |
+| `memory_candidates[]` | lessons worth preserving for future context |
+| `debt_candidates[]` | compromises that need explicit tracking |
+| `next_time_guidance[]` | concrete advice for the next similar task |
+
+A retrospective SHOULD be concrete. "Need to be more careful" is too weak. "Auth endpoints without rate limits keep failing challenge review" is useful.
 
 ## Retrospective to Rule Update
 
-### Rule candidate creation
-A rule candidate can be created when:
-- the same failure pattern repeats 2 or more times
-- the same reviewer concern repeats 2 or more times
-- the same integration/recovery mistake recurs
-- a clear process fix exists
+When retrospectives surface recurring problems, the project should consider converting those patterns into enforceable rules.
 
-### Rule update approval
-One of the following is required:
-- `process_lead` + domain authority approval
-- 2 or more evidence_refs + `contradiction_count = 0`
+### When a rule candidate is justified
 
-### Behavior change
-Approved rules modify the following:
-- packet L0 pinned invariants
-- task compiler default checks
-- implementation contract checklist
-- reviewer focus prompts
-- readiness auto trigger
+Rule candidates are especially justified when:
 
-In other words, a rule is not just a document -- it is a **future behavior modifier**.
+- the same failure repeats
+- the same reviewer concern repeats
+- the same recovery mistake repeats
+- the same scope-control drift repeats
+- a clear behavior change would have prevented the problem
+
+### Rule approval expectations
+
+A rule SHOULD have:
+
+| requirement | purpose |
+|---|---|
+| supporting evidence | proves the problem is real and recurring |
+| clear behavior impact | states what changes because of the rule |
+| an owner | someone responsible for enforcement |
+| scope statement | where and when the rule applies |
+| enforcement plan | how the rule will be surfaced or checked |
+
+### Behavior-change requirement
+
+A rule is not complete until the project can explain what will change because of it, such as:
+
+- stricter contract checklist
+- review checklist addition
+- gate focus change
+- scheduler caution
+- packet-builder pinning
 
 ## Agent Memory Feedback Loop
 
-Lessons from retrospectives enter `agent_memory` if they are role-specific, otherwise they enter project-level memory.
+Role-specific lessons SHOULD become agent memory. Cross-role lessons SHOULD become project memory or rules.
 
 ### Role-specific lesson criteria
 
-A lesson is role-specific if it meets one or more of the following conditions:
-- (a) it references a tool/technique used exclusively by that agent type
-- (b) it applies to an artifact type produced exclusively by that agent type
-- (c) it was generated during a review by that agent type
+A lesson is role-specific when it primarily relates to:
 
-If none of the above conditions are met, the lesson is classified as project-level memory.
-
-### Examples:
-- QA lesson -> `qa_engineer`
-- security lesson -> `security_engineer`
-- architecture precedent -> `architecture_authority`
-- implementation smell -> relevant engineer type
-- process improvement lesson -> project-level (not tied to a specific agent type)
-
-On the next spawn, the packet builder injects applicable agent_memory.
+- a tool or technique used mainly by that slot
+- an artifact produced mainly by that slot
+- a recurring review blind spot for that slot
+- a recurring domain-specific success pattern for that slot
 
 ## Debt Tracking Model
 
-`debt-register.json` is a mission/phase-level debt ledger.
+Debt is the explicit register of accepted compromise. Every project accumulates debt; the protocol requires that debt be visible, owned, and tracked rather than hidden or forgotten.
 
-### Debt source
-- worker self-check
-- specialist reviews
-- integration result
-- final verdict notes
-- retrospective
-- gap assessment
+### Debt sources
 
-### Debt fields
-- `debt_id`
-- `severity = low | medium | high | critical`
-- `kind = code_quality | architecture | security | docs | ops | test_gap | product_gap`
-- `title`
-- `description`
-- `introduced_by_task_id`
-- `owner_type`
-- `status = open | accepted | scheduled | resolved | dropped`
-  - **`scheduled` to `resolved` transition condition**: the transition occurs when a task explicitly targeting the debt item reaches `state=passed` and the task's evidence verifies that the debt's original concern has been addressed
-- `target_phase = polishing | evolving | future`
+Debt MAY originate from any point in the pipeline where a compromise is identified:
 
-### Debt review cadence
-- every task close: add/merge debt candidates
-- every phase transition: rollup review
-- mission close: unresolved debt snapshot mandatory
+| source | example |
+|---|---|
+| worker self-check | "I implemented a workaround for X; proper solution needs Y" |
+| specialist reviews | reviewer flags a concern that is accepted but not fixed now |
+| integration result | integration succeeds but introduces a known limitation |
+| gate findings | evidence gate passes with noted caveats |
+| final verdict notes | Decision Maker accepts with conditions |
+| retrospective | post-task reflection identifies a shortcut taken |
+| gap assessment | scope comparison reveals transferred risk |
+| policy override follow-up | override creates obligation for future remediation |
 
-### Debt action rules
-- `critical` debt requires triage before phase exit. Attempting phase exit without triage is blocked by the `phase_transition_review` hook.
-- `high` debt must be resolved in the `polishing` phase or receive explicit acceptance from `product_authority`. On acceptance, the reason must be recorded in the `rationale` field.
-- `accepted` debt cannot exist without `rationale` and `owner_type`. If either is empty, the validator rejects it.
-- `dropped` debt requires `process_lead` approval and a `drop_reason` record. Transitioning to `dropped` without approval is blocked.
+### Minimum debt fields
 
-### Critical Debt Discovered During Evolution Phase
+Each debt item SHOULD contain at least the following fields:
 
-When new critical debt is discovered during the evolving phase through retrospective or gap assessment, follow this procedure:
+| field | description |
+|---|---|
+| `debt_id` | unique identifier |
+| `severity` | `critical`, `high`, `normal`, `low` |
+| `kind` | category of debt (see below) |
+| `title` | short human-readable summary |
+| `description` | detailed explanation of the compromise |
+| `introduced_by_task_id` | task that created this debt |
+| `owner_type` | slot or team responsible for resolution |
+| `status` | current lifecycle state |
+| target timing or phase | when resolution is expected |
 
-1. Record the debt in `debt-register.json` with `severity = critical`, `status = open`.
-2. `product_authority` decides one of the following:
-   - **a. Immediate fix**: create a fix task within the evolving phase. This task follows the normal task lifecycle (see doc 03).
-   - **b. Accept**: change to `status = accepted` with mandatory `rationale` and `owner_type`. Without acceptance rationale, the evolving phase exit gate cannot be passed (see debt action rules and Evolving Phase Exit Gate above).
-   - **c. Defer to next mission**: change to `status = scheduled`, `target_phase = future`. Add the debt to `recommended_followups[]` in `gap-assessment.json`.
-3. Record the decision in `decision-record.json`. Set `decision_type` to `"critical_debt_triage"` and include the debt's `debt_id` in `evidence_refs`.
+Debt kinds classify the nature of the compromise:
 
-### Debt conflict resolution
-When conflicting debt items exist in the same scope (e.g., "switch API authentication to OAuth" vs. "keep the current API key approach"):
-1. `process_lead` reviews with the relevant domain authority.
-2. One item is transitioned to `dropped` with the conflict resolution reason recorded in `drop_reason`.
-3. The decision outcome is recorded in the `what_was_surprising[]` field of `retrospective.json`.
+| kind | what it represents |
+|---|---|
+| `output_quality` | quality issues in deliverables that were accepted temporarily |
+| `verification_gap` | missing or insufficient verification coverage |
+| `structural` | design or architecture decisions that need future revision |
+| `process` | workflow or process shortcuts taken under time pressure |
+| `documentation` | missing or outdated documentation |
+| `security` | known security concerns deferred for later |
+
+### Recommended debt statuses
+
+| status | meaning |
+|---|---|
+| `open` | identified but not yet triaged |
+| `accepted` | triaged and acknowledged as real debt |
+| `scheduled` | assigned to a specific future task or phase |
+| `resolved` | addressed with evidence |
+| `dropped` | determined to no longer be relevant |
+
+## Debt Action Rules
+
+- `critical` debt MUST be triaged before relevant phase exit
+- `high` debt SHOULD not survive delivery readiness without rationale
+- accepted debt SHOULD still have owner and review cadence
+- resolved debt SHOULD reference the task or evidence that resolved it
+- dropped debt SHOULD explain why it no longer matters
+
+A team MUST NOT use debt as a hiding place for unknown blockers.
+
+## Scheduled-to-Resolved Transition
+
+A debt item SHOULD become `resolved` only when:
+
+- a task explicitly targeting it reaches `passed`
+- or equivalent evidence proves the original concern is no longer valid
+
+"Probably fixed" is not resolution.
 
 ## Gap Assessment
 
-`gap-assessment.json` is an artifact comparing the original `scope_in` with the actual `scope_out`.
+Gap assessment compares what was promised against what was actually delivered, making scope honesty a first-class protocol concern.
 
-### When to use
-- `building -> polishing`
-- `polishing -> evolving`
-- `evolving -> mission close`
-- after a major pivot
+- `scope_in` — what was promised
+- `scope_out` — what was delivered and evidenced
 
-### Minimum fields
-- `scope_in_summary`
-- `scope_out_summary`
-- `fully_delivered[]`
-- `partially_delivered[]`
-- `not_delivered[]`
-- `intentional_cuts[]`
-- `unexpected_additions[]`
-- `recommended_followups[]`
+### When to perform it
 
-### Interpretation rules
-- If `unexpected_additions` exist, a traceability note is required
-- If `not_delivered` items remain and phase close is desired, `product_authority` rationale is required
-- **Repeated partial delivery forward-feeding**: if the same item appears in `partially_delivered` across 2 or more gap assessments, it is automatically added as a priority constraint to the next specifying phase intake.
+Gap assessment SHOULD happen:
 
-  **End-to-end forward-feed procedure:**
-  1. **Detection**: when writing the gap assessment, `process_lead` cross-references each item in `partially_delivered[]` against previous gap assessments. Matching criteria are identical `title` or identical `scope_ref`.
-  2. **Determination**: if the same item appears 2 or more times, it is marked as a forward-feed target. The item in the gap assessment is annotated with `forward_feed: true` and `occurrence_count: N`.
-  3. **Propagation**: during the next mission's specifying phase, when the intake skill generates the mission spec file, forward-feed target items are automatically inserted into the `constraints` field. Each constraint includes `source_ref: "{gap_assessment_id}"`, `reason: "repeated_partial_delivery"`, and `original_scope: "{item title}"`.
-  4. **Verification**: when a forward-feed constraint exists in the mission spec, the task compiler must create at least one task that covers that item. If none is created, explicit rationale from `product_authority` is required.
-  5. **Completion check**: when a forward-fed item transitions to `fully_delivered`, the constraint is removed from the next gap assessment. If it remains in `partially_delivered`, the occurrence_count increases and forward-feeding repeats.
-  6. **On failure**: if the item persists unresolved after 3 or more repetitions, `process_lead` reassesses its feasibility during retrospective, and `product_authority` decides whether to transition it to `intentional_cuts`.
+- at phase boundaries
+- at mission close
+- after meaningful re-scope
+- after emergency or hotfix shortcuts
+
+### Minimum questions
+
+Each gap assessment SHOULD address at least these questions:
+
+| question | what it reveals |
+|---|---|
+| what was promised but not delivered? | under-delivery or deferred scope |
+| what was delivered but not originally promised? | scope creep or opportunistic improvement |
+| what changed in risk, cost, or maintainability? | hidden cost transfers |
+| what future work is now implied? | downstream obligations |
+| what should become debt, memory, or a new mission input? | carry-forward actions |
+
+## Gap Interpretation Rules
+
+Not every gap is failure. The assessment SHOULD classify the gap rather than just list it.
+
+| interpretation | meaning |
+|---|---|
+| **under-delivery** | promised scope missing |
+| **over-delivery** | extra work done without prior approval |
+| **risk transfer** | core functionality delivered but hidden cost moved into debt |
+| **learning gain** | scope changed because the original plan was wrong and the change improved reality |
 
 ## Initiative Evolving Phase
 
-The evolving phase is not merely a retrospective -- it is the following bundle:
+The evolving phase exists to consolidate what the mission learned. It is the final phase of a mission and ensures that lessons, debt, and gaps are processed rather than lost.
 
-1. collect retrospectives from all passed tasks
-2. promote rules / memory candidates
-3. debt register rollup
-4. perform gap assessment
-5. generate mission summary
-6. decide next-loop backlog or mission close
+Typical evolving work includes:
+
+- memory promotion and review
+- rules updates
+- debt rollup
+- gap analysis
+- mission summary
+- carry-forward backlog framing
+
+The evolving phase SHOULD not be skipped for non-trivial work.
 
 ## Evolving Phase Exit Gate
 
-To close the evolving phase, all 5 of the following artifacts **must** exist. If any is missing, the `phase_transition_review` hook blocks closure.
+A mission SHOULD NOT close cleanly until:
 
-1. `gap-assessment.json` -- scope_in vs scope_out comparison for this phase completed
-2. updated `debt-register.json` -- all debt item statuses updated (remaining `open` debt must each be triaged to `accepted` or higher)
-3. approved `rules-update.json` -- if rule candidates exist, approval/rejection completed. If no candidates exist, create an artifact with `"no_candidates": true`
-4. `mission-summary.md` -- mission-level status, remaining issues, pending decisions, outstanding risks summarized
-5. `phase-review.json` -- `product_authority` phase review completed. The `verdict` field must be `"approve"` or `"approve_with_conditions"`
-
-**On exit gate failure**: return the list of missing artifacts to the `orchestration_authority`. The phase remains open until those artifacts are created.
+- gap assessment exists
+- retrospective bundle exists
+- debt snapshot exists
+- approved rules or memory changes are recorded
+- mission summary exists
 
 ## Harmful Reuse Feedback Loop
 
-When a memory-based rule exists in `rules.md` but the underlying memory has been weakened or superseded (see doc 08), follow this procedure:
+When the team sees a repeated harmful pattern caused by prior guidance:
 
-1. `process_lead` reviews the rule's memory dependency.
-2. If the reason the memory was weakened/superseded affects the rule's validity:
-   - Update the rule to remove the memory dependency and re-establish it with independent justification, or
-   - Archive the rule and record the archive reason in `rules-update.json`.
-3. If the memory was weakened/superseded but the rule's own logic remains valid:
-   - Remove the reference to that memory from the rule's `evidence_refs` and add an alternative justification.
+1. identify the memory or rule involved
+2. move the memory to review if needed
+3. update the rule if needed
+4. record the negative pattern explicitly
+5. verify that future packets stop propagating the bad guidance
 
-This review is performed during the memory review cadence or retrospective.
+A system that keeps reusing harmful guidance without rollback is not evolving.
+
+## Mission-to-Mission Carry Forward
+
+Evolution outputs SHOULD influence the next mission through:
+
+- task templates
+- rules
+- memory packets
+- debt priorities
+- reviewer focus
+- assurance profile selection
+
+Mission close is therefore not an ending; it is a handoff.
 
 ## Key Statement
 
-> Evolution is the protocol stage that guarantees not just "this round is done" but "next time will be done better."
+The protocol is only as strong as its learning loop. Debt makes compromise visible, gap assessment makes scope honest, and retrospectives convert repeated pain into better future defaults.

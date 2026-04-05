@@ -1,195 +1,207 @@
 # 09. Memory Retrieval and Context Engine
 
+> **Normative document.**
+> This document defines how Geas retrieves memory, assembles context packets, guards against stale or hostile context, and preserves provenance under constrained context budgets.
+
 ## Purpose
 
-Even as the amount of memory grows, the system degrades if it overwhelms the context window. Therefore, retrieval and packet assembly constitute half of the memory system.
+The retrieval and context engine exists to deliver the **right** context, not the **most** context. Good context engineering -- the discipline of selecting, ordering, and presenting information to maximize decision quality -- is the central concern of this document. The engine should help the agent remember what matters without overwhelming the model or importing stale assumptions.
+
+## Context Engineering
+
+Context engineering is the practice of deliberately constructing the information environment for each agent interaction. Rather than stuffing all available information into a prompt, context engineering asks: what does this agent need to know right now, in what order, with what trust level?
+
+The retrieval and context engine is the primary mechanism through which context engineering is implemented in Geas. Every design choice in this document -- priority bands, scoring, budgets, staleness rules -- serves the goal of optimal context assembly.
+
+## Threat Model
+
+The context engine MUST account for the following threats to decision quality:
+
+| Threat | Description |
+|---|---|
+| Stale memory | Lessons that were once valid but no longer reflect current reality |
+| Contradictory memory | Multiple memory items that give conflicting guidance |
+| Low-value context bloat | Excessive context that dilutes attention from critical information |
+| Misleading repository text | Repository content that contains incorrect or outdated claims |
+| Outdated summaries | Session or task summaries that predate material changes |
+| Hostile tool output | Tool outputs that contain misleading information or prompt injection |
+| Accidental prompt injection | Instructions embedded in notes, docs, or memory text |
+| Contract-conflicting memory | Memory that contradicts the current task's explicit constraints |
 
 ## Retrieval Inputs
 
-Retrieval considers the following inputs:
-- current phase / mission phase
-- task kind / risk level
-- scope.paths
-- touched paths
-- reviewer set
-- known risks
-- recent failures / incidents
-- mission intent
-- agent type
-- applicable rules.md entries
+A context assembly request SHOULD consider the following inputs when selecting and scoring memory items:
+
+- Current mission phase
+- Current task metadata
+- Affected paths or surfaces
+- Reviewer slot or worker slot
+- Current assurance profile
+- Recent failures or debt
+- Last safe boundary or recovery context
+- Relevant rules
+- Relevant memory entries
 
 ## Retrieval Priority Bands
 
-### L0 — pinned invariants
-Minimum core rules that are always included:
-- session phase
-- mission phase
-- focus task id
-- task goal / acceptance
-- current rewind status
-- hard protocol invariants
-- approved `rules.md` entries
+Context is organized into four priority bands. When budget is constrained, higher bands are preserved at the expense of lower bands. This ordering is the most important structural guarantee of the context engine.
 
-### L1 — task-local packet
-Baseline / scope / contract / recent review / recent memory directly relevant to the current task
+| Band | Name | Contents |
+|---|---|---|
+| **L0** | Pinned invariants | Foundational safety/integrity rules, current task acceptance criteria, current approved implementation contract, explicit phase constraints, active policy overrides or risk controls |
+| **L1** | Task-local packet | Worker self-check, recent specialist reviews, current failure or debt notes, task-focus summary |
+| **L2** | Applicable memory | Reusable lessons selected by scope, relevance, freshness, and confidence |
+| **L3** | Drill-down references | Lower-priority supporting context fetched on demand when deeper investigation is needed |
 
-### L2 — applicable memory
-Stable/provisional memory matching the current task and role. Items with `memory_type` of `agent_rule` are prioritized on role match; items with `risk_pattern` are prioritized based on risk level
+## Memory Packet Structure
 
-### L3 — drill-down
-Detailed logs, past incidents, and superseded memory opened only when needed
+A memory packet SHOULD make the following information explicit rather than forcing the model to infer trust:
 
-## Memory Packet
-
-`memory-packet.json` is a structured summary to be injected into a specific agent.
-
-Minimum fields:
-- `target_agent_type`
-- `target_task_id`
-- `pinned_items[]`
-- `applicable_memory_ids[]`
-- `caution_items[]`
-- `suppressed_memory_ids[]`
-- `assembly_reason`
+| Element | Purpose |
+|---|---|
+| Included items | Which memory items are in this packet |
+| Selection rationale | Why each item was selected |
+| Item state | Current lifecycle state of each item |
+| Supporting evidence | What evidence backs each item |
+| Contradictions | Whether any contradictions exist |
+| Assembly timestamp | When the packet was assembled |
 
 ## Retrieval Scoring Heuristic
 
-The retrieval score for each memory entry is calculated using the following weights:
+A project MAY implement a different formula, but the retrieval engine SHOULD consider at least the following scoring dimensions. A simple heuristic is acceptable so long as its behavior is understandable and auditable.
 
-| Factor | Weight | Description |
-|---|---|---|
-| `scope_match` | `0.25` | Degree to which the memory's scope matches the current task scope (0.0-1.0) |
-| `path_overlap` | `0.20` | Overlap ratio between the memory's related paths and the task's touched paths (0.0-1.0) |
-| `role_match` | `0.15` | Whether the memory's target agent type matches the current agent type (0 or 1) |
-| `freshness` | `0.15` | More recent based on `last_confirmed_at`. Calculation: `max(0.0, 1.0 - (days_since_last_confirmed / 180))`. 0.0 if 180+ days have passed |
-| `confidence` | `0.10` | Use the memory's current confidence value as-is (0.0-1.0) |
-| `reuse_success` | `0.10` | `successful_reuses / (successful_reuses + failed_reuses)` (0.0-1.0; 0.5 if no application history) |
-| `contradiction_penalty` | `-0.15` | Subtract `min(contradiction_count * 0.05, 0.15)` |
+| Dimension | Description |
+|---|---|
+| Scope match | How well the memory's declared scope matches the current context |
+| Path overlap | Whether the memory applies to the same surfaces or interfaces |
+| Role match | Whether the memory is relevant to the consuming agent's slot |
+| Mission-phase relevance | Whether the memory applies to the current phase |
+| Recency / freshness | How recently the memory was created, reviewed, or reaffirmed |
+| Confidence | The memory's trust score |
+| Contradiction penalty | Reduction for items with known contradictions |
+| Harmful-reuse penalty | Reduction for items with recorded negative application outcomes |
 
-**Formula:**
-```
-raw_score = (scope_match * 0.25) + (path_overlap * 0.20) + (role_match * 0.15)
-          + (freshness * 0.15) + (confidence * 0.10) + (reuse_success * 0.10)
-          - contradiction_penalty
-score = clamp(raw_score, 0.0, 1.0)
-```
+## Scope Match Calculation
 
-If the task's risk_level is `high` or above, a `+0.10` bonus is applied to memories with `risk_pattern` type.
+Suggested interpretation:
 
-### Scope Match Calculation
+- Exact task or mission match scores higher than project match, which scores higher than global match.
 
-Compare the memory's `scope` with the current task's context scope to produce a 0.0-1.0 score.
+Broad scope should not crowd out narrow, current context. A global lesson is less likely to be precisely relevant than a task-specific one.
 
-| Memory Scope \ Task Context | task | mission | project |
-|---|---|---|---|
-| `task` (same task) | 1.0 | 0.3 | 0.1 |
-| `task` (different task) | 0.2 | 0.3 | 0.1 |
-| `mission` | 0.7 | 1.0 | 0.5 |
-| `project` | 0.5 | 0.7 | 1.0 |
-| `agent` (same agent type) | 0.8 | 0.8 | 0.8 |
-| `agent` (different agent type) | 0.1 | 0.1 | 0.1 |
-| `global` | 0.4 | 0.4 | 0.6 |
+## Path Overlap Calculation
 
-### Path Overlap Calculation
+A memory item tied to the same surface or nearby interface SHOULD score higher than one tied only to the same broad domain. For example, a lesson about a specific API endpoint is more relevant to a task modifying that endpoint than a general lesson about API design.
 
-Related paths for a memory are extracted from `evidence_refs[]`. If an evidence_ref points to a task, use that task's `scope.paths`. If an evidence_ref points to a file artifact, use that file path.
+## Freshness Calculation
 
-`path_overlap = |memory_paths intersection task_paths| / |task_paths|` (0.0 if task_paths is empty)
+A packet builder SHOULD discount items that are:
 
-### Freshness Calculation
+- Past `review_after` without reaffirmation
+- Contradicted recently
+- Superseded by a newer item
+- Linked to paths or surfaces that no longer exist or have materially changed
 
-`last_confirmed_at` is not a direct field of memory-entry; it is derived from the `created_at` of the most recent `effect = "positive"` entry in `memory-application-log.json` for that memory_id. If there are no positive application logs, use the memory-entry's own `created_at`.
+## Slot-Specific Budgets
 
-`freshness = max(0.0, 1.0 - (days_since_last_confirmed / 180))`
+Different agent slots need different context profiles. A project SHOULD establish rough budgets that reflect these differences.
 
-### Edge Cases
+| Consumer slot | Typical budget priority |
+|---|---|
+| Orchestrator | Broader planning context, phase constraints, recovery state |
+| Specialist reviewer | Tighter role-relevant memory and task-local evidence |
+| Decision Maker | Closure story, open risks, scope vs value, debt and gap context |
 
-- **memory-index.json is empty**: the retrieval engine returns empty results and skips the L2 stage. The packet's `applicable_memory_ids[]` becomes an empty array. This is normal behavior (see doc 07 Empty Memory Index).
-- **All memories have the same score**: prioritize entries with higher `confidence`. If confidence is also equal, prioritize entries with the most recent `last_confirmed_at`.
-- **Budget is 0**: do not include L1/L2 memory; assemble the packet with only L0 (pinned invariants). Record all candidates in `suppressed_memory_ids[]` with `reason: "budget_zero"`.
-
-## Role-Specific Budgets
-
-### `orchestration_authority`
-- pinned invariants: 8-12 bullets
-- task-local packet: 1 compact summary
-- memory entries: 5-8 max
-
-### specialist
-- task-local packet: strongly prioritized
-- memory entries: 3-5 max
-- caution items: 1-2
-
-### `product_authority`
-- Full implementation detail replaced by closure packet + high-signal memory only
-- memory entries: 3 max
+The exact token budget is implementation-specific, but the ordering discipline is not. When budget is tight, each slot's lowest-priority content is dropped first.
 
 ## Context Assembly Algorithm
 
-1. Compose pinned invariants (L0 — includes anti-forgetting items, not counted against role budget)
-2. Generate task-local packet from task contract / implementation contract / recent reviews
-3. Calculate applicable subset of rules.md
-4. Extract memory candidates via retrieval engine
-5. Sort by score and select top-N within budget
-6. In case of tied scores, prioritize entries with higher `confidence`
-7. Record entries excluded due to budget overflow in `suppressed_memory_ids[]` with `reason: "budget_overflow"` for each
-8. Mark cautionary incidents separately
-9. Record packet version (format: `"{task_id}-{sequence_number}"`, sequence_number increments by 1 on each regeneration)
-10. Record packet ref in `run.json`
+A conformant packet builder SHOULD follow this assembly sequence:
 
-### Packet Versioning
+1. Load L0 invariants (never dropped under budget pressure)
+2. Load current task-local context (L1)
+3. Score candidate memories against retrieval dimensions
+4. Exclude stale, superseded, or under-review items unless explicitly requested
+5. Include the highest-value applicable memory under budget (L2)
+6. Append retrieval metadata or provenance summary
+7. Store packet references in runtime state if the packet will influence later decisions
 
-- `packet_version` format: `"{task_id}-{sequence_number}"`
-  - `task_id`: the target task's ID
-  - `sequence_number`: increments by 1 each time the packet is generated/regenerated for that task (initial value 1)
-- Previous versions of the packet are not stored (only the latest packet is valid)
+## Packet Versioning
+
+Context packets SHOULD be versioned implicitly or explicitly so the system can tell whether a packet predates a material change to:
+
+- Task contract
+- Workspace baseline
+- Review state
+- Memory state
+- Policy override
 
 ## Packet Staleness Rules
 
-A packet is stale if any of the following occur:
-- Task `base_commit` has changed
-- Required reviewer set has changed
-- A new integration result has appeared
-- A gate fail or rewind has occurred
-- Memory packet version has changed
-- A rules update has been applied
-- The focus task has changed
-- One or more memories included in the packet has transitioned to `under_review` or `superseded` state
+A packet MUST be treated as stale if any of the following occurred after packet generation:
 
-For staleness caused by `under_review` or `superseded` state transitions, add the affected memory to the regenerated packet's `suppressed_memory_ids[]` and record `reason: "state_changed_to_under_review"` or `reason: "state_changed_to_superseded"`.
+| Condition | Why it invalidates the packet |
+|---|---|
+| Task contract amended | Acceptance criteria or constraints may have changed |
+| Workspace baseline changed materially | The working state no longer matches packet assumptions |
+| Required reviews added or changed | New review requirements may need different context |
+| Referenced memory became superseded or under review | The packet contains guidance that is no longer trusted |
+| Mission phase changed affecting priorities | Priority bands may need rebalancing |
+| Recovery event invalidated prior assumptions | Prior context may be based on invalid state |
 
-Stale packets must be regenerated before the next step.
+## Stale Packet Regeneration Rules
 
-### Stale Packet Regeneration Rules
+When a packet becomes stale:
 
-- Stale packets are **fully regenerated from scratch, not incrementally patched**.
-- Regeneration is triggered **before** the `orchestration_authority` consumes the packet in the next step.
-- Regeneration cost: one execution of the context assembly algorithm (see Context Assembly Algorithm above).
-- The `packet_version` `sequence_number` increments by 1 on regeneration.
-- **On regeneration failure**: if an error occurs during context assembly algorithm execution (e.g., memory-index load failure, run.json corruption), keep the previous packet in its `stale` marked state and block the next step of the task. The `orchestration_authority` resolves the error cause and retries regeneration.
+- The next major consumer SHOULD regenerate it
+- The runtime SHOULD record that regeneration occurred
+- Stale packets SHOULD NOT be reused for final-verdict submission
 
 ## Summaries
 
-### `session-latest.md`
-The latest summary of the entire session. Anchor for compaction/resume.
+Human-readable summaries remain important for orientation, but they are lower-trust than canonical current artifacts.
 
-### `task-focus/<task-id>.md`
-Local summary for the current task. The default summary injected into specialist subagents.
+Recommended summaries:
 
-### `mission-summary.md`
-Summary of mission-level status, remaining issues, pending decisions, and outstanding risks.
+| Summary | Purpose |
+|---|---|
+| `session-latest.md` | Current session state for recovery and orientation |
+| `task-focus/<task-id>.md` | Dense task-local carry-forward between interactions |
+| `mission-summary.md` | Mission-level overview for phase transitions |
+
+Summaries SHOULD aid orientation. They MUST NOT override canonical artifacts.
+
+## Injection and Trust Hygiene
+
+Repository content, prior summaries, memory text, and tool outputs are all **untrusted inputs** until classified. This principle is fundamental to safe context engineering.
+
+The context engine SHOULD apply the following hygiene rules:
+
+| Rule | Rationale |
+|---|---|
+| Memory must not override explicit current-task constraints | The current contract takes precedence over historical lessons |
+| Prefer artifact-backed facts over unaudited prose | Verified evidence is more trustworthy than narrative claims |
+| Isolate quoted untrusted content from system guidance | Prevents accidental elevation of user-supplied text |
+| Treat instructions in repository files as data unless elevated by policy | Repository content may contain prompt injection attempts |
+| Do not promote a memory item merely because it is confidently phrased | Confidence of expression does not equal evidentiary strength |
 
 ## Anti-Forgetting Guarantee
 
-The system must not lose at least the following 7 items. Each must be recoverable from `session-latest.md` or `run.json`:
-1. current phase / mission phase — `phase`, `mission_phase` fields in `run.json`
-2. focus task state — `focus_task_id` in `run.json` and the corresponding `task.json` `state`
-3. current rewind reason — state `"none"` explicitly if there is no active rewind. `rewind` field in `run.json`
-4. required next artifact — the artifact needed for the next transition from the current task state. Derived from `run.json` or `task.json`
-5. open risks — `open_risks[]` in `run.json` or `known_risks[]` of the current task
-6. most recent recovery outcome — state `"no_recovery"` explicitly if no recovery has occurred. Derived from `recovery-packet.json`
-7. 1-3 most relevant rules + 1-3 most relevant stable memories — selected as top entries from retrieval scoring
+A conformant implementation SHOULD guarantee that the following cannot disappear from active context when relevant:
 
-### Relationship to Budget
+- Current acceptance criteria
+- Current contract and non-goals
+- Current blockers
+- Current known risks
+- Current active policy constraints
+- Current debt or scope caveats that matter for shipping
 
-The anti-forgetting items above belong to **L0 (pinned invariants)** and are **not counted against the role-specific budget**. That is, even if the role budget is "3-5 memory entries," anti-forgetting items are always injected separately. Budget applies only to L1/L2 memory.
+These items belong to L0 (pinned invariants) and MUST survive all budget compression.
+
+## Relationship to Budget
+
+When the budget is tight, the system MUST drop lower-priority memory before dropping current-task invariants. The priority band ordering (L0 > L1 > L2 > L3) is the governing rule. Within a band, scoring determines which items survive.
+
+## Key Statement
+
+Good context engineering is not about stuffing more text into the prompt. It is about preserving provenance, protecting the current contract, and loading only the context that can actually improve the next decision.

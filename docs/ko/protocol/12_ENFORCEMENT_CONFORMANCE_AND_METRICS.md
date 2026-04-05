@@ -1,150 +1,306 @@
 # 12. Enforcement, Conformance, and Metrics
 
+> **기준 문서.**
+> 이 문서는 enforcement point, hook의 허용/금지 행위, conformance 시나리오, observability 기대 수준, health signal, 필수 corrective response를 정의한다.
+
+## 목적
+
+Enforcement가 불가능한 프로토콜은 형식적 절차로 퇴화한다. 이 문서는 Geas가 이상 목표가 아닌 운영 구속력을 유지하도록 보장한다.
+
 ## Enforcement Event Timeline
 
-기본 순서:
-1. `task_admission`
-2. `pre_implementation`
-3. `post_implementation`
-4. `pre_integration`
-5. `post_integration`
-6. `pre_gate`
-7. `post_gate`
-8. `pre_verdict_submission`
-9. `final_verdict`
-10. `session_checkpoint`
-11. `post_pass_learning`
-12. `phase_transition_review`
+기본 lifecycle은 아래 enforcement point를 포함해야 한다. 각 point는 프로토콜이 불변 조건을 검증하고, 잘못된 진행을 차단하며, telemetry를 발행할 수 있는 시점을 나타낸다.
+
+| # | enforcement point | 발동 시점 |
+|---|---|---|
+| 1 | `task_admission` | 새 task가 활성 pipeline에 진입할 때 |
+| 2 | `pre_implementation` | 승인된 task에 대한 작업 시작 전 |
+| 3 | `post_implementation` | worker가 구현 완료를 알린 후 |
+| 4 | `pre_integration` | 공유 workspace에 결과물을 병합하기 전 |
+| 5 | `post_integration` | integration 성공 후 |
+| 6 | `pre_gate` | evidence gate 평가 시작 전 |
+| 7 | `post_gate` | evidence gate가 verdict를 산출한 후 |
+| 8 | `pre_verdict_submission` | final verdict 제출 전 |
+| 9 | `final_verdict` | Decision Maker가 pass, iterate, escalate를 발행할 때 |
+| 10 | `session_checkpoint` | 주기적 또는 이벤트 기반 session 저장 시점 |
+| 11 | `post_pass_learning` | task가 `passed`에 도달한 후 retrospective 실행 시 |
+| 12 | `phase_transition_review` | mission이 phase 간 이동할 때 |
+
+프로젝트는 추가할 수 있으나, 위 point들이 제공하는 의미적 coverage를 축소해서는 안 된다.
 
 ## Hook Responsibilities
 
-### 해도 되는 것
-- artifact completeness 검사
-- enum / invariant 검사
-- stale start 차단
-- lock conflict 차단
-- missing required reviewer 차단
-- missing worker self-check 차단
-- incomplete closure packet 제출 차단
-- packet stale 감지
-- summary/recovery artifact 동기화
-- phase transition 전에 gap/debt/rules artifacts 존재 여부 검사
+Hook은 각 enforcement point의 실행 가능한 enforcement 메커니즘이다. Agent와 reviewer의 판단을 대체하지 않도록 명확한 경계 내에서 동작해야 한다.
 
-### 하면 안 되는 것
-- hook가 product verdict를 대신 결정
-- hook가 specialist review를 대체
-- hook가 missing evidence를 임의 생성
-- hook가 불명확한 상태를 pass로 덮음
+### 허용되는 책임
 
-### Hook Failure 처리
+Hook과 validator가 수행할 수 있는 것:
 
-hook은 외부 명령을 실행하므로 실패할 수 있다. 아래 규칙을 적용한다.
+| 책임 | 예시 |
+|---|---|
+| artifact completeness 검사 | closure packet의 필수 필드 존재 확인 |
+| enum / schema 검사 | task status가 유효한 값인지 검증 |
+| invariant 검사 | artifact 간 task_id 일관성 확인 |
+| stale-start 차단 | base_snapshot이 오래된 경우 구현 시작 거부 |
+| lock conflict 차단 | 충돌하는 리소스에 대한 병렬 작업 방지 |
+| missing-review 차단 | 필수 review가 없으면 gate 진입 차단 |
+| packet freshness 검사 | 최신 contract 수정 이전에 생성된 packet 감지 |
+| state 및 summary 동기화 | runtime state 파일과 session summary 업데이트 |
+| phase-transition precondition 검사 | phase 종료 전 evolving exit gate 조건 확인 |
+| telemetry 발행 | 시간, 결과, 리소스 사용량 기록 |
+| 문서화된 policy enforcement | 프로젝트 policy에 명시된 규칙 적용 |
 
-- **timeout**: hook은 기본 30초 timeout을 가진다 (`.geas/rules.md`에서 override 가능). timeout 발생 시 해당 hook을 `error`로 처리한다.
-- **error 처리**: hook error 발생 시 해당 transition을 진행하지 않는다. 1회 자동 재시도한다. 재시도도 실패하면 task를 `blocked`로 전환하고 `orchestration_authority`에게 알린다.
-- **hook 자체의 side-effect 실패**: hook이 artifact를 생성하거나 수정하는 경우, 실패한 hook이 남긴 partial artifact는 `_partial` suffix로 보존하고, 유효한 artifact로 간주하지 않는다.
+### 금지되는 책임
 
-## Conformance Scenarios
+Hook은 agent, reviewer, authority role에 속하는 행위를 수행해서는 안 된다.
 
-### State Integrity
-- implementation contract 없이 `ready -> implementing` 시도 → 차단
-- worker self-check 없이 `implementing -> reviewed` 시도 → 차단
-- final verdict 없이 `verified -> passed` 시도 → 차단
+| 금지 행위 | 이유 |
+|---|---|
+| product verdict 발행 | verdict는 자동화가 아닌 agent 판단을 요구함 |
+| specialist review 대체 | review 품질은 도메인 추론에 의존함 |
+| 누락된 evidence 임의 생성 | 조작된 evidence는 gate 모델 전체를 훼손함 |
+| 모호한 상태를 success로 변환 | 불확실성은 숨기지 않고 표면화해야 함 |
+| mandatory review 또는 recovery rule 우회 | 보호 장치 생략은 프로토콜 신뢰를 침식함 |
+| 명시적 policy authority 없이 contract override | contract 변경은 의도적 승인을 요구함 |
 
-### Drift / Revalidation
-- stale task 시작 시 revalidation 강제
-- paused task resume 시 baseline mismatch 감지
+## Hook Failure Handling
 
-### Parallelism / Locking
-- overlapping path lock 병렬 실행 차단
-- integration lane simultaneous entry 차단
+Hook이 실패한 경우:
 
-### Gate / Rubric
-- worker self-check의 `confidence <= 2` (1-5 scale)인데 evidence gate threshold adjustment 누락 → 차단
-- possible_stubs 존재하는데 stub cap 검증 누락 → 차단
-  - **stub cap 정의**: 단일 task에서 허용되는 stub/placeholder 구현의 최대 수. 기본값: `risk_level=critical` → 0개, `risk_level=high` → 0개, `risk_level=normal` → 2개, `risk_level=low` → 3개. evidence gate tier 2 stub check에서 집행한다
+- 해당 transition은 기본적으로 중단된다
+- 자동 재시도를 1회 시도할 수 있다
+- 반복 실패 시 원인에 따라 task를 `blocked`로 이동하거나 recovery를 trigger한다
+- 부분 side effect는 격리하고 유효한 evidence로 취급하지 않는다
 
-### Memory Evolution
-- 단일 low-quality incident를 stable memory로 직접 승격 시도 → 차단
-  - **low-quality incident 정의**: (1) `evidence_refs` 수가 2 미만, 또는 (2) 원본 artifact의 gate score가 어떤 dimension에서든 3 미만, 또는 (3) `failed`/`cancelled` task에서 추출된 candidate
-- superseded memory(`state = "superseded"`)가 `memory-packet.json`의 `applicable_memory_ids[]`에 포함됨 → 경고 1회, 2회 연속 시 차단
-- harmful reuse(`memory-application-log.json`에 `effect = "negative"` 2건 이상)가 누적된 memory가 `stable` 또는 `canonical`로 유지됨 → `under_review`로 전환 필수 (doc 08 Harmful Reuse Rollback Procedure 참조)
+## Conformance Classes
 
-### Evolution Loop
-- passed task인데 retrospective 없음 → 첫 번째 발생 시 warning, 연속 2회 발생 시 block. 이 기본 정책을 override하려면 `.geas/rules.md`에 명시적 항목이 필요하다
-- gap assessment 없이 evolving phase 종료 시도 → 차단
-- debt register 없이 polishing/evolving phase close 시도 → 차단
-- rules update가 있는데 packet builder가 반영하지 않음 → conformance failure
+Conformance class는 관련 프로토콜 기대치를 그룹화하여, 프로젝트가 어떤 영역을 enforcement하고 어디에 gap이 있는지 기술할 수 있게 한다.
+
+프로젝트는 자체 용어로 성숙도를 기술할 수 있으나, baseline 프로토콜 conformance는 최소한 아래 class를 포함해야 한다:
+
+| class | 대상 |
+|---|---|
+| state integrity conformance | task 상태 전환이 필수 전제 조건과 함께 유효한 경로를 따르는지 |
+| artifact conformance | 모든 필수 artifact가 존재하고 schema에 대해 유효한지 |
+| review and gate conformance | review가 올바르게 routing되고, gate가 실행되며, verdict가 기록되는지 |
+| recovery conformance | session recovery가 safe-boundary 규칙을 따르고 유효한 상태를 생성하는지 |
+| evolution conformance | retrospective, debt, gap assessment, rules update가 일정대로 수행되는지 |
+| observability conformance | enforcement point에서 telemetry가 발행되고 상관 분석이 가능한지 |
+
+## Core Conformance Scenarios
+
+아래 시나리오는 프로토콜 위반 또는 edge case 발생 시 기대되는 동작을 정의한다. 각 시나리오는 trigger 조건과 기대되는 enforcement 응답을 명시한다.
+
+### State integrity
+
+| 시나리오 | 기대 응답 |
+|---|---|
+| `ready -> implementing` 전환 시 approved contract 없음 | blocked |
+| `implementing -> reviewed` 전환 시 worker self-check 없음 | blocked |
+| `verified -> passed` 전환 시 final verdict 없음 | blocked |
+| `passed` 주장 시 closure packet 미완성 | blocked |
+
+### Drift / revalidation
+
+| 시나리오 | 기대 응답 |
+|---|---|
+| revalidation 없이 stale task 시작 | blocked |
+| base_snapshot 불일치 상태에서 integration 시도 | blocked |
+| contract 수정 후 재생성 없이 packet 제출 | policy에 따라 blocked 또는 warning |
+
+### Parallelism / locking
+
+| 시나리오 | 기대 응답 |
+|---|---|
+| unsafe lock이 겹치는 상태에서 병렬 실행 | blocked |
+| 동시 integration lane 진입 | blocked |
+| recovery 중 abandoned lock 미정리 | warning, 반복 발생 시 blocked |
+
+### Gate / rubric
+
+| 시나리오 | 기대 응답 |
+|---|---|
+| policy가 요구하는데 confidence tightening 누락 | blocked |
+| placeholder 존재 시 stub cap check 누락 | blocked |
+| 선택된 assurance profile이 요구하는 agentic-control 변경 건에서 필수 eval evidence 누락 | blocked |
+
+### Memory evolution
+
+| 시나리오 | 기대 응답 |
+|---|---|
+| weak anecdote에서 stable memory로 직접 승격 | blocked |
+| superseded memory를 active normative context로 재사용 | warning, 반복 발생 시 blocked |
+| harmful reuse threshold 초과인데 `under_review` 전환 없음 | conformance failure |
+
+### Evolution loop
+
+| 시나리오 | 기대 응답 |
+|---|---|
+| passed task 이후 retrospective 없음 | warning, 반복 발생 시 blocked |
+| gap assessment 없이 phase 종료 | blocked |
+| 알려진 debt를 transition review에서 누락 | conformance failure |
 
 ### Recovery
-- gate result missing인데 `verified` 주장 → rewind
-- dirty worktree + missing checkpoint → exact resume 금지
 
-## Metrics
+| 시나리오 | 기대 응답 |
+|---|---|
+| unsafe boundary에서 exact resume 시도 | blocked |
+| 중단 후 gate artifact 없이 `verified` 주장 | 상태 복원 |
+| recovery 후 partial artifact를 canonical로 취급 | blocked |
 
-### Core
-- stale start blocks
-- revalidation count
-- integration drift rate
-- gate fail rate
-- readiness round rate
-- average closure latency
-- worker low-confidence rate
-- debt introduced per task
-- debt resolved per phase
-- gap closure ratio
-- memory promotion count
-- memory successful reuse count
-- memory harmful reuse count
-- recovery exact-resume rate
-- recovery rewind rate
-- packet stale regeneration count
+## Metrics Taxonomy
 
-### Run Summary
+건전한 Geas 구현은 최소 6개 metric family를 관찰해야 한다. 이 family들은 프로토콜이 좋은 결과를 내고 있는지 또는 기능 부전으로 흐르고 있는지 가시성을 제공한다.
 
-매 세션 종료 시 `run-summary.md`를 생성하여 세션 감사 추적을 남긴다.
+### 1) Quality
 
-포함 항목:
-- 세션에서 완료된 task 목록과 각 verdict
-- 발생한 failure/rewind 목록
-- 새로 생성/승격된 memory 목록
-- `rules.md` 변경 사항
-- debt-register 변동 사항
-- 전체 소요 시간과 주요 milestone 시점
+결과물이 acceptance criteria를 충족하는지, reviewer 간 품질 평가가 일치하는지 측정한다.
 
-저장 위치: `.geas/summaries/run-summary-{timestamp}.md`
+| metric | 추적 대상 |
+|---|---|
+| gate fail rate | evidence gate에서 실패하는 task 비율 |
+| final verdict iterate rate | Decision Maker가 재작업을 요청하는 task 비율 |
+| regression rate | 변경 후 이전에 통과하던 기준이 실패하는 경우 |
+| acceptance-criterion miss rate | gate 시점에 미완성으로 표시된 기준 |
+| review disagreement rate | reviewer 평가가 충돌하는 빈도 |
 
-### Health Signals
+### 2) Reliability
 
-| signal | 구체적 threshold | 의미 |
+프로토콜 인프라 자체가 올바르게 동작하는지 측정한다.
+
+| metric | 추적 대상 |
+|---|---|
+| recovery exact-resume rate | safe boundary에서의 성공적 resume |
+| recovery state-restoration rate | 이전 safe state로 rollback이 필요한 resume |
+| hook error rate | 정당한 task 문제가 아닌 hook 자체 실패 |
+| corrupted artifact rate | 예상치 못하게 schema validation에 실패하는 artifact |
+| stale packet regeneration count | base_snapshot drift로 재생성된 packet |
+
+### 3) Throughput
+
+작업이 pipeline을 통해 얼마나 효율적으로 이동하는지 측정한다.
+
+| metric | 추적 대상 |
+|---|---|
+| average task closure latency | `ready`에서 `passed`까지의 시간 |
+| queue time before implementation | worker 배정 대기 시간 |
+| integration-lane wait time | integration 접근 대기로 차단된 시간 |
+| time spent blocked | task 전체에서 `blocked` 상태에 머문 총 시간 |
+
+### 4) Safety and risk
+
+고위험 작업이 적절한 검토를 받는지 측정한다.
+
+| metric | 추적 대상 |
+|---|---|
+| critical-review challenge rate | Challenger review를 받는 high/critical task 비율 |
+| policy override count | 해당 기간의 명시적 policy override 수 |
+| risk-area review coverage | specialist review가 있는 위험 민감 task 비율 |
+| placeholder / stub incident rate | integration 후 발견되는 stub 또는 placeholder |
+| high-risk task escalation rate | 사용자에게 escalate되는 고위험 task 비율 |
+
+### 5) Learning
+
+프로토콜이 시간이 지남에 따라 스스로를 개선하고 있는지 측정한다.
+
+| metric | 추적 대상 |
+|---|---|
+| memory promotion count | 상위 lifecycle 상태로 승격된 memory |
+| successful memory reuse count | 긍정적 결과로 적용된 memory |
+| harmful memory reuse count | 부정적 결과로 적용된 memory |
+| rules-update count | 해당 기간의 신규 또는 수정된 rule |
+| debt introduced vs resolved | 신규 debt와 해결된 debt의 균형 |
+
+### 6) Cost / efficiency
+
+회피 가능한 재작업이나 저가치 활동에 노력이 낭비되는지 측정한다.
+
+| metric | 추적 대상 |
+|---|---|
+| repeated failure class count | 3회 이상 반복되는 고유 failure 패턴 |
+| revalidation count | staleness로 인해 revalidation이 필요한 task |
+| wasted speculative work count | 잘못된 가정으로 폐기된 작업 |
+| low-confidence worker rate | self-check에서 1-2점을 기록하는 비율 |
+
+## Run Summary
+
+세션은 아래 내용을 포함하는 사람이 읽을 수 있는 run summary를 생성해야 한다:
+
+- 다룬 task 목록과 최종 상태
+- failure / 상태 복원 목록
+- 주요 review 및 verdict
+- memory 및 rules 변경 사항
+- debt 변경 사항
+- 주요 timestamp 또는 milestone
+
+## Health Signals
+
+Health signal은 metric에서 도출된 집계 지표로, 주의가 필요한 체계적 문제를 시사한다. 프로젝트는 규모에 적합한 구체적 threshold를 정의해야 한다.
+
+| signal | 권장 threshold | 의미 |
 |---|---|---|
-| memory bloat | `memory-index.json` entries > 100개이면서 최근 10개 task에서 reuse 0 | memory가 축적만 되고 활용되지 않음 |
-| review gap | 최근 5개 task에서 required specialist review 누락률 > 20% | review 프로세스가 무시되고 있음 |
-| gate quality 문제 | final verdict `iterate` 비율 > 30% (최근 10개 task 기준) | specialist gate 품질이 낮거나 기준이 불명확함 |
-| contradiction 누적 | `contradiction_count >= 3`인 stable memory가 2개 이상 | memory review cadence 부족. doc 08 Decay Rules에서 `contradiction_count >= 3`이면 `decayed`로 전환하므로, 이 signal이 발생하면 decay rule 집행이 누락된 것이다 |
-| repeated failure class | 동일 `failure_class`가 3회 이상 반복 | memory promotion 또는 process rule 필요 |
-| debt 정체 | `accepted` 상태 debt가 `resolved` 상태 debt의 2배 이상 (phase 단위) | polishing/evolving phase가 효과 없음 |
-| scope control 약화 | 최근 5개 task 중 > 30%에서 `implementation_contract` 승인 후 scope 변경 발생 | scope control이 약함 |
-| worker low-confidence | `confidence <= 2` 비율 > 25% (최근 10개 task 기준) | task 분할 또는 context packet 개선 필요 |
+| memory bloat | 최근 작업 대비 reuse 0인 항목이 많음 | memory가 도움보다 빠르게 축적되고 있음 |
+| review gap | 필수 review 반복 누락 | review 엄격성이 감소하고 있음 |
+| gate quality issue | 최근 task 대비 iterate rate 과다 | 요구사항 또는 gate가 불명확함 |
+| contradiction accumulation | stable memory에 모순이 반복 발생 | memory review cadence가 약함 |
+| repeated failure class | 동일 failure pattern 3회 이상 | rule 또는 memory hardening 필요 |
+| debt stagnation | resolved debt가 accepted debt 대비 현저히 부족 | evolution phase가 효과를 내지 못함 |
+| scope-control weakness | 승인 후 반복적 contract drift | planning discipline이 약함 |
+| low-confidence saturation | worker self-check에서 1-2점이 너무 많음 | task가 과대하거나 context가 약함 |
 
-### Health Signal 감지 주체 및 시점
+## Observability Expectations
 
-health signal은 `orchestration_authority`가 아래 시점에 계산한다:
-1. 매 `learning` runtime phase 진입 시
-2. 매 phase transition review 시
-3. session 시작 시 (recovery 후 상태 점검)
+Observability는 프로토콜 동작의 사후 분석과 디버깅을 가능하게 한다. 구현은 아래를 상관시킬 수 있는 충분한 telemetry를 노출해야 한다:
 
-계산 결과는 `.geas/state/health-check.json`에 기록하며, 각 signal의 현재 값과 threshold 초과 여부를 포함한다. threshold를 초과한 signal이 있으면 해당 mandatory response를 즉시 실행한다.
+| 차원 | 예시 |
+|---|---|
+| 어떤 task가 활성 상태였는지 | 모든 trace span에 task_id 포함 |
+| 어떤 slot이 행동했는지 | 각 action에 slot 이름 부착 |
+| 어떤 artifact가 생성 또는 소비되었는지 | artifact type 및 identifier |
+| 어떤 gate 또는 hook이 실행되었는지 | enforcement point 이름과 결과 |
+| 어떤 outcome이 발생했는지 | pass, fail, block, error, iterate |
+| 리소스 소비 | 측정 가능한 경우 step별 시간 및 비용 |
 
-### Health Signal 감지 시 필수 대응
+Trace, metric, log 전반에 공통 naming을 사용하여 추후 분석이 가능하도록 한다.
 
-health signal이 threshold를 초과하면 아래 대응이 **반드시** 수행되어야 한다:
+## Detection Owner and Timing
 
-1. **memory bloat**: `orchestration_authority`가 다음 retrospective에서 reuse 0인 memory를 일괄 review한다. `review_after`가 경과한 항목은 `decayed`로 전환한다.
-2. **review gap**: `orchestration_authority`가 다음 task부터 specialist review 누락 시 `pre_gate` hook에서 block을 활성화한다.
-3. **gate quality 문제**: `orchestration_authority`가 rubric 기준 명확화를 위한 rule candidate를 생성한다. 필요 시 evidence gate threshold를 조정한다.
-4. **contradiction 누적**: 해당 memory를 즉시 `under_review`로 전환하고 doc 08의 decay rule을 적용한다.
-5. **repeated failure class**: 해당 failure pattern을 memory candidate로 자동 등록하고, doc 14의 Retrospective -> Rule Update 프로세스를 trigger한다.
-6. **debt 정체**: `orchestration_authority`가 phase review에서 debt 해소 계획을 수립한다. 다음 phase에서 debt resolution task를 우선 scheduling한다.
-7. **scope control 약화**: `orchestration_authority`가 implementation contract 승인 절차를 강화한다. scope 변경 시 re-approval을 필수로 한다.
-8. **worker low-confidence**: `orchestration_authority`가 task granularity를 검토하고 context packet의 L1/L2 memory 품질을 개선한다.
+Health 계산은 문제를 조기에 발견할 수 있도록 명확한 시점에 수행되어야 한다.
+
+| 시점 | trigger |
+|---|---|
+| `learning` 중 | 각 task가 retrospective를 완료한 후 |
+| phase transition review 중 | mission이 다음 phase로 이동하기 전 |
+| recovery 이후 session 시작 시 | 기존 문제 감지를 위해 restore-context의 일부로 수행 |
+| incident 또는 policy override 발생 시 | 예외 이벤트 직후 즉시 수행 |
+
+결과는 가시적인 health artifact 또는 summary에 기록되어야 한다.
+
+## Mandatory Responses
+
+Health signal이 threshold를 초과하면, 프로젝트는 필수 response를 정의해야 한다. 권장 기본값:
+
+| signal | 권장 응답 |
+|---|---|
+| memory bloat | 가치 낮은 항목 review 또는 archive |
+| review gap | `pre_gate`에서 blocking 강화 |
+| gate quality issue | rubric 또는 eval coverage 명확화 |
+| contradiction accumulation | 해당 memory를 `under_review`로 전환 |
+| repeated failure class | rule candidate 및 memory candidate 발행 |
+| debt stagnation | debt 작업을 명시적으로 scheduling |
+| scope-control weakness | 더 엄격한 contract amendment 요구 |
+| low-confidence saturation | task 분할 또는 context packet 개선 |
+
+## 추적 요건 Cadence
+
+프로젝트는 최소한 아래 시점에 conformance를 review해야 한다:
+
+- mission 종료 시
+- 주요 delivery 시점
+- 반복 recovery incident 이후
+- 의미 있는 protocol 변경 이후
+- 일반 hard-stop을 약화시킨 policy override 이후
+
+## Key Statement
+
+Enforcement는 프로토콜과 구전의 차이다. Geas가 유효하지 않은 진행을 차단할 수 없다면, 더 이상 workflow를 통치하고 있는 것이 아니다.

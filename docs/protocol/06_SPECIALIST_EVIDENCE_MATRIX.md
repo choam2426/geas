@@ -1,85 +1,153 @@
 # 06. Specialist Evidence Matrix
 
+> **Normative document.**
+> This document defines what evidence each specialist slot is expected to inspect, what minimum outputs their reviews should produce, and how specialist evidence flows into closure and evolution.
+
 ## Principle
 
-The protocol does not end at "who must participate." It must also define **what type of participation produces what artifact, and how it is included in the closure packet.**
+Specialist participation counts only when it changes evidence quality. A specialist slot is not satisfied by mere presence on a task; it is satisfied when the role inspects the appropriate surfaces and records a review outcome.
 
 ## Common Specialist Review Artifact
 
-All specialist reviews follow this common format:
-- `artifact_type = specialist_review`
-- `reviewer_type`
-- `review_target`: identifier of the review subject (task_id or artifact path)
-- `status`: `approved | changes_requested | blocked` (see doc 05 Closure Packet)
-- `summary`
-- `blocking_concerns[]`: empty array means no blocking issues. Each item has the structure `{ concern, severity, resolved }`
-- `recommended_reentry`: recommended re-entry point on rewind. `null` if there are no blocking concerns
-- `debt_flags[]` (optional): discovered technical debt items
-- `memory_candidates[]` (optional): candidate items to pass to the evolution pipeline
+Every specialist review SHOULD include, at minimum:
 
-## Matrix
+| field | description |
+|---|---|
+| `reviewer_type` | which specialist slot produced this review |
+| `status` | `approved`, `changes_requested`, or `blocked` |
+| `summary` | review findings and rationale |
+| `blocking_concerns[]` | individually addressable blocking issues |
+| `evidence_refs[]` | artifacts examined during review |
+| `notes_on_risk[]` | risk observations relevant to the specialist's jurisdiction |
+| `rubric_scores[]` | optional rubric dimension scores |
 
-| reviewer_type | When mandatory | Primary concerns | closure inclusion | evolution inclusion |
-|---|---|---|---|---|
-| architecture_authority | `task_kind=code` and `risk_level` is one of `normal`, `high`, `critical` | boundary, coupling, technical fit | specialist_reviews[] | architecture precedent / debt / rules candidate |
-| frontend_engineer | scope.paths includes UI/frontend files (see doc 01 Step 3) | component structure, rendering, browser compatibility | specialist_reviews[] | frontend pattern / debt |
-| backend_engineer | scope.paths includes API/server files (see doc 01 Step 3) | API design, data flow, service boundary | specialist_reviews[] | backend pattern / debt |
-| qa_engineer | All `task_kind=code` tasks, `gate_profile=closure_ready` | acceptance, demo, failure path, rubric | specialist_reviews[] + verification_result | qa recipe / risk memory |
-| critical_reviewer | Tasks with `risk_level` `high` or `critical`, readiness round | weak assumptions, ship risk | specialist_reviews[] + readiness_round | challenge precedent / risk memory |
-| security_engineer | When auth/permission/secret/public input paths are modified, when `risk_level` is `high` or `critical`, `task_kind=audit` | abuse path, authz, secret leak | specialist_reviews[] | security warning / debt |
-| devops_engineer | `task_kind=config` or `task_kind=release`, when env/service/deploy/migration paths are modified | runtime readiness, bootstrap, rollout | specialist_reviews[] | environment fact / ops debt |
-| ui_ux_designer | `task_kind=design`, when user-facing UI paths are modified | UX consistency, user flow | specialist_reviews[] | design precedent |
-| technical_writer | `task_kind=docs` or when docs-impact changes are included | operator/user docs completeness | specialist_reviews[] | docs rule / style memory |
-| product_authority | every task final closure, phase boundary | user value, scope fit, ship/iterate | final_verdict / phase review | product precedent / scope decisions |
+A review with no evidence reference MAY still exist, but it SHOULD be treated as lower-confidence input and SHOULD NOT be enough to justify closure by itself on higher-assurance work.
+
+## Status Semantics
+
+| status | meaning |
+|---|---|
+| `approved` | the reviewer found the task acceptable within their jurisdiction |
+| `changes_requested` | the reviewer requires additional work before acceptance |
+| `blocked` | the reviewer found a structural issue that should prevent forward motion absent explicit escalation |
+
+## Minimum Evidence Expectations by Specialist Slot
+
+### Authority slots
+
+| slot | MUST inspect | SHOULD produce | common blocking conditions |
+|---|---|---|---|
+| Design Authority | structural decisions, interfaces, dependencies, maintainability | design review summary, structural fit assessment | incompatible boundary, brittle coupling, unsafe complexity |
+| Challenger | entire closure story from an adversarial perspective | challenge review with at least one substantive concern | hidden assumption, unexamined risk, premature closure logic |
+
+### Specialist slots
+
+| slot | MUST inspect | SHOULD produce | common blocking conditions |
+|---|---|---|---|
+| Implementer (peer review) | approach vs contract, interface correctness, regression risk | implementation review notes, boundary observations | contract violation, broken interface, regression introduced |
+| Quality Specialist | acceptance criteria, verification coverage, negative paths | coverage analysis, missing-path notes, reproducibility assessment | unmet criteria, unverified negative path, irreproducible evidence |
+| Risk Specialist | trust boundaries, sensitive data handling, domain-specific threats | risk notes, threat observations | privilege escalation, data exposure, unsafe trust assumption |
+| Operations Specialist | delivery pipeline, environment readiness, rollback capability | operational readiness notes | deployment breakage, config drift, missing rollback path |
+| Communication Specialist | documentation impact, user-facing changes, clarity | documentation completeness notes, audience-fit assessment | stale instructions, missing guidance, misleading content |
+
+### Software domain examples
+
+For projects using the software development domain profile, slots map to concrete evidence expectations:
+
+| slot | concrete types | domain-specific inspection focus |
+|---|---|---|
+| Implementer | `frontend_engineer` | changed UI paths, interaction states, responsive behavior, a11y surfaces |
+| Implementer | `backend_engineer` | API contracts, data flows, migration safety, error semantics, idempotency |
+| Quality Specialist | `qa_engineer` | test coverage against criteria, negative paths, demo validation |
+| Risk Specialist | `security_engineer` | authn/authz boundaries, secret handling, injection surfaces, abuse paths |
+| Operations Specialist | `devops_engineer` | CI reliability, deploy implications, config drift, provenance |
+| Communication Specialist | `technical_writer` | docs completeness, migration notes, operator caveats |
+| Communication Specialist | `ui_ux_designer` | user flow coherence, copy clarity, visual consistency |
+
+## Matrix by Task Kind
+
+The minimum review expectation per task kind, expressed in specialist slots:
+
+| task_kind | mandatory review slot | commonly additional slots |
+|---|---|---|
+| `implementation` | Design Authority | Quality, Risk, Implementer (peer), Operations, Communication |
+| `documentation` | Communication Specialist | Quality, Design Authority if structural semantics changed |
+| `configuration` | Operations Specialist | Risk, Quality, Design Authority |
+| `design` | Design Authority | Communication, Implementer, Quality |
+| `review` | Risk Specialist | Design Authority, Quality, Operations |
+| `analysis` | Design Authority, Quality Specialist | Risk, Communication |
+| `delivery` | Operations Specialist, Quality Specialist | Communication, Risk |
+
+## Matrix by Risk Level
+
+| risk_level | minimum independent review expectation |
+|---|---|
+| `low` | at least one independent reviewer |
+| `normal` | at least one independent reviewer, plus domain expansion when affected surfaces justify it |
+| `high` | independent reviewer set plus Challenger and Risk Specialist where applicable |
+| `critical` | strong multi-perspective review including Challenger; closure SHOULD not rely on one perspective alone |
+
+## Evidence Source Priority
+
+When available, specialists SHOULD prefer direct evidence in this order:
+
+| priority | source | trust level |
+|---|---|---|
+| 1 | canonical artifacts produced for the current task | highest |
+| 2 | reproducible command, test, or verification output | high |
+| 3 | direct inspection of the work output | high |
+| 4 | summaries and memory packets | medium |
+| 5 | prose claims not tied to artifacts | lowest |
+
+Lower-priority evidence MUST NOT overrule higher-priority contradictory evidence without rationale.
 
 ## Worker Artifacts Consumed by Specialists
 
-`worker-self-check.json` must be readable by at least the following specialists:
-- `architecture_authority`
-- `qa_engineer`
-- `critical_reviewer`
-- `frontend_engineer` (when included as a required reviewer for the task)
-- `backend_engineer` (when included as a required reviewer for the task)
+All specialists MAY consume worker artifacts, but the following pairings are especially important:
 
-### Rule When Worker Self-Check Is Absent
+| worker artifact | primary consumer slot | expected effect |
+|---|---|---|
+| `known_risks[]` | Design Authority, Risk Specialist, Challenger | focus review where the worker is already uncertain |
+| `untested_paths[]` | Quality Specialist | prioritize verification effort |
+| `possible_stubs[]` | Quality Specialist, Design Authority, Challenger | force explicit placeholder validation |
+| `what_to_test_next[]` | Quality Specialist | accelerate verification scenario design |
+| `summary` | all reviewers | orient review focus, not replace review |
 
-If `worker-self-check.json` does not exist at the time a specialist review begins, the specialist must record this as a `blocking_concern`. In this case, the review result cannot be `status = approved`.
+## Rule When Worker Self-Check Is Absent
+
+If a worker self-check is required but absent:
+
+- the review set MUST NOT pretend the task is review-ready
+- the task SHOULD remain pre-review or be rewound
+- specialists MAY note the absence, but the absence itself is not a substitute artifact
 
 ## Required Reviewer Resolution
 
-For the full algorithm, see doc 01 "Required Reviewer Routing Algorithm" (Steps 1-6). Below is a summary:
+A task is not review-complete until the required review set has been satisfied according to routing rules. This means:
 
-1. Examine `task_kind`, `risk_level`, `scope.paths`, and touched surfaces (see doc 01 Steps 1-3).
-2. Derive the base reviewer set.
-3. Add conditional reviewers if any of the following apply:
-   - Task modifies auth/crypto/secrets paths -> add `security_engineer`
-   - Task modifies CI/CD/deploy configuration -> add `devops_engineer`
-   - Task adds/removes API endpoints -> add `architecture_authority`
-   - Task modifies user-facing UI -> add `ui_ux_designer`
-4. Include all actually performed specialist review artifacts in the closure packet.
+- every required reviewer type has either produced a review
+- or a formally documented substitution path exists
+- or the task has been escalated
 
-## Rule
+The Orchestrator MUST NOT infer silent approval from inactivity.
 
-A task missing a required reviewer cannot transition to `reviewed`. Specifically:
-- For every type in `required_reviewer_types[]`, a specialist review artifact with `status` of `approved` or `changes_requested` (with all concerns resolved) must exist.
-- If even 1 review has `status = blocked`, the task cannot transition to `reviewed`.
-- If an agent corresponding to a required reviewer type is unavailable, the task transitions to `blocked`, and the unavailable reviewer type is recorded in `blocking_reason`.
+## Closure Inclusion Rule
+
+If a specialist participated materially, the closure packet SHOULD include their review or a traceable summary reference to it. Participation that affected a decision MUST be auditable later.
 
 ## Evolution Handoff Rule
 
-Specialist reviews do not end at helping with closure. If any of the following are present, the `orchestration_authority` passes them to the evolution pipeline as input:
-- Reusable lesson
-- Repeated risk pattern
-- Debt flag
-- Test recipe
-- Environment fact
-- Design precedent
-- Product precedence signal
+Specialists SHOULD emit memory and rule candidates when they observe:
 
-### Memory Candidate Priority
+| observation | priority |
+|---|---|
+| repeated blocking failure | highest — immediate rule candidate |
+| repeated preventable regression | high — pattern worth capturing |
+| high-value reusable success pattern | high — worth standardizing |
+| reviewer checklist gap | medium — improves future review quality |
+| domain-specific anti-pattern | medium — prevents recurrence |
+| lower-value advisory observation | low — capture if evidence is strong |
 
-When a single specialist review contains multiple types of memory candidates, the `orchestration_authority` processes them in the following priority order:
-1. Safety/security items (security warning, abuse path, secret leak, etc.)
-2. Architectural precedent (boundary decision, coupling rule, technical fit judgment)
-3. Operational lesson (environment fact, ops debt, runtime readiness)
-4. Optimization tip (performance improvement, efficiency suggestion)
+## Key Statement
+
+Specialist review is only valuable when it is evidence-bearing, jurisdiction-aware, and preserved in a form that later reviewers can audit rather than reconstruct from memory.

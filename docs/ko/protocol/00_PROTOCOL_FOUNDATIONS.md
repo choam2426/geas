@@ -1,140 +1,363 @@
 # 00. Protocol Foundations
 
+> **기준 문서.**
+> Geas의 기초 원칙을 정의한다. 모든 구현체가 지켜야 하는 핵심 목표, 불변 규칙, 적용 범위, 우선순위를 명시한다.
+>
+> **요구 수준 표현.** **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT**, **MAY**는 프로토콜 준수에 대한 요구 수준을 나타낸다.
+
 ## 목적
 
-이 프로토콜은 **single-session + worktree 기반 멀티 agent 코딩 운영 규칙**을 정의한다. 핵심 목표는 아래 7가지다.
+Geas는 장기간 실행되는 멀티 에이전트 작업이 끝없는 프롬프트 루프가 아니라 규율 있는 조직처럼 움직이게 만드는 프로토콜이다. Geas를 따르는 구현체는 최소한 아래 목표를 전부 달성해야 한다:
 
-1. task를 유일한 closure 단위로 고정한다.
-2. 구현, 통합, 검증, 종료 판단을 분리한다.
-3. stale baseline, integration drift, false green, incomplete closure를 구조적으로 막는다.
-4. 팀이 세션을 거듭할수록 나아지게 만든다 — retrospective, rule update, memory promotion, debt tracking, gap assessment가 하나의 **Evolution 루프**를 이룬다.
-5. 긴 세션, compaction, 서브에이전트 실행 이후에도 복구 가능하게 만든다.
-6. phase 종료 시 범위·부채·학습 상태를 다시 측정한다.
-7. 프로토콜의 모든 메커니즘을 **4 Pillars** 아래 정렬한다.
+1. **task**만이 유일한 완료 단위다.
+2. 구현, 통합, 검증, 준비 확인, 제품 판단은 각각 분리되어야 한다.
+3. stale baseline, 누락된 evidence, 건너뛴 review, 허술한 recovery로 인한 거짓 완료를 막아야 한다.
+4. 무엇이 바뀌었고, 왜 바뀌었고, 누가 승인했고, 어떤 evidence가 출시를 뒷받침했는지 — 사후에 전부 설명할 수 있어야 한다.
+5. 세션 중단, compaction, 도구 실패, 서브 에이전트 손실이 발생해도 안전한 지점에서 복구할 수 있어야 한다.
+6. 반복되는 성공과 실패를 규칙, 메모리, 부채 추적, 범위 관리를 통해 다음 작업의 행동으로 바꿔야 한다.
+7. 구조화된 도구 계약, 명시적 핸드오프, 추적성, 평가, 안전한 전달 제어와 호환되어야 한다.
+8. 미션을 달성할 수 있는 가장 단순한 흐름을 쓰되, 리스크가 커지면 엄격도를 올린다.
 
-## Four Pillars as Control Objectives
+## 이 문서가 다루는 것
 
-Geas의 프로토콜은 단순한 절차 모음이 아니라 네 가지 제어 목적을 만족해야 한다.
+이 문서가 권위를 갖는 대상:
 
-### 1) Governance
-누가 어떤 결정을 내려도 되는지, 어떤 결정은 어떤 순서를 강제하는지 명확해야 한다.
+- 프로토콜의 **핵심 목표**
+- artifact, schema, hook, 본문 사이의 **우선순위**
+- 모든 구현체가 지켜야 하는 **불변 규칙**
+- Geas가 대응하도록 설계된 **위협 및 실패 모델**
+- **적용 범위와 비적용 범위**
+- **준수 단위** 정의
 
-Protocol binding:
-- agent authority matrix
-- transition invariants
-- vote rounds
-- final verdict ownership
-- phase review / escalation
+필드 수준의 schema 명세는 doc 11, 집행과 메트릭은 doc 12를 참고한다.
 
-### 2) Traceability
-모든 중요한 행위는 나중에 다시 설명 가능해야 한다.
+## 준수 단위
 
-Protocol binding:
-- append-only ledger events
-- runtime artifacts
-- specialist reviews
-- failure / revalidation / recovery records
-- debt register / gap assessment / retrospective
+구현체는 실제로 구현한 단위에 한해서만 Geas 준수를 주장할 수 있다:
 
-### 3) Verification
-"됐음"이 아니라 **계약 fulfilled**가 되어야 한다.
+| 준수 단위 | 설명 |
+|---|---|
+| `protocol_runtime` | 미션, task, gate, vote, recovery, evolution을 실행하는 오케스트레이터와 상태 머신 |
+| `artifact_producer` | Geas 정규 artifact를 생성하는 에이전트 또는 하위 시스템 |
+| `artifact_validator` | schema와 불변 규칙을 검증하는 hook, CLI, 서비스, CI 컴포넌트 |
+| `reviewer_runtime` | 전문가 리뷰어 또는 critical reviewer 구현체 |
+| `memory_engine` | 검색, 승격, 감쇠, 대체, 패킷 조립 로직 |
+| `recovery_engine` | 체크포인트, 안전 경계 탐지, 상태 복원 / 재개 로직 |
 
-Protocol binding:
-- implementation contract
+노출하는 단위가 이 문서의 필수 규칙을 전부 충족하지 않으면 "Geas 완전 준수"를 표방해서는 안 된다.
+
+## 우선순위
+
+두 신호가 충돌하면 아래 순서를 따른다:
+
+1. **안전성과 무결성 제약**
+2. **현재 미션 계약과 승인된 task artifact**
+3. **`docs/protocol/` 정규 프로토콜 본문**
+4. **정규 JSON schema**
+5. **`.geas/` 아래 검증된 런타임 artifact**
+6. **`.geas/rules.md` 로컬 규칙**
+7. **메모리 패킷과 요약**
+8. **처리량·편의 휴리스틱**
+
+따름 규칙:
+
+- 메모리 패킷이 현재 task의 수용 기준을 덮어쓸 수 없다.
+- 로컬 규칙이 명시적·기록된 오버라이드 경로 없이 상위 안전/무결성 규칙을 완화할 수 없다.
+- hook이 빠진 evidence를 만들어내서 "수리"할 수 없다.
+- 처리량 최적화보다 evidence 무결성이 앞선다.
+
+## 핵심 목표: 네 기둥
+
+프로토콜은 네 가지 핵심 목표를 축으로 구성된다. Geas의 모든 메커니즘은 이 중 최소 하나를 강화해야 하며, 나머지를 실질적으로 훼손해서는 안 된다.
+
+### 1) 거버넌스
+
+거버넌스가 답하는 질문: **누가, 어떤 순서로, 어떤 evidence에 근거해 결정하는가?**
+
+프로토콜에서 거버넌스가 작동하는 지점:
+
+- 역할별 권한 범위
+- 직무 분리
+- 상태 전이 규칙
+- vote round와 에스컬레이션
+- final verdict 소유권
+- 단계 리뷰와 예외 처리
+- assurance profile 선택 (doc 13)
+
+### 2) 추적성
+
+추적성이 답하는 질문: **이 미션에서 무슨 일이 있었는지 나중에 재구성할 수 있는가?**
+
+프로토콜에서 추적성이 작동하는 지점:
+
+- 추가 전용 원장 이벤트
+- 불변 또는 버전 관리되는 런타임 artifact
+- 체크포인트와 복구 기록
+- 전문가 리뷰와 반대 의견
+- 의사결정 기록
+- 부채, 규칙, 회고, gap 평가 artifact
+- 구조화된 텔레메트리와 요약
+
+### 3) 검증
+
+검증이 답하는 질문: **task가 진짜 끝났다는 걸 뭘로 증명하는가?**
+
+프로토콜에서 검증이 작동하는 지점:
+
+- 구현 계약
 - worker self-check
+- 전문가 리뷰
 - evidence gate
-- rubric scoring
-- specialist review matrix
-- closure packet + final verdict
+- 루브릭 점수와 임계값
+- closure packet
+- critical review challenge
+- final verdict
+- 준수 및 평가 신호
 
-### 4) Evolution
-팀은 세션이 끝날수록 더 나아져야 한다.
+### 4) 진화
 
-Protocol binding:
-- per-task retrospective
-- rules.md update loop
-- agent_memory / project_memory / risk_memory
-- memory promotion / weakening / supersession
-- debt tracking
-- gap assessment
-- initiative evolving phase
+진화가 답하는 질문: **시스템이 그냥 오래되는 게 아니라 어떻게 나아지는가?**
 
-## 설계 원칙
+프로토콜에서 진화가 작동하는 지점:
 
-### 1) Task가 유일한 closure 단위다
-지금 프로토콜은 issue/epic/initiative closure를 first-class entity로 모델링하지 않는다. 닫히는 것은 task뿐이다.
+- 회고
+- 규칙 갱신 루프
+- 메모리 승격, 약화, 감쇠, 대체
+- 기술 부채 등록과 해소
+- gap 평가
+- 유해 재사용 롤백
+- 미션 간 이월
 
-### 2) 오케스트레이션과 최종 제품 판단은 분리한다
-- `orchestration_authority`는 흐름을 설계하고, 조립하고, 강제한다.
-- `product_authority`는 제품 관점의 최종 verdict를 내린다.
+## 설계 공리
 
-### 3) 상태 전이는 artifact 기반이다
-자연어 선언으로 상태를 바꾸지 않는다. 각 전이는 필요한 artifact, evidence, review, verdict가 있어야 한다.
+아래 공리는 프로토콜 전체에 적용되며 예외 없다.
 
-### 4) Git이 live baseline의 source of truth다
-live HEAD를 runtime artifact에 중복 저장하지 않는다. task는 `base_commit`을 갖고, 현재 기준은 Git에서 읽는다.
+### 공리 1 — task만이 완료된다
 
-### 5) memory는 저장소가 아니라 행동 변경 장치다
-memory는 future packet, reviewer focus, gate strictness, scheduling caution, rules.md를 통해 다음 행동을 바꿔야 한다.
+`passed`가 되는 건 오직 task뿐이다. 미션이나 이니셔티브가 종료될 수는 있지만, 그건 task 결과의 합산이지 독립적으로 완료되는 게 아니다.
 
-### 6) 테스트 통과와 종료는 다르다
-`verified`는 기술적 검증 통과, `passed`는 protocol상 종료 가능 상태다.
+### 공리 2 — 말로는 상태가 안 바뀐다
 
-### 7) 시작 전 stale에는 엄격하고 구현 중 drift에는 관대하다
-- 시작 전: stale task는 반드시 revalidate
-- 구현 중: upstream 이동만으로 즉시 중단하지 않음
-- 통합 전: 반드시 재정산
+"구현했습니다", "검증 끝났습니다" 같은 자연어 주장으로 프로토콜 상태가 바뀌지 않는다. 상태를 바꾸려면 올바른 artifact, evidence, 전이 조건이 있어야 한다.
 
-### 8) gate는 검증 장치, vote round는 결정 장치다
-- evidence gate는 objective verification
-- vote round는 disagreement resolution / ship readiness deliberation
-- final verdict는 product closure decision
+### 공리 3 — 정규 상태 저장소가 baseline 기준이다
 
-### 9) specialist 참여는 evidence에 반영되어야 한다
-누가 참여했는지는 closure packet과 artifact matrix에 남아야 한다.
+현재 통합 baseline은 정규 상태 저장소에서 읽는다. Git 같은 버전 관리 시스템일 수도 있고, 문서 버전 관리나 데이터셋 스냅샷 저장소일 수도 있다. 런타임 artifact가 baseline 스냅샷을 참조할 수는 있지만, 라이브 baseline과 경쟁하는 별도의 진실 소스가 되어서는 안 된다.
 
-## Scope / Non-Scope
+### 공리 4 — 검증과 제품 판단은 별개다
 
-### Scope
-- single-session orchestration
-- worktree-based task execution
-- bounded parallelism
-- task lifecycle / gate / verdict / recovery / memory / context management
-- initiative 4-phase mission progression
-- retrospective / debt / gap assessment feedback loops
+게이트를 통과했다고 출시가 결정된 게 아니다. 게이트는 필수 검증이 통과했음을 보여주고, final verdict가 변경 사항을 받아들일지 판단한다.
 
-### Non-Scope
-- multi-session distributed scheduler
-- human issue tracker sync
-- multi-repo federation
-- global knowledge graph
+### 공리 5 — 메모리는 행동을 바꾸는 장치다
 
-## 용어 정리
+메모리는 보관용 기록이 아니다. 시스템에 남아 있으려면 컨텍스트 조립, 리뷰 집중, 게이트 엄격도, 스케줄링 주의, 규칙 변경 중 하나라도 통해 미래 행동을 바꿔야 한다.
 
-- **Task**: 닫히는 유일한 작업 단위
-- **Mission**: 세션이 해결하려는 상위 목적. 하나 이상의 task를 낳을 수 있음
-- **Runtime Phase**: `bootstrap | planning | scheduling | executing | integrating | verifying | learning | idle`
-- **Mission Phase**: `specifying | building | polishing | evolving`
-- **Baseline**: task가 마지막으로 유효하다고 확인된 통합 브랜치 기준 커밋
-- **Worktree**: task 전용 작업 공간
-- **Gate**: objective verification. 결과는 `pass | fail | block | error` 중 하나 (doc 05 참조)
-- **Gate Profile**: task의 gate 검증 방식을 결정하는 분류. `code_change | artifact_only | closure_ready`
-- **Vote Round**: specialist 간 합의 또는 readiness 확인. `proposal_round`과 `readiness_round` 두 종류가 있음
-- **Vote Round Policy**: task별 vote round 실행 조건. `never | auto | always`
-- **Closure Packet**: final verdict를 위한 압축 증거 묶음
-- **Final Verdict**: product_authority가 closure packet을 기반으로 내리는 최종 판단. `pass | iterate | escalate`
-- **FailureRecord**: task 실패 시 생성하는 기록. 실패 원인, rewind target, 시점을 포함. 실패는 별도 state가 아니라 이 record로 추적
-- **Decision Record**: decision skill을 통해 논쟁/충돌/피벗을 정리한 결과 artifact
-- **Memory**: task/mission/project 수준에서 재사용되는 구조화된 운영 지식
-- **Debt**: 지금 막지 않지만 future cost를 발생시키는 known compromise
-- **Gap Assessment**: 원래 scope_in과 실제 delivered scope_out 사이의 차이를 평가하는 절차
-- **Implementation Contract**: 코드 작성 전 worker와 reviewer가 합의하는 구현 계획 (doc 03 참조)
-- **Worker Self-Check**: primary worker가 구현 완료 주장 전에 남기는 자기 점검 artifact (doc 03 참조)
-- **Specialist Review**: specialist가 task에 대해 수행한 검토 결과 artifact (doc 06 참조)
+### 공리 6 — 엄격도는 리스크에 비례한다
 
-## Canonical Ownership
+저위험 작업은 가벼운 프로세스를 쓸 수 있지만, 어떤 작업이든 필수 무결성 규칙을 건너뛸 수는 없다. 고위험 작업은 추가 리뷰, 추적, challenge를 반드시 거친다.
 
-- canonical 문서: `docs/`
-- canonical 스키마: `schemas/`
-- runtime/output: `.geas/`
-- reference only: `reference/`
+### 공리 7 — 자율성보다 단순성이 먼저다
+
+불필요한 자율성보다는 직접적이고 조합 가능한 워크플로가 낫다. 에이전틱 복잡성을 추가하려면 측정 가능한 이점이나 리스크 감소, 또는 task 자체의 환원 불가능한 복잡성이 있어야 한다.
+
+### 공리 8 — 컨텍스트는 필요할 때 가져온다
+
+컨텍스트는 출처가 붙은 참조에서 가능한 한 늦게 가져와 조립한다. 프롬프트에 모든 걸 한꺼번에 쑤셔넣는 대신, 대상을 좁혀 패킷을 조립하는 쪽이 맞다.
+
+### 공리 9 — 도구는 계약으로 쓴다
+
+도구 사용은 명시적 인터페이스, 구조화된 입력, 구조화된 출력을 거쳐야 한다. 믿을 만한 계약이 없는 도구나 핸드오프는 프로토콜이 신뢰하는 표면이 아니다.
+
+### 공리 10 — 감사 없는 학습은 학습이 아니다
+
+미래 행동을 바꾸는 규칙, 메모리, 프로세스 강화는 모두 그것을 뒷받침하는 evidence와 연결되어 있어야 한다.
+
+## 불변 규칙
+
+아래 규칙은 모든 프로토콜 문서에 걸쳐 적용된다.
+
+1. 승인된 구현 계약 없이 task가 `implementing`에 진입할 수 없다.
+2. worker self-check와 필수 리뷰 세트 없이 task가 `reviewed`에 진입할 수 없다.
+3. 게이트 결과 없이 task가 `verified`에 진입할 수 없다.
+4. 완전한 closure packet과 final verdict 없이 task가 `passed`에 진입할 수 없다.
+5. 리뷰어가 자기 쪽에 빠진 evidence를 조용히 승인할 수 없다.
+6. 고위험·critical 작업은 최종 제품 판단 전에 반드시 critical review challenge를 거친다.
+7. 복구는 안전한 지점에서 재개하거나 되감아야 한다. 불확실한 진행 중 상태를 완료로 가장할 수 없다.
+8. stale baseline은 통합이나 검증 재개 전에 반드시 재검증한다.
+9. 대체되었거나 검토 중인 메모리를 현행 지침처럼 취급할 수 없다.
+10. 모든 단계 전이는 범위 명확성, 부채 가시성, evidence 연속성을 유지해야 한다.
+11. evidence가 유실되면 문서화된 보수적 복구 경로가 없는 한 진행을 멈춘다.
+12. 오버라이드는 반드시 명시적이고, 누가 했는지 추적 가능하고, 범위가 정해져 있고, 감사할 수 있어야 한다.
+
+## 실패 및 위협 모델
+
+Geas가 줄이려는 반복적 실패 유형:
+
+| 실패 / 위협 | 대응 지점 |
+|---|---|
+| 증거 없는 "완료" | 계약, 리뷰, 게이트, closure packet, final verdict |
+| stale baseline과 숨겨진 통합 충돌 | baseline 규칙, 재검증, 통합 레인, 스케줄러 잠금 |
+| 승인 뒤의 범위 팽창 | 계약 수정, gap 평가, 단계 리뷰 |
+| 형식만 갖춘 리뷰 | 필수 리뷰어 매트릭스, closure 완전성, critical challenge |
+| stale·적대적 입력에 의한 컨텍스트 오염 | 패킷 우선순위 밴드, 출처 가중치, 메모리 상태 제어 |
+| 도구 오남용이나 과도한 위임 | 도구 계약, 권한 경계, assurance profile |
+| 중단 뒤 복구 환각 | 2단계 체크포인트, 안전 경계, 복구 테이블 |
+| 메모리 비대화·유해 재사용 | 신뢰도 점수, 감쇠, 대체, 검토 중 차단 |
+| 공급망·출처 불명확 | artifact 계보, 검증, 릴리스·assurance 기대치 |
+| 프로토콜 엄격도의 은밀한 완화 | 준수 hook, 건강 신호, 규칙 감사, 명시적 오버라이드 |
+
+Geas는 이 위협을 완전히 없앤다고 주장하지 **않는다**. 눈에 보이고, 누가 했는지 알 수 있고, 무시하기 어렵게 만든다고 주장한다.
+
+## 적용 범위
+
+Geas가 다루는 기본 범위:
+
+- 단일 작업 공간 또는 프로젝트 단위 오케스트레이션
+- task 기반 멀티 에이전트 작업과 리뷰
+- 격리된 실행 환경 (예: worktree, 샌드박스, 전용 작업 디렉토리)
+- 명시적 잠금이 있는 제한적 병렬 처리
+- evidence 게이트와 최종 task 판결
+- 메모리, 규칙, 부채, 회고
+- 체크포인트, 복구, 재개
+- 미션 단계별 진행
+- 준수 상태와 건강 모니터링
+
+## 비적용 범위
+
+명시적으로 확장하지 않는 한 Geas가 표준화하지 않는 것:
+
+- 분산 멀티 세션 클러스터 스케줄링
+- 멀티 저장소 연합 및 조직 간 오케스트레이션
+- 인사, 이슈 트래커, 티켓팅 워크플로
+- 특정 벤더의 모델 동작 보증
+- 학습 시점의 모델 안전성
+- 모든 규제 환경에 대한 범용 보안 준수
+- 로컬 정책 검토 없는 자율 프로덕션 배포
+- 자동 법률·프라이버시·정책 판단
+
+## Schema 호환성과 강화 지침
+
+이 프로토콜의 여러 문서는 두 가지를 구분한다:
+
+- **schema 최소 요건** — 정규 artifact에 반드시 필요한 것
+- **강화 권장사항** — 프로젝트가 선택적으로 적용할 수 있는 추가 엄격도
+
+로컬 schema 확장이 명시적으로 허용하지 않는 한, 정규 JSON artifact에 schema 밖의 필드를 넣을 수 없다. 강화 메타데이터가 schema 확장 전에 필요하면 다음에 담는다:
+
+- 보조 artifact
+- 사람이 읽는 요약
+- 원장 이벤트
+- 문서화된 로컬 schema 확장
+
+이 규칙은 표준이 발전하면서도 검증기의 예측 가능성을 지키기 위해 존재한다.
+
+## 용어집
+
+### 핵심 개념
+
+- **Task** — `passed`가 될 수 있는 유일한 단위
+- **Mission** — 사용자 요청을 실행 가능한 프로토콜 작업으로 바꾸는 상위 목적
+- **Runtime Phase** — `bootstrap | planning | scheduling | executing | integrating | verifying | learning | idle`
+- **Mission Phase** — `specifying | building | polishing | evolving`
+- **Baseline** — task가 마지막으로 검증된 작업 상태의 스냅샷. Git 커밋일 수도, 문서 버전일 수도, 데이터셋 체크포인트일 수도 있다
+- **Workspace** — task 실행을 위한 격리 환경. Git worktree, 샌드박스, 전용 작업 디렉토리 등
+- **Integration** — task 산출물을 공유 baseline에 합치는 과정. Git 머지, 문서 버전 발행, 데이터셋 갱신 등
+- **Assurance Profile** — 최소 통제 수준을 정하는 엄격도 묶음 (doc 13)
+
+### 검증 관련
+
+- **Evidence** — task 완료 주장을 뒷받침하는, 추적 가능하고 독립적으로 검증 가능한 artifact. 소프트웨어에서는 테스트 결과, 리서치에서는 인용 출처, 콘텐츠에서는 출처가 확인된 주장 등
+- **Evidence Gate** — `pass | fail | block | error`를 내놓는 순차 검증 장치
+- **Rubric** — Tier 2 검증에 쓰이는, 임계값이 명시된 채점 항목 묶음
+- **Closure Packet** — 제품 판단을 위해 제출하는 최종 evidence 묶음
+- **Final Verdict** — 제품 수준 task 판정: `pass | iterate | escalate`
+- **Vote Round** — 제안 결의나 출시 준비를 위한 구조화된 토의
+
+### 역할 관련
+
+- **Agent** — 프로토콜 안에서 작업을 수행하는 논리적 역할. 타입, 권한 범위, 필수 산출물이 있다
+- **Orchestrator** — 미션 흐름, task 배정, 복구를 총괄하는 조율 역할
+- **Specialist** — 자기 전문 영역에서 evidence를 만들어내는 도메인별 에이전트
+- **Worker** — task의 주 구현자로 배정된 에이전트
+- **Reviewer** — 특정 영역에서 worker 산출물을 평가하는 에이전트
+- **Critical Reviewer** — 제품 판단 전에 가정을 흔드는 적대적 리뷰어
+
+### 생명주기 관련
+
+- **Implementation Contract** — 뭘 만들고, 어떻게 만들고, 뭘 건드리지 않을지 정하는 사전 합의
+- **Worker Self-Check** — worker가 구현 완료를 주장하기 전에 내놓는 구조화된 자기 점검
+- **Failure Record** — 실패 내용, 상태 복원 대상, 재시도 영향을 담은 artifact
+- **Decision Record** — 엇갈린 입장, 최종 선택, 근거를 담은 영구 기록
+- **Retrospective** — 규칙·메모리·부채 후보를 만들어내는 task 후 성찰
+
+### 진화 관련
+
+- **Memory** — 미래 행동을 바꾸기 위한 구조화된 운영 지식
+- **Debt** — 미래 비용이 따르는 인정된 타협이나 유예된 문제
+- **Gap Assessment** — 약속한 범위와 실제 전달한 범위의 비교
+- **Rules** — 회고에서 나와 리뷰를 거쳐 승인된 공유 행동 규칙
+
+### 인프라 관련
+
+- **Artifact** — 프로토콜 이벤트나 결정을 기록하는 schema 검증 JSON 객체
+- **Hook** — 생명주기 이벤트에서 불변 규칙을 검증하는 집행 장치
+- **Ledger** — 주요 프로토콜 행동을 기록하는 추가 전용 이벤트 로그
+- **Packet** — 특정 task나 판단을 위해 에이전트에 전달하는 컨텍스트 묶음
+- **Context Engineering** — 에이전트 상호작용마다 최소한의 고신호 토큰 집합을 골라내는 실천 (doc 09)
+
+## 정규 소유권
+
+정규 소유권 구조:
+
+- 프로토콜 의미론: `docs/protocol/`
+- 아키텍처와 설계 근거: `docs/architecture/`
+- schema 계약: `docs/protocol/schemas/`
+- 런타임 evidence와 요약: `.geas/`
+- 참고 자료: `docs/reference/`
+
+참고 문서가 기준 프로토콜 문서와 충돌하면 기준 프로토콜 문서가 이긴다.
+
+## 변경 관리와 버전
+
+Geas를 쓰는 프로젝트는 프로토콜 버전을 눈에 보이게 관리해야 한다. 아래에 영향을 주는 변경은 프로토콜 변경으로 다뤄야 한다:
+
+- 상태 머신 전이
+- 필수 evidence나 승인 규칙
+- artifact 완전성 조건
+- 복구 안전 경계
+- 메모리 승격 규칙
+- assurance profile 최소 통제
+
+프로토콜 변경 절차:
+
+1. 근거와 변경 요약
+2. 영향받는 문서 갱신
+3. schema와 hook 영향 분석
+4. 기존 artifact와 호환이 깨지면 마이그레이션 안내
+
+## 도메인 적용 범위
+
+Geas는 멀티 에이전트 소프트웨어 개발을 위해 처음 만들어졌지만, 핵심인 통제된 의사결정, 증거 기반 종료, 체크포인트 복구, 피드백 루프는 특정 도메인에 묶이지 않는다.
+
+AI 에이전트 팀이 아래를 해야 하는 모든 구조화 작업에 이 프로토콜을 적용할 수 있다:
+
+- 실행에 앞서 할 일을 명확히 하기
+- 합의된 기준에 맞는 검증 가능한 결과물 만들기
+- 중단돼도 진행 상황을 잃지 않고 복구하기
+- 결과에서 배워 다음에 더 잘하기
+
+도메인마다 달라지는 부분:
+
+| 달라지는 것 | 도메인별 예시 |
+|---|---|
+| 역할 구성 | 소프트웨어: frontend_engineer, backend_engineer, qa_engineer / 리서치: literature_specialist, methodology_reviewer, domain_expert / 콘텐츠: writer, editor, fact_checker |
+| evidence 종류 | 소프트웨어: 테스트 결과, 빌드 로그 / 리서치: DOI 있는 인용, 통계 분석 / 콘텐츠: 출처 확인된 주장, 스타일 검증 초안 |
+| Tier 1 검증 수단 | 소프트웨어: build, lint, test / 리서치: 출처 검증, 인용 확인 / 콘텐츠: 문법·스타일 린트, 팩트체크 / 데이터: schema 검증, 파이프라인 재현 |
+| 작업 공간 형태 | 소프트웨어: Git worktree / 리서치: 문헌 코퍼스 + 노트 / 콘텐츠: 초안 버전 관리 / 데이터: 데이터셋 스냅샷 |
+| baseline 형태 | 소프트웨어: Git 커밋 / 리서치: 문헌 스냅샷 / 콘텐츠: 승인된 아웃라인 / 데이터: 검증된 데이터셋 버전 |
+
+단계, 게이트, 판결, 메모리, 복구 등 프로토콜 핵심은 도메인과 무관하게 똑같다. 바뀌는 건 이 구조를 채우는 내용뿐이다.
+
+## 핵심 선언
+
+Geas는 취향이 아니다. AI가 돕는 구조화 작업을 위한 운영 원칙이다. 가장 빠른 길이 느려지더라도 evidence 무결성, 역할 명확성, 보수적 복구, 학습 가능한 피드백 루프를 반드시 지킨다.

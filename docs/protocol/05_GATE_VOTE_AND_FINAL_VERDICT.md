@@ -1,254 +1,425 @@
 # 05. Gate, Vote, and Final Verdict
 
-## Core Separation
+> **Normative document.**
+> This document defines the evidence gate, rubric scoring, vote rounds, closure packet completeness, critical-review challenge, and final-verdict semantics.
 
-- **Evidence Gate**: objective verification
-- **Vote Round**: structured disagreement or readiness deliberation
-- **Final Verdict**: product closure decision
+## Purpose
 
-These three are not interchangeable.
+Geas separates three mechanisms that are often incorrectly merged:
 
-## Differences from Legacy Geas
+- **Evidence Gate** — objective verification
+- **Vote Round** — structured deliberation when judgment is contested or shipping risk is material
+- **Final Verdict** — product closure decision
 
-The original Geas Evidence Gate used a 3-tier structure (Tier 1: mechanical, Tier 2: semantic+rubric, Tier 3: product judgment). Changes in this protocol:
-- **Tier 3 removed**: product judgment is no longer inside the gate; it has been separated into an independent **Final Verdict** stage.
-- **Tier 0 added**: a Precheck stage has been added to verify artifact existence and state eligibility.
-- **Preserved**: rubric scoring, iterate semantics, and phase-level ship decisions remain unchanged.
+This separation is mandatory. A conformant implementation MUST NOT allow any one of the three to substitute for the others.
 
-## Evidence Gate v2
+## Core Separation Rules
 
-### Gate Profiles
+1. A gate MUST verify evidence, not product strategy.
+2. A vote round MUST deliberate disagreement or readiness, not fabricate missing evidence.
+3. A final verdict MUST judge the complete packet, not intuition in isolation.
+4. `iterate` belongs to the final-verdict layer, not to the gate layer.
+5. A passing gate MUST NOT automatically imply `passed`.
 
-| gate_profile | Tier 0 | Tier 1 | Tier 2 | Description |
+## Evidence Gate
+
+The evidence gate is an ordered, three-tier verification mechanism that determines whether a task's outputs meet the required standard. It runs after implementation and review are complete, and its result (`pass | fail | block | error`) decides whether the task can advance toward closure. The gate does not judge product strategy — it verifies that evidence exists and meets thresholds.
+
+### Gate profiles
+
+| gate_profile | Tier 0 | Tier 1 | Tier 2 | expected use |
 |---|---|---|---|---|
-| `code_change` | Run | Run | Run | Standard task involving code changes |
-| `artifact_only` | Run | Skip | Run (rubric only, no build/test) | Tasks without code changes such as documentation or design |
-| `closure_ready` | Run | Skip | Simplified (completeness check only) | Final cleanup tasks such as release or config |
+| `implementation_change` | run | run | run | standard implementation-bearing task |
+| `artifact_only` | run | skip or narrow | run | documentation, design, review, or analysis work without primary implementation change |
+| `closure_ready` | run | optional | simplified completeness + readiness checks | cleanup, delivery, or closure-assembly task |
 
-### Tier 0 — Precheck
-- Required artifacts existence
-- Task state eligibility
-- Baseline/integration prerequisites
-- Required reviewer/self-check presence
+A project MAY tighten a profile, but it MUST NOT silently weaken one without policy documentation.
 
-On Tier 0 failure:
-- Missing required artifact: gate verdict = `block`. Gate re-entry is not allowed until the artifact is created. Does not consume retry_budget.
-- Task state does not meet gate entry conditions: gate verdict = `error`. The orchestration_authority inspects the state.
-- Baseline mismatch: gate verdict = `block`. Re-enter after performing revalidation.
+## Tier 0 — Precheck
 
-If Tier 0 returns fail/block/error, processing does not proceed to Tier 1 or beyond.
+Tier 0 verifies that the task is even eligible for gating.
 
-### Tier 1 — Mechanical
-- build/lint/test/typecheck/command execution
-- Result: `pass | fail`
+It MUST check:
 
-### Tier 2 — Contract + Rubric
-- Acceptance criteria
-- Scope violation check
-- Required checks / demo steps
-- Known risk handling: verify that each item in the implementation contract's `known_risks` has been handled as one of: mitigated, accepted with rationale, or deferred to debt
-- Rubric scoring
-- Result: `pass | fail`
+- required artifact presence
+- task state eligibility
+- baseline / integration prerequisites
+- required review set presence
+- worker self-check presence where required
+- packet freshness where relevant
 
-### Gate Verdict
+### Tier 0 outcomes
+
+- missing required artifact -> `block`
+- ineligible state -> `error`
+- stale or mismatched baseline -> `block`
+- validator or environment failure -> `error`
+
+Tier 0 MUST short-circuit subsequent tiers on non-pass outcomes.
+
+## Tier 1 — Mechanical Verification
+
+Tier 1 verifies that objective, repeatable checks pass.
+
+Examples by domain:
+
+- **Software**: build, lint, tests, type-check
+- **Research**: source verification, citation validation, statistical reproducibility check
+- **Content**: grammar check, style lint, fact verification, link validation
+- **General**: schema validation, generated artifact validation, reproducible command execution, benchmark or eval harness execution when the task requires it
+
+Tier 1 MAY be narrowed for `artifact_only` work, but not skipped entirely when domain-appropriate mechanical checks exist (e.g., citation validation for research, fact-checking for content, schema validation for data). Full skip is allowed only when no repeatable verification is applicable.
+
+### Mechanical evidence requirements
+
+Tier 1 evidence SHOULD record:
+
+- commands or harnesses run
+- exit status
+- timestamps
+- important environment qualifiers
+- failed checks and locations
+
+## Tier 2 — Contract and Rubric Verification
+
+Tier 2 verifies that the submitted work fulfills the approved contract and acceptance story.
+
+Tier 2 MUST consider:
+
+- acceptance criteria
+- scope violations
+- required checks and demo steps
+- handling of known risks
+- review outcomes
+- rubric thresholds
+- stub or placeholder verification
+- whether the change remains materially faithful to the approved plan
+
+### Known-risk handling
+
+Every item from `known_risks` MUST have one of the following statuses at closure:
+
+| status | description |
+|---|---|
+| mitigated | a countermeasure was executed |
+| accepted | the risk is consciously carried, with recorded rationale |
+| deferred | the risk is registered as debt for future handling, with recorded rationale |
+
+A risk that appeared in the contract MUST NOT be absent from closure without explanation.
+
+## Gate Verdict Enum
+
+Canonical outcomes:
+
 - `pass`
 - `fail`
 - `block`
-- `error` — gate execution itself failed (build system unavailable, timeout, etc.)
+- `error`
 
-`iterate` is not a gate result; it is used in the final verdict.
+### Meaning
 
-### Difference Between `fail` and `block`
+| verdict | meaning | retry budget impact |
+|---|---|---:|
+| `pass` | required gate conditions passed | 0 |
+| `fail` | implementation or verification quality problem | 1 |
+| `block` | structural prerequisite missing or unresolved | 0 |
+| `error` | gate execution itself failed or became unreliable | 0 by default |
 
-- `fail`: implementation quality issue. Can be fixed via the verify-fix loop. Consumes 1 from retry_budget.
-- `block`: structural prerequisite not met. Cannot be resolved by modifying the implementation. Does not consume retry_budget. Re-enter the gate after resolving the blocking cause.
+## `fail` vs `block`
 
-Conditions that produce `block`:
-- Tier 0: missing required artifact, baseline mismatch
-- Tier 2: stub cap exceeded, required specialist review missing
+This distinction is critical.
 
-### Gate Error Handling
-If the gate verdict is `error`, retry_budget is not consumed. The orchestration_authority resolves the cause and re-runs the gate. If the same cause produces `error` 3 consecutive times, the task transitions to `blocked` and the cause is recorded.
+### `fail`
+Use when the implementation can realistically be improved and re-submitted.
+
+Examples:
+
+- tests failing
+- threshold below rubric minimum
+- regression behavior observed
+- acceptance criterion unmet
+
+### `block`
+Use when forward motion would be structurally invalid.
+
+Examples:
+
+- missing artifact
+- missing required specialist review
+- baseline mismatch
+- stub cap exceeded where policy forbids it
+- incomplete packet dependency
+
+A team MUST NOT label a `block` as `fail` merely to consume retry budget and keep moving.
+
+## Gate Error Handling
+
+If the gate returns `error`:
+
+1. record the execution problem
+2. do not consume retry budget by default
+3. resolve the environment or tool cause
+4. re-run conservatively
+
+Repeated `error` on the same cause SHOULD escalate to `blocked` or `escalated` depending on whether the cause is operational or jurisdictional.
 
 ## Rubric Scoring
 
-The default rubric dimensions are aligned with the current Geas pipeline.
+Rubrics are the tool Tier 2 uses to quantify output quality. Each dimension receives a 1–5 score, and any dimension below its threshold causes Tier 2 failure. Where Tier 1 asks "does it run?", rubrics ask "is it well made?"
 
-### Default Dimensions
-| dimension | evaluator | default threshold |
-|---|---|---:|
-| `core_interaction` | `qa_engineer` | 3 |
-| `feature_completeness` | `qa_engineer` | 4 |
-| `code_quality` | `architecture_authority` | 4 |
-| `regression_safety` | `qa_engineer` | 4 |
+### Default dimensions
 
-### UI-sensitive Tasks Add
-| dimension | evaluator | default threshold |
-|---|---|---:|
-| `ux_clarity` | `qa_engineer` or `ui_ux_designer` | 3 |
-| `visual_coherence` | `qa_engineer` or `ui_ux_designer` | 3 |
+| dimension | what it evaluates | typical primary evaluator | default threshold |
+|---|---|---|---:|
+| `core_interaction` | does the core behavior work as intended | Quality Specialist | 3 |
+| `output_completeness` | are all acceptance criteria satisfied | Quality Specialist | 4 |
+| `output_quality` | is the structural and methodological quality sufficient | Design Authority | 4 |
+| `regression_safety` | does the change avoid harming existing behavior | Quality Specialist | 4 |
 
-### Scoring Rules
-- Score range: 1-5
-- If any dimension falls below its threshold, gate Tier 2 fails
-- `blocking_dimensions[]` is a key input for the verify-fix-loop and rewind reasons
+### Common optional dimensions
 
-### Low Confidence Threshold Adjustment
+Projects MAY add dimensions based on domain and need:
 
-The `confidence` field in worker-self-check.json is a single scalar (1-5). If this value is <= 2, all rubric dimension thresholds are increased by +1.
+| dimension | what it evaluates |
+|---|---|
+| `ux_clarity` | clarity of user flows and interfaces |
+| `visual_coherence` | visual consistency and design intent alignment |
+| `security_posture` | soundness of security boundaries and trust model |
+| `operational_readiness` | deployment, operations, and rollback readiness |
+| `documentation_completeness` | documentation coverage and accuracy |
+| `migration_safety` | safety of migrations and transitions |
+| `evaluation_quality` | quality of evaluation evidence for agentic changes |
 
-In the future, if the worker-self-check schema supports per-dimension confidence (`confidence_per_dimension: { dimension: score }`), the +1 adjustment will apply only to the relevant dimension. Currently, the scalar value applies globally.
+### Scoring rules
 
-Example: if worker-self-check.json `confidence` is 2, all dimension thresholds are raised by +1 (`core_interaction` 3->4, `feature_completeness` 4->5, etc.).
+- score range is 1–5
+- any dimension below threshold causes Tier 2 failure unless a documented profile exception exists
+- dimensions that caused failure SHOULD be recorded in `blocking_dimensions[]` for the verify-fix loop
+- threshold changes MUST be attributable to explicit policy, not ad hoc mood
 
-### Stub Check
-If `possible_stubs[]` is not empty, the gate prioritizes verifying those locations. If confirmed stubs exist, `feature_completeness` is capped at a maximum of 2. If the confirmed stub count exceeds the stub cap, the gate immediately returns `block`.
+## Low-Confidence Adjustment
 
-Default stub cap by risk_level:
+When worker self-check `confidence <= 2`, the gate SHOULD tighten scrutiny.
 
-| risk_level | stub cap |
+Default policy:
+
+- add +1 to all rubric thresholds for that gate run, capped at 5
+
+A project MAY adopt a per-dimension confidence model later, but until then the scalar rule applies globally.
+
+## Stub and Placeholder Policy
+
+A stub is an incomplete, temporary implementation — a TODO function, a hardcoded return value, a dummy response standing in for real logic. The gate MUST explicitly inspect declared `possible_stubs[]` and SHOULD search for undeclared placeholders where practical.
+
+### Default stub cap by risk level
+
+| risk_level | default stub cap |
 |---|---:|
 | `low` | 3 |
 | `normal` | 2 |
 | `high` | 0 |
 | `critical` | 0 |
 
+Rules:
+
+- confirmed stubs SHOULD cap completeness scoring
+- exceeding the allowed cap SHOULD produce `block`
+- undeclared confirmed stubs are worse than declared stubs and SHOULD be treated as trust-reducing evidence
+
+## Evaluation Discipline for Agentic Work
+
+If the task changes prompts, tools, memory behavior, routing logic, or other agentic control surfaces, Tier 1 or Tier 2 SHOULD include representative evaluations rather than relying only on unit tests.
+
+At minimum, the verifier SHOULD ask:
+
+- did target success improve?
+- did regressions appear on known hard cases?
+- did safety or policy failures increase?
+- did cost or latency change materially?
+
+This does not require a vendor-specific eval system, but it does require explicit measured evidence.
+
 ## Worker Self-Check Consumption
 
-`worker-self-check.json` affects the gate as follows:
-- `known_risks[]` -> contract review priority
-- `untested_paths[]` -> QA priority
-- `possible_stubs[]` -> stub cap
-- `confidence` -> threshold adjustment
-- `what_to_test_next[]` -> QA test plan seed
+The system MUST consume `worker-self-check.json` as more than a note. It directly informs:
+
+- review focus
+- Quality Specialist verification plan
+- stub verification
+- threshold tightening
+- debt and memory extraction
+
+Ignoring the self-check while still collecting it is non-conformant review theater.
 
 ## Vote Rounds
 
-### vote_round_policy Application Rules
-- `never`: do not run a vote round. Even if readiness_round trigger conditions are met, skip it.
-- `auto`: automatically run a readiness_round if any of the trigger conditions below are met. Skip if none are met.
-- `always`: run a readiness_round regardless of trigger conditions.
+A vote round is a structured deliberation where multiple roles weigh in on a contested decision. It exists for situations where evidence alone cannot settle the question — when judgment, trade-offs, or conflicting perspectives must be resolved explicitly rather than by one authority acting alone.
 
-When a task set to `never` encounters a readiness_round trigger condition, the orchestration_authority records it but does not run the round. However, specialist review conflicts (see doc 01 Specialist Conflict Resolution) always invoke a vote round regardless of vote_round_policy.
+Vote rounds do not replace evidence. They decide what to do with the evidence.
 
-### `proposal_round`
-When to use:
-- Design-brief approval during the specifying phase (mandatory for full-depth, skipped for lightweight)
-- Cross-cutting proposals during the specifying phase
-- Major design/API boundary decisions during the building phase
+### Two types of vote rounds
 
-Quorum requirement: at least 2 participants (proposer + reviewer).
+| type | when to use | typical participants |
+|---|---|---|
+| `proposal_round` | before work begins — to approve a design brief, settle a major structural or methodological choice, or adopt a cross-cutting proposal | Design Authority, relevant specialists, Decision Maker |
+| `readiness_round` | before closure — to confirm high-risk ship readiness, formally handle a blocking challenge, or resolve a completeness-vs-urgency trade-off | Orchestrator, Decision Maker, Challenger, relevant specialists |
 
-Vote enum:
-- `agree`
-- `disagree`
+### `vote_round_policy`
 
-On quorum failure: the vote round is recorded as `inconclusive`, and the orchestration_authority assigns additional participants for a retry. If quorum fails 2 consecutive times, the task transitions to `escalated`.
+Each task declares when vote rounds occur:
 
-### `readiness_round`
-When to use:
-- `risk_level = high` or `critical`
-- `open_risks.status = present`
-- Out-of-scope changes exist
-- Specialist reviews are split
-- Resubmission after a retry
-- Requested by product_authority or orchestration_authority
+| value | behavior |
+|---|---|
+| `never` | skip discretionary rounds (mandatory conflict handling still applies) |
+| `auto` | run when trigger conditions are met |
+| `always` | always run a readiness round before final verdict |
 
-Quorum requirement: at least `orchestration_authority` + `product_authority` + 1 specialist.
+### Trigger conditions for `auto`
 
-Vote enum:
-- `ship`
-- `iterate`
-- `escalate`
+A readiness round triggers when any of the following are true:
 
-On quorum failure: the same rules as proposal_round apply (transition to `escalated` after 2 consecutive quorum failures).
+- `risk_level` is `high` or `critical`
+- required reviewers disagree materially
+- open risks remain unresolved
+- an out-of-scope change was introduced
+- the task is being resubmitted after failure or iterate
+- Decision Maker or Orchestrator explicitly requests deliberation
+
+### Vote result
+
+| result | meaning |
+|---|---|
+| `ship` | the participants agree the task may proceed to verdict |
+| `iterate` | the participants agree additional work is needed before proceeding |
+| `escalate` | the participants cannot reach resolution at the current authority level |
+
+A vote result MUST include the participant list. If consensus was not unanimous, dissenting positions MUST be recorded.
 
 ## Closure Packet
 
-Required fields:
-- `task_summary`
-- `change_summary`
-- `specialist_reviews[]`
-- `integration_result`
-- `verification_result`
-- `worker_self_check`
-- `open_risks`
-- `debt_snapshot`
-- `readiness_round` (`null` if none)
+The closure packet is the compressed evidence bundle that tells the full story of a task. The Decision Maker renders the final verdict based solely on this packet. If the packet is incomplete, no verdict may be issued.
 
-### `specialist_reviews[]`
-Each review must contain at minimum:
-- `reviewer_type`
-- `status = approved | changes_requested | blocked`
-- `summary`
-- `blocking_concerns[]`
-- `rubric_scores[]` (optional but recommended)
+### Required fields
 
-### `open_risks`
-Enforced as a structured type:
-- `status = none | present`
-- `items[]`
+| field | description |
+|---|---|
+| `task_summary` | what the task accomplished |
+| `change_summary` | what changed and where |
+| `specialist_reviews[]` | review outputs from all required specialist slots |
+| `integration_result` | outcome of merging the change into the baseline |
+| `verification_result` | evidence gate outcome |
+| `worker_self_check` | the worker's structured self-assessment |
+| `open_risks` | risks acknowledged but not fully resolved |
+| `debt_snapshot` | debt introduced or carried by this task |
+| `readiness_round` | vote round result, or explicit null if not required |
 
-### `debt_snapshot`
-- `status = none | present`
-- `items[]`
+### Completeness rules
 
-## Critical Reviewer Pre-ship Challenge
+A closure packet is complete only if:
 
-After gate pass, after closure packet assembly, and before the final verdict, the `critical_reviewer` performs a pre-ship challenge.
+- all required fields exist
+- required reviewer outputs are present
+- unresolved blocking concerns are either actually resolved or explicitly carried as acknowledged risk through the correct path
+- artifact references are coherent
+- packet contents refer to the current verified submission, not a stale one
 
-### Purpose
-- Surface structural risks, hidden assumptions, and excessive complexity that the gate might miss
-- Improve the quality of the closure packet entering the final verdict
+A packet MUST NOT be called “complete enough” by prose if the formal completeness rules are not met.
+
+## Specialist Review Requirements Inside the Packet
+
+Each specialist review SHOULD include at minimum:
+
+| field | description |
+|---|---|
+| `reviewer_type` | which specialist slot produced this review |
+| `status` | `approved`, `changes_requested`, or `blocked` |
+| `summary` | review findings and rationale |
+| `blocking_concerns[]` | individually addressable blocking issues |
+| `evidence_refs[]` | artifacts examined during review |
+| `rubric_scores[]` | optional rubric dimension scores |
+
+Blocking concerns SHOULD remain individually addressable. “Many concerns” is not enough.
+
+## Critical Review Challenge
+
+Normal reviewers ask "is this correct?" The Challenger asks the opposite: "why might this be wrong?" Cooperative review tends to assume success, so a role that deliberately takes the opposing stance is necessary.
+
+What the Challenger must look for:
+
+| target | example |
+|---|---|
+| hidden assumptions | "this API always returns 200" is assumed but never verified |
+| overconfidence | worker confidence is 5 but test coverage is low |
+| fragile complexity | it works, but would break if a single condition changes |
+| premature shipping logic | "ship now, fix later" adopted without supporting evidence |
+| unexamined negative cases | only the happy path was tested; failure paths were not checked |
 
 ### Rules
-- Mandatory when `risk_level` is `high` or `critical`; otherwise at orchestration_authority's discretion
-- The `critical_reviewer` must raise at least 1 concern (substantive challenge obligation)
-- If a concern is blocking, add it to `open_risks` in the closure packet and trigger a readiness_round
-- If a concern is non-blocking, record it in the closure packet's notes
-- Challenge results are recorded in `challenge-review.json`
 
-### Relationship Between Readiness Round and Blocking Concerns
+- mandatory for `high` and `critical` tasks
+- MUST include at least one substantive challenge
+- MUST distinguish blocking concerns from advisory concerns
+- MUST record output in `challenge-review.json`
 
-When a blocking concern from the `critical_reviewer` triggers a readiness_round:
-- If the readiness_round result is `ship`, the blocking concern is converted to an **acknowledged risk**. The `resolved` field of the corresponding item in the specialist-review's `blocking_concerns[]` is set to `true`, and `resolution = "accepted_via_readiness_round"` is recorded. This satisfies the closure packet completeness condition.
-- If the readiness_round result is `iterate`, rewind to resolve the concern.
-- If the readiness_round result is `escalate`, the task transitions to `escalated`.
+### When a blocking concern is raised
 
-### Flow
-```
-Evidence Gate pass -> Closure Packet assembly -> Critical Reviewer Challenge -> Final Verdict
-```
+The system MUST resolve it through one of the following:
+
+| resolution | description |
+|---|---|
+| resolve before verdict | fix the issue or provide additional evidence, then resubmit |
+| carry to readiness round | when multiple perspectives must deliberate via vote round |
+| escalate | when the current authority level cannot make the call |
+
+A blocking concern MUST NOT be omitted from the closure packet.
 
 ## Final Verdict
 
-The `product_authority` makes decisions based primarily on the **task definition + closure packet**.
+The final verdict is the only mechanism in the protocol that can close a task. Where the evidence gate asks "did verification pass?", the final verdict asks "should the product accept this result?" Only the Decision Maker may issue this verdict, and it must be based on the closure packet.
 
-Allowed verdicts:
-- `pass`
-- `iterate`
-- `escalate`
+### Verdict types
 
-Meaning:
-- `pass` -> `passed`
-- `iterate` -> specify rewind target
-- `escalate` -> requires higher-level decision-making
+| verdict | effect | retry budget impact |
+|---|---|---|
+| `pass` | task becomes `passed` — done | none |
+| `iterate` | explicit restoration target assigned and additional work required | does not consume (but counts toward iterate repetition cap) |
+| `escalate` | local decision authority is insufficient — escalated to user | none |
 
-Final Verdict `iterate` is independent of retry_budget. Since `iterate` is a product judgment rather than a gate failure, it does not consume retry_budget. However, `iterate` also has a repetition limit: if `iterate` accumulates 3 times for the same task, the task transitions to `escalated`.
+### Forbidden `pass` conditions
 
-If the packet is incomplete, `pass` is prohibited. For a packet to be "complete", all of the following must be satisfied:
-- All required fields (`task_summary`, `change_summary`, `specialist_reviews[]`, `integration_result`, `verification_result`, `worker_self_check`, `open_risks`, `debt_snapshot`) are populated
-- Specialist reviews for all types in the required reviewer set are included in `specialist_reviews[]`
-- The gate result (`verification_result`) exists
-- No unresolved items in `blocking_concerns[]` (no specialist review with `status = blocked`)
+`pass` is prohibited when any of the following are true:
 
-## Gap Assessment Linkage
+| condition | reason |
+|---|---|
+| closure packet incomplete | insufficient basis for judgment |
+| gate did not pass | unverified result cannot be accepted |
+| required review missing | required perspectives are absent |
+| active unresolved blocker not resolved through an allowed process | known issues cannot be silently ignored |
+| task state is not `verified` | state transition invariant violation |
+| evidence refers to stale or mismatched submission | judgment must be based on the current result |
 
-At phase-level or mission-level closure decisions, task closure alone is not sufficient. The `product_authority` also considers the following as needed:
-- Current `scope_in`
-- Delivered `scope_out`
-- `gap-assessment.json`
-- Current debt snapshot
-- Unresolved product risks
+### `iterate` semantics
 
-In other words, **a task may be closed but the phase may still remain open.**
+`iterate` is a product judgment, not a gate failure. It means "verification passed, but the result is not good enough for the product." It does not consume retry budget, but MUST record:
+
+| record | description |
+|---|---|
+| rejection reason | why the current result is not acceptable |
+| restoration target | which state to restore to for rework |
+| new expectations | what must change in the next submission |
+
+Repeated `iterate` without narrowing uncertainty SHOULD trigger escalation.
+
+## After Closure
+
+A task reaching `passed` does not end interpretation. Information surfaced during closure must feed into the system's future behavior.
+
+| what surfaced | where it goes |
+|---|---|
+| unresolved compromises | debt registration |
+| unexpected over-delivery or under-delivery | gap assessment |
+| repeated verdict patterns | rules and memory |
+
+## Key Statement
+
+A mature workflow does not ask one mechanism to do every job. Evidence gates verify, vote rounds deliberate, and final verdicts decide. When these boundaries blur, trust collapses.

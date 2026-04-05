@@ -1,186 +1,212 @@
 # 11. Runtime Artifacts and Schemas
 
+> **기준 문서.**
+> 이 문서는 canonical 런타임 artifact 패밀리, 계약 철학, 버전 관리 기대치, 그리고 검증 실패 처리를 요약한다.
+
 ## 목적
 
-이 문서는 canonical runtime artifact와 memory artifact의 계약을 요약한다. 상세 필드 정의는 `schemas/`를 본다.
+Artifact는 Geas가 일시적인 모델 행동을 감사 가능한 evidence 기반 프로세스로 변환하는 수단이다. 이 문서는 artifact 계층을 다음과 같이 정의한다:
+
+- 상태 전이가 evidence 기반으로 유지됨
+- validator가 무엇을 강제할지 앎
+- reviewer가 무엇을 기대할지 앎
+- 문서, 스키마, hook 간의 drift가 가시화됨
+
+## Artifact Contract Philosophy
+
+Geas는 artifact를 관리하기 위해 세 가지 상호 보완적인 계층을 사용한다. 각 계층은 고유한 책임을 가지며, 한 계층이 다른 계층의 역할을 대신해서는 안 된다.
+
+| 계층 | 책임 |
+|---|---|
+| 산문 문서 | 의미론과 invariant를 사람이 읽을 수 있는 형태로 정의 |
+| 스키마 | 구조와 기계 검증 가능한 제약을 정의 |
+| hook / validator | 존재 여부, 순서, 선택된 invariant를 런타임에 강제 |
 
 ## Core Runtime Artifacts
 
-### 파이프라인 Artifact (작업별)
+Geas는 실행의 모든 단계에서 artifact를 생성한다. 다음 테이블은 artifact를 생성하는 phase 또는 하위 시스템별로 분류한다.
 
-| Artifact | Schema | 저장 경로 | 생산자 |
-|----------|--------|----------|--------|
-| `task-contract.json` | `task-contract.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}.json` | task_compiler |
-| `implementation-contract.json` | `implementation-contract.schema.json` | `.geas/missions/{mission_id}/contracts/{task_id}.json` | primary worker |
-| `worker-self-check.json` | `worker-self-check.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/worker-self-check.json` | primary worker |
-| `specialist-review.json` | `specialist-review.schema.json` | `.geas/missions/{mission_id}/evidence/{task_id}/{agent-type}[-review].json` | specialist agents |
-| `integration-result.json` | `integration-result.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/integration-result.json` | orchestration_authority |
-| `gate-result.json` | `gate-result.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/gate-result.json` | orchestration_authority |
-| `closure-packet.json` | `closure-packet.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/closure-packet.json` | orchestration_authority |
-| `challenge-review.json` | `challenge-review.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/challenge-review.json` | critical_reviewer |
-| `final-verdict.json` | `final-verdict.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/final-verdict.json` | product_authority |
-| `vote-round.json` | `vote-round.schema.json` | `.geas/missions/{mission_id}/decisions/{dec_id}.json` | orchestration_authority |
-| `failure-record.json` | `failure-record.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/failure-record-{seq}.json` | orchestration_authority |
-| `retrospective.json` | `retrospective.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/retrospective.json` | orchestration_authority |
+### Specifying artifact
 
-### 세션 & 오케스트레이션 Artifact
+Specifying phase에서 생성되는 artifact로, mission을 정의하고 task로 분해하는 과정의 산출물이다.
 
-| Artifact | Schema | 저장 경로 | 생산자 |
-|----------|--------|----------|--------|
-| `run-state.json` | `run-state.schema.json` | `.geas/state/run.json` | orchestration_authority |
-| `lock-manifest.json` | `lock-manifest.schema.json` | `.geas/state/locks.json` | orchestration_authority |
-| `health-check.json` | `health-check.schema.json` | `.geas/state/health-check.json` | orchestration_authority |
-| `revalidation-record.json` | `revalidation-record.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/revalidation-record.json` | orchestration_authority |
-| `recovery-packet.json` | `recovery-packet.schema.json` | `.geas/recovery/recovery-{id}.json` | orchestration_authority |
+| artifact | 설명 |
+|---|---|
+| mission spec | mission의 범위, 목표, 제약을 정의 |
+| design brief | 구조적 접근 방식과 핵심 결정을 기술 |
+| decision record | 구조화된 결정과 그 근거를 기록 |
+| 초기 task compilation 출력 | mission spec과 design brief에서 생성된 task contract |
+| phase review | Specifying phase 종료 평가 |
 
-### Evolution Artifact
+### Per-task pipeline artifact
 
-| Artifact | Schema | 저장 경로 | 범위 |
-|----------|--------|----------|------|
-| `rules-update.json` | `rules-update.schema.json` | `.geas/missions/{mission_id}/evolution/rules-update-{seq}.json` | mission별 |
-| `debt-register.json` | `debt-register.schema.json` | `.geas/missions/{mission_id}/evolution/debt-register.json` | mission별 (항목 누적) |
-| `gap-assessment.json` | `gap-assessment.schema.json` | `.geas/missions/{mission_id}/evolution/gap-assessment-{transition}.json` | phase 전이별 |
-| `phase-review.json` | `phase-review.schema.json` | `.geas/missions/{mission_id}/phase-reviews/{transition}.json` | phase 전이별 |
-| `policy-override.json` | `policy-override.schema.json` | `.geas/state/policy-overrides.json` | 프로젝트별 |
+Task가 lifecycle 상태를 거치면서 per-task 실행 pipeline에서 생성되는 artifact이다.
 
-### Memory Artifact
+| artifact | 설명 |
+|---|---|
+| task contract | task가 달성해야 할 내용, 분류, 수락 기준을 정의 |
+| implementation contract | 접근 방식에 대한 worker와 reviewer 간 사전 합의 |
+| worker self-check | implementation이 contract를 충족하는지에 대한 worker 자체 평가 |
+| specialist review | specialist 에이전트(Quality Specialist, Risk Specialist 등)의 review |
+| integration result | task의 변경사항을 baseline에 통합한 결과 |
+| gate result | tier별 pass/fail 세부사항이 포함된 evidence gate verdict |
+| vote-round result | 트리거 시 구조화된 심의 결과 |
+| challenge review | high/critical risk task에 대한 Challenger 평가 |
+| closure packet | final verdict를 위해 조립된 evidence 번들 |
+| final verdict | Decision Maker의 pass/iterate/escalate 결정 |
+| failure record | 단계 실패 시 무엇이 잘못되었는지를 기록 (필요시 생성) |
 
-| Artifact | Schema | 저장 경로 | 생산자 |
-|----------|--------|----------|--------|
-| `memory-candidate.json` | `memory-candidate.schema.json` | `.geas/memory/candidates/{memory_id}.json` | orchestration_authority |
-| `memory-entry.json` | `memory-entry.schema.json` | `.geas/memory/entries/{memory_id}.json` | orchestration_authority |
-| `memory-review.json` | `memory-review.schema.json` | `.geas/memory/candidates/{memory_id}-review.json` | domain authority |
-| `memory-application-log.json` | `memory-application-log.schema.json` | `.geas/memory/logs/{task_id}-{memory_id}.json` | orchestration_authority |
-| `memory-packet.json` | `memory-packet.schema.json` | `.geas/missions/{mission_id}/packets/{task_id}/memory-packet.json` | orchestration_authority |
-| `memory-index.json` | `memory-index.schema.json` | `.geas/state/memory-index.json` | orchestration_authority |
+### Session and orchestration artifact
 
-### 사람이 읽는 요약 (스키마 없음 — 마크다운)
+Task와 세션 간 런타임 실행을 조율하는 artifact이다.
 
-| 파일 | 저장 경로 | 범위 |
-|------|----------|------|
-| `session-latest.md` | `.geas/state/session-latest.md` | session별 (compact 시 덮어쓰기) |
-| `task-focus/{id}.md` | `.geas/state/task-focus/{task_id}.md` | task별 |
-| `mission-summary.md` | `.geas/missions/{mission_id}/mission-summary.md` | mission별 |
-| `run-summary-{ts}.md` | `.geas/summaries/run-summary-{timestamp}.md` | session별 |
+| artifact | 설명 |
+|---|---|
+| `run.json` | phase, 활성 task, 구성을 포함한 mission 수준 런타임 상태 |
+| session summary | 세션에서 일어난 일의 상위 수준 기록 |
+| task-focus summary | recovery와 context를 위한 task별 진행 스냅샷 |
+| recovery packet | 다음 세션을 위한 중단 상태 평가 |
+| health check | 주기적 health signal 수집 |
+| lock / lane state | workspace lock 소유권과 병렬 lane 할당 |
+
+### Evolution artifact
+
+Evolving phase에서 생성되는 artifact로, 팀이 성과를 돌아보고 프로세스를 갱신하는 산출물이다.
+
+| artifact | 설명 |
+|---|---|
+| retrospective | 무엇이 잘 되었고, 무엇이 실패했고, 무엇을 변경할지에 대한 구조화된 회고 |
+| rules update | 프로젝트 규칙에 대한 제안 또는 적용된 변경 |
+| debt register | 추적되는 기술적 또는 프로세스 부채 항목 |
+| gap assessment | 프로토콜 요구사항과 실제 관행 간 식별된 격차 |
+| mission summary | 완료된 mission의 최종 기록 |
+| memory application log | 어떤 memory가 적용되었고 그 효과는 무엇이었는지의 기록 |
+
+### Memory artifact
+
+세션 간 학습된 경험을 포착하고 관리하는 artifact이다.
+
+| artifact | 설명 |
+|---|---|
+| memory entry | 단일 memory candidate 또는 승격된 memory |
+| memory review | memory 건강성과 관련성에 대한 주기적 검토 |
+| memory index | 메타데이터가 포함된 모든 활성 memory의 레지스트리 |
+| memory packet | 관련 memory를 포함한 context-packet 보충 자료 |
+| supersession 또는 decay 노트 | memory가 대체되거나 폐기된 이유의 기록 |
+
+## Canonical Metadata
+
+모든 canonical artifact는 공유 메타데이터를 노출하여 validator, recovery 엔진, reviewer가 식별하고 신뢰할 수 있어야 한다. 정확한 필드명은 스키마에 의해 관리되며, 의미론은 프로토콜에 의해 관리된다.
+
+| 필드 | 설명 |
+|---|---|
+| `artifact_type` | 이것이 어떤 종류의 artifact인지 식별 |
+| `version` | 호환성 검사를 위한 스키마 또는 artifact 버전 |
+| 생성 타임스탬프 | artifact가 생성된 시점 |
+| 생산 역할 또는 하위 시스템 | 어떤 에이전트나 하위 시스템이 artifact를 생성했는지 |
+| 관련 id | `mission_id`, `task_id`, `memory_id` 또는 기타 연결 식별자 |
+| 소스 또는 lineage 참조 | 부모 artifact나 트리거 이벤트에 대한 포인터 (해당되는 경우) |
+
+## File Naming and Path Discipline
+
+일관된 명명 규칙과 경로 구조는 artifact를 검색 가능하게 하고 잘못된 식별의 가능성을 줄인다.
+
+| 규칙 | 설명 |
+|---|---|
+| 안정적이고 유형 지향적인 파일명 | canonical artifact 파일명은 예측 가능하고 artifact 유형을 반영해야 한다 |
+| 명확한 소유 경로 | 경로 레이아웃은 artifact가 어떤 mission이나 task에 속하는지 명확하게 해야 한다 |
+| 유연한 요약, 예측 가능한 JSON | 요약은 유연한 명명을 사용할 수 있지만, canonical JSON artifact는 예측 가능해야 한다 |
+| 파일명보다 메타데이터 | 파일명만이 의미의 유일한 출처여서는 안 되며 내부 메타데이터가 일치해야 한다 |
 
 ## Schema Inventory
 
-28개 JSON Schema + 1개 공유 정의 파일 (`_defs.schema.json`) = 총 29개 파일 (`schemas/`).
+`docs/protocol/schemas/` 아래의 canonical JSON 스키마는 기계 검증을 위한 구조적 진실의 출처로 유지된다. 이 문서는 그것을 대체하지 않으며, 올바르게 사용하는 방법을 설명한다.
 
-## Artifact Purpose Highlights
+## Artifact Immutability and Replacement
 
-### `worker-self-check.json`
-worker가 known risks, untested paths, possible stubs, confidence를 남기는 자기 평가 artifact.
+Artifact가 완료된 단계를 나타내면 불변으로 취급해야 한다. 수정이 필요한 경우 원본을 변경하는 대신 새 버전이나 대체 레코드를 생성하는 것이 권장된다.
 
-### `challenge-review.json`
-Critical reviewer의 pre-ship challenge. high/critical risk 작업에서 필수. reviewer는 최소 1개의 실질적 우려를 제기해야 한다 (protocol doc 05: substantive challenge obligation).
+| 정책 | 설명 |
+|---|---|
+| 완료된 artifact를 불변으로 취급 | artifact가 완료된 단계를 기록하면 원위치 수정 금지 |
+| 수정 시 대체 레코드 생성 | 수정이 필요하면 원본을 참조하는 새 버전을 생성 |
+| 변경 시 재구성 메타데이터 보존 | 로컬 정책이 원위치 변경을 허용하면 이전 상태를 재구성할 수 있는 충분한 메타데이터를 보존 |
 
-### `vote-round.json`
-구조화된 투표 결과 — `proposal_round` (agree/disagree) 또는 `readiness_round` (ship/iterate/escalate). 이전의 별도 readiness-round artifact를 대체.
+이력 재작성은 추적성을 약화시킨다.
 
-### `failure-record.json`
-작업 실패와 되감기를 기록. 실패는 상태가 아님 — 작업이 rewind target으로 돌아감. retry_budget before/after를 추적.
+## Recommended Hardening Patterns
 
-### `health-check.json`
-protocol doc 12의 8개 건강 신호. 각각 value, threshold, triggered 플래그를 가짐. phase 전이, 세션 시작, evolving phase 진입 시 계산.
+다음은 아직 모든 canonical 스키마에 존재하지 않더라도 권장된다. 프로젝트는 숨겨진 임시 필드가 아닌 스키마 확장이나 동반 메타데이터를 통해 이를 구현해야 한다.
 
-### `policy-override.json`
-rules.md 임시 오버라이드의 machine-readable 레지스트리. 항목은 삭제하지 않음 — 만료된 항목은 `expired: true`로 표시하여 감사 추적 유지.
+| 패턴 | 설명 |
+|---|---|
+| artifact lineage 또는 부모 참조 | 이 artifact를 트리거했거나 선행한 artifact에 대한 링크 |
+| 명시적 생산자 역할 | 어떤 에이전트 유형이나 하위 시스템이 artifact를 생성했는지 기록 |
+| 체크섬 또는 콘텐츠 해시 | 중요 artifact에 대한 무결성 검증 |
+| 관련 evidence 링크 | 명령 출력, 테스트 결과, 또는 evidence 번들에 대한 포인터 |
+| staleness 또는 freshness 마커 | 파생 packet의 경우 소스 데이터가 마지막으로 확인된 시점을 표시 |
+| redaction 마커 | 민감한 콘텐츠가 제거된 경우 redaction이 발생했음을 표시 |
 
-### `retrospective.json`
-per-task learning loop의 입력. orchestration_authority가 작성.
+## Redaction and Sensitive Content
 
-### `rules-update.json`
-승인된 규칙 변경을 durable behavior surface에 반영한 기록.
+Artifact는 다음의 불필요한 보존을 피해야 한다:
 
-### `debt-register.json`
-mission/phase 수준의 debt rollup artifact.
+- 원시 비밀
+- 자격 증명
+- 운영 필요를 초과하는 고위험 익스플로잇 세부사항
+- task에 필요하지 않은 개인 정보
 
-### `gap-assessment.json`
-`scope_in` 대비 실제 `scope_out`의 차이를 평가한 artifact.
+Redaction이 발생하면, artifact는 redaction이 있었음을 표시하여 이후 독자가 누락을 부재와 혼동하지 않도록 해야 한다.
 
-### `phase-review.json`
-mission phase transition 전/후 상태를 요약한 artifact.
+## Drift 유형
 
-## Canonical Fields to Notice
+Drift는 artifact를 관리하는 계층 간 정렬이 어긋날 때 발생한다. 다음 테이블은 canonical drift 유형과 그 증상을 설명한다.
 
-### 모든 artifact의 공통 메타
-- `version`
-- `artifact_type`
-- `artifact_id`
-- `producer_type`
-- `created_at`
-- `updated_at`
+| drift 유형 | 설명 | 예시 |
+|---|---|---|
+| schema-artifact drift | 생성된 artifact가 이를 관리하는 스키마와 일치하지 않음 | 스키마가 요구하는 필드가 생성된 artifact에 없음 |
+| hook-protocol drift | hook이 프로토콜이 더 이상 요구하지 않는 규칙을 강제하거나, 현재 요구하는 규칙을 놓침 | hook이 프로토콜이 더 이상 요구하지 않는 artifact에 대해 차단 |
+| doc-schema drift | 산문 문서가 canonical 스키마가 지원하지 않는 필드나 enum을 주장 | 프로토콜 문서가 어떤 스키마에도 정의되지 않은 `task_kind` 값을 참조 |
+| runtime-summary drift | 요약이 canonical artifact가 뒷받침하지 않는 상태나 verdict를 주장 | 세션 요약이 task가 통과했다고 하지만 final verdict artifact가 없음 |
 
-### worker self-check의 핵심
-- `known_risks`
-- `untested_paths`
-- `possible_stubs`
-- `what_to_test_next`
-- `confidence`
+## Drift Handling
 
-### debt register의 핵심
-- `items[]`
-- `rollup_by_severity`
-- `rollup_by_kind`
-- `phase_targeting` — debt를 어느 mission phase에서 해소할지 지정하는 필드. `"polishing"`: cosmetic/quality debt, `"evolving"`: architectural debt, `"future"`: 현재 mission scope 밖이지만 추적은 필요한 debt
+Drift가 감지되면:
 
-### gap assessment의 핵심
-- `scope_in_summary`
-- `scope_out_summary`
-- `fully_delivered`
-- `partially_delivered`
-- `not_delivered`
-- `intentional_cuts`
-- `unexpected_additions`
+1. drift된 surface를 canonical로 신뢰하는 것을 중단
+2. 해당 질문에 대해 어떤 계층이 실제로 권위적인지 식별
+3. 약하거나 오래된 계층을 수정
+4. 기존 artifact가 영향을 받는 경우 migration을 문서화
 
-### memory entry의 핵심
-- `memory_type`
-- `state`
-- `scope`
-- `summary`
-- `evidence_refs`
-- `confidence`
-- `support_count`
-- `successful_reuses`
-- `failed_reuses`
-- `contradiction_count`
-- `review_after` — ISO 8601 날짜. 이 날짜 이후 memory entry의 지속적 유효성을 재평가해야 한다. reviewer가 promotion 시점에 설정한다. 기본값: `provisional` memory는 promotion 날짜 + 90일, `stable` memory는 promotion 날짜 + 180일
-- `supersedes`
-- `superseded_by`
+각 관심사에 대한 가장 안전한 기본 권위:
 
-## Contract Philosophy
-
-- prose 문서는 의미를 정의한다.
-- schema는 형식과 enum을 강제한다.
-- hook는 존재 여부와 invariant를 집행한다.
-
-세 층이 서로 역할을 침범하면 drift가 생긴다. drift가 감지되면 해당 artifact의 생성/소비를 block하고 수정해야 한다. drift의 구체적 사례:
-
-1. **schema-artifact drift**: schema에 required field가 추가됐으나, `.geas/` 내 기존 artifact에 해당 필드가 없는 경우
-2. **hook-protocol drift**: hook가 특정 artifact의 존재를 검사하지만, protocol 변경으로 해당 artifact를 더 이상 생성하지 않는 경우
-3. **doc-schema version drift**: prose 문서가 참조하는 schema version이 실제 배포된 schema version과 일치하지 않는 경우
-
-drift 감지 시 canonical protocol schema 정의가 우선한다. drift된 artifact를 스키마에 맞게 갱신한다.
+| 관심사 | 권위적 계층 |
+|---|---|
+| 의미론 | 산문 문서 |
+| 구조 | 스키마 |
+| 실행된 evidence | 런타임 artifact |
 
 ## Artifact Validation Failure Modes
 
-### required field 누락
+Artifact가 검증에 실패하면 실패 유형에 따라 대응이 달라진다. 다음 테이블은 각 실패 모드와 기대되는 대응을 요약한다.
 
-schema에 `required`로 정의된 field가 artifact에 없는 경우:
-1. validator가 해당 artifact를 **reject**한다.
-2. artifact를 생성한 producer agent에게 누락 필드 목록과 함께 재생성을 요청한다.
-3. 재생성 2회 실패 시 `orchestration_authority`에게 escalation한다.
+| 실패 모드 | 대응 |
+|---|---|
+| **required field 누락** | artifact를 거부 또는 격리하고, 재생성 또는 수정을 요청하며, 수정될 때까지 의존 전이를 차단 |
+| **`artifact_type` 불일치** | 불일치를 기록하고, 모호성이 중요한 경우 다운스트림 소비를 차단하며, artifact를 수정하거나 대체 |
+| **version 비호환** | 차이가 명시적으로 하위 호환되는 경우에만 허용하고, 그 외에는 거부하거나 migration을 요구 |
+| **파싱 가능하지만 의미론적으로 불가능** | 다운스트림 진행을 차단하고, JSON이 파싱되더라도 의미론적 무효성으로 처리 (예: final verdict가 `pass`이지만 task가 `verified`가 아님, gate result가 `pass`이지만 필수 검사가 부재) |
 
-### artifact_type 불일치
+## Compatibility Guidance
 
-artifact의 `artifact_type` 필드가 파일명이나 사용 context와 일치하지 않는 경우:
-1. validator가 경고를 기록한다.
-2. 해당 artifact를 소비하는 다음 단계를 block한다.
-3. producer agent가 artifact_type을 수정하거나 새 artifact를 생성한다.
+로컬 artifact 확장을 추가하는 프로젝트는:
 
-### 공통 메타의 version 비호환
+- 로컬 스키마에 버전을 부여해야 한다
+- 확장 소유권을 문서화해야 한다
+- canonical 의미론과의 충돌을 방지해야 한다
+- 필수 invariant를 약화하지 않아야 한다
+- 필요시 migration 노트를 제공해야 한다
 
-artifact의 `version` 필드가 현재 schema version과 호환되지 않는 경우:
-1. 하위 호환 가능한 범위(`major` version 동일)면 경고만 기록하고 진행한다.
-2. 하위 호환 불가능하면 artifact를 reject하고, 생산자가 현재 스키마에 맞게 재생성하도록 요구한다.
+## 핵심 문장
+
+Artifact는 워크플로우의 강제 가능한 메모리이다. 그것이 약하거나, 일관되지 않거나, 모호하면, 나머지 프로토콜은 추측이 된다.

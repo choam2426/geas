@@ -1,224 +1,213 @@
 # 07. Memory System Overview
 
+> **기준 문서.**
+> 이 문서는 Geas에서 memory의 목적, 범위, 수용 기준, confidence 모델, 행동적 역할을 정의한다.
+
 ## 목적
 
-Geas의 memory는 단순한 노트 저장소가 아니다. **반복되는 실수, 좋은 구현 패턴, 환경 주의점, product decision precedent를 구조화해 future task의 품질과 속도를 동시에 높이는 적응형 운영 시스템**이다.
+Geas memory는 노트를 축적하기 위한 것이 아니라 미래 행동을 변경하기 위해 존재한다. Memory 시스템은 저장된 교훈이 미래의 task 실행, review 품질, recovery, scope 제어를 실질적으로 개선할 수 있을 때만 준수한 것으로 간주된다.
 
 핵심 목표:
-1. 동일 실패 재발 방지
-2. 좋은 패턴의 재사용
-3. recovery/compaction 이후 빠른 재개
-4. specialist review 품질 향상
-5. context window 낭비 감소
-6. retrospective가 실제 행동을 바꾸도록 만들기
+
+| 목표 | 설명 |
+|---|---|
+| 재발 방지 | 동일한 실패가 반복되는 것을 차단 |
+| 성공 재사용 | 검증된 성공 패턴을 새로운 작업에 적용 |
+| recovery 가속 | 보존된 맥락을 활용하여 중단 후 안전하게 재개 |
+| review 개선 | 이력 기반 통찰로 reviewer focus 향상 |
+| 노이즈 감소 | 선별적 retrieval로 낭비적 context stuffing 제거 |
+| 지식 보존 | 운영 지식을 stale lore로 만들지 않고 보존 |
 
 ## 핵심 원칙
 
-### 1) memory는 진화한다
-memory item은 처음부터 durable truth가 아니다. observation → candidate → provisional → stable → superseded / archived 를 거친다.
+### 1) Memory는 진화한다
 
-### 2) memory는 근거를 잃으면 약해진다
-artifact ref, evidence count, successful reuse, failed reuse, contradiction history가 없는 memory는 강한 규칙으로 승격되지 않는다.
+어떤 memory item도 진실로 태어나지 않는다. Item은 state를 거쳐 진행하며, evidence와 재사용을 통해 내구성을 획득해야 한다. 새로 추출된 교훈은 실제로 검증되기 전까지 최소한의 권위만 가진다.
 
-**Confidence Scoring Model:**
-- 초기 confidence는 evidence count로 결정한다:
-  - evidence_refs 1개 → `confidence = 0.4`
-  - evidence_refs 2개 → `confidence = 0.6`
-  - evidence_refs 3개 이상 → `confidence = 0.8`
-- 이후 적용 결과에 따라 조정한다 (modifiers):
-  - successful reuse 1회당 → `+0.1`
-  - failed reuse 1회당 → `-0.1`
-  - contradiction 발생 1회당 → `-0.2`
-- confidence 상한은 `1.0`, 하한은 `0.0`
-- `confidence < 0.3`이면 decay review가 자동 trigger된다 (orchestration_authority + domain authority가 유지/archive/supersede 판단)
-- decay review가 trigger됐으나 orchestration_authority 또는 domain authority가 해당 세션에 없는 경우: memory의 state를 `"under_review"`로 변경하고, retrieval에서 일시 제외한다. 다음 세션에서 해당 authority가 복귀하면 review를 수행한다
+### 2) Memory는 evidence 없이 약해진다
 
-### 3) memory는 scope를 가진다
-모든 memory는 적용 범위를 가진다. 아래 scope는 `_defs.schema.json`의 `memoryScope` enum과 동기화된다.
-- `task` — 단일 task에만 적용
-- `mission` — 현재 mission 전체에 적용
-- `project` — 프로젝트 전체에 적용
-- `agent` — 특정 agent type에 적용
-- `global` — 모든 프로젝트에 적용
+충분한 evidence, 성공적 재사용, review 지원이 없는 memory item은 강한 지침으로 취급해서는 안 된다. 지지하는 evidence가 부재하거나 반박되면 신뢰가 감소한다.
 
-### 4) memory는 retrieval budget 안에서만 들어간다
-무한정 주입하지 않는다. applicable하고 검증된 memory만 context로 들어간다. 구체적 budget은 doc 09의 Role-Specific Budgets를 참조한다.
+### 3) Memory는 scope를 가진다
 
-### 5) memory는 적용 결과로 다시 평가된다
-memory를 실제 task에 적용한 뒤 결과를 `memory-application-log.json`에 기록하고, 그 결과가 future confidence를 바꾼다. 구체적 confidence 변동 규칙은 위 Confidence Scoring Model을 참조한다.
+모든 memory item은 어디에 적용되는지 선언해야 한다. Scope는 신뢰성의 일부다. 한 프로젝트 맥락에서 학습한 교훈이 명시적 검증 없이 다른 맥락에 안전하게 전이된다는 보장은 없다.
 
-### 6) memory는 행동 표면으로 연결돼야 한다
-memory가 저장만 되고 future behavior를 바꾸지 않으면 evolution이 아니다. Geas는 아래 표면을 통해 memory를 행동으로 연결한다.
-- `.geas/rules.md`
-- project_memory
-- agent_memory
-- risk_memory
-- packet builder
-- task admission / gate / readiness review focus
+### 4) Memory는 budget 내에서 context에 진입한다
+
+Memory retrieval은 선별적이어야 한다. Packet builder는 양보다 관련성, 출처, 최신성을 기준으로 최적화해야 한다. 관련성이 낮은 memory로 context를 과부하시키면 의사결정 품질이 오히려 저하된다.
+
+### 5) Memory는 사용 후 재평가된다
+
+성공적 또는 해로운 적용은 confidence와 state 변경에 피드백되어야 한다. 적용 후 좋은 결과를 낳은 memory는 신뢰를 획득하고, 해로운 결과를 낳은 memory는 신뢰를 잃는다.
+
+### 6) Memory는 행동 surface에 연결되어야 한다
+
+아무것도 변경하지 않는 memory item은 비기능적이다. Memory는 다음 surface 중 최소 하나에 영향을 미쳐야 한다:
+
+| 행동 surface | 영향 예시 |
+|---|---|
+| rules | `.geas/rules.md`의 신규 또는 갱신 항목 |
+| packet content | context packet에의 우선 포함 |
+| reviewer focus | checklist 항목 추가 또는 리뷰 강조 |
+| gate strictness | evidence 임계값 강화 또는 완화 |
+| scheduling caution | 알려진 위험한 병렬 조합 회피 |
+| recovery heuristics | recovery 의사결정 개선 |
 
 ## Memory Layer Model
 
-Memory layer는 memory entry의 저장/검색 범위를 나타내는 논리적 분류다. `_defs.schema.json`의 `memoryScope` enum(`task`, `mission`, `project`, `agent`, `global`)과는 별도의 개념으로, layer는 memory의 용도와 수명을 정의하고 scope는 적용 범위를 정의한다.
+Memory 시스템은 정보를 논리적 layer로 구성한다. 각 layer는 서로 다른 시간적, 맥락적 목적을 가진다. 프로젝트는 더 적은 물리적 store를 구현할 수 있지만, layer 간의 semantic 구분은 보존해야 한다.
 
-### `session_memory`
-현재 세션의 요약과 최근 흐름. compaction/recovery의 핵심 anchor. `session-latest.md`로 persist된다.
+| layer | 주요 용도 | 일반적 수명 |
+|---|---|---|
+| `session_memory` | 현재 세션의 전술적 연속성 | 단일 세션 |
+| `task_focus_memory` | 밀도 있는 task-local carry-forward | 단일 task |
+| `mission_memory` | 현재 mission에 관련된 교훈 | 단일 mission |
+| `episodic_memory` | 특정 incident 또는 실행의 이력 | 중기 |
+| `project_memory` | 내구적 project 전체 패턴 | 장기 |
+| `agent_memory` | 역할별 지침 | 장기 |
+| `risk_memory` | 반복적 위험 또는 민감한 surface에 연결된 패턴 | 장기 |
 
-### `task_focus_memory`
-현재 task를 위해 압축한 locally relevant memory. `task-focus/<task-id>.md`로 persist된다.
+## Memory Scope
 
-### `mission_memory`
-이번 mission 전용 전략, constraints, temporary decisions. `mission-summary.md`로 persist된다.
+모든 memory item은 적용 범위와 행동에 얼마나 넓게 영향을 미칠 수 있는지를 제어하는 scope를 선언한다. 넓은 scope일수록 강한 정당화가 필요하다.
 
-### `episodic_memory`
-개별 task/incident/recovery에서 얻은 사건 중심 기억. `memory-entry.json`(`memory_type = "failure_lesson"` 또는 `"decision_precedent"`)으로 persist된다.
+| scope | 적용 대상 | 정당화 수준 |
+|---|---|---|
+| `task` | 단일 task | 최소 -- 직접 관찰이면 충분 |
+| `mission` | 현재 mission | 보통 -- 패턴이 task 간에 반복되어야 함 |
+| `project` | 전체 project | 강함 -- 패턴이 내구적이고 project 전체에 해당 |
+| `agent` | 특정 에이전트 역할 | 강함 -- 역할 특화되고 검증됨 |
+| `global` | 모든 project | 매우 강함 -- 드물며 광범위한 evidence 필요 |
 
-### `project_memory`
-반복적으로 검증된 프로젝트 규칙, 환경 팁, architecture precedent. `memory-entry.json`(`memory_type = "project_rule"`, `"architecture_precedent"`, `"integration_pattern"` 등)으로 persist된다.
+규칙:
 
-### `agent_memory`
-특정 agent type이 반복적으로 참고하는 역할별 기억. `memory-entry.json`(`memory_type = "agent_rule"`, `"test_strategy"`, `"security_pattern"` 등)으로 persist된다.
+- `global` scope는 드물어야 한다.
+- Memory가 단순히 기억에 남았다는 이유만으로 더 넓은 scope로 승격되어서는 안 된다.
 
-### `risk_memory`
-과거 실패 패턴, rollback cause, false green incident, drift hotspot. `memory-entry.json`(`memory_type = "risk_pattern"`, `"failure_lesson"`)으로 persist된다.
+## Memory 수용 기준
 
-## Canonical Memory Artifact Types
+모든 관찰이 memory item이 될 자격이 있는 것은 아니다. 수용 기준은 memory 시스템이 노이즈로 채워지는 것을 방지한다.
 
-- `memory-candidate.json`
-- `memory-entry.json`
-- `memory-review.json`
-- `memory-application-log.json`
-- `memory-packet.json`
-- `memory-index.json`
-- `retrospective.json`
-- `rules-update.json`
+Memory candidate는 다음 질문 전부에 답할 수 있을 때만 시스템에 진입해야 한다:
 
-### Empty Memory Index
+| 질문 | 목적 |
+|---|---|
+| 무엇이 일어났는가? | 사실적 근거를 확립 |
+| 어떤 evidence가 이 교훈을 지지하는가? | 근거 없는 주장을 방지 |
+| 어떤 surface에 적용되는가? | 실행 가능성을 보장 |
+| 미래 행동을 어떻게 변경해야 하는가? | 운영적 가치를 확인 |
+| 무엇이 이것을 반증하거나 약화시키는가? | 미래 재평가를 가능하게 함 |
 
-`memory-index.json`이 비어 있거나 존재하지 않는 경우 (첫 세션, 초기 프로젝트):
-1. retrieval engine은 L2 (applicable memory) 단계를 skip하고 L0/L1만으로 packet을 구성한다.
-2. packet의 `applicable_memory_ids[]`는 빈 배열이 된다.
-3. 이 상태는 정상이며, 첫 번째 `passed` task의 retrospective에서 memory candidate가 생성되면서 index가 초기화된다.
+다음에 해당하는 candidate는 거부되거나 약하게 유지되어야 한다:
+
+- 일반적 동기 부여 조언
+- artifact에 의해 지지되지 않음
+- 최근의 더 강한 evidence에 의해 반박됨
+- 운영적 결과가 없는 일회성 스타일 선호
+
+## Confidence Scoring Model
+
+Confidence는 시스템이 memory item에 부여하는 신뢰 수준을 정량화한다. Evidence 수에서 도출되며 재사용 결과에 따라 변동한다.
+
+### 초기 confidence
+
+| evidence 참조 수 | 초기 confidence |
+|---|---|
+| 1 | `0.4` |
+| 2 | `0.6` |
+| 3 이상 | `0.8` |
+
+### Modifier
+
+| 이벤트 | confidence 변화 |
+|---|---|
+| 성공적 재사용 | `+0.1` |
+| 실패한 재사용 | `-0.1` |
+| 반박 | `-0.2` |
+
+### 범위
+
+Confidence는 `0.0`(최소)에서 `1.0`(최대) 사이로 제한된다.
+
+### 규칙
+
+- Confidence가 `0.3` 미만으로 떨어지면 review가 촉발되어야 한다.
+- Confidence만으로 state 또는 freshness 규칙을 무시해서는 안 된다.
+- Stale이지만 high-confidence인 memory도 여전히 재평가가 필요하다.
+
+## 최신성과 Review-After
+
+Memory item은 재검토 시점을 알리는 `review_after` 날짜를 가진다. 이 날짜가 지난 memory는 강하게 재사용하기 전에 재검토해야 한다.
+
+| memory 상태 | 기본 review 주기 |
+|---|---|
+| provisional | promotion date + 90일 |
+| stable | promotion date + 180일 |
 
 ## Ownership Rules
 
-- `orchestration_authority`: candidate 추출, retrieval orchestration
-- `orchestration_authority`: retrospective 정리, rules update hygiene, promotion cadence
-- `product_authority`: product/priority/UX precedent 승인
-- `architecture_authority`: architecture/system precedent 승인
-- `qa_engineer`: QA recipe / failure-path memory 승인
-- `security_engineer`: security warning / abuse pattern 승인
+각 memory 카테고리에는 정확성과 관련성에 책임을 지는 일반적 owner가 있다. Ownership은 일방적 진실을 의미하지 않으며, 누가 소유하든 promotion 규칙은 동일하게 적용된다.
 
-## Memory Types (권장)
+| memory 카테고리 | 일반적 owner |
+|---|---|
+| project 전체 전달 패턴 | domain 보증을 받은 Orchestrator |
+| 설계 선례 | Design Authority |
+| 품질 교훈 | Quality Specialist |
+| 보안 패턴 | Risk Specialist |
+| 문서 / 운영 교훈 | Communication Specialist |
+| cross-role process 규칙 | Orchestrator / process owner |
 
-아래 타입은 `_defs.schema.json`의 `memoryType` enum과 동기화된다.
+## Behavior-Change Surfaces
 
-- `project_rule` — 프로젝트 전체에 적용되는 규칙/convention
-- `agent_rule` — 특정 agent type에만 해당하는 heuristic
-- `decision_precedent` — 과거 의사결정의 근거와 결과
-- `failure_lesson` — 실패에서 추출한 교훈 (구 `incident`)
-- `security_pattern` — 보안 관련 경고/패턴 (구 `security_warning`)
-- `performance_tip` — 성능 관련 최적화 지침
-- `test_strategy` — QA/테스트 전략 (구 `qa_recipe`)
-- `integration_pattern` — 통합/빌드/배포 관련 패턴
-- `ux_pattern` — UI/UX 관련 패턴과 접근성 규칙
-- `architecture_precedent` — 아키텍처 의사결정 선례
-- `process_improvement` — 프로세스 개선 (구 `gap_pattern`, `debt_pattern`)
-- `risk_pattern` — 반복되는 위험 패턴
+Memory는 다음 surface 중 하나 이상에 영향을 미쳐야 한다. 이 surface 중 어느 것도 변경되지 않으면, 해당 memory는 운영적이기보다 보관적일 가능성이 높다.
 
-## Behavior Change Mechanisms
+| surface | memory의 영향 방식 |
+|---|---|
+| `.geas/rules.md` | 신규 규칙 또는 기존 규칙 갱신 |
+| packet-builder 우선순위 지정 | 관련 context에 대한 높은 relevance 점수 |
+| reviewer checklist | 리뷰 항목 추가 또는 강조 |
+| task admission caution | 알려진 위험 task 패턴 플래그 |
+| gate 또는 readiness focus | evidence 임계값 조정 |
+| recovery heuristics | recovery 경로 선택 개선 |
+| debt triage focus | 과거 패턴 기반 우선순위 조정 |
 
-memory는 아래 5개 경로를 통해 다음 task의 행동을 바꾼다.
+## Privacy와 Sensitivity Rules
 
-1. `rules.md` 업데이트 → 모든 packet의 L0 pinned invariants에 반영
-2. `agent_memory` layer 업데이트 (`memory_type = "agent_rule"` 등) → type-specific subagent spawn 시 주입
-3. `risk_memory` layer 업데이트 (`memory_type = "risk_pattern"`, `"failure_lesson"`) → readiness round auto trigger 강화
-4. `project_memory` layer 업데이트 (`memory_type = "project_rule"` 등) → task compiler와 implementation contract에서 default checks 강화
-5. harmful reuse 감지 → memory weakening (doc 08 Harmful Reuse Rollback Procedure) / rule rollback (doc 14 Harmful Reuse Feedback Loop)
+Memory는 shadow secrets store가 되어서는 안 된다. Memory 시스템은 운영 교훈을 저장하는 것이지 민감한 데이터를 저장하는 것이 아니다.
 
-### Conflict Resolution Priority
+구현은 다음의 저장을 피해야 한다:
 
-서로 다른 behavior surface에서 상충하는 지침이 발생할 경우 아래 우선순위를 따른다 (높은 것이 우선):
+- raw secret
+- credential
+- 불필요한 개인 데이터
+- 운영적으로 필요한 것 이상의 보안 민감 exploit 세부사항
+- vendor가 금지하거나 policy가 금지하는 보유 콘텐츠
 
-1. **`rules.md`** — project-wide 확정 규칙. 최고 우선순위.
-2. **`project_memory`** — 반복 검증된 프로젝트 수준 지식.
-3. **`agent_memory`** — 역할별 축적 지식.
-4. **`risk_memory`** — 과거 실패 기반 경고.
+민감한 운영 교훈은 가능한 경우 추상화해야 한다. 민감한 세부사항 없이 행동 지침만 유지하는 것이 바람직하다.
 
-상충 발생 시 낮은 우선순위 memory에 `conflict_with` 필드로 상위 memory_id를 기록하고, 해당 memory는 retrieval에서 suppressed 처리한다. orchestration_authority가 다음 retrospective에서 상충을 해소한다.
+## 반박과 Harmful Reuse
 
-### Harmful Reuse 정의
+반박은 memory item의 주장된 행동이 더 이상 유효하지 않을 수 있다는 evidence다. Harmful reuse는 memory를 적용함으로써 결과가 악화되는 것이다. 둘 다 해소 없는 공존이 아닌 명시적 처리가 필요하다.
 
-harmful reuse란 memory entry가 task에 적용되었으나 task 결과가 악화된 경우를 말한다. 구체적으로:
-- evidence gate failure가 해당 memory의 guidance와 관련된 경우
-- 적용 후 technical debt가 증가한 경우
-- 적용 후 regression이 발생한 경우
+규칙:
 
-탐지 기준: `memory-application-log.json`의 `effect` 필드가 `"negative"` 또는 `"neutral_but_risky"`인 경우 harmful reuse로 분류한다.
+- 반박은 반드시 기록되어야 한다.
+- 반복적인 harmful reuse는 memory를 `under_review`로 이동시켜야 한다.
+- Superseded 또는 under-review memory는 고정된 지침으로 취급되어서는 안 된다.
+- 반박 관계에 있는 stable memory는 해소 없이 공존하지 말고 명시적 review를 촉발해야 한다.
 
-## Memory Verification
+## Failure Mode와 Recovery
 
-memory의 신뢰도는 단계적 검증(promotion)을 거쳐야 한다. promotion 경로는 `candidate → provisional → stable → canonical`이다.
+Memory 시스템은 자체 failure mode를 안정적으로 처리해야 한다. 각 failure mode에는 정의된 recovery 경로가 있다.
 
-각 단계의 상세 승격 조건은 **08_EVOLVING_MEMORY_LIFECYCLE.md의 Promotion Rules**가 canonical authority다. 요약:
-- `candidate → provisional`: evidence_refs 2개 이상, 또는 동일 유형 incident 2회 이상, 또는 domain authority의 explicit approval
-- `provisional → stable`: successful application 3건 이상 + contradiction 0건 + domain authority review
-- `stable → canonical`: successful application 5건 이상 (3개 이상 다른 task) + joint approval
+| failure mode | recovery 동작 |
+|---|---|
+| 누락되거나 손상된 index | 가능한 경우 canonical entry와 log에서 재구축; 결과 confidence를 보수적으로 표시 |
+| packet이 존재하지 않는 memory를 참조 | packet을 stale로 취급하고 재생성 |
+| confidence가 0에 도달 | item을 archived 처리하거나 추가 사용 전 명시적 review 요구 |
+| 반박 관계의 stable memory가 공존 | 문서화된 우선 관계가 없는 한 둘 다 review로 이동 |
+| 필요한 authority 부재 | promotion 연기 가능; 인가 없이 강한 memory가 되지 않고 candidate 또는 provisional 상태 유지 |
 
-## Core Constraint
+## 핵심 선언
 
-memory는 **사실·규칙·경고·precedent**를 저장할 수 있지만, 근거 없는 stylistic preference를 durable memory로 올려선 안 된다.
-
-## Failure Modes and Recovery
-
-### 1. memory-index.json이 손상되거나 누락된 경우
-
-`memory-index.json`은 모든 memory entry의 요약 색인이다. 이 파일이 손상(JSON parse 실패)되거나 삭제된 경우:
-
-- **감지**: memory retrieval 시 `memory-index.json` 로드 실패로 감지된다.
-- **복구 절차**: `.geas/memory/` 하위의 개별 `memory-entry.json` 파일들을 순회하여 index를 재구축한다. 각 entry의 `memory_id`, `type`, `scope`, `status`, `confidence`를 수집하여 새 `memory-index.json`을 생성한다.
-- **제약**: 재구축 중 memory retrieval은 일시 중단된다. 재구축 완료 후 `orchestration_authority`에게 검증을 요청한다.
-- **기록**: 재구축 이벤트를 `memory-application-log.json`에 `effect = "index_rebuild"` 항목으로 기록한다.
-
-### 2. memory-packet.json이 존재하지 않는 memory_id를 참조할 때
-
-context packet 생성 시 `memory-packet.json`에 포함된 `memory_id`가 실제 memory entry로 존재하지 않는 경우:
-
-- **동작**: 해당 entry를 skip하고 경고를 기록한다. **task 실행을 block하지 않는다.**
-- **경고 기록**: `memory-application-log.json`에 `effect = "reference_miss"`, 누락된 `memory_id`, 참조 시점을 기록한다.
-- **후속 조치**: `orchestration_authority`가 다음 retrospective에서 누락 원인을 조사한다. 가능한 원인: memory entry가 archived/superseded 처리되었으나 packet에서 제거되지 않음, 또는 파일 시스템 오류로 entry가 소실됨.
-- **예방**: memory entry의 status가 `archived` 또는 `superseded`로 변경될 때, 해당 `memory_id`를 참조하는 packet을 갱신하는 것을 권장한다.
-
-### 3. Confidence score가 누적 penalty로 0 이하로 하락할 때
-
-`failed reuse`(-0.1)와 `contradiction`(-0.2)이 누적되어 confidence가 계산상 음수가 되는 경우:
-
-- **동작**: confidence를 `0.0`으로 clamp한다 (하한 `0.0` 규칙 적용).
-- **즉시 trigger**: confidence가 0.0에 도달하면 decay review를 즉시 trigger한다 (일반 threshold인 `< 0.3` 조건도 충족되므로).
-- **decay review 내용**: `orchestration_authority` + 해당 domain authority가 해당 memory를 검토하여 아래 중 하나를 결정한다:
-  - `archive` — memory를 보존하되 retrieval에서 제외
-  - `supersede` — 새로운 memory로 대체 (superseding_memory_id 기록)
-  - `retain` — 근거를 보강하여 유지 (evidence_refs 추가 필요, 추가 없이 retain은 불가)
-- **기록**: decay review 결과를 `memory-review.json`에 기록하고, `memory-entry.json`의 `status`와 `confidence`를 갱신한다.
-
-### 4. 두 memory가 서로 모순되며 둘 다 stable 상태일 때
-
-두 개의 `status = stable` memory entry가 상충하는 지침을 포함하는 경우 (예: memory A는 "API 응답에 항상 envelope 패턴 사용"이고 memory B는 "단순 endpoint는 flat response 허용"):
-
-- **감지**: retrieval 시 동일 scope/type의 memory가 상충하는 guidance를 제공하면 감지된다. `memory-application-log.json`에서 동일 task에 두 memory가 적용되어 하나가 `negative` effect를 기록할 때도 감지된다.
-- **즉시 동작**: 두 memory 모두 `status = under_review`로 전환한다. `under_review` 상태의 memory는 retrieval에서 제외된다 (task에 주입되지 않음).
-- **해소 절차**: `orchestration_authority`가 해당 domain authority와 함께 두 memory를 검토한다. 가능한 결과:
-  - 하나를 `superseded`로 전환하고 다른 하나를 유지
-  - 둘 다 `superseded`로 전환하고 통합된 새 memory entry 생성
-  - scope를 세분화하여 각각 다른 scope에서 유효하도록 조정
-- **제약**: 두 memory 중 어느 것도 `orchestration_authority`의 resolution 전에는 task context에 주입될 수 없다.
-- **기록**: 각 memory entry의 `conflict_with` 필드에 상대 `memory_id`를 기록하고, resolution 결과를 `memory-review.json`에 기록한다.
-
-### 5. Memory promotion에 필요한 authority가 부재할 때
-
-memory의 status 승격(예: `provisional` → `stable`, `stable` → `canonical`)에 필요한 domain authority가 현재 session에 없거나 응답할 수 없는 경우:
-
-- **동작**: promotion을 queue에 등록하고, 해당 memory를 `pending_review` 표시로 mark한다. **task 실행을 block하지 않는다.**
-- **현재 status 유지**: promotion이 완료되지 않은 memory는 현재 status를 그대로 유지한다. 예: `provisional` 상태의 memory는 `provisional`로서 retrieval에 참여한다 (retrieval budget과 confidence에 따라).
-- **queue 기록**: `.geas/memory/pending-promotions.json`에 `memory_id`, 요청된 `target_status`, 필요한 `required_authority`, 요청 시각을 기록한다.
-- **해소**: 해당 authority가 다음 session에서 활성화되면, `orchestration_authority`가 pending promotion queue를 확인하고 순차적으로 review를 진행한다.
-- **장기 미해소**: 3 session 이상 pending 상태가 지속되면, `orchestration_authority`가 retrospective에서 대체 authority 지정 또는 promotion 기준 재검토를 수행한다.
+Geas에서 memory는 거버넌스가 적용되는 피드백 메커니즘이다. Evidence를 통해 신뢰를 획득하고, 반박을 통해 신뢰를 잃으며, 미래 작업을 계속 개선할 때만 존속한다.

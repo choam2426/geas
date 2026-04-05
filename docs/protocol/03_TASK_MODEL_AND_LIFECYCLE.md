@@ -1,306 +1,405 @@
 # 03. Task Model and Lifecycle
 
+> **Normative document.**
+> This document defines task classification, required metadata, contract quality rules, state transitions, state restoration semantics, retry budgets, and scope-control expectations.
+
+## Purpose
+
+A task is the executable unit of closure in Geas. The task model exists so that the protocol can answer, for each unit of work:
+
+- what exactly is being changed
+- how risky it is
+- who should do it
+- who must review it
+- what evidence proves it succeeded
+- where to restore to if it fails
+- whether hidden scope or debt was introduced
+
 ## Task Classification
 
 ### `task_kind`
-- `code`
-- `docs`
-- `config`
-- `design`
-- `audit`
-- `release`
+
+Describes what the task produces or does.
+
+| value | meaning | typical primary worker slot |
+|---|---|---|
+| `implementation` | produce or modify the core deliverable | Implementer |
+| `documentation` | create or update documentation, guides, or references | Communication Specialist |
+| `configuration` | set up or modify parameters, environments, or templates | Operations Specialist |
+| `design` | create or revise structural, visual, or methodological designs | Implementer or Design Authority |
+| `review` | perform assessment, audit, or evaluation of existing work | Risk Specialist or Quality Specialist |
+| `analysis` | investigate, explore, or extract insight from data, systems, or sources | Implementer or Quality Specialist |
+| `delivery` | package and ship a release, publication, or final output | Operations Specialist |
+
+Projects MAY define local sub-kinds (e.g., `implementation:frontend`, `review:security`) but the canonical kind MUST remain identifiable.
 
 ### `risk_level`
-- `low`
-- `normal`
-- `high`
-- `critical`
+
+Describes how much damage the task can cause if it goes wrong.
+
+| value | meaning |
+|---|---|
+| `low` | local change with low blast radius and easy rollback |
+| `normal` | ordinary delivery work |
+| `high` | significant blast radius, uncertainty, or sensitive surface |
+| `critical` | safety-sensitive, trust-sensitive, or production-critical change where failure is materially costly |
 
 ### `gate_profile`
-- `code_change`
-- `artifact_only`
-- `closure_ready`
+
+Determines which gate tiers apply to the task.
+
+| value | Tier 0 | Tier 1 | Tier 2 | when to use |
+|---|---|---|---|---|
+| `implementation_change` | run | run | run | task that produces or modifies a primary deliverable |
+| `artifact_only` | run | skip or narrow | run | documentation, design, review, or analysis without primary implementation change |
+| `closure_ready` | run | optional | simplified | cleanup, delivery, or closure-assembly task |
 
 ### `vote_round_policy`
-- `never`
-- `auto`
-- `always`
+
+Determines when structured deliberation occurs for the task.
+
+| value | meaning |
+|---|---|
+| `never` | skip discretionary readiness rounds (mandatory conflict handling still applies) |
+| `auto` | run when trigger conditions are met (high risk, reviewer disagreement, open risks, resubmission) |
+| `always` | always run a readiness round before final verdict |
 
 ## Core Task Metadata
 
-- `task_id`
-- `title`
-- `description`
-- `task_kind`
-- `risk_level`
-- `status`
-- `base_commit`
-- `scope.paths`
-- `acceptance_criteria[]`
-- `routing.primary_worker_type`
-- `routing.required_reviewer_types[]`
-- `gate_profile`
-- `vote_round_policy`
-- `retry_budget`
-- `worktree`
+### Schema-minimum fields
+
+A task MUST contain at least:
+
+| field | description |
+|---|---|
+| `task_id` | unique identifier for this task |
+| `title` | short human-readable name |
+| `description` | what this task accomplishes and why |
+| `task_kind` | classification of work type (see Task Classification) |
+| `risk_level` | blast radius and failure cost assessment |
+| `status` | current lifecycle state |
+| `base_snapshot` | reference to the shared work state when this task was admitted — used to detect staleness, guide integration, and define rollback point |
+| `scope.surfaces` | affected surfaces, paths, or domains |
+| `acceptance_criteria[]` | observable, falsifiable conditions that define completion |
+| `routing.primary_worker_type` | specialist type assigned as primary implementer |
+| `routing.required_reviewer_types[]` | specialist types required to review (computed by routing algorithm) |
+| `gate_profile` | which gate tiers apply |
+| `vote_round_policy` | when structured deliberation occurs |
+| `retry_budget` | remaining verification retry attempts |
+| `workspace` | isolated execution context for this task |
+
+### Additional recommended fields
+
+Assurance profiles (doc 13) define how much rigor a mission requires: `prototype` (lightest) → `delivery` → `hardened` → `regulated` (strictest). These fields are optional under `prototype`, expected under `delivery`, and effectively required under `hardened` and `regulated`.
+
+| field | description |
+|---|---|
+| `non_goals` | what this task explicitly will NOT do |
+| `affected_interfaces` | interfaces, contracts, or schemas impacted by the change |
+| `rollback_notes` | how to reverse the change if needed |
+| `observability_notes` | how to monitor the change in operation |
+| `sensitive_surfaces` | trust boundaries, credentials, or high-risk areas touched |
+| `out_of_scope_policy` | how to handle discovered work outside the approved plan |
+| `dependencies` | assumptions and external dependencies |
+| `demo_steps` | how to demonstrate or reproduce the expected result |
+| `phase_traceability` | link to the mission phase that motivated this task |
+
+## Acceptance Criteria Quality Standard
+
+Acceptance criteria MUST be actionable. Each criterion SHOULD be:
+
+- **observable** — someone can tell whether it passed
+- **bounded** — the criterion has a clear surface and does not imply open-ended cleanup
+- **falsifiable** — there is a plausible failing observation
+- **non-duplicative** — it is not merely a paraphrase of another criterion
+- **non-contradictory** — it does not conflict with other criteria or known constraints
+
+Bad criterion example: “the feature should feel better.”  
+Good criterion examples:
+- Software: “submitting an invalid token returns HTTP 401 and shows the user a re-authentication path.”
+- Research: “the literature review covers at least 3 independent sources published after 2020 and identifies contradictions.”
+- Content: “the summary is under 200 words, cites the original source, and includes no unsupported claims.”
+
+## Task Decomposition Rules
+
+A task SHOULD be decomposed before implementation if any of the following are true:
+
+- it spans more than one independently reviewable domain
+- it couples a major structural change with user-facing behavior change
+- it requires mutually contradictory reviewer focus
+- it changes many unrelated paths with no coherent acceptance story
+- the worker cannot state non-goals clearly
+- the estimated blast radius is broader than the selected risk level suggests
+
+A `critical` task SHOULD remain as small as practical.
 
 ## Task States
 
-### Primary
-- `drafted`
-- `ready`
-- `implementing`
-- `reviewed`
-- `integrated`
-- `verified`
-- `passed`
+### Primary states
 
-### Auxiliary
-- `blocked`
-- `escalated`
-- `cancelled`
+| state | meaning |
+|---|---|
+| `drafted` | task exists but is not yet admission-ready |
+| `ready` | admitted, baseline-valid, and eligible for implementation |
+| `implementing` | primary work is being performed inside an isolated workspace |
+| `reviewed` | implementation artifact exists and the required review set has been produced |
+| `integrated` | the change has entered the integration baseline |
+| `verified` | the evidence gate has passed |
+| `passed` | Decision Maker has accepted the closure packet — done |
+
+### Auxiliary states
+
+| state | meaning |
+|---|---|
+| `blocked` | progress is impossible without resolving an external or structural issue |
+| `escalated` | local decision authority is insufficient; higher judgment is required |
+| `cancelled` | work is intentionally abandoned with a recorded reason |
 
 ## Failure Is Not a State
-Failure is recorded via a `FailureRecord`. The task rewinds to the rewind target.
 
-### FailureRecord Required Fields
-- `task_id`
-- `failed_at_state`: the task state at the time of failure
-- `failure_reason`: summary of the failure cause
-- `rewind_target`: the state to rewind to (`implementing | reviewed | ready | escalated`)
-- `timestamp`
-- `retry_budget_before`: remaining retry_budget at the time of failure
-- `retry_budget_after`: remaining retry_budget after rewind
+Failure MUST be recorded through a `FailureRecord`, not by inventing a separate quasi-state.
+
+### FailureRecord required fields
+
+| field | description |
+|---|---|
+| `task_id` | which task failed |
+| `failed_at_state` | state the task was in when it failed |
+| `failure_reason` | why it failed |
+| `rewind_target` | which state to restore to |
+| `timestamp` | when the failure occurred |
+| `retry_budget_before` | retry attempts remaining before this failure |
+| `retry_budget_after` | retry attempts remaining after this failure |
+
+### FailureRecord additional recommended fields
+
+| field | description |
+|---|---|
+| `failure_class` | classification of failure type |
+| `artifact_refs` | artifacts examined during failure analysis |
+| `suspected_root_cause` | best guess at the underlying cause |
+| `structural_or_implementation` | whether the failure is structural or implementation-related |
+| `candidates_emitted` | whether memory or rule candidates were produced |
 
 ## Implementation Contract
 
-The following must be established as a minimum before code is written.
-- `plan_summary`
-- `touched_paths`
-- `non_goals`
-- `demo_steps`
-- `known_risks`
-- `required_checks`
+An implementation contract is a pre-approved agreement between the worker and reviewers that defines what will be done, how, and what will not be changed. It exists so that everyone — worker, reviewers, and orchestrator — shares the same expectations before work begins. No task may begin implementation without an approved implementation contract.
 
-This contract must be readable by at least the primary worker and the designated reviewer, and must exist before entering `implementing`.
+### Required fields
 
-### When an Implementation Contract Is Rejected
-If a reviewer requests changes (`changes_requested`) on the implementation contract, the task remains in the `ready` state. The transition to `implementing` is blocked until the contract is revised and the reviewer approves. After 3 consecutive rejections, orchestration_authority must either transition the task to `escalated` or decompose it into smaller tasks.
+| field | description |
+|---|---|
+| `plan` | detailed description of what will be done, in what order, and how — specific enough for the worker to execute and reviewers to verify |
+| `affected_surfaces` | areas, paths, or domains changed by this task |
+| `non_goals` | what this task explicitly will NOT do |
+| `demo_steps` | how to demonstrate the result after completion |
+| `known_risks` | identified risks and how they are handled |
+| `required_checks` | verification checks needed to confirm success |
+
+### What a good contract additionally clarifies
+
+| question | description |
+|---|---|
+| why this approach | why the chosen method is preferred over alternatives |
+| what it depends on | interfaces or assumptions it relies on |
+| what stays untouched | what will **not** be changed |
+| how to show success | how completion will be demonstrated |
+| where reviewers should look | where to focus review effort |
+| which risks are accepted | risks that are accepted, mitigated, or deferred |
+
+### Contract approval rules
+
+- The contract MUST be readable by the primary worker and the required reviewers.
+- An implementation-bearing task SHOULD have contract review led by Design Authority.
+- A material scope change after contract approval MUST trigger an amendment.
+- A task MUST remain in `ready` if the contract is rejected.
+- After repeated rejection, the orchestrator SHOULD decompose, clarify, or escalate the task rather than forcing execution.
+
+## Contract Amendment Rules
+
+An approved contract MUST be amended and re-approved when any of the following occur:
+
+- touched paths expand materially
+- acceptance criteria change materially
+- structural or user-flow assumptions change
+- an important non-goal becomes in-scope
+- the selected validation plan is no longer adequate
+- risk level changes
+
+Unrecorded contract drift is non-conformant.
 
 ## Worker Self-Check
 
-The primary worker must produce a `worker-self-check.json` before claiming implementation is complete.
+Before claiming implementation completion, the primary worker MUST produce a worker self-check.
 
-Required fields:
+### Schema-minimum fields
+
 - `known_risks[]`
 - `untested_paths[]`
 - `possible_stubs[]`
 - `what_to_test_next[]`
-- `confidence` (1-5)
+- `confidence`
 - `summary`
 
-Purpose:
-- Helps `qa_engineer` prioritize which failure paths to examine first
-- Helps `architecture_authority` focus review on `known_risks`
-- Helps `critical_reviewer` quickly identify the points the worker themselves felt uncertain about
-- Helps `frontend_engineer` / `backend_engineer` focus on technical details in their respective areas
-- Provides evidence gate with grounds to apply low-confidence threshold adjustment and stub caps
+### Interpretation rules
+
+The worker self-check is not a confession booth; it is structured review acceleration.
+
+The review system MUST consume it for:
+
+- Quality Specialist prioritization
+- Design Authority review focus
+- Challenger review
+- low-confidence threshold adjustment
+- stub verification and debt candidate generation
+
+### Confidence semantics
+
+`confidence` is a 1–5 scalar:
+
+- `1` — highly uncertain
+- `2` — meaningful risk of incomplete or incorrect implementation
+- `3` — moderate confidence with known gaps
+- `4` — strong confidence with limited caveats
+- `5` — high confidence and strong evidence
+
+A confidence score MUST NOT be treated as proof. It is a review signal, not a verdict.
 
 ## Debt Emission at Task Level
 
-Any task may produce technical debt during review/verification. Debt differs from blocking defects and can accumulate in the following artifacts:
-- `worker-self-check.json`
-- `specialist-review.json`
-- `integration-result.json`
-- `closure-packet.json`
-- `debt-register.json`
+Any task MAY emit debt during implementation, review, verification, or closure.
 
-Minimum classification:
+### Minimum debt classification
+
 - `severity = low | medium | high | critical`
-- `kind = code_quality | test_gap | architecture | security | docs | ops | product_gap`
+- `kind = output_quality | verification_gap | structural | risk | documentation | operations | product_gap`
+
+Debt differs from blockers:
+
+- blockers prevent forward motion now
+- debt allows forward motion but imposes future cost or risk
+
+A team MUST NOT classify a blocker as debt merely to preserve throughput.
 
 ## Transition Table
 
-| from | to | required artifact / condition |
+| from | to | required condition |
 |---|---|---|
-| drafted | ready | task compiled, baseline valid (base_commit is an ancestor of or equal to integration branch HEAD) |
-| ready | implementing | implementation contract approved, worktree prepared |
-| implementing | reviewed | worker self-check exists + required specialist review set exists (see doc 01 for the routing algorithm) |
-| reviewed | integrated | integration result created |
-| integrated | verified | gate result pass or block-resolved |
-| verified | passed | closure packet complete + final verdict pass |
-| any active | blocked | capability/resource/lock issue |
-| any active | escalated | explicit escalation or unresolved conflict |
-| any active | cancelled | explicit cancellation decision by orchestration_authority or product_authority. Cancellation reason recorded in task metadata |
-| blocked | ready | blocking cause resolved + revalidation passed |
-| escalated | ready | escalation resolved + orchestration_authority decides re-entry |
-| verified | implementing | gate fail + verify-fix loop. retry_budget decremented by 1 |
-| integrated | reviewed | integration failure. revalidation required |
-| verified | ready | final verdict `iterate` (rewind target = ready). retry_budget not decremented; escalated after 3 cumulative iterates |
-| verified | implementing | final verdict `iterate` (rewind target = implementing). retry_budget not decremented |
-| blocked | cancelled | explicit cancellation decision by orchestration_authority or product_authority |
-| escalated | cancelled | explicit cancellation decision by orchestration_authority or product_authority |
-
-Valid rewind targets for a final verdict of `iterate` are `ready`, `implementing`, or `reviewed`. Rewinding to `drafted` or `integrated` is not permitted.
-
-`blocked` and `escalated` are included in "active" states. Therefore, the transitions `blocked` -> `cancelled` and `escalated` -> `cancelled` are valid.
+| `drafted` | `ready` | task compiled, baseline valid, metadata complete |
+| `ready` | `implementing` | implementation contract approved, workspace prepared |
+| `implementing` | `reviewed` | implementation complete, worker self-check exists, required reviews exist |
+| `reviewed` | `integrated` | integration result created |
+| `integrated` | `verified` | evidence gate passed |
+| `verified` | `passed` | closure packet complete and final verdict = `pass` |
+| any active | `blocked` | external, structural, or resource issue prevents safe progress |
+| any active | `escalated` | unresolved conflict or authority boundary reached |
+| any active | `cancelled` | explicit cancellation with recorded reason |
+| `blocked` | `ready` | blocking cause resolved and revalidation passed |
+| `escalated` | `ready` | escalation resolved and task re-entered deliberately |
+| `verified` | `implementing` | gate fail causes verify-fix loop |
+| `integrated` | `reviewed` | integration failure or divergence requires reconciliation |
+| `verified` | `ready` / `implementing` / `reviewed` | final verdict = `iterate` with explicit restoration target |
 
 ## Transition Invariants
 
-1. `implementation-contract.json` must exist before `implementing`.
-2. `worker-self-check.json` and all required specialist reviews must exist before `reviewed`.
-3. The integration lane must be passed before `integrated`.
-4. A gate result must exist before `verified`.
-5. A closure packet and final verdict must exist before `passed`.
+1. A task MUST NOT skip required states by summary alone.
+2. A task MUST NOT advance if the required artifact is missing or invalid.
+3. A task MUST NOT become `passed` from any state other than `verified`.
+4. A task MUST restore conservatively when evidence is uncertain.
+5. A task in `blocked` or `escalated` MUST preserve enough state to explain re-entry.
 
-## Default Rewind Rules
+## Rewind Targets
 
-- implementation failure -> `implementing`
-- integration failure -> `reviewed`
-- invalidated assumptions -> `ready`
-- unresolved major conflict -> `escalated`
+### Default restoration guidance
 
-## retry_budget Depletion Rules
-
-`retry_budget` limits the number of retries permitted in the verify-fix loop.
-
-### Initial Values (by gate_profile)
-
-| gate_profile | initial retry_budget |
+| failure location | default restoration target |
 |---|---|
-| `code_change` | 3 |
-| `artifact_only` | 3 |
-| `closure_ready` | 2 |
+| implementation-quality failure discovered at gate | `implementing` |
+| missing review artifact | `ready` or `reviewed` depending on cause |
+| baseline divergence before integration | `ready` |
+| integration failure after baseline merge | `reviewed` |
+| final-verdict iterate due to product concern | `ready`, `reviewed`, or `implementing` as recorded |
 
-If risk_level is `high`, the initial value is reduced by 1; if `critical`, reduced by 1 (minimum value is 1).
+State restoration MUST be explicit. “Try again” is not a valid restoration instruction.
 
-### Depletion Rules
+## Retry Budget
 
-1. When a gate result is `fail`, performing one verify-fix iteration decrements `retry_budget` by 1.
-2. When `retry_budget` reaches 0, further verify-fix iterations are prohibited.
-3. When `retry_budget == 0`, one of the following must be performed:
-   - Transition to `escalated` to request a forge-review
-   - Request a product-decision from product_authority (scope reduction, criteria relaxation, etc.)
-   - Pivot the task by splitting it into a new task
+### Initial values
 
-### Exception
+A project MAY tune retry budgets, but the default SHOULD remain:
 
-orchestration_authority may grant 1 additional retry_budget with explicit justification. In that case, the justification must be recorded in the task metadata as `budget_extension_reason`. This extension is limited to once per task.
+| gate_profile | suggested initial retry_budget |
+|---|---:|
+| `implementation_change` | 2 |
+| `artifact_only` | 1 |
+| `closure_ready` | 1 |
 
-## Worker Self-Check Confidence and Gate Strictness Linkage
+### Depletion rules
 
-The `confidence` value in worker-self-check.json affects gate verification strictness. See the "Low Confidence Threshold Adjustment" section in doc 05 for detailed application rules.
+- `gate fail` consumes 1
+- `block` consumes 0
+- `error` consumes 0 unless local policy says otherwise
+- `iterate` from final verdict consumes 0 but counts toward the iterate repetition cap
 
-Summary:
-- `confidence` 3-5: no adjustment (default thresholds apply)
-- `confidence` 1-2: threshold for **all** rubric dimensions raised by +1
+### Budget exhaustion
 
-Since `confidence` in worker-self-check.json is a single scalar (1-5), the threshold adjustment applies uniformly across all dimensions. If per-dimension confidence is added to the schema in the future, the adjustment can be scoped to only the relevant dimension.
+When retry budget reaches zero and the task still fails verification, the orchestrator SHOULD either:
 
-Example: if `confidence` in worker-self-check.json is 2, all dimension thresholds are raised by +1 (`core_interaction` 3->4, `feature_completeness` 4->5, etc.).
+- decompose the task
+- escalate the task
+- formally de-scope the task
+- cancel the task with reason
 
-The purpose of this adjustment is to apply a higher verification bar to implementations where the worker has expressed uncertainty.
+## Iterate Repetition Cap
 
-## Representative Task Flow Examples
+A final verdict of `iterate` is a product judgment, not a gate failure. It does not consume `retry_budget`. However, repeated iterate outcomes indicate unresolved decision quality.
 
-### Example 1: Standard code task (happy path)
+Default rule:
 
-This is the full flow for a typical code task with `task_kind = code`, `risk_level = normal`, `gate_profile = code_change`, `retry_budget = 3`.
+- after 3 cumulative `iterate` verdicts on the same task, transition to `escalated` unless the user explicitly resets the path
 
-**1. `drafted` -> `ready`**
-- **Artifact**: `task-contract.json` (`.geas/missions/{mission_id}/tasks/{task_id}.json`)
-- **Performed by**: `task_compiler` (under orchestration_authority direction)
-- **Conditions**: task contract compilation is complete, and `base_commit` must be an ancestor of or equal to `tip(integration_branch)`. `acceptance_criteria[]`, `routing`, and `gate_profile` must all be finalized.
+## Scope Change Control
 
-**2. `ready` -> `implementing`**
-- **Artifact**: `implementation-contract.json` (`.geas/missions/{mission_id}/contracts/{task_id}.json`)
-- **Performed by**: primary worker (the agent matching routing.primary_worker_type)
-- **Conditions**: the implementation contract must be written and readable by the designated reviewer. The worktree must be prepared at `worktree.path`. Required path_lock / interface_lock must be acquired.
+The following changes MUST be treated as scope deltas and recorded:
 
-**3. `implementing` (implementation work)**
-- **Artifacts**: code changes (commits in the worktree), `worker-self-check.json` (`.geas/missions/{mission_id}/tasks/{task_id}/worker-self-check.json`)
-- **Performed by**: primary worker
-- **Conditions**: the worker completes implementation and fills in all required fields of `worker-self-check.json` including `confidence`, `known_risks[]`, `untested_paths[]`, etc.
+- touching paths outside the approved plan
+- introducing user-visible behavior not covered by acceptance criteria
+- creating a new dependency or interface
+- changing delivery pipeline, sensitive data handling, or runtime configuration
+- introducing a significant follow-up requirement
 
-**4. `implementing` -> `reviewed`**
-- **Artifact**: `specialist-review.json` (`.geas/missions/{mission_id}/tasks/{task_id}/specialist-review.json`, created separately per reviewer type)
-- **Performed by**: specialist agents designated in `routing.required_reviewer_types[]` (e.g., `architecture_authority`, `qa_engineer`)
-- **Conditions**: `worker-self-check.json` must exist, and all required specialist reviews must be complete. Each review must have no blocking defects, or if there were any, they must be resolved.
+A scope delta MUST feed either:
 
-**5. `reviewed` -> `integrated`**
-- **Artifact**: `integration-result.json` (`.geas/missions/{mission_id}/tasks/{task_id}/integration-result.json`)
-- **Performed by**: orchestration_authority (manages the integration lane)
-- **Conditions**: `integration_lock` must be acquired, and the worktree changes merged into the integration branch. The staleness classification must be `clean_sync` or `review_sync` (rewind if `replan_required` or `blocking_conflict`). The integration-result.json records the merge commit hash, conflict status, and drift information.
+- contract amendment
+- debt registration
+- gap assessment
+- or all three
 
-**6. `integrated` -> `verified`**
-- **Artifact**: `gate-result.json` (`.geas/missions/{mission_id}/tasks/{task_id}/gate-result.json`)
-- **Performed by**: evidence gate (3-tier verification: mechanical -> semantic+rubric -> product)
-- **Conditions**: gate result must be `pass`. In this example, all tiers pass and `verdict = pass` is recorded.
+## Cancellation Rules
 
-**7. `verified` -> `passed`**
-- **Artifact**: `closure-packet.json` (`.geas/missions/{mission_id}/tasks/{task_id}/closure-packet.json`)
-- **Performed by**: orchestration_authority
-- **Conditions**: closure packet must be complete. Final verdict is `pass`, and all acceptance criteria are recorded as met. Any debt is registered in `debt-register.json`. All locks for the task are released, and the worktree becomes a cleanup candidate.
+A cancelled task MUST record:
 
-```
-drafted --[task-contract.json]--> ready
-  --[implementation-contract.json]--> implementing
-  --[worker-self-check.json + specialist-review.json]--> reviewed
-  --[integration-result.json]--> integrated
-  --[gate-result.json (pass)]--> verified
-  --[closure-packet.json]--> passed ✓
-```
+- why it was cancelled
+- whether any partial artifact remains useful
+- whether any debt or memory candidate was emitted
+- whether a replacement task or de-scope path exists
 
-### Example 2: Task that fails gate and uses retry budget
+Cancellation MUST NOT silently erase evidence already produced.
 
-This is the flow for a task with `task_kind = code`, `risk_level = normal`, `gate_profile = code_change`, initial `retry_budget = 3` that fails the evidence gate twice before passing. The detailed flow from `integrated` onward is shown.
+## Representative Flow
 
-**1. First gate execution (retry_budget = 3)**
-- **State**: `integrated` -> gate execution
-- **Artifact**: `gate-result.json` -- `verdict = fail`, rubric score fell short of threshold at tier 2 (semantic+rubric)
-- **Failure details**: rubric score for `acceptance_criteria[2]` ("error responses must follow the standard format") was 2/5, below the threshold of 3. Specific violations are recorded in `gate-result.json`'s `failures[]`.
-- **Result**: enter verify-fix loop. `retry_budget` 3 -> **2**.
+### Happy path
 
-**2. Verify-fix iteration 1 (retry_budget = 2)**
-- **State**: `verified(fail)` -> rewind to `implementing` (Default Rewind Rules: implementation failure -> `implementing`)
-- **Performed by**: primary worker references `gate-result.json`'s `failures[]` to apply fixes
-- **Artifacts**:
-  - code fix commits (in worktree)
-  - updated `worker-self-check.json` (`confidence` adjusted, previous failure reflected in `known_risks[]`)
-  - specialist re-review if needed -> updated `specialist-review.json`
-  - re-integration -> updated `integration-result.json`
-- **Gate re-execution**: `gate-result.json` -- `verdict = fail`, tier 1 (mechanical) passed this time but rubric score 2/5 at tier 2 (different criterion failed)
-- **Result**: `retry_budget` 2 -> **1**.
+`drafted -> ready -> implementing -> reviewed -> integrated -> verified -> passed`
 
-**3. Verify-fix iteration 2 (retry_budget = 1)**
-- **State**: rewind to `implementing` again
-- **Performed by**: primary worker references the second `gate-result.json`'s `failures[]` to apply fixes
-- **Artifacts**:
-  - code fix commits
-  - updated `worker-self-check.json`
-  - re-review -> re-integration
-- **Gate re-execution**: `gate-result.json` -- `verdict = pass`, all tiers passed
-- **Result**: verification passed. `retry_budget` remains at 1 (no deduction on pass).
+### Verify-fix path
 
-**4. Subsequent flow**
-- `verified(pass)` -> `closure-packet.json` written -> `passed`
-- The closure packet records the retry history: 2 total verify-fix iterations, with the failure reason and fix details for each iteration.
+`ready -> implementing -> reviewed -> integrated -> verified(fail) -> implementing -> reviewed -> integrated -> verified(pass) -> passed`
 
-```
-integrated --[gate fail, rubric shortfall]--> verified(fail)
-  --retry_budget: 3->2--> implementing (rewind)
-  --[fix + re-review + re-integrate]--> integrated
-  --[gate fail, different criterion shortfall]--> verified(fail)
-  --retry_budget: 2->1--> implementing (rewind)
-  --[fix + re-review + re-integrate]--> integrated
-  --[gate pass]--> verified(pass)
-  --[closure-packet.json]--> passed ✓
-```
+### Product-iterate path
 
-**If iteration 2 had also failed (retry_budget = 0):**
-- Further verify-fix iterations are prohibited.
-- One of the following must be chosen:
-  1. Transition to `escalated` to request a forge-review
-  2. Request scope reduction or criteria relaxation from `product_authority`
-  3. Pivot by splitting the task into a new task
-- orchestration_authority may grant 1 additional retry with explicit justification via `budget_extension_reason` (once per task maximum).
+`verified -> final verdict iterate -> reviewed or implementing -> ... -> verified -> passed`
+
+## Key Statement
+
+A task in Geas is not merely work to do. It is a governed contract whose lifecycle forces scope clarity, evidence production, and conservative recovery when reality disagrees with optimism.

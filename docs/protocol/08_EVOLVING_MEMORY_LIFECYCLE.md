@@ -1,338 +1,257 @@
 # 08. Evolving Memory Lifecycle
 
+> **Normative document.**
+> This document defines the state machine and procedures by which lessons become durable memory, decay, supersession, or archival material.
+
 ## Purpose
 
-This document defines detailed rules for Geas's core idea: **continuously evolving memory**. The key question is:
+The lifecycle prevents two opposite failure modes:
 
-> How do we turn learnings from task completion, failure, recovery, and review disagreement into durable memory that improves future behavior?
+- **Lesson loss**: valuable lessons never promoted, eventually forgotten.
+- **Premature rigidity**: weak anecdotes turned into rigid pseudo-rules too early.
+
+A conformant lifecycle ensures that memory items earn durability through evidence and weaken without it.
 
 ## Memory Evolution States
 
-- `candidate`
-- `provisional`
-- `stable`
-- `canonical`
-- `under_review`
-- `decayed`
-- `superseded`
-- `archived`
-- `rejected`
+Every memory item occupies exactly one of eight canonical states. These states form the backbone of the promotion, decay, and retirement pipeline.
 
-### Meaning
-- `candidate`: extracted but still at the hypothesis level
-- `provisional`: sufficient evidence exists but further reuse verification is needed
-- `stable`: trusted memory that can be repeatedly applied
-- `canonical`: near-rule-level memory that has undergone strong approval or repeated verification
-- `under_review`: awaiting re-examination due to accumulated harmful reuse or confidence < 0.3 decay (temporarily excluded from retrieval)
-- `decayed`: was once valid but freshness/confidence has declined
-- `superseded`: replaced by a new memory
-- `archived`: retained for reference
-- `rejected`: noise or inappropriate memory
+| State | Description |
+|---|---|
+| `candidate` | Newly extracted lesson with limited confidence. Not yet trusted for reuse. |
+| `provisional` | Accepted for limited use with bounded trust. Awaiting further evidence or successful reuse. |
+| `stable` | Sufficiently supported by evidence and reuse. Safe for general application within its declared scope. |
+| `canonical` | Highly trusted, repeatedly validated. Often mapped into rules or pinned guidance. Projects should keep canonical items small in number. |
+| `under_review` | Temporarily withheld from normal trust because contradictions or harmful reuse require examination. |
+| `decayed` | Previously useful, now stale or weak. Requires fresh evidence or explicit review before returning to active use. |
+| `superseded` | Replaced by a newer or stronger lesson covering the same behavior surface. Retained for history. |
+| `archived` | Retained for historical reference only. Not included in active retrieval. |
 
 ## Source Signals
 
-Memory candidates originate from the following signals:
+Memory candidates may be extracted from operational artifacts produced during mission execution. The following are typical sources:
 
-1. `final-verdict.json`
-2. `failure-record.json`
-3. `revalidation-record.json`
-4. `integration-result.json`
-5. `specialist-review.json`
-6. `readiness-round.json`
-7. `recovery-packet.json`
-8. `worker-self-check.json`
-9. `retrospective.json`
-10. `gap-assessment.json`
-11. `debt-register.json`
+| Source | Example |
+|---|---|
+| Retrospectives | End-of-mission or end-of-phase reviews |
+| Failure records | Evidence gate failures, verify-fix-loop exhaustion |
+| Specialist reviews | Challenger, Quality Specialist, or Risk Specialist findings |
+| Gate results | Patterns in pass/fail/block outcomes |
+| Recovery incidents | Session recovery issues with repeat risk |
+| Debt patterns | Recurring entries in the debt register |
+| Decision records | Structured decisions with outcome data |
+| Gap assessments | Repeated planning or capability gaps |
+
+Candidates SHOULD NOT be extracted from pure speculation unsupported by artifacts.
 
 ## Per-Task Evolution Loop
 
-After every `passed` task, the following loop runs at minimum:
+After a task reaches `passed`, the evolution loop attempts to capture and refine lessons. This loop is the primary mechanism by which operational experience becomes reusable memory.
 
-1. `orchestration_authority` writes `retrospective.json`
-2. Extract lessons / debt / memory candidates / rules candidates from the retrospective
-3. Domain authority reviews candidates
-4. If approved:
-   - Promote to `project_memory` or `agent_memory`
-   - Update `.geas/rules.md` if needed
-   - Update `debt-register.json` for debt items
-5. The next task's packet builder injects these
-6. Record actual application results in `memory-application-log.json`
+| Step | Action |
+|---|---|
+| 1 | Lesson extraction from task artifacts |
+| 2 | Candidate deduplication and merge |
+| 3 | Routing to owner or endorsing authority |
+| 4 | Promotion or defer decision |
+| 5 | Application logging on future reuse |
+
+A task that never emits any lesson is acceptable. A task that repeatedly emits the same lesson without converging indicates a process failure.
 
 ## Candidate Extraction Rules
 
+Not every observation deserves memory status. Extraction rules distinguish actionable lessons from noise.
+
 ### Acceptable for automatic extraction
-- Same `failure_class` failure repeats 2+ times (based on the `failure_class` field in `failure-record.json`)
-- Same reviewer concern reappears in `specialist-review.json` across 2+ tasks (based on the concern's `category` field)
-- Same `recovery_class` recovery incident repeats 2+ times
-- A specific demo/test recipe is effectively used in 3+ tasks
-- Conflicts in `integration-result.json` occur 2+ times for a specific path/domain
-- `confidence <= 2` in `worker-self-check.json` repeats 2+ times for the same `task_kind`
+
+- Repeated failure pattern with clear evidence
+- Repeated reviewer concern across multiple tasks
+- Successful pattern with obvious reuse value
+- Recovery issue with repeat risk
+- Gap-assessment pattern that can change future planning
 
 ### Not acceptable for automatic extraction
-- Aesthetic preferences from a single task
-- One-off implementation preferences without conflict
-- Generalizations inferred by an LLM without evidence
+
+- Purely subjective preference without operational consequence
+- Unresolved controversy with no evidence weighting
+- One-off novelty with no repeat or transfer value
+- Content prohibited by local retention policy
 
 ## Minimum Candidate Fields
 
-- `memory_id`
-- `memory_type`
-- `state`
-- `title`
-- `summary`
-- `scope`
-- `evidence_refs[]`
-- `signals.confidence`
-- `signals.evidence_count`
-- `signals.reuse_count`
-- `signals.contradiction_count`
-- `review_after`
+A candidate record captures the lesson, its provenance, and the proposed behavior change. At minimum, a candidate SHOULD contain:
+
+| Field | Purpose |
+|---|---|
+| `memory_id` | Unique identifier |
+| `summary` | Human-readable description of the lesson |
+| `scope` | Where the lesson applies (task, mission, project, agent, global) |
+| `source_artifact_refs[]` | Links to the evidence that supports this lesson |
+| `confidence` | Numeric trust score (0.0 -- 1.0) |
+| `proposed_behavior_change` | How future behavior should change if this lesson is applied |
+| `owner_type` | Which agent slot owns this memory item |
+| `state` | Current lifecycle state |
+| `created_at` | Timestamp of extraction |
 
 ## Promotion Pipeline
 
-### Stage 1 — candidate creation
-Convert signals into candidates.
+The promotion pipeline moves a memory item from raw extraction through review to active use. Each stage adds confidence or filters out weak candidates.
 
-### Stage 2 — dedupe/merge
-Determine whether to merge with similar existing candidates or stable memories.
-
-**Merge Eligibility Conditions** — two candidates are merge-eligible if they satisfy all three of the following:
-1. Same `memory_type`
-2. Overlapping `scope` (same scope or one is a parent scope of the other)
-3. Semantic similarity of `summary` is at the merge-eligible level (see criteria below)
-
-**Semantic Similarity Criteria:**
-
-Semantic similarity of `summary` is determined by one of the following methods (selected per project configuration):
-1. **LLM judgment (default)**: the orchestration_authority compares the two summaries and answers "Is this the same lesson about the same topic?" with yes/no. If yes, merge-eligible.
-2. **Keyword-based (fallback)**: extract key nouns/verbs from both summaries; if Jaccard similarity >= 0.70, merge-eligible.
-
-Regardless of method, the merge decision rationale is recorded in the `rationale` field of `memory-review.json`.
-
-**Merge Procedure:**
-- Use the entry with more `evidence_refs` as the base.
-- Add the other entry's unique evidence_refs to the base entry.
-- Set `signals.evidence_count` to the sum of both entries.
-- Change the weaker entry to `state = "superseded"`, `superseded_by = {base entry's memory_id}`.
-
-### Stage 3 — review
-The relevant domain owner verifies the memory quality:
-- Process memory -> `orchestration_authority`
-- Architecture precedent -> `architecture_authority`
-- Product precedent -> `product_authority`
-- QA recipe -> `qa_engineer`
-- Security warning -> `security_engineer`
-
-### Stage 4 — promotion
-Promote to `provisional` or `stable` based on review and evidence strength.
-
-### Stage 5 — application logging
-Record success/failure each time the memory is applied to a future task.
-
-### Stage 6 — reinforcement / weakening
-Successful reuse raises confidence; contradiction or harmful reuse lowers confidence.
+| Stage | Name | Description |
+|---|---|---|
+| 1 | Candidate creation | The extractor records the lesson and links it to source evidence. |
+| 2 | Dedupe / merge | Equivalent or overlapping candidates are merged to avoid memory bloat. |
+| 3 | Review | The appropriate authority or reviewer evaluates evidence sufficiency, scope correctness, transferability, risk of over-generalization, and expected behavior impact. |
+| 4 | Promotion | The item advances to the next state only when current-state minimum requirements are met. |
+| 5 | Application logging | Once used in future work, the system records whether the memory helped, was neutral, or harmed. |
+| 6 | Reinforcement / weakening | Confidence and state may change based on real reuse outcomes. |
 
 ## Promotion Rules
 
-### candidate -> provisional
-At least one of the following must be met:
-- 2+ evidence_refs
-- 2+ same-type or similar incidents
-- Explicit approval from the domain authority
+Each state transition has specific requirements. Promoting without meeting these requirements undermines memory trust.
 
-### provisional -> stable
-**All** of the following must be met:
-- 3+ successful application logs
-- 0 contradictions in the most recent 5 applications
-- Domain authority review completed
+### `candidate` to `provisional`
 
-### stable -> canonical
-**All** of the following must be met:
-- 5+ successful application logs, spanning 3+ different tasks
-- Joint approval from orchestration_authority + the relevant domain authority
+Recommended when:
+
+- Evidence exists linking the lesson to a real artifact
+- The lesson appears useful for future work
+- Transferability is plausible
+- No strong contradiction exists
+
+### `provisional` to `stable`
+
+Recommended when:
+
+- The item has been reused successfully at least once, or has strong multi-source evidence
+- Owner review agrees that scope is correct
+- Contradiction count is low or zero
+
+### `stable` to `canonical`
+
+Recommended only when all of the following hold:
+
+- Successful reuse is repeated across multiple tasks or missions
+- The lesson has remained valid across time or contexts
+- The item strongly influences future process, safety, or quality
+- Stronger assurance profiles require it as pinned guidance
+
+A project SHOULD keep the number of canonical items small.
 
 ## Rules.md Update Loop
 
-`rules.md` is a durable behavior surface. Updates must not happen arbitrarily after any task; the following must be satisfied:
+Some memories deserve rule status. When a lesson should change behavior globally or semi-globally -- rather than merely appear in context packets -- it becomes a rule candidate.
 
-### Rule Candidate Sources
-- Retrospective lesson
+### Rule candidate sources
+
 - Repeated failure pattern
-- Repeated QA recipe
-- Architecture precedent
-- Security warning
-- Product precedent
+- Repeated reviewer omission
+- Repeated recovery mistake
+- Repeated scope-control issue
+- Repeated safety or quality blind spot
 
-### Rule Update Conditions
-**All** of the following must be met:
-- 2+ evidence_refs or explicit approval from the relevant domain authority
-- Scope is verified as `project` (per the `memoryScope` definition in `_defs.schema.json`). Rules that are not project-wide are classified as `agent_memory`
-- 0 negative application logs related to the rule candidate in the most recent 5 tasks (no harmful side effects)
+### Rule update conditions
 
-### Rules Update Artifact
-- `rules-update.json`
-- `affected_rule_ids[]`
-- `reason`
-- `evidence_refs[]`
-- `applies_to`
+A rule candidate SHOULD require one or more of:
 
-### Rule Application
-Updated rules are used in the following from that point forward:
-- Packet builder L0 pinned invariants
-- Task compiler default checks
-- Implementation contract checklist
-- Readiness round auto triggers
-- Reviewer caution items
+- Supporting evidence from multiple tasks
+- Zero unresolved contradiction
+- Owner endorsement
+- Explicit rationale for the expected behavior change
+
+### Rule application
+
+When a rule is approved, the implementation SHOULD specify how it changes one or more of:
+
+| Surface | Example change |
+|---|---|
+| Task compiler defaults | New classification or routing rule |
+| Contract checklist | Additional acceptance criterion |
+| Review checklist | New focus area for specialist reviewers |
+| Gate focus | Adjusted evidence requirements |
+| Readiness-round triggers | New readiness condition |
+| Recovery handling | Modified recovery heuristic |
 
 ## Agent Memory Improvement Path
 
-agent_memory is a per-type performance improvement path.
+Role-specific lessons SHOULD prefer `agent_memory` when:
 
-Examples:
-- `qa_engineer` -> store frequently missed edge-case recipes
-- `architecture_authority` -> store boundary smell precedents
-- `critical_reviewer` -> store recurring ship-risk patterns
-- `backend_engineer` -> store transaction/auth/db migration hazards
+- The lesson is primarily about that slot's review or implementation behavior
+- The artifact type is primarily produced by that slot
+- The lesson improves specialist checklists more than global process
 
-Rules:
-- Do not unconditionally inject into the same type.
-- Retrieve only when there is a task scope and role match.
-- Weaken or supersede when harmful reuse accumulates.
+Otherwise, prefer project-level memory.
 
 ## Confidence and Freshness
 
-Required fields (per `memory-entry.schema.json`):
-- `signals.confidence`: 0.0 - 1.0
-- `signals.evidence_count`
-- `signals.reuse_count`
-- `signals.contradiction_count`
-- `review_after`
+Confidence and freshness are related but distinct dimensions of memory trust.
 
-### Decay Rules
+| Dimension | Question it answers |
+|---|---|
+| Confidence | "How much should we trust this lesson?" |
+| Freshness | "How likely is this lesson still current?" |
 
-- If the `review_after` date has passed and there are 0 successful reuses during that period: `decayed`
-- If `contradiction_count >= 3`: `decayed` (same as the contradiction accumulation threshold in doc 12 Health Signals)
-- If a superseding memory appears: `superseded`
-- If `confidence < 0.3`: decay review trigger (see doc 07 Confidence Scoring Model)
+A memory may be high-confidence but low-freshness (e.g., a well-evidenced lesson about an interface that has since been redesigned). In such cases, reuse SHOULD be conservative until freshness is reaffirmed.
 
-### Decayed State Exit Transitions
+## Decay Rules
 
-Memory in `decayed` state can transition as follows:
-- `decayed` -> `under_review`: when the orchestration_authority or domain authority manually requests re-examination. Based on re-examination results, transition to reinstate (restore previous state), archive, or reject.
-- `decayed` -> `archived`: when cleanup is needed without re-examination. Executed by orchestration_authority.
-- There is no automatic restoration from `decayed` state. An explicit human/authority action is always required.
+A memory SHOULD be considered for the `decayed` state when:
+
+- `review_after` has passed without reaffirmation
+- Contradiction count grows
+- Reuse count remains zero for too long
+- The surrounding project structure or architecture changed materially
+
+### Decayed-state exit
+
+A decayed memory may return to stronger states only after fresh supporting evidence or explicit review. The system MUST NOT automatically restore a decayed item without new justification.
 
 ## Supersession
 
-Memory is not immutable truth. It can be replaced when new facts emerge.
+A memory becomes `superseded` when a newer item more accurately covers the same behavior surface. Supersession preserves institutional history while preventing stale guidance.
 
-Fields:
-- `supersedes[]`
-- `superseded_by`
-- `supersession_reason`
+| Rule | Description |
+|---|---|
+| History preservation | Supersession SHOULD preserve the old item's history |
+| Forward reference | The replacement SHOULD reference the older item |
+| Active use prohibition | Superseded memory MUST NOT be used as active guidance unless a recovery or audit workflow explicitly requests historical comparison |
 
-Rules:
-- Superseded memory is not deleted.
-- Excluded from retrieval by default, but visible in audit/drill-down (L3).
-- If other memories reference superseded memory in their `evidence_refs`, update those references to the superseding memory's `memory_id`.
-- If `rules.md` entries are based on superseded memory, follow the Harmful Reuse Feedback Loop procedure in doc 14 to re-examine the rule's validity.
+## Negative Learning and Harmful Reuse
 
-### Superseded State Exit Transitions
+If reuse of a memory repeatedly harms outcomes, the system SHOULD:
 
-Memory in `superseded` state can transition as follows:
-- `superseded` -> `archived`: cleanup after the audit trail is fully preserved. Executed by orchestration_authority.
-- If the memory pointed to by `superseded_by` is `rejected`: transition `superseded` -> `under_review` to re-examine the original memory's validity. Based on re-examination results, reinstate to the previous state or archive.
+1. Move the item to `under_review`
+2. Record the negative applications
+3. Inspect whether the scope was wrong, the lesson became stale, or the original evidence was weak
+4. Decide whether to revise, decay, supersede, or archive it
 
-## Negative Learning
-
-Storing only good memories is not enough. The following also become memory:
-- Missed verification patterns that produced false greens
-- Combinations that looked fine before merge but broke during integration
-- Unsafe checkpoint patterns that caused recovery failures
-- Regressions caused by ignoring low-confidence self-checks
-
-These items are primarily recorded under the following `memoryType` enum values (per `_defs.schema.json`):
-- `failure_lesson` — lessons extracted from failures (false green, missed verification, etc.)
-- `risk_pattern` — recurring risk patterns (unsafe checkpoint, integration breakage, etc.)
-- `security_pattern` — security-related warnings/patterns
-- `process_improvement` — process improvements (lessons derived from gaps/debt)
+Repeated harmful reuse SHOULD trigger rule or checklist review, not just memory review.
 
 ## Application Logging
 
-Every time memory is actually used, record the following:
-- Which task it was injected into
-- Who used it
-- What effect it had (`positive | negative | neutral | neutral_but_risky | unknown`)
-- Whether strengthen / weaken / supersede is needed
+The system SHOULD keep a `memory-application-log` or equivalent record. This log is essential for distinguishing elegant theory from actually useful guidance.
 
-This record is what makes memory a "living system."
-
-### Logging Frequency
-
-An application log is recorded when **all** of the following conditions are met:
-1. A memory entry was included in `memory-packet.json` and injected into an agent
-2. The task that consumed the packet has reached a terminal state (`passed`, `cancelled`, or `escalated`)
-
-Note: `failed` is not a task state (see doc 03). Task failure is recorded as a FailureRecord, and the task is rewound or transitions to `escalated`. Tasks that reach `escalated` due to retry_budget exhaustion are treated as terminal, and an application log is recorded.
-
-`effect` determination criteria:
-- Task `passed` and the memory's guidance was within the applicable scope -> `positive`
-- Task `passed` but the memory had no actual behavioral effect -> `neutral`
-- Task `escalated` and the FailureRecord's failure cause is related to the memory's guidance -> `negative`
-- Task `escalated` but the failure cause is unrelated to the memory -> `neutral`
-- Task `cancelled` -> `unknown` (intentional cancellation makes memory effect undeterminable)
-- Cannot determine -> `unknown`
-
-### Harmful Reuse Rollback Procedure
-
-When a promoted memory (provisional or above) accumulates **2+ negative application logs**, the following procedure is triggered:
-
-1. **Automatic state change**: change the memory's state to `"under_review"`.
-2. **Review convened**: orchestration_authority + domain authority review the memory and negative logs.
-3. **Possible decisions** (values in parentheses are `decision` enum values from `memory-review.schema.json`):
-   - **supersede** (`supersede`): create a corrected new memory and change the existing entry to `superseded`
-   - **demote** (`weaken`): demote to `provisional` (if it was stable/canonical)
-   - **archive** (`archive`): change to `archived` state and apply the `"invalidated"` tag
-4. The decision is recorded in `memory-review.json` with `reason` and `evidence_refs` specified.
-
-### under_review State Transition Full Specification
-
-**Entry conditions** (any of the following):
-- 2+ accumulated negative application logs (Harmful Reuse Rollback)
-- `confidence < 0.3` decay review trigger (see doc 07)
-- Manual re-examination request from orchestration_authority or domain authority
-
-**Behavior on entry**:
-- Change the memory's `state` to `"under_review"`
-- Temporarily exclude from retrieval (add to `suppressed_memory_ids[]` with `reason: "under_review"`)
-
-**Exit conditions** (transition to one of the following after review completion; values in parentheses are `decision` enum values from `memory-review.schema.json`):
-1. **reinstate** (`keep`): if the review determines the memory is still valid, restore to the previous state (`provisional`/`stable`/`canonical`). Reset `contradiction_count` to 0 and update `review_after` to the current date + 90 days.
-2. **supersede** (`supersede`): create a corrected new memory and change the existing entry to `superseded`
-3. **demote** (`weaken`): demote to `provisional` (if it was stable/canonical)
-4. **archive** (`archive`): change to `archived` state and apply the `"invalidated"` tag
-5. **reject** (`reject`): change to `rejected` if the evidence is completely invalidated
-
-**When review is incomplete**: if left in under_review state without review for 30+ days, the orchestration_authority must handle it in the next retrospective. After 60+ days, it is automatically changed to `archived`.
-
-### Reinstate Circuit Breaker
-
-When the same memory has gone through `under_review` 3 or more times (a pattern of reinstate followed by re-entry into under_review):
-
-- `reinstate` (`keep`) can no longer be selected. This option is excluded from the review.
-- Possible decisions are limited to `supersede`, `demote` (`weaken`), `archive`, or `reject`.
-- This limit is tracked by adding an `under_review_count` field to `memory-entry.json`. Initial value is `0`, incremented by `+1` on each entry into `under_review` state.
-- Memory that has been through under_review 3+ times is considered structurally unstable; allowing reinstate would risk an infinite loop (reinstate -> problem recurrence -> under_review -> reinstate), so this is blocked.
+| Field | Description |
+|---|---|
+| `memory_id` | Which memory item was applied |
+| `task_id` | The task where it was applied |
+| `applied_at` | Where in the pipeline the memory was used |
+| `effect` | `positive`, `neutral`, or `negative` |
+| `notes` | Free-text explanation |
+| `timestamp` | When the application occurred |
 
 ## Anti-Bloat Rules
 
-1. Reject stylistic preferences with 0 `evidence_refs`
-2. Memory with `confidence < 0.3` past its `review_after` date is excluded from retrieval by default (accessible only via L3 drill-down)
-3. Even stable memory has a review cadence (default: promotion date + 180 days; see doc 11 `review_after`)
-4. Do not create duplicate memories for the same content. Apply the Promotion Pipeline Stage 2 Merge procedure when duplication is detected
-5. Do not directly promote a `scope = "task"` observation to a `scope = "project"` rule. It must go through at least `scope = "mission"` first
+A conformant implementation SHOULD actively control memory bloat. Without active management, memory stores grow without bound and retrieval quality degrades.
+
+Recommended policies:
+
+- Merge duplicates during candidate creation
+- Archive dead low-value items periodically
+- Keep canonical memory small
+- Review zero-reuse items on a regular cadence
+- Refuse promotion for vague advice without concrete behavior change
 
 ## Key Statement
 
-> Geas memory is not "records that are stored" but "operational knowledge that continuously strengthens or weakens based on reuse results, and changes future behavior through rules and packets."
+The lifecycle is the immune system of Geas memory. Without promotion discipline, memory stays weak; without decay and supersession, memory becomes fossilized clutter.

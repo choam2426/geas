@@ -1,196 +1,212 @@
 # 11. Runtime Artifacts and Schemas
 
+> **Normative document.**
+> This document summarizes the canonical runtime artifact families, their contract philosophy, versioning expectations, and validation failure handling.
+
 ## Purpose
 
-This document summarizes the contracts for canonical runtime artifacts and memory artifacts. For detailed field definitions, see `schemas/`.
+Artifacts are how Geas converts ephemeral model behavior into auditable, evidence-based process. This document defines the artifact layer so that:
+
+- state transitions remain evidence-based
+- validators know what to enforce
+- reviewers know what to expect
+- drift between docs, schemas, and hooks becomes visible
+
+## Artifact Contract Philosophy
+
+Geas uses three complementary layers to govern artifacts. Each layer has a distinct responsibility, and no single layer should do the job of the others.
+
+| layer | responsibility |
+|---|---|
+| prose documents | define semantics and invariants in human-readable form |
+| schemas | define structure and machine-validatable constraints |
+| hooks / validators | enforce existence, ordering, and selected invariants at runtime |
 
 ## Core Runtime Artifacts
 
-### Specifying Artifacts
+Geas produces artifacts at every phase of execution. The following tables group artifacts by the phase or subsystem that produces them.
 
-| Artifact | Schema | Storage path | Producer |
-|----------|--------|-------------|----------|
-| `mission-spec.json` | `mission-spec.schema.json` | `.geas/missions/{mission_id}/spec.json` | orchestration_authority |
-| `design-brief.json` | `design-brief.schema.json` | `.geas/missions/{mission_id}/design-brief.json` | orchestration_authority |
+### Specifying artifacts
 
-### Pipeline Artifacts (per-task)
+Artifacts produced during the Specifying phase, when the mission is being defined and broken down into tasks.
 
-| Artifact | Schema | Storage path | Producer |
-|----------|--------|-------------|----------|
-| `task-contract.json` | `task-contract.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}.json` | task_compiler |
-| `implementation-contract.json` | `implementation-contract.schema.json` | `.geas/missions/{mission_id}/contracts/{task_id}.json` | primary worker |
-| `worker-self-check.json` | `worker-self-check.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/worker-self-check.json` | primary worker |
-| `specialist-review.json` | `specialist-review.schema.json` | `.geas/missions/{mission_id}/evidence/{task_id}/{agent-type}[-review].json` | specialist agents |
-| `integration-result.json` | `integration-result.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/integration-result.json` | orchestration_authority |
-| `gate-result.json` | `gate-result.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/gate-result.json` | orchestration_authority |
-| `closure-packet.json` | `closure-packet.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/closure-packet.json` | orchestration_authority |
-| `challenge-review.json` | `challenge-review.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/challenge-review.json` | critical_reviewer |
-| `final-verdict.json` | `final-verdict.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/final-verdict.json` | product_authority |
-| `vote-round.json` | `vote-round.schema.json` | `.geas/missions/{mission_id}/decisions/{dec_id}.json` | orchestration_authority |
-| `failure-record.json` | `failure-record.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/failure-record-{seq}.json` | orchestration_authority |
-| `retrospective.json` | `retrospective.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/retrospective.json` | process_lead |
+| artifact | description |
+|---|---|
+| mission spec | defines the mission scope, goals, and constraints |
+| design brief | describes the structural approach and key decisions |
+| decision record | captures a structured decision and its rationale |
+| initial task compilation outputs | task contracts generated from the mission spec and design brief |
+| phase review | Specifying phase exit assessment |
 
-### Session & Orchestration Artifacts
+### Per-task pipeline artifacts
 
-| Artifact | Schema | Storage path | Producer |
-|----------|--------|-------------|----------|
-| `run-state.json` | `run-state.schema.json` | `.geas/state/run.json` | orchestration_authority |
-| `lock-manifest.json` | `lock-manifest.schema.json` | `.geas/state/locks.json` | orchestration_authority |
-| `health-check.json` | `health-check.schema.json` | `.geas/state/health-check.json` | orchestration_authority |
-| `revalidation-record.json` | `revalidation-record.schema.json` | `.geas/missions/{mission_id}/tasks/{task_id}/revalidation-record.json` | orchestration_authority |
-| `recovery-packet.json` | `recovery-packet.schema.json` | `.geas/recovery/recovery-{id}.json` | orchestration_authority |
+Artifacts produced during the per-task execution pipeline as a task moves through its lifecycle states.
 
-### Evolution Artifacts
+| artifact | description |
+|---|---|
+| task contract | defines what the task must accomplish, its classification, and acceptance criteria |
+| implementation contract | pre-implementation agreement between worker and reviewers on approach |
+| worker self-check | the worker's own assessment that implementation meets the contract |
+| specialist review | review by a specialist agent (Quality Specialist, Risk Specialist, etc.) |
+| integration result | outcome of integrating the task's changes into the baseline |
+| gate result | evidence gate verdict with tier-level pass/fail details |
+| vote-round result | structured deliberation outcome when triggered |
+| challenge review | Challenger assessment for high/critical risk tasks |
+| closure packet | assembled evidence bundle for final verdict |
+| final verdict | Decision Maker's pass/iterate/escalate decision |
+| failure record | captures what went wrong when a step fails (created as needed) |
 
-| Artifact | Schema | Storage path | Scope |
-|----------|--------|-------------|-------|
-| `rules-update.json` | `rules-update.schema.json` | `.geas/missions/{mission_id}/evolution/rules-update-{seq}.json` | per mission |
-| `debt-register.json` | `debt-register.schema.json` | `.geas/missions/{mission_id}/evolution/debt-register.json` | per mission (entries accumulate) |
-| `gap-assessment.json` | `gap-assessment.schema.json` | `.geas/missions/{mission_id}/evolution/gap-assessment-{transition}.json` | per phase transition |
-| `phase-review.json` | `phase-review.schema.json` | `.geas/missions/{mission_id}/phase-reviews/{transition}.json` | per phase transition |
-| `policy-override.json` | `policy-override.schema.json` | `.geas/state/policy-overrides.json` | per project |
+### Session and orchestration artifacts
 
-### Memory Artifacts
+Artifacts that coordinate runtime execution across tasks and sessions.
 
-| Artifact | Schema | Storage path | Producer |
-|----------|--------|-------------|----------|
-| `memory-candidate.json` | `memory-candidate.schema.json` | `.geas/memory/candidates/{memory_id}.json` | orchestration_authority |
-| `memory-entry.json` | `memory-entry.schema.json` | `.geas/memory/entries/{memory_id}.json` | orchestration_authority |
-| `memory-review.json` | `memory-review.schema.json` | `.geas/memory/candidates/{memory_id}-review.json` | domain authority |
-| `memory-application-log.json` | `memory-application-log.schema.json` | `.geas/memory/logs/{task_id}-{memory_id}.json` | orchestration_authority |
-| `memory-packet.json` | `memory-packet.schema.json` | `.geas/missions/{mission_id}/packets/{task_id}/memory-packet.json` | orchestration_authority |
-| `memory-index.json` | `memory-index.schema.json` | `.geas/state/memory-index.json` | orchestration_authority |
+| artifact | description |
+|---|---|
+| `run.json` | mission-level runtime state including phase, active tasks, and configuration |
+| session summary | high-level record of what happened in a session |
+| task-focus summary | per-task progress snapshot for recovery and context |
+| recovery packet | assessment of interrupted state for the next session |
+| health check | periodic health signal collection |
+| lock / lane state | workspace lock ownership and parallel lane assignments |
 
-### Human-Readable Summaries (no schema — markdown)
+### Evolution artifacts
 
-| File | Storage path | Scope |
-|------|-------------|-------|
-| `session-latest.md` | `.geas/state/session-latest.md` | per session (overwritten on compact) |
-| `task-focus/{id}.md` | `.geas/state/task-focus/{task_id}.md` | per task |
-| `mission-summary.md` | `.geas/missions/{mission_id}/mission-summary.md` | per mission |
-| `run-summary-{ts}.md` | `.geas/summaries/run-summary-{timestamp}.md` | per session |
+Artifacts produced during the Evolving phase, when the team reflects on performance and updates its processes.
+
+| artifact | description |
+|---|---|
+| retrospective | structured reflection on what worked, what failed, and what to change |
+| rules update | proposed or applied changes to project rules |
+| debt register | tracked technical or process debt items |
+| gap assessment | identified gaps between protocol requirements and actual practice |
+| mission summary | final record of the completed mission |
+| memory application log | record of which memories were applied and their effect |
+
+### Memory artifacts
+
+Artifacts that capture and manage learned experience across sessions.
+
+| artifact | description |
+|---|---|
+| memory entry | a single memory candidate or promoted memory |
+| memory review | periodic review of memory health and relevance |
+| memory index | registry of all active memories with metadata |
+| memory packet | context-packet supplement containing relevant memories |
+| supersession or decay notes | record of why a memory was replaced or retired |
+
+## Canonical Metadata
+
+Every canonical artifact SHOULD expose shared metadata so that validators, recovery engines, and reviewers can identify and trust it. The exact field names are schema-governed; the semantics are protocol-governed.
+
+| field | description |
+|---|---|
+| `artifact_type` | identifies which kind of artifact this is |
+| `version` | schema or artifact version for compatibility checking |
+| creation timestamp | when the artifact was produced |
+| producing role or subsystem | which agent or subsystem created the artifact |
+| relevant ids | `mission_id`, `task_id`, `memory_id`, or other linking identifiers |
+| source or lineage references | pointers to parent artifacts or triggering events, where applicable |
+
+## File Naming and Path Discipline
+
+Consistent naming and path structure make artifacts discoverable and reduce the chance of misidentification.
+
+| rule | description |
+|---|---|
+| stable, type-oriented filenames | canonical artifact filenames SHOULD be predictable and reflect the artifact type |
+| clear ownership paths | path layout SHOULD make it obvious which mission or task an artifact belongs to |
+| flexible summaries, predictable JSON | summaries MAY use flexible naming, but canonical JSON artifacts SHOULD remain predictable |
+| metadata over filename | a filename alone MUST NOT be the only source of meaning; internal metadata must agree |
 
 ## Schema Inventory
 
-29 JSON Schemas + 1 shared definitions file (`_defs.schema.json`) = 30 files total in `schemas/`.
+The canonical JSON schemas under `docs/protocol/schemas/` remain the source of structural truth for machine validation. This document does not replace them; it explains how to use them correctly.
 
-## Artifact Purpose Highlights
+## Artifact Immutability and Replacement
 
-### `worker-self-check.json`
-A self-assessment artifact where the worker records known risks, untested paths, possible stubs, and confidence.
+Once an artifact represents a completed step, it should be treated as immutable. If correction is needed, the recommended approach is to create a new version or replacement record rather than mutating the original.
 
-### `challenge-review.json`
-Critical reviewer pre-ship challenge. Mandatory for high/critical risk tasks. The reviewer must raise at least 1 substantive concern (protocol doc 05: substantive challenge obligation).
+| policy | description |
+|---|---|
+| treat completed artifacts as immutable | once an artifact records a finished step, do not modify it in place |
+| create replacement records for corrections | if a correction is needed, produce a new version that references the original |
+| preserve reconstruction metadata if mutating | if local policy allows in-place mutation, retain enough metadata to reconstruct the prior state |
 
-### `vote-round.json`
-Result of a structured vote round — either a `proposal_round` (agree/disagree) or a `readiness_round` (ship/iterate/escalate). Replaces the former separate readiness-round artifact.
+History rewriting weakens traceability.
 
-### `design-brief.json`
-Captures the HOW decisions between mission spec (WHAT/WHY) and task contracts (UNIT OF WORK). Always reviewed by architecture-authority. Full-depth briefs also go through a vote round. Must be user-approved before tasks are compiled.
+## Recommended Hardening Patterns
 
-### `failure-record.json`
-Records a task failure and rewind. Failure is not a state — the task rewinds to the rewind target. Tracks retry_budget before/after.
+The following are RECOMMENDED even if not yet present in every canonical schema. Projects SHOULD implement these through schema extension or companion metadata, not hidden ad hoc fields.
 
-### `health-check.json`
-8 health signals from protocol doc 12, each with value, threshold, and triggered flag. Calculated at phase transitions, session start, and evolving phase entry.
+| pattern | description |
+|---|---|
+| artifact lineage or parent references | link to the artifact(s) that triggered or preceded this one |
+| explicit producer role | record which agent type or subsystem created the artifact |
+| checksum or content hash | integrity verification for critical artifacts |
+| link to relevant evidence | pointer to command output, test results, or evidence bundle |
+| staleness or freshness marker | for derived packets, indicate when the source data was last confirmed current |
+| redaction marker | when sensitive content was removed, indicate that redaction occurred |
 
-### `policy-override.json`
-Machine-readable registry for temporary rules.md overrides. Entries are never deleted — expired ones are marked `expired: true` for audit trail.
+## Redaction and Sensitive Content
 
-### `retrospective.json`
-Input for the per-task learning loop. Written by `process_lead`.
+Artifacts SHOULD avoid unnecessary retention of:
 
-### `rules-update.json`
-A record of approved rule changes applied to the durable behavior surface.
+- raw secrets
+- credentials
+- high-risk exploit details beyond operational need
+- private personal information not required for the task
 
-### `debt-register.json`
-A mission/phase-level debt rollup artifact.
+When redaction occurs, the artifact SHOULD indicate that redaction happened so later readers do not confuse omission with absence.
 
-### `gap-assessment.json`
-An artifact evaluating the difference between the original `scope_in` and the actual `scope_out`.
+## Drift Types
 
-### `phase-review.json`
-An artifact summarizing the state before and after a mission phase transition.
+Drift occurs when the layers that govern artifacts fall out of alignment. The following table describes the canonical drift types and their symptoms.
 
-## Canonical Fields to Notice
+| drift type | description | example |
+|---|---|---|
+| schema-artifact drift | produced artifacts do not match the schema that governs them | a schema requires a field that produced artifacts do not contain |
+| hook-protocol drift | hooks enforce rules that the protocol no longer requires, or miss rules it now does | a hook blocks on an artifact that the protocol no longer requires |
+| doc-schema drift | prose documents claim fields or enums that the canonical schema does not support | a protocol document references a `task_kind` value that no schema defines |
+| runtime-summary drift | summaries claim states or verdicts that canonical artifacts do not support | a session summary says a task passed but no final verdict artifact exists |
 
-### Common metadata across all artifacts
-- `version`
-- `artifact_type`
-- `artifact_id`
-- `producer_type`
-- `created_at`
-- `updated_at`
+## Drift Handling
 
-### Key fields for worker self-check
-- `known_risks`
-- `untested_paths`
-- `possible_stubs`
-- `what_to_test_next`
-- `confidence`
+When drift is detected:
 
-### Key fields for debt register
-- `items[]`
-- `rollup_by_severity`
-- `rollup_by_kind`
-- `phase_targeting` — a field specifying which mission phase should resolve the debt. `"polishing"`: cosmetic/quality debt, `"evolving"`: architectural debt, `"future"`: debt outside current mission scope but still requiring tracking
+1. stop trusting the drifted surface as canonical
+2. identify which layer is actually authoritative for the question at hand
+3. correct the weaker or outdated layer
+4. document migration if existing artifacts are affected
 
-### Key fields for gap assessment
-- `scope_in_summary`
-- `scope_out_summary`
-- `fully_delivered`
-- `partially_delivered`
-- `not_delivered`
-- `intentional_cuts`
-- `unexpected_additions`
+The safest default authority for each concern:
 
-### Key fields for memory entry
-- `memory_type`
-- `state`
-- `scope`
-- `summary`
-- `evidence_refs`
-- `confidence`
-- `support_count`
-- `successful_reuses`
-- `failed_reuses`
-- `contradiction_count`
-- `review_after` — ISO 8601 date. After this date, the continued validity of the memory entry must be reassessed. Set by the reviewer at promotion time. Defaults: `provisional` memory is promotion date + 90 days, `stable` memory is promotion date + 180 days
-- `supersedes`
-- `superseded_by`
-
-## Contract Philosophy
-
-- Prose documents define semantics.
-- Schemas enforce format and enums.
-- Hooks enforce existence and invariants.
-
-When these three layers encroach on each other's roles, drift occurs. When drift is detected, block the creation/consumption of the affected artifact and correct it. Specific examples of drift:
-
-1. **schema-artifact drift**: a required field was added to the schema, but existing artifacts under `.geas/` lack that field
-2. **hook-protocol drift**: a hook checks for the existence of a specific artifact, but a protocol change means that artifact is no longer produced
-3. **doc-schema version drift**: the schema version referenced by a prose document does not match the actually deployed schema version
-
-When drift is detected, the canonical protocol schema definitions take precedence. Update the drifted artifact to match the schema.
+| concern | authoritative layer |
+|---|---|
+| semantics | prose documents |
+| structure | schemas |
+| executed evidence | runtime artifacts |
 
 ## Artifact Validation Failure Modes
 
-### Required field missing
+When an artifact fails validation, the response depends on the type of failure. The following table summarizes each failure mode and the expected response.
 
-When a field defined as `required` in the schema is absent from the artifact:
-1. The validator **rejects** the artifact.
-2. Request regeneration from the producer agent, providing the list of missing fields.
-3. If regeneration fails twice, escalate to `orchestration_authority`.
+| failure mode | response |
+|---|---|
+| **required field missing** | reject or quarantine the artifact; request regeneration or correction; block dependent transitions until corrected |
+| **`artifact_type` mismatch** | record the mismatch; block downstream consumption if ambiguity matters; correct or replace the artifact |
+| **version incompatibility** | allow only if the difference is explicitly backward compatible; otherwise reject or require migration |
+| **parseable but semantically impossible** | block downstream progress; treat as semantic invalidity even if JSON parses (e.g., final verdict says `pass` but task is not `verified`, or gate result says `pass` but required checks are absent) |
 
-### artifact_type mismatch
+## Compatibility Guidance
 
-When an artifact's `artifact_type` field does not match the filename or usage context:
-1. The validator records a warning.
-2. Block the next stage that consumes the artifact.
-3. The producer agent corrects the artifact_type or creates a new artifact.
+A project that adds local artifact extensions SHOULD:
 
-### Common metadata version incompatibility
+- version its local schemas
+- document extension ownership
+- avoid colliding with canonical semantics
+- avoid weakening mandatory invariants
+- provide migration notes where needed
 
-When an artifact's `version` field is incompatible with the current schema version:
-1. If within backward-compatible range (same `major` version), record a warning and proceed.
-2. If not backward-compatible, reject the artifact and require the producer to regenerate it conforming to the current schema.
+## Key Statement
+
+Artifacts are the enforceable memory of the workflow. If they are weak, inconsistent, or ambiguous, the rest of the protocol becomes guesswork.

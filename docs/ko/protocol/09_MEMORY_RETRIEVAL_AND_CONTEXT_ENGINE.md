@@ -1,195 +1,205 @@
 # 09. Memory Retrieval and Context Engine
 
+> **기준 문서.**
+> 이 문서는 Geas가 memory를 검색하고, context packet을 조립하며, 부실하거나 적대적인 context로부터 보호하고, 제한된 context 예산 하에서 출처(provenance)를 보존하는 방법을 정의한다.
+
 ## 목적
 
-memory가 많아져도 context window를 망치면 시스템은 오히려 나빠진다. 따라서 retrieval과 packet assembly는 memory system의 절반이다.
+retrieval 및 context 엔진은 **가장 많은** context가 아니라 **적절한** context를 전달하기 위해 존재한다. 좋은 context engineering -- 의사결정 품질을 극대화하기 위해 정보를 선택, 정렬, 제시하는 규율 -- 이 이 문서의 핵심 관심사이다. 모델을 압도하거나 부실한 가정을 가져오지 않으면서 에이전트가 중요한 것을 기억하도록 도와야 한다.
+
+## Context Engineering
+
+Context engineering은 각 에이전트 상호작용을 위한 정보 환경을 의도적으로 구성하는 실천이다. 사용 가능한 모든 정보를 프롬프트에 채워 넣는 대신, context engineering은 다음을 묻는다: 이 에이전트가 지금 무엇을 알아야 하는가, 어떤 순서로, 어떤 신뢰 수준으로?
+
+retrieval 및 context 엔진은 Geas에서 context engineering이 구현되는 주요 메커니즘이다. 이 문서의 모든 설계 선택 -- 우선순위 band, scoring, 예산, 부실 규칙 -- 은 최적의 context 조립이라는 목표에 기여한다.
+
+## Threat Model
+
+context 엔진은 의사결정 품질에 대한 다음 위협을 고려해야 한다:
+
+| 위협 | 설명 |
+|---|---|
+| 부실 memory | 한때 유효했으나 현재 상황을 더 이상 반영하지 않는 교훈 |
+| 모순 memory | 상충하는 지침을 제공하는 다수의 memory 항목 |
+| 저가치 context 비대화 | 핵심 정보에 대한 주의를 희석하는 과도한 context |
+| 오해를 유발하는 저장소 텍스트 | 부정확하거나 오래된 주장을 담은 저장소 콘텐츠 |
+| 오래된 요약 | 실질적 변경 이전에 작성된 세션 또는 task 요약 |
+| 적대적 도구 출력 | 오해를 유발하는 정보나 prompt injection을 포함한 도구 출력 |
+| 우발적 prompt injection | 노트, 문서, memory 텍스트에 내장된 지시사항 |
+| Contract 충돌 memory | 현재 task의 명시적 제약과 모순되는 memory |
 
 ## Retrieval Inputs
 
-retrieval은 아래 입력을 본다.
-- current phase / mission phase
-- task kind / risk level
-- scope.paths
-- touched paths
-- reviewer set
-- known risks
-- recent failures / incidents
-- mission intent
-- agent type
-- applicable rules.md entries
+context 조립 요청은 memory 항목을 선택하고 채점할 때 다음 입력을 고려해야 한다:
+
+- 현재 mission phase
+- 현재 task 메타데이터
+- 영향받는 경로 또는 surface
+- Reviewer 슬롯 또는 worker 슬롯
+- 현재 assurance profile
+- 최근 실패 또는 debt
+- 마지막 safe boundary 또는 recovery context
+- 관련 규칙
+- 관련 memory 항목
 
 ## Retrieval Priority Bands
 
-### L0 — pinned invariants
-항상 들어가는 최소 핵심 규칙
-- session phase
-- mission phase
-- focus task id
-- task goal / acceptance
-- current rewind status
-- hard protocol invariants
-- approved `rules.md` entries
+context는 네 개의 우선순위 band로 구성된다. 예산이 제한될 때 상위 band가 하위 band를 희생하여 보존된다. 이 순서는 context 엔진의 가장 중요한 구조적 보장이다.
 
-### L1 — task-local packet
-현재 task에 직접 relevant한 baseline / scope / contract / recent review / recent memory
+| Band | 이름 | 내용 |
+|---|---|---|
+| **L0** | Pinned invariants | 기본 안전/무결성 규칙, 현재 task acceptance criteria, 현재 승인된 implementation contract, 명시적 phase 제약, 활성 정책 오버라이드 또는 위험 제어 |
+| **L1** | Task-local packet | Worker self-check, 최근 specialist review, 현재 실패 또는 debt 노트, task-focus 요약 |
+| **L2** | Applicable memory | Scope, 관련성, freshness, confidence로 선택된 재사용 가능한 교훈 |
+| **L3** | Drill-down references | 심층 조사가 필요할 때 요청에 따라 가져오는 낮은 우선순위 보조 context |
 
-### L2 — applicable memory
-현재 task와 role에 맞는 stable/provisional memory. `memory_type`이 `agent_rule`인 항목은 role match 시, `risk_pattern`인 항목은 risk level에 따라 우선 포함
+## Memory Packet Structure
 
-### L3 — drill-down
-필요 시에만 여는 상세 로그, 과거 incident, superseded memory
+memory packet은 모델이 신뢰를 추론하게 강요하지 않고 다음 정보를 명시해야 한다:
 
-## Memory Packet
-
-`memory-packet.json`은 특정 agent에게 주입할 구조화된 요약이다.
-
-최소 필드:
-- `target_agent_type`
-- `target_task_id`
-- `pinned_items[]`
-- `applicable_memory_ids[]`
-- `caution_items[]`
-- `suppressed_memory_ids[]`
-- `assembly_reason`
+| 요소 | 용도 |
+|---|---|
+| 포함 항목 | 이 packet에 어떤 memory 항목이 포함되었는지 |
+| 선택 근거 | 각 항목이 선택된 이유 |
+| 항목 state | 각 항목의 현재 lifecycle state |
+| 뒷받침 evidence | 각 항목을 뒷받침하는 evidence |
+| 모순 여부 | 알려진 모순이 존재하는지 |
+| 조립 시점 | packet이 조립된 시간 |
 
 ## Retrieval Scoring Heuristic
 
-각 memory entry의 retrieval score는 아래 가중치로 계산한다:
+프로젝트는 다른 공식을 구현할 수 있지만, retrieval 엔진은 최소한 다음 scoring 차원을 고려해야 한다. 동작이 이해 가능하고 감사 가능한 한 단순한 heuristic을 사용할 수 있다.
 
-| Factor | Weight | 설명 |
-|---|---|---|
-| `scope_match` | `0.25` | memory의 scope가 현재 task scope와 일치하는 정도 (0.0~1.0) |
-| `path_overlap` | `0.20` | memory의 관련 path와 task의 touched paths 겹침 비율 (0.0~1.0) |
-| `role_match` | `0.15` | memory의 target agent type과 현재 agent type 일치 여부 (0 또는 1) |
-| `freshness` | `0.15` | `last_confirmed_at` 기준 최신일수록 높음. 계산: `max(0.0, 1.0 - (days_since_last_confirmed / 180))`. 180일 이상 경과하면 0.0 |
-| `confidence` | `0.10` | memory의 현재 confidence 값 그대로 사용 (0.0~1.0) |
-| `reuse_success` | `0.10` | `successful_reuses / (successful_reuses + failed_reuses)` (0.0~1.0, 적용 이력 없으면 0.5) |
-| `contradiction_penalty` | `-0.15` | `min(contradiction_count * 0.05, 0.15)` 를 차감 |
+| 차원 | 설명 |
+|---|---|
+| Scope match | memory의 선언된 scope가 현재 context와 얼마나 잘 일치하는지 |
+| Path overlap | memory가 같은 surface나 인터페이스에 적용되는지 |
+| Role match | memory가 소비하는 에이전트 슬롯에 관련되는지 |
+| Mission-phase 관련성 | memory가 현재 phase에 적용되는지 |
+| Recency / freshness | memory가 생성, review, 또는 재확인된 시점이 얼마나 최근인지 |
+| Confidence | memory의 신뢰 점수 |
+| Contradiction penalty | 알려진 모순이 있는 항목에 대한 감점 |
+| Harmful-reuse penalty | 기록된 부정적 적용 결과가 있는 항목에 대한 감점 |
 
-**계산식:**
-```
-raw_score = (scope_match * 0.25) + (path_overlap * 0.20) + (role_match * 0.15)
-          + (freshness * 0.15) + (confidence * 0.10) + (reuse_success * 0.10)
-          - contradiction_penalty
-score = clamp(raw_score, 0.0, 1.0)
-```
+## Scope Match Calculation
 
-task의 risk_level이 `high` 이상이면 `risk_pattern` type의 memory에 `+0.10` bonus를 부여한다.
+권장 해석:
 
-### Scope Match 계산
+- 정확한 task 또는 mission 일치가 project 일치보다, project 일치가 global 일치보다 높은 점수를 받는다.
 
-memory의 `scope`와 현재 task의 context scope를 비교하여 0.0~1.0 점수를 산출한다.
+넓은 scope가 좁고 현재의 context를 밀어내서는 안 된다. global 교훈은 task-specific 교훈보다 정확한 관련성이 낮을 가능성이 높다.
 
-| Memory Scope \ Task Context | task | mission | project |
-|---|---|---|---|
-| `task` (동일 task) | 1.0 | 0.3 | 0.1 |
-| `task` (다른 task) | 0.2 | 0.3 | 0.1 |
-| `mission` | 0.7 | 1.0 | 0.5 |
-| `project` | 0.5 | 0.7 | 1.0 |
-| `agent` (동일 agent type) | 0.8 | 0.8 | 0.8 |
-| `agent` (다른 agent type) | 0.1 | 0.1 | 0.1 |
-| `global` | 0.4 | 0.4 | 0.6 |
+## Path Overlap Calculation
 
-### Path Overlap 계산
+동일한 surface나 인접 인터페이스에 연결된 memory 항목은 같은 넓은 도메인에만 연결된 것보다 높은 점수를 받아야 한다. 예를 들어, 특정 API 엔드포인트에 대한 교훈은 해당 엔드포인트를 수정하는 task에 일반적인 API 설계 교훈보다 더 관련성이 높다.
 
-memory의 관련 경로는 `evidence_refs[]`에서 추출한다. evidence_ref가 task를 가리키면 해당 task의 `scope.paths`를 사용한다. evidence_ref가 file artifact를 가리키면 해당 파일 경로를 사용한다.
+## Freshness Calculation
 
-`path_overlap = |memory_paths ∩ task_paths| / |task_paths|` (task_paths가 비어 있으면 0.0)
+packet 빌더는 다음 항목에 할인을 적용해야 한다:
 
-### Freshness 계산
+- 재확인 없이 `review_after`를 경과한 것
+- 최근 모순이 발생한 것
+- 더 새로운 항목으로 superseded된 것
+- 더 이상 존재하지 않거나 실질적으로 변경된 경로나 surface에 연결된 것
 
-`last_confirmed_at`는 memory-entry의 직접 필드가 아니라, 해당 memory_id에 대한 가장 최근의 `memory-application-log.json` 중 `effect = "positive"`인 항목의 `created_at`에서 파생한다. positive application log가 없으면 memory-entry 자체의 `created_at`을 사용한다.
+## Slot-Specific Budgets
 
-`freshness = max(0.0, 1.0 - (days_since_last_confirmed / 180))`
+에이전트 슬롯마다 필요한 context 프로파일이 다르다. 프로젝트는 이 차이를 반영하는 대략적인 예산을 설정해야 한다.
 
-### Edge Cases
+| 소비자 슬롯 | 일반적 예산 우선순위 |
+|---|---|
+| Orchestrator | 넓은 계획 context, phase 제약, recovery 상태 |
+| Specialist reviewer | 좁은 역할 관련 memory와 task-local evidence |
+| Decision Maker | Closure 스토리, 미해결 위험, scope 대 가치, debt 및 gap context |
 
-- **memory-index.json이 비어 있는 경우**: retrieval engine은 빈 결과를 반환하고, L2 단계를 skip한다. packet의 `applicable_memory_ids[]`는 빈 배열이 된다. 이는 정상 동작이다 (doc 07 Empty Memory Index 참조).
-- **모든 memory의 score가 동일한 경우**: `confidence`가 높은 entry를 우선한다. confidence도 동일하면 `last_confirmed_at`이 최신인 entry를 우선한다.
-- **budget이 0인 경우**: L1/L2 memory를 포함하지 않고 L0 (pinned invariants)만으로 packet을 구성한다. 모든 후보는 `suppressed_memory_ids[]`에 `reason: "budget_zero"` 로 기록한다.
-
-## Role-Specific Budgets
-
-### `orchestration_authority`
-- pinned invariants: 8~12 bullets
-- task-local packet: 1 compact summary
-- memory entries: 5~8개 이하
-
-### specialist
-- task-local packet: 강하게 우선
-- memory entries: 3~5개 이하
-- caution items: 1~2개
-
-### `product_authority`
-- full implementation detail 대신 closure packet + high-signal memory only
-- memory entries: 3개 이하
+정확한 토큰 예산은 구현에 따라 다르지만, 순서 규율은 구현에 좌우되지 않는다. 예산이 빠듯할 때 각 슬롯의 가장 낮은 우선순위 콘텐츠가 먼저 제거된다.
 
 ## Context Assembly Algorithm
 
-1. pinned invariants 구성 (L0 — anti-forgetting 항목 포함, role budget에 포함되지 않음)
-2. task contract / implementation contract / recent reviews에서 task-local packet 생성
-3. rules.md applicable subset 계산
-4. retrieval engine으로 memory 후보 추출
-5. score 정렬 후 budget 내로 top-N 선택
-6. 동점(tied score)인 경우 `confidence`가 높은 entry를 우선한다
-7. budget 초과로 제외된 entry는 `suppressed_memory_ids[]`에 기록하고, 각 항목에 `reason: "budget_overflow"` 명시
-8. cautionary incident 별도 표시
-9. packet version 기록 (형식: `"{task_id}-{sequence_number}"`, sequence_number는 regeneration마다 1씩 증가)
-10. packet ref를 `run.json`에 기록
+프로토콜을 준수하는 packet 빌더는 다음 조립 순서를 따라야 한다:
 
-### Packet Versioning
+1. L0 invariant 로드 (예산 압박에도 제거하지 않음)
+2. 현재 task-local context 로드 (L1)
+3. Candidate memory를 retrieval 차원에 따라 채점
+4. 명시적 요청이 없는 한 부실, superseded, 또는 under-review 항목 제외
+5. 예산 내에서 최고 가치의 적용 가능한 memory 포함 (L2)
+6. Retrieval 메타데이터 또는 출처 요약 첨부
+7. Packet이 이후 결정에 영향을 미칠 경우 runtime state에 packet 참조 저장
 
-- `packet_version` 형식: `"{task_id}-{sequence_number}"`
-  - `task_id`: 대상 task의 ID
-  - `sequence_number`: 해당 task에 대해 packet이 생성/재생성될 때마다 1씩 증가 (초기값 1)
-- 이전 version의 packet은 저장하지 않는다 (최신 packet만 유효)
+## Packet Versioning
+
+context packet은 시스템이 packet이 다음의 실질적 변경보다 이전인지 판단할 수 있도록 암시적 또는 명시적으로 버전을 관리해야 한다:
+
+- Task contract
+- Workspace baseline
+- Review 상태
+- Memory 상태
+- Policy override
 
 ## Packet Staleness Rules
 
-packet은 아래면 stale다.
-- task `base_commit`이 변경됨
-- required reviewer set가 바뀜
-- integration result가 새로 생김
-- gate fail 또는 rewind 발생
-- memory packet version이 바뀜
-- rules update가 적용됨
-- focus task가 바뀜
-- packet에 포함된 memory 중 하나 이상이 `under_review` 또는 `superseded` 상태로 전이한 경우
+다음 중 어느 하나라도 packet 생성 이후 발생하면 packet은 부실(stale)로 처리해야 한다:
 
-`under_review` 또는 `superseded` 상태 전이로 인한 staleness의 경우, 재생성된 packet의 `suppressed_memory_ids[]`에 해당 memory를 추가하고 `reason: "state_changed_to_under_review"` 또는 `reason: "state_changed_to_superseded"`로 기록한다.
+| 조건 | 무효화 이유 |
+|---|---|
+| Task contract 수정됨 | Acceptance criteria나 제약이 변경됐을 수 있음 |
+| Workspace baseline이 실질적으로 변경됨 | 작업 상태가 더 이상 packet 가정과 일치하지 않음 |
+| 필수 review가 추가되거나 변경됨 | 새 review 요건에 다른 context가 필요할 수 있음 |
+| 참조된 memory가 superseded 또는 under review가 됨 | Packet이 더 이상 신뢰되지 않는 지침을 포함 |
+| Mission phase가 우선순위에 영향을 주는 방식으로 변경됨 | 우선순위 band를 재조정해야 할 수 있음 |
+| Recovery 이벤트가 이전 가정을 무효화함 | 이전 context가 유효하지 않은 상태에 기반할 수 있음 |
 
-stale packet은 다음 step 전에 재생성해야 한다.
+## Stale Packet Regeneration Rules
 
-### Stale Packet 재생성 규칙
+packet이 부실해지면:
 
-- stale packet은 **incremental patch가 아니라 처음부터 재생성(full regeneration)** 한다.
-- 재생성은 `orchestration_authority`가 다음 step에서 해당 packet을 소비하기 **전에** trigger한다.
-- 재생성 비용: context assembly algorithm 1회 실행 (위 Context Assembly Algorithm 참조).
-- 재생성 시 `packet_version`의 `sequence_number`가 1 증가한다.
-- **재생성 실패 시**: context assembly algorithm 실행 중 오류(예: memory-index 로드 실패, run.json 손상)가 발생하면, 이전 packet을 `stale` 표시 상태로 유지하고 해당 task의 다음 step 실행을 block한다. `orchestration_authority`는 오류 원인을 해소한 후 재생성을 재시도한다.
+- 다음 주요 소비자가 packet을 재생성해야 한다
+- 런타임은 재생성이 발생했음을 기록해야 한다
+- 부실 packet은 final verdict 제출에 재사용해서는 안 된다
 
 ## Summaries
 
-### `session-latest.md`
-세션 전체 최신 요약. compaction/resume의 anchor.
+사람이 읽을 수 있는 요약은 방향 설정에 중요하지만, 정규(canonical) 현재 artifact보다 신뢰 수준이 낮다.
 
-### `task-focus/<task-id>.md`
-현재 task에 대한 국소 요약. specialist subagent에 주입되는 기본 요약.
+| 요약 | 용도 |
+|---|---|
+| `session-latest.md` | 복구 및 방향 설정을 위한 현재 세션 상태 |
+| `task-focus/<task-id>.md` | 상호작용 간 밀도 높은 task 로컬 carry-forward |
+| `mission-summary.md` | Phase 전환을 위한 mission 수준 개요 |
 
-### `mission-summary.md`
-mission 레벨 상태, 남은 문제, pending decision, outstanding risk 요약.
+요약은 방향 설정을 도와야 한다. 정규 artifact를 무시해서는 안 된다.
+
+## Injection and Trust Hygiene
+
+저장소 콘텐츠, 이전 요약, memory 텍스트, 도구 출력은 분류되기 전까지 모두 **신뢰할 수 없는 입력**이다. 이 원칙은 안전한 context engineering의 근본이다.
+
+context 엔진은 다음 위생 규칙을 적용해야 한다:
+
+| 규칙 | 근거 |
+|---|---|
+| Memory가 명시적 현재 task 제약을 무시하지 않아야 함 | 현재 contract가 과거 교훈보다 우선 |
+| 감사되지 않은 산문보다 artifact 기반 사실을 선호 | 검증된 evidence가 서술적 주장보다 더 신뢰할 수 있음 |
+| 인용된 신뢰할 수 없는 콘텐츠를 시스템 지침과 격리 | 사용자 제공 텍스트의 우발적 승격 방지 |
+| 저장소 파일의 지시사항을 정책이 승격하지 않는 한 데이터로 취급 | 저장소 콘텐츠에 prompt injection 시도가 있을 수 있음 |
+| 자신 있게 표현되었다는 이유로 memory 항목을 승격하지 않음 | 표현의 confidence가 evidentiary strength과 같지 않음 |
 
 ## Anti-Forgetting Guarantee
 
-시스템은 최소한 아래 7개 항목을 잃지 않아야 한다. 각 항목은 `session-latest.md` 또는 `run.json`에서 복원 가능해야 한다.
-1. current phase / mission phase — `run.json`의 `phase`, `mission_phase` 필드
-2. focus task state — `run.json`의 `focus_task_id`와 해당 `task.json`의 `state`
-3. current rewind reason — 활성 rewind가 없으면 `"none"`을 명시. `run.json`의 `rewind` 필드
-4. required next artifact — 현재 task state에서 다음 전이에 필요한 artifact. `run.json` 또는 `task.json`에서 도출
-5. open risks — `run.json`의 `open_risks[]` 또는 현재 task의 `known_risks[]`
-6. most recent recovery outcome — recovery가 없었으면 `"no_recovery"`를 명시. `recovery-packet.json`에서 도출
-7. most relevant rules 1~3개 + most relevant stable memory 1~3개 — retrieval scoring에서 상위 항목 선택
+프로토콜을 준수하는 구현은 관련 시 다음이 활성 context에서 사라질 수 없음을 보장해야 한다:
 
-### Budget과의 관계
+- 현재 acceptance criteria
+- 현재 contract 및 non-goal
+- 현재 blocker
+- 현재 알려진 위험
+- 현재 활성 정책 제약
+- 출하에 중요한 현재 debt 또는 scope 주의사항
 
-위 anti-forgetting 항목은 **L0 (pinned invariants)** 에 속하며, role-specific budget에 **포함되지 않는다**. 즉 role budget이 "memory entries 3~5개"라 하더라도 anti-forgetting 항목은 별도로 항상 주입된다. Budget은 L1/L2 memory에만 적용된다.
+이 항목들은 L0 (pinned invariants)에 속하며 모든 예산 압축에서도 생존해야 한다.
+
+## Relationship to Budget
+
+예산이 빠듯할 때, 시스템은 현재 task invariant를 제거하기 전에 낮은 우선순위 memory를 먼저 제거해야 한다. 우선순위 band 순서 (L0 > L1 > L2 > L3)가 지배 규칙이다. band 내에서는 scoring이 어떤 항목이 생존할지 결정한다.
+
+## 핵심 문장
+
+좋은 context engineering은 프롬프트에 더 많은 텍스트를 채워 넣는 것이 아니다. 출처를 보존하고, 현재 contract를 보호하며, 다음 결정을 실제로 개선할 수 있는 context만 로드하는 것이다.

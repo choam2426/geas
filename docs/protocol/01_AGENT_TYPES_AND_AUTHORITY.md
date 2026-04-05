@@ -1,169 +1,411 @@
 # 01. Agent Types and Authority
 
+> **Normative document.**
+> This document defines the role taxonomy, authority boundaries, separation-of-duties rules, reviewer routing rules, and escalation model for Geas.
+
 ## Purpose
 
-The protocol defines agents by **type**, not by unique name. A type specifies role, decision authority, prohibitions, and deliverable responsibilities.
+Geas defines agents by **type**, not by friendly name. A type carries:
 
-## Core Authorities
+- decision authority
+- required outputs
+- blocking power
+- prohibitions
+- conflict-of-interest constraints
+- audit expectations
 
-### `orchestration_authority`
+An implementation MUST be able to answer, for every task: **who worked, who reviewed, who challenged, who decided, and under what authority.**
+
+## Separation of Duties
+
+The protocol enforces the following separation principles:
+
+1. The role that coordinates work SHOULD be distinguishable from the role that issues product closure.
+2. The role that wrote the primary implementation MUST NOT silently substitute for missing external review.
+3. The role that performs critical challenge MUST be allowed to raise blocking concerns without being overridden by omission.
+4. High-risk work MUST involve more than one evaluative perspective before final verdict.
+5. A local implementation MAY collapse multiple types into one physical agent instance, but it MUST preserve logical role separation in artifacts.
+
+## Role Architecture
+
+Geas roles are organized in two tiers:
+
+- **Authority slots** — domain-agnostic roles defined by the protocol. Present in every conformant implementation.
+- **Specialist slots** — functional categories that each domain profile fills with concrete role types.
+
+A single physical agent MAY occupy multiple slots. Slot assignment describes **primary responsibility**, not exclusive ownership.
+
+### Authority Slots
+
+Authority slots are fixed by the protocol and do not change across domains.
+
+| slot | primary function | may schedule | may approve contract | may block | may issue final verdict |
+|---|---|---:|---:|---:|---:|
+| **Orchestrator** | mission control, routing, sequencing, packet assembly, recovery, memory management | yes | yes | yes | no |
+| **Decision Maker** | product-level acceptance, trade-off judgment, final verdicts | no | during specifying only | yes | yes |
+| **Design Authority** | structural coherence, methodology review, contract approval | no | yes | yes | no |
+| **Challenger** | adversarial challenge, hidden-risk detection | no | no | yes | no |
+
+Canonical type names for authority slots:
+
+| slot | canonical type name |
+|---|---|
+| Orchestrator | `orchestration_authority` |
+| Decision Maker | `product_authority` |
+| Design Authority | `design_authority` |
+| Challenger | `critical_reviewer` |
+
+### Specialist Slots
+
+Specialist slots define **functional categories** of domain expertise. Each domain profile maps these slots to concrete role types.
+
+| slot | function | what it produces |
+|---|---|---|
+| **Implementer** | produces primary work outputs | the deliverable artifact — code, research output, content draft, analysis |
+| **Quality Specialist** | verifies outputs against acceptance criteria | coverage evidence, negative-path analysis, reproducibility notes |
+| **Risk Specialist** | assesses domain-specific risks and trust boundaries | risk notes, threat analysis, compliance observations |
+| **Operations Specialist** | handles delivery, deployment, and operational readiness | operational readiness notes, delivery verification, rollback affordances |
+| **Communication Specialist** | handles documentation, user-facing content, and clarity | documentation completeness, audience-appropriate guidance, clarity review |
+
+A role MAY participate in multiple specialist slots. For example, a quality specialist may also act as an implementer (writing tests), or a communication specialist may also act as an implementer (writing documentation).
+
+### Domain Profiles
+
+A domain profile maps specialist slots to concrete role types. The protocol defines the **software development** profile as the reference example. Projects MUST declare their active domain profile.
+
+#### Software Development Profile (reference)
+
+| slot | concrete types | area of expertise |
+|---|---|---|
+| Implementer | `frontend_engineer`, `backend_engineer` | UI code and browser behavior; APIs, services, persistence, business logic |
+| Quality Specialist | `qa_engineer` | acceptance criteria, tests, failure paths, regression risk |
+| Risk Specialist | `security_engineer` | auth, permissions, secret handling, abuse paths |
+| Operations Specialist | `devops_engineer` | CI/CD, environments, deployability, runtime operations |
+| Communication Specialist | `technical_writer`, `ui_ux_designer` | docs, migrations, operator guidance; user flows, visual intent, interaction clarity |
+
+#### Research Profile (example)
+
+| slot | concrete types | area of expertise |
+|---|---|---|
+| Implementer | `literature_analyst`, `experiment_runner` | literature search and synthesis; experiment design and execution |
+| Quality Specialist | `methodology_reviewer` | statistical rigor, reproducibility, methodological soundness |
+| Risk Specialist | `ethics_reviewer` | research ethics, data privacy, bias assessment |
+| Operations Specialist | `data_engineer` | data pipelines, storage, computation infrastructure |
+| Communication Specialist | `academic_writer` | paper drafting, citation management, audience-appropriate presentation |
+
+#### Content Creation Profile (example)
+
+| slot | concrete types | area of expertise |
+|---|---|---|
+| Implementer | `writer`, `designer` | content drafting; visual design and layout |
+| Quality Specialist | `fact_checker` | source verification, claim accuracy, consistency |
+| Risk Specialist | `legal_reviewer` | copyright, liability, regulatory compliance |
+| Operations Specialist | `publishing_ops` | CMS, distribution, scheduling, format conversion |
+| Communication Specialist | `editor` | tone, clarity, audience fit, style consistency |
+
+A conformant implementation MAY define additional domain profiles or extend existing ones, but MUST NOT weaken the authority model.
+
+## Detailed Responsibilities and Prohibitions
+
+### Orchestrator (`orchestration_authority`)
+
 Responsibilities:
-- mission interpretation
-- phase selection
-- task decomposition and priority adjustment
-- specialist assignment
-- closure packet assembly
-- recovery / context assembly / memory retrieval orchestration
 
-Decision authority:
-- task scheduling
-- concurrency budget allocation
-- stale/revalidation requests
-- vote round invocation
+- normalize user intent into a mission
+- choose mission mode and current phase
+- compile tasks and assign routing
+- manage concurrency, locks, revalidation, and recovery
+- invoke vote rounds when required
+- assemble closure packets
+- coordinate learning artifacts at phase boundaries
+- manage memory lifecycle: extraction, promotion review, decay monitoring, and application logging
 
 Prohibitions:
-- Must not directly issue a product final verdict
-- Must not manipulate a closure packet while skipping specialist review
 
-### `product_authority`
+- MUST NOT issue product final verdict
+- MUST NOT silently downgrade required review
+- MUST NOT "green-light" missing evidence by policy convenience
+- MUST NOT hide unresolved conflict from the closure packet
+
+### Decision Maker (`product_authority`)
+
 Responsibilities:
-- Direction and priority judgment during the specifying phase
-- Final verdict (`pass | iterate | escalate`) at the end of the building phase
-- Product-perspective trade-off judgment when disagreements remain
+
+- judge product trade-offs during specifying and final closure
+- approve or reject the design brief for full-depth missions
+- issue `pass | iterate | escalate` final verdicts
+- resolve irreducible trade-off disputes when specialist consensus fails
 
 Prohibitions:
-- Must not act as primary worker by directly writing raw implementation
-- Must not mark a task as passed when required evidence is missing
 
-## Specialist Types
+- MUST NOT approve a `passed` task with an incomplete closure packet
+- MUST NOT erase recorded blocking concerns without rationale
+- SHOULD NOT be the primary implementation worker
+- MUST NOT weaken integrity invariants without an explicit, auditable override
 
-### `architecture_authority`
-- Reviews system boundaries, contracts, dependencies, and long-term maintainability
+### Design Authority (`design_authority`)
 
-### `frontend_engineer`
-- Implements UI/browser interactions
+Responsibilities:
 
-### `backend_engineer`
-- Implements APIs, services, persistence, and domain logic
+- review structural decisions, interfaces, dependencies, and maintainability
+- challenge hidden complexity, layering violations, and contract ambiguity
+- approve or reject implementation contracts for implementation-bearing tasks
 
-### `ui_ux_designer`
-- Reviews interaction models, visual intent, user flows, and copy intent
+In software: architecture review. In research: methodology review. In content: editorial direction review.
 
-### `qa_engineer`
-- Reviews acceptance criteria, demo paths, test readiness, and failure paths
+Prohibitions:
 
-### `security_engineer`
-- Reviews auth, secret handling, permission boundaries, and abuse paths
+- MUST NOT assume quality, risk, or product approval by default
+- MUST NOT replace missing execution evidence with design confidence alone
 
-### `devops_engineer`
-- Reviews runtime/service/deploy/env/bootstrap concerns
+### Challenger (`critical_reviewer`)
 
-### `technical_writer`
-- Handles docs-first tasks, docs-impact reviews, migration notes, and operator guidance
+Responsibilities:
 
-### `critical_reviewer`
-- Aggressively detects opposing viewpoints, weak assumptions, insufficient evidence, and ship risks
-- Must be included in required_reviewer_types for any task where `risk_level` is `high` or `critical` (automatically added in Step 2)
-- Pre-ship challenge: must raise at least one reason not to ship before the closure packet is finalized, and must provide evidence that the concern has been addressed
+- perform adversarial pre-ship challenge
+- search for assumptions the main path ignored
+- force articulation of why shipping may be unsafe, incomplete, or strategically weak
+
+Prohibitions:
+
+- MUST NOT reduce their review to a rubber-stamp summary
+- MUST NOT skip challenge on `high` or `critical` work unless the task is explicitly cancelled
+
+## Minimum Review Obligations by Specialist Slot
+
+The following checks are minimum expectations per slot, not exhaustive lists. Domain profiles refine these into concrete checklists.
+
+### Implementer (when reviewing peer work)
+
+MUST consider:
+
+- whether the approach matches the approved contract
+- interface correctness and boundary behavior
+- regression risk from the change
+- whether the change requires involvement from other specialist slots
+
+### Quality Specialist
+
+MUST consider:
+
+- traceability from acceptance criteria to verification evidence
+- negative paths and regressions
+- whether untested paths remain material
+- reproducibility of the submitted evidence
+
+### Risk Specialist
+
+MUST consider:
+
+- trust boundaries and privilege handling
+- sensitive data exposure or mishandling
+- abuse paths and adversarial scenarios relevant to the domain
+- compliance with applicable policies
+
+### Operations Specialist
+
+MUST consider:
+
+- delivery pipeline impact
+- operational readiness and rollback capability
+- configuration drift
+- environment or infrastructure implications
+
+### Communication Specialist
+
+MUST consider:
+
+- whether changes are documented at the right audience level
+- migration, upgrade, or transition guidance
+- clarity and accuracy of user-facing content
+- whether examples or references have become stale
+
+## Task Kind Taxonomy
+
+The canonical `task_kind` values are domain-agnostic:
+
+| task_kind | meaning | typical primary worker slot |
+|---|---|---|
+| `implementation` | produce the core deliverable of the task | Implementer |
+| `documentation` | create or update documentation, guides, or references | Communication Specialist |
+| `configuration` | set up or modify parameters, environments, or templates | Operations Specialist |
+| `design` | create or revise structural, visual, or methodological designs | Implementer or Design Authority |
+| `review` | perform assessment, audit, or evaluation of existing work | Risk Specialist or Quality Specialist |
+| `analysis` | investigate, explore, or extract insight from data, systems, or sources | Implementer or Quality Specialist |
+| `delivery` | package and ship a release, publication, or final output | Operations Specialist |
+
+Projects MAY define local sub-kinds (e.g., `implementation:frontend`, `review:security`) but the canonical kind MUST remain identifiable.
 
 ## Decision Boundary
 
-| decision | primary owner | note |
+| decision | primary owner | mandatory participants / notes |
 |---|---|---|
-| phase selection | orchestration_authority | based on mission signals |
-| task routing | orchestration_authority | derives the required specialist set |
-| implementation approach | primary specialist + architecture_authority | requires contract review |
-| evidence gate result | gate runner / verifier | objective verdict |
-| readiness round result | reviewers set | deliberative |
-| final closure | product_authority | task only |
-| durable memory promotion | orchestration_authority + endorsing authority | requires approver per type |
+| mission phase selection | Orchestrator | informed by mission intent, assurance profile, and current evidence |
+| task decomposition and routing | Orchestrator | Design Authority input recommended for large or cross-cutting work |
+| design-brief approval | Decision Maker | Design Authority review REQUIRED for full-depth work |
+| implementation contract approval | reviewer set led by Design Authority | may include domain specialist sign-off |
+| evidence gate verdict | gate runner / validator | objective mechanism; not a product trade-off decision |
+| readiness vote | reviewer participants | governed by task risk and vote policy |
+| final verdict | Decision Maker | based on closure packet, not intuition alone |
+| memory promotion | Orchestrator plus endorsing authority | see docs 07 and 08 |
+| policy override | local governance path | see doc 13; MUST be explicit and audited |
 
 ## Required Reviewer Routing Algorithm
 
-A task's `required_reviewer_types[]` is determined by the following algorithm. Each step is cumulative (reviewers added in previous steps are retained).
+A task's `required_reviewer_types[]` MUST be computed cumulatively.
 
-### Step 1 -- Default reviewers based on task_kind
+### Step 0 — Phase and mission sanity check
 
-| task_kind | default required reviewer |
+Before routing reviewers, the Orchestrator MUST confirm:
+
+- the task belongs to the current mission and phase
+- the task kind and risk level are set
+- the task scope is concrete enough to infer affected surfaces
+
+If these are missing, reviewer routing MUST block.
+
+### Step 1 — Default reviewers by `task_kind`
+
+| task_kind | minimum required reviewer slot |
 |---|---|
-| `code` | `architecture_authority` |
-| `docs` | `technical_writer` |
-| `config` | `devops_engineer` |
-| `design` | `ui_ux_designer` |
-| `audit` | `security_engineer` |
-| `release` | `devops_engineer` |
+| `implementation` | Design Authority |
+| `documentation` | Communication Specialist |
+| `configuration` | Operations Specialist |
+| `design` | Design Authority |
+| `review` | Risk Specialist |
+| `analysis` | Design Authority, Quality Specialist |
+| `delivery` | Operations Specialist, Quality Specialist |
 
-### Step 2 -- Additional reviewers based on risk_level
+The domain profile maps each slot to concrete reviewer types.
 
-| risk_level | additional reviewer |
+### Step 2 — Risk expansion
+
+| risk_level | additional required reviewers |
 |---|---|
-| `low` | (none) |
-| `normal` | (none) |
-| `high` | `critical_reviewer`, `security_engineer` |
-| `critical` | `critical_reviewer`, `security_engineer`, `qa_engineer` |
+| `low` | none |
+| `normal` | none |
+| `high` | Challenger, Risk Specialist |
+| `critical` | Challenger, Risk Specialist, Quality Specialist |
 
-### Step 3 -- Additional reviewers based on scope.paths surface signals
+### Step 3 — Surface-signal expansion
 
-If files matching the following conditions are included in `scope.paths`, the corresponding reviewer is added.
+The following scope signals MUST add reviewer slots when detected:
 
-| condition | additional reviewer |
+| signal | reviewer slots to add |
 |---|---|
-| UI/frontend files (e.g., `*.tsx`, `*.vue`, `*.css`, `components/`, `pages/`) | `ui_ux_designer`, `frontend_engineer` |
-| API/server files (e.g., `routes/`, `api/`, `controllers/`, `services/`) | `backend_engineer` |
-| Infrastructure/deploy files (e.g., `Dockerfile`, `*.yaml` in infra/, CI config) | `devops_engineer` |
-| Auth/permission files (e.g., `auth/`, `permissions/`, `*.policy`) | `security_engineer` |
-| Test files (e.g., `*.test.*`, `*.spec.*`, `__tests__/`) | `qa_engineer` |
+| user-facing surfaces, interaction flows, presentation | Implementer (frontend domain), Communication Specialist |
+| core logic, domain model, data handling, interfaces | Implementer (backend domain), Design Authority |
+| trust boundaries, credentials, sensitive data, permissions | Risk Specialist |
+| delivery pipeline, infrastructure, environments, runtime config | Operations Specialist |
+| verification artifacts, acceptance criteria, test surfaces | Quality Specialist |
+| documentation, guides, user-facing text | Communication Specialist |
 
-### Step 4 -- Adjustment based on gate_profile
+### Step 4 — Gate profile and mission mode adjustment
 
-| gate_profile | condition |
-|---|---|
-| `closure_ready` | `qa_engineer` must be added |
-| `artifact_only` | code reviewers (architecture_authority, frontend/backend_engineer) may be excluded |
+- `closure_ready` MUST include Quality Specialist.
+- `artifact_only` MAY omit implementation-specialist reviewers when no implementation surface is affected.
+- `recovery_first` missions SHOULD add whichever specialist owns the damaged surface.
 
-### Step 5 -- Deduplication and minimum guarantee
+### Step 5 — Cross-cutting change expansion
 
-Remove duplicates from the final `required_reviewer_types[]`. If a type identical to primary_worker_type is included, that entry is retained (this does not mean a different instance of the same type is needed for self-review; it means the expertise of that type is required for the review).
+The following conditions SHOULD trigger additional review even if surface heuristics did not:
 
-### Step 6 -- Empty array prevention
+- public interface or contract change
+- data model or schema change
+- migration, backfill, or bulk transformation
+- trust boundary or permission change
+- user-visible content or flow change
+- delivery pipeline or versioning change
 
-If `required_reviewer_types[]` is empty after Steps 1-5, add `architecture_authority` as the default reviewer. Every task must have at least one reviewer.
+### Step 6 — Deduplicate and preserve expertise need
 
-## Specialist Conflict Resolution
+Duplicate reviewer types MUST be removed. If `primary_worker_type` also appears in the review set, that means the expertise is required; it does **not** mean self-review is sufficient.
 
-When two or more specialists reach conflicting judgments (e.g., architecture_authority argues "refactoring required" while product_authority argues "ship immediately"), the following procedure applies.
+### Step 7 — Minimum guarantee
 
-1. **Conflict detection**: If specialist-review results for the same task split between `pass` and `block` (or mutually contradictory conditional passes), it is treated as a conflict.
-2. **Vote round invocation**: orchestration_authority invokes `vote_round`. Participants are the conflicting parties plus the remaining required_reviewer_types for the task.
-3. **Applying vote round results**:
-   - If consensus is reached: follow the consensus outcome.
-   - If a majority is reached: adopt the majority opinion, but record the minority opinion in a `decision-record`.
-   - If consensus fails: product_authority makes the final decision based on product-perspective trade-offs, and records the rationale in a `decision-record`.
-4. **Escalation**: If a structural conflict cannot be resolved even by product_authority judgment, the task transitions to `escalated` and is handed off to a human stakeholder.
+Every task MUST have at least one independent reviewer type. If the computed set would otherwise be empty, add Design Authority.
 
-## Single-Agent Session
+## Conflict Resolution
 
-In a session where only a single agent is available, that agent performs multiple type roles sequentially. Even in this case, the following rules are maintained:
-- `orchestration_authority` and `product_authority` may be performed by the same agent, but an explicit role switch to product_authority must be recorded when issuing a final verdict.
-- Specialist review artifacts corresponding to each entry in required_reviewer_types must be created separately per type.
-- Since quorum shortfall in vote rounds during specialist conflict resolution is unavoidable, the process falls through to product_authority judgment after 2 consecutive quorum shortfalls.
+A protocol conflict exists when required reviewers produce materially incompatible conclusions, for example:
 
-### Single-Agent Specialist Conflict Safeguard
+- `approved` vs `blocked`
+- mutually exclusive conditional approvals
+- scope interpretations that imply different acceptance outcomes
+- a Challenger raises a blocking concern that others treat as acceptable risk
 
-When a specialist conflict occurs in a single-agent session (where self-judgment bias exists because the same agent plays both sides), the following structural safeguards apply:
+Conflict handling MUST follow this order:
 
-1. **Recording obligation**: The conflict must be recorded in `decision-record.json`. Both positions (which type role produced which judgment), the rationale for each, and the final chosen verdict must be documented.
-2. **Escalation for high risk and above**: If the conflict occurs on a task with `risk_level = high` or `critical`, the verdict transitions to `escalated` and human stakeholder intervention is requested. A single agent's self-judgment cannot resolve conflicts at high risk or above.
-3. **Self-judgment for low/normal risk**: If the conflict occurs on a task with `risk_level = low` or `normal`, the single agent may render a verdict. However, the conflict must be recorded in the retrospective's `what_was_surprising[]` to remain a candidate for future review.
+1. **Detect** — record the incompatible positions.
+2. **Clarify** — check whether disagreement is factual, evaluative, or jurisdictional.
+3. **Deliberate** — run a vote round if required by doc 05.
+4. **Record dissent** — minority positions MUST remain visible in the decision record.
+5. **Resolve or escalate** — unresolved structural conflict becomes `escalated`.
+
+A conflict MUST NOT disappear simply because the Orchestrator prefers throughput.
+
+## Quorum Rules
+
+### Proposal-round quorum
+
+Minimum: proposer plus one independent reviewer.
+Recommended for cross-cutting changes: proposer plus Design Authority plus one affected domain specialist.
+
+### Readiness-round quorum
+
+Minimum for `high` or `critical` risk:
+
+- Orchestrator
+- Decision Maker
+- at least one independent specialist
+- Challenger when required by risk
+
+If quorum cannot be reached after two attempts, the task SHOULD transition to `escalated` unless a local policy explicitly allows deferred decision with recorded rationale.
+
+## Single-Agent and Small-Team Operation
+
+A single physical agent MAY play multiple logical types, but the artifacts MUST show explicit role switching. In single-agent mode:
+
+- the implementation role and review role MUST be recorded separately
+- dissent or self-conflict MUST be captured in a decision record
+- `high` and `critical` conflicts SHOULD escalate to the user
+- final verdict MUST be rendered under an explicit Decision Maker role switch
+- the system MUST NOT pretend independent review happened if it did not
+
+## User Escalation Boundary
+
+A conformant implementation SHOULD escalate to the user when any of the following occur:
+
+- legal, privacy, or policy uncertainty
+- repeated `iterate` or repeated recovery failure without narrowing uncertainty
+- unresolved critical risk disagreement
+- delivery of regulated or safety-sensitive output under a profile that requires user approval
+- a policy override that weakens a normal hard-stop
+
+## Audit Requirements
+
+The following MUST remain reconstructible from artifacts:
+
+- who the primary worker was
+- who reviewed
+- who challenged
+- who issued the final verdict
+- which role raised each blocking concern
+- which dissenting positions were overruled and why
+- whether any logical role separation collapsed into a single physical agent instance
 
 ## Type Naming Rules for Artifacts
 
-Artifacts use type-neutral names.
-Examples:
-- `specialist-review.json`
-- `closure-packet.json`
-- `final-verdict.json`
-- `memory-entry.json`
-- `memory-review.json`
+Canonical artifact filenames are type-neutral:
 
-Unique-name-based filenames are not used in the canonical spec.
+- `specialist-review.json`
+- `challenge-review.json`
+- `vote-round.json`
+- `final-verdict.json`
+- `decision-record.json`
+
+Role identity belongs inside validated fields, not inside ad hoc filenames.
+
+## Key Statement
+
+Authority in Geas is not ornamental. A role exists to constrain who may decide, what evidence they must inspect, and how a future auditor can verify that the decision was legitimate.
