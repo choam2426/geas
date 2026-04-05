@@ -165,6 +165,20 @@ Runtime phase describes what the session is doing **now**, regardless of mission
 | `learning` | retrospective, memory extraction, debt and rule updates |
 | `idle` | no active in-flight work; waiting, paused, or mission complete |
 
+### Transition pattern
+
+Runtime phases follow a cyclical pattern within each mission phase:
+
+```text
+bootstrap (once per session)
+→ planning
+→ scheduling → executing → integrating → verifying (loop until phase exit conditions met)
+→ learning
+→ idle
+```
+
+Phases MUST NOT be skipped, but in a single-task session some phases may be traversed instantaneously.
+
 ## `run.json` Key Fields
 
 The runtime anchor is the persistent state object that tracks session progress. It SHOULD expose at least the following fields:
@@ -180,6 +194,14 @@ The runtime anchor is the persistent state object that tracks session progress. 
 | `recovery_state` | recovery status (none, detecting, restoring, etc.) |
 | `active_locks` | currently held resource locks |
 | `packet_refs` | references to assembled closure packets |
+
+### Field value enums
+
+| field | valid values |
+|---|---|
+| `recovery_state` | `none`, `detecting`, `restoring`, `manual_repair_required`, `completed` |
+| `phase` | `bootstrap`, `planning`, `scheduling`, `executing`, `integrating`, `verifying`, `learning`, `idle` |
+| `mission_phase` | `specifying`, `building`, `polishing`, `evolving` |
 
 ### Additional recommended fields
 
@@ -204,7 +226,7 @@ A new mission enters `specifying` when:
 
 - user intent exists
 - the target workspace or delivery surface is identifiable
-- no unresolved prior recovery condition prevents safe planning
+- no unresolved prior recovery condition exists: previous session recovery is complete or no recovery is needed, the baseline is in a verifiable state, and no orphaned tasks remain from prior missions
 
 ### Entering `building`
 
@@ -263,6 +285,12 @@ Amendment is REQUIRED when any of the following become true:
 - risk level rises materially
 - an external dependency invalidates the original plan
 
+### Amendment approval
+
+- scope changes: approved by Decision Maker
+- design assumption changes: approved by Design Authority
+- changes affecting both: approved by both
+
 An amendment SHOULD produce:
 
 | artifact | description |
@@ -283,11 +311,19 @@ If a phase transition fails, the protocol requires explicit recovery rather than
 
 ## Emergency Exception
 
-A project MAY invoke an emergency path for hotfixes or incident response, but the following MUST still hold:
+A project MAY invoke an emergency path for hotfixes or incident response. The emergency path defers hardening mechanisms while preserving integrity mechanisms.
 
-- task artifacts and evidence must exist
-- the exception rationale must be recorded
-- skipped hardening must be logged as debt or follow-up work
+The protocol distinguishes two kinds of mechanisms:
+
+- **integrity mechanisms** — verify that the result actually works (evidence gate, final verdict, artifact production)
+- **hardening mechanisms** — make the result safer and more robust (polishing phase, vote round, critical review challenge)
+
+Emergency path rules:
+
+- hardening mechanisms MAY be deferred and registered as debt for follow-up
+- integrity mechanisms MUST NOT be deferred: task artifacts, evidence gate, final verdict, and evolving phase are still required
+- the exception rationale MUST be recorded
+- all deferred items MUST be registered as debt with explicit follow-up
 - the mission MUST still pass through evolving before true closure
 
 Emergency exceptions are not a loophole; they are a controlled degradation path that preserves traceability even under time pressure.

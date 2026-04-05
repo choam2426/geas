@@ -58,6 +58,11 @@ Before a task enters the integration lane:
 - revalidation MUST occur if the task is stale
 - semantic drift MUST be considered, not just surface-level conflict
 
+Semantic drift differs from surface conflict:
+
+- **surface conflict**: the same area was directly modified, causing a physical collision
+- **semantic drift**: different areas were modified, but an assumption or behavior changed in a way that invalidates the task's premise (e.g., an API response format changed while a task that calls that API was unaware)
+
 ## Revalidation Procedure
 
 Revalidation determines whether a stale task can still be integrated safely. A conformant revalidation flow SHOULD:
@@ -159,6 +164,13 @@ A project SHOULD define a concurrency budget per risk level:
 | `normal` | parallel when scopes are independent |
 | `low` | parallel by default if no lock conflict exists |
 
+To consider critical tasks "proven independent," all of the following must hold:
+
+- their `affected_surfaces` do not overlap
+- no lock conflict exists between them
+- neither task's output is an input to the other
+- Design Authority has confirmed their independence
+
 The scheduler MUST NOT maximize concurrency at the cost of impossible review or impossible recovery.
 
 ## Safe Parallel Conditions
@@ -206,6 +218,14 @@ The Orchestrator MAY preempt a task when:
 - a higher-priority blocker appears
 - recovery work becomes urgent
 - a freshness or integrity condition makes continued execution unwise
+
+A preemption checkpoint MUST include:
+
+- current task state and progress step
+- summary of workspace changes
+- last completed artifact
+- remaining work items
+- known risks or blocking concerns
 
 ## Integration Lane
 

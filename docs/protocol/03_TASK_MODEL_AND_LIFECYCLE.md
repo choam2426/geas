@@ -219,6 +219,16 @@ An implementation contract is a pre-approved agreement between the worker and re
 
 An approved contract MUST be amended and re-approved when any of the following occur:
 
+### What counts as material
+
+A scope change is material when any of the following are true:
+
+- surfaces outside the approved `affected_surfaces` are changed
+- new acceptance criteria are added or existing ones are modified
+- risk_level increases
+- a new external dependency is introduced
+- an item explicitly listed in `non_goals` enters scope
+
 - touched paths expand materially
 - acceptance criteria change materially
 - structural or user-flow assumptions change
