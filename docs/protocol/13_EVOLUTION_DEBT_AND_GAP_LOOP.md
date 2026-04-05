@@ -171,7 +171,7 @@ Gap assessment SHOULD happen:
 - at phase boundaries
 - at mission close
 - after meaningful re-scope
-- after emergency or hotfix shortcuts
+- after lightweight-mode shortcuts or hotfix work
 
 ### Minimum questions
 

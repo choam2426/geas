@@ -171,7 +171,7 @@ Gap assessment는 아래 시점에 수행되어야 한다:
 - phase 경계에서
 - mission 종료 시
 - 의미 있는 re-scope 이후
-- 비상 또는 hotfix shortcut 이후
+- lightweight 모드 shortcut 또는 hotfix 작업 이후
 
 ### Minimum questions
 

@@ -35,6 +35,8 @@ A mission MUST contain at least the following fields:
 | `entry_signals` | conditions that were true when the mission was created |
 | `scope_in` | the promised scope captured during specifying |
 | `current_phase` | the active mission phase |
+| `mode` | mission operating mode: `lightweight`, `standard`, `full_depth`, `recovery_first`, `audit_only` |
+| `domain_profile` | active domain profile identifier |
 
 ### Additional recommended metadata
 
@@ -84,6 +86,7 @@ Rules:
 - A mission mode MUST NOT weaken the foundational invariants from doc 00.
 - `full_depth` SHOULD be the default for new architectures, major refactors, security-sensitive changes, and unclear requirements.
 - `recovery_first` MUST suspend normal throughput optimization until state integrity is restored.
+- In urgent situations, `lightweight` mode SHOULD be used rather than inventing an emergency exception. Lightweight mode preserves all foundational invariants while minimizing ceremony.
 
 ## Initiative 4-Phase Model
 
@@ -308,25 +311,6 @@ If a phase transition fails, the protocol requires explicit recovery rather than
 2. Missing items MUST be converted into explicit work, not dismissed.
 3. Repeated failed attempts SHOULD cause re-scope or escalation.
 4. The failure history MUST remain visible in the phase-review record.
-
-## Emergency Exception
-
-A project MAY invoke an emergency path for hotfixes or incident response. The emergency path defers hardening mechanisms while preserving integrity mechanisms.
-
-The protocol distinguishes two kinds of mechanisms:
-
-- **integrity mechanisms** — verify that the result actually works (evidence gate, final verdict, artifact production)
-- **hardening mechanisms** — make the result safer and more robust (polishing phase, vote round, critical review challenge)
-
-Emergency path rules:
-
-- hardening mechanisms MAY be deferred and registered as debt for follow-up
-- integrity mechanisms MUST NOT be deferred: task artifacts, evidence gate, final verdict, and evolving phase are still required
-- the exception rationale MUST be recorded
-- all deferred items MUST be registered as debt with explicit follow-up
-- the mission MUST still pass through evolving before true closure
-
-Emergency exceptions are not a loophole; they are a controlled degradation path that preserves traceability even under time pressure.
 
 ## Key Statement
 
