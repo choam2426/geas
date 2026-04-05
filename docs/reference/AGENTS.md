@@ -1,361 +1,176 @@
 # Agents Reference
 
-All 10 agent types in the Geas plugin. Agents are spawned as sub-agents by the Orchestrator during mission execution. Each agent type has a defined authority scope, pipeline responsibilities, and artifact outputs.
+Geas uses a **slot-based role architecture**. The contract engine defines abstract **slots** (decision_maker, design_authority, challenger, implementer, quality_specialist, risk_specialist, operations_specialist, communication_specialist). Domain **profiles** map each slot to a concrete agent type. This separation lets the same governance pipeline serve different domains — software engineering, research, or any future profile — without changing the contract engine.
+
+The **Orchestrator** (`orchestration_authority`) is the mission skill that coordinates phases, spawns agents, and manages task flow. It is not a spawnable agent and does not appear in profile definitions.
 
 Canonical definitions: `docs/protocol/01_AGENT_TYPES_AND_AUTHORITY.md`
 Agent files: `plugin/agents/`
 
-## Summary Table
-
-| Agent Type | Category | Model | Authority Scope | Key Artifacts |
-|------------|----------|-------|-----------------|---------------|
-| [product-authority](#product-authority) | Core Authority | opus | Final verdict (pass/iterate/escalate) | `final-verdict.json` |
-| [architecture-authority](#architecture-authority) | Core Authority | opus | Architecture decisions, code review | `specialist-review.json`, conventions |
-| [critical-reviewer](#critical-reviewer) | Core Authority | opus | Constructive opposition, ship risk challenge | Pre-ship challenge in `closure-packet.json` |
-| [frontend-engineer](#frontend-engineer) | Specialist | opus | Frontend implementation | Implementation code, `self-check` |
-| [backend-engineer](#backend-engineer) | Specialist | opus | Backend implementation | Implementation code, `self-check` |
-| [qa-engineer](#qa-engineer) | Specialist | sonnet | Test verdicts, bug reports, rubric scoring | `specialist-review.json`, bug reports |
-| [security-engineer](#security-engineer) | Specialist | sonnet | Security review, ship-blocking on critical issues | `specialist-review.json`, CVE assessments |
-| [ui-ux-designer](#ui-ux-designer) | Specialist | sonnet | Design specs, accessibility requirements | Design specs, `specialist-review.json` |
-| [devops-engineer](#devops-engineer) | Specialist | sonnet | CI/CD, deployment, build verification | Pipeline configs, smoke test results |
-| [technical-writer](#technical-writer) | Specialist | sonnet | Documentation standards, clarity audits | README, API docs, setup guides |
-
 ---
 
-## Core Authorities
+## Authority Agents
+
+Authority agents are **shared across all profiles**. They provide governance, structural review, and adversarial challenge regardless of the domain.
+
+| Agent Type | Slot | Model | Key Responsibility |
+|---|---|---|---|
+| [product-authority](#product-authority) | `decision_maker` | opus | Final verdict on task closure (pass / iterate / escalate) |
+| [design-authority](#design-authority) | `design_authority` | opus | Structural coherence, interface review, contract approval |
+| [challenger](#challenger) | `challenger` | opus | Adversarial pre-ship challenge, blocking concerns |
 
 ### product-authority
 
-The voice of user value. Makes the final call on whether a feature ships, iterates, or gets cut.
+The voice of user value. Makes the final call on whether work ships, iterates, or gets cut.
 
-**Model:** opus
+- **Authority:** Final verdict (pass/iterate/escalate), priority adjustments, scope definition (P0/P1/P2/OUT), trade-off resolution when specialist consensus fails.
+- **Judgment:** Reads all evidence before deciding. A passing gate does not automatically mean ship — product fit matters. Challenges over-engineering, scope creep, and features disguised as must-haves.
+- **Artifacts:** `final-verdict.json`
 
-**Authority Scope:**
-- Final verdict on task closure: `pass | iterate | escalate`
-- Priority adjustments when the team is working on the wrong thing
-- Pivot decisions when plans need to change
-- MVP scope definition: P0 (must), P1 (should), P2 (nice), OUT
+### design-authority
 
-**Pipeline Responsibilities:**
-- Direction and priority judgment during Specifying phase
-- Final verdict at the end of Building phase
-- Product-perspective trade-off judgment when specialist conflicts remain unresolved
-- Reads all evidence before deciding: worker output, code review, QA reports, design specs
+The guardian of structural coherence. Reviews boundaries, interfaces, dependencies, and maintainability.
 
-**Key Artifacts:**
-- `final-verdict.json` -- task closure decision with rationale
+- **Authority:** Structural review and approval of implementation contracts, interface and dependency decisions, blocking power when structural integrity is at risk.
+- **Judgment:** Evaluates whether the approach creates maintainable boundaries. Checks for brittle coupling, unsafe complexity, hidden dependencies. Stubs and placeholders must be explicitly bounded.
+- **Artifacts:** `specialist-review.json`, project conventions
 
-**Reviewer Routing:** Not a default reviewer. Serves as the final decision authority after specialist reviews complete.
+### challenger
 
-**Prohibitions:**
-- Must not act as primary worker by directly writing implementation
-- Must not mark a task as passed when required evidence is missing
+The adversarial reviewer who asks "why might this be wrong?" while everyone else asks "is this correct?"
+
+- **Authority:** Blocking power on high/critical risk tasks, mandatory pre-ship challenge for high/critical risk.
+- **Judgment:** Looks for hidden assumptions, overconfidence, fragile complexity, unexamined negative cases, scope leaks, trust boundary violations. Every challenge review must include at least one substantive concern.
+- **Artifacts:** `challenge-review.json`, `specialist-review.json`
 
 ---
 
-### architecture-authority
+## Software Profile
 
-The technical guardian. Reviews system boundaries, contracts, dependencies, and long-term maintainability.
+For software engineering missions. Defined in `plugin/agents/software/`.
 
-**Model:** opus
+| Slot | Agent Type | Key Responsibility |
+|---|---|---|
+| `implementer` | [software-engineer](#software-engineer) | Full-stack implementation (frontend, backend, design) |
+| `quality_specialist` | [qa-engineer](#qa-engineer) | Verification, acceptance criteria, rubric scoring |
+| `risk_specialist` | [security-engineer](#security-engineer) | Trust boundaries, attack surfaces, security assessment |
+| `operations_specialist` | [platform-engineer](#platform-engineer) | CI/CD, deployment, environment, operational readiness |
+| `communication_specialist` | [technical-writer](#technical-writer) | Documentation completeness, accuracy, audience fit |
 
-**Authority Scope:**
-- Architecture and tech stack decisions
-- Code review verdicts: APPROVED / CHANGES REQUESTED
-- Technical guidance before implementation begins
-- Tech debt identification and tracking
-- Project conventions (`.geas/memory/_project/conventions.md`)
+### software-engineer
 
-**Pipeline Responsibilities:**
-- Reviews code against: error handling, performance, security, structure, naming, accessibility
-- Checks implementation contracts -- verifies code matches the agreed plan
-- Focuses review on the worker's `self_check`: known risks, possible stubs, untested paths
-- Scores `code_quality` on every review (1-5 scale, mandatory)
-- Identifies duplicated logic, diverging patterns, and growing complexity
-
-**Key Artifacts:**
-- `specialist-review.json` -- code review with quality score
-- `.geas/memory/_project/conventions.md` -- project conventions
-
-**Reviewer Routing:** Default reviewer for `task_kind: code`. Fallback reviewer when `required_reviewer_types[]` would otherwise be empty.
-
----
-
-### critical-reviewer
-
-The devil's advocate. Stress tests proposals, architectures, and plans to find the holes before users do.
-
-**Model:** opus
-
-**Authority Scope:**
-- Constructive opposition on architecture, product, and planning decisions
-- Expected to disagree -- unanimous agreement should be rare
-- Tech debt identification from a cross-cutting perspective
-
-**Pipeline Responsibilities:**
-- Challenges assumptions and provides specific, evidence-based criticism
-- Always provides alternatives with trade-offs
-- Pre-ship challenge: must raise at least one reason not to ship before closure packet is finalized
-- Must provide evidence that raised concerns have been addressed
-- Picks battles: challenges 2-3 things deeply, not 10 things shallowly
-
-**Key Artifacts:**
-- Pre-ship challenge evidence in `closure-packet.json`
-- `specialist-review.json` -- opposition review with alternatives
-
-**Reviewer Routing:** Automatically added for tasks with `risk_level: high` or `risk_level: critical`.
-
----
-
----
-
-## Specialists
-
-### frontend-engineer
-
-The interaction craftsman. Lives in the space between design and implementation.
-
-**Model:** opus
-
-**Authority Scope:**
-- Frontend implementation decisions within the TaskContract scope
-- Component architecture and abstraction choices
-- Performance trade-offs on the client side
-
-**Pipeline Responsibilities:**
-- Follows stack conventions in `.geas/memory/_project/conventions.md`
-- Implements loading, error, and empty states for every view
-- Builds responsive and mobile-first
-- Uses semantic HTML, focus states, and proper contrast for accessibility
-- Submits honest self-checks: known risks, untested paths, possible stubs, confidence level
-- Flags backend issues discovered during integration
-
-**Key Artifacts:**
-- Implementation code
-- `self-check` evidence (risks, stubs, untested paths, confidence)
-
-**Reviewer Routing:** Added when `scope.paths` includes UI/frontend files (e.g., `*.tsx`, `*.vue`, `*.css`, `components/`, `pages/`).
-
----
-
-### backend-engineer
-
-The systems thinker. Sees every request as a potential bottleneck.
-
-**Model:** opus
-
-**Authority Scope:**
-- Backend implementation decisions within the TaskContract scope
-- API design, data modeling, and query optimization
-- Error handling and response structure choices
-
-**Pipeline Responsibilities:**
-- Follows stack conventions in `.geas/memory/_project/conventions.md`
-- Validates all inputs before processing
-- Uses proper HTTP status codes and structured error responses
-- Separates data logic from route handlers
-- Never exposes internal errors to clients
-- Submits honest self-checks: known risks, untested paths, possible stubs, confidence level
-- Flags security concerns when patterns feel unsafe
-
-**Key Artifacts:**
-- Implementation code
-- `self-check` evidence (risks, stubs, untested paths, confidence)
-
-**Reviewer Routing:** Added when `scope.paths` includes API/server files (e.g., `routes/`, `api/`, `controllers/`, `services/`).
-
----
+Full-stack implementer handling frontend, backend, and design implementation. Thinks in data flows, failure modes, user interactions, and system boundaries. Follows stack conventions, validates inputs, separates concerns. Submits honest self-checks.
 
 ### qa-engineer
 
-The team's quality conscience. Assumes everything is broken until proven otherwise.
-
-**Model:** sonnet
-
-**Authority Scope:**
-- Test verdicts: Pass / Fail with confidence scores
-- Bug reports with severity classification (critical / major / minor)
-- Rubric scoring on assigned quality dimensions (mandatory on every review)
-- Recommendation: Ship / Fix first / Pivot needed
-
-**Pipeline Responsibilities:**
-- Tests as the end user first
-- Checks every acceptance criterion from the TaskContract
-- Tests edge cases: empty inputs, long strings, special characters, mobile viewports
-- Verifies backend state after user actions
-- Reads the worker's self-check and focuses testing on weakest areas
-- Takes screenshots and collects structured evidence
-
-**Key Artifacts:**
-- `specialist-review.json` -- test verdict with rubric scores
-- Bug reports with severity classification
-- Screenshots and structured evidence
-
-**Reviewer Routing:** Added for `risk_level: critical`. Added when `gate_profile: closure_ready`. Added when `scope.paths` includes test files.
-
----
+Quality gatekeeper who verifies that what was built actually works. Starts from acceptance criteria, prioritizes negative paths, targets the worker's `untested_paths[]` and `possible_stubs[]`. Reports findings as rubric scores with specific evidence.
 
 ### security-engineer
 
-The guardian who trusts no input and assumes every endpoint is a target.
+Risk assessor focused on trust boundaries and attack surfaces. Maps trust boundaries, checks auth and authorization, inspects secret handling, evaluates injection surfaces and OWASP Top 10. Classifies findings by actual exploitability.
 
-**Model:** sonnet
+### platform-engineer
 
-**Authority Scope:**
-- Security review verdicts with severity classification (CRITICAL / HIGH / MEDIUM)
-- Ship-blocking decisions on critical security issues
-- Authentication and authorization flow analysis
-- Dependency audit and CVE assessment
-
-**Pipeline Responsibilities:**
-- Systematically checks OWASP Top 10
-- Analyzes authentication flows: token storage, session lifecycle, OAuth, password policy
-- Runs dependency audits and flags known CVEs
-- Verifies no secrets in committed files
-- Intervenes early when a design is inherently insecure
-- Pushes back when performance optimizations weaken security
-
-**Key Artifacts:**
-- `specialist-review.json` -- security review with severity classification
-- CVE assessment reports
-- Dependency audit results
-
-**Reviewer Routing:** Default reviewer for `task_kind: audit`. Added for `risk_level: high` and `risk_level: critical`. Added when `scope.paths` includes auth/permission files.
-
----
-
-### ui-ux-designer
-
-The empathetic advocate for the person on the other side of the screen.
-
-**Model:** sonnet
-
-**Authority Scope:**
-- Design specs: user flows, layout structure, component specs, visual style
-- Accessibility requirements and standards
-- Loading, error, and empty state definitions
-- Responsive behavior decisions
-
-**Pipeline Responsibilities:**
-- Designs mobile-first, then scales up
-- Reuses patterns -- does not reinvent for each feature
-- Specifies states completely: loading, error, empty, populated, disabled
-- Insists on accessibility: contrast ratios, focus states, aria labels, semantic HTML
-- Pushes back when technical simplicity would hurt the user experience
-- Flags visual issues: alignment, spacing, viewport breakpoints
-
-**Key Artifacts:**
-- Design specs (user flows, layout, component specs)
-- `specialist-review.json` -- design review
-- Accessibility requirements
-
-**Reviewer Routing:** Default reviewer for `task_kind: design`. Added when `scope.paths` includes UI/frontend files.
-
----
-
-### devops-engineer
-
-The automation-obsessed builder. Believes manual processes are unacceptable.
-
-**Model:** sonnet
-
-**Authority Scope:**
-- CI/CD pipeline configuration
-- Deployment setup and environment management
-- Build verification and optimization
-- Environment variable auditing
-- Smoke test definitions
-
-**Pipeline Responsibilities:**
-- Verifies build and dev scripts work without errors
-- Checks build output size and flags bloat
-- Ensures all environment variables are documented
-- Compares `.env.example` against actual usage in codebase
-- Verifies tree shaking, checks for duplicate dependencies
-- Runs deployment smoke tests: app starts, health endpoint responds, core routes work
-- Flags missing error handling in production paths
-
-**Key Artifacts:**
-- Pipeline configurations
-- Smoke test results
-- Build verification reports
-- Environment variable audits
-
-**Reviewer Routing:** Default reviewer for `task_kind: config` and `task_kind: release`. Added when `scope.paths` includes infrastructure/deploy files.
-
----
+Operational backbone ensuring what gets built can be deployed, run, and maintained. Checks deployment implications, CI/CD impact, rollback capability, configuration drift, and operational visibility.
 
 ### technical-writer
 
-The documentation craftsperson. Believes undocumented code is unfinished code.
-
-**Model:** sonnet
-
-**Authority Scope:**
-- Documentation standards and structure
-- README, API docs, environment setup guides
-- Naming consistency across the codebase
-- Clarity audits: if the docs are confusing, the code might be too
-
-**Pipeline Responsibilities:**
-- Writes clear, concise, structured, actionable, accurate documentation
-- Covers: project overview, how to run, features, tech stack, project structure
-- Documents APIs: endpoints, request/response shapes, authentication
-- Documents environment: required variables, dependencies, setup steps
-- Verifies API references against actual code
-- Flags confusing module APIs as code smells
-- Flags inconsistent naming across components
-
-**Key Artifacts:**
-- README and project documentation
-- API documentation
-- Environment setup guides
-- `specialist-review.json` -- documentation review
-
-**Reviewer Routing:** Default reviewer for `task_kind: docs`.
+Clarity specialist ensuring what gets built can be understood. Checks documentation impact, accuracy against implementation, audience fit, completeness for new features and breaking changes, and findability.
 
 ---
+
+## Research Profile
+
+For research and analysis missions. Defined in `plugin/agents/research/`.
+
+| Slot | Agent Type | Key Responsibility |
+|---|---|---|
+| `implementer` | [literature-analyst](#literature-analyst) | Systematic literature search, source evaluation, synthesis |
+| `implementer` | [research-analyst](#research-analyst) | Experiment design, data analysis, reproducible evidence |
+| `quality_specialist` | [methodology-reviewer](#methodology-reviewer) | Methodological soundness, statistical validity, reproducibility |
+| `risk_specialist` | [research-integrity-reviewer](#research-integrity-reviewer) | Ethics, data privacy, bias, validity threats |
+| `operations_specialist` | [research-engineer](#research-engineer) | Data pipelines, compute resources, environment reproducibility |
+| `communication_specialist` | [research-writer](#research-writer) | Research documentation, citation accuracy, audience-appropriate writing |
+
+Note: The research profile has two `implementer` types. The Orchestrator routes tasks to the appropriate implementer based on `task_kind` and scope.
+
+### literature-analyst
+
+Systematic researcher who finds, evaluates, and synthesizes published knowledge. Prefers primary sources, assesses source credibility, identifies contradictions explicitly, notes knowledge gaps, and covers at least 3 independent sources for major claims.
+
+### research-analyst
+
+Hands-on researcher who designs experiments, analyzes data, builds models, and runs simulations. Starts from clear falsifiable hypotheses, documents every transformation for reproducibility, reports negative results honestly, quantifies uncertainty.
+
+### methodology-reviewer
+
+Rigor guardian verifying research methods are sound and results reproducible. Checks internal and external validity, statistical appropriateness, common pitfalls (p-hacking, multiple comparisons, selection bias), and that conclusions match evidence strength.
+
+### research-integrity-reviewer
+
+Ethical and validity guardian ensuring responsible research conduct. Checks data privacy and consent, bias risks, responsible reporting, validity threats, and potential for misinterpretation or misuse. Data privacy issues are always blocking.
+
+### research-engineer
+
+Infrastructure specialist ensuring research can be executed, reproduced, and scaled. Verifies data pipeline documentation, environment capture, data versioning, scalability, and delivery logistics.
+
+### research-writer
+
+Communication specialist ensuring research findings are presented clearly and accurately. Matches writing to audience, verifies claims are evidence-supported, ensures proper citation, and checks that limitations are prominently placed.
+
+---
+
+## Slot Resolution
+
+The Orchestrator resolves abstract slots to concrete agent types at mission startup:
+
+1. The mission's `profiles.json` declares which domain profile to use (e.g., `software`, `research`).
+2. Each profile maps slots to agent types (e.g., `implementer` -> `software-engineer`).
+3. Authority agents (product-authority, design-authority, challenger) are shared across all profiles.
+4. When spawning an agent, the Orchestrator looks up the slot in the active profile and spawns the corresponding agent type.
+
+This means the contract engine, evidence gate, and verification flow never reference specific agent types — they reference slots. A `quality_specialist` review works identically whether it comes from a qa-engineer or a methodology-reviewer.
 
 ---
 
 ## Decision Boundary
 
-Summary of which agent type owns which decisions. See `protocol/01` for the full table.
+Who owns which decisions. See `protocol/01` for the full table.
 
-| Decision | Primary Owner |
-|----------|---------------|
-| Phase selection | orchestration_authority (Orchestrator) |
-| Task routing | orchestration_authority (Orchestrator) |
-| Implementation approach | Primary specialist + architecture-authority |
+| Decision | Owner |
+|---|---|
+| Phase selection and task routing | Orchestrator (mission skill) |
+| Implementation approach | Implementer + design-authority |
+| Structural review | design-authority |
 | Evidence gate result | Gate runner / verifier |
-| Readiness round result | Reviewer set |
-| Final closure | product-authority |
-| Durable memory promotion | orchestration_authority + endorsing authority |
+| Adversarial challenge | challenger |
+| Final closure verdict | product-authority |
+| Specialist conflict resolution | Vote round, then product-authority |
+| Durable memory promotion | Orchestrator + endorsing authority |
 
-## Reviewer Routing Algorithm
+---
 
-Tasks are assigned reviewers automatically based on `task_kind`, `risk_level`, `scope.paths`, and `gate_profile`. The full algorithm is defined in `protocol/01`. Key rules:
+## Reviewer Routing
 
-1. **Default by task_kind** -- `code` gets architecture-authority, `docs` gets technical-writer, etc.
-2. **Risk escalation** -- `high`/`critical` risk adds critical-reviewer and security-engineer.
-3. **Path signals** -- UI files add ui-ux-designer, API files add backend-engineer, etc.
-4. **Gate profile** -- `closure_ready` requires qa-engineer.
-5. **Minimum guarantee** -- Every task gets at least one reviewer (architecture-authority as fallback).
+Tasks are assigned reviewers based on `task_kind`, `risk_level`, `scope`, and `gate_profile`. The full algorithm is in `protocol/01`. Summary:
 
-## Specialist Conflict Resolution
+1. **Default by task_kind** -- each task kind has a default reviewer slot (e.g., `code` -> design-authority, `docs` -> communication-specialist).
+2. **Risk escalation** -- `high`/`critical` risk adds challenger and risk-specialist.
+3. **Scope signals** -- file paths and scope markers add relevant specialist slots.
+4. **Gate profile** -- `closure_ready` requires quality-specialist.
+5. **Minimum guarantee** -- every task gets at least one reviewer (design-authority as fallback).
 
-When specialists reach conflicting judgments, the protocol applies:
+Routing uses **slot names**, not agent types. The active profile resolves slots to concrete agents.
 
-1. **Vote round** -- orchestration_authority invokes `vote_round` with conflicting parties and remaining reviewers.
-2. **Consensus/majority** -- follow the outcome; record minority opinion in `decision-record`.
-3. **No consensus** -- product-authority makes the final decision with recorded rationale.
-4. **Escalation** -- structural conflicts that product-authority cannot resolve transition to `escalated` for human intervention.
+---
 
 ## Agent Boundaries
 
-All agents share these operational boundaries:
+All spawnable agents share these operational constraints:
 
-- Spawned as sub-agents by the Orchestrator
-- Do their work and return results -- they do not spawn other agents
-- Write evidence to the designated path
-- Follow the TaskContract and their context packet
+- Spawned as sub-agents by the Orchestrator -- agents do not spawn other agents.
+- Do their work and return results to the Orchestrator.
+- Write evidence to the designated artifact path.
+- Follow the TaskContract and their context packet.
+- Base judgments on evidence, not assumptions.
+- Surface `memory_suggestions` for patterns worth remembering across sessions.
