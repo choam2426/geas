@@ -23,8 +23,8 @@ const mdir = require('path').join(geas, 'missions', mid);
 const edir = require('path').join(mdir, 'evidence', tid);
 const tdir = require('path').join(mdir, 'tasks', tid);
 
-if (!h.exists(require('path').join(edir, 'architecture-authority-review.json')))
-  h.warn(tid + ' marked as passed but architecture-authority-review.json is missing');
+if (!h.exists(require('path').join(edir, 'design-authority-review.json')))
+  h.warn(tid + ' marked as passed but design-authority-review.json is missing');
 if (!h.exists(require('path').join(edir, 'qa-engineer.json')))
   h.warn(tid + ' marked as passed but qa-engineer.json is missing');
 if (!h.exists(require('path').join(tdir, 'challenge-review.json')))
@@ -38,7 +38,7 @@ if (!h.exists(require('path').join(tdir, 'retrospective.json')))
 const qa = h.readJson(require('path').join(edir, 'qa-engineer.json'));
 if (qa && (!qa.rubric_scores || !Object.keys(qa.rubric_scores).length))
   h.warn(tid + ' qa-engineer.json is missing rubric_scores');
-const arch = h.readJson(require('path').join(edir, 'architecture-authority-review.json'));
+const arch = h.readJson(require('path').join(edir, 'design-authority-review.json'));
 if (arch && (!arch.rubric_scores || !Object.keys(arch.rubric_scores).length))
-  h.warn(tid + ' architecture-authority-review.json is missing rubric_scores');
+  h.warn(tid + ' design-authority-review.json is missing rubric_scores');
 " <<< "$(cat)"

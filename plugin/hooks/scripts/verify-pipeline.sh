@@ -25,8 +25,8 @@ const missing = [];
 for (const tid of completed) {
   const edir = path.join(mdir, 'evidence', tid);
   const tdir = path.join(mdir, 'tasks', tid);
-  if (!h.exists(path.join(edir, 'architecture-authority-review.json')))
-    missing.push('  - ' + tid + ': architecture-authority-review.json (Code Review) missing');
+  if (!h.exists(path.join(edir, 'design-authority-review.json')))
+    missing.push('  - ' + tid + ': design-authority-review.json (Code Review) missing');
   if (!h.exists(path.join(edir, 'qa-engineer.json')))
     missing.push('  - ' + tid + ': qa-engineer.json (QA Testing) missing');
   if (!h.exists(path.join(tdir, 'challenge-review.json')))
