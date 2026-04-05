@@ -333,7 +333,7 @@ task의 `required_reviewer_types[]`는 누적 방식으로 계산한다.
 
 ### 7단계 — 최소 보장
 
-모든 task에는 독립 리뷰어 타입이 최소 하나 있어야 한다. 계산 결과가 빈 집합이면 Design Authority를 추가한다.
+모든 task에는 `primary_worker_type`과 다른 리뷰어 타입이 최소 하나 있어야 한다. 계산 결과가 worker 자신의 타입만 포함하거나 빈 집합이면 Design Authority를 추가한다.
 
 ## 갈등 해소
 

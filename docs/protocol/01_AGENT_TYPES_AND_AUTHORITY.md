@@ -332,7 +332,7 @@ Duplicate reviewer types MUST be removed. If `primary_worker_type` also appears 
 
 ### Step 7 — Minimum guarantee
 
-Every task MUST have at least one independent reviewer type. If the computed set would otherwise be empty, add Design Authority.
+Every task MUST have at least one reviewer type that differs from `primary_worker_type`. If the computed set contains only the worker's own type or is empty, add Design Authority.
 
 ## Conflict Resolution
 

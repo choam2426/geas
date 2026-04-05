@@ -27,6 +27,7 @@ The context engine MUST account for the following threats to decision quality:
 | Hostile tool output | Tool outputs that contain misleading information or prompt injection |
 | Accidental prompt injection | Instructions embedded in notes, docs, or memory text |
 | Contract-conflicting memory | Memory that contradicts the current task's explicit constraints |
+| positional attention decay | LLMs may underweight information in the middle of long contexts relative to the beginning and end |
 
 ## Retrieval Inputs
 
@@ -123,8 +124,28 @@ A conformant packet builder SHOULD follow this assembly sequence:
 3. Score candidate memories against retrieval dimensions
 4. Exclude stale, superseded, or under-review items unless explicitly requested
 5. Include the highest-value applicable memory under budget (L2)
+
+When budget allows, the packet builder SHOULD place high-priority items (L0, L1) at the beginning and end of the assembled context. Information placed only in the middle of a long context may receive reduced model attention.
+
 6. Append retrieval metadata or provenance summary
 7. Store packet references in runtime state if the packet will influence later decisions
+
+### Memory state retrieval eligibility
+
+Not all memory states are eligible for retrieval into context packets.
+
+| state | eligible | rationale |
+|---|---|---|
+| `provisional` | yes | recently promoted, available for use |
+| `stable` | yes | validated through reuse |
+| `canonical` | yes | highest confidence |
+| `candidate` | no | not yet promoted; unvalidated |
+| `under_review` | no | trust temporarily suspended |
+| `superseded` | no | replaced by newer item |
+| `decayed` | no | confidence degraded below threshold |
+| `archived` | no | retained for history, not active use |
+
+A retrieval engine MAY include excluded-state items when explicitly requested for investigation or audit, but MUST NOT include them in standard context assembly.
 
 ### Agent memory injection
 
