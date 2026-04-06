@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { ProjectEntry, ProjectSummary } from "./types";
 import Sidebar from "./components/Sidebar";
+import ProjectDashboard from "./components/ProjectDashboard";
 import ProjectOverview from "./components/ProjectOverview";
 import KanbanBoard from "./components/KanbanBoard";
 import MissionHistory from "./components/MissionHistory";
@@ -14,7 +15,7 @@ import AddProjectDialog from "./components/AddProjectDialog";
 function App() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [view, setView] = useState<"overview" | "kanban" | "history" | "debt">("overview");
+  const [view, setView] = useState<"dashboard" | "overview" | "kanban" | "history" | "debt">("dashboard");
   const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -96,7 +97,7 @@ function App() {
       <Sidebar
         projects={projects}
         selectedPath={selectedPath}
-        onSelect={(path) => { setSelectedPath(path); setView("overview"); setSelectedMissionId(null); }}
+        onSelect={(path) => { setSelectedPath(path); setView("dashboard"); setSelectedMissionId(null); }}
         onViewHistory={selected ? () => setView("history") : undefined}
         onAddProject={() => setShowAddDialog(true)}
         onRemoveProject={handleRemoveProject}
@@ -123,6 +124,25 @@ function App() {
               projectPath={selected.path}
             />
           </div>
+        ) : selected && view === "dashboard" ? (
+          <div key={`dashboard-${selected.path}`} className="flex flex-1 animate-fade-in">
+            <ProjectDashboard
+              projectPath={selected.path}
+              projectName={selected.name}
+              onViewTasks={(missionId) => {
+                setSelectedMissionId(missionId ?? null);
+                setView("kanban");
+              }}
+              onViewDebt={(missionId) => {
+                setSelectedMissionId(missionId ?? null);
+                setView("debt");
+              }}
+              onViewKanban={(missionId) => {
+                setSelectedMissionId(missionId);
+                setView("kanban");
+              }}
+            />
+          </div>
         ) : selected && view === "kanban" ? (
           <div key={`kanban-${selected.path}-${selectedMissionId ?? ""}`} className="flex flex-1 animate-fade-in">
             <KanbanBoard
@@ -132,9 +152,9 @@ function App() {
               onBack={() => {
                 if (selectedMissionId) {
                   setSelectedMissionId(null);
-                  setView("history");
+                  setView("dashboard");
                 } else {
-                  setView("overview");
+                  setView("dashboard");
                 }
               }}
             />
@@ -148,7 +168,7 @@ function App() {
                 setSelectedMissionId(missionId);
                 setView("kanban");
               }}
-              onBack={() => { setView("overview"); setSelectedMissionId(null); }}
+              onBack={() => { setView("dashboard"); setSelectedMissionId(null); }}
             />
           </div>
         ) : selected && view === "debt" ? (
@@ -157,7 +177,7 @@ function App() {
               projectPath={selected.path}
               projectName={selected.mission_name ?? selected.name}
               missionId={selectedMissionId}
-              onBack={() => setView("overview")}
+              onBack={() => setView("dashboard")}
             />
           </div>
         ) : selected ? (
