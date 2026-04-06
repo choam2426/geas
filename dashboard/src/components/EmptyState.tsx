@@ -1,3 +1,5 @@
+import { FolderPlus } from "lucide-react";
+
 interface EmptyStateProps {
   onAddProject: () => void;
 }
@@ -6,7 +8,9 @@ export default function EmptyState({ onAddProject }: EmptyStateProps) {
   return (
     <div className="flex flex-1 items-center justify-center">
       <div className="text-center max-w-sm">
-        <div className="text-5xl mb-4 opacity-30">///</div>
+        <div className="mb-4 flex justify-center opacity-30">
+          <FolderPlus size={48} />
+        </div>
         <h2 className="text-xl font-semibold text-text-primary mb-2">
           No projects yet
         </h2>

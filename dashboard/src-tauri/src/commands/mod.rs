@@ -4,6 +4,8 @@ mod tests;
 use std::fs;
 use std::path::PathBuf;
 
+use std::sync::Mutex;
+
 use crate::config;
 use crate::models::{
     DebtInfo, DebtItemInfo, DebtRegister, ProjectEntry, ProjectSummary, RunState,
@@ -247,7 +249,11 @@ pub fn list_projects(app_handle: tauri::AppHandle) -> Result<Vec<ProjectEntry>, 
 }
 
 #[tauri::command]
-pub fn add_project(app_handle: tauri::AppHandle, path: String) -> Result<ProjectEntry, String> {
+pub fn add_project(
+    app_handle: tauri::AppHandle,
+    watcher_state: tauri::State<'_, Mutex<crate::watcher::WatcherState>>,
+    path: String,
+) -> Result<ProjectEntry, String> {
     // Validate path is a real directory
     let (canonical, _) = validate_project_path(&path)?;
     let canonical_str = canonical.to_string_lossy().to_string();
@@ -261,17 +267,26 @@ pub fn add_project(app_handle: tauri::AppHandle, path: String) -> Result<Project
 
     let entry = ProjectEntry {
         name: name_from_path(&canonical_str),
-        path: canonical_str,
+        path: canonical_str.clone(),
     };
 
     cfg.projects.push(entry.clone());
     config::write_config(&app_handle, &cfg)?;
 
+    // Register the new project path with the file watcher
+    if let Ok(mut state) = watcher_state.lock() {
+        crate::watcher::register_path(&mut state, &canonical_str);
+    }
+
     Ok(entry)
 }
 
 #[tauri::command]
-pub fn remove_project(app_handle: tauri::AppHandle, path: String) -> Result<(), String> {
+pub fn remove_project(
+    app_handle: tauri::AppHandle,
+    watcher_state: tauri::State<'_, Mutex<crate::watcher::WatcherState>>,
+    path: String,
+) -> Result<(), String> {
     let mut cfg = config::read_config(&app_handle)?;
 
     let before = cfg.projects.len();
@@ -282,6 +297,12 @@ pub fn remove_project(app_handle: tauri::AppHandle, path: String) -> Result<(), 
     }
 
     config::write_config(&app_handle, &cfg)?;
+
+    // Unregister the project path from the file watcher
+    if let Ok(mut state) = watcher_state.lock() {
+        crate::watcher::unregister_path(&mut state, &path);
+    }
+
     Ok(())
 }
 

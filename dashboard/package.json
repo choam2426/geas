@@ -10,7 +10,9 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
     "@tauri-apps/api": "^2",
+    "lucide-react": "^1.7.0",
     "react": "^19",
     "react-dom": "^19"
   },

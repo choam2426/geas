@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { RefreshCw, X, AlertTriangle, AlertCircle, Plus } from "lucide-react";
 import type { ProjectSummary } from "../types";
 import PhaseBadge from "./PhaseBadge";
 
@@ -15,15 +16,15 @@ interface SidebarProps {
 function StatusIcon({ status }: { status: ProjectSummary["status"] }) {
   if (status === "no_geas") {
     return (
-      <span className="text-status-amber text-xs" title="No .geas/ directory">
-        !
+      <span className="text-status-amber" title="No .geas/ directory">
+        <AlertTriangle size={12} />
       </span>
     );
   }
   if (status === "error") {
     return (
-      <span className="text-status-red text-xs" title="Error reading project">
-        X
+      <span className="text-status-red" title="Error reading project">
+        <AlertCircle size={12} />
       </span>
     );
   }
@@ -63,7 +64,7 @@ export default function Sidebar({
           }`}
           title="Refresh all"
         >
-          {loading ? "..." : "\u21BB"}
+          {loading ? "..." : <RefreshCw size={14} />}
         </button>
       </div>
 
@@ -88,7 +89,7 @@ export default function Sidebar({
               aria-label={`Remove ${project.name}`}
               title="Remove project"
             >
-              &#x2715;
+              <X size={14} />
             </button>
           </button>
         ))}
@@ -100,7 +101,7 @@ export default function Sidebar({
           onClick={onAddProject}
           className="w-full px-3 py-1.5 rounded-md text-sm text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-all duration-150 cursor-pointer text-left"
         >
-          + Add Project
+          <Plus size={14} className="inline" /> Add Project
         </button>
       </div>
     </aside>

@@ -1,3 +1,5 @@
+import { AlertTriangle, AlertCircle } from "lucide-react";
+
 interface ErrorStateProps {
   status: "no_geas" | "error";
   projectName: string;
@@ -12,11 +14,11 @@ export default function ErrorState({
   return (
     <div className="flex flex-1 items-center justify-center">
       <div className="text-center max-w-md">
-        <div className="text-4xl mb-4">
+        <div className="mb-4 flex justify-center">
           {status === "no_geas" ? (
-            <span className="text-status-amber">!</span>
+            <AlertTriangle size={48} className="text-status-amber" />
           ) : (
-            <span className="text-status-red">X</span>
+            <AlertCircle size={48} className="text-status-red" />
           )}
         </div>
         <h2 className="text-xl font-semibold text-text-primary mb-2">
