@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -33,7 +36,7 @@ fn geas_dir(project_path: &str) -> Result<PathBuf, String> {
 
 /// Read and deserialize a JSON file. Returns None if the file is missing.
 /// Returns Err only on I/O errors other than not-found or on parse failures.
-fn read_json_file<T: serde::de::DeserializeOwned>(path: &PathBuf) -> Result<Option<T>, String> {
+pub(crate) fn read_json_file<T: serde::de::DeserializeOwned>(path: &PathBuf) -> Result<Option<T>, String> {
     match fs::read_to_string(path) {
         Ok(data) => {
             let parsed: T = serde_json::from_str(&data)
@@ -46,7 +49,7 @@ fn read_json_file<T: serde::de::DeserializeOwned>(path: &PathBuf) -> Result<Opti
 }
 
 /// Derive a human-friendly project name from the directory path.
-fn name_from_path(path: &str) -> String {
+pub(crate) fn name_from_path(path: &str) -> String {
     PathBuf::from(path)
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
@@ -355,13 +358,10 @@ fn read_task_files(tasks_dir: &PathBuf) -> Result<Vec<TaskInfo>, String> {
     Ok(tasks)
 }
 
-/// Try to get the file modification time as an ISO-ish string.
+/// Try to get the file modification time as an ISO 8601 UTC string.
 fn file_mtime(path: &PathBuf) -> Option<String> {
     let metadata = fs::metadata(path).ok()?;
     let modified = metadata.modified().ok()?;
-    let duration = modified
-        .duration_since(std::time::UNIX_EPOCH)
-        .ok()?;
-    // Return as Unix timestamp string — frontend can format as needed
-    Some(format!("{}", duration.as_secs()))
+    let datetime: chrono::DateTime<chrono::Utc> = modified.into();
+    Some(datetime.format("%Y-%m-%dT%H:%M:%SZ").to_string())
 }
