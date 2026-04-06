@@ -77,6 +77,9 @@ pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
                 debt_total: 0,
                 debt_by_severity: SeverityRollup::default(),
                 last_activity: None,
+                current_task_id: None,
+                agent_in_flight: None,
+                pipeline_step: None,
                 status: "error".to_string(),
             });
         }
@@ -94,6 +97,9 @@ pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
             debt_total: 0,
             debt_by_severity: SeverityRollup::default(),
             last_activity: None,
+            current_task_id: None,
+            agent_in_flight: None,
+            pipeline_step: None,
             status: "no_geas".to_string(),
         });
     }
@@ -113,6 +119,9 @@ pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
                 debt_total: 0,
                 debt_by_severity: SeverityRollup::default(),
                 last_activity: None,
+                current_task_id: None,
+                agent_in_flight: None,
+                pipeline_step: None,
                 status: "no_geas".to_string(),
             });
         }
@@ -135,6 +144,15 @@ pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
                     .checkpoint
                     .as_ref()
                     .and_then(|c| c.last_updated.clone()),
+                current_task_id: run_state.current_task_id.clone(),
+                agent_in_flight: run_state
+                    .checkpoint
+                    .as_ref()
+                    .and_then(|c| c.agent_in_flight.clone()),
+                pipeline_step: run_state
+                    .checkpoint
+                    .as_ref()
+                    .and_then(|c| c.pipeline_step.clone()),
                 status: "ok".to_string(),
             });
         }
@@ -174,6 +192,15 @@ pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
         debt_total,
         debt_by_severity,
         last_activity,
+        current_task_id: run_state.current_task_id.clone(),
+        agent_in_flight: run_state
+            .checkpoint
+            .as_ref()
+            .and_then(|c| c.agent_in_flight.clone()),
+        pipeline_step: run_state
+            .checkpoint
+            .as_ref()
+            .and_then(|c| c.pipeline_step.clone()),
         status: "ok".to_string(),
     })
 }
