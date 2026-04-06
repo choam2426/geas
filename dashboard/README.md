@@ -45,6 +45,7 @@ dashboard/
 │       ├── TaskCard.tsx          # Individual task card
 │       ├── DebtPanel.tsx         # Tech debt severity breakdown (inline summary)
 │       ├── DebtDetailPanel.tsx   # Full debt list with severity/status filters
+│       ├── DebtDetailModal.tsx   # Debt item detail modal (focus-trapped, accessible)
 │       ├── PhaseBadge.tsx        # Mission phase indicator
 │       ├── DebtBadge.tsx         # Debt count indicator
 │       ├── ProgressBar.tsx       # Task progress visualization
@@ -72,9 +73,10 @@ dashboard/
 - **Auto-refresh** -- The Rust backend watches `.geas/` directories for file changes and automatically refreshes project data. No manual reload needed.
 - **Mission overview** -- See mission name, current phase, task progress, debt count, and last activity time for each registered project.
 - **Mission history** -- Browse all missions for a project (past and active). Each mission card shows phase, task progress, and creation date. Selecting a mission opens its kanban board.
-- **Kanban board** -- View tasks organized by their 7 primary states (drafted, ready, implementing, reviewed, integrated, verified, passed) and 4 auxiliary states (blocked, escalated, cancelled, paused). Cards display title, assignee type, and risk level. Columns stack vertically on narrow viewports and scroll horizontally on wider screens.
+- **Kanban board** -- View tasks organized by their 7 primary states (drafted, ready, implementing, reviewed, integrated, verified, passed) and 4 auxiliary states (blocked, escalated, cancelled, paused). Cards display title, assignee type, and risk level. Columns scroll horizontally on wider screens with reliable overflow handling.
+- **Parallel task display** -- When the orchestrator runs tasks in parallel, active batch members are highlighted with a green pulse indicator and completed-in-batch tasks show a checkmark. Single-task mode continues to display the agent name and pipeline step.
 - **SVG icons** -- UI elements use lucide-react SVG icons for a polished, consistent look.
-- **Debt tracking** -- Severity breakdown (low, normal, high, critical) per project from `debt-register.json`. The overview shows a summary; the debt detail panel provides a full item list with severity and status filters (all/open/resolved).
+- **Debt tracking** -- Severity breakdown (low, normal, high, critical) per project from `debt-register.json`. The overview shows a summary; the debt detail panel provides a full item list with severity and status filters (all/open/resolved). Clicking any debt item opens a detail modal showing severity, kind, status, description, and the introducing task ID.
 - **Responsive layout** -- Sidebar collapses to a narrow icon strip on screens below 1024px and can be manually toggled. Kanban columns stack vertically on mobile and scroll horizontally on desktop. Padding and font sizes scale with breakpoints.
 - **Error handling** -- Graceful display when a registered project path is missing or has no `.geas/` directory.
 
