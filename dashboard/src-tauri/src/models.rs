@@ -9,6 +9,10 @@ use serde::{Deserialize, Serialize};
 pub struct Checkpoint {
     #[serde(default)]
     pub last_updated: Option<String>,
+    #[serde(default)]
+    pub pipeline_step: Option<String>,
+    #[serde(default)]
+    pub agent_in_flight: Option<String>,
 }
 
 /// .geas/state/run.json
@@ -150,6 +154,9 @@ pub struct ProjectSummary {
     pub debt_total: u32,
     pub debt_by_severity: SeverityRollup,
     pub last_activity: Option<String>,
+    pub current_task_id: Option<String>,
+    pub agent_in_flight: Option<String>,
+    pub pipeline_step: Option<String>,
     /// "ok" | "no_geas" | "error"
     pub status: String,
 }
