@@ -1,16 +1,120 @@
+import { useState, useEffect, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import type { ProjectEntry, ProjectSummary } from "./types";
+import Sidebar from "./components/Sidebar";
+import ProjectOverview from "./components/ProjectOverview";
+import EmptyState from "./components/EmptyState";
+import ErrorState from "./components/ErrorState";
+import AddProjectDialog from "./components/AddProjectDialog";
+
 function App() {
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [backendError, setBackendError] = useState<string | null>(null);
+
+  const loadProjects = useCallback(async () => {
+    setLoading(true);
+    try {
+      setBackendError(null);
+      const entries = await invoke<ProjectEntry[]>("list_projects");
+      const summaries = await Promise.all(
+        entries.map((entry) =>
+          invoke<ProjectSummary>("get_project_summary", {
+            path: entry.path,
+          }).catch(
+            (): ProjectSummary => ({
+              name: entry.name,
+              path: entry.path,
+              mission_name: null,
+              phase: null,
+              task_total: 0,
+              task_completed: 0,
+              debt_total: 0,
+              debt_by_severity: { low: 0, normal: 0, high: 0, critical: 0 },
+              last_activity: null,
+              status: "error",
+            })
+          )
+        )
+      );
+      setProjects(summaries);
+      // Preserve selection if valid, else select first
+      setSelectedPath((prev) => {
+        if (prev && summaries.some((s) => s.path === prev)) return prev;
+        return summaries.length > 0 ? summaries[0].path : null;
+      });
+    } catch (err) {
+      console.error("Failed to load projects:", err);
+      setBackendError(String(err));
+      setProjects([]);
+      setSelectedPath(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
+
+  function handleProjectAdded(_entry: ProjectEntry) {
+    setShowAddDialog(false);
+    loadProjects();
+  }
+
+  function handleRemoveProject(path: string) {
+    setProjects((prev) => prev.filter((p) => p.path !== path));
+    setSelectedPath((prev) => (prev === path ? null : prev));
+  }
+
+  const selected = projects.find((p) => p.path === selectedPath) ?? null;
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-bg-primary text-text-primary font-sans">
-      <h1 className="text-4xl font-bold mb-4">Geas Dashboard</h1>
-      <p className="text-text-secondary text-lg">
-        Mission control for multi-agent governance.
-      </p>
-      <div className="mt-8 flex gap-3">
-        <span className="inline-block w-3 h-3 rounded-full bg-status-blue" />
-        <span className="inline-block w-3 h-3 rounded-full bg-status-green" />
-        <span className="inline-block w-3 h-3 rounded-full bg-status-amber" />
-        <span className="inline-block w-3 h-3 rounded-full bg-status-red" />
-      </div>
+    <div className="flex h-screen bg-bg-primary text-text-primary font-sans overflow-hidden">
+      <Sidebar
+        projects={projects}
+        selectedPath={selectedPath}
+        onSelect={setSelectedPath}
+        onAddProject={() => setShowAddDialog(true)}
+        onRemoveProject={handleRemoveProject}
+        onRefresh={loadProjects}
+        loading={loading}
+      />
+
+      <main className="flex flex-1 min-w-0">
+        {backendError && !loading ? (
+          <div className="flex flex-1 items-center justify-center">
+            <div className="text-center max-w-md">
+              <p className="text-status-red text-lg font-semibold mb-2">Backend Error</p>
+              <p className="text-text-secondary text-sm mb-4">{backendError}</p>
+              <button onClick={loadProjects} className="px-4 py-1.5 rounded-md bg-status-blue text-white text-sm cursor-pointer hover:opacity-90 transition-opacity">Retry</button>
+            </div>
+          </div>
+        ) : projects.length === 0 && !loading ? (
+          <EmptyState onAddProject={() => setShowAddDialog(true)} />
+        ) : selected && (selected.status === "no_geas" || selected.status === "error") ? (
+          <ErrorState
+            status={selected.status}
+            projectName={selected.name}
+            projectPath={selected.path}
+          />
+        ) : selected ? (
+          <ProjectOverview project={selected} />
+        ) : loading ? (
+          <div className="flex flex-1 items-center justify-center">
+            <span className="text-text-muted text-sm">Loading...</span>
+          </div>
+        ) : null}
+      </main>
+
+      {showAddDialog && (
+        <AddProjectDialog
+          onClose={() => setShowAddDialog(false)}
+          onAdded={handleProjectAdded}
+        />
+      )}
     </div>
   );
 }
