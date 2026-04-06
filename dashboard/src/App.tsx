@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import type { ProjectEntry, ProjectSummary } from "./types";
 import Sidebar from "./components/Sidebar";
 import ProjectOverview from "./components/ProjectOverview";
@@ -61,6 +62,20 @@ function App() {
     loadProjects();
   }, [loadProjects]);
 
+  // Auto-refresh: subscribe to file watcher events
+  useEffect(() => {
+    const unlisten = listen<{ path: string }>("geas://project-changed", async (event) => {
+      const changedPath = event.payload.path;
+      try {
+        const summary = await invoke<ProjectSummary>("get_project_summary", { path: changedPath });
+        setProjects(prev => prev.map(p => p.path === changedPath ? summary : p));
+      } catch {
+        // Ignore errors from individual project refresh
+      }
+    });
+    return () => { unlisten.then(fn => fn()); };
+  }, []);
+
   function handleProjectAdded(_entry: ProjectEntry) {
     setShowAddDialog(false);
     loadProjects();
@@ -87,7 +102,7 @@ function App() {
 
       <main className="flex flex-1 min-w-0">
         {backendError && !loading ? (
-          <div className="flex flex-1 items-center justify-center">
+          <div className="flex flex-1 items-center justify-center animate-fade-in">
             <div className="text-center max-w-md">
               <p className="text-status-red text-lg font-semibold mb-2">Backend Error</p>
               <p className="text-text-secondary text-sm mb-4">{backendError}</p>
@@ -97,22 +112,28 @@ function App() {
         ) : projects.length === 0 && !loading ? (
           <EmptyState onAddProject={() => setShowAddDialog(true)} />
         ) : selected && (selected.status === "no_geas" || selected.status === "error") ? (
-          <ErrorState
-            status={selected.status}
-            projectName={selected.name}
-            projectPath={selected.path}
-          />
+          <div key={`error-${selected.path}`} className="flex flex-1 animate-fade-in">
+            <ErrorState
+              status={selected.status}
+              projectName={selected.name}
+              projectPath={selected.path}
+            />
+          </div>
         ) : selected && view === "kanban" ? (
-          <KanbanBoard
-            projectPath={selected.path}
-            projectName={selected.mission_name ?? selected.name}
-            onBack={() => setView("overview")}
-          />
+          <div key={`kanban-${selected.path}`} className="flex flex-1 animate-fade-in">
+            <KanbanBoard
+              projectPath={selected.path}
+              projectName={selected.mission_name ?? selected.name}
+              onBack={() => setView("overview")}
+            />
+          </div>
         ) : selected ? (
-          <ProjectOverview
-            project={selected}
-            onViewTasks={() => setView("kanban")}
-          />
+          <div key={`overview-${selected.path}`} className="flex flex-1 animate-fade-in">
+            <ProjectOverview
+              project={selected}
+              onViewTasks={() => setView("kanban")}
+            />
+          </div>
         ) : loading ? (
           <div className="flex flex-1 items-center justify-center">
             <span className="text-text-muted text-sm">Loading...</span>

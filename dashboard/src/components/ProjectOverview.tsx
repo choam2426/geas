@@ -46,29 +46,26 @@ export default function ProjectOverview({ project, onViewTasks }: ProjectOvervie
         </div>
 
         {/* Task progress card */}
-        <div className="bg-bg-surface rounded-lg p-5 mb-4 hover:-translate-y-px hover:shadow-md transition-all duration-150">
+        <div className="bg-bg-surface rounded-lg p-5 mb-4 border border-border-default hover:-translate-y-px hover:shadow-md transition-all duration-200">
           <ProgressBar
             completed={project.task_completed}
             total={project.task_total}
           />
-        </div>
-
-        {/* View Tasks button */}
-        {onViewTasks && (
-          <div className="mb-4">
+          {/* View Tasks button */}
+          {onViewTasks && (
             <button
               onClick={onViewTasks}
-              className="px-4 py-1.5 rounded-md bg-accent text-white text-sm cursor-pointer hover:opacity-90 transition-opacity"
+              className="mt-4 px-4 py-1.5 rounded-md bg-accent text-white text-sm cursor-pointer hover:opacity-90 transition-opacity"
             >
               View Tasks
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Debt summary card */}
-        <div className="bg-bg-surface rounded-lg p-5 mb-4 hover:-translate-y-px hover:shadow-md transition-all duration-150">
+        <div className="bg-bg-surface rounded-lg p-5 mb-4 border border-border-default hover:-translate-y-px hover:shadow-md transition-all duration-200">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-text-secondary">Tech Debt</span>
+            <h2 className="text-xs font-medium text-text-secondary uppercase tracking-wide">Tech Debt</h2>
             <span className="text-xs text-text-muted">
               {project.debt_total} total
             </span>
@@ -89,9 +86,9 @@ export default function ProjectOverview({ project, onViewTasks }: ProjectOvervie
         </div>
 
         {/* Last activity */}
-        <div className="bg-bg-surface rounded-lg p-5 hover:-translate-y-px hover:shadow-md transition-all duration-150">
-          <span className="text-xs text-text-secondary">Last Activity</span>
-          <p className="text-sm text-text-primary mt-1">
+        <div className="bg-bg-surface rounded-lg p-5 border border-border-default hover:-translate-y-px hover:shadow-md transition-all duration-200">
+          <h2 className="text-xs font-medium text-text-secondary uppercase tracking-wide">Last Activity</h2>
+          <p className="text-sm text-text-primary mt-1.5">
             {formatActivity(project.last_activity)}
           </p>
         </div>
