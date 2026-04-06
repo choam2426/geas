@@ -1,11 +1,5 @@
 import type { TaskInfo } from "../types";
-
-const riskColors: Record<string, { bg: string; text: string }> = {
-  low: { bg: "rgba(63,185,80,0.15)", text: "#3fb950" },
-  normal: { bg: "rgba(88,166,255,0.15)", text: "#58a6ff" },
-  high: { bg: "rgba(210,153,34,0.15)", text: "#d29922" },
-  critical: { bg: "rgba(248,81,73,0.25)", text: "#f85149" },
-};
+import { riskColors } from "../colors";
 
 interface TaskCardProps {
   task: TaskInfo;

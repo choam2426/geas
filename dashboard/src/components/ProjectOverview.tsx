@@ -1,4 +1,5 @@
 import type { ProjectSummary } from "../types";
+import { severityOrder } from "../colors";
 import PhaseBadge from "./PhaseBadge";
 import ProgressBar from "./ProgressBar";
 import DebtBadge from "./DebtBadge";
@@ -28,7 +29,7 @@ function formatActivity(timestamp: string | null): string {
 }
 
 export default function ProjectOverview({ project, onViewTasks }: ProjectOverviewProps) {
-  const severities = ["critical", "high", "normal", "low"] as const;
+  const severities = severityOrder;
   const hasDebt = project.debt_total > 0;
 
   return (
