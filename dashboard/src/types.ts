@@ -29,6 +29,8 @@ export interface TaskInfo {
   risk_level: string | null;
   task_kind: string | null;
   worker_type: string | null;
+  acceptance_criteria: string[];
+  scope_surfaces: string[];
 }
 
 export interface DebtItem {
