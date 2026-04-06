@@ -13,6 +13,10 @@ pub struct Checkpoint {
     pub pipeline_step: Option<String>,
     #[serde(default)]
     pub agent_in_flight: Option<String>,
+    #[serde(default)]
+    pub parallel_batch: Option<Vec<String>>,
+    #[serde(default)]
+    pub completed_in_batch: Vec<String>,
 }
 
 /// .geas/state/run.json
@@ -157,6 +161,8 @@ pub struct ProjectSummary {
     pub current_task_id: Option<String>,
     pub agent_in_flight: Option<String>,
     pub pipeline_step: Option<String>,
+    pub parallel_batch: Option<Vec<String>>,
+    pub completed_in_batch: Vec<String>,
     /// "ok" | "no_geas" | "error"
     pub status: String,
 }
