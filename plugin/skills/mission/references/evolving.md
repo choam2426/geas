@@ -175,13 +175,68 @@ Assemble a detailed execution briefing by reading all `.geas/` artifacts. This i
 - If timestamp is after `task_resolved` → `post-backfill`
 - If no such event exists → `skipped`
 
-**After writing the file, print a console summary:**
+**After writing the file, print a detailed console briefing:**
 
 ```
-[Orchestrator] Mission briefing written to .geas/missions/{mission_id}/mission-briefing.md
+═══════════════════════════════════════════════════
+  MISSION COMPLETE — {mission title}
+═══════════════════════════════════════════════════
 
-  Tasks: {passed}/{total} passed | Duration: {total} | Commits: {count}
-  Debt: {count} open ({high_count} high) | Memory: {count} new candidates
+─── TASK RESULTS ──────────────────────────────────
+
+  ┌ {task-001}: {title}
+  │ Risk: {risk_level} | Gate: {PASS/FAIL} | Retries: {N}
+  │ Challenger: {in-pipeline / skipped}
+  │ Verdict: {PASS}
+  └─────────────────────────────────────────────
+
+  ┌ {task-002}: {title}
+  │ ...
+  └─────────────────────────────────────────────
+
+  Result: {passed}/{total} tasks passed
+
+─── SCOPE DELIVERY ────────────────────────────────
+
+  Fully delivered:
+    ✓ {scope_in item}
+    ✓ {scope_in item}
+  Partially delivered:
+    △ {item} — {what's missing}
+  Not delivered:
+    ✗ {item}
+  Intentional cuts:
+    — {item} (reason)
+
+─── METRICS ───────────────────────────────────────
+
+  Duration:       {total} (specifying {Xm} | building {Xm} | polishing {Xm} | evolving {Xm})
+  Agents spawned: {count}
+  Tokens:         input {X}K | output {X}K
+  Commits:        {count}
+
+─── OPEN ITEMS ────────────────────────────────────
+
+  Debt ({count} open):
+    • [{severity}] {debt_id}: {title}
+    • ...
+
+  Risks:
+    • {task_id}: {risk description}
+    • ...
+    (none = "No open risks")
+
+─── EVOLUTION ─────────────────────────────────────
+
+  Rules updated:  {count} new rules added to rules.md
+  Memory:         {count} candidates → {promoted} promoted
+  Follow-ups:
+    • {recommended follow-up}
+    • ...
+
+═══════════════════════════════════════════════════
+  Full report: .geas/missions/{mission_id}/mission-briefing.md
+═══════════════════════════════════════════════════
 ```
 
 Verify `.geas/missions/{mission_id}/mission-briefing.md` exists.
