@@ -122,7 +122,7 @@ export default function KanbanBoard({
   const totalAuxiliary = Array.from(auxiliaryTasks.values()).reduce((s, a) => s + a.length, 0);
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 overflow-auto">
+    <div className="flex-1 flex flex-col min-w-0">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-border-default shrink-0">
         <button
@@ -139,9 +139,9 @@ export default function KanbanBoard({
       {/* Content */}
       {loading ? (
         <div className="flex-1 overflow-auto p-4">
-          <div style={{ display: "flex", gap: "0.5rem", minWidth: "888px" }}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex-1 flex flex-col bg-bg-surface rounded-lg">
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(0, 1fr))`, minWidth: `${COLUMNS.length * 130 + (COLUMNS.length - 1) * 8}px` }}>
+            {COLUMNS.map((_, i) => (
+              <div key={i} className="flex flex-col bg-bg-surface rounded-lg min-w-0">
                 <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-default">
                   <div className="h-3 w-16 rounded bg-bg-elevated animate-skeleton" />
                   <div className="h-4 w-6 rounded-full bg-bg-elevated animate-skeleton" />
@@ -173,56 +173,55 @@ export default function KanbanBoard({
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-auto">
-          {/* Kanban columns — inline style for reliable scroll */}
-          <div className="p-4" style={{ overflowX: "auto" }}>
-            <div style={{ display: "flex", gap: "0.5rem", minWidth: "888px" }}>
-              {COLUMNS.map((col) => {
-                const colTasks = tasksByStatus.get(col.key) ?? [];
-                return (
-                  <div key={col.key} className="flex-1 flex flex-col bg-bg-surface rounded-lg min-w-0">
-                    {/* Column header */}
-                    <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-default">
-                      <span className="text-xs font-medium" style={{ color: colTasks.length > 0 ? col.color : "#656d76" }}>
-                        {col.label}
-                      </span>
-                      <span
-                        className="text-[11px] rounded-full px-1.5 py-0.5"
-                        style={{
-                          backgroundColor: colTasks.length > 0 ? col.color + "20" : "rgba(101,109,118,0.15)",
-                          color: colTasks.length > 0 ? col.color : "#656d76",
-                        }}
-                      >
-                        {colTasks.length}
-                      </span>
-                    </div>
-                    {/* Cards — no overflow, grow naturally */}
-                    <div className="flex flex-col gap-1.5 p-1.5">
-                      {colTasks.map((task) => {
-                        const active = isTaskActive(task.task_id, currentTaskId, parallelBatch);
-                        const batchDone = isTaskCompletedInBatch(task.task_id, completedInBatch);
-                        return (
-                          <TaskCard
-                            key={task.task_id}
-                            task={task}
-                            onClick={() => setSelectedTask(task)}
-                            isActive={active && !batchDone}
-                            isCompletedInBatch={batchDone}
-                            agentName={!parallelBatch && task.task_id === currentTaskId ? (agentInFlight ?? undefined) : undefined}
-                            pipelineStep={!parallelBatch && task.task_id === currentTaskId ? (pipelineStep ?? undefined) : undefined}
-                          />
-                        );
-                      })}
-                    </div>
+        <div className="flex-1 overflow-auto p-4">
+          {/* Grid container — shrinks with parent, has a CSS min-width floor */}
+          {/* min-width: COLUMNS * 130px + gaps. Ensures readable columns before scroll. */}
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(0, 1fr))`, minWidth: `${COLUMNS.length * 130 + (COLUMNS.length - 1) * 8}px` }}>
+            {COLUMNS.map((col) => {
+              const colTasks = tasksByStatus.get(col.key) ?? [];
+              return (
+                <div key={col.key} className="flex flex-col bg-bg-surface rounded-lg min-w-0">
+                  {/* Column header */}
+                  <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-default">
+                    <span className="text-xs font-medium" style={{ color: colTasks.length > 0 ? col.color : "#656d76" }}>
+                      {col.label}
+                    </span>
+                    <span
+                      className="text-[11px] rounded-full px-1.5 py-0.5"
+                      style={{
+                        backgroundColor: colTasks.length > 0 ? col.color + "20" : "rgba(101,109,118,0.15)",
+                        color: colTasks.length > 0 ? col.color : "#656d76",
+                      }}
+                    >
+                      {colTasks.length}
+                    </span>
                   </div>
-                );
-              })}
-            </div>
+                  {/* Cards — grow naturally, no overflow */}
+                  <div className="flex flex-col gap-1.5 p-1.5">
+                    {colTasks.map((task) => {
+                      const active = isTaskActive(task.task_id, currentTaskId, parallelBatch);
+                      const batchDone = isTaskCompletedInBatch(task.task_id, completedInBatch);
+                      return (
+                        <TaskCard
+                          key={task.task_id}
+                          task={task}
+                          onClick={() => setSelectedTask(task)}
+                          isActive={active && !batchDone}
+                          isCompletedInBatch={batchDone}
+                          agentName={!parallelBatch && task.task_id === currentTaskId ? (agentInFlight ?? undefined) : undefined}
+                          pipelineStep={!parallelBatch && task.task_id === currentTaskId ? (pipelineStep ?? undefined) : undefined}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Auxiliary states */}
           {totalAuxiliary > 0 && (
-            <div className="px-4 pb-3">
+            <div className="pb-3 pt-2">
               <div className="bg-bg-surface rounded-lg p-3">
                 <span className="text-xs text-text-muted">
                   {totalAuxiliary} task{totalAuxiliary !== 1 ? "s" : ""} in auxiliary states
@@ -255,7 +254,7 @@ export default function KanbanBoard({
 
           {/* Debt panel */}
           {debt && (
-            <div className="px-4 pb-4">
+            <div className="pb-4">
               <DebtPanel debt={debt} />
             </div>
           )}
