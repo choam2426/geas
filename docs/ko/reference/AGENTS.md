@@ -33,7 +33,7 @@ Authority agent는 **모든 profile에 공유**된다. 도메인과 무관하게
 
 - **권한:** implementation contract의 구조적 리뷰 및 승인, 인터페이스와 의존성 결정, 구조적 무결성이 위협받을 때 차단 권한.
 - **판단 기준:** 접근 방식이 유지보수 가능한 경계를 만드는지 평가한다. 취약한 결합, 과도한 복잡성, 숨겨진 의존성을 점검한다. Stub과 placeholder는 범위가 명시적으로 한정되어야 한다.
-- **산출물:** `specialist-review.json`, 프로젝트 관례
+- **산출물:** `design-authority-review.json` (specialist review), implementation contract 승인
 
 ### challenger
 

@@ -33,7 +33,7 @@ The guardian of structural coherence. Reviews boundaries, interfaces, dependenci
 
 - **Authority:** Structural review and approval of implementation contracts, interface and dependency decisions, blocking power when structural integrity is at risk.
 - **Judgment:** Evaluates whether the approach creates maintainable boundaries. Checks for brittle coupling, unsafe complexity, hidden dependencies. Stubs and placeholders must be explicitly bounded.
-- **Artifacts:** `specialist-review.json`, project conventions
+- **Artifacts:** `design-authority-review.json` (specialist review), implementation contract approval
 
 ### challenger
 
