@@ -37,10 +37,12 @@ export default function DebtDetailPanel({
       setLoading(true);
       setError(null);
       try {
-        const params: Record<string, string> = { path: projectPath };
-        if (missionId) {
-          params.mission_id = missionId;
+        if (!missionId) {
+          setDebt({ total: 0, by_severity: { low: 0, normal: 0, high: 0, critical: 0 }, items: [] });
+          setLoading(false);
+          return;
         }
+        const params = { path: projectPath, mission_id: missionId };
         const result = await invoke<DebtInfo>("get_project_debt", params);
         if (!cancelled) {
           setDebt(result);
