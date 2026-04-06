@@ -1,39 +1,81 @@
-<div align="center">
-
 **English** | **[한국어](README.ko.md)**
 
 # Geas
-
-### A governance protocol for multi-agent AI teams
+### Make AI agents prove they're done.
+**Governance protocol + Claude Code plugin for structured multi-agent work**
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/choam2426/geas?style=for-the-badge)](https://github.com/choam2426/geas/releases)
 
-</div>
+Geas turns a group of AI agents into a governed team. It replaces **"done" with evidence**, **informal review with explicit authority**, and **session amnesia with reusable memory**.
 
-Geas makes a team of AI agents behave like a governed organization — whether they are building software, conducting research, or creating content. Every decision follows a defined procedure, every action is traceable, every deliverable is verified against its contract, and the team improves across sessions.
+The current implementation runs as a **Claude Code plugin**. It ships with **software** and **research** profiles today, while the contract engine stays domain-agnostic so new profiles can be added without changing the governance model.
 
----
+> Geas is not a “more agents” project. It is a control system for how agents coordinate, verify, and learn.
 
-## Why Geas Exists
-
-Multi-agent work is fast and powerful. But without structure, it falls apart the same way every time:
-
-- **"Done" without proof** — the agent says it's finished, but nobody verified against acceptance criteria
-- **Lost decisions** — why this approach was chosen, what was discussed in review — gone after compaction
-- **Parallel chaos** — multiple agents touch the same surfaces, and conflicts are discovered too late
-- **Unclear authority** — agents debate, but nobody has defined decision-making power
-- **Zero memory** — the same mistakes repeat across sessions because nothing is retained
-
-When you scale from one agent to many, these problems do not add up. They multiply.
+**14 agent types · 15 skills · 16 lifecycle hooks · 30 JSON Schemas**
 
 ---
 
-## How It Works
+## Why it exists
 
-### Four Phases
+| Without structure | With Geas |
+|---|---|
+| Agents say **"done"** and move on | **Evidence Gate** checks artifacts, eval commands, and acceptance criteria |
+| Design and review decisions disappear after compaction | **Closure Packets** preserve what happened, why it happened, and who approved it |
+| Parallel work collides late | **Task contracts, scheduling, and lock checks** surface conflicts earlier |
+| Everyone reviews, so nobody really owns the decision | **Authority agents** make approvals and final verdicts explicit |
+| The same mistakes repeat next session | **Retrospectives, memory promotion, and rules** carry lessons forward |
 
-Every mission runs four phases. Scale adapts to the request — a small change gets a lightweight pass; a larger effort gets the full treatment.
+---
+
+## Quick Start
+
+The current implementation is a **Claude Code plugin**. Install [Claude Code CLI](https://claude.ai/code), then:
+
+```bash
+/plugin marketplace add choam2426/geas
+/plugin install geas@choam2426-geas
+/geas:mission
+```
+
+Describe the mission. Geas will gather requirements, compile task contracts, route the right agents, and drive the work through the protocol.
+
+---
+
+## When Geas is a good fit
+
+- Multi-step implementation, refactors, or migrations
+- High-risk work where explicit verification matters
+- Parallel work across implementation, QA, security, operations, and docs
+- Long-running work where traceability and memory matter
+- Structured research or analysis that benefits from separated reviewer roles
+
+## When it is probably overkill
+
+- Tiny one-file edits
+- Disposable prototypes
+- Lowest-token tasks where speed matters more than governance
+
+Geas adds process. That means **more steps and more tokens** than direct prompting. It pays off when the cost of being wrong is higher than the cost of coordination.
+
+---
+
+## What Geas enforces
+
+- **Contracts before implementation** — Every task gets a machine-readable agreement: scope, acceptance criteria, reviewers, eval commands, risks, and escalation policy.
+- **Independent verification before closure** — The protocol does not trust any agent’s claim of completion.
+- **Adversarial review for risky work** — A Challenger asks, *“Why might this still be wrong?”*
+- **Memory across sessions** — Retrospectives, promoted memories, rules, and debt tracking make the team improve instead of reset.
+- **Slot-based routing** — The contract engine works with abstract slots; domain profiles map those slots to concrete agents at runtime.
+
+---
+
+## How a mission runs
+
+### Four phases
+
+Every mission passes through the same four phases. A small change gets a lightweight pass; a bigger effort gets the full treatment.
 
 ```mermaid
 graph LR
@@ -50,61 +92,40 @@ graph LR
 
 | Phase | What happens |
 |---|---|
-| **Specifying** | Define WHAT and WHY. Produce mission spec, design brief, task list. |
-| **Building** | Execute each task through a governed pipeline: contract → implement → review → verify → verdict. |
-| **Polishing** | Address debt, documentation gaps, and quality issues found during building. |
-| **Evolving** | Capture lessons. Retrospective, memory promotion, rules update, carry-forward. |
+| **Specifying** | Define the mission, freeze the brief, and compile machine-readable task contracts. |
+| **Building** | Run each task through a governed execution pipeline from contract to verdict. |
+| **Polishing** | Resolve debt, documentation gaps, and quality issues surfaced during execution. |
+| **Evolving** | Capture lessons, update rules, promote memory, and prepare the next mission. |
 
-### Per-Task Pipeline
+### Per-task pipeline
 
-Each task follows a governed pipeline from contract to closure:
-
-```
+```text
 Contract → Implementation → Self-check → Specialist review
 → Evidence Gate → Closure Packet → Challenger review
 → Final Verdict → Retrospective → Memory extraction
 ```
 
-### Verification
-
-The protocol does not trust any agent's claim of completion. It requires independent evidence.
-
-- **Evidence Gate** — Tier 0 (artifact prechecks), Tier 1 (repeatable mechanical checks), Tier 2 (acceptance criteria + rubric scoring)
-- **Challenger** — adversarial review for high-risk work: "why might this be wrong?"
-- **Final Verdict** — Decision Maker judges the full closure packet: pass, iterate, or escalate
-
-### Memory and Evolution
-
-Every completed task feeds back into the system:
-
-- **Retrospective** — what worked, what broke, what to change
-- **Memory** — lessons earn trust through evidence, flow back through rules and context packets
-- **Debt tracking** — compromises made visible and owned, not forgotten
-
 ---
 
-## The Team
+## Team model
 
-The protocol defines **14 agent types** organized by domain profile. Authority agents govern the process; specialist agents do the domain work.
+Geas uses a **slot-based role architecture**. Authority agents govern the process. Specialist agents do the domain work.
 
-| | Agents |
+| Group | Agents |
 |---|---|
 | **Authority** (always active) | Product Authority, Design Authority, Challenger |
 | **Software profile** | Software Engineer, QA Engineer, Security Engineer, Platform Engineer, Technical Writer |
 | **Research profile** | Literature Analyst, Research Analyst, Methodology Reviewer, Research Integrity Reviewer, Research Engineer, Research Writer |
 
-A mission declares its domain profile. The Orchestrator (the mission skill itself) resolves abstract specialist slots to concrete agents at runtime — the same governance pipeline works for any domain.
-
-[Full team reference →](docs/reference/AGENTS.md)
+A mission declares its domain profile. The Orchestrator resolves abstract slots such as `implementer`, `quality_specialist`, and `risk_specialist` into concrete agent types at runtime.
 
 ---
 
-## See It In Action
+## See it in action
 
-```
+```text
 [Orchestrator]     Specifying: intake complete. 2 tasks compiled.
 [Orchestrator]     Building: starting task-001 (JWT auth API).
-
 [Design Auth]      Tech guide: bcrypt + JWT, refresh token rotation.
 [Orchestrator]     Implementation contract approved.
 [SW Engineer]      Implementation complete. 4 endpoints. Workspace merged.
@@ -117,7 +138,6 @@ A mission declares its domain profile. The Orchestrator (the mission skill itsel
 [SW Engineer]      Rate limiter added. Re-verification passed.
 [Product Auth]     Final Verdict: PASS.
 [Orchestrator]     Committed. Retro: auth APIs need rate limiting — rule proposed.
-
 [Orchestrator]     Polishing: risk review, docs, debt.
 [Orchestrator]     Evolving: gap assessment, rules update, memory promotion.
 [Orchestrator]     Mission complete. 2/2 tasks passed.
@@ -125,28 +145,14 @@ A mission declares its domain profile. The Orchestrator (the mission skill itsel
 
 ---
 
-## Quick Start
-
-The current implementation is a **Claude Code plugin**. Install [Claude Code CLI](https://claude.ai/code), then:
-
-```bash
-/plugin marketplace add choam2426/geas
-/plugin install geas@choam2426-geas
-/geas:mission
-```
-
-Describe what you want to accomplish. The orchestrator drives the work following the Geas protocol.
-
----
-
 ## Documentation
 
 | Document | Description |
 |---|---|
-| [Architecture](docs/architecture/DESIGN.md) | System design, 4-layer architecture, data flow |
+| [Architecture](docs/architecture/DESIGN.md) | System design, 4-layer architecture, and rationale |
 | [Protocol](docs/protocol/) | 14 operational protocol documents |
 | [Schemas](docs/protocol/schemas/) | 30 JSON Schema definitions (draft 2020-12) |
-| [Agents](docs/reference/AGENTS.md) | 14 agent types with slot-based authority model |
+| [Agents](docs/reference/AGENTS.md) | 14 agent types and the slot-based authority model |
 | [Skills](docs/reference/SKILLS.md) | 15 skills (13 core + 2 utility) |
 | [Hooks](docs/reference/HOOKS.md) | 16 lifecycle hooks |
 
@@ -158,8 +164,4 @@ Describe what you want to accomplish. The orchestrator drives the work following
 
 ---
 
-<div align="center">
-
 **Define the protocol. Describe the mission. Verify the output. Watch the team evolve.**
-
-</div>
