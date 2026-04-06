@@ -83,8 +83,8 @@ export default function ProjectDashboard({
   const lastActivity = summary?.last_activity ?? null;
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-      <div className="w-full">
+    <div className="flex-1 overflow-auto p-4 md:p-6 lg:p-8 min-w-0">
+      <div className="w-full min-w-[320px]">
         {/* Header */}
         <div className="mb-6 md:mb-8">
           <h1 className="text-xl md:text-2xl font-bold text-text-primary">
