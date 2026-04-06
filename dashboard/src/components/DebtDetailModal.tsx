@@ -1,34 +1,59 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { X } from "lucide-react";
 import type { DebtItem } from "../types";
-import { severityColors } from "../colors";
+import { severityColors, debtStatusColors } from "../colors";
 
 interface DebtDetailModalProps {
   debt: DebtItem;
   onClose: () => void;
 }
 
-const statusStyles: Record<string, { bg: string; text: string }> = {
-  open: { bg: "rgba(248,81,73,0.15)", text: "#f85149" },
-  accepted: { bg: "rgba(210,153,34,0.15)", text: "#d29922" },
-  scheduled: { bg: "rgba(88,166,255,0.15)", text: "#58a6ff" },
-  resolved: { bg: "rgba(63,185,80,0.15)", text: "#3fb950" },
-  dropped: { bg: "rgba(101,109,118,0.15)", text: "#656d76" },
-};
-
 export default function DebtDetailModal({ debt, onClose }: DebtDetailModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      // Focus trap
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    },
+    [onClose]
+  );
+
   useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
     window.addEventListener("keydown", handleKeyDown);
+    // Focus the close button on mount
+    const closeBtn = dialogRef.current?.querySelector<HTMLElement>("button");
+    closeBtn?.focus();
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [handleKeyDown]);
 
   const sevColor = severityColors[debt.severity] ?? severityColors.low;
-  const statColor = debt.status ? (statusStyles[debt.status] ?? statusStyles.open) : null;
+  const statColor = debt.status ? (debtStatusColors[debt.status] ?? debtStatusColors.open) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
