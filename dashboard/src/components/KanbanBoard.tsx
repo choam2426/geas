@@ -120,7 +120,7 @@ export default function KanbanBoard({
   const totalAuxiliary = Array.from(auxiliaryTasks.values()).reduce((s, a) => s + a.length, 0);
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <div className="flex-1 flex flex-col min-w-0 overflow-auto">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-border-default shrink-0">
         <button

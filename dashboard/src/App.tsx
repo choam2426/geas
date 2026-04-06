@@ -109,7 +109,7 @@ function App() {
         loading={loading}
       />
 
-      <main className="flex flex-1 min-w-0">
+      <main className="flex flex-1 min-w-0 overflow-hidden">
         {backendError && !loading ? (
           <div className="flex flex-1 items-center justify-center animate-fade-in">
             <div className="text-center max-w-md">
