@@ -20,7 +20,7 @@ export default function TaskCard({ task }: TaskCardProps) {
     : null;
 
   return (
-    <div className="bg-bg-elevated rounded-lg p-3 hover:-translate-y-px hover:shadow-md transition-all duration-150 cursor-default">
+    <div className="bg-bg-elevated rounded-lg p-3 border border-transparent hover:border-border-default hover:-translate-y-px hover:shadow-md transition-all duration-150 cursor-default">
       <p className="text-sm text-text-primary leading-snug mb-2">{title}</p>
       <div className="flex items-center gap-1.5 flex-wrap">
         {task.worker_type && (

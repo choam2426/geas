@@ -69,30 +69,43 @@ export default function Sidebar({
       </div>
 
       {/* Project list */}
-      <nav className="flex-1 overflow-y-auto py-1">
-        {projects.map((project) => (
-          <button
-            key={project.path}
-            onClick={() => onSelect(project.path)}
-            className={`w-full text-left px-3 py-2 flex items-center gap-2 transition-all duration-150 cursor-pointer group ${
-              selectedPath === project.path
-                ? "bg-bg-elevated text-text-primary"
-                : "text-text-secondary hover:bg-bg-elevated/50 hover:text-text-primary"
-            }`}
-          >
-            <StatusIcon status={project.status} />
-            <span className="flex-1 text-sm truncate">{project.name}</span>
-            <PhaseBadge phase={project.phase} size="sm" />
+      <nav className="flex-1 overflow-y-auto py-1.5">
+        {loading && projects.length === 0 ? (
+          /* Loading skeletons */
+          <div className="flex flex-col gap-1 px-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-2 px-3 py-2.5 rounded-md">
+                <div className="h-3 w-24 rounded bg-bg-elevated animate-skeleton" />
+                <div className="flex-1" />
+                <div className="h-4 w-12 rounded-full bg-bg-elevated animate-skeleton" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          projects.map((project) => (
             <button
-              onClick={(e) => handleRemove(e, project.path, project.name)}
-              className="text-text-muted hover:text-status-red opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-xs cursor-pointer ml-1"
-              aria-label={`Remove ${project.name}`}
-              title="Remove project"
+              key={project.path}
+              onClick={() => onSelect(project.path)}
+              className={`w-full text-left px-3 py-2.5 flex items-center gap-2 transition-all duration-150 cursor-pointer group rounded-r-md ${
+                selectedPath === project.path
+                  ? "bg-bg-elevated text-text-primary border-l-2 border-accent"
+                  : "text-text-secondary hover:bg-bg-elevated/50 hover:text-text-primary border-l-2 border-transparent"
+              }`}
             >
-              <X size={14} />
+              <StatusIcon status={project.status} />
+              <span className="flex-1 text-sm truncate">{project.name}</span>
+              <PhaseBadge phase={project.phase} size="sm" />
+              <button
+                onClick={(e) => handleRemove(e, project.path, project.name)}
+                className="text-text-muted hover:text-status-red opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-xs cursor-pointer ml-1"
+                aria-label={`Remove ${project.name}`}
+                title="Remove project"
+              >
+                <X size={14} />
+              </button>
             </button>
-          </button>
-        ))}
+          ))
+        )}
       </nav>
 
       {/* Add button */}
