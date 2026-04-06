@@ -111,23 +111,23 @@ export default function KanbanBoard({
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-border-default shrink-0">
+      <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-border-default shrink-0">
         <button
           onClick={onBack}
           className="text-text-secondary hover:text-text-primary text-sm cursor-pointer transition-colors"
         >
           <ArrowLeft size={16} className="inline" /> Back
         </button>
-        <h1 className="text-lg font-semibold text-text-primary truncate">
+        <h1 className="text-base md:text-lg font-semibold text-text-primary truncate">
           {projectName}
         </h1>
       </div>
 
       {/* Content */}
       {loading ? (
-        <div className="flex gap-3 p-4 overflow-x-auto min-h-0 flex-1">
+        <div className="flex flex-col md:flex-row gap-3 p-4 md:overflow-x-auto min-h-0 flex-1">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex flex-col bg-bg-surface rounded-lg min-w-[200px] w-[200px] shrink-0">
+            <div key={i} className="flex flex-col bg-bg-surface rounded-lg min-w-0 w-full md:min-w-[200px] md:w-[200px] md:shrink-0">
               <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-default">
                 <div className="h-3 w-16 rounded bg-bg-elevated animate-skeleton" />
                 <div className="h-4 w-6 rounded-full bg-bg-elevated animate-skeleton" />
@@ -164,13 +164,13 @@ export default function KanbanBoard({
       ) : (
         <div className="flex-1 overflow-y-auto">
           {/* Kanban columns */}
-          <div className="flex gap-3 p-4 overflow-x-auto min-h-0">
+          <div className="flex flex-col md:flex-row gap-3 p-4 md:overflow-x-auto min-h-0">
             {COLUMNS.map((col) => {
               const colTasks = tasksByStatus.get(col.key) ?? [];
               return (
                 <div
                   key={col.key}
-                  className="flex flex-col bg-bg-surface rounded-lg min-w-[200px] w-[200px] shrink-0"
+                  className="flex flex-col bg-bg-surface rounded-lg min-w-0 w-full md:min-w-[200px] md:w-[200px] md:shrink-0"
                 >
                   {/* Column header */}
                   <div className="flex items-center justify-between px-3 py-2.5 h-10 border-b border-border-default">
