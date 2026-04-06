@@ -1,361 +1,176 @@
-# Agent Reference
+# Agents Reference
 
-Geas 플러그인의 10개 에이전트 타입 전체 목록. 에이전트는 미션 실행 중 Orchestrator에 의해 서브 에이전트로 스폰된다. 각 에이전트 타입은 정의된 권한 범위, 파이프라인 책임, 산출물을 가진다.
+Geas는 **slot 기반 역할 아키텍처**를 사용한다. Contract engine은 추상적인 **slot**(decision_maker, design_authority, challenger, implementer, quality_specialist, risk_specialist, operations_specialist, communication_specialist)을 정의하고, 도메인 **profile**이 각 slot을 구체적인 agent 타입에 매핑한다. 이 분리 덕분에 동일한 거버넌스 파이프라인이 소프트웨어 엔지니어링, 연구, 또는 향후 추가되는 어떤 profile에도 contract engine 변경 없이 적용된다.
+
+**Orchestrator**(`orchestration_authority`)는 phase를 조율하고, agent를 스폰하며, task 흐름을 관리하는 mission skill이다. 스폰 가능한 agent가 아니며 profile 정의에 포함되지 않는다.
 
 정식 정의: `docs/protocol/01_AGENT_TYPES_AND_AUTHORITY.md`
-에이전트 파일: `plugin/agents/`
-
-## 요약 테이블
-
-| 에이전트 타입 | 카테고리 | 모델 | 권한 범위 | 주요 산출물 |
-|------------|----------|-------|-----------------|---------------|
-| [product-authority](#product-authority) | 핵심 권한 | opus | 최종 판정 (pass/iterate/escalate) | `final-verdict.json` |
-| [architecture-authority](#architecture-authority) | 핵심 권한 | opus | 아키텍처 결정, 코드 리뷰 | `specialist-review.json`, conventions |
-| [critical-reviewer](#critical-reviewer) | 핵심 권한 | opus | 건설적 반론, 출시 위험 도전 | `closure-packet.json` 내 사전 출시 챌린지 |
-| [frontend-engineer](#frontend-engineer) | 전문가 | opus | 프론트엔드 구현 | 구현 코드, `self-check` |
-| [backend-engineer](#backend-engineer) | 전문가 | opus | 백엔드 구현 | 구현 코드, `self-check` |
-| [qa-engineer](#qa-engineer) | 전문가 | sonnet | 테스트 판정, 버그 보고, 루브릭 채점 | `specialist-review.json`, 버그 보고 |
-| [security-engineer](#security-engineer) | 전문가 | sonnet | 보안 리뷰, 치명적 이슈 출시 차단 | `specialist-review.json`, CVE 평가 |
-| [ui-ux-designer](#ui-ux-designer) | 전문가 | sonnet | 디자인 스펙, 접근성 요구사항 | 디자인 스펙, `specialist-review.json` |
-| [devops-engineer](#devops-engineer) | 전문가 | sonnet | CI/CD, 배포, 빌드 검증 | 파이프라인 설정, 스모크 테스트 결과 |
-| [technical-writer](#technical-writer) | 전문가 | sonnet | 문서화 표준, 명확성 감사 | README, API 문서, 셋업 가이드 |
+Agent 파일: `plugin/agents/`
 
 ---
 
-## 핵심 권한
+## Authority Agent
+
+Authority agent는 **모든 profile에 공유**된다. 도메인과 무관하게 거버넌스, 구조적 리뷰, 적대적 검증을 담당한다.
+
+| Agent 타입 | Slot | 모델 | 핵심 책임 |
+|---|---|---|---|
+| [product-authority](#product-authority) | `decision_maker` | opus | Task 종결 최종 판정 (pass / iterate / escalate) |
+| [design-authority](#design-authority) | `design_authority` | opus | 구조적 일관성, 인터페이스 리뷰, contract 승인 |
+| [challenger](#challenger) | `challenger` | opus | 적대적 사전 출시 검증, 차단 사유 제기 |
 
 ### product-authority
 
-사용자 가치의 대변인. 기능의 출시, 반복, 또는 제거에 대한 최종 결정권을 가진다.
+사용자 가치의 대변인. 작업물의 출시, 반복, 제거에 대한 최종 결정권을 가진다.
 
-**모델:** opus
+- **권한:** 최종 판정(pass/iterate/escalate), 우선순위 조정, 범위 정의(P0/P1/P2/OUT), 전문가 합의 실패 시 트레이드오프 판단.
+- **판단 기준:** 결정 전 모든 evidence를 검토한다. Gate 통과가 곧 출시를 의미하지 않으며, 제품 적합성이 중요하다. 과잉 설계, 범위 확장, 필수 기능으로 위장한 부수 기능에 도전한다.
+- **산출물:** `final-verdict.json`
 
-**권한 범위:**
-- 태스크 종결 최종 판정: `pass | iterate | escalate`
-- 팀이 잘못된 방향으로 작업 중일 때 우선순위 조정
-- 계획 변경이 필요할 때 피벗 결정
-- MVP 범위 정의: P0 (필수), P1 (권장), P2 (있으면 좋음), OUT
+### design-authority
 
-**파이프라인 책임:**
-- Specifying 단계에서 방향 및 우선순위 판단
-- Building 단계 종료 시 최종 판정
-- 전문가 간 충돌이 해결되지 않을 때 제품 관점 트레이드오프 판단
-- 결정 전 모든 증거 검토: 작업자 산출물, 코드 리뷰, QA 보고, 디자인 스펙
+구조적 일관성의 수호자. 경계, 인터페이스, 의존성, 유지보수성을 리뷰한다.
 
-**주요 산출물:**
-- `final-verdict.json` -- 근거를 포함한 태스크 종결 결정
+- **권한:** implementation contract의 구조적 리뷰 및 승인, 인터페이스와 의존성 결정, 구조적 무결성이 위협받을 때 차단 권한.
+- **판단 기준:** 접근 방식이 유지보수 가능한 경계를 만드는지 평가한다. 취약한 결합, 과도한 복잡성, 숨겨진 의존성을 점검한다. Stub과 placeholder는 범위가 명시적으로 한정되어야 한다.
+- **산출물:** `specialist-review.json`, 프로젝트 관례
 
-**리뷰어 라우팅:** 기본 리뷰어가 아님. 전문가 리뷰 완료 후 최종 결정 권한으로 작동.
+### challenger
 
-**금지 사항:**
-- 직접 구현 코드를 작성하는 주요 작업자 역할 수행 금지
-- 필수 증거가 누락된 상태에서 태스크를 통과 처리 금지
+"왜 이것이 틀릴 수 있는가?"를 묻는 적대적 리뷰어. 다른 모든 이가 "이것이 맞는가?"를 물을 때 반대 방향에서 검증한다.
+
+- **권한:** high/critical risk task에 대한 차단 권한, high/critical risk에 대한 필수 사전 출시 검증.
+- **판단 기준:** 숨겨진 가정, 과신, 취약한 복잡성, 검토되지 않은 실패 케이스, 범위 유출, trust boundary 위반을 탐색한다. 모든 challenge review에는 최소 하나의 실질적 우려가 포함되어야 한다.
+- **산출물:** `challenge-review.json`, `specialist-review.json`
 
 ---
 
-### architecture-authority
+## Software Profile
 
-기술 수호자. 시스템 경계, 계약, 의존성, 장기 유지보수성을 리뷰한다.
+소프트웨어 엔지니어링 mission용. `plugin/agents/software/`에 정의되어 있다.
 
-**모델:** opus
+| Slot | Agent 타입 | 핵심 책임 |
+|---|---|---|
+| `implementer` | [software-engineer](#software-engineer) | 풀스택 구현 (프론트엔드, 백엔드, 디자인) |
+| `quality_specialist` | [qa-engineer](#qa-engineer) | 검증, 인수 기준, 루브릭 채점 |
+| `risk_specialist` | [security-engineer](#security-engineer) | Trust boundary, 공격 면, 보안 평가 |
+| `operations_specialist` | [platform-engineer](#platform-engineer) | CI/CD, 배포, 환경, 운영 준비도 |
+| `communication_specialist` | [technical-writer](#technical-writer) | 문서 완전성, 정확성, 대상 적합성 |
 
-**권한 범위:**
-- 아키텍처 및 기술 스택 결정
-- 코드 리뷰 판정: APPROVED / CHANGES REQUESTED
-- 구현 시작 전 기술 가이던스
-- 기술 부채 식별 및 추적
-- 프로젝트 관례 (`.geas/memory/_project/conventions.md`)
+### software-engineer
 
-**파이프라인 책임:**
-- 다음 기준으로 코드 리뷰: 에러 처리, 성능, 보안, 구조, 네이밍, 접근성
-- 구현 계약 확인 -- 코드가 합의된 계획과 일치하는지 검증
-- 작업자의 `self_check`에 집중 리뷰: 알려진 위험, 스텁 가능성, 미테스트 경로
-- 모든 리뷰에서 `code_quality` 점수 부여 (1-5 척도, 필수)
-- 중복 로직, 분기하는 패턴, 증가하는 복잡도 식별
-
-**주요 산출물:**
-- `specialist-review.json` -- 품질 점수 포함 코드 리뷰
-- `.geas/memory/_project/conventions.md` -- 프로젝트 관례
-
-**리뷰어 라우팅:** `task_kind: code`의 기본 리뷰어. `required_reviewer_types[]`가 비어있을 때 폴백 리뷰어.
-
----
-
-### critical-reviewer
-
-악마의 대변인. 사용자보다 먼저 구멍을 찾기 위해 제안, 아키텍처, 계획을 스트레스 테스트한다.
-
-**모델:** opus
-
-**권한 범위:**
-- 아키텍처, 제품, 기획 결정에 대한 건설적 반론
-- 반대 의견이 기대됨 -- 만장일치 합의는 드물어야 한다
-- 분야 횡단적 관점에서의 기술 부채 식별
-
-**파이프라인 책임:**
-- 가정에 도전하고 구체적이며 증거 기반의 비판 제공
-- 항상 트레이드오프가 포함된 대안 제시
-- 사전 출시 챌린지: closure packet 확정 전 최소 하나의 출시 불가 사유 제기 필수
-- 제기된 우려가 해소되었다는 증거 제공 필수
-- 전투를 선별: 10가지를 얕게가 아닌 2-3가지를 깊게 도전
-
-**주요 산출물:**
-- `closure-packet.json` 내 사전 출시 챌린지 증거
-- `specialist-review.json` -- 대안을 포함한 반론 리뷰
-
-**리뷰어 라우팅:** `risk_level: high` 또는 `risk_level: critical` 태스크에 자동 추가.
-
----
-
----
-
-## 전문가
-
-### frontend-engineer
-
-인터랙션 장인. 디자인과 구현 사이의 영역에서 활동한다.
-
-**모델:** opus
-
-**권한 범위:**
-- TaskContract 범위 내 프론트엔드 구현 결정
-- 컴포넌트 아키텍처 및 추상화 선택
-- 클라이언트 측 성능 트레이드오프
-
-**파이프라인 책임:**
-- `.geas/memory/_project/conventions.md`의 스택 관례 준수
-- 모든 뷰에 대해 로딩, 에러, 빈 상태 구현
-- 반응형 및 모바일 우선 빌드
-- 시맨틱 HTML, 포커스 상태, 적절한 대비로 접근성 보장
-- 정직한 self-check 제출: 알려진 위험, 미테스트 경로, 스텁 가능성, 신뢰도
-- 통합 중 발견된 백엔드 이슈 보고
-
-**주요 산출물:**
-- 구현 코드
-- `self-check` 증거 (위험, 스텁, 미테스트 경로, 신뢰도)
-
-**리뷰어 라우팅:** `scope.paths`에 UI/프론트엔드 파일이 포함될 때 추가 (예: `*.tsx`, `*.vue`, `*.css`, `components/`, `pages/`).
-
----
-
-### backend-engineer
-
-시스템 사고자. 모든 요청을 잠재적 병목으로 본다.
-
-**모델:** opus
-
-**권한 범위:**
-- TaskContract 범위 내 백엔드 구현 결정
-- API 설계, 데이터 모델링, 쿼리 최적화
-- 에러 처리 및 응답 구조 선택
-
-**파이프라인 책임:**
-- `.geas/memory/_project/conventions.md`의 스택 관례 준수
-- 처리 전 모든 입력 검증
-- 적절한 HTTP 상태 코드 및 구조화된 에러 응답 사용
-- 데이터 로직과 라우트 핸들러 분리
-- 내부 에러를 클라이언트에 노출하지 않음
-- 정직한 self-check 제출: 알려진 위험, 미테스트 경로, 스텁 가능성, 신뢰도
-- 패턴이 불안전하게 느껴질 때 보안 우려 보고
-
-**주요 산출물:**
-- 구현 코드
-- `self-check` 증거 (위험, 스텁, 미테스트 경로, 신뢰도)
-
-**리뷰어 라우팅:** `scope.paths`에 API/서버 파일이 포함될 때 추가 (예: `routes/`, `api/`, `controllers/`, `services/`).
-
----
+프론트엔드, 백엔드, 디자인 구현을 담당하는 풀스택 구현자. 데이터 흐름, 실패 모드, 사용자 인터랙션, 시스템 경계를 기준으로 사고한다. 스택 관례를 따르고, 입력을 검증하며, 관심사를 분리한다. 정직한 self-check를 제출한다.
 
 ### qa-engineer
 
-팀의 품질 양심. 증명될 때까지 모든 것이 깨져있다고 가정한다.
-
-**모델:** sonnet
-
-**권한 범위:**
-- 테스트 판정: 신뢰도 점수를 포함한 Pass / Fail
-- 심각도 분류가 포함된 버그 보고 (critical / major / minor)
-- 할당된 품질 차원에 대한 루브릭 채점 (모든 리뷰에서 필수)
-- 권고: Ship / Fix first / Pivot needed
-
-**파이프라인 책임:**
-- 최종 사용자 관점에서 먼저 테스트
-- TaskContract의 모든 인수 기준 확인
-- 엣지 케이스 테스트: 빈 입력, 긴 문자열, 특수 문자, 모바일 뷰포트
-- 사용자 액션 후 백엔드 상태 검증
-- 작업자의 self-check를 읽고 가장 취약한 영역에 테스트 집중
-- 스크린샷 촬영 및 구조화된 증거 수집
-
-**주요 산출물:**
-- `specialist-review.json` -- 루브릭 점수 포함 테스트 판정
-- 심각도 분류가 포함된 버그 보고
-- 스크린샷 및 구조화된 증거
-
-**리뷰어 라우팅:** `risk_level: critical`에 추가. `gate_profile: closure_ready`에 추가. `scope.paths`에 테스트 파일이 포함될 때 추가.
-
----
+구현된 결과물이 실제로 동작하는지 검증하는 품질 관문. 인수 기준에서 출발하여 부정 경로를 우선시하며, 작업자의 `untested_paths[]`와 `possible_stubs[]`를 집중 공략한다. 결과를 구체적 evidence와 함께 루브릭 점수로 보고한다.
 
 ### security-engineer
 
-어떤 입력도 신뢰하지 않고 모든 엔드포인트가 타겟이라고 가정하는 수호자.
+Trust boundary와 공격 면에 집중하는 위험 평가자. Trust boundary를 매핑하고, 인증과 인가를 점검하며, secret 처리를 검사하고, 인젝션 면과 OWASP Top 10을 평가한다. 발견 사항을 실제 악용 가능성 기준으로 분류한다.
 
-**모델:** sonnet
+### platform-engineer
 
-**권한 범위:**
-- 심각도 분류가 포함된 보안 리뷰 판정 (CRITICAL / HIGH / MEDIUM)
-- 치명적 보안 이슈에 대한 출시 차단 결정
-- 인증 및 인가 흐름 분석
-- 의존성 감사 및 CVE 평가
-
-**파이프라인 책임:**
-- OWASP Top 10 체계적 점검
-- 인증 흐름 분석: 토큰 저장, 세션 생명주기, OAuth, 비밀번호 정책
-- 의존성 감사 실행 및 알려진 CVE 보고
-- 커밋된 파일에 시크릿이 없는지 확인
-- 설계가 본질적으로 불안전할 때 조기 개입
-- 성능 최적화가 보안을 약화시킬 때 반대
-
-**주요 산출물:**
-- `specialist-review.json` -- 심각도 분류 포함 보안 리뷰
-- CVE 평가 보고서
-- 의존성 감사 결과
-
-**리뷰어 라우팅:** `task_kind: audit`의 기본 리뷰어. `risk_level: high` 및 `risk_level: critical`에 추가. `scope.paths`에 인증/권한 파일이 포함될 때 추가.
-
----
-
-### ui-ux-designer
-
-화면 반대편에 있는 사람을 위한 공감적 옹호자.
-
-**모델:** sonnet
-
-**권한 범위:**
-- 디자인 스펙: 사용자 흐름, 레이아웃 구조, 컴포넌트 스펙, 시각적 스타일
-- 접근성 요구사항 및 표준
-- 로딩, 에러, 빈 상태 정의
-- 반응형 동작 결정
-
-**파이프라인 책임:**
-- 모바일 우선 디자인 후 스케일업
-- 패턴 재사용 -- 기능마다 새로 만들지 않음
-- 상태를 완전하게 명시: 로딩, 에러, 빈, 채워진, 비활성
-- 접근성 고집: 대비 비율, 포커스 상태, aria 레이블, 시맨틱 HTML
-- 기술적 단순성이 사용자 경험을 해칠 때 반대
-- 시각적 이슈 보고: 정렬, 간격, 뷰포트 브레이크포인트
-
-**주요 산출물:**
-- 디자인 스펙 (사용자 흐름, 레이아웃, 컴포넌트 스펙)
-- `specialist-review.json` -- 디자인 리뷰
-- 접근성 요구사항
-
-**리뷰어 라우팅:** `task_kind: design`의 기본 리뷰어. `scope.paths`에 UI/프론트엔드 파일이 포함될 때 추가.
-
----
-
-### devops-engineer
-
-자동화에 집착하는 빌더. 수동 프로세스는 용납할 수 없다고 믿는다.
-
-**모델:** sonnet
-
-**권한 범위:**
-- CI/CD 파이프라인 설정
-- 배포 설정 및 환경 관리
-- 빌드 검증 및 최적화
-- 환경 변수 감사
-- 스모크 테스트 정의
-
-**파이프라인 책임:**
-- 빌드 및 개발 스크립트가 에러 없이 작동하는지 검증
-- 빌드 출력 크기 확인 및 비대화 보고
-- 모든 환경 변수가 문서화되었는지 확인
-- `.env.example`과 코드베이스 내 실제 사용 비교
-- 트리 셰이킹 검증, 중복 의존성 확인
-- 배포 스모크 테스트 실행: 앱 시작, 헬스 엔드포인트 응답, 핵심 라우트 작동
-- 프로덕션 경로에서 누락된 에러 처리 보고
-
-**주요 산출물:**
-- 파이프라인 설정
-- 스모크 테스트 결과
-- 빌드 검증 보고서
-- 환경 변수 감사
-
-**리뷰어 라우팅:** `task_kind: config` 및 `task_kind: release`의 기본 리뷰어. `scope.paths`에 인프라/배포 파일이 포함될 때 추가.
-
----
+구현된 결과물이 배포, 운영, 유지보수될 수 있도록 보장하는 운영 기반. 배포 영향, CI/CD 영향, 롤백 가능성, 설정 드리프트, 운영 가시성을 점검한다.
 
 ### technical-writer
 
-문서화되지 않은 코드는 완성되지 않은 코드라고 믿는 문서화 장인.
-
-**모델:** sonnet
-
-**권한 범위:**
-- 문서화 표준 및 구조
-- README, API 문서, 환경 셋업 가이드
-- 코드베이스 전반의 네이밍 일관성
-- 명확성 감사: 문서가 혼란스러우면 코드도 그럴 수 있다
-
-**파이프라인 책임:**
-- 명확하고 간결하며 구조화되고 실행 가능하며 정확한 문서 작성
-- 포함 사항: 프로젝트 개요, 실행 방법, 기능, 기술 스택, 프로젝트 구조
-- API 문서화: 엔드포인트, 요청/응답 형태, 인증
-- 환경 문서화: 필수 변수, 의존성, 셋업 단계
-- 실제 코드 대비 API 참조 검증
-- 혼란스러운 모듈 API를 코드 스멜로 보고
-- 컴포넌트 간 일관성 없는 네이밍 보고
-
-**주요 산출물:**
-- README 및 프로젝트 문서
-- API 문서
-- 환경 셋업 가이드
-- `specialist-review.json` -- 문서 리뷰
-
-**리뷰어 라우팅:** `task_kind: docs`의 기본 리뷰어.
+구현된 결과물을 이해할 수 있도록 보장하는 명확성 전문가. 문서 영향, 구현 대비 정확성, 대상 적합성, 신규 기능 및 파괴적 변경에 대한 완전성, 검색 가능성을 점검한다.
 
 ---
 
+## Research Profile
+
+연구 및 분석 mission용. `plugin/agents/research/`에 정의되어 있다.
+
+| Slot | Agent 타입 | 핵심 책임 |
+|---|---|---|
+| `implementer` | [literature-analyst](#literature-analyst) | 체계적 문헌 탐색, 출처 평가, 종합 |
+| `implementer` | [research-analyst](#research-analyst) | 실험 설계, 데이터 분석, 재현 가능한 evidence |
+| `quality_specialist` | [methodology-reviewer](#methodology-reviewer) | 방법론적 건전성, 통계적 타당성, 재현성 |
+| `risk_specialist` | [research-integrity-reviewer](#research-integrity-reviewer) | 윤리, 데이터 프라이버시, 편향, 타당성 위협 |
+| `operations_specialist` | [research-engineer](#research-engineer) | 데이터 파이프라인, 컴퓨팅 자원, 환경 재현성 |
+| `communication_specialist` | [research-writer](#research-writer) | 연구 문서화, 인용 정확성, 대상에 맞는 기술 |
+
+참고: Research profile에는 두 가지 `implementer` 타입이 있다. Orchestrator가 `task_kind`와 scope에 따라 적절한 implementer에 task를 라우팅한다.
+
+### literature-analyst
+
+기존 지식을 탐색, 평가, 종합하는 체계적 연구자. 1차 자료를 선호하고, 출처 신뢰도를 평가하며, 모순을 명시적으로 식별하고, 지식 공백을 기록한다. 주요 주장에 대해 최소 3개의 독립 출처를 확보한다.
+
+### research-analyst
+
+실험을 설계하고, 데이터를 분석하며, 모델을 구축하고, 시뮬레이션을 실행하는 실증 연구자. 명확한 반증 가능 가설에서 출발하며, 재현성을 위해 모든 변환을 기록하고, 부정적 결과를 정직하게 보고하며, 불확실성을 정량화한다.
+
+### methodology-reviewer
+
+연구 방법의 건전성과 결과의 재현 가능성을 검증하는 엄밀성 수호자. 내적·외적 타당성, 통계적 적절성, 흔한 함정(p-hacking, 다중 비교, 선택 편향)을 점검하고, 결론이 evidence 강도에 부합하는지 확인한다.
+
+### research-integrity-reviewer
+
+책임있는 연구 수행을 보장하는 윤리 및 타당성 수호자. 데이터 프라이버시와 동의, 편향 위험, 책임있는 보고, 타당성 위협, 오해석 또는 오용 가능성을 점검한다. 데이터 프라이버시 문제는 항상 차단 사유이다.
+
+### research-engineer
+
+연구가 실행, 재현, 확장될 수 있도록 보장하는 인프라 전문가. 데이터 파이프라인 문서화, 환경 캡처, 데이터 버전 관리, 확장성, 산출물 전달 체계를 검증한다.
+
+### research-writer
+
+연구 결과가 명확하고 정확하게 전달되도록 보장하는 커뮤니케이션 전문가. 대상에 맞는 문체를 적용하고, 주장이 evidence에 뒷받침되는지 확인하며, 적절한 인용을 보장하고, 한계점이 눈에 띄는 위치에 배치되었는지 점검한다.
+
 ---
 
-## 의사결정 경계
+## Slot Resolution
 
-어떤 에이전트 타입이 어떤 결정을 소유하는지 요약. 전체 테이블은 `protocol/01` 참조.
+Orchestrator는 mission 시작 시 추상적 slot을 구체적 agent 타입으로 해석한다:
 
-| 결정 | 주요 소유자 |
-|----------|---------------|
-| 페이즈 선택 | orchestration_authority (Orchestrator) |
-| 태스크 라우팅 | orchestration_authority (Orchestrator) |
-| 구현 접근법 | 주요 전문가 + architecture-authority |
-| 증거 게이트 결과 | 게이트 실행자 / 검증자 |
-| 준비 라운드 결과 | 리뷰어 세트 |
-| 최종 종결 | product-authority |
-| 영구 메모리 승격 | orchestration_authority + 승인 권한자 |
+1. Mission spec이 `domain_profile`을 선언한다 (예: `"software"`, `"research"`).
+2. Orchestrator가 `profiles.json`(`plugin/skills/core/mission/references/` 내)을 읽어 해당 profile의 slot-agent 매핑을 가져온다.
+3. Authority agent(product-authority, design-authority, challenger)는 모든 profile에 공유된다.
+4. Agent 스폰 시, Orchestrator는 활성 profile에서 slot을 조회하여 대응하는 agent 타입을 스폰한다.
 
-## 리뷰어 라우팅 알고리즘
+이 구조 덕분에 contract engine, evidence gate, 검증 흐름은 특정 agent 타입을 참조하지 않고 slot만 참조한다. `quality_specialist` 리뷰는 qa-engineer가 수행하든 methodology-reviewer가 수행하든 동일하게 동작한다.
 
-태스크에는 `task_kind`, `risk_level`, `scope.paths`, `gate_profile`에 기반하여 리뷰어가 자동 할당된다. 전체 알고리즘은 `protocol/01`에 정의되어 있다. 핵심 규칙:
+---
 
-1. **task_kind 기본값** -- `code`는 architecture-authority, `docs`는 technical-writer 등.
-2. **리스크 에스컬레이션** -- `high`/`critical` 리스크는 critical-reviewer와 security-engineer 추가.
-3. **경로 시그널** -- UI 파일은 ui-ux-designer 추가, API 파일은 backend-engineer 추가 등.
-4. **게이트 프로파일** -- `closure_ready`는 qa-engineer 필수.
-5. **최소 보장** -- 모든 태스크는 최소 하나의 리뷰어를 가짐 (architecture-authority가 폴백).
+## Decision Boundary
 
-## 전문가 충돌 해결
+어떤 결정을 누가 소유하는지 요약한다. 전체 테이블은 `protocol/01` 참조.
 
-전문가 간 상충하는 판단이 발생할 때, 프로토콜 절차:
+| 결정 | 소유자 |
+|---|---|
+| Phase 선택 및 task 라우팅 | Orchestrator (mission skill) |
+| 구현 접근법 | Implementer + design-authority |
+| 구조적 리뷰 | design-authority |
+| Evidence gate 결과 | Gate 실행자 / 검증자 |
+| 적대적 검증 | challenger |
+| 최종 종결 판정 | product-authority |
+| 전문가 충돌 해결 | Vote round, 이후 product-authority |
+| 영구 memory 승격 | Orchestrator + 승인 authority |
 
-1. **투표 라운드** -- orchestration_authority가 충돌 당사자와 나머지 리뷰어를 포함하여 `vote_round` 호출.
-2. **합의/다수결** -- 결과를 따르고 소수 의견을 `decision-record`에 기록.
-3. **합의 불가** -- product-authority가 근거를 기록하며 최종 결정.
-4. **에스컬레이션** -- product-authority도 해결할 수 없는 구조적 충돌은 `escalated`로 전환하여 인간 이해관계자에게 인계.
+---
 
-## 에이전트 경계
+## Reviewer Routing
 
-모든 에이전트가 공유하는 운영 경계:
+Task에는 `task_kind`, `risk_level`, `scope`, `gate_profile`에 따라 리뷰어가 할당된다. 전체 알고리즘은 `protocol/01`에 정의되어 있다. 핵심 규칙:
 
-- Orchestrator에 의해 서브 에이전트로 스폰
-- 작업을 수행하고 결과를 반환 -- 다른 에이전트를 스폰하지 않음
-- 지정된 경로에 증거 기록
-- TaskContract와 컨텍스트 패킷을 따름
+1. **task_kind 기본값** -- 각 task kind에 기본 reviewer slot이 지정된다 (예: `implementation` → design_authority, `documentation` → communication_specialist).
+2. **리스크 에스컬레이션** -- `high`/`critical` risk는 challenger와 risk_specialist를 추가한다.
+3. **Scope 시그널** -- 영향 범위와 scope 마커에 따라 관련 specialist slot이 추가된다.
+4. **Gate profile** -- `closure_ready`는 quality_specialist를 필수로 한다.
+5. **최소 보장** -- 모든 task는 primary worker와 다른 타입의 리뷰어를 최소 하나 가진다 (design_authority가 폴백).
+
+라우팅은 agent 타입이 아닌 **slot 이름**을 사용한다. 활성 profile이 slot을 구체적 agent로 해석한다.
+
+---
+
+## Agent Boundary
+
+모든 스폰 가능 agent가 공유하는 운영 제약:
+
+- Orchestrator에 의해 서브 에이전트로 스폰된다 -- agent가 다른 agent를 스폰하지 않는다.
+- 작업을 수행하고 결과를 Orchestrator에 반환한다.
+- 지정된 artifact 경로에 evidence를 기록한다.
+- TaskContract와 context packet을 따른다.
+- 가정이 아닌 evidence에 기반하여 판단한다.
+- 세션 간 기억할 가치가 있는 패턴을 `memory_suggestions`로 제안한다.
