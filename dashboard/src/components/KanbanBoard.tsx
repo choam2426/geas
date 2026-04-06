@@ -137,7 +137,7 @@ export default function KanbanBoard({
       {/* Content */}
       {loading ? (
         <div className="flex-1 overflow-auto p-4">
-          <div style={{ display: "flex", gap: "0.5rem", minWidth: "980px" }}>
+          <div style={{ display: "flex", gap: "0.5rem", minWidth: "888px" }}>
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex-1 flex flex-col bg-bg-surface rounded-lg">
                 <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-default">
@@ -174,7 +174,7 @@ export default function KanbanBoard({
         <div className="flex-1 overflow-auto">
           {/* Kanban columns — inline style for reliable scroll */}
           <div className="p-4" style={{ overflowX: "auto" }}>
-            <div style={{ display: "flex", gap: "0.5rem", minWidth: "980px" }}>
+            <div style={{ display: "flex", gap: "0.5rem", minWidth: "888px" }}>
               {COLUMNS.map((col) => {
                 const colTasks = tasksByStatus.get(col.key) ?? [];
                 return (
@@ -195,7 +195,7 @@ export default function KanbanBoard({
                       </span>
                     </div>
                     {/* Cards — no overflow, grow naturally */}
-                    <div className="flex flex-col gap-2 p-2">
+                    <div className="flex flex-col gap-1.5 p-1.5">
                       {colTasks.map((task) => {
                         const active = isTaskActive(task.task_id, currentTaskId, parallelBatch);
                         const batchDone = isTaskCompletedInBatch(task.task_id, completedInBatch);

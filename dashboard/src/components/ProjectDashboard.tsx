@@ -149,13 +149,13 @@ export default function ProjectDashboard({
               />
               <div className="flex flex-col md:flex-row gap-2 mt-4">
                 <button
-                  onClick={() => onViewTasks()}
+                  onClick={() => onViewTasks(activeMission?.mission_id)}
                   className="px-4 py-1.5 rounded-md bg-accent text-white text-sm cursor-pointer hover:opacity-90 active:scale-95 transition-all"
                 >
                   View Tasks
                 </button>
                 <button
-                  onClick={() => onViewDebt()}
+                  onClick={() => onViewDebt(activeMission?.mission_id)}
                   className="px-4 py-1.5 rounded-md bg-bg-elevated text-text-secondary text-sm cursor-pointer hover:text-text-primary hover:bg-bg-elevated/80 active:scale-95 transition-all"
                 >
                   View Debt

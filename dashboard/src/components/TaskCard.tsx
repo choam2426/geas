@@ -13,7 +13,7 @@ interface TaskCardProps {
 
 export default function TaskCard({ task, onClick, isActive, isCompletedInBatch, agentName, pipelineStep }: TaskCardProps) {
   const title =
-    task.title.length > 80 ? task.title.slice(0, 77) + "..." : task.title;
+    task.title.length > 50 ? task.title.slice(0, 47) + "..." : task.title;
 
   const risk = task.risk_level
     ? riskColors[task.risk_level] ?? riskColors.normal
@@ -27,20 +27,20 @@ export default function TaskCard({ task, onClick, isActive, isCompletedInBatch, 
 
   return (
     <div
-      className={`bg-bg-elevated rounded-lg p-3 border hover:border-border-default hover:-translate-y-px hover:shadow-md active:scale-95 transition-all duration-150 cursor-pointer ${borderClass}`}
+      className={`bg-bg-elevated rounded-lg p-2 border hover:border-border-default hover:-translate-y-px hover:shadow-md active:scale-95 transition-all duration-150 cursor-pointer ${borderClass}`}
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
     >
-      <p className="text-sm text-text-primary leading-snug mb-2">{title}</p>
+      <p className="text-xs text-text-primary leading-snug mb-1.5">{title}</p>
       {isActive && (
-        <div className="flex items-center gap-1.5 mb-2">
+        <div className="flex items-center gap-1 mb-1.5">
           <span className="w-2 h-2 rounded-full bg-status-green animate-pulse-dot shrink-0" />
           {agentName ? (
-            <span className="text-[11px] text-text-secondary truncate">{agentName}</span>
+            <span className="text-[10px] text-text-secondary truncate">{agentName}</span>
           ) : (
-            <span className="text-[11px] text-text-secondary">In progress</span>
+            <span className="text-[10px] text-text-secondary">In progress</span>
           )}
           {pipelineStep && (
             <span className="text-[10px] text-text-muted truncate">{pipelineStep}</span>
@@ -48,20 +48,20 @@ export default function TaskCard({ task, onClick, isActive, isCompletedInBatch, 
         </div>
       )}
       {isCompletedInBatch && !isActive && (
-        <div className="flex items-center gap-1.5 mb-2">
+        <div className="flex items-center gap-1 mb-1.5">
           <CheckCircle size={12} className="text-status-green shrink-0" />
-          <span className="text-[11px] text-status-green">Completed in batch</span>
+          <span className="text-[10px] text-status-green">Completed in batch</span>
         </div>
       )}
-      <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center gap-1 flex-wrap">
         {task.worker_type && (
-          <span className="inline-flex items-center rounded-full bg-bg-surface px-2 py-0.5 text-[11px] text-text-muted">
+          <span className="inline-flex items-center rounded-full bg-bg-surface px-2 py-0.5 text-[10px] text-text-muted">
             {task.worker_type}
           </span>
         )}
         {task.risk_level && risk && (
           <span
-            className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
+            className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
             style={{ backgroundColor: risk.bg, color: risk.text }}
           >
             {task.risk_level}

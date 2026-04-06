@@ -4,7 +4,6 @@ import { listen } from "@tauri-apps/api/event";
 import type { ProjectEntry, ProjectSummary } from "./types";
 import Sidebar from "./components/Sidebar";
 import ProjectDashboard from "./components/ProjectDashboard";
-import ProjectOverview from "./components/ProjectOverview";
 import KanbanBoard from "./components/KanbanBoard";
 import MissionHistory from "./components/MissionHistory";
 import DebtDetailPanel from "./components/DebtDetailPanel";
@@ -191,12 +190,22 @@ function App() {
             />
           </div>
         ) : selected ? (
-          <div key={`overview-${selected.path}`} className="flex flex-1 animate-fade-in">
-            <ProjectOverview
-              project={selected}
-              onViewTasks={() => { setSelectedMissionId(null); setView("kanban"); }}
-              onViewHistory={() => setView("history")}
-              onViewDebt={() => setView("debt")}
+          <div key={`dashboard-fallback-${selected.path}`} className="flex flex-1 animate-fade-in">
+            <ProjectDashboard
+              projectPath={selected.path}
+              projectName={selected.name}
+              onViewTasks={(missionId) => {
+                setSelectedMissionId(missionId ?? null);
+                setView("kanban");
+              }}
+              onViewDebt={(missionId) => {
+                setSelectedMissionId(missionId ?? null);
+                setView("debt");
+              }}
+              onViewKanban={(missionId) => {
+                setSelectedMissionId(missionId);
+                setView("kanban");
+              }}
             />
           </div>
         ) : loading ? (
