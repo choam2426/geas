@@ -42,6 +42,9 @@ function App() {
               debt_by_severity: { low: 0, normal: 0, high: 0, critical: 0 },
               last_activity: null,
               status: "error",
+              current_task_id: null,
+              agent_in_flight: null,
+              pipeline_step: null,
             })
           )
         )
@@ -111,7 +114,7 @@ function App() {
             <div className="text-center max-w-md">
               <p className="text-status-red text-lg font-semibold mb-2">Backend Error</p>
               <p className="text-text-secondary text-sm mb-4">{backendError}</p>
-              <button onClick={loadProjects} className="px-4 py-1.5 rounded-md bg-status-blue text-white text-sm cursor-pointer hover:opacity-90 transition-opacity">Retry</button>
+              <button onClick={loadProjects} className="px-4 py-1.5 rounded-md bg-status-blue text-white text-sm cursor-pointer hover:opacity-90 active:scale-95 transition-all">Retry</button>
             </div>
           </div>
         ) : projects.length === 0 && !loading ? (
@@ -157,6 +160,9 @@ function App() {
                   setView("dashboard");
                 }
               }}
+              currentTaskId={selected.current_task_id}
+              agentInFlight={selected.agent_in_flight}
+              pipelineStep={selected.pipeline_step}
             />
           </div>
         ) : selected && view === "history" ? (

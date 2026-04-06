@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { MissionSummary, ProjectSummary } from "../types";
+import { Archive } from "lucide-react";
 import PhaseBadge from "./PhaseBadge";
 import ProgressBar from "./ProgressBar";
 
@@ -83,7 +84,7 @@ export default function ProjectDashboard({
 
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-      <div className="max-w-3xl">
+      <div className="max-w-5xl">
         {/* Header */}
         <div className="mb-6 md:mb-8">
           <h1 className="text-xl md:text-2xl font-bold text-text-primary">
@@ -93,6 +94,25 @@ export default function ProjectDashboard({
             {projectPath}
           </p>
         </div>
+
+        {/* Currently Working Card */}
+        {summary?.agent_in_flight && (
+          <div className="bg-bg-surface rounded-lg p-4 mb-4 border border-border-default border-l-2 border-l-status-green shadow-[0_0_12px_rgba(63,185,80,0.08)]">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2 h-2 rounded-full bg-status-green animate-pulse-dot shrink-0" />
+              <span className="text-xs font-semibold text-text-primary uppercase tracking-wide">Currently working</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-secondary">
+              {summary.current_task_id && (
+                <span>Task: <span className="text-text-primary font-medium">{summary.current_task_id}</span></span>
+              )}
+              <span>Agent: <span className="text-text-primary font-medium">{summary.agent_in_flight}</span></span>
+              {summary.pipeline_step && (
+                <span>Step: <span className="text-text-primary font-medium">{summary.pipeline_step}</span></span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Active Mission Card */}
         <div className="bg-bg-surface rounded-lg p-5 mb-6 border border-border-default border-l-2 border-l-accent">
@@ -111,13 +131,13 @@ export default function ProjectDashboard({
               <div className="flex flex-col md:flex-row gap-2 mt-4">
                 <button
                   onClick={() => onViewTasks()}
-                  className="px-4 py-1.5 rounded-md bg-accent text-white text-sm cursor-pointer hover:opacity-90 transition-opacity"
+                  className="px-4 py-1.5 rounded-md bg-accent text-white text-sm cursor-pointer hover:opacity-90 active:scale-95 transition-all"
                 >
                   View Tasks
                 </button>
                 <button
                   onClick={() => onViewDebt()}
-                  className="px-4 py-1.5 rounded-md bg-bg-elevated text-text-secondary text-sm cursor-pointer hover:text-text-primary hover:bg-bg-elevated/80 transition-all"
+                  className="px-4 py-1.5 rounded-md bg-bg-elevated text-text-secondary text-sm cursor-pointer hover:text-text-primary hover:bg-bg-elevated/80 active:scale-95 transition-all"
                 >
                   View Debt
                 </button>
@@ -129,7 +149,7 @@ export default function ProjectDashboard({
         </div>
 
         {/* Overall Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mb-6">
           <div className="bg-bg-surface rounded-lg p-4 border border-border-default">
             <p className="text-xs font-medium text-text-secondary uppercase tracking-wide mb-1">
               Total Tasks
@@ -176,7 +196,10 @@ export default function ProjectDashboard({
               <p className="text-text-muted text-xs mt-1">{error}</p>
             </div>
           ) : missions.length === 0 ? (
-            <div className="bg-bg-surface rounded-lg p-4 border border-border-default">
+            <div className="bg-bg-surface rounded-lg p-6 border border-border-default text-center">
+              <div className="mb-2 flex justify-center opacity-30">
+                <Archive size={32} />
+              </div>
               <p className="text-sm text-text-muted">No missions yet</p>
             </div>
           ) : (

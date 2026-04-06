@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
 import type { DebtInfo, DebtItem } from "../types";
 import { severityColors, severityOrder } from "../colors";
 
@@ -153,7 +153,12 @@ export default function DebtDetailPanel({
         </div>
       ) : !debt || debt.total === 0 ? (
         <div className="flex flex-1 items-center justify-center">
-          <span className="text-text-muted text-sm">No debt items</span>
+          <div className="text-center">
+            <div className="mb-3 flex justify-center opacity-30">
+              <ShieldCheck size={40} />
+            </div>
+            <span className="text-text-muted text-sm">No debt items -- looking clean</span>
+          </div>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
@@ -231,7 +236,7 @@ function DebtItemCard({ item }: { item: DebtItem }) {
     : null;
 
   return (
-    <div className="bg-bg-surface rounded-lg p-4 border border-border-default hover:-translate-y-px hover:shadow-md transition-all duration-200">
+    <div className="bg-bg-surface rounded-lg p-4 border border-border-default hover:-translate-y-px hover:shadow-md transition-all duration-150">
       <div className="flex items-start gap-2 mb-1.5">
         <span
           className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shrink-0 mt-0.5"
