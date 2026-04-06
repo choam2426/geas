@@ -133,9 +133,9 @@ export default function KanbanBoard({
 
       {/* Content */}
       {loading ? (
-        <div className="flex flex-col md:flex-row gap-2 p-4 flex-1 overflow-auto md:overflow-x-auto">
+        <div className="flex flex-col md:flex-row gap-2 p-4 flex-1 overflow-x-auto overflow-y-auto">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex flex-col bg-bg-surface rounded-lg w-full md:min-w-[140px] md:flex-1 md:shrink-0">
+            <div key={i} className="flex flex-col bg-bg-surface rounded-lg w-full shrink-0 md:w-[calc((100%-4*0.5rem)/5)] md:min-w-[140px]">
               <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-default">
                 <div className="h-3 w-16 rounded bg-bg-elevated animate-skeleton" />
                 <div className="h-4 w-6 rounded-full bg-bg-elevated animate-skeleton" />
@@ -175,15 +175,15 @@ export default function KanbanBoard({
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Kanban columns */}
-          <div className="flex flex-col md:flex-row gap-2 p-4 h-full md:overflow-x-auto">
+          <div className="flex flex-col md:flex-row gap-2 p-4 flex-1 min-h-0 overflow-x-auto overflow-y-auto">
             {COLUMNS.map((col) => {
               const colTasks = tasksByStatus.get(col.key) ?? [];
               return (
                 <div
                   key={col.key}
-                  className="flex flex-col bg-bg-surface rounded-lg w-full md:min-w-[140px] md:flex-1 md:shrink-0"
+                  className="flex flex-col bg-bg-surface rounded-lg w-full shrink-0 md:w-[calc((100%-6*0.5rem)/7)] md:min-w-[140px]"
                 >
                   {/* Column header */}
                   <div className="flex items-center justify-between px-3 py-2.5 h-10 border-b border-border-default">
