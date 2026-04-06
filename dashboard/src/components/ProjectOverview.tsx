@@ -7,6 +7,8 @@ import DebtBadge from "./DebtBadge";
 interface ProjectOverviewProps {
   project: ProjectSummary;
   onViewTasks?: () => void;
+  onViewHistory?: () => void;
+  onViewDebt?: () => void;
 }
 
 function formatActivity(timestamp: string | null): string {
@@ -28,7 +30,7 @@ function formatActivity(timestamp: string | null): string {
   return date.toLocaleDateString();
 }
 
-export default function ProjectOverview({ project, onViewTasks }: ProjectOverviewProps) {
+export default function ProjectOverview({ project, onViewTasks, onViewHistory, onViewDebt }: ProjectOverviewProps) {
   const severities = severityOrder;
   const hasDebt = project.debt_total > 0;
 
@@ -52,15 +54,25 @@ export default function ProjectOverview({ project, onViewTasks }: ProjectOvervie
             completed={project.task_completed}
             total={project.task_total}
           />
-          {/* View Tasks button */}
-          {onViewTasks && (
-            <button
-              onClick={onViewTasks}
-              className="mt-4 px-4 py-1.5 rounded-md bg-accent text-white text-sm cursor-pointer hover:opacity-90 transition-opacity"
-            >
-              View Tasks
-            </button>
-          )}
+          {/* Action buttons */}
+          <div className="flex gap-2 mt-4">
+            {onViewTasks && (
+              <button
+                onClick={onViewTasks}
+                className="px-4 py-1.5 rounded-md bg-accent text-white text-sm cursor-pointer hover:opacity-90 transition-opacity"
+              >
+                View Tasks
+              </button>
+            )}
+            {onViewHistory && (
+              <button
+                onClick={onViewHistory}
+                className="px-4 py-1.5 rounded-md bg-bg-elevated text-text-secondary text-sm cursor-pointer hover:text-text-primary hover:bg-bg-elevated/80 transition-all"
+              >
+                Mission History
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Debt summary card */}
@@ -83,6 +95,14 @@ export default function ProjectOverview({ project, onViewTasks }: ProjectOvervie
             </div>
           ) : (
             <p className="text-sm text-text-muted">No debt recorded</p>
+          )}
+          {onViewDebt && hasDebt && (
+            <button
+              onClick={onViewDebt}
+              className="mt-3 px-4 py-1.5 rounded-md bg-bg-elevated text-text-secondary text-sm cursor-pointer hover:text-text-primary hover:bg-bg-elevated/80 transition-all"
+            >
+              View Debt Details
+            </button>
           )}
         </div>
 

@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { RefreshCw, X, AlertTriangle, AlertCircle, Plus } from "lucide-react";
+import { RefreshCw, X, AlertTriangle, AlertCircle, Plus, History } from "lucide-react";
 import type { ProjectSummary } from "../types";
 import PhaseBadge from "./PhaseBadge";
 
@@ -10,6 +10,7 @@ interface SidebarProps {
   onAddProject: () => void;
   onRemoveProject: (path: string) => void;
   onRefresh: () => void;
+  onViewHistory?: () => void;
   loading: boolean;
 }
 
@@ -38,6 +39,7 @@ export default function Sidebar({
   onAddProject,
   onRemoveProject,
   onRefresh,
+  onViewHistory,
   loading,
 }: SidebarProps) {
   function handleRemove(e: React.MouseEvent, path: string, name: string) {
@@ -56,16 +58,27 @@ export default function Sidebar({
         <span className="text-sm font-semibold text-text-primary tracking-tight">
           Geas
         </span>
-        <button
-          onClick={onRefresh}
-          disabled={loading}
-          className={`text-text-muted hover:text-text-primary text-xs transition-colors duration-150 cursor-pointer ${
-            loading ? "animate-spin" : ""
-          }`}
-          title="Refresh all"
-        >
-          {loading ? "..." : <RefreshCw size={14} />}
-        </button>
+        <div className="flex items-center gap-1.5">
+          {onViewHistory && (
+            <button
+              onClick={onViewHistory}
+              className="text-text-muted hover:text-text-primary text-xs transition-colors duration-150 cursor-pointer"
+              title="Mission history"
+            >
+              <History size={14} />
+            </button>
+          )}
+          <button
+            onClick={onRefresh}
+            disabled={loading}
+            className={`text-text-muted hover:text-text-primary text-xs transition-colors duration-150 cursor-pointer ${
+              loading ? "animate-spin" : ""
+            }`}
+            title="Refresh all"
+          >
+            {loading ? "..." : <RefreshCw size={14} />}
+          </button>
+        </div>
       </div>
 
       {/* Project list */}

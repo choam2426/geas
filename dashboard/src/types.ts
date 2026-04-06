@@ -37,10 +37,22 @@ export interface DebtItem {
   kind: string | null;
   title: string;
   status: string | null;
+  description: string | null;
+  introduced_by_task_id: string | null;
 }
 
 export interface DebtInfo {
   total: number;
   by_severity: { low: number; normal: number; high: number; critical: number };
   items: DebtItem[];
+}
+
+export interface MissionSummary {
+  mission_id: string;
+  mission_name: string | null;
+  phase: string | null;
+  task_total: number;
+  task_completed: number;
+  is_active: boolean;
+  created_at: string | null;
 }

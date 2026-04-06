@@ -25,12 +25,14 @@ const AUXILIARY_STATES = [
 interface KanbanBoardProps {
   projectPath: string;
   projectName: string;
+  missionId?: string | null;
   onBack: () => void;
 }
 
 export default function KanbanBoard({
   projectPath,
   projectName,
+  missionId,
   onBack,
 }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<TaskInfo[]>([]);
@@ -45,9 +47,15 @@ export default function KanbanBoard({
       setLoading(true);
       setError(null);
       try {
+        const taskParams: Record<string, string> = { path: projectPath };
+        const debtParams: Record<string, string> = { path: projectPath };
+        if (missionId) {
+          taskParams.mission_id = missionId;
+          debtParams.mission_id = missionId;
+        }
         const [taskResult, debtResult] = await Promise.all([
-          invoke<TaskInfo[]>("get_project_tasks", { path: projectPath }),
-          invoke<DebtInfo>("get_project_debt", { path: projectPath }).catch(
+          invoke<TaskInfo[]>("get_project_tasks", taskParams),
+          invoke<DebtInfo>("get_project_debt", debtParams).catch(
             (): DebtInfo => ({
               total: 0,
               by_severity: { low: 0, normal: 0, high: 0, critical: 0 },
@@ -74,7 +82,7 @@ export default function KanbanBoard({
     return () => {
       cancelled = true;
     };
-  }, [projectPath]);
+  }, [projectPath, missionId]);
 
   const tasksByStatus = new Map<string, TaskInfo[]>();
   for (const col of COLUMNS) {
