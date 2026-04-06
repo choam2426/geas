@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import type { DebtInfo, DebtItem } from "../types";
-import { severityColors, severityOrder } from "../colors";
+import { severityColors, severityOrder, debtStatusColors } from "../colors";
 import DebtDetailModal from "./DebtDetailModal";
 
 interface DebtDetailPanelProps {
@@ -14,13 +14,6 @@ interface DebtDetailPanelProps {
 
 type SeverityFilter = "critical" | "high" | "normal" | "low";
 type StatusFilter = "all" | "open" | "resolved";
-
-const statusColors: Record<string, { bg: string; text: string }> = {
-  open: { bg: "rgba(88,166,255,0.15)", text: "#58a6ff" },
-  resolved: { bg: "rgba(63,185,80,0.15)", text: "#3fb950" },
-  accepted: { bg: "rgba(210,153,34,0.15)", text: "#d29922" },
-  mitigated: { bg: "rgba(139,148,158,0.15)", text: "#8b949e" },
-};
 
 export default function DebtDetailPanel({
   projectPath,
@@ -238,7 +231,7 @@ export default function DebtDetailPanel({
 function DebtItemCard({ item, onClick }: { item: DebtItem; onClick?: () => void }) {
   const sevColors = severityColors[item.severity] ?? severityColors.normal;
   const stColors = item.status
-    ? statusColors[item.status] ?? statusColors.open
+    ? debtStatusColors[item.status] ?? debtStatusColors.open
     : null;
 
   return (
