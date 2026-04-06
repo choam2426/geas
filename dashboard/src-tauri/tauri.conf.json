@@ -11,7 +11,7 @@
   },
   "app": {
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; connect-src ipc: http://ipc.localhost"
     },
     "windows": [
       {
