@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { ProjectEntry, ProjectSummary } from "./types";
 import Sidebar from "./components/Sidebar";
 import ProjectOverview from "./components/ProjectOverview";
+import KanbanBoard from "./components/KanbanBoard";
 import EmptyState from "./components/EmptyState";
 import ErrorState from "./components/ErrorState";
 import AddProjectDialog from "./components/AddProjectDialog";
@@ -10,6 +11,7 @@ import AddProjectDialog from "./components/AddProjectDialog";
 function App() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [view, setView] = useState<"overview" | "kanban">("overview");
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [backendError, setBackendError] = useState<string | null>(null);
@@ -76,7 +78,7 @@ function App() {
       <Sidebar
         projects={projects}
         selectedPath={selectedPath}
-        onSelect={setSelectedPath}
+        onSelect={(path) => { setSelectedPath(path); setView("overview"); }}
         onAddProject={() => setShowAddDialog(true)}
         onRemoveProject={handleRemoveProject}
         onRefresh={loadProjects}
@@ -100,8 +102,17 @@ function App() {
             projectName={selected.name}
             projectPath={selected.path}
           />
+        ) : selected && view === "kanban" ? (
+          <KanbanBoard
+            projectPath={selected.path}
+            projectName={selected.mission_name ?? selected.name}
+            onBack={() => setView("overview")}
+          />
         ) : selected ? (
-          <ProjectOverview project={selected} />
+          <ProjectOverview
+            project={selected}
+            onViewTasks={() => setView("kanban")}
+          />
         ) : loading ? (
           <div className="flex flex-1 items-center justify-center">
             <span className="text-text-muted text-sm">Loading...</span>
