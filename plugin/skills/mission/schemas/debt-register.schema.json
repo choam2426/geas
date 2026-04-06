@@ -27,7 +27,6 @@
     "producer_type": {
       "type": "string",
       "enum": [
-        "process_lead",
         "design_authority",
         "product_authority"
       ]
@@ -69,7 +68,7 @@
           "kind": {
             "type": "string",
             "enum": [
-              "code_quality",
+              "output_quality",
               "architecture",
               "security",
               "docs",
@@ -124,7 +123,7 @@
     "rollup_by_kind": {
       "type": "object",
       "properties": {
-        "code_quality": { "type": "integer", "minimum": 0 },
+        "output_quality": { "type": "integer", "minimum": 0 },
         "architecture": { "type": "integer", "minimum": 0 },
         "security": { "type": "integer", "minimum": 0 },
         "docs": { "type": "integer", "minimum": 0 },

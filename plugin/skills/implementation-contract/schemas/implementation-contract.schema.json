@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ImplementationContract",
-  "description": "Pre-implementation agreement between worker and reviewers. Worker proposes concrete actions, edge case handling, and demo steps. quality_specialist and design_authority approve before implementation begins.",
+  "description": "Pre-implementation agreement between worker and reviewers. Worker proposes concrete actions, edge case handling, and demo steps. qa_engineer and design_authority approve before implementation begins.",
   "type": "object",
   "additionalProperties": false,
   "properties": {

@@ -22,7 +22,7 @@
     "retry_budget",
     "scope",
     "routing",
-    "base_commit",
+    "base_snapshot",
     "status"
   ],
   "properties": {
@@ -55,7 +55,7 @@
     },
     "task_kind": {
       "type": "string",
-      "enum": ["implementation", "docs", "config", "design", "audit", "release"]
+      "enum": ["implementation", "documentation", "configuration", "design", "review", "analysis", "delivery"]
     },
     "risk_level": {
       "type": "string",
@@ -117,14 +117,14 @@
     "scope": {
       "type": "object",
       "properties": {
-        "paths": {
+        "surfaces": {
           "type": "array",
           "items": {
             "type": "string"
           }
         }
       },
-      "required": ["paths"],
+      "required": ["surfaces"],
       "additionalProperties": false
     },
     "routing": {
@@ -144,7 +144,7 @@
       "required": ["primary_worker_type", "required_reviewer_types"],
       "additionalProperties": false
     },
-    "base_commit": {
+    "base_snapshot": {
       "type": "string"
     },
     "status": {

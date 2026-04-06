@@ -5,7 +5,7 @@
   "additionalProperties": false,
   "required": [
     "version", "artifact_type", "artifact_id", "producer_type", "created_at",
-    "task_id", "base_commit", "tip_commit", "scope_overlap",
+    "task_id", "base_snapshot", "tip_commit", "scope_overlap",
     "overlapping_paths", "classification", "action_taken"
   ],
   "properties": {
@@ -15,7 +15,7 @@
     "producer_type": { "$ref": "_defs.schema.json#/$defs/agentType" },
     "created_at": { "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp" },
     "task_id": { "type": "string" },
-    "base_commit": { "type": "string" },
+    "base_snapshot": { "type": "string" },
     "tip_commit": { "type": "string" },
     "scope_overlap": { "type": "boolean" },
     "overlapping_paths": {
