@@ -46,11 +46,12 @@ Gate verdicts: `pass | fail | block | error`. `iterate` is Final Verdict only.
 ```
 plugin/
 ├── plugin.json              # Claude plugin manifest
-├── skills/
-│   ├── core/                # Contract engine skills (13)
-│   │   └── mission/         # Geas orchestrator (renamed from orchestrating)
-│   └── utility/
-│       └── software/        # SW-specific utilities (2)
+├── skills/                  # 15 skills (13 core + 2 utility)
+│   ├── mission/             # Geas orchestrator
+│   ├── intake/              # Requirements gathering
+│   ├── ...                  # (13 core contract engine skills)
+│   ├── write-prd/           # SW utility
+│   └── write-stories/       # SW utility
 └── agents/
     ├── authority/           # 3 spawnable authority agents
     ├── software/            # 5 software domain specialists
@@ -90,8 +91,8 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 - `mission/references/evolving.md` — Evolving phase procedure
 
 ### Utility skills (domain-specific)
-- `utility/software/write-prd/` — PRD generation
-- `utility/software/write-stories/` — user story generation
+- `write-prd/` — PRD generation
+- `write-stories/` — user story generation
 
 ## Key Design Principles
 
@@ -156,7 +157,7 @@ v3 protocol migration (6 phases) is complete. Domain-agnostic restructure is in 
 
 ### Domain-agnostic restructure (complete)
 
-Plugin restructured: agents split into authority/ (3) + software/ (5) + research/ (6), skills into core/ (13) + utility/software/ (2). Slot-based agent routing via domain profiles replaces hardcoded agent references. orchestrating renamed to mission. Hooks cleaned up (19 → 16). All docs updated.
+Plugin restructured: agents split into authority/ (3) + software/ (5) + research/ (6), skills consolidated to 15 (flat structure). Slot-based agent routing via domain profiles replaces hardcoded agent references. orchestrating renamed to mission. Hooks cleaned up (19 → 16). All docs updated.
 
 ### Working with skills
 

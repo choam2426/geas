@@ -125,7 +125,7 @@ Communication specialist ensuring research findings are presented clearly and ac
 The Orchestrator resolves abstract slots to concrete agent types at mission startup:
 
 1. The mission spec declares `domain_profile` (e.g., `"software"`, `"research"`).
-2. The Orchestrator reads `profiles.json` (in `plugin/skills/core/mission/references/`) to get the slot-to-agent mapping for that profile.
+2. The Orchestrator reads `profiles.json` (in `plugin/skills/mission/references/`) to get the slot-to-agent mapping for that profile.
 3. Authority agents (product-authority, design-authority, challenger) are shared across all profiles.
 4. When spawning an agent, the Orchestrator looks up the slot in the active profile and spawns the corresponding agent type.
 

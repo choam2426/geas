@@ -272,23 +272,22 @@ This is not a best-effort recovery — it is a protocol guarantee. The anti-forg
 ```
 plugin/
 ├── plugin.json                # Manifest
-├── skills/
-│   ├── core/                  # 13 contract engine skills
-│   │   ├── mission/           # Orchestrator: 4-phase pipeline, slot resolution
-│   │   ├── intake/            # Requirements gathering
-│   │   ├── task-compiler/     # Mission spec → TaskContracts
-│   │   ├── context-packet/    # Role-specific briefings
-│   │   ├── implementation-contract/
-│   │   ├── evidence-gate/     # Tier 0/1/2 verification
-│   │   ├── verify-fix-loop/
-│   │   ├── vote-round/        # Structured voting and decisions
-│   │   ├── memorizing/        # Memory lifecycle
-│   │   ├── scheduling/        # Parallel task scheduling
-│   │   ├── setup/             # Project init + codebase discovery
-│   │   ├── policy-managing/
-│   │   └── reporting/         # Health signals, briefing, summaries
-│   └── utility/
-│       └── software/          # Domain-specific helpers (write-prd, write-stories)
+├── skills/                    # 15 skills (13 core + 2 utility, flat)
+│   ├── mission/               # Orchestrator: 4-phase pipeline, slot resolution
+│   ├── intake/                # Requirements gathering
+│   ├── task-compiler/         # Mission spec → TaskContracts
+│   ├── context-packet/        # Role-specific briefings
+│   ├── implementation-contract/
+│   ├── evidence-gate/         # Tier 0/1/2 verification
+│   ├── verify-fix-loop/
+│   ├── vote-round/            # Structured voting and decisions
+│   ├── memorizing/            # Memory lifecycle
+│   ├── scheduling/            # Parallel task scheduling
+│   ├── setup/                 # Project init + codebase discovery
+│   ├── policy-managing/
+│   ├── reporting/             # Health signals, briefing, summaries
+│   ├── write-prd/             # SW utility: PRD generation
+│   └── write-stories/         # SW utility: story generation
 ├── agents/
 │   ├── authority/             # 3 spawnable (product-authority, design-authority, challenger)
 │   ├── software/              # 5 specialists (software-engineer, qa-engineer, security-engineer, platform-engineer, technical-writer)

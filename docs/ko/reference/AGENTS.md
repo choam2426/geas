@@ -125,7 +125,7 @@ Trust boundary와 공격 면에 집중하는 위험 평가자. Trust boundary를
 Orchestrator는 mission 시작 시 추상적 slot을 구체적 agent 타입으로 해석한다:
 
 1. Mission spec이 `domain_profile`을 선언한다 (예: `"software"`, `"research"`).
-2. Orchestrator가 `profiles.json`(`plugin/skills/core/mission/references/` 내)을 읽어 해당 profile의 slot-agent 매핑을 가져온다.
+2. Orchestrator가 `profiles.json`(`plugin/skills/mission/references/` 내)을 읽어 해당 profile의 slot-agent 매핑을 가져온다.
 3. Authority agent(product-authority, design-authority, challenger)는 모든 profile에 공유된다.
 4. Agent 스폰 시, Orchestrator는 활성 profile에서 slot을 조회하여 대응하는 agent 타입을 스폰한다.
 
