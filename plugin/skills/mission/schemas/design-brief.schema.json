@@ -89,7 +89,7 @@
           }
         }
       },
-      "description": "standard and full_depth. Technical decisions with rationale."
+      "description": "full_depth only. Technical decisions with rationale."
     },
     "risks": {
       "type": "array",
@@ -102,17 +102,17 @@
           "mitigation": { "type": "string" }
         }
       },
-      "description": "standard and full_depth. Identified risks with mitigation plans."
+      "description": "full_depth only. Identified risks with mitigation plans."
     },
     "preserve_list": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "standard and full_depth. Existing behavior/files that must not change."
+      "description": "full_depth only. Existing behavior/files that must not change."
     },
     "unresolved_assumptions": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Full depth only. Assumptions not yet validated."
+      "description": "full_depth only. Assumptions not yet validated."
     },
     "design_review": {
       "type": "object",

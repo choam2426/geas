@@ -19,10 +19,6 @@
       "type": ["string", "null"],
       "description": "Mission statement from current mission spec"
     },
-    "mission_id": {
-      "type": ["string", "null"],
-      "description": "Current mission file reference (e.g., mission-003)"
-    },
     "phase": {
       "type": ["string", "null"],
       "enum": ["specifying", "building", "polishing", "evolving", "complete", null],
@@ -71,7 +67,7 @@
       "properties": {
         "pipeline_step": {
           "type": ["string", "null"],
-          "description": "Current pipeline step name (e.g., 'specialist_review', 'testing')"
+          "description": "Current pipeline step name (e.g., 'specialist_review', 'evidence_gate')"
         },
         "agent_in_flight": {
           "type": ["string", "null"],

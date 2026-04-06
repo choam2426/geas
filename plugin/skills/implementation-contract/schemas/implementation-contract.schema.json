@@ -1,27 +1,63 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ImplementationContract",
-  "description": "Pre-implementation agreement between worker and reviewers. Worker proposes concrete actions, edge case handling, and demo steps. qa_engineer and design_authority approve before implementation begins.",
+  "description": "Pre-implementation agreement between worker and reviewers. Worker proposes concrete actions, edge case handling, and demo steps. qa_engineer and design_authority approve before implementation begins. Canonical protocol schema.",
   "type": "object",
   "additionalProperties": false,
+  "required": [
+    "version",
+    "artifact_type",
+    "artifact_id",
+    "producer_type",
+    "task_id",
+    "worker",
+    "planned_actions",
+    "edge_cases",
+    "non_goals",
+    "demo_steps",
+    "status",
+    "created_at"
+  ],
   "properties": {
     "version": {
       "type": "string",
       "const": "1.0"
     },
+    "artifact_type": {
+      "type": "string",
+      "const": "implementation_contract"
+    },
+    "artifact_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "producer_type": {
+      "type": "string",
+      "description": "The worker agent type that drafted this contract"
+    },
     "task_id": {
       "type": "string",
+      "minLength": 1,
       "description": "Reference to the parent TaskContract"
     },
     "worker": {
       "type": "string",
-      "description": "Agent who will implement (the assigned implementer)"
+      "description": "Agent type who will implement (e.g., 'software_engineer', 'platform_engineer')"
+    },
+    "plan": {
+      "type": "string",
+      "description": "Implementation approach plan"
     },
     "planned_actions": {
       "type": "array",
       "items": { "type": "string" },
       "minItems": 1,
       "description": "Concrete actions the worker will take to fulfill the TaskContract"
+    },
+    "affected_surfaces": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Surfaces the implementation will create or modify"
     },
     "edge_cases": {
       "type": "array",
@@ -32,7 +68,7 @@
     "state_transitions": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "State transitions the implementation will introduce (e.g., 'unauthenticated -> authenticated')"
+      "description": "State transitions the implementation will introduce"
     },
     "non_goals": {
       "type": "array",
@@ -46,10 +82,20 @@
       "minItems": 1,
       "description": "Step-by-step procedure to demonstrate and verify completion"
     },
+    "known_risks": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Known risks identified during contract drafting"
+    },
+    "required_checks": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Verification checks the worker must pass before declaring completion"
+    },
     "approved_by": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Agents who approved the contract (e.g., ['quality-specialist', 'design-authority'])"
+      "description": "Agent types who approved the contract (e.g., ['qa_engineer', 'design_authority'])"
     },
     "approval_notes": {
       "type": "string",
@@ -64,6 +110,5 @@
       "type": "string",
       "format": "date-time"
     }
-  },
-  "required": ["version", "task_id", "worker", "planned_actions", "edge_cases", "non_goals", "demo_steps", "status", "created_at"]
+  }
 }
