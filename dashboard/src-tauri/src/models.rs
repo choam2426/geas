@@ -62,6 +62,15 @@ pub struct TaskContract {
     pub routing: Option<TaskRouting>,
 }
 
+/// .geas/missions/{id}/spec.json (partial — only fields we need)
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct MissionSpec {
+    #[serde(default)]
+    pub mission: Option<String>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+}
+
 /// Single debt item
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct DebtItem {
@@ -77,6 +86,8 @@ pub struct DebtItem {
     pub description: Option<String>,
     #[serde(default)]
     pub status: Option<String>,
+    #[serde(default)]
+    pub introduced_by_task_id: Option<String>,
 }
 
 /// Severity rollup counts
@@ -105,6 +116,17 @@ pub struct DebtRegister {
 // ---------------------------------------------------------------------------
 // Frontend return types (Serialize for Tauri IPC)
 // ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MissionSummary {
+    pub mission_id: String,
+    pub mission_name: Option<String>,
+    pub phase: Option<String>,
+    pub task_total: u32,
+    pub task_completed: u32,
+    pub is_active: bool,
+    pub created_at: Option<String>,
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ProjectSummary {
@@ -146,6 +168,8 @@ pub struct DebtItemInfo {
     pub kind: Option<String>,
     pub title: String,
     pub status: Option<String>,
+    pub description: Option<String>,
+    pub introduced_by_task_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

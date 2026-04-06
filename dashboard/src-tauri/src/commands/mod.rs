@@ -2,14 +2,14 @@
 mod tests;
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use std::sync::Mutex;
 
 use crate::config;
 use crate::models::{
-    DebtInfo, DebtItemInfo, DebtRegister, ProjectEntry, ProjectSummary, RunState,
-    SeverityRollup, TaskContract, TaskInfo,
+    DebtInfo, DebtItemInfo, DebtRegister, MissionSpec, MissionSummary, ProjectEntry,
+    ProjectSummary, RunState, SeverityRollup, TaskContract, TaskInfo,
 };
 
 // ---------------------------------------------------------------------------
@@ -179,38 +179,24 @@ pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
 }
 
 #[tauri::command]
-pub fn get_project_tasks(path: String) -> Result<Vec<TaskInfo>, String> {
+pub fn get_project_tasks(path: String, mission_id: Option<String>) -> Result<Vec<TaskInfo>, String> {
     let geas = geas_dir(&path)?;
-    let run_path = geas.join("state").join("run.json");
 
-    let run_state: RunState = read_json_file(&run_path)?
-        .ok_or_else(|| "No run.json found — project may not be initialized".to_string())?;
+    let resolved_id = resolve_mission_id(&geas, mission_id)?;
 
-    let mission_id = run_state
-        .mission_id
-        .filter(|id| !id.is_empty())
-        .ok_or_else(|| "No active mission".to_string())?;
-
-    let tasks_dir = geas.join("missions").join(&mission_id).join("tasks");
+    let tasks_dir = geas.join("missions").join(&resolved_id).join("tasks");
     read_task_files(&tasks_dir)
 }
 
 #[tauri::command]
-pub fn get_project_debt(path: String) -> Result<DebtInfo, String> {
+pub fn get_project_debt(path: String, mission_id: Option<String>) -> Result<DebtInfo, String> {
     let geas = geas_dir(&path)?;
-    let run_path = geas.join("state").join("run.json");
 
-    let run_state: RunState = read_json_file(&run_path)?
-        .ok_or_else(|| "No run.json found — project may not be initialized".to_string())?;
-
-    let mission_id = run_state
-        .mission_id
-        .filter(|id| !id.is_empty())
-        .ok_or_else(|| "No active mission".to_string())?;
+    let resolved_id = resolve_mission_id(&geas, mission_id)?;
 
     let debt_path = geas
         .join("missions")
-        .join(&mission_id)
+        .join(&resolved_id)
         .join("evolution")
         .join("debt-register.json");
 
@@ -228,6 +214,8 @@ pub fn get_project_debt(path: String) -> Result<DebtInfo, String> {
             kind: item.kind,
             title: item.title.unwrap_or_default(),
             status: item.status,
+            description: item.description,
+            introduced_by_task_id: item.introduced_by_task_id,
         })
         .collect();
 
@@ -236,6 +224,77 @@ pub fn get_project_debt(path: String) -> Result<DebtInfo, String> {
         by_severity,
         items,
     })
+}
+
+#[tauri::command]
+pub fn get_mission_history(path: String) -> Result<Vec<MissionSummary>, String> {
+    let geas = geas_dir(&path)?;
+
+    // Read run.json to identify the active mission
+    let run_path = geas.join("state").join("run.json");
+    let run_state: Option<RunState> = read_json_file(&run_path)?;
+    let active_mission_id = run_state
+        .as_ref()
+        .and_then(|rs| rs.mission_id.clone())
+        .filter(|id| !id.is_empty());
+    let active_phase = run_state.as_ref().and_then(|rs| rs.phase.clone());
+
+    // Scan .geas/missions/ for mission-* directories
+    let missions_dir = geas.join("missions");
+    if !missions_dir.is_dir() {
+        return Ok(vec![]);
+    }
+
+    let entries = fs::read_dir(&missions_dir)
+        .map_err(|e| format!("Failed to read missions dir: {e}"))?;
+
+    let mut summaries = Vec::new();
+
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("Error reading dir entry: {e}"))?;
+        let dir_path = entry.path();
+
+        if !dir_path.is_dir() {
+            continue;
+        }
+
+        let dir_name = match dir_path.file_name().and_then(|n| n.to_str()) {
+            Some(name) if name.starts_with("mission-") => name.to_string(),
+            _ => continue,
+        };
+
+        // Read spec.json for mission name and created_at
+        let spec_path = dir_path.join("spec.json");
+        let spec: MissionSpec = read_json_file(&spec_path)?.unwrap_or_default();
+
+        // Count tasks
+        let tasks_dir = dir_path.join("tasks");
+        let (task_total, task_completed) = count_tasks(&tasks_dir)?;
+
+        let is_active = active_mission_id.as_deref() == Some(dir_name.as_str());
+
+        // Determine phase
+        let phase = if is_active {
+            active_phase.clone()
+        } else {
+            infer_phase(task_total, task_completed, &tasks_dir)?
+        };
+
+        summaries.push(MissionSummary {
+            mission_id: dir_name,
+            mission_name: spec.mission,
+            phase,
+            task_total,
+            task_completed,
+            is_active,
+            created_at: spec.created_at,
+        });
+    }
+
+    // Sort by mission_id descending (latest first)
+    summaries.sort_by(|a, b| b.mission_id.cmp(&a.mission_id));
+
+    Ok(summaries)
 }
 
 // ---------------------------------------------------------------------------
@@ -309,6 +368,57 @@ pub fn remove_project(
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+/// Resolve a mission ID: use the provided one or fall back to run.json's active mission.
+fn resolve_mission_id(geas: &Path, mission_id: Option<String>) -> Result<String, String> {
+    if let Some(id) = mission_id.filter(|id| !id.is_empty()) {
+        return Ok(id);
+    }
+
+    let run_path = geas.join("state").join("run.json");
+    let run_state: RunState = read_json_file(&run_path)?
+        .ok_or_else(|| "No run.json found — project may not be initialized".to_string())?;
+
+    run_state
+        .mission_id
+        .filter(|id| !id.is_empty())
+        .ok_or_else(|| "No active mission".to_string())
+}
+
+/// Infer the phase for a non-active mission based on task statuses.
+fn infer_phase(task_total: u32, task_completed: u32, tasks_dir: &Path) -> Result<Option<String>, String> {
+    if task_total == 0 {
+        return Ok(None);
+    }
+
+    if task_completed == task_total {
+        return Ok(Some("complete".to_string()));
+    }
+
+    // Check if any task is in an active state
+    if tasks_dir.is_dir() {
+        let entries = fs::read_dir(tasks_dir)
+            .map_err(|e| format!("Failed to read tasks dir: {e}"))?;
+
+        for entry in entries {
+            let entry = entry.map_err(|e| format!("Error reading dir entry: {e}"))?;
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("json") {
+                continue;
+            }
+            if let Some(tc) = read_json_file::<TaskContract>(&path)? {
+                match tc.status.as_deref() {
+                    Some("implementing") | Some("reviewed") | Some("integrated") => {
+                        return Ok(Some("building".to_string()));
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    Ok(None)
+}
 
 /// Count total and completed ("passed") tasks in a tasks directory.
 fn count_tasks(tasks_dir: &PathBuf) -> Result<(u32, u32), String> {
