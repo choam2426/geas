@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::commands::{name_from_path, read_json_file};
-use crate::models::{DebtItem, DebtRegister, MissionSpec, RunState, SeverityRollup, TaskContract};
+use crate::models::{DebtItem, DebtRegister, MissionSpec, RunState, SeverityRollup, TaskContract, TaskScope};
 
 #[test]
 fn name_from_unix_path() {
@@ -88,6 +88,50 @@ fn task_contract_all_optional_missing() {
     assert!(tc.risk_level.is_none());
     assert!(tc.task_kind.is_none());
     assert!(tc.routing.is_none());
+    assert!(tc.acceptance_criteria.is_empty());
+    assert!(tc.scope.is_none());
+}
+
+#[test]
+fn task_contract_with_acceptance_criteria_and_scope() {
+    let json = r#"{
+        "task_id": "task-012",
+        "title": "Extend TaskInfo",
+        "acceptance_criteria": [
+            "TaskContract includes acceptance_criteria field",
+            "TaskInfo includes scope_surfaces field"
+        ],
+        "scope": {
+            "surfaces": ["models.rs", "commands/mod.rs"]
+        }
+    }"#;
+
+    let tc: TaskContract = serde_json::from_str(json).unwrap();
+    assert_eq!(tc.acceptance_criteria.len(), 2);
+    assert_eq!(tc.acceptance_criteria[0], "TaskContract includes acceptance_criteria field");
+    let scope = tc.scope.unwrap();
+    assert_eq!(scope.surfaces.len(), 2);
+    assert_eq!(scope.surfaces[0], "models.rs");
+}
+
+#[test]
+fn task_contract_empty_acceptance_criteria_and_scope() {
+    let json = r#"{
+        "task_id": "task-099",
+        "acceptance_criteria": [],
+        "scope": { "surfaces": [] }
+    }"#;
+
+    let tc: TaskContract = serde_json::from_str(json).unwrap();
+    assert!(tc.acceptance_criteria.is_empty());
+    assert!(tc.scope.unwrap().surfaces.is_empty());
+}
+
+#[test]
+fn task_scope_defaults() {
+    let json = "{}";
+    let ts: TaskScope = serde_json::from_str(json).unwrap();
+    assert!(ts.surfaces.is_empty());
 }
 
 #[test]

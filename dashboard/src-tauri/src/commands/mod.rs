@@ -482,6 +482,8 @@ fn read_task_files(tasks_dir: &PathBuf) -> Result<Vec<TaskInfo>, String> {
                     .routing
                     .as_ref()
                     .and_then(|r| r.primary_worker_type.clone()),
+                acceptance_criteria: tc.acceptance_criteria,
+                scope_surfaces: tc.scope.map(|s| s.surfaces).unwrap_or_default(),
             });
         }
     }
