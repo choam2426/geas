@@ -147,11 +147,49 @@ Omit sections marked `[standard+]` for lightweight missions. Omit sections marke
 
 ### 5. Task List User Approval
 
-Present the compiled task list to the user:
-- Task ID, title, goal
-- Dependencies between tasks
-- Suggested execution order
-- Risk level per task
+Present a structured task list to the user:
+
+```
+═══════════════════════════════════════════════════
+  TASK LIST — {mission_id} ({N} tasks)
+═══════════════════════════════════════════════════
+
+─── EXECUTION ORDER ───────────────────────────────
+
+  {task-001} → {task-002} → {task-003}
+                          ↘ {task-004} (parallel OK)
+
+─── TASK DETAILS ──────────────────────────────────
+
+  ┌ {task-001}: {title}
+  │ Kind:       {task_kind}
+  │ Risk:       {risk_level}
+  │ Worker:     {primary_worker_type (slot)} → {concrete agent}
+  │ Reviewers:  {required_reviewer_types (slots)}
+  │ Gate:       {gate_profile}
+  │ Vote:       {vote_round_policy}
+  │ Goal:       {goal — what this task accomplishes}
+  │ Criteria:
+  │   1. {acceptance criterion}
+  │   2. {acceptance criterion}
+  │   3. ...
+  │ Surfaces:   {scope.surfaces — what areas are affected}
+  │ Depends on: {dependencies, or "none"}
+  └─────────────────────────────────────────────
+
+  ┌ {task-002}: {title}
+  │ ...
+  └─────────────────────────────────────────────
+
+─── SUMMARY ───────────────────────────────────────
+
+  Total:        {N} tasks
+  Risk profile: {X low, Y normal, Z high}
+  Parallelizable: {list of tasks that can run in parallel}
+  Estimated review slots: {which specialist slots will be active}
+
+═══════════════════════════════════════════════════
+```
 
 **If approved**: log `{"event": "task_list_approved", "mission_id": "...", "task_count": N, "timestamp": "<actual>"}`
 
