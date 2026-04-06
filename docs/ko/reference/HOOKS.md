@@ -226,7 +226,7 @@ sub-agent가 생성될 때마다 실행된다. 프로젝트 규칙과 agent별 m
 
 **Evidence 검사:**
 
-1. **Required reviewer evidence** — task의 `routing.required_reviewer_types`를 읽는다. reviewer 유형마다 kebab-case와 underscore 명명 변형으로 evidence 파일을 탐색한다 (예: `architecture-authority-review.json`, `architecture_authority.json`). 없으면 경고한다.
+1. **Required reviewer evidence** — task의 `routing.required_reviewer_types`를 읽는다. reviewer 유형마다 kebab-case와 underscore 명명 변형으로 evidence 파일을 탐색한다 (예: `design-authority-review.json`, `design_authority.json`). 없으면 경고한다.
 2. **Product authority verdict** — 항상 필수: `product-authority-verdict.json`.
 3. **Challenge review** — `high` 또는 `critical` 위험도 task에만 필수: `challenge-review.json`.
 4. **Retrospective** — 항상 필수: `retrospective.json`.

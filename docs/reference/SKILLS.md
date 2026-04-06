@@ -17,7 +17,7 @@ Skills are invoked via `/geas:{name}`. Most skills are invoked by the orchestrat
 | `intake` | Socratic requirements gathering | Freezes a mission spec through collaborative exploration |
 | `task-compiler` | Mission spec to TaskContracts | Compiles stories into machine-readable work agreements with rubrics |
 | `context-packet` | Role-specific briefings | Generates focused context for each worker, with memory retrieval |
-| `implementation-contract` | Pre-implementation agreement | Worker proposes plan, reviewers approve before coding begins |
+| `implementation-contract` | Pre-implementation agreement | Worker proposes plan, reviewers approve before implementation begins |
 | `evidence-gate` | Tier 0/1/2 verification | Objectively verifies worker output against the TaskContract |
 | `verify-fix-loop` | Fail, fix, re-verify | Bounded retry loop with escalation when budget exhausts |
 | `vote-round` | Structured voting and decisions | Parallel agent voting on proposals; disagreement triggers decision |
@@ -53,13 +53,13 @@ Generates role-specific briefings for workers. Each worker type receives only th
 
 ### implementation-contract
 
-Pre-implementation agreement. Worker drafts a concrete action plan (`planned_actions`, `edge_cases`, `demo_steps`), then quality specialist and design authority review before coding begins. Prevents wasted cycles from misunderstood requirements.
+Pre-implementation agreement. Worker drafts a concrete action plan (`planned_actions`, `edge_cases`, `demo_steps`), then quality specialist and design authority review before implementation begins. Prevents wasted cycles from misunderstood requirements.
 
 **Invocation:** Called by `mission` after tech guide and before implementation.
 
 ### evidence-gate
 
-Objective verification gate. Tier 0 (Precheck) checks artifact existence and state eligibility. Tier 1 (Mechanical) executes eval commands. Tier 2 (Contract + Rubric) checks acceptance criteria and scores rubric dimensions. Returns `pass`, `fail`, `block`, or `error`. After gate pass, the flow continues to Closure Packet, Critical Reviewer challenge, and Final Verdict.
+Objective verification gate. Tier 0 (Precheck) checks artifact existence and state eligibility. Tier 1 (Mechanical) executes eval commands. Tier 2 (Contract + Rubric) checks acceptance criteria and scores rubric dimensions. Returns `pass`, `fail`, `block`, or `error`. After gate pass, the flow continues to Closure Packet, Challenger review, and Final Verdict.
 
 **Invocation:** Called by `mission` after implementation and specialist review steps.
 

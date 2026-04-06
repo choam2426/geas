@@ -226,7 +226,7 @@ Fires after every `Write` or `Edit` to a task file. When a task is marked `"pass
 
 **Evidence checks:**
 
-1. **Required reviewer evidence** — reads `routing.required_reviewer_types` from the task. For each reviewer type, looks for evidence files using kebab-case and underscore naming variants (e.g., `architecture-authority-review.json`, `architecture_authority.json`). Warns if not found.
+1. **Required reviewer evidence** — reads `routing.required_reviewer_types` from the task. For each reviewer type, looks for evidence files using kebab-case and underscore naming variants (e.g., `design-authority-review.json`, `design_authority.json`). Warns if not found.
 2. **Product authority verdict** — always required: `product-authority-verdict.json`.
 3. **Challenge review** — required only for `high` or `critical` risk tasks: `challenge-review.json`.
 4. **Retrospective** — always required: `retrospective.json`.

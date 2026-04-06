@@ -60,7 +60,7 @@ docs/
 ├── protocol/                # Operating protocol (English, canonical)
 │   ├── 00-13 .md             # 14 protocol documents
 │   ├── schemas/             # 30 JSON Schema (draft 2020-12)
-│   └── examples/            # 15 example files
+│   └── examples/            # 16 example files
 ├── architecture/DESIGN.md   # Architecture overview
 └── reference/               # SKILLS.md, HOOKS.md
 
