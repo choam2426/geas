@@ -10,6 +10,16 @@ interface DebtDetailModalProps {
 
 export default function DebtDetailModal({ debt, onClose }: DebtDetailModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  // Save the element that had focus before the modal opened
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    return () => {
+      // Restore focus when modal unmounts
+      previousFocusRef.current?.focus();
+    };
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -107,7 +117,7 @@ export default function DebtDetailModal({ debt, onClose }: DebtDetailModalProps)
           {/* Description */}
           <div>
             <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">Description</h3>
-            <p className="text-sm text-text-secondary whitespace-pre-wrap">
+            <p className="text-sm text-text-secondary whitespace-pre-wrap break-words overflow-wrap-anywhere">
               {debt.description || "No description provided"}
             </p>
           </div>
