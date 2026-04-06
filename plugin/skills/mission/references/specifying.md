@@ -12,7 +12,7 @@ Always runs. Scale adapts to the request.
 
 ### 2. Onboard Check
 
-If `.geas/memory/_project/conventions.md` is missing, invoke `/geas:onboard` to scan the existing project before proceeding.
+If `.geas/memory/_project/conventions.md` is missing, invoke `/geas:setup` to scan the existing project before proceeding.
 
 ### 3. Design Brief
 
@@ -56,7 +56,7 @@ Invoke `/geas:vote-round` as a `proposal_round`:
 - Output: vote-round artifact in `.geas/missions/{mission_id}/decisions/`
 - Record `vote_round_ref` in the design-brief.
 
-If any disagree: invoke `/geas:decision`, then re-vote.
+If any disagree: invoke `/geas:vote-round`, then re-vote.
 
 #### 3d. User Approval
 
@@ -83,7 +83,7 @@ Present the design-brief to the user. Show:
 
 - Input: mission spec (`.geas/missions/{mission_id}/spec.json`) + approved design-brief (`.geas/missions/{mission_id}/design-brief.json`)
 - For each logical unit of work, invoke `/geas:task-compiler`.
-- Each TaskContract MUST include a `rubric` object with a `dimensions` array. Base dimensions: core_interaction(3), feature_completeness(4), code_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
+- Each TaskContract MUST include a `rubric` object with a `dimensions` array. Base dimensions: core_interaction(3), feature_completeness(4), output_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
 - Output: `.geas/missions/{mission_id}/tasks/{task-id}.json`
 - Log each: `{"event": "task_compiled", "task_id": "...", "timestamp": "<actual>"}`
 
@@ -153,7 +153,7 @@ Write `.geas/missions/{mission_id}/phase-reviews/specifying-to-building.json` co
 }
 ```
 
-If any gate criteria unmet: set `status: "blocked"`, list unmet criteria in `gate_criteria_unmet`. Do not proceed until resolved. After 3 consecutive transition failures -> invoke `/geas:decision`.
+If any gate criteria unmet: set `status: "blocked"`, list unmet criteria in `gate_criteria_unmet`. Do not proceed until resolved. After 3 consecutive transition failures -> invoke `/geas:vote-round`.
 
 - Update run state: `{ "phase": "building", "status": "in_progress" }`
 - Log: `{"event": "phase_complete", "phase": "specifying", "timestamp": "<actual>"}`

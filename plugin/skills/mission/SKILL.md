@@ -219,8 +219,6 @@ These are distinct fields. Do NOT put the mission ID in the `mission` field.
 
 Always proceed with the 4-phase execution flow below.
 
-Note: `/geas:decision` is available as a utility skill that can be invoked at any time during any phase for structured decision-making.
-
 ## Execution Flow
 
 Always 4 phases, regardless of scope. The orchestrator determines phase scale based on mission spec complexity.
@@ -235,7 +233,7 @@ Full depth adds: alternatives analysis, architecture decisions, risk assessment,
 After task-compiler produces each TaskContract, verify these fields exist:
 - `risk_level` (low | normal | high | critical)
 - `vote_round_policy` (never | auto | always)
-- `task_kind` (implementation | docs | config | design | audit | release)
+- `task_kind` (implementation | documentation | configuration | design | review | analysis | delivery)
 - `gate_profile` (implementation_change | artifact_only | closure_ready)
 
 If ANY field is missing:

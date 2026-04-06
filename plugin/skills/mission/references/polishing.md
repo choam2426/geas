@@ -37,8 +37,8 @@ Agent(agent: "{resolved-communication-specialist}", prompt: "Read the current mi
 Verify `.geas/missions/{mission_id}/evidence/polishing/{resolved-communication-specialist}.json` exists.
 
 ### Entropy Scan
-Update run.json checkpoint: `pipeline_step` = "cleanup", `agent_in_flight` = "{resolved-design-authority}"
-Invoke `/geas:cleanup` — design_authority scans for dead code, AI boilerplate, convention drift, and duplication.
+Update run.json checkpoint: `pipeline_step` = "entropy_scan", `agent_in_flight` = "{resolved-design-authority}"
+Design authority reviews for dead code, AI boilerplate, convention drift, and duplication as part of the polishing review.
 Results are recorded in `.geas/missions/{mission_id}/evolution/debt-register.json`.
 
 ### Close Polishing
@@ -52,6 +52,6 @@ Results are recorded in `.geas/missions/{mission_id}/evolution/debt-register.jso
 Write `.geas/missions/{mission_id}/evolution/gap-assessment-polishing-to-evolving.json`.
 Write `.geas/missions/{mission_id}/phase-reviews/polishing-to-evolving.json` with `mission_phase: "polishing"`, `next_phase: "evolving"`.
 
-If any gate criteria unmet: set `status: "blocked"`. List unmet criteria. After 3 consecutive failures -> invoke `/geas:decision`.
+If any gate criteria unmet: set `status: "blocked"`. List unmet criteria. After 3 consecutive failures -> invoke `/geas:vote-round`.
 
 Log: `{"event": "phase_complete", "phase": "polishing", "timestamp": "<actual>"}`

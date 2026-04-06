@@ -127,4 +127,4 @@ For lightweight missions (adding a feature to an existing project):
 - **Existing project (first geas usage)**: minimal intake → `.geas/missions/mission-001/spec.json` with `source: "existing_project"`
 - **Existing project (subsequent missions)**: lightweight intake → `.geas/missions/mission-{n}/spec.json` with `source: "quick_intake"` or `"full_intake"`
 - **Format**: JSON conforming to `schemas/mission-spec.schema.json`
-- **Immutability**: Once confirmed, the mission spec should not be modified during execution. If scope must change, trigger `/geas:pivot-protocol` instead.
+- **Immutability**: Once confirmed, the mission spec should not be modified during execution. If scope must change, trigger a vote round for scope change instead.

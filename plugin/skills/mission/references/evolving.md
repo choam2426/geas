@@ -196,7 +196,7 @@ Orchestrator runs release directly:
 5. Log: `{"event": "release_created", "version": "...", "timestamp": "<actual>"}`
 
 ### Run Summary
-Invoke `/geas:run-summary` to generate session audit trail.
+Invoke `/geas:reporting` to generate session audit trail.
 
 ### Evolving Exit Gate and Close
 

@@ -68,7 +68,7 @@ After all voters return, read each vote file.
   3. Mark the dissenting voter's stance as `disagree_resolved`.
   4. Proceed without decision.
 - **Any disagree with severity: major** → `decision_triggered`:
-  1. Invoke `/geas:decision` with the proposal and all vote files as context.
+  1. Orchestrator facilitates structured decision resolution based on the vote results, using the proposal and all vote files as context.
   2. After decision resolution, re-vote (one re-vote maximum).
   3. If still no consensus after re-vote, orchestration_authority synthesizes a decision and the user decides.
 

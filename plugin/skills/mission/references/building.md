@@ -20,6 +20,6 @@ For each task, read `references/pipeline.md` and execute the full per-task pipel
 Write `.geas/missions/{mission_id}/evolution/gap-assessment-building-to-polishing.json` (same procedure as Evolving 4.1 but scoped to building phase).
 Write `.geas/missions/{mission_id}/phase-reviews/building-to-polishing.json` with `mission_phase: "building"`, `next_phase: "polishing"`.
 
-If any gate criteria unmet: set `status: "blocked"`. List unmet criteria. After 3 consecutive failures -> invoke `/geas:decision`.
+If any gate criteria unmet: set `status: "blocked"`. List unmet criteria. After 3 consecutive failures -> invoke `/geas:vote-round`.
 
 Log: `{"event": "phase_complete", "phase": "building", "timestamp": "<actual>"}`
