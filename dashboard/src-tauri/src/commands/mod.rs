@@ -230,24 +230,26 @@ pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
 }
 
 #[tauri::command]
-pub fn get_project_tasks(path: String, mission_id: Option<String>) -> Result<Vec<TaskInfo>, String> {
+pub fn get_project_tasks(path: String, mission_id: String) -> Result<Vec<TaskInfo>, String> {
+    if mission_id.is_empty() {
+        return Err("mission_id is required".to_string());
+    }
     let geas = geas_dir(&path)?;
 
-    let resolved_id = resolve_mission_id(&geas, mission_id)?;
-
-    let tasks_dir = geas.join("missions").join(&resolved_id).join("tasks");
+    let tasks_dir = geas.join("missions").join(&mission_id).join("tasks");
     read_task_files(&tasks_dir)
 }
 
 #[tauri::command]
-pub fn get_project_debt(path: String, mission_id: Option<String>) -> Result<DebtInfo, String> {
+pub fn get_project_debt(path: String, mission_id: String) -> Result<DebtInfo, String> {
+    if mission_id.is_empty() {
+        return Err("mission_id is required".to_string());
+    }
     let geas = geas_dir(&path)?;
-
-    let resolved_id = resolve_mission_id(&geas, mission_id)?;
 
     let debt_path = geas
         .join("missions")
-        .join(&resolved_id)
+        .join(&mission_id)
         .join("evolution")
         .join("debt-register.json");
 
@@ -419,22 +421,6 @@ pub fn remove_project(
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
-
-/// Resolve a mission ID: use the provided one or fall back to run.json's active mission.
-fn resolve_mission_id(geas: &Path, mission_id: Option<String>) -> Result<String, String> {
-    if let Some(id) = mission_id.filter(|id| !id.is_empty()) {
-        return Ok(id);
-    }
-
-    let run_path = geas.join("state").join("run.json");
-    let run_state: RunState = read_json_file(&run_path)?
-        .ok_or_else(|| "No run.json found — project may not be initialized".to_string())?;
-
-    run_state
-        .mission_id
-        .filter(|id| !id.is_empty())
-        .ok_or_else(|| "No active mission".to_string())
-}
 
 /// Infer the phase for a non-active mission based on task statuses.
 fn infer_phase(task_total: u32, task_completed: u32, tasks_dir: &Path) -> Result<Option<String>, String> {

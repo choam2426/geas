@@ -77,12 +77,14 @@ export default function KanbanBoard({
       setLoading(true);
       setError(null);
       try {
-        const taskParams: Record<string, string> = { path: projectPath };
-        const debtParams: Record<string, string> = { path: projectPath };
-        if (missionId) {
-          taskParams.mission_id = missionId;
-          debtParams.mission_id = missionId;
+        if (!missionId) {
+          setTasks([]);
+          setDebt({ total: 0, by_severity: { low: 0, normal: 0, high: 0, critical: 0 }, items: [] });
+          setLoading(false);
+          return;
         }
+        const taskParams = { path: projectPath, mission_id: missionId };
+        const debtParams = { path: projectPath, mission_id: missionId };
         const [taskResult, debtResult] = await Promise.all([
           invoke<TaskInfo[]>("get_project_tasks", taskParams),
           invoke<DebtInfo>("get_project_debt", debtParams).catch(
