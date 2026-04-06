@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ArrowLeft, Ban, AlertTriangle, XCircle, Pause } from "lucide-react";
 import type { TaskInfo, DebtInfo } from "../types";
 import TaskCard from "./TaskCard";
+import TaskDetailModal from "./TaskDetailModal";
 import DebtPanel from "./DebtPanel";
 
 const COLUMNS = [
@@ -39,6 +40,7 @@ export default function KanbanBoard({
   const [debt, setDebt] = useState<DebtInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskInfo | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -198,7 +200,7 @@ export default function KanbanBoard({
                   {/* Cards */}
                   <div className="flex flex-col gap-2 p-2 overflow-y-auto">
                     {colTasks.map((task) => (
-                      <TaskCard key={task.task_id} task={task} />
+                      <TaskCard key={task.task_id} task={task} onClick={() => setSelectedTask(task)} />
                     ))}
                   </div>
                 </div>
@@ -222,7 +224,11 @@ export default function KanbanBoard({
                     return items.map((task) => (
                       <span
                         key={task.task_id}
-                        className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs"
+                        className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs cursor-pointer hover:opacity-80 transition-opacity duration-150"
+                        onClick={() => setSelectedTask(task)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedTask(task); } }}
                         style={{
                           backgroundColor: aux.color + "18",
                           color: aux.color,
@@ -253,6 +259,14 @@ export default function KanbanBoard({
             </div>
           )}
         </div>
+      )}
+
+      {/* Task detail modal */}
+      {selectedTask && (
+        <TaskDetailModal
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+        />
       )}
     </div>
   );

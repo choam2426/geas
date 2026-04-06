@@ -3,9 +3,10 @@ import { riskColors } from "../colors";
 
 interface TaskCardProps {
   task: TaskInfo;
+  onClick?: () => void;
 }
 
-export default function TaskCard({ task }: TaskCardProps) {
+export default function TaskCard({ task, onClick }: TaskCardProps) {
   const title =
     task.title.length > 80 ? task.title.slice(0, 77) + "..." : task.title;
 
@@ -14,7 +15,13 @@ export default function TaskCard({ task }: TaskCardProps) {
     : null;
 
   return (
-    <div className="bg-bg-elevated rounded-lg p-3 border border-transparent hover:border-border-default hover:-translate-y-px hover:shadow-md transition-all duration-150 cursor-default">
+    <div
+      className="bg-bg-elevated rounded-lg p-3 border border-transparent hover:border-border-default hover:-translate-y-px hover:shadow-md transition-all duration-150 cursor-pointer"
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+    >
       <p className="text-sm text-text-primary leading-snug mb-2">{title}</p>
       <div className="flex items-center gap-1.5 flex-wrap">
         {task.worker_type && (
