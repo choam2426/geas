@@ -101,21 +101,6 @@ pub struct DebtRegister {
     pub rollup_by_severity: Option<SeverityRollup>,
 }
 
-/// .geas/missions/{id}/spec.json — used for future spec display
-#[derive(Debug, Clone, Default, Deserialize)]
-#[allow(dead_code)]
-pub struct MissionSpec {
-    #[serde(default)]
-    pub mission: Option<String>,
-    #[serde(default)]
-    pub domain_profile: Option<String>,
-    #[serde(default)]
-    pub mode: Option<String>,
-    #[serde(default)]
-    pub done_when: Option<String>,
-    #[serde(default)]
-    pub acceptance_criteria: Option<Vec<String>>,
-}
 
 // ---------------------------------------------------------------------------
 // Frontend return types (Serialize for Tauri IPC)
