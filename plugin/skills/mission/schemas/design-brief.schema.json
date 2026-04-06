@@ -39,7 +39,7 @@
     },
     "depth": {
       "type": "string",
-      "enum": ["lightweight", "full"]
+      "enum": ["lightweight", "standard", "full_depth"]
     },
     "status": {
       "type": "string",
@@ -72,7 +72,7 @@
           "rejected_reason": { "type": "string" }
         }
       },
-      "description": "Full depth only. Other approaches and why they were rejected."
+      "description": "full_depth only. Other approaches and why they were rejected."
     },
     "architecture_decisions": {
       "type": "array",
@@ -89,7 +89,7 @@
           }
         }
       },
-      "description": "Full depth only. Technical decisions with rationale."
+      "description": "standard and full_depth. Technical decisions with rationale."
     },
     "risks": {
       "type": "array",
@@ -102,12 +102,12 @@
           "mitigation": { "type": "string" }
         }
       },
-      "description": "Full depth only. Identified risks with mitigation plans."
+      "description": "standard and full_depth. Identified risks with mitigation plans."
     },
     "preserve_list": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Full depth only. Existing behavior/files that must not change."
+      "description": "standard and full_depth. Existing behavior/files that must not change."
     },
     "unresolved_assumptions": {
       "type": "array",

@@ -61,15 +61,72 @@ If any disagree: invoke `/geas:vote-round`, then re-vote.
 
 #### 3d. User Approval
 
-Present the design-brief to the user. Show:
-- Chosen approach and rationale
-- Non-goals
-- Verification strategy
-- [Full] Alternatives considered and why rejected
-- [Full] Architecture decisions
-- [Full] Risks and mitigations
-- Architecture-authority review summary
-- [Full] Vote round result
+Present a structured design brief to the user:
+
+```
+═══════════════════════════════════════════════════
+  DESIGN BRIEF — {mission_id}
+  Mode: {lightweight | standard | full_depth}
+═══════════════════════════════════════════════════
+
+─── APPROACH ──────────────────────────────────────
+
+  {chosen_approach — what we're building and why this way}
+
+─── NON-GOALS ─────────────────────────────────────
+
+  • {what this mission explicitly will NOT do}
+  • ...
+
+─── VERIFICATION STRATEGY ─────────────────────────
+
+  {how we'll verify the work is complete and correct}
+
+─── ARCHITECTURE DECISIONS ──────── [standard+] ───
+
+  1. {decision}
+     → Rationale: {why}
+     → Constraints: {if any}
+  2. ...
+
+─── RISKS & MITIGATIONS ────────── [standard+] ───
+
+  1. {risk description}
+     → Mitigation: {how we handle it}
+  2. ...
+
+─── PRESERVE LIST ──────────────── [standard+] ───
+
+  • {existing behavior/files that must not change}
+  • ...
+
+─── ALTERNATIVES CONSIDERED ────── [full_depth] ───
+
+  A. {approach}
+     → Rejected because: {reason}
+  B. ...
+
+─── UNRESOLVED ASSUMPTIONS ─────── [full_depth] ───
+
+  • {assumption not yet validated}
+  • ...
+
+─── DESIGN REVIEW ─────────────────────────────────
+
+  Reviewer: {design-authority}
+  Summary: {review findings}
+  Additions: {what the reviewer added or changed}
+
+─── VOTE ROUND ─────────────────── [full_depth] ───
+
+  Result: {ship | iterate | escalate}
+  Participants: {list}
+  Dissent: {if any}
+
+═══════════════════════════════════════════════════
+```
+
+Omit sections marked `[standard+]` for lightweight missions. Omit sections marked `[full_depth]` for lightweight and standard missions.
 
 **If approved**: update design-brief `status` to `"approved"`, set `approved_at`.
 
@@ -77,7 +134,7 @@ Present the design-brief to the user. Show:
 1. Record the rejection reason in `rejection_history[]` with timestamp
 2. Revise the design-brief based on user feedback
 3. Return to step 3b (design-authority re-reviews the revised version)
-4. [Full only] Run a new vote round (step 3c)
+4. [full_depth only] Run a new vote round (step 3c)
 5. Present to user again (step 3d)
 
 ### 4. Compile TaskContracts
