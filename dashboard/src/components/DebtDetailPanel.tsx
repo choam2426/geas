@@ -107,21 +107,21 @@ export default function DebtDetailPanel({
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-border-default shrink-0">
+      <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-border-default shrink-0">
         <button
           onClick={onBack}
           className="text-text-secondary hover:text-text-primary text-sm cursor-pointer transition-colors"
         >
           <ArrowLeft size={16} className="inline" /> Back
         </button>
-        <h1 className="text-lg font-semibold text-text-primary truncate">
+        <h1 className="text-base md:text-lg font-semibold text-text-primary truncate">
           {projectName} — Tech Debt
         </h1>
       </div>
 
       {/* Content */}
       {loading ? (
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-3xl">
             <div className="flex gap-2 mb-4">
               {[1, 2, 3, 4].map((i) => (
@@ -156,7 +156,7 @@ export default function DebtDetailPanel({
           <span className="text-text-muted text-sm">No debt items</span>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-3xl">
             {/* Severity filter pills */}
             <div className="flex flex-wrap items-center gap-2 mb-4">

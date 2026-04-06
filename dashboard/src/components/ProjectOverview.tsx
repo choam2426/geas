@@ -35,17 +35,17 @@ export default function ProjectOverview({ project, onViewTasks, onViewHistory, o
   const hasDebt = project.debt_total > 0;
 
   return (
-    <div className="flex-1 overflow-y-auto p-8">
+    <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
       <div className="max-w-2xl">
         {/* Mission heading */}
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-2xl font-bold text-text-primary">
+            <h1 className="text-xl md:text-2xl font-bold text-text-primary">
               {project.mission_name ?? project.name}
             </h1>
             <PhaseBadge phase={project.phase} />
           </div>
-          <p className="text-sm text-text-muted">{project.path}</p>
+          <p className="text-xs md:text-sm text-text-muted break-all">{project.path}</p>
         </div>
 
         {/* Task progress card */}
@@ -55,7 +55,7 @@ export default function ProjectOverview({ project, onViewTasks, onViewHistory, o
             total={project.task_total}
           />
           {/* Action buttons */}
-          <div className="flex gap-2 mt-4">
+          <div className="flex flex-col md:flex-row gap-2 mt-4">
             {onViewTasks && (
               <button
                 onClick={onViewTasks}
