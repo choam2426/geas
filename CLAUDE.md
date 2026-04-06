@@ -136,7 +136,7 @@ All files must be written in English, except `docs/ko/` and `README.ko.md`.
 
 ## Conventions
 
-- Skills: `SKILL.md` with YAML frontmatter (`name`, `description`)
+- Skills: `SKILL.md` with YAML frontmatter (`name`, `description`). **All skills must be direct children of `plugin/skills/`** (flat structure). Claude Code plugin discovers skills one level deep only — nested subdirectories (e.g., `skills/core/mission/`) are not discovered. Core vs utility distinction is conceptual (documented), not physical (directory).
 - Agents: `.md` with YAML frontmatter (`name`, `model`, etc.)
 - Schemas: JSON Schema draft 2020-12 in `docs/protocol/schemas/`
 - Runtime state: `.geas/` (gitignored, per-project)
