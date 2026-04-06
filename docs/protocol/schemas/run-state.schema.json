@@ -67,7 +67,7 @@
       "properties": {
         "pipeline_step": {
           "type": ["string", "null"],
-          "description": "Current pipeline step name (e.g., 'code_review', 'testing')"
+          "description": "Current pipeline step name (e.g., 'specialist_review', 'evidence_gate')"
         },
         "agent_in_flight": {
           "type": ["string", "null"],
