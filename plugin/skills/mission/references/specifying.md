@@ -26,11 +26,12 @@ mkdir -p .geas/missions/{mission_id}
 ```
 
 1. Write an initial design-brief draft to `.geas/missions/{mission_id}/design-brief.json` conforming to `schemas/design-brief.schema.json` with `status: "draft"`.
-2. Propose a depth level to the user:
-   - **`lightweight`**: Mission has clear scope, existing codebase patterns apply, low ambiguity. Only minimum fields: `chosen_approach`, `non_goals`, `verification_strategy`.
-   - **`full`**: Mission has architectural decisions, multiple valid approaches, cross-module impact, or significant risk. Adds: `alternatives_considered`, `architecture_decisions`, `risks`, `preserve_list`, `unresolved_assumptions`.
-3. User confirms or overrides the depth level.
-4. If user overrides to `full`: populate the additional fields before proceeding.
+2. Propose a mission mode to the user:
+   - **`lightweight`**: Mission has clear scope, existing patterns apply, low ambiguity. Only minimum fields: `chosen_approach`, `non_goals`, `verification_strategy`.
+   - **`standard`**: Mission has moderate scope, some architectural decisions, normal risk. Adds: `architecture_decisions`, `risks`, `preserve_list`.
+   - **`full_depth`**: Mission has multiple valid approaches, cross-module impact, or significant risk. Adds: `alternatives_considered`, `unresolved_assumptions`. Requires vote round.
+3. User confirms or overrides the mission mode.
+4. If user selects `standard` or `full_depth`: populate the additional fields before proceeding.
 
 #### 3b. Architecture Review (always)
 
@@ -44,9 +45,9 @@ Verify: Read `.geas/missions/{mission_id}/design-brief.json` and confirm `arch_r
 
 Log: `{"event": "step_complete", "step": "design_brief_arch_review", "agent": "{resolved-design-authority}", "timestamp": "<actual>"}`
 
-#### 3c. Vote Round (full depth only)
+#### 3c. Vote Round (full_depth only)
 
-**Skip if** `depth` is `lightweight`.
+**Skip if** mission mode is `lightweight` or `standard`.
 
 Invoke `/geas:vote-round` as a `proposal_round`:
 - Proposal: `.geas/missions/{mission_id}/design-brief.json`
