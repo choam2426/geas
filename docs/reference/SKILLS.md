@@ -61,7 +61,7 @@ Pre-implementation agreement. Worker drafts a concrete action plan (`planned_act
 
 Objective verification gate. Tier 0 (Precheck) checks artifact existence and state eligibility. Tier 1 (Mechanical) executes eval commands. Tier 2 (Contract + Rubric) checks acceptance criteria and scores rubric dimensions. Returns `pass`, `fail`, `block`, or `error`. After gate pass, the flow continues to Closure Packet, Critical Reviewer challenge, and Final Verdict.
 
-**Invocation:** Called by `mission` after each implementation, review, or QA step.
+**Invocation:** Called by `mission` after implementation and specialist review steps.
 
 ### verify-fix-loop
 
@@ -118,13 +118,13 @@ Debt/gap dashboard and health signal calculation. Produces `health-check.json` a
 
 Creates a structured Product Requirements Document (Problem, Objective, Target Users, Scope In/Out, User Flows, Requirements, Success Metrics, Open Questions). Requirements are traceable to user needs. Explicit about what is out of scope.
 
-**Invocation:** Called by product-authority during Specifying.
+**Invocation:** Called by the Orchestrator during Specifying phase.
 
 ### write-stories
 
 Breaks a feature or mission into user stories (As a / I want to / So that + Acceptance Criteria + Priority + Estimate). Stories are independent and testable. Ordered by priority. Acceptance criteria include edge cases, not just happy paths.
 
-**Invocation:** Called by product-authority during Specifying, after write-prd.
+**Invocation:** Called by the Orchestrator during Specifying phase, after write-prd.
 
 ---
 
@@ -168,7 +168,7 @@ Skills were consolidated from 27 to 15. The following table documents what was m
 | `pivot-protocol` | Absorbed into `vote-round` | Pivots are a decision type |
 | `briefing` | Absorbed into `reporting` | Status briefings are part of health reporting |
 | `run-summary` | Absorbed into `reporting` | Session summaries are part of health reporting |
-| `verify` | Deleted | Worker self-check replaced standalone verification |
+| `verify` | Deleted | Mechanical checks absorbed into evidence-gate Tier 1 |
 | `cleanup` | Deleted | Debt detection handled by evidence-gate and reporting |
 | `coding-conventions` | Deleted | Conventions live in `.geas/memory/_project/conventions.md` |
 | `ledger-query` | Deleted | Orchestrator queries the ledger directly |
