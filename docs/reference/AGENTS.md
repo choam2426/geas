@@ -124,8 +124,8 @@ Communication specialist ensuring research findings are presented clearly and ac
 
 The Orchestrator resolves abstract slots to concrete agent types at mission startup:
 
-1. The mission's `profiles.json` declares which domain profile to use (e.g., `software`, `research`).
-2. Each profile maps slots to agent types (e.g., `implementer` -> `software-engineer`).
+1. The mission spec declares `domain_profile` (e.g., `"software"`, `"research"`).
+2. The Orchestrator reads `profiles.json` (in `plugin/skills/core/mission/references/`) to get the slot-to-agent mapping for that profile.
 3. Authority agents (product-authority, design-authority, challenger) are shared across all profiles.
 4. When spawning an agent, the Orchestrator looks up the slot in the active profile and spawns the corresponding agent type.
 
@@ -154,11 +154,11 @@ Who owns which decisions. See `protocol/01` for the full table.
 
 Tasks are assigned reviewers based on `task_kind`, `risk_level`, `scope`, and `gate_profile`. The full algorithm is in `protocol/01`. Summary:
 
-1. **Default by task_kind** -- each task kind has a default reviewer slot (e.g., `code` -> design-authority, `docs` -> communication-specialist).
-2. **Risk escalation** -- `high`/`critical` risk adds challenger and risk-specialist.
-3. **Scope signals** -- file paths and scope markers add relevant specialist slots.
-4. **Gate profile** -- `closure_ready` requires quality-specialist.
-5. **Minimum guarantee** -- every task gets at least one reviewer (design-authority as fallback).
+1. **Default by task_kind** — each task kind has a default reviewer slot (e.g., `implementation` → design_authority, `documentation` → communication_specialist).
+2. **Risk escalation** — `high`/`critical` risk adds challenger and risk_specialist.
+3. **Scope signals** — affected surfaces and scope markers add relevant specialist slots.
+4. **Gate profile** — `closure_ready` requires quality_specialist.
+5. **Minimum guarantee** — every task has at least one reviewer whose type differs from the primary worker (design_authority as fallback).
 
 Routing uses **slot names**, not agent types. The active profile resolves slots to concrete agents.
 
