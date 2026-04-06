@@ -49,6 +49,16 @@ body {
   animation: skeletonPulse 1.5s ease-in-out infinite;
 }
 
+/* Pulse dot for live agent indicator */
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.animate-pulse-dot {
+  animation: pulseDot 1.5s ease-in-out infinite;
+}
+
 /* Focus-visible for accessibility */
 *:focus-visible {
   outline: 2px solid var(--color-accent);

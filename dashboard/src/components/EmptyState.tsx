@@ -23,7 +23,7 @@ export default function EmptyState({ onAddProject }: EmptyStateProps) {
         </p>
         <button
           onClick={onAddProject}
-          className="px-4 py-2 rounded-lg bg-status-blue text-white text-sm font-medium hover:opacity-90 transition-opacity duration-150 cursor-pointer"
+          className="px-4 py-2 rounded-lg bg-status-blue text-white text-sm font-medium hover:opacity-90 active:scale-95 transition-all duration-150 cursor-pointer"
         >
           Add Project
         </button>

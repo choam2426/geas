@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Archive } from "lucide-react";
 import type { MissionSummary } from "../types";
 import PhaseBadge from "./PhaseBadge";
 
@@ -104,7 +104,12 @@ export default function MissionHistory({
         </div>
       ) : missions.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
-          <span className="text-text-muted text-sm">No missions found</span>
+          <div className="text-center">
+            <div className="mb-3 flex justify-center opacity-30">
+              <Archive size={40} />
+            </div>
+            <span className="text-text-muted text-sm">No missions yet</span>
+          </div>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
@@ -121,7 +126,7 @@ export default function MissionHistory({
                 <button
                   key={mission.mission_id}
                   onClick={() => onSelectMission(mission.mission_id)}
-                  className={`text-left bg-bg-surface rounded-lg p-5 border transition-all duration-200 cursor-pointer hover:-translate-y-px hover:shadow-md ${
+                  className={`text-left bg-bg-surface rounded-lg p-5 border transition-all duration-200 cursor-pointer hover:-translate-y-px hover:shadow-md active:scale-95 ${
                     mission.is_active
                       ? "border-l-2 border-accent border-t-border-default border-r-border-default border-b-border-default"
                       : "border-border-default"

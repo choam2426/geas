@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { ArrowLeft, Ban, AlertTriangle, XCircle, Pause } from "lucide-react";
+import { ArrowLeft, Ban, AlertTriangle, XCircle, Pause, ClipboardList } from "lucide-react";
 import type { TaskInfo, DebtInfo } from "../types";
 import TaskCard from "./TaskCard";
 import TaskDetailModal from "./TaskDetailModal";
@@ -28,6 +28,9 @@ interface KanbanBoardProps {
   projectName: string;
   missionId?: string | null;
   onBack: () => void;
+  currentTaskId?: string | null;
+  agentInFlight?: string | null;
+  pipelineStep?: string | null;
 }
 
 export default function KanbanBoard({
@@ -35,6 +38,9 @@ export default function KanbanBoard({
   projectName,
   missionId,
   onBack,
+  currentTaskId,
+  agentInFlight,
+  pipelineStep,
 }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<TaskInfo[]>([]);
   const [debt, setDebt] = useState<DebtInfo | null>(null);
@@ -129,7 +135,7 @@ export default function KanbanBoard({
       {loading ? (
         <div className="flex flex-col md:flex-row gap-3 p-4 md:min-w-max flex-1 overflow-auto">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex flex-col bg-bg-surface rounded-lg min-w-0 w-full md:min-w-[180px] md:w-[180px] md:shrink-0">
+            <div key={i} className="flex flex-col bg-bg-surface rounded-lg min-w-0 w-full md:min-w-[160px] md:flex-1">
               <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-default">
                 <div className="h-3 w-16 rounded bg-bg-elevated animate-skeleton" />
                 <div className="h-4 w-6 rounded-full bg-bg-elevated animate-skeleton" />
@@ -159,9 +165,14 @@ export default function KanbanBoard({
         </div>
       ) : tasks.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
-          <span className="text-text-muted text-sm">
-            No tasks in this mission
-          </span>
+          <div className="text-center">
+            <div className="mb-3 flex justify-center opacity-30">
+              <ClipboardList size={40} />
+            </div>
+            <span className="text-text-muted text-sm">
+              No tasks in this mission
+            </span>
+          </div>
         </div>
       ) : (
         <div className="flex-1 overflow-auto">
@@ -172,7 +183,7 @@ export default function KanbanBoard({
               return (
                 <div
                   key={col.key}
-                  className="flex flex-col bg-bg-surface rounded-lg min-w-0 w-full md:min-w-[180px] md:w-[180px] md:shrink-0"
+                  className="flex flex-col bg-bg-surface rounded-lg min-w-0 w-full md:min-w-[160px] md:flex-1"
                 >
                   {/* Column header */}
                   <div className="flex items-center justify-between px-3 py-2.5 h-10 border-b border-border-default">
@@ -200,7 +211,14 @@ export default function KanbanBoard({
                   {/* Cards */}
                   <div className="flex flex-col gap-2 p-2 overflow-y-auto">
                     {colTasks.map((task) => (
-                      <TaskCard key={task.task_id} task={task} onClick={() => setSelectedTask(task)} />
+                      <TaskCard
+                        key={task.task_id}
+                        task={task}
+                        onClick={() => setSelectedTask(task)}
+                        isActive={!!currentTaskId && task.task_id === currentTaskId}
+                        agentName={task.task_id === currentTaskId ? (agentInFlight ?? undefined) : undefined}
+                        pipelineStep={task.task_id === currentTaskId ? (pipelineStep ?? undefined) : undefined}
+                      />
                     ))}
                   </div>
                 </div>

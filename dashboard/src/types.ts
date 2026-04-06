@@ -19,6 +19,9 @@ export interface ProjectSummary {
   };
   last_activity: string | null;
   status: "ok" | "no_geas" | "error";
+  current_task_id: string | null;
+  agent_in_flight: string | null;
+  pipeline_step: string | null;
 }
 
 export interface TaskInfo {
