@@ -148,7 +148,7 @@ Runs once when a Claude Code session starts. Combines session initialization wit
 
 Fires every time a sub-agent is spawned. Injects project-wide rules and per-agent memory into the sub-agent's starting context.
 
-1. Reads `cwd` and `agent_type` from the hook input JSON. Strips plugin prefix (e.g., `geas:nova` -> `nova`).
+1. Reads `cwd` and `agent_type` from the hook input JSON. Strips plugin prefix (e.g., `geas:software-engineer` → `software-engineer`).
 2. Checks for `.geas/` directory. If absent, exits silently.
 3. Reads `.geas/rules.md` and includes it under `--- PROJECT RULES (.geas/rules.md) ---`.
 4. Reads `.geas/memory/agents/<agent_name>.md` if it exists and includes it under `--- YOUR MEMORY ---`.
@@ -254,7 +254,7 @@ Fires after every `Write` or `Edit` to the debt ledger.
 2. Counts items where `severity == "HIGH"` and `status == "open"`.
 3. Warns when the count reaches 3 or more:
    ```
-   [Geas] <N> HIGH tech debts open. Consider addressing before new features.
+   [Geas] WARNING: Debt register has <N> open HIGH severity items. Consider addressing before proceeding.
    ```
 
 ---
@@ -412,10 +412,9 @@ Fires whenever a sub-agent finishes. Records agent spawn metadata to the ledger.
    ```json
    {
      "event": "agent_complete",
-     "agent": "nova",
+     "agent": "software_engineer",
      "task_id": "TASK-001",
-     "phase": "build",
-     "model": "opus",
+     "phase": "building",
      "timestamp": "2026-03-30T12:00:00Z"
    }
    ```
