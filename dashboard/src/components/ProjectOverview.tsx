@@ -5,6 +5,7 @@ import DebtBadge from "./DebtBadge";
 
 interface ProjectOverviewProps {
   project: ProjectSummary;
+  onViewTasks?: () => void;
 }
 
 function formatActivity(timestamp: string | null): string {
@@ -26,7 +27,7 @@ function formatActivity(timestamp: string | null): string {
   return date.toLocaleDateString();
 }
 
-export default function ProjectOverview({ project }: ProjectOverviewProps) {
+export default function ProjectOverview({ project, onViewTasks }: ProjectOverviewProps) {
   const severities = ["critical", "high", "normal", "low"] as const;
   const hasDebt = project.debt_total > 0;
 
@@ -51,6 +52,18 @@ export default function ProjectOverview({ project }: ProjectOverviewProps) {
             total={project.task_total}
           />
         </div>
+
+        {/* View Tasks button */}
+        {onViewTasks && (
+          <div className="mb-4">
+            <button
+              onClick={onViewTasks}
+              className="px-4 py-1.5 rounded-md bg-accent text-white text-sm cursor-pointer hover:opacity-90 transition-opacity"
+            >
+              View Tasks
+            </button>
+          </div>
+        )}
 
         {/* Debt summary card */}
         <div className="bg-bg-surface rounded-lg p-5 mb-4 hover:-translate-y-px hover:shadow-md transition-all duration-150">

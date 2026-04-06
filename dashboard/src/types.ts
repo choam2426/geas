@@ -20,3 +20,27 @@ export interface ProjectSummary {
   last_activity: string | null;
   status: "ok" | "no_geas" | "error";
 }
+
+export interface TaskInfo {
+  task_id: string;
+  title: string;
+  goal: string | null;
+  status: string;
+  risk_level: string | null;
+  task_kind: string | null;
+  worker_type: string | null;
+}
+
+export interface DebtItem {
+  debt_id: string;
+  severity: string;
+  kind: string | null;
+  title: string;
+  status: string | null;
+}
+
+export interface DebtInfo {
+  total: number;
+  by_severity: { low: number; normal: number; high: number; critical: number };
+  items: DebtItem[];
+}
