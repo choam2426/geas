@@ -32,6 +32,12 @@ export default function TaskDetailModal({
   onClose,
 }: TaskDetailModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    return () => { previousFocusRef.current?.focus(); };
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
