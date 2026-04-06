@@ -53,6 +53,7 @@ dashboard/
 │   │   ├── lib.rs          # Plugin and command registration
 │   │   ├── config.rs       # App config persistence (project paths)
 │   │   ├── models.rs       # Rust structs mirroring .geas/ JSON schemas
+│   │   ├── watcher.rs      # File system watcher (notify crate, debounced)
 │   │   └── commands/
 │   │       └── mod.rs      # Tauri commands (filesystem reads)
 │   ├── Cargo.toml
@@ -65,8 +66,10 @@ dashboard/
 ## Features
 
 - **Project registration** -- Add and remove local project paths through the UI. Paths persist across app restarts.
+- **Auto-refresh** -- The Rust backend watches `.geas/` directories for file changes and automatically refreshes project data. No manual reload needed.
 - **Mission overview** -- See mission name, current phase, task progress, debt count, and last activity time for each registered project.
-- **Kanban board** -- View tasks organized by their 7 primary states (drafted, ready, implementing, reviewed, integrated, verified, passed). Cards display title, assignee type, and risk level.
+- **Kanban board** -- View tasks organized by their 7 primary states (drafted, ready, implementing, reviewed, integrated, verified, passed) and 3 auxiliary states (blocked, escalated, cancelled). Cards display title, assignee type, and risk level.
+- **SVG icons** -- UI elements use lucide-react SVG icons for a polished, consistent look.
 - **Debt tracking** -- Severity breakdown (low, medium, high, critical) per project from `debt-register.json`.
 - **Error handling** -- Graceful display when a registered project path is missing or has no `.geas/` directory.
 
@@ -82,18 +85,18 @@ App data (registered project paths and preferences) is stored as JSON in the OS-
 
 ## Tech Stack
 
-| Layer    | Technology                  |
-|----------|-----------------------------|
-| Shell    | Tauri v2                    |
-| Frontend | React 19, TypeScript 5      |
-| Bundler  | Vite 6                      |
-| Styling  | Tailwind CSS v4             |
-| Backend  | Rust (2021 edition), serde  |
+| Layer    | Technology                                         |
+|----------|---------------------------------------------------|
+| Shell    | Tauri v2                                           |
+| Frontend | React 19, TypeScript 5, lucide-react               |
+| Bundler  | Vite 6                                             |
+| Styling  | Tailwind CSS v4                                    |
+| Font     | Inter via @fontsource (self-hosted, works offline) |
+| Backend  | Rust (2021 edition), serde, notify, chrono         |
 
-## Limitations (MVP)
+## Limitations
 
 - Read-only -- the app never writes to `.geas/` directories.
-- Manual refresh only -- no file watching or auto-refresh.
 - Shows the current/latest mission only -- no mission history browsing.
 - Dark theme only -- no light mode toggle.
 - No installer signing or distribution packaging.

@@ -1,9 +1,7 @@
 import { useState } from "react";
 import type { DebtInfo } from "../types";
-import { severityColors } from "../colors";
+import { severityColors, severityOrder } from "../colors";
 import DebtBadge from "./DebtBadge";
-
-const severityOrder = ["critical", "high", "normal", "low"] as const;
 
 interface DebtPanelProps {
   debt: DebtInfo;

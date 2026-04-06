@@ -1,10 +1,4 @@
-const phaseColors: Record<string, { bg: string; text: string }> = {
-  specifying: { bg: "rgba(88,166,255,0.15)", text: "#58a6ff" },
-  building: { bg: "rgba(63,185,80,0.15)", text: "#3fb950" },
-  polishing: { bg: "rgba(210,153,34,0.15)", text: "#d29922" },
-  evolving: { bg: "rgba(188,140,255,0.15)", text: "#bc8cff" },
-  complete: { bg: "rgba(63,185,80,0.15)", text: "#3fb950" },
-};
+import { phaseColors } from "../colors";
 
 interface PhaseBadgeProps {
   phase: string | null;
