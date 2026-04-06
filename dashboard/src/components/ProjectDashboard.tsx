@@ -95,22 +95,41 @@ export default function ProjectDashboard({
           </p>
         </div>
 
-        {/* Currently Working Card */}
-        {summary?.agent_in_flight && (
+        {/* Currently Working Card — parallel or single */}
+        {(summary?.agent_in_flight || (summary?.parallel_batch && summary.parallel_batch.length > 0)) && (
           <div className="bg-bg-surface rounded-lg p-4 mb-4 border border-border-default border-l-2 border-l-status-green shadow-[0_0_12px_rgba(63,185,80,0.08)]">
             <div className="flex items-center gap-2 mb-2">
               <span className="w-2 h-2 rounded-full bg-status-green animate-pulse-dot shrink-0" />
               <span className="text-xs font-semibold text-text-primary uppercase tracking-wide">Currently working</span>
             </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-secondary">
-              {summary.current_task_id && (
-                <span>Task: <span className="text-text-primary font-medium">{summary.current_task_id}</span></span>
-              )}
-              <span>Agent: <span className="text-text-primary font-medium">{summary.agent_in_flight}</span></span>
-              {summary.pipeline_step && (
-                <span>Step: <span className="text-text-primary font-medium">{summary.pipeline_step}</span></span>
-              )}
-            </div>
+            {summary?.parallel_batch && summary.parallel_batch.length > 0 ? (
+              <div className="text-xs text-text-secondary">
+                <p className="mb-1">{summary.parallel_batch.length} tasks in parallel:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {summary.parallel_batch.map((tid) => (
+                    <span key={tid} className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] ${
+                      summary.completed_in_batch.includes(tid)
+                        ? "bg-status-green/10 text-status-green"
+                        : "bg-bg-elevated text-text-primary"
+                    }`}>
+                      {summary.completed_in_batch.includes(tid) ? "✓ " : ""}{tid}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-secondary">
+                {summary?.current_task_id && (
+                  <span>Task: <span className="text-text-primary font-medium">{summary.current_task_id}</span></span>
+                )}
+                {summary?.agent_in_flight && (
+                  <span>Agent: <span className="text-text-primary font-medium">{summary.agent_in_flight}</span></span>
+                )}
+                {summary?.pipeline_step && (
+                  <span>Step: <span className="text-text-primary font-medium">{summary.pipeline_step}</span></span>
+                )}
+              </div>
+            )}
           </div>
         )}
 

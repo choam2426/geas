@@ -31,6 +31,26 @@ interface KanbanBoardProps {
   currentTaskId?: string | null;
   agentInFlight?: string | null;
   pipelineStep?: string | null;
+  parallelBatch?: string[] | null;
+  completedInBatch?: string[];
+}
+
+function isTaskActive(
+  taskId: string,
+  currentTaskId?: string | null,
+  parallelBatch?: string[] | null,
+): boolean {
+  if (parallelBatch && parallelBatch.length > 0) {
+    return parallelBatch.includes(taskId);
+  }
+  return !!currentTaskId && taskId === currentTaskId;
+}
+
+function isTaskCompletedInBatch(
+  taskId: string,
+  completedInBatch?: string[],
+): boolean {
+  return completedInBatch?.includes(taskId) ?? false;
 }
 
 export default function KanbanBoard({
@@ -41,6 +61,8 @@ export default function KanbanBoard({
   currentTaskId,
   agentInFlight,
   pipelineStep,
+  parallelBatch,
+  completedInBatch,
 }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<TaskInfo[]>([]);
   const [debt, setDebt] = useState<DebtInfo | null>(null);
@@ -76,45 +98,26 @@ export default function KanbanBoard({
           setDebt(debtResult);
         }
       } catch (err) {
-        if (!cancelled) {
-          setError(String(err));
-        }
+        if (!cancelled) setError(String(err));
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
     load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [projectPath, missionId]);
 
   const tasksByStatus = new Map<string, TaskInfo[]>();
-  for (const col of COLUMNS) {
-    tasksByStatus.set(col.key, []);
-  }
+  for (const col of COLUMNS) tasksByStatus.set(col.key, []);
   const auxiliaryTasks = new Map<string, TaskInfo[]>();
-  for (const aux of AUXILIARY_STATES) {
-    auxiliaryTasks.set(aux.key, []);
-  }
+  for (const aux of AUXILIARY_STATES) auxiliaryTasks.set(aux.key, []);
   for (const task of tasks) {
-    const primaryBucket = tasksByStatus.get(task.status);
-    if (primaryBucket) {
-      primaryBucket.push(task);
-    } else {
-      const auxBucket = auxiliaryTasks.get(task.status);
-      if (auxBucket) {
-        auxBucket.push(task);
-      }
-    }
+    const primary = tasksByStatus.get(task.status);
+    if (primary) { primary.push(task); }
+    else { auxiliaryTasks.get(task.status)?.push(task); }
   }
-  const totalAuxiliary = Array.from(auxiliaryTasks.values()).reduce(
-    (sum, arr) => sum + arr.length,
-    0
-  );
+  const totalAuxiliary = Array.from(auxiliaryTasks.values()).reduce((s, a) => s + a.length, 0);
 
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -122,7 +125,7 @@ export default function KanbanBoard({
       <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-border-default shrink-0">
         <button
           onClick={onBack}
-          className="text-text-secondary hover:text-text-primary text-sm cursor-pointer transition-colors"
+          className="text-text-secondary hover:text-text-primary text-sm cursor-pointer transition-colors active:scale-95"
         >
           <ArrowLeft size={16} className="inline" /> Back
         </button>
@@ -133,97 +136,86 @@ export default function KanbanBoard({
 
       {/* Content */}
       {loading ? (
-        <div className="flex flex-col md:flex-row gap-2 p-4 flex-1 overflow-x-auto overflow-y-auto">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex flex-col bg-bg-surface rounded-lg w-full shrink-0 md:w-[calc((100%-4*0.5rem)/5)] md:min-w-[140px]">
-              <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-default">
-                <div className="h-3 w-16 rounded bg-bg-elevated animate-skeleton" />
-                <div className="h-4 w-6 rounded-full bg-bg-elevated animate-skeleton" />
-              </div>
-              <div className="flex flex-col gap-2 p-2">
-                {Array.from({ length: Math.max(1, 3 - i) }).map((_, j) => (
-                  <div key={j} className="bg-bg-elevated rounded-lg p-3">
-                    <div className="h-3 w-full rounded bg-bg-primary/50 animate-skeleton mb-2" />
-                    <div className="h-3 w-2/3 rounded bg-bg-primary/50 animate-skeleton mb-3" />
-                    <div className="flex gap-1.5">
-                      <div className="h-4 w-14 rounded-full bg-bg-primary/50 animate-skeleton" />
+        <div className="flex-1 overflow-auto p-4">
+          <div style={{ display: "flex", gap: "0.5rem", minWidth: "980px" }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex-1 flex flex-col bg-bg-surface rounded-lg">
+                <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-default">
+                  <div className="h-3 w-16 rounded bg-bg-elevated animate-skeleton" />
+                  <div className="h-4 w-6 rounded-full bg-bg-elevated animate-skeleton" />
+                </div>
+                <div className="flex flex-col gap-2 p-2">
+                  {Array.from({ length: Math.max(1, 3 - i) }).map((_, j) => (
+                    <div key={j} className="bg-bg-elevated rounded-lg p-3">
+                      <div className="h-3 w-full rounded bg-bg-primary/50 animate-skeleton mb-2" />
+                      <div className="h-3 w-2/3 rounded bg-bg-primary/50 animate-skeleton" />
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ) : error ? (
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
-            <p className="text-status-red text-sm mb-2">
-              Failed to load tasks
-            </p>
+            <p className="text-status-red text-sm mb-2">Failed to load tasks</p>
             <p className="text-text-muted text-xs">{error}</p>
           </div>
         </div>
       ) : tasks.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
-            <div className="mb-3 flex justify-center opacity-30">
-              <ClipboardList size={40} />
-            </div>
-            <span className="text-text-muted text-sm">
-              No tasks in this mission
-            </span>
+            <div className="mb-3 flex justify-center opacity-30"><ClipboardList size={40} /></div>
+            <span className="text-text-muted text-sm">No tasks in this mission</span>
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Kanban columns */}
-          <div className="flex flex-col md:flex-row gap-2 p-4 flex-1 min-h-0 overflow-x-auto overflow-y-auto">
-            {COLUMNS.map((col) => {
-              const colTasks = tasksByStatus.get(col.key) ?? [];
-              return (
-                <div
-                  key={col.key}
-                  className="flex flex-col bg-bg-surface rounded-lg w-full shrink-0 md:w-[calc((100%-6*0.5rem)/7)] md:min-w-[140px]"
-                >
-                  {/* Column header */}
-                  <div className="flex items-center justify-between px-3 py-2.5 h-10 border-b border-border-default">
-                    <span
-                      className="text-xs font-medium"
-                      style={{
-                        color: colTasks.length > 0 ? col.color : "#656d76",
-                      }}
-                    >
-                      {col.label}
-                    </span>
-                    <span
-                      className="text-[11px] rounded-full px-1.5 py-0.5"
-                      style={{
-                        backgroundColor:
-                          colTasks.length > 0
-                            ? col.color + "20"
-                            : "rgba(101,109,118,0.15)",
-                        color: colTasks.length > 0 ? col.color : "#656d76",
-                      }}
-                    >
-                      {colTasks.length}
-                    </span>
+        <div className="flex-1 overflow-auto">
+          {/* Kanban columns — inline style for reliable scroll */}
+          <div className="p-4" style={{ overflowX: "auto" }}>
+            <div style={{ display: "flex", gap: "0.5rem", minWidth: "980px" }}>
+              {COLUMNS.map((col) => {
+                const colTasks = tasksByStatus.get(col.key) ?? [];
+                return (
+                  <div key={col.key} className="flex-1 flex flex-col bg-bg-surface rounded-lg min-w-0">
+                    {/* Column header */}
+                    <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-default">
+                      <span className="text-xs font-medium" style={{ color: colTasks.length > 0 ? col.color : "#656d76" }}>
+                        {col.label}
+                      </span>
+                      <span
+                        className="text-[11px] rounded-full px-1.5 py-0.5"
+                        style={{
+                          backgroundColor: colTasks.length > 0 ? col.color + "20" : "rgba(101,109,118,0.15)",
+                          color: colTasks.length > 0 ? col.color : "#656d76",
+                        }}
+                      >
+                        {colTasks.length}
+                      </span>
+                    </div>
+                    {/* Cards — no overflow, grow naturally */}
+                    <div className="flex flex-col gap-2 p-2">
+                      {colTasks.map((task) => {
+                        const active = isTaskActive(task.task_id, currentTaskId, parallelBatch);
+                        const batchDone = isTaskCompletedInBatch(task.task_id, completedInBatch);
+                        return (
+                          <TaskCard
+                            key={task.task_id}
+                            task={task}
+                            onClick={() => setSelectedTask(task)}
+                            isActive={active && !batchDone}
+                            isCompletedInBatch={batchDone}
+                            agentName={!parallelBatch && task.task_id === currentTaskId ? (agentInFlight ?? undefined) : undefined}
+                            pipelineStep={!parallelBatch && task.task_id === currentTaskId ? (pipelineStep ?? undefined) : undefined}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
-                  {/* Cards */}
-                  <div className="flex flex-col gap-2 p-2 overflow-y-auto">
-                    {colTasks.map((task) => (
-                      <TaskCard
-                        key={task.task_id}
-                        task={task}
-                        onClick={() => setSelectedTask(task)}
-                        isActive={!!currentTaskId && task.task_id === currentTaskId}
-                        agentName={task.task_id === currentTaskId ? (agentInFlight ?? undefined) : undefined}
-                        pipelineStep={task.task_id === currentTaskId ? (pipelineStep ?? undefined) : undefined}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
           {/* Auxiliary states */}
@@ -231,8 +223,7 @@ export default function KanbanBoard({
             <div className="px-4 pb-3">
               <div className="bg-bg-surface rounded-lg p-3">
                 <span className="text-xs text-text-muted">
-                  {totalAuxiliary} task{totalAuxiliary !== 1 ? "s" : ""} in
-                  auxiliary states
+                  {totalAuxiliary} task{totalAuxiliary !== 1 ? "s" : ""} in auxiliary states
                 </span>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {AUXILIARY_STATES.map((aux) => {
@@ -247,21 +238,11 @@ export default function KanbanBoard({
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedTask(task); } }}
-                        style={{
-                          backgroundColor: aux.color + "18",
-                          color: aux.color,
-                        }}
+                        style={{ backgroundColor: aux.color + "18", color: aux.color }}
                       >
                         <Icon size={12} />
-                        <span className="truncate max-w-[180px]">
-                          {task.title}
-                        </span>
-                        <span
-                          className="font-medium ml-0.5 opacity-70"
-                          style={{ fontSize: "10px" }}
-                        >
-                          {aux.label}
-                        </span>
+                        <span className="truncate max-w-[180px]">{task.title}</span>
+                        <span className="font-medium ml-0.5 opacity-70" style={{ fontSize: "10px" }}>{aux.label}</span>
                       </span>
                     ));
                   })}
@@ -281,10 +262,7 @@ export default function KanbanBoard({
 
       {/* Task detail modal */}
       {selectedTask && (
-        <TaskDetailModal
-          task={selectedTask}
-          onClose={() => setSelectedTask(null)}
-        />
+        <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />
       )}
     </div>
   );

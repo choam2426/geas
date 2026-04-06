@@ -45,6 +45,8 @@ function App() {
               current_task_id: null,
               agent_in_flight: null,
               pipeline_step: null,
+              parallel_batch: null,
+              completed_in_batch: [],
             })
           )
         )
@@ -163,6 +165,8 @@ function App() {
               currentTaskId={selected.current_task_id}
               agentInFlight={selected.agent_in_flight}
               pipelineStep={selected.pipeline_step}
+              parallelBatch={selected.parallel_batch}
+              completedInBatch={selected.completed_in_batch}
             />
           </div>
         ) : selected && view === "history" ? (

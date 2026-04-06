@@ -22,6 +22,8 @@ export interface ProjectSummary {
   current_task_id: string | null;
   agent_in_flight: string | null;
   pipeline_step: string | null;
+  parallel_batch: string[] | null;
+  completed_in_batch: string[];
 }
 
 export interface TaskInfo {

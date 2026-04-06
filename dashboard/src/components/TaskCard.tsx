@@ -1,3 +1,4 @@
+import { CheckCircle } from "lucide-react";
 import type { TaskInfo } from "../types";
 import { riskColors } from "../colors";
 
@@ -5,11 +6,12 @@ interface TaskCardProps {
   task: TaskInfo;
   onClick?: () => void;
   isActive?: boolean;
+  isCompletedInBatch?: boolean;
   agentName?: string;
   pipelineStep?: string;
 }
 
-export default function TaskCard({ task, onClick, isActive, agentName, pipelineStep }: TaskCardProps) {
+export default function TaskCard({ task, onClick, isActive, isCompletedInBatch, agentName, pipelineStep }: TaskCardProps) {
   const title =
     task.title.length > 80 ? task.title.slice(0, 77) + "..." : task.title;
 
@@ -17,11 +19,15 @@ export default function TaskCard({ task, onClick, isActive, agentName, pipelineS
     ? riskColors[task.risk_level] ?? riskColors.normal
     : null;
 
+  const borderClass = isActive
+    ? "border-status-green/40"
+    : isCompletedInBatch
+    ? "border-status-green/20"
+    : "border-transparent";
+
   return (
     <div
-      className={`bg-bg-elevated rounded-lg p-3 border hover:border-border-default hover:-translate-y-px hover:shadow-md active:scale-95 transition-all duration-150 cursor-pointer ${
-        isActive ? "border-status-green/40" : "border-transparent"
-      }`}
+      className={`bg-bg-elevated rounded-lg p-3 border hover:border-border-default hover:-translate-y-px hover:shadow-md active:scale-95 transition-all duration-150 cursor-pointer ${borderClass}`}
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -31,12 +37,20 @@ export default function TaskCard({ task, onClick, isActive, agentName, pipelineS
       {isActive && (
         <div className="flex items-center gap-1.5 mb-2">
           <span className="w-2 h-2 rounded-full bg-status-green animate-pulse-dot shrink-0" />
-          {agentName && (
+          {agentName ? (
             <span className="text-[11px] text-text-secondary truncate">{agentName}</span>
+          ) : (
+            <span className="text-[11px] text-text-secondary">In progress</span>
           )}
           {pipelineStep && (
             <span className="text-[10px] text-text-muted truncate">{pipelineStep}</span>
           )}
+        </div>
+      )}
+      {isCompletedInBatch && !isActive && (
+        <div className="flex items-center gap-1.5 mb-2">
+          <CheckCircle size={12} className="text-status-green shrink-0" />
+          <span className="text-[11px] text-status-green">Completed in batch</span>
         </div>
       )}
       <div className="flex items-center gap-1.5 flex-wrap">

@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import type { DebtInfo, DebtItem } from "../types";
 import { severityColors, severityOrder } from "../colors";
+import DebtDetailModal from "./DebtDetailModal";
 
 interface DebtDetailPanelProps {
   projectPath: string;
@@ -34,6 +35,7 @@ export default function DebtDetailPanel({
     new Set()
   );
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [selectedDebt, setSelectedDebt] = useState<DebtItem | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -218,25 +220,35 @@ export default function DebtDetailPanel({
                 </p>
               ) : (
                 filteredItems.map((item) => (
-                  <DebtItemCard key={item.debt_id} item={item} />
+                  <DebtItemCard key={item.debt_id} item={item} onClick={() => setSelectedDebt(item)} />
                 ))
               )}
             </div>
           </div>
         </div>
       )}
+
+      {selectedDebt && (
+        <DebtDetailModal debt={selectedDebt} onClose={() => setSelectedDebt(null)} />
+      )}
     </div>
   );
 }
 
-function DebtItemCard({ item }: { item: DebtItem }) {
+function DebtItemCard({ item, onClick }: { item: DebtItem; onClick?: () => void }) {
   const sevColors = severityColors[item.severity] ?? severityColors.normal;
   const stColors = item.status
     ? statusColors[item.status] ?? statusColors.open
     : null;
 
   return (
-    <div className="bg-bg-surface rounded-lg p-4 border border-border-default hover:-translate-y-px hover:shadow-md transition-all duration-150">
+    <div
+      className="bg-bg-surface rounded-lg p-4 border border-border-default hover:-translate-y-px hover:shadow-md transition-all duration-150 cursor-pointer"
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+    >
       <div className="flex items-start gap-2 mb-1.5">
         <span
           className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shrink-0 mt-0.5"
