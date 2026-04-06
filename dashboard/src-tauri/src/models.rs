@@ -43,6 +43,13 @@ pub struct TaskRouting {
     pub required_reviewer_types: Vec<String>,
 }
 
+/// Scope block inside a TaskContract
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct TaskScope {
+    #[serde(default)]
+    pub surfaces: Vec<String>,
+}
+
 /// .geas/missions/{id}/tasks/*.json
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct TaskContract {
@@ -60,6 +67,10 @@ pub struct TaskContract {
     pub task_kind: Option<String>,
     #[serde(default)]
     pub routing: Option<TaskRouting>,
+    #[serde(default)]
+    pub acceptance_criteria: Vec<String>,
+    #[serde(default)]
+    pub scope: Option<TaskScope>,
 }
 
 /// .geas/missions/{id}/spec.json (partial — only fields we need)
@@ -152,6 +163,8 @@ pub struct TaskInfo {
     pub risk_level: Option<String>,
     pub task_kind: Option<String>,
     pub worker_type: Option<String>,
+    pub acceptance_criteria: Vec<String>,
+    pub scope_surfaces: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
