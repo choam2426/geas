@@ -4,7 +4,7 @@
 
 **Governance. Traceability. Verification. Evolution.**
 
-Geas brings structure to multi-agent AI development. The core value is not the number of agents — it's that every decision follows a governed process, every action is traceable, every output is verified against a contract, and the team evolves across sessions.
+Geas brings structure to multi-agent AI work. The core value is not the number of agents — it's that every decision follows a governed process, every action is traceable, every output is verified against a contract, and the team evolves across sessions.
 
 When making any design decision, ask: **"Does this make the multi-agent process more governed, traceable, verifiable, or capable of learning?"**
 
@@ -90,7 +90,8 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 - `mission/references/evolving.md` — Evolving phase procedure
 
 ### Utility skills (domain-specific)
-- `utility/software/` — SW-specific utilities (e.g., conformance-checking, chaos-exercising)
+- `utility/software/write-prd/` — PRD generation
+- `utility/software/write-stories/` — user story generation
 
 ## Key Design Principles
 
@@ -153,9 +154,9 @@ v3 protocol migration (6 phases) is complete. Domain-agnostic restructure is in 
 - **Phase 5**: recovery-packet schema, extended run-state, recovery decision table, session-latest.md + task-focus maintenance, two-phase checkpoint hooks
 - **Phase 6**: conformance-checking, chaos-exercising, policy-managing, reporting (health signals), memory review cadence hook
 
-### Domain-agnostic restructure (in progress)
+### Domain-agnostic restructure (complete)
 
-Plugin restructured: agents split into authority/ (3) + software/ (5) + research/ (6), skills into core/ (13) + utility/software/ (2). Slot-based agent routing via domain profiles replaces hardcoded agent references. orchestrating renamed to mission.
+Plugin restructured: agents split into authority/ (3) + software/ (5) + research/ (6), skills into core/ (13) + utility/software/ (2). Slot-based agent routing via domain profiles replaces hardcoded agent references. orchestrating renamed to mission. Hooks cleaned up (19 → 16). All docs updated.
 
 ### Working with skills
 
@@ -173,7 +174,7 @@ Plugin restructured: agents split into authority/ (3) + software/ (5) + research
 | Agent types, authority, routing | `protocol/01` |
 | Mission phases, mission model | `protocol/02` |
 | Task states, transitions, self-check | `protocol/03` |
-| Worktree, locks, parallelism | `protocol/04` |
+| Workspace, locks, parallelism | `protocol/04` |
 | Gate, vote, closure, verdict | `protocol/05` |
 | Specialist evidence matrix | `protocol/06` |
 | Memory system overview | `protocol/07` |
