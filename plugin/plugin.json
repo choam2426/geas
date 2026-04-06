@@ -34,7 +34,7 @@
     "./agents/research/research-engineer.md",
     "./agents/research/research-writer.md"
   ],
-  "skills": ["./skills/core/", "./skills/utility/software/"],
+  "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json",
   "settings": {
