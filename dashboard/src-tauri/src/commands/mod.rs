@@ -80,6 +80,8 @@ pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
                 current_task_id: None,
                 agent_in_flight: None,
                 pipeline_step: None,
+                parallel_batch: None,
+                completed_in_batch: vec![],
                 status: "error".to_string(),
             });
         }
@@ -100,6 +102,8 @@ pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
             current_task_id: None,
             agent_in_flight: None,
             pipeline_step: None,
+            parallel_batch: None,
+            completed_in_batch: vec![],
             status: "no_geas".to_string(),
         });
     }
@@ -122,6 +126,8 @@ pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
                 current_task_id: None,
                 agent_in_flight: None,
                 pipeline_step: None,
+                parallel_batch: None,
+                completed_in_batch: vec![],
                 status: "no_geas".to_string(),
             });
         }
@@ -153,6 +159,15 @@ pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
                     .checkpoint
                     .as_ref()
                     .and_then(|c| c.pipeline_step.clone()),
+                parallel_batch: run_state
+                    .checkpoint
+                    .as_ref()
+                    .and_then(|c| c.parallel_batch.clone()),
+                completed_in_batch: run_state
+                    .checkpoint
+                    .as_ref()
+                    .map(|c| c.completed_in_batch.clone())
+                    .unwrap_or_default(),
                 status: "ok".to_string(),
             });
         }
@@ -201,6 +216,15 @@ pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
             .checkpoint
             .as_ref()
             .and_then(|c| c.pipeline_step.clone()),
+        parallel_batch: run_state
+            .checkpoint
+            .as_ref()
+            .and_then(|c| c.parallel_batch.clone()),
+        completed_in_batch: run_state
+            .checkpoint
+            .as_ref()
+            .map(|c| c.completed_in_batch.clone())
+            .unwrap_or_default(),
         status: "ok".to_string(),
     })
 }
