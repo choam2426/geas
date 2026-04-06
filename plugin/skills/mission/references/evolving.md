@@ -103,7 +103,7 @@ Batch review and promotion of accumulated memory candidates across the mission.
 
 ### Execute P0 Items
 For each P0 item, run the full pipeline from `references/pipeline.md`:
-- Compile TaskContract -> Design -> Tech Guide -> Implementation Contract -> Implementation -> Code Review -> Testing -> Evidence Gate -> Critical Reviewer Challenge -> Final Verdict -> Resolve -> Retrospective
+- Compile TaskContract -> Design -> Design Guide -> Implementation Contract -> Implementation -> Specialist Review -> Testing -> Evidence Gate -> Critical Reviewer Challenge -> Final Verdict -> Resolve -> Retrospective
 
 Same mandatory steps, same Closure Packet verification, same checkpoint management as Building phase.
 

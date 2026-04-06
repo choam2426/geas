@@ -63,7 +63,7 @@ Different workers need different context:
 - UI flows to exercise (if frontend)
 - **Worker's `self_check`** — `untested_paths`, `known_risks`, and `what_i_would_test_next` from the worker's EvidenceBundle (prioritize testing these areas)
 - **Implementation contract** — read `.geas/missions/{mission_id}/contracts/{task-id}.json` for `demo_steps` and `edge_cases` the worker committed to handling
-- **QA tools available** — based on project stack (see QA Tools section below)
+- **Verification tools available** — based on project stack (see Verification Tools section below)
 - **Rubric dimensions** — which dimensions quality_specialist must score and their thresholds (from TaskContract `rubric`)
 
 #### Final Verdict Authority (product_authority)
@@ -90,7 +90,7 @@ From prior evidence (`.geas/missions/{mission_id}/evidence/{task-id}/`):
 - Read each upstream worker's evidence bundle
 - Extract the `summary` and `files_changed` fields
 - For design evidence: extract the full design spec
-- For tech guide evidence: extract the approach and constraints
+- For design guide evidence: extract the approach and constraints
 
 From decision records (`.geas/missions/{mission_id}/decisions/`):
 - Read any decisions relevant to this task's domain
@@ -235,12 +235,12 @@ Write the packet as a markdown file with this structure:
 
 Omit sections that have no content (e.g., no design context for a task before the communication_specialist has worked).
 
-## QA Tools Section (quality_specialist packets only)
+## Verification Tools Section (quality_specialist packets only)
 
-When generating a quality_specialist packet, include a `## QA Tools Available` section listing available MCP tools and commands from `.geas/memory/_project/conventions.md`:
+When generating a quality_specialist packet, include a `## Verification Tools Available` section listing available MCP tools and commands from `.geas/memory/_project/conventions.md`:
 
 ```markdown
-## QA Tools Available
+## Verification Tools Available
 - **API**: HTTP request tools for direct endpoint testing
 - **Database**: Database query MCP (if available)
 - **Browser**: Browser automation MCP (if connected) for E2E, screenshots, visual regression

@@ -26,7 +26,7 @@ Vote rounds also handle structured decisions (previously decision skill) and piv
 ## What NOT to Vote On
 
 - Individual feature design specs (too granular)
-- Per-feature tech guides
+- Per-feature design guides
 - Implementation details within a single agent's domain
 - Bug fixes or minor refactors
 

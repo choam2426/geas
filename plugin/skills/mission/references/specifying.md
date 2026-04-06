@@ -33,17 +33,17 @@ mkdir -p .geas/missions/{mission_id}
 3. User confirms or overrides the mission mode.
 4. If user selects `standard` or `full_depth`: populate the additional fields before proceeding.
 
-#### 3b. Architecture Review (always)
+#### 3b. Design Review (always)
 
 Resolve the design-authority slot via profiles.json. Spawn the resolved agent to review and enrich the design-brief:
 
 ```
-Agent(agent: "{resolved-design-authority}", prompt: "Read the design-brief at .geas/missions/{mission_id}/design-brief.json and the mission spec at .geas/missions/{mission_id}/spec.json. Review the design brief: verify the chosen approach is sound, check for missing risks or concerns, and add any necessary architecture decisions. If the project requires stack-specific rules, add them to .geas/rules.md under a '## Stack Rules' section. Update the design-brief: populate the arch_review field with your review summary and any additions you made. Write the updated design-brief back to .geas/missions/{mission_id}/design-brief.json with status: 'reviewing'.")
+Agent(agent: "{resolved-design-authority}", prompt: "Read the design-brief at .geas/missions/{mission_id}/design-brief.json and the mission spec at .geas/missions/{mission_id}/spec.json. Review the design brief: verify the chosen approach is sound, check for missing risks or concerns, and add any necessary architecture decisions. If the project requires stack-specific rules, add them to .geas/rules.md under a '## Stack Rules' section. Update the design-brief: populate the design_review field with your review summary and any additions you made. Write the updated design-brief back to .geas/missions/{mission_id}/design-brief.json with status: 'reviewing'.")
 ```
 
-Verify: Read `.geas/missions/{mission_id}/design-brief.json` and confirm `arch_review` is populated.
+Verify: Read `.geas/missions/{mission_id}/design-brief.json` and confirm `design_review` is populated.
 
-Log: `{"event": "step_complete", "step": "design_brief_arch_review", "agent": "{resolved-design-authority}", "timestamp": "<actual>"}`
+Log: `{"event": "step_complete", "step": "design_brief_design_review", "agent": "{resolved-design-authority}", "timestamp": "<actual>"}`
 
 #### 3c. Vote Round (full_depth only)
 
@@ -125,7 +125,7 @@ If no dependencies are needed:
 
 All conditions must be true:
 - Mission spec frozen (`.geas/missions/{mission_id}/spec.json` exists)
-- Design-brief approved (`status: "approved"` AND `arch_review` exists in `.geas/missions/{mission_id}/design-brief.json`)
+- Design-brief approved (`status: "approved"` AND `design_review` exists in `.geas/missions/{mission_id}/design-brief.json`)
 - Tasks compiled (at least 1 task in `.geas/missions/{mission_id}/tasks/` for this mission)
 - Task list approved (`task_list_approved` event in ledger for this mission)
 - Environment setup completed (`environment_setup_complete` event in ledger for this mission)

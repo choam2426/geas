@@ -55,7 +55,7 @@ Example: mission has `domain_profile: "software"`, pipeline says "spawn quality_
 **[MANDATORY]** Before EVERY Agent() spawn, you MUST Read `.geas/state/run.json`, update the `checkpoint` field, and Write it back. This is not optional — session recovery depends on it.
   ```json
   "checkpoint": {
-    "pipeline_step": "code_review",
+    "pipeline_step": "specialist_review",
     "agent_in_flight": "design-authority",
     "pending_evidence": ["design-authority-review.json"],
     "retry_count": 0,
@@ -174,7 +174,7 @@ When `run.json` exists with `status: "in_progress"`, classify the recovery:
    - Some missing → rewind to last **safe boundary**:
      - After `implementation_contract` approved
      - After implementation evidence verified
-     - After `code_review` + `testing` complete
+     - After `specialist_review` + `testing` complete
      - After gate pass
      - After closure packet assembled
    - Inconsistent state (conflicting artifacts) → `manual_repair_required`

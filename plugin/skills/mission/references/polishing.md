@@ -24,7 +24,7 @@ For each CRITICAL/HIGH finding, run a reduced pipeline:
    Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/missions/{mission_id}/packets/polishing/{worker}-fix-{N}.md. Fix the security issue. Write evidence to .geas/missions/{mission_id}/evidence/polishing/{worker}-fix-{N}.json")
    ```
 4. Merge worktree branch
-5. Code Review (design_authority) — verify the fix is correct and doesn't introduce regressions
+5. Specialist Review (design_authority) — verify the fix is correct and doesn't introduce regressions
 6. Testing (quality_specialist) — verify the fix with `eval_commands` from conventions.md
 7. If fix fails: retry once (`retry_budget: 2`). If still fails: register as HIGH debt and proceed — do not block Polishing phase indefinitely
 

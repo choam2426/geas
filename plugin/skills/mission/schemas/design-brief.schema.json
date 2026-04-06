@@ -114,7 +114,7 @@
       "items": { "type": "string" },
       "description": "Full depth only. Assumptions not yet validated."
     },
-    "arch_review": {
+    "design_review": {
       "type": "object",
       "required": ["reviewer_type", "summary"],
       "additionalProperties": false,

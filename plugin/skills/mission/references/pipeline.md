@@ -9,7 +9,7 @@ EVERY task, regardless of dependencies or position in the batch, MUST execute AL
 ## remaining_steps
 
 ```json
-"remaining_steps": ["design", "tech_guide", "implementation_contract", "implementation", "self_check", "code_review", "testing", "evidence_gate", "closure_packet", "challenger", "final_verdict", "resolve", "retrospective", "memory_extraction"]
+"remaining_steps": ["design", "design_guide", "implementation_contract", "implementation", "self_check", "specialist_review", "testing", "evidence_gate", "closure_packet", "challenger", "final_verdict", "resolve", "retrospective", "memory_extraction"]
 ```
 
 Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
@@ -77,7 +77,7 @@ Write updated `locks.json` after all acquisitions. If any acquisition fails (con
 ## Step Groups
 
 Within a single task's pipeline, these steps may run in parallel:
-- **[code_review, testing]** — design-authority and quality_specialist do not reference each other's output. Spawn both in one message. After both return, remove both from `remaining_steps` and log `step_complete` for each.
+- **[specialist_review, testing]** — design-authority and quality_specialist do not reference each other's output. Spawn both in one message. After both return, remove both from `remaining_steps` and log `step_complete` for each.
 
 All other steps are strictly sequential. In particular:
 - **challenger -> final_verdict** — product_authority's prompt requires `challenge-review.json` as input. challenger MUST complete and file MUST be verified before spawning product_authority.
@@ -139,7 +139,7 @@ Agent(agent: "{resolved-implementer}", prompt: "Read .geas/missions/{mission_id}
 ```
 Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-implementer}-design.json` exists.
 
-### Tech Guide (design-authority) [DEFAULT — skip when ALL: existing pattern, no new libs, single module, no schema change]
+### Design Guide (design-authority) [DEFAULT — skip when ALL: existing pattern, no new libs, single module, no schema change]
 **Skip** when ALL of these are true:
 - Task follows an existing pattern in conventions.md
 - No new external libraries or services
@@ -153,9 +153,9 @@ Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-implementer}-de
 - New data model or schema changes
 
 Resolve the design-authority slot via profiles.json. Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "tech_guide", `agent_in_flight` = "{resolved-design-authority}"
+Update run.json checkpoint: `pipeline_step` = "design_guide", `agent_in_flight` = "{resolved-design-authority}"
 ```
-Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-design-authority}.md. Write tech guide to .geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}.json")
+Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-design-authority}.md. Write design guide to .geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}.json")
 ```
 Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}.json` exists.
 
@@ -205,16 +205,16 @@ Update run.json checkpoint: `pipeline_step` = "self_check", `agent_in_flight` = 
 ```
 Agent(agent: "{worker}", prompt: "Implementation for {task-id} is complete. Before handing off to review, produce your self-check artifact. Write .geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json. Required fields: version (\"1.0\"), artifact_type (\"worker_self_check\"), artifact_id (e.g. \"self-check-{task-id}\"), producer_type (your agent type from the domain profile), task_id, known_risks (string[]), untested_paths (string[]), possible_stubs (string[]), what_to_test_next (string[]), confidence (integer 1-5: 1=very_low ... 5=very_high), summary (string), created_at (ISO 8601 timestamp).")
 ```
-Verify `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json` exists. Do NOT proceed to Code Review without this file.
+Verify `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json` exists. Do NOT proceed to Specialist Review without this file.
 
-### Code Review (design-authority) [MANDATORY]
+### Specialist Review (design-authority) [MANDATORY]
 Resolve the design-authority slot via profiles.json. Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "code_review", `agent_in_flight` = "{resolved-design-authority}"
+Update run.json checkpoint: `pipeline_step` = "specialist_review", `agent_in_flight` = "{resolved-design-authority}"
 ```
 Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-design-authority}-review.md. Review implementation. Write to .geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}-review.json")
 ```
 Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}-review.json` exists.
-Update run.json checkpoint: `pipeline_step` = "code_review"
+Update run.json checkpoint: `pipeline_step` = "specialist_review"
 
 ### Testing (quality_specialist) [MANDATORY]
 Resolve the quality_specialist slot via profiles.json. Generate ContextPacket, then:
@@ -225,7 +225,7 @@ Agent(agent: "{resolved-quality-specialist}", prompt: "Read .geas/missions/{miss
 Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-quality-specialist}.json` exists.
 Update run.json checkpoint: `pipeline_step` = "testing"
 
-After BOTH code_review and testing complete:
+After BOTH specialist_review and testing complete:
 1. Update TaskContract status to `"reviewed"` (specialist reviews done).
 2. Write `.geas/missions/{mission_id}/tasks/{task-id}/integration-result.json` with: `merge_commit` (hash from worktree merge), `conflict_status` ("clean" | "resolved" | "failed"), `base_commit`, `timestamp`. This artifact records the integration outcome.
 3. Update TaskContract status to `"integrated"` (worktree merge + reviews confirmed integration is sound).

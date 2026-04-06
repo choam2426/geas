@@ -9,17 +9,17 @@ Worker and reviewers agree on "what done looks like" before any code is written.
 
 ## When to Use
 
-Orchestrator invokes this skill after Tech Guide (design_authority) and before Implementation, for every task.
+Orchestrator invokes this skill after Design Guide (design_authority) and before Implementation, for every task.
 
 ## Purpose
 
-Eliminates the waste cycle: "worker misunderstands requirement → builds wrong thing → QA catches it → rework." The worker reads the ContextPacket (including communication_specialist's design and design_authority's tech guide), then explicitly states what they plan to do and how they'll prove it's done. quality_specialist and design_authority approve before implementation begins.
+Eliminates the waste cycle: "worker misunderstands requirement → builds wrong thing → quality verification catches it → rework." The worker reads the ContextPacket (including communication_specialist's design and design_authority's design guide), then explicitly states what they plan to do and how they'll prove it's done. quality_specialist and design_authority approve before implementation begins.
 
 ## Inputs
 
 1. **TaskContract** — from `.geas/missions/{mission_id}/tasks/{task-id}.json`
 2. **ContextPacket** — the worker's packet at `.geas/missions/{mission_id}/packets/{task-id}/{worker}.md`
-3. **Prior evidence** — communication_specialist design, design_authority tech guide (if available)
+3. **Prior evidence** — communication_specialist design, design_authority design guide (if available)
 
 ## Process
 
@@ -41,7 +41,7 @@ Verify `.geas/missions/{mission_id}/contracts/{task-id}.json` exists.
 
 ### Step 2: quality_specialist Reviews
 
-Spawn quality_specialist to review the contract from a QA perspective:
+Spawn quality_specialist to review the contract from a quality verification perspective:
 
 ```
 Agent(agent: "quality-specialist", prompt: "Read .geas/missions/{mission_id}/contracts/{task-id}.json and .geas/missions/{mission_id}/tasks/{task-id}.json. Review this implementation contract:
@@ -57,8 +57,8 @@ Write your assessment. If acceptable, approve. If not, list specific concerns.")
 Spawn design_authority to review the contract from a technical perspective:
 
 ```
-Agent(agent: "design-authority", prompt: "Read .geas/missions/{mission_id}/contracts/{task-id}.json, .geas/missions/{mission_id}/tasks/{task-id}.json, and any prior tech guide at .geas/missions/{mission_id}/evidence/{task-id}/design-authority.json. Review this implementation contract:
-- Are planned_actions consistent with the tech guide?
+Agent(agent: "design-authority", prompt: "Read .geas/missions/{mission_id}/contracts/{task-id}.json, .geas/missions/{mission_id}/tasks/{task-id}.json, and any prior design guide at .geas/missions/{mission_id}/evidence/{task-id}/design-authority.json. Review this implementation contract:
+- Are planned_actions consistent with the design guide?
 - Are non_goals appropriate — nothing critical being excluded?
 - Are there technical edge_cases the worker missed?
 - Is the approach viable or heading toward a dead end?
