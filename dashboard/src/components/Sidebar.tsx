@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { RefreshCw, X, AlertTriangle, AlertCircle, Plus, History, ChevronsLeft, ChevronsRight } from "lucide-react";
 import type { ProjectSummary } from "../types";
+import { phaseColors } from "../colors";
 import PhaseBadge from "./PhaseBadge";
 
 interface SidebarProps {
@@ -206,11 +207,5 @@ export default function Sidebar({
 
 /** Map phase to a dot color for collapsed view */
 function getPhaseColor(phase: string): string {
-  switch (phase) {
-    case "specifying": return "#58a6ff";
-    case "building": return "#3fb950";
-    case "polishing": return "#d29922";
-    case "evolving": return "#bc8cff";
-    default: return "#656d76";
-  }
+  return phaseColors[phase.toLowerCase()]?.text ?? "#656d76";
 }

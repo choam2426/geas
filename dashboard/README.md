@@ -34,14 +34,17 @@ dashboard/
 │   ├── main.tsx            # Entry point
 │   ├── App.tsx             # Root component, routing between views
 │   ├── types.ts            # Shared TypeScript types
+│   ├── colors.ts           # Shared color constants (severity, risk, phase)
 │   ├── index.css           # Tailwind CSS entry
 │   └── components/
-│       ├── Sidebar.tsx           # Project list sidebar
+│       ├── Sidebar.tsx           # Project list sidebar (collapsible, responsive)
 │       ├── AddProjectDialog.tsx  # Project path registration dialog
 │       ├── ProjectOverview.tsx   # Mission status summary view
-│       ├── KanbanBoard.tsx       # Task cards organized by state
+│       ├── MissionHistory.tsx    # Browse past and active missions
+│       ├── KanbanBoard.tsx       # Task cards organized by state (responsive stacking)
 │       ├── TaskCard.tsx          # Individual task card
-│       ├── DebtPanel.tsx         # Tech debt severity breakdown
+│       ├── DebtPanel.tsx         # Tech debt severity breakdown (inline summary)
+│       ├── DebtDetailPanel.tsx   # Full debt list with severity/status filters
 │       ├── PhaseBadge.tsx        # Mission phase indicator
 │       ├── DebtBadge.tsx         # Debt count indicator
 │       ├── ProgressBar.tsx       # Task progress visualization
@@ -68,9 +71,11 @@ dashboard/
 - **Project registration** -- Add and remove local project paths through the UI. Paths persist across app restarts.
 - **Auto-refresh** -- The Rust backend watches `.geas/` directories for file changes and automatically refreshes project data. No manual reload needed.
 - **Mission overview** -- See mission name, current phase, task progress, debt count, and last activity time for each registered project.
-- **Kanban board** -- View tasks organized by their 7 primary states (drafted, ready, implementing, reviewed, integrated, verified, passed) and 3 auxiliary states (blocked, escalated, cancelled). Cards display title, assignee type, and risk level.
+- **Mission history** -- Browse all missions for a project (past and active). Each mission card shows phase, task progress, and creation date. Selecting a mission opens its kanban board.
+- **Kanban board** -- View tasks organized by their 7 primary states (drafted, ready, implementing, reviewed, integrated, verified, passed) and 4 auxiliary states (blocked, escalated, cancelled, paused). Cards display title, assignee type, and risk level. Columns stack vertically on narrow viewports and scroll horizontally on wider screens.
 - **SVG icons** -- UI elements use lucide-react SVG icons for a polished, consistent look.
-- **Debt tracking** -- Severity breakdown (low, medium, high, critical) per project from `debt-register.json`.
+- **Debt tracking** -- Severity breakdown (low, normal, high, critical) per project from `debt-register.json`. The overview shows a summary; the debt detail panel provides a full item list with severity and status filters (all/open/resolved).
+- **Responsive layout** -- Sidebar collapses to a narrow icon strip on screens below 1024px and can be manually toggled. Kanban columns stack vertically on mobile and scroll horizontally on desktop. Padding and font sizes scale with breakpoints.
 - **Error handling** -- Graceful display when a registered project path is missing or has no `.geas/` directory.
 
 ## Configuration
@@ -97,6 +102,5 @@ App data (registered project paths and preferences) is stored as JSON in the OS-
 ## Limitations
 
 - Read-only -- the app never writes to `.geas/` directories.
-- Shows the current/latest mission only -- no mission history browsing.
 - Dark theme only -- no light mode toggle.
 - No installer signing or distribution packaging.
