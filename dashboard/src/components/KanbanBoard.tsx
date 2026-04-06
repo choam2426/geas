@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { ArrowLeft, Ban, AlertTriangle, XCircle, Pause } from "lucide-react";
 import type { TaskInfo, DebtInfo } from "../types";
 import TaskCard from "./TaskCard";
 import DebtPanel from "./DebtPanel";
@@ -12,6 +13,13 @@ const COLUMNS = [
   { key: "integrated", label: "Integrated", color: "#58a6ff" },
   { key: "verified", label: "Verified", color: "#3fb950" },
   { key: "passed", label: "Passed", color: "#56d364" },
+] as const;
+
+const AUXILIARY_STATES = [
+  { key: "blocked", label: "Blocked", color: "#d29922", icon: Ban },
+  { key: "escalated", label: "Escalated", color: "#f85149", icon: AlertTriangle },
+  { key: "cancelled", label: "Cancelled", color: "#656d76", icon: XCircle },
+  { key: "paused", label: "Paused", color: "#58a6ff", icon: Pause },
 ] as const;
 
 interface KanbanBoardProps {
@@ -72,12 +80,25 @@ export default function KanbanBoard({
   for (const col of COLUMNS) {
     tasksByStatus.set(col.key, []);
   }
+  const auxiliaryTasks = new Map<string, TaskInfo[]>();
+  for (const aux of AUXILIARY_STATES) {
+    auxiliaryTasks.set(aux.key, []);
+  }
   for (const task of tasks) {
-    const bucket = tasksByStatus.get(task.status);
-    if (bucket) {
-      bucket.push(task);
+    const primaryBucket = tasksByStatus.get(task.status);
+    if (primaryBucket) {
+      primaryBucket.push(task);
+    } else {
+      const auxBucket = auxiliaryTasks.get(task.status);
+      if (auxBucket) {
+        auxBucket.push(task);
+      }
     }
   }
+  const totalAuxiliary = Array.from(auxiliaryTasks.values()).reduce(
+    (sum, arr) => sum + arr.length,
+    0
+  );
 
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -87,7 +108,7 @@ export default function KanbanBoard({
           onClick={onBack}
           className="text-text-secondary hover:text-text-primary text-sm cursor-pointer transition-colors"
         >
-          &larr; Back
+          <ArrowLeft size={16} className="inline" /> Back
         </button>
         <h1 className="text-lg font-semibold text-text-primary truncate">
           {projectName}
@@ -158,6 +179,46 @@ export default function KanbanBoard({
               );
             })}
           </div>
+
+          {/* Auxiliary states */}
+          {totalAuxiliary > 0 && (
+            <div className="px-4 pb-3">
+              <div className="bg-bg-surface rounded-lg p-3">
+                <span className="text-xs text-text-muted">
+                  {totalAuxiliary} task{totalAuxiliary !== 1 ? "s" : ""} in
+                  auxiliary states
+                </span>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {AUXILIARY_STATES.map((aux) => {
+                    const items = auxiliaryTasks.get(aux.key) ?? [];
+                    if (items.length === 0) return null;
+                    const Icon = aux.icon;
+                    return items.map((task) => (
+                      <span
+                        key={task.task_id}
+                        className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs"
+                        style={{
+                          backgroundColor: aux.color + "18",
+                          color: aux.color,
+                        }}
+                      >
+                        <Icon size={12} />
+                        <span className="truncate max-w-[180px]">
+                          {task.title}
+                        </span>
+                        <span
+                          className="font-medium ml-0.5 opacity-70"
+                          style={{ fontSize: "10px" }}
+                        >
+                          {aux.label}
+                        </span>
+                      </span>
+                    ));
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Debt panel */}
           {debt && (
