@@ -18,6 +18,7 @@ pub fn run() {
             commands::get_project_summary,
             commands::get_project_tasks,
             commands::get_project_debt,
+            commands::get_mission_history,
             commands::list_projects,
             commands::add_project,
             commands::remove_project,

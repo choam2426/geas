@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::commands::{name_from_path, read_json_file};
-use crate::models::{DebtRegister, RunState, SeverityRollup, TaskContract};
+use crate::models::{DebtItem, DebtRegister, MissionSpec, RunState, SeverityRollup, TaskContract};
 
 #[test]
 fn name_from_unix_path() {
@@ -106,4 +106,67 @@ fn severity_rollup_medium_alias() {
     assert_eq!(sr.normal, 3);
     assert_eq!(sr.high, 2);
     assert_eq!(sr.critical, 0);
+}
+
+#[test]
+fn mission_spec_full_json() {
+    let json = r#"{
+        "mission": "Build the dashboard MVP",
+        "created_at": "2026-04-01T08:00:00Z"
+    }"#;
+
+    let spec: MissionSpec = serde_json::from_str(json).unwrap();
+    assert_eq!(spec.mission.as_deref(), Some("Build the dashboard MVP"));
+    assert_eq!(spec.created_at.as_deref(), Some("2026-04-01T08:00:00Z"));
+}
+
+#[test]
+fn mission_spec_minimal_json() {
+    let json = "{}";
+    let spec: MissionSpec = serde_json::from_str(json).unwrap();
+    assert!(spec.mission.is_none());
+    assert!(spec.created_at.is_none());
+}
+
+#[test]
+fn mission_spec_extra_fields_ignored() {
+    let json = r#"{
+        "mission": "Test",
+        "domain_profile": "software",
+        "objectives": ["a", "b"]
+    }"#;
+    let spec: MissionSpec = serde_json::from_str(json).unwrap();
+    assert_eq!(spec.mission.as_deref(), Some("Test"));
+    assert!(spec.created_at.is_none());
+}
+
+#[test]
+fn debt_item_with_introduced_by_task_id() {
+    let json = r#"{
+        "debt_id": "debt-001",
+        "severity": "high",
+        "kind": "design",
+        "title": "Missing error handling",
+        "description": "Several endpoints lack proper error handling",
+        "status": "open",
+        "introduced_by_task_id": "task-005"
+    }"#;
+
+    let item: DebtItem = serde_json::from_str(json).unwrap();
+    assert_eq!(item.debt_id.as_deref(), Some("debt-001"));
+    assert_eq!(item.description.as_deref(), Some("Several endpoints lack proper error handling"));
+    assert_eq!(item.introduced_by_task_id.as_deref(), Some("task-005"));
+}
+
+#[test]
+fn debt_item_without_new_fields() {
+    let json = r#"{
+        "debt_id": "debt-002",
+        "severity": "low",
+        "title": "Legacy naming"
+    }"#;
+
+    let item: DebtItem = serde_json::from_str(json).unwrap();
+    assert!(item.description.is_none());
+    assert!(item.introduced_by_task_id.is_none());
 }
