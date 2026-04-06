@@ -11,5 +11,11 @@ Thumbs.db
 
 **/__pycache__/
 *.png
+!dashboard/src-tauri/icons/*.png
 
 .claude/
+
+# Dashboard
+dashboard/node_modules/
+dashboard/src-tauri/target/
+dashboard/dist/
