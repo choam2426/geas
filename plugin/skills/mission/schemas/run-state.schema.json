@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RunState",
-  "description": "Session state and checkpoint for the Geas orchestrator. Written by orchestration_authority, read by restore-context hook for session recovery. Canonical protocol schema — the skill-local copy at plugin/skills/orchestrating/schemas/ should match this.",
+  "description": "Session state and checkpoint for the Geas orchestrator. Written by orchestration_authority, read by restore-context hook for session recovery.",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "status", "created_at"],
@@ -15,9 +15,13 @@
       "enum": ["initialized", "in_progress", "complete"],
       "description": "Overall session status"
     },
+    "mission_id": {
+      "type": ["string", "null"],
+      "description": "Mission ID (e.g., 'mission-002') — used to locate spec and artifact files"
+    },
     "mission": {
       "type": ["string", "null"],
-      "description": "Mission statement from current mission spec"
+      "description": "Human-readable mission statement from current mission spec"
     },
     "phase": {
       "type": ["string", "null"],
