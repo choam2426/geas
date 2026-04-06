@@ -32,11 +32,14 @@ Rules:
 - Stop when all checklist items are satisfied — no fixed question limit
 
 Question categories:
-1. **Scope boundary**: "You mentioned X — does that include Y?" (with options)
-2. **User definition**: "Who primarily uses this?" (with persona options)
-3. **Constraint surfacing**: "Any tech stack or platform preferences?" (with common options)
-4. **Success criteria**: "How will you know this is done? What must work on day one?"
-5. **Anti-scope**: "What should this explicitly NOT do?" (with related-but-excluded options)
+1. **Domain profile**: "What type of work is this?" (software development / research / other)
+2. **Scope boundary**: "You mentioned X — does that include Y?" (with options)
+3. **User definition**: "Who primarily uses this?" (with persona options)
+4. **Constraint surfacing**: "Any tech stack or platform preferences?" (with common options)
+5. **Success criteria**: "How will you know this is done? What must work on day one?"
+6. **Anti-scope**: "What should this explicitly NOT do?" (with related-but-excluded options)
+7. **Risk surfacing**: "What could go wrong? Any areas of uncertainty?"
+8. **Affected surfaces**: "What existing areas/files/systems will this touch?"
 
 If the user says "just build it" at any point — respect that, set `readiness_override: true`, fill best-effort values for unchecked items, and proceed.
 
@@ -70,10 +73,15 @@ As each section is approved, mark it in the completeness checklist.
 
 Check the completeness checklist — all items must be true:
 - `mission`: approved
+- `domain_profile`: selected
+- `mode`: selected (lightweight / standard / full_depth)
+- `done_when`: approved (one-sentence success definition)
 - `acceptance_criteria`: approved (>= 3 items)
+- `scope_in`: approved (>= 1 item)
 - `scope_out`: approved (>= 1 item)
 - `target_user`: approved
 - `constraints`: approved
+- `affected_surfaces`: identified
 
 Determine the next mission ID by scanning `.geas/missions/mission-*/` directories — pick the next sequential number (mission-001, mission-002, etc.).
 
@@ -92,18 +100,65 @@ Always include the `source` field:
 - `"quick_intake"` — user skipped detailed intake
 - `"existing_project"` — auto-generated for existing project onboarding
 
-Show the user a final summary:
+Show the user a detailed mission briefing:
 ```
-Mission: <refined mission>
-Target User: <who>
-Scope IN: <bulleted list>
-Scope OUT: <bulleted list>
-Acceptance Criteria:
-  1. <criterion>
-  2. <criterion>
-  3. <criterion>
-Constraints: <if any>
-Assumptions: <if any>
+═══════════════════════════════════════════════════
+  MISSION SPEC — {mission_id}
+═══════════════════════════════════════════════════
+
+  Mission:        <refined mission statement>
+  Done when:      <one-sentence success definition>
+  Domain:         <domain_profile>
+  Mode:           <lightweight | standard | full_depth>
+  Target user:    <who>
+
+─── SCOPE ─────────────────────────────────────────
+
+  IN:
+    • <feature/capability 1>
+    • <feature/capability 2>
+    • ...
+
+  OUT:
+    • <explicitly excluded 1>
+    • <explicitly excluded 2>
+    • ...
+
+─── ACCEPTANCE CRITERIA ───────────────────────────
+
+    1. <observable, falsifiable criterion>
+    2. <observable, falsifiable criterion>
+    3. <observable, falsifiable criterion>
+    ...
+
+─── CONSTRAINTS ───────────────────────────────────
+
+    • <technical or business constraint>
+    • ...
+
+─── AFFECTED SURFACES ─────────────────────────────
+
+    • <area/path/system expected to be touched>
+    • ...
+
+─── RISK NOTES ────────────────────────────────────
+
+    • <initial risk observation>
+    • ...
+    (none identified = "No significant risks identified at intake")
+
+─── ASSUMPTIONS ───────────────────────────────────
+
+    • <confirmed assumption>
+    • ...
+
+─── AMBIGUITIES ───────────────────────────────────
+
+    • <deferred ambiguity + rationale>
+    • ...
+    (none = "All ambiguities resolved during intake")
+
+═══════════════════════════════════════════════════
 ```
 
 Ask: "Does this capture your intent? Any changes before we start?"

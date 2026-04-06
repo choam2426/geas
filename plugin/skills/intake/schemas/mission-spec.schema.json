@@ -30,6 +30,19 @@
       "type": "string",
       "description": "Refined, unambiguous mission statement"
     },
+    "domain_profile": {
+      "type": "string",
+      "description": "Active domain profile (e.g., software, research)"
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["lightweight", "standard", "full_depth"],
+      "description": "Mission operating mode — determines rigor level"
+    },
+    "done_when": {
+      "type": "string",
+      "description": "One-sentence success definition — what must be true for this mission to be complete"
+    },
     "target_user": {
       "type": "string",
       "description": "Primary user persona or audience"
@@ -37,7 +50,7 @@
     "constraints": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Technical or business constraints (e.g., 'Must use relational database', 'No paid APIs')"
+      "description": "Technical or business constraints"
     },
     "assumptions": {
       "type": "array",
@@ -48,7 +61,7 @@
       "type": "array",
       "items": { "type": "string" },
       "minItems": 3,
-      "description": "Measurable criteria that define 'done'. Minimum 3 required."
+      "description": "Measurable criteria that define completion. Minimum 3 required."
     },
     "scope_in": {
       "type": "array",
@@ -60,7 +73,17 @@
       "type": "array",
       "items": { "type": "string" },
       "minItems": 1,
-      "description": "Features and capabilities explicitly excluded. Minimum 1 required to prove scope was considered."
+      "description": "Features and capabilities explicitly excluded"
+    },
+    "risk_notes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Initial risk observations identified during intake"
+    },
+    "affected_surfaces": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Areas, paths, or systems expected to be touched"
     },
     "ambiguity_notes": {
       "type": "array",
@@ -70,7 +93,7 @@
     "source": {
       "type": "string",
       "enum": ["full_intake", "quick_intake", "existing_project"],
-      "description": "How this spec was created. 'full_intake' = complete Socratic intake. 'quick_intake' = minimal auto-generated spec (user skipped detailed intake). 'existing_project' = auto-generated for first-time geas usage on an existing project."
+      "description": "How this spec was created"
     },
     "created_at": {
       "type": "string",
@@ -78,5 +101,5 @@
       "description": "ISO 8601 timestamp when the spec was frozen"
     }
   },
-  "required": ["version", "artifact_type", "mission_id", "mission", "acceptance_criteria", "scope_in", "scope_out", "created_at"]
+  "required": ["version", "artifact_type", "mission_id", "mission", "domain_profile", "mode", "done_when", "acceptance_criteria", "scope_in", "scope_out", "created_at"]
 }
