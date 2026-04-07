@@ -26,7 +26,7 @@ A mission MUST contain at least the following fields:
 
 | field | description |
 |---|---|
-| `mission_id` | unique identifier for the mission |
+| `mission_id` | unique identifier for the mission — format: `mission-{YYYYMMDD}-{8char}` (e.g., `mission-20260407-x7Kq9mPv`) |
 | `intent` | canonical intent enum value describing the mission's purpose |
 | `goal` | human-readable description of the desired outcome |
 | `done_when` | verifiable condition that must be true for the mission to be considered complete |
