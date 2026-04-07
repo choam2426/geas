@@ -26,7 +26,7 @@
 
 | 필드 | 설명 |
 |---|---|
-| `mission_id` | 미션의 고유 식별자 |
+| `mission_id` | 미션의 고유 식별자 — 형식: `mission-{YYYYMMDD}-{8char}` (예: `mission-20260407-x7Kq9mPv`) |
 | `intent` | 미션의 목적을 나타내는 canonical intent enum 값 |
 | `goal` | 기대 결과에 대한 사람이 읽을 수 있는 설명 |
 | `done_when` | 이 조건이 참이면 미션 완료라고 판단할 수 있는 검증 가능한 조건 |
