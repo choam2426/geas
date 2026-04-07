@@ -27,7 +27,7 @@
     },
     "artifact_id": {
       "type": "string",
-      "description": "e.g., design-brief-mission-003"
+      "description": "e.g., design-brief-mission-20260407-x7Kq9mPv"
     },
     "producer_type": {
       "type": "string",
@@ -35,7 +35,9 @@
       "description": "Always orchestration_authority for design briefs"
     },
     "mission_id": {
-      "type": "string"
+      "type": "string",
+      "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$",
+      "description": "Mission ID (e.g., 'mission-20260407-x7Kq9mPv')"
     },
     "depth": {
       "type": "string",

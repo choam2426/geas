@@ -17,7 +17,8 @@
     },
     "mission_id": {
       "type": ["string", "null"],
-      "description": "Mission ID (e.g., 'mission-002') — used to locate spec and artifact files"
+      "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$",
+      "description": "Mission ID (e.g., 'mission-20260407-x7Kq9mPv') — used to locate spec and artifact files"
     },
     "mission": {
       "type": ["string", "null"],
