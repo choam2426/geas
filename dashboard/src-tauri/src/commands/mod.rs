@@ -62,7 +62,7 @@ pub(crate) fn name_from_path(path: &str) -> String {
 // Project data commands (read-only .geas/ access)
 // ---------------------------------------------------------------------------
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
     let geas = match geas_dir(&path) {
         Ok(g) => g,
@@ -229,7 +229,7 @@ pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
     })
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn get_project_tasks(path: String, mission_id: String) -> Result<Vec<TaskInfo>, String> {
     if mission_id.is_empty() {
         return Err("mission_id is required".to_string());
@@ -240,7 +240,7 @@ pub fn get_project_tasks(path: String, mission_id: String) -> Result<Vec<TaskInf
     read_task_files(&tasks_dir)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn get_project_debt(path: String, mission_id: String) -> Result<DebtInfo, String> {
     if mission_id.is_empty() {
         return Err("mission_id is required".to_string());
@@ -279,7 +279,7 @@ pub fn get_project_debt(path: String, mission_id: String) -> Result<DebtInfo, St
     })
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn get_mission_history(path: String) -> Result<Vec<MissionSummary>, String> {
     let geas = geas_dir(&path)?;
 
@@ -354,13 +354,13 @@ pub fn get_mission_history(path: String) -> Result<Vec<MissionSummary>, String> 
 // Config management commands
 // ---------------------------------------------------------------------------
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn list_projects(app_handle: tauri::AppHandle) -> Result<Vec<ProjectEntry>, String> {
     let cfg = config::read_config(&app_handle)?;
     Ok(cfg.projects)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn add_project(
     app_handle: tauri::AppHandle,
     watcher_state: tauri::State<'_, Mutex<crate::watcher::WatcherState>>,
@@ -393,7 +393,7 @@ pub fn add_project(
     Ok(entry)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn remove_project(
     app_handle: tauri::AppHandle,
     watcher_state: tauri::State<'_, Mutex<crate::watcher::WatcherState>>,
