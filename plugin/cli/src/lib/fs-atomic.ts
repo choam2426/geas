@@ -10,6 +10,19 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { WriteOptions } from './types';
 import { normalizePath } from './paths';
+import { enrichTimestamp, runPostWriteChecks, writeCheckpointPending } from './post-write-checks';
+import { warn as emitWarning } from './output';
+
+/**
+ * Determine whether post-write checks should run.
+ * Default: true for .geas/ paths, false otherwise.
+ * Explicitly set options.runChecks overrides the default.
+ */
+function shouldRunChecks(filePath: string, options?: WriteOptions): boolean {
+  if (options?.runChecks !== undefined) return options.runChecks;
+  const norm = filePath.replace(/\\/g, '/');
+  return norm.includes('/.geas/') || norm.includes('\\.geas\\');
+}
 
 /**
  * Ensure a directory exists, creating it recursively if needed.
@@ -48,18 +61,37 @@ export function readJsonFile<T>(filePath: string): T | null {
  * Creates parent directories if they do not exist.
  * Uses 2-space indent and trailing newline.
  *
+ * When options.runChecks is true (default for .geas/ paths), runs post-write
+ * governance checks and emits warnings to stderr.
+ *
  * @param filePath - Absolute path to the file.
  * @param data - Data to serialize as JSON.
- * @param _options - Write options (schema validation and post-write checks deferred to later tasks).
+ * @param options - Write options (schema validation and post-write checks).
  */
 export function writeJsonFile(
   filePath: string,
   data: unknown,
-  _options?: WriteOptions
+  options?: WriteOptions
 ): void {
+  const shouldCheck = shouldRunChecks(filePath, options);
+
+  // Pre-write: enrich timestamps + checkpoint pending
+  if (shouldCheck) {
+    enrichTimestamp(filePath, data);
+    writeCheckpointPending(filePath, process.cwd());
+  }
+
   ensureDir(path.dirname(filePath));
   const content = JSON.stringify(data, null, 2) + '\n';
   fs.writeFileSync(filePath, content, 'utf-8');
+
+  // Post-write checks (no file rewrites — only warnings)
+  if (shouldCheck) {
+    const warnings = runPostWriteChecks(filePath, data, process.cwd());
+    for (const w of warnings) {
+      emitWarning(w);
+    }
+  }
 }
 
 /**
@@ -77,15 +109,26 @@ export function appendJsonlFile(filePath: string, entry: unknown): void {
  * Write data as JSON atomically: write to a .tmp sibling file, then rename.
  * Falls back to direct write if rename fails (e.g. cross-device move on Windows).
  *
+ * When options.runChecks is true (default for .geas/ paths), runs post-write
+ * governance checks and emits warnings to stderr.
+ *
  * @param filePath - Absolute path to the target file.
  * @param data - Data to serialize as JSON.
- * @param _options - Write options (schema validation and post-write checks deferred to later tasks).
+ * @param options - Write options (schema validation and post-write checks).
  */
 export function atomicWriteJsonFile(
   filePath: string,
   data: unknown,
-  _options?: WriteOptions
+  options?: WriteOptions
 ): void {
+  const shouldCheck = shouldRunChecks(filePath, options);
+
+  // Pre-write: enrich timestamps + checkpoint pending
+  if (shouldCheck) {
+    enrichTimestamp(filePath, data);
+    writeCheckpointPending(filePath, process.cwd());
+  }
+
   ensureDir(path.dirname(filePath));
   const content = JSON.stringify(data, null, 2) + '\n';
   const tmpPath = filePath + '.tmp';
@@ -104,13 +147,21 @@ export function atomicWriteJsonFile(
         // Ignore cleanup errors.
       }
     } else {
-      // Re-throw real errors (ENOSPC, EACCES, etc.) — do not silently swallow.
+      // Re-throw real errors (ENOSPC, EACCES, etc.) -- do not silently swallow.
       try {
         fs.unlinkSync(tmpPath);
       } catch {
         // Best-effort cleanup of temp file.
       }
       throw err;
+    }
+  }
+
+  // Post-write checks
+  if (shouldCheck) {
+    const warnings = runPostWriteChecks(filePath, data, process.cwd());
+    for (const w of warnings) {
+      emitWarning(w);
     }
   }
 }
