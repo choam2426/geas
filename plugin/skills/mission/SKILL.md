@@ -210,7 +210,7 @@ Invoke `/geas:intake` to produce `.geas/missions/{mission_id}/spec.json`.
 - Ask the user clarifying questions until the completeness checklist is satisfied (all boolean fields in `completeness_checklist` are true).
 
 After intake creates the mission file, update `run.json` with BOTH fields:
-- `mission_id`: the mission file reference (e.g., `"mission-002"`) — used to locate the spec file
+- `mission_id`: the mission file reference (e.g., `"mission-20260407-x7Kq9mPv"`) — used to locate the spec file
 - `mission`: the human-readable mission statement from the spec (e.g., `"할일 검색 기능 추가"`) — used for display
 
 These are distinct fields. Do NOT put the mission ID in the `mission` field.
