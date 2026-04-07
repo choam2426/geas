@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GEAS Memory Application Log",
+  "type": "object",
+  "properties": {
+    "meta": {
+      "$ref": "_defs.schema.json#/$defs/commonMeta"
+    },
+    "memory_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "applied_by_type": {
+      "$ref": "_defs.schema.json#/$defs/agentType"
+    },
+    "usage_surface": {
+      "type": "string",
+      "enum": [
+        "task_packet",
+        "session_summary",
+        "review_context",
+        "gate_context",
+        "recovery_context",
+        "decision_context"
+      ]
+    },
+    "effect": {
+      "$ref": "_defs.schema.json#/$defs/effectKind"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "followup_action": {
+      "type": "string",
+      "enum": [
+        "none",
+        "strengthen",
+        "weaken",
+        "supersede",
+        "review_required"
+      ]
+    }
+  },
+  "required": [
+    "meta",
+    "memory_id",
+    "task_id",
+    "applied_by_type",
+    "usage_surface",
+    "effect",
+    "notes",
+    "followup_action"
+  ],
+  "additionalProperties": false
+}
