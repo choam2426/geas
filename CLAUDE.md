@@ -141,6 +141,7 @@ All files must be written in English, except `docs/ko/` and `README.ko.md`.
 - Schemas: JSON Schema draft 2020-12 in `docs/protocol/schemas/`
 - Runtime state: `.geas/` (gitignored, per-project)
 - Protocol reference: `docs/protocol/` (English canonical), `docs/ko/protocol/` (Korean canonical)
+- Versioning: `plugin/plugin.json` and `.claude-plugin/marketplace.json` must always have the same `version` and `description`. Update both when bumping version.
 
 ## Protocol Migration
 
