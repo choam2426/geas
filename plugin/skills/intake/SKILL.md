@@ -83,7 +83,13 @@ Check the completeness checklist — all items must be true:
 - `constraints`: approved
 - `affected_surfaces`: identified
 
-Determine the next mission ID by scanning `.geas/missions/mission-*/` directories — pick the next sequential number (mission-001, mission-002, etc.).
+Generate the mission ID in the format `mission-{YYYYMMDD}-{8char}` where:
+- `YYYYMMDD` is the current UTC date
+- `{8char}` is 8 random alphanumeric characters ([a-zA-Z0-9])
+
+Example: `mission-20260407-x7Kq9mPv`
+
+The concrete generation method (shell command, language library, etc.) is determined by the runtime environment — do not hardcode a specific tool. Verify uniqueness by checking that `.geas/missions/{generated_id}/` does not already exist.
 
 Create the mission directory structure:
 ```bash
@@ -91,8 +97,8 @@ mkdir -p .geas/missions/{mission_id}/tasks .geas/missions/{mission_id}/evidence 
 ```
 
 Write `.geas/missions/{mission_id}/spec.json` following the schema at `schemas/mission-spec.schema.json`. Include:
-- `"version": "1.0"`, `"artifact_type": "mission_spec"`, `"artifact_id": "mission-{n}"`
-- `"producer_type": "orchestration_authority"`, `"mission_id": "mission-{n}"`
+- `"version": "1.0"`, `"artifact_type": "mission_spec"`, `"artifact_id": "mission-{YYYYMMDD}-{8char}"`
+- `"producer_type": "orchestration_authority"`, `"mission_id": "mission-{YYYYMMDD}-{8char}"`
 - `"created_at"` (actual UTC timestamp)
 
 Always include the `source` field:
@@ -178,8 +184,8 @@ For lightweight missions (adding a feature to an existing project):
 ## Output
 
 - **Every mission** produces `.geas/missions/{mission_id}/spec.json` — both new and existing projects.
-- **New product**: full intake → `.geas/missions/mission-001/spec.json` with `source: "full_intake"`
-- **Existing project (first geas usage)**: minimal intake → `.geas/missions/mission-001/spec.json` with `source: "existing_project"`
-- **Existing project (subsequent missions)**: lightweight intake → `.geas/missions/mission-{n}/spec.json` with `source: "quick_intake"` or `"full_intake"`
+- **New product**: full intake → `.geas/missions/{mission_id}/spec.json` with `source: "full_intake"`
+- **Existing project (first geas usage)**: minimal intake → `.geas/missions/{mission_id}/spec.json` with `source: "existing_project"`
+- **Existing project (subsequent missions)**: lightweight intake → `.geas/missions/{mission_id}/spec.json` with `source: "quick_intake"` or `"full_intake"`
 - **Format**: JSON conforming to `schemas/mission-spec.schema.json`
 - **Immutability**: Once confirmed, the mission spec should not be modified during execution. If scope must change, trigger a vote round for scope change instead.
