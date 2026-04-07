@@ -50,22 +50,16 @@ After filtering, the batch contains only tasks that can safely run in parallel.
 ## 2. Batch Start
 
 For each task in the batch:
-1. Read task file, set `"status": "implementing"`, write back.
-2. Acquire path/interface/resource locks for the task (same procedure as the execution pipeline Lock Acquisition). Write all locks to `.geas/state/locks.json`.
-3. Log `task_started` event for each task.
+1. Transition task status via CLI: `Bash("geas task transition --mission {mission_id} --id {task-id} --to implementing")`
+2. Acquire locks via CLI:
+   ```bash
+   Bash("geas lock acquire --task {task-id} --type path --targets '{comma_separated_paths}' --session {session-id}")
+   ```
+3. Log task_started event: `Bash("geas event log --type task_started --task {task-id}")`
 
-Update `run.json` checkpoint:
-```json
-{
-  "pipeline_step": "batch_active",
-  "agent_in_flight": null,
-  "pending_evidence": [],
-  "retry_count": 0,
-  "parallel_batch": ["STORY-003", "STORY-009"],
-  "completed_in_batch": [],
-  "remaining_steps": [],
-  "last_updated": "<timestamp>"
-}
+Update checkpoint via CLI:
+```bash
+Bash("geas state checkpoint set --step batch_active --agent null --batch STORY-003,STORY-009")
 ```
 
 Note: during batch execution, `remaining_steps` is empty at the batch level. Each task's pipeline progress is tracked by the orchestrator internally (in context) and by evidence file presence.
@@ -90,10 +84,10 @@ The orchestrator manages each task's pipeline independently:
 
 When a task's pipeline finishes (orchestrator commits, retro done):
 
-1. Read task file, set `"status": "passed"`, write back. **No exceptions.**
-2. Add task ID to `completed_in_batch` in run.json, write back.
-3. Add task ID to `completed_tasks` in run.json, write back.
-4. Log `task_resolved` event.
+1. Transition task: `Bash("geas task transition --mission {mission_id} --id {task-id} --to passed")` **No exceptions.**
+2. Update run state: `Bash("geas state update --field completed_in_batch --value '<updated_json_array>'")`
+3. Update run state: `Bash("geas state update --field completed_tasks --value '<updated_json_array>'")`
+4. Log: `Bash("geas event log --type task_resolved --task {task-id}")`
 
 If other tasks in the batch are still running, the orchestrator continues managing them.
 
@@ -103,7 +97,7 @@ If other tasks in the batch are still running, the orchestrator continues managi
 
 When `completed_in_batch` contains all IDs from `parallel_batch`:
 
-1. Set checkpoint to `null` in run.json.
+1. Clear checkpoint: `Bash("geas state checkpoint clear")`
 2. Return to section 1 — scan for next eligible batch.
 3. If no eligible tasks remain: the execution phase is complete.
 

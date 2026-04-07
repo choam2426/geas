@@ -13,7 +13,7 @@ Produce a structured gap assessment comparing what was planned vs what was deliv
    - No corresponding task or task cancelled -> `not_delivered`
 5. Check for `scope_out` items that were delivered anyway -> `unexpected_additions` (need traceability note)
 6. Items explicitly dropped by product_authority decision -> `intentional_cuts`
-7. Write `.geas/missions/{mission_id}/evolution/gap-assessment-evolving.json` conforming to `schemas/gap-assessment.schema.json`:
+7. Assemble the gap assessment JSON and write it (use Write tool for this mission-specific artifact). The data must conform to `schemas/gap-assessment.schema.json`:
 
 ```json
 {
@@ -63,7 +63,7 @@ If no P0 items remain: skip to product_authority Final Briefing.
 4. For each candidate, check approval conditions:
    - `evidence_refs` >= 2 (same pattern observed in 2+ tasks) AND `contradiction_count` = 0 -> auto-approve
    - Otherwise -> spawn domain authority for review
-5. Write `.geas/missions/{mission_id}/evolution/rules-update.json` conforming to `schemas/rules-update.schema.json`:
+5. Assemble the rules-update JSON and write it (use Write tool for this mission-specific artifact). The data must conform to `schemas/rules-update.schema.json`:
    ```json
    {
      "version": "1.0",
@@ -79,7 +79,7 @@ If no P0 items remain: skip to product_authority Final Briefing.
    }
    ```
 6. If `status: "approved"`: apply changes to `.geas/rules.md`
-7. Log: `{"event": "rules_update", "status": "approved|none", "timestamp": "<actual>"}`
+7. Log: `Bash("geas event log --type rules_update --data '{\"status\":\"approved|none\"}'")` 
 
 ### Memory Promotion
 
@@ -99,7 +99,7 @@ Batch review and promotion of accumulated memory candidates across the mission.
    - 3+ successful_reuses + 0 contradictions -> spawn domain authority for stable review
 4. Run decay detection (memorizing skill section 6)
 5. Run application logging for all mission tasks (memorizing skill section 5)
-6. Log: `{"event": "memory_promotion_batch", "promoted": N, "rejected": M, "decayed": K, "timestamp": "<actual>"}`
+6. Log: `Bash("geas event log --type memory_promotion_batch --data '{\"promoted\":N,\"rejected\":M,\"decayed\":K}'")` 
 
 ### Execute P0 Items
 For each P0 item, run the full pipeline from `references/pipeline.md`:
@@ -248,7 +248,7 @@ Orchestrator runs release directly:
 2. Generate changelog from `.geas/ledger/events.jsonl`
 3. Commit version bump and changelog
 4. Tag release with semantic version
-5. Log: `{"event": "release_created", "version": "...", "timestamp": "<actual>"}`
+5. Log: `Bash("geas event log --type release_created --data '{\"version\":\"...\"}'")` 
 
 ### Run Summary
 Invoke `/geas:reporting` to generate session audit trail.
@@ -267,7 +267,11 @@ Invoke `/geas:reporting` to generate session audit trail.
 
 **Debt triage check**: Read debt-register.json. If any item has `severity: "critical"` and `status: "open"`, the exit gate fails. Product_authority must decide: (a) immediate fix as task, (b) accept with mandatory rationale, or (c) defer to next mission. Record decision in a DecisionRecord with `decision_type: "critical_debt_triage"`.
 
-Write `.geas/missions/{mission_id}/phase-reviews/evolving.json`:
+Write the evolving phase review via CLI:
+```bash
+Bash("geas phase write --mission {mission_id} --data '<phase_review_json>'")
+```
+The phase review data:
 ```json
 {
   "version": "1.0",
@@ -284,5 +288,9 @@ Write `.geas/missions/{mission_id}/phase-reviews/evolving.json`:
 }
 ```
 
-Update run state: `{ "phase": "complete", "status": "complete" }`
-Log: `{"event": "phase_complete", "phase": "complete", "timestamp": "<actual>"}`
+Update run state:
+```bash
+Bash("geas state update --field phase --value complete")
+Bash("geas state update --field status --value complete")
+```
+Log: `Bash("geas event log --type phase_complete --data '{\"phase\":\"complete\"}'")` 

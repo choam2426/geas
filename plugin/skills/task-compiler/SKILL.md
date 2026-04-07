@@ -197,11 +197,11 @@ Write the rubric as an object with a `dimensions` array. The orchestration_autho
 
 ## Output
 
-Write the TaskContract to `.geas/missions/{mission_id}/tasks/{task_id}.json` conforming to `schemas/task-contract.schema.json`.
-
+Write the TaskContract via CLI with schema validation (the CLI creates the tasks directory automatically):
 ```bash
-mkdir -p .geas/missions/{mission_id}/tasks
+Bash("geas task create --mission {mission_id} --data '<task_contract_json>'")
 ```
+The task contract must conform to `schemas/task-contract.schema.json`.
 
 Example output:
 ```json
@@ -249,8 +249,7 @@ Example output:
 }
 ```
 
-After writing, log the event:
-```
-Append to .geas/ledger/events.jsonl:
-{"event": "task_compiled", "timestamp": "...", "task_id": "task-003", "title": "[Frontend] Login form"}
+After writing, log the event via CLI:
+```bash
+Bash("geas event log --type task_compiled --task task-003 --data '{\"title\":\"[Frontend] Login form\"}'")
 ```

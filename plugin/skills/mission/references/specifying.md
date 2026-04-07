@@ -20,12 +20,16 @@ If `.geas/memory/_project/conventions.md` is missing, invoke `/geas:setup` to sc
 
 Orchestrator reads the mission spec at `.geas/missions/{mission_id}/spec.json` and explores the codebase. Then:
 
-Ensure the mission directory exists:
+Ensure the mission directory exists (the CLI creates all subdirectories automatically):
 ```bash
-mkdir -p .geas/missions/{mission_id}
+Bash("geas mission create --id {mission_id}")
 ```
 
-1. Write an initial design-brief draft to `.geas/missions/{mission_id}/design-brief.json` conforming to `schemas/design-brief.schema.json` with `status: "draft"`.
+1. Write an initial design-brief draft via CLI with schema validation:
+   ```bash
+   Bash("geas mission write-brief --id {mission_id} --data '<design_brief_json>'")
+   ```
+   The brief must conform to `schemas/design-brief.schema.json` with `status: "draft"`.
 2. Propose a mission mode to the user:
    - **`lightweight`**: Mission has clear scope, existing patterns apply, low ambiguity. Only minimum fields: `chosen_approach`, `non_goals`, `verification_strategy`.
    - **`standard`**: Mission has moderate scope, some architectural decisions, normal risk. Adds: `architecture_decisions`, `risks`, `preserve_list`.
@@ -225,7 +229,11 @@ All conditions must be true:
 - Task list approved (`task_list_approved` event in ledger for this mission)
 - Environment setup completed (`environment_setup_complete` event in ledger for this mission)
 
-Write `.geas/missions/{mission_id}/phase-reviews/specifying-to-building.json` conforming to `schemas/phase-review.schema.json`:
+Write the phase review via CLI with schema validation:
+```bash
+Bash("geas phase write --mission {mission_id} --data '<phase_review_json>'")
+```
+The phase review must conform to `schemas/phase-review.schema.json`:
 ```json
 {
   "version": "1.0",
@@ -251,5 +259,9 @@ Write `.geas/missions/{mission_id}/phase-reviews/specifying-to-building.json` co
 
 If any gate criteria unmet: set `status: "blocked"`, list unmet criteria in `gate_criteria_unmet`. Do not proceed until resolved. After 3 consecutive transition failures -> invoke `/geas:vote-round`.
 
-- Update run state: `{ "phase": "building", "status": "in_progress" }`
-- Log: `{"event": "phase_complete", "phase": "specifying", "timestamp": "<actual>"}`
+- Update run state:
+  ```bash
+  Bash("geas state update --field phase --value building")
+  Bash("geas state update --field status --value in_progress")
+  ```
+- Log: `Bash("geas event log --type phase_complete --data '{\"phase\":\"specifying\"}'")` 

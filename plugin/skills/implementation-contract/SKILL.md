@@ -72,16 +72,11 @@ Write your assessment. If acceptable, approve. If not, list specific concerns.")
 
 ## Output
 
-Write the contract to `.geas/missions/{mission_id}/contracts/{task-id}.json` conforming to `schemas/implementation-contract.schema.json`.
+Write the contract (use Write tool for `.geas/missions/{mission_id}/contracts/{task-id}.json` — the mission directory and contracts subdirectory are created by `geas mission create`). The contract must conform to `schemas/implementation-contract.schema.json`.
 
+Log the event via CLI:
 ```bash
-mkdir -p .geas/missions/{mission_id}/contracts
-```
-
-Log the event:
-```
-Append to .geas/ledger/events.jsonl:
-{"event": "implementation_contract", "task_id": "...", "status": "approved|revision_requested", "timestamp": "..."}
+Bash("geas event log --type implementation_contract --task {task-id} --data '{\"status\":\"approved|revision_requested\"}'")
 ```
 
 ## Rules

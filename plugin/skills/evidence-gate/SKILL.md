@@ -211,7 +211,11 @@ If the gate verdict is `error`:
 
 ## Output
 
-Write to `.geas/missions/{mission_id}/tasks/{task-id}/gate-result.json` conforming to `schemas/gate-result.schema.json`.
+Write gate result via CLI with schema validation. Record evidence:
+```bash
+Bash("geas evidence record --mission {mission_id} --task {task-id} --agent gate-result --data '<gate_result_json>'")
+```
+The gate result must conform to `schemas/gate-result.schema.json`.
 
 ```json
 {
@@ -240,28 +244,16 @@ Write to `.geas/missions/{mission_id}/tasks/{task-id}/gate-result.json` conformi
 }
 ```
 
-Also log a detailed event to `.geas/ledger/events.jsonl`:
-```json
-{
-  "event": "gate_result",
-  "task_id": "{task-id}",
-  "result": "pass",
-  "gate_profile": "implementation_change",
-  "tier_results": {
-    "tier_0": { "status": "pass" },
-    "tier_1": { "status": "pass" },
-    "tier_2": { "status": "pass" }
-  },
-  "blocking_dimensions": [],
-  "timestamp": "<actual ISO 8601 from date -u>"
-}
+Also log a detailed event via CLI:
+```bash
+Bash("geas event log --type gate_result --task {task-id} --data '{\"result\":\"pass\",\"gate_profile\":\"implementation_change\",\"tier_results\":{\"tier_0\":{\"status\":\"pass\"},\"tier_1\":{\"status\":\"pass\"},\"tier_2\":{\"status\":\"pass\"}},\"blocking_dimensions\":[]}'")
 ```
 
 ---
 
 ## On Pass
 
-1. Update TaskContract status to `"verified"` in `.geas/missions/{mission_id}/tasks/{task-id}.json`
+1. Update TaskContract status: `Bash("geas task transition --mission {mission_id} --id {task-id} --to verified")`
 2. Log the gate_result event (see Output above)
 3. Return to the pipeline — next step is **Closure Packet assembly**, then **Critical Reviewer Challenge**, then **Final Verdict**
 
@@ -277,8 +269,8 @@ Also log a detailed event to `.geas/ledger/events.jsonl`:
      - `"design-authority-review"`: spawn the `design_authority` for architectural review, write a DecisionRecord
      - `"product-authority-decision"`: spawn the `product_authority` for a strategic decision (continue/cut/pivot)
      - `"pivot"`: invoke pivot protocol
-   - Update TaskContract status to `"escalated"`
-   - Write a DecisionRecord to `.geas/missions/{mission_id}/decisions/{dec-id}.json`
+   - Update TaskContract status: `Bash("geas task transition --mission {mission_id} --id {task-id} --to escalated")`
+   - Write a DecisionRecord via CLI: `Bash("geas decision write --mission {mission_id} --data '<decision_json>'")`
 
 ## On Block
 
@@ -293,10 +285,10 @@ Also log a detailed event to `.geas/ledger/events.jsonl`:
 
 When the gate results in an escalation or significant decision, write a DecisionRecord:
 
+Write the DecisionRecord via CLI (the CLI creates the decisions directory automatically):
 ```bash
-mkdir -p .geas/missions/{mission_id}/decisions
+Bash("geas decision write --mission {mission_id} --data '<decision_record_json>'")
 ```
-
-Write to `.geas/missions/{mission_id}/decisions/{dec-id}.json` conforming to `schemas/decision-record.schema.json`.
+The decision record must conform to `schemas/decision-record.schema.json`.
 
 This creates a durable record of WHY a decision was made, not just WHAT happened.

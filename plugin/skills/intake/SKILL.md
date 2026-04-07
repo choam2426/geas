@@ -91,12 +91,16 @@ Example: `mission-20260407-x7Kq9mPv`
 
 The concrete generation method (shell command, language library, etc.) is determined by the runtime environment — do not hardcode a specific tool. Verify uniqueness by checking that `.geas/missions/{generated_id}/` does not already exist.
 
-Create the mission directory structure:
+Create the mission directory structure (CLI creates all subdirectories automatically):
 ```bash
-mkdir -p .geas/missions/{mission_id}/tasks .geas/missions/{mission_id}/evidence .geas/missions/{mission_id}/contracts .geas/missions/{mission_id}/packets .geas/missions/{mission_id}/decisions/pending .geas/missions/{mission_id}/evolution .geas/missions/{mission_id}/phase-reviews
+Bash("geas mission create --id {mission_id}")
 ```
 
-Write `.geas/missions/{mission_id}/spec.json` following the schema at `schemas/mission-spec.schema.json`. Include:
+Write the mission spec via CLI with schema validation:
+```bash
+Bash("geas mission write-spec --id {mission_id} --data '<spec_json>'")
+```
+The spec must conform to `schemas/mission-spec.schema.json`. Include:
 - `"version": "1.0"`, `"artifact_type": "mission_spec"`, `"artifact_id": "mission-{YYYYMMDD}-{8char}"`
 - `"producer_type": "orchestration_authority"`, `"mission_id": "mission-{YYYYMMDD}-{8char}"`
 - `"created_at"` (actual UTC timestamp)
