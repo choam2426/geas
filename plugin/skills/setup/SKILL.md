@@ -11,6 +11,22 @@ Users should not need to run setup manually unless they are troubleshooting.
 
 ## Steps
 
+### Phase 0: Ensure CLI Dependencies
+
+Before any CLI commands can run, verify that the CLI's npm dependencies are installed. Check if `plugin/cli/node_modules` exists relative to the plugin directory. If it does not:
+
+```bash
+cd plugin/cli && npm install
+```
+
+If `plugin/cli/dist/main.js` also does not exist, the CLI must be built:
+
+```bash
+cd plugin/cli && npm run build
+```
+
+Skip this step if both `node_modules/` and `dist/main.js` already exist.
+
 ### Phase A: Initialize `.geas/` Runtime Directory
 
 Before anything else, create the runtime directory structure in the project root. Use `mkdir -p` for the base directories that the CLI does not create (CLI commands create their own subdirectories on first write):

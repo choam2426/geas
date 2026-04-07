@@ -1,0 +1,431 @@
+#!/usr/bin/env node
+/**
+ * E2E Integration Test for Geas CLI
+ *
+ * Exercises a complete mission lifecycle: create mission, update state,
+ * log events, acquire/release locks, create tasks, transition status,
+ * record evidence, add debt, generate health check, and clear checkpoints.
+ *
+ * Usage: node plugin/cli/test/integration.js
+ */
+
+'use strict';
+
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const CLI = path.resolve(__dirname, '..', 'index.js');
+const MISSION_ID = 'test-mission-001';
+
+/** Create a fresh temp directory with the required .geas/ structure. */
+function createTempDir() {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'geas-integration-'));
+  const geas = path.join(tmp, '.geas');
+
+  const dirs = [
+    'state',
+    'state/task-focus',
+    'ledger',
+    'summaries',
+    'memory/_project',
+    'memory/agents',
+    'memory/candidates',
+    'memory/entries',
+    'memory/logs',
+    'memory/retro',
+    'memory/incidents',
+    'recovery',
+  ];
+
+  for (const d of dirs) {
+    fs.mkdirSync(path.join(geas, d), { recursive: true });
+  }
+
+  // Seed run.json so state commands work
+  const runState = {
+    version: '1.0',
+    status: 'initialized',
+    mission: null,
+    mission_id: null,
+    phase: null,
+    current_task_id: null,
+    completed_tasks: [],
+    decisions: [],
+    checkpoint: null,
+    created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+  };
+  fs.writeFileSync(
+    path.join(geas, 'state', 'run.json'),
+    JSON.stringify(runState, null, 2),
+  );
+
+  // Seed empty memory-index.json
+  const memoryIndex = {
+    version: '1.0',
+    artifact_type: 'memory_index',
+    artifact_id: 'memory-index',
+    producer_type: 'orchestration_authority',
+    entries: [],
+    created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+  };
+  fs.writeFileSync(
+    path.join(geas, 'state', 'memory-index.json'),
+    JSON.stringify(memoryIndex, null, 2),
+  );
+
+  return tmp;
+}
+
+/** Run a CLI command in the given cwd and return parsed JSON. Throws on non-zero exit. */
+function run(cmd, cwd) {
+  const fullCmd = `node "${CLI}" ${cmd}`;
+  const stdout = execSync(fullCmd, {
+    cwd,
+    encoding: 'utf-8',
+    timeout: 10000,
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  return JSON.parse(stdout.trim());
+}
+
+/**
+ * Run a CLI command that uses --cwd for directory isolation.
+ * Some commands (state, mission, event, lock) respect --cwd.
+ */
+function runWithCwd(cmd, cwd) {
+  return run(`--cwd "${cwd}" ${cmd}`, cwd);
+}
+
+// ---------------------------------------------------------------------------
+// Minimal task contract JSON that passes schema validation
+// ---------------------------------------------------------------------------
+
+const TASK_CONTRACT = {
+  version: '1.0',
+  artifact_type: 'task_contract',
+  artifact_id: 'task-contract-task-001',
+  producer_type: 'orchestration_authority',
+  created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+  task_id: 'task-001',
+  title: 'Integration test task',
+  goal: 'Verify CLI end-to-end workflow',
+  task_kind: 'implementation',
+  risk_level: 'low',
+  gate_profile: 'implementation_change',
+  vote_round_policy: 'never',
+  acceptance_criteria: ['Test passes'],
+  eval_commands: ['echo ok'],
+  rubric: { dimensions: [{ name: 'completeness', threshold: 3 }] },
+  retry_budget: 3,
+  scope: { surfaces: ['test/'] },
+  routing: {
+    primary_worker_type: 'software_engineer',
+    required_reviewer_types: ['design_authority'],
+  },
+  base_snapshot: 'abc123',
+  status: 'drafted',
+};
+
+// ---------------------------------------------------------------------------
+// Test definitions
+// ---------------------------------------------------------------------------
+
+/**
+ * Each test is { name, fn }.
+ * fn(tmpDir) must return the parsed JSON result (or throw).
+ */
+function defineTests(tmpDir) {
+  return [
+    {
+      name: 'mission create',
+      fn: () => runWithCwd(`mission create --id ${MISSION_ID}`, tmpDir),
+      validate: (r) => r.created != null && Array.isArray(r.subdirectories),
+    },
+    {
+      name: 'state update mission_id',
+      fn: () =>
+        runWithCwd(
+          `state update --field mission_id --value ${MISSION_ID}`,
+          tmpDir,
+        ),
+      validate: (r) => r.updated === 'mission_id',
+    },
+    {
+      name: 'state update phase',
+      fn: () =>
+        runWithCwd('state update --field phase --value building', tmpDir),
+      validate: (r) => r.updated === 'phase' && r.value === 'building',
+    },
+    {
+      name: 'state checkpoint set',
+      fn: () =>
+        runWithCwd(
+          'state checkpoint set --step implementation --agent software-engineer',
+          tmpDir,
+        ),
+      validate: (r) =>
+        r.checkpoint != null &&
+        r.checkpoint.pipeline_step === 'implementation',
+    },
+    {
+      name: 'event log',
+      fn: () =>
+        runWithCwd(
+          'event log --type task_started --task task-001',
+          tmpDir,
+        ),
+      validate: (r) =>
+        r.appended === true && r.event.event_type === 'task_started',
+    },
+    {
+      name: 'lock acquire',
+      fn: () =>
+        runWithCwd(
+          'lock acquire --task task-001 --type path --targets "src/foo.ts"',
+          tmpDir,
+        ),
+      validate: (r) =>
+        r.acquired === true && r.lock.task_id === 'task-001',
+    },
+    {
+      name: 'task create',
+      fn: () => {
+        const data = JSON.stringify(TASK_CONTRACT).replace(/"/g, '\\"');
+        return runWithCwd(
+          `task create --mission ${MISSION_ID} --data "${data}"`,
+          tmpDir,
+        );
+      },
+      validate: (r) =>
+        r.task_id === 'task-001' && r.artifact_type === 'task_contract',
+    },
+    {
+      name: 'task transition (drafted -> ready)',
+      fn: () =>
+        runWithCwd(
+          `task transition --mission ${MISSION_ID} --id task-001 --to ready`,
+          tmpDir,
+        ),
+      validate: (r) =>
+        r.previous_status === 'drafted' && r.status === 'ready',
+    },
+    {
+      name: 'task transition (ready -> implementing)',
+      fn: () =>
+        runWithCwd(
+          `task transition --mission ${MISSION_ID} --id task-001 --to implementing`,
+          tmpDir,
+        ),
+      validate: (r) =>
+        r.previous_status === 'ready' && r.status === 'implementing',
+    },
+    {
+      name: 'evidence record',
+      fn: () =>
+        run(
+          `evidence record --mission ${MISSION_ID} --task task-001 --agent test-agent --data "{\\"test\\":true}"`,
+          tmpDir,
+        ),
+      validate: (r) =>
+        r.task_id === 'task-001' && r.agent === 'test-agent',
+    },
+    {
+      name: 'debt add',
+      fn: () =>
+        run(
+          `debt add --mission ${MISSION_ID} --title "test debt" --severity low --kind output_quality --task task-001 --owner software_engineer`,
+          tmpDir,
+        ),
+      validate: (r) => r.added === true && r.debt_id === 'DEBT-001',
+    },
+    {
+      name: 'lock release',
+      fn: () =>
+        runWithCwd('lock release --task task-001', tmpDir),
+      validate: (r) => r.released === 1 && r.task_id === 'task-001',
+    },
+    {
+      name: 'health generate',
+      fn: () => run('health generate', tmpDir),
+      validate: (r) =>
+        r.ok === true && Array.isArray(r.signals) && r.signals.length === 8,
+    },
+    {
+      name: 'state checkpoint clear',
+      fn: () =>
+        runWithCwd('state checkpoint clear', tmpDir),
+      validate: (r) =>
+        r.checkpoint != null && r.checkpoint.pipeline_step === null,
+    },
+    {
+      name: 'state read (verify final state)',
+      fn: () => runWithCwd('state read', tmpDir),
+      validate: (r) =>
+        r.mission_id === MISSION_ID && r.phase === 'building',
+    },
+    {
+      name: 'task list',
+      fn: () =>
+        runWithCwd(
+          `task list --mission ${MISSION_ID}`,
+          tmpDir,
+        ),
+      validate: (r) =>
+        Array.isArray(r) && r.length === 1 && r[0].task_id === 'task-001',
+    },
+    {
+      name: 'lock list (empty after release)',
+      fn: () => runWithCwd('lock list', tmpDir),
+      validate: (r) => r.count === 0,
+    },
+    {
+      name: 'debt list',
+      fn: () =>
+        run(`debt list --mission ${MISSION_ID}`, tmpDir),
+      validate: (r) =>
+        r.total === 1 && r.items[0].debt_id === 'DEBT-001',
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// Performance benchmark
+// ---------------------------------------------------------------------------
+
+function runBenchmark(tmpDir) {
+  console.log('\n--- Performance Benchmark ---');
+  console.log('Each command run 5 times; reporting median.\n');
+
+  const benchCmds = [
+    { label: 'state read', cmd: 'state read', useCwd: true },
+    { label: 'event log', cmd: 'event log --type bench', useCwd: true },
+    { label: 'lock list', cmd: 'lock list', useCwd: true },
+    { label: 'task list', cmd: `task list --mission ${MISSION_ID}`, useCwd: true },
+    { label: 'debt list', cmd: `debt list --mission ${MISSION_ID}`, useCwd: false },
+    { label: 'health generate', cmd: 'health generate', useCwd: false },
+  ];
+
+  const RUNS = 5;
+  let allUnder200 = true;
+
+  for (const { label, cmd, useCwd } of benchCmds) {
+    const times = [];
+    for (let i = 0; i < RUNS; i++) {
+      const start = Date.now();
+      try {
+        if (useCwd) {
+          runWithCwd(cmd, tmpDir);
+        } else {
+          run(cmd, tmpDir);
+        }
+      } catch {
+        // Some commands may write to stderr on missing data; that is acceptable
+      }
+      times.push(Date.now() - start);
+    }
+    times.sort((a, b) => a - b);
+    const median = times[Math.floor(times.length / 2)];
+    const pass = median < 200;
+    if (!pass) allUnder200 = false;
+    console.log(
+      `  ${pass ? 'PASS' : 'FAIL'}  ${label}: ${median}ms (median of [${times.join(', ')}])`,
+    );
+  }
+
+  console.log(
+    allUnder200
+      ? '\nBenchmark: ALL commands under 200ms'
+      : '\nBenchmark: SOME commands exceeded 200ms',
+  );
+
+  return allUnder200;
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+
+function main() {
+  console.log('=== Geas CLI E2E Integration Test ===\n');
+
+  // Verify CLI is built
+  if (!fs.existsSync(path.resolve(__dirname, '..', 'dist', 'main.js'))) {
+    console.error('ERROR: CLI not built. Run: cd plugin/cli && npm run build');
+    process.exit(2);
+  }
+
+  let tmpDir;
+  try {
+    tmpDir = createTempDir();
+    console.log(`Temp directory: ${tmpDir}\n`);
+  } catch (err) {
+    console.error('ERROR: Failed to create temp directory:', err.message);
+    process.exit(2);
+  }
+
+  const tests = defineTests(tmpDir);
+  let passed = 0;
+  let failed = 0;
+  const failures = [];
+
+  for (const test of tests) {
+    try {
+      const result = test.fn();
+
+      // All commands must return parseable JSON (already parsed by run())
+      if (result === undefined || result === null) {
+        throw new Error('Command returned null/undefined (not valid JSON)');
+      }
+
+      // Run custom validation if provided
+      if (test.validate && !test.validate(result)) {
+        throw new Error(
+          `Validation failed. Got: ${JSON.stringify(result).slice(0, 200)}`,
+        );
+      }
+
+      console.log(`  PASS  ${test.name}`);
+      passed++;
+    } catch (err) {
+      const msg = err.stderr
+        ? err.stderr.toString().trim()
+        : err.message;
+      console.log(`  FAIL  ${test.name}: ${msg.slice(0, 200)}`);
+      failed++;
+      failures.push({ name: test.name, error: msg.slice(0, 500) });
+    }
+  }
+
+  // Run performance benchmark
+  const benchOk = runBenchmark(tmpDir);
+
+  // Clean up
+  try {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+    console.log(`\nCleaned up: ${tmpDir}`);
+  } catch {
+    console.log(`\nWARNING: Could not clean up ${tmpDir}`);
+  }
+
+  // Summary
+  console.log(`\n=== Summary: ${passed}/${tests.length} tests passed ===`);
+  if (failures.length > 0) {
+    console.log('\nFailures:');
+    for (const f of failures) {
+      console.log(`  - ${f.name}: ${f.error}`);
+    }
+  }
+  if (!benchOk) {
+    console.log('WARNING: Benchmark threshold exceeded (200ms)');
+  }
+
+  process.exit(failed > 0 ? 1 : 0);
+}
+
+main();
