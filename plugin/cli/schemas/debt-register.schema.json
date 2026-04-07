@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DebtRegister",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "artifact_type",
+    "artifact_id",
+    "producer_type",
+    "scope",
+    "items",
+    "created_at"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "artifact_type": {
+      "type": "string",
+      "const": "debt_register"
+    },
+    "artifact_id": {
+      "type": "string"
+    },
+    "producer_type": {
+      "type": "string",
+      "enum": [
+        "design_authority",
+        "product_authority"
+      ]
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "task",
+        "phase",
+        "mission"
+      ]
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "debt_id",
+          "severity",
+          "kind",
+          "title",
+          "description",
+          "status"
+        ],
+        "properties": {
+          "debt_id": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "low",
+              "normal",
+              "high",
+              "critical"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "output_quality",
+              "verification_gap",
+              "structural",
+              "risk",
+              "process",
+              "documentation",
+              "operations"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "introduced_by_task_id": {
+            "type": "string"
+          },
+          "owner_type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "accepted",
+              "scheduled",
+              "resolved",
+              "dropped"
+            ]
+          },
+          "target_phase": {
+            "type": "string",
+            "enum": [
+              "polishing",
+              "evolving",
+              "future"
+            ]
+          }
+        }
+      }
+    },
+    "rollup_by_severity": {
+      "type": "object",
+      "properties": {
+        "low": { "type": "integer", "minimum": 0 },
+        "normal": { "type": "integer", "minimum": 0 },
+        "high": { "type": "integer", "minimum": 0 },
+        "critical": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "rollup_by_kind": {
+      "type": "object",
+      "properties": {
+        "output_quality": { "type": "integer", "minimum": 0 },
+        "verification_gap": { "type": "integer", "minimum": 0 },
+        "structural": { "type": "integer", "minimum": 0 },
+        "risk": { "type": "integer", "minimum": 0 },
+        "process": { "type": "integer", "minimum": 0 },
+        "documentation": { "type": "integer", "minimum": 0 },
+        "operations": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "created_at": {
+      "type": "string"
+    }
+  }
+}
