@@ -16,7 +16,7 @@
     },
     "artifact_id": {
       "type": "string",
-      "description": "e.g., mission-003"
+      "description": "e.g., mission-20260407-x7Kq9mPv"
     },
     "producer_type": {
       "type": "string",
@@ -24,7 +24,8 @@
     },
     "mission_id": {
       "type": "string",
-      "description": "Sequential mission ID matching filename (e.g., mission-003)"
+      "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$",
+      "description": "Mission ID in format mission-{YYYYMMDD}-{8char} (e.g., mission-20260407-x7Kq9mPv)"
     },
     "mission": {
       "type": "string",
