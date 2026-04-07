@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MissionSpec",
+  "type": "object",
+  "required": [
+    "version",
+    "artifact_type",
+    "artifact_id",
+    "producer_type",
+    "mission_id",
+    "created_at",
+    "mission",
+    "done_when",
+    "scope",
+    "acceptance_criteria"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "artifact_type": {
+      "type": "string",
+      "const": "mission_spec"
+    },
+    "artifact_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "producer_type": {
+      "$ref": "_defs.schema.json#/$defs/agentType"
+    },
+    "mission_id": {
+      "type": "string",
+      "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$"
+    },
+    "created_at": {
+      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["full_intake", "quick_intake", "external"]
+    },
+    "domain_profile": {
+      "type": "string"
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["lightweight", "standard", "full_depth"]
+    },
+    "mission": {
+      "type": "string",
+      "minLength": 1
+    },
+    "done_when": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_user": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "object",
+      "required": ["in", "out"],
+      "properties": {
+        "in": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "out": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "affected_surfaces": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "risk_notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "ambiguities": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "completeness_checklist": {
+      "type": "object",
+      "additionalProperties": { "type": "boolean" }
+    }
+  },
+  "additionalProperties": false
+}
