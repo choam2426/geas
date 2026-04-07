@@ -130,7 +130,11 @@ After extracting task context, retrieve applicable memories:
    - specialist agents (implementer, quality_specialist, etc.): top 3-5 entries
    - `product_authority`: top 3 entries
 
-5. Write `.geas/missions/{mission_id}/packets/{task-id}/memory-packet.json` conforming to `schemas/memory-packet.schema.json`:
+5. Write the memory packet via CLI (the CLI handles directory creation and format detection):
+   ```bash
+   Bash("geas context write --mission {mission_id} --task {task-id} --agent memory-packet --data '<memory_packet_json>'")
+   ```
+   The memory packet must conform to `schemas/memory-packet.schema.json`:
    ```json
    {
      "meta": {
@@ -179,10 +183,9 @@ Regenerate the memory packet when any of these occur:
 
 ### Step 4: Write the Packet
 
-Write to `.geas/missions/{mission_id}/packets/{task-id}/{worker-name}.md`
-
+Write the context packet via CLI (the CLI creates directories automatically and detects format from content):
 ```bash
-mkdir -p .geas/missions/{mission_id}/packets/{task-id}
+Bash("geas context write --mission {mission_id} --task {task-id} --agent {worker-name} --data '<packet_markdown>'")
 ```
 
 ## Packet Format

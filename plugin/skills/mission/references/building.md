@@ -17,9 +17,17 @@ For each task, read `references/pipeline.md` and execute the full per-task pipel
 - 0 critical debt in `.geas/missions/{mission_id}/evolution/debt-register.json`
 - 0 unmitigated high debt (status must not be "open" for high severity)
 
-Write `.geas/missions/{mission_id}/evolution/gap-assessment-building-to-polishing.json` (same procedure as Evolving 4.1 but scoped to building phase).
-Write `.geas/missions/{mission_id}/phase-reviews/building-to-polishing.json` with `mission_phase: "building"`, `next_phase: "polishing"`.
+Write gap assessment and phase review via CLI:
+```bash
+Bash("geas debt list --mission {mission_id}")  # Read debt state for gap assessment
+# Assemble gap-assessment JSON, then write directly (no CLI for gap-assessment yet — use Write tool)
+```
+Write the phase review via CLI with schema validation:
+```bash
+Bash("geas phase write --mission {mission_id} --data '<phase_review_json>'")
+```
+where phase review has `mission_phase: "building"`, `next_phase: "polishing"`.
 
 If any gate criteria unmet: set `status: "blocked"`. List unmet criteria. After 3 consecutive failures -> invoke `/geas:vote-round`.
 
-Log: `{"event": "phase_complete", "phase": "building", "timestamp": "<actual>"}`
+Log: `Bash("geas event log --type phase_complete --data '{\"phase\":\"building\"}'")` 

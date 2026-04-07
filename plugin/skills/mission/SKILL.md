@@ -41,8 +41,8 @@ Example: mission has `domain_profile: "software"`, pipeline says "spawn quality_
 - Evidence paths: `.geas/missions/{mission_id}/evidence/{task-id}/{agent-name}.json`
 
 ### Event logging
-- Log every transition to `.geas/ledger/events.jsonl`.
-- **Timestamps must be actual current time.** For event ledger entries, use `date -u +%Y-%m-%dT%H:%M:%SZ` in Bash. For JSON files in `.geas/`, the hook auto-injects timestamps.
+- Log every transition via the CLI: `Bash("geas event log --type <event_type> [--task <id>] [--agent <name>] [--data '<json>']")`
+- Timestamps are auto-injected by the CLI. Do NOT manually generate timestamps for events.
 
 **[MANDATORY] The following events must always be logged. Omitting any is a protocol violation:**
 - `step_complete` — after each pipeline step completes (format defined in the execution pipeline)
@@ -52,37 +52,27 @@ Example: mission has `domain_profile: "software"`, pipeline says "spawn quality_
 - `vote_round` — vote results (format defined in vote-round)
 
 ### Checkpoint management
-**[MANDATORY]** Before EVERY Agent() spawn, you MUST Read `.geas/state/run.json`, update the `checkpoint` field, and Write it back. This is not optional — session recovery depends on it.
-  ```json
-  "checkpoint": {
-    "pipeline_step": "specialist_review",
-    "agent_in_flight": "design-authority",
-    "pending_evidence": ["design-authority-review.json"],
-    "retry_count": 0,
-    "parallel_batch": null,
-    "completed_in_batch": [],
-    "remaining_steps": [],
-    "last_updated": "<actual timestamp>"
-  }
+**[MANDATORY]** Before EVERY Agent() spawn, update the checkpoint via CLI. This is not optional — session recovery depends on it.
+  ```bash
+  Bash("geas state checkpoint set --step specialist_review --agent design-authority")
   ```
-- The run state must conform to `schemas/run-state.schema.json`.
-- After agent returns: clear `agent_in_flight`, update `pending_evidence` with completed files.
-- On task completion (sequential): clear checkpoint entirely.
+- The CLI handles atomic writes and timestamps automatically.
+- After agent returns: clear the checkpoint: `Bash("geas state checkpoint clear")`
+- On task completion (sequential): clear checkpoint entirely: `Bash("geas state checkpoint clear")`
 
 #### Batch checkpoint
 During parallel batch execution (see `/geas:scheduling`):
-- `parallel_batch`: task IDs in the current batch.
-- `completed_in_batch`: task IDs resolved so far within the batch.
-- `agent_in_flight`: `null` (multiple agents may be active).
-- Before spawning any agent, update `last_updated`.
-- After each task resolves: add to `completed_in_batch`, update task file status to `"passed"`, add to `completed_tasks`. **No exceptions — sequential or parallel.**
-- When all batch tasks resolved: clear checkpoint entirely, scan for next batch.
+- Set batch checkpoint: `Bash("geas state checkpoint set --step batch_active --agent null --batch task-001,task-002")`
+- Before spawning any agent, the CLI auto-updates `last_updated`.
+- After each task resolves: transition via `Bash("geas task transition --mission {mid} --id {tid} --to passed")`, then update run state via `Bash("geas state update --field completed_tasks --value '<json_array>'")`
+- When all batch tasks resolved: `Bash("geas state checkpoint clear")`, scan for next batch.
 
 ### Task file status updates
 **[MANDATORY]** When resolving a task (Ship verdict):
-1. Read `.geas/missions/{mission_id}/tasks/{task-id}.json`
-2. Set `"status": "passed"`
-3. Write it back
+```bash
+Bash("geas task transition --mission {mission_id} --id {task-id} --to passed")
+```
+The CLI validates the transition is legal (7-state model) and writes atomically.
 
 This applies to every task — sequential or parallel. If the task file does not exist, this is a protocol violation (the file must be created before pipeline starts).
 
@@ -96,15 +86,19 @@ This applies to every task — sequential or parallel. If the task file does not
 
 ### Tech debt tracking
 After reading each agent's evidence, check for a `tech_debt` array. If present:
-1. Read `.geas/missions/{mission_id}/evolution/debt-register.json` (create with initial schema if missing).
-2. For each debt item, check if a similar title already exists (skip duplicates).
-3. Add new items with sequential ID (DEBT-001, DEBT-002...) as structured items conforming to `schemas/debt-register.schema.json`. Each item requires: `debt_id`, `severity`, `kind`, `title`, `description`, `introduced_by_task_id`, `owner_type`, `status: "open"`, `target_phase`.
-4. Update `rollup_by_severity` and `rollup_by_kind` counts.
-5. Write back debt-register.json.
+1. For each debt item, check if a similar title already exists (the CLI handles duplicate detection).
+2. Add new items via CLI — auto-generates sequential IDs and updates rollups:
+   ```bash
+   Bash("geas debt add --mission {mission_id} --title '<title>' --severity <sev> --kind <kind> --task {task-id} --owner <agent_type> --description '<desc>'")
+   ```
+3. The CLI creates the debt-register.json with initial schema if missing, auto-generates DEBT-xxx IDs, and updates rollup counts.
 
-When a task resolves a debt item, update its `status` to `"resolved"`.
+When a task resolves a debt item:
+```bash
+Bash("geas debt resolve --mission {mission_id} --id DEBT-001")
+```
 
-Threshold warning is handled automatically by the check-debt hook when you write debt-register.json.
+Threshold warning is handled automatically by the check-debt hook when the CLI writes debt-register.json.
 
 ### Git operations
 - Orchestrator handles all git operations directly (commit, branch, tag).
@@ -134,22 +128,22 @@ Design-brief and task list each require user approval. Do NOT batch these — pr
 ## Startup Sequence
 
 ### Step 0: Environment Check
-Check for `.geas/state/run.json`:
+Read run state: `Bash("geas state read")`
 - **Exists with `status: "in_progress"`** → resume from current phase/task
 - **Exists with `status: "complete"`** → fresh run
 - **Does not exist** → first run, invoke `/geas:setup`
 
 #### Lock Initialization
 
-1. Read `.geas/state/locks.json`. If it does not exist, create it:
-   ```json
-   { "version": "1.0", "locks": [] }
+1. Clean up orphan locks from previous sessions:
+   ```bash
+   Bash("geas lock cleanup --session {current_session_id}")
    ```
-2. **Orphan detection**: For each lock entry with `status: "held"`:
-   - Compare `session_id` with the current session ID
-   - If mismatch: the owning session no longer exists. Remove the lock entry (release orphan).
-   - Log: `{"event": "lock_orphan_released", "task_id": "...", "lock_type": "...", "targets": [...], "timestamp": "<actual>"}`
-3. Write updated `locks.json`
+   The CLI removes all locks not belonging to the current session and returns the count of cleaned locks.
+2. Log orphan releases:
+   ```bash
+   Bash("geas event log --type lock_orphan_released --data '{\"cleaned_count\": N}'")
+   ```
 
 #### Recovery Decision Table
 
@@ -178,9 +172,12 @@ When `run.json` exists with `status: "in_progress"`, classify the recovery:
      - After gate pass
      - After closure packet assembled
    - Inconsistent state (conflicting artifacts) → `manual_repair_required`
-3. Write `.geas/recovery/{recovery-id}.json` conforming to `schemas/recovery-packet.schema.json`
-4. Update `run.json`: set `recovery_class` field
-5. Log: `{"event": "recovery", "recovery_class": "...", "recovery_id": "...", "focus_task_id": "...", "timestamp": "<actual>"}`
+3. Write recovery packet via CLI:
+   ```bash
+   Bash("geas recovery write --data '<recovery_packet_json>'")
+   ```
+4. Update run state: `Bash("geas state update --field recovery_class --value '<class>'")`
+5. Log: `Bash("geas event log --type recovery --data '{\"recovery_class\":\"...\",\"recovery_id\":\"...\",\"focus_task_id\":\"...\"}'")` 
 
 **Step 4 — If `manual_repair_required`:**
 - Write recovery-packet.json with `detected_problem` and `artifacts_found`/`artifacts_missing`
@@ -209,7 +206,11 @@ These files are consumed by `restore-context.sh` during post-compact recovery.
 Invoke `/geas:intake` to produce `.geas/missions/{mission_id}/spec.json`.
 - Ask the user clarifying questions until the completeness checklist is satisfied (all boolean fields in `completeness_checklist` are true).
 
-After intake creates the mission file, update `run.json` with BOTH fields:
+After intake creates the mission file, update run state with BOTH fields:
+```bash
+Bash("geas state update --field mission_id --value '{mission_id}'")
+Bash("geas state update --field mission --value '{human_readable_mission}'")
+```
 - `mission_id`: the mission file reference (e.g., `"mission-20260407-x7Kq9mPv"`) — used to locate the spec file
 - `mission`: the human-readable mission statement from the spec (e.g., `"할일 검색 기능 추가"`) — used for display
 
@@ -288,6 +289,7 @@ Read `references/evolving.md` and follow the procedure.
 ### Session End — Lock Cleanup
 
 Before session ends (invoked by the Stop hook or run-summary):
-1. Read `.geas/state/locks.json`
-2. Remove all lock entries where `session_id` matches the current session
-3. Write updated `locks.json`
+```bash
+Bash("geas lock cleanup --session {current_session_id}")
+```
+The CLI removes all locks not belonging to the specified session.

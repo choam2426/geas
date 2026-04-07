@@ -53,8 +53,8 @@ Before transitioning to `"implementing"`, check for staleness:
    d. **Overlap, auto-resolvable** -> classification = `review_sync`. Update `base_commit`, proceed. Flag for specialist re-review after implementation.
    e. **Overlap, not auto-resolvable** -> classification = `replan_required`. Do NOT proceed. Rewind task to `"ready"`. Update implementation contract.
    f. **Preconditions invalidated** -> classification = `blocking_conflict`. Set task status to `"blocked"`.
-   g. Write `.geas/missions/{mission_id}/tasks/{task-id}/revalidation-record.json` conforming to `schemas/revalidation-record.schema.json`
-   h. Log event: `{"event": "revalidation", "task_id": "...", "classification": "...", "timestamp": "<actual>"}`
+   g. Write the revalidation record (use Write tool for this task-specific artifact)
+   h. Log event: `Bash("geas event log --type revalidation --task {task-id} --data '{\"classification\":\"...\"}'")` 
 
 Only proceed to `"implementing"` if classification is `clean_sync` or `review_sync`.
 
@@ -62,17 +62,23 @@ Only proceed to `"implementing"` if classification is `clean_sync` or `review_sy
 
 Before entering `"implementing"`, acquire locks in order (per doc 04):
 
-1. **`path` locks**: Read `scope.paths` from the TaskContract. For each path, check `.geas/state/locks.json` for existing `path` locks with overlapping targets held by other tasks.
-   - If conflict: **cannot proceed** — skip this task and try the next eligible task.
-   - If no conflict: add lock entry: `{ "lock_type": "path", "task_id": "{task-id}", "session_id": "{session-id}", "targets": [scope paths], "status": "held", "acquired_at": "<ISO 8601>" }`
+1. **`path` locks**: Acquire via CLI which handles conflict detection automatically:
+   ```bash
+   Bash("geas lock acquire --task {task-id} --type path --targets 'src/auth/,tests/auth/' --session {session-id}")
+   ```
+   - If the CLI returns `acquired: false` with conflicts: **cannot proceed** — skip this task and try the next eligible task.
 
-2. **`interface` locks**: If the task touches API contracts (scope.paths containing API definition files, or task_kind = "config"), acquire interface locks for the relevant contract names.
-   - Same conflict check as path locks.
+2. **`interface` locks**: If the task touches API contracts, acquire interface locks:
+   ```bash
+   Bash("geas lock acquire --task {task-id} --type interface --targets 'api-auth-contract' --session {session-id}")
+   ```
 
-3. **`resource` locks**: If the task uses shared resources (ports, DB migrations, fixtures — inferred from implementation contract), acquire resource locks.
-   - Same conflict check.
+3. **`resource` locks**: If the task uses shared resources:
+   ```bash
+   Bash("geas lock acquire --task {task-id} --type resource --targets 'port-3000,db-migration' --session {session-id}")
+   ```
 
-Write updated `locks.json` after all acquisitions. If any acquisition fails (conflict), release any locks already acquired for this task and do NOT proceed.
+The CLI writes locks.json atomically. If any acquisition fails (conflict), release locks already acquired: `Bash("geas lock release --task {task-id}")`
 
 ## Step Groups
 
@@ -84,48 +90,25 @@ All other steps are strictly sequential. In particular:
 
 ## [MANDATORY] Event Logging
 
-After each step completes and is removed from `remaining_steps`, log:
-```
-Append to .geas/ledger/events.jsonl:
-{"event": "step_complete", "task_id": "{task-id}", "step": "{step_name}", "agent": "{agent_name}", "timestamp": "<actual>"}
+After each step completes and is removed from `remaining_steps`, log via CLI:
+```bash
+Bash("geas event log --type step_complete --task {task-id} --agent {agent_name} --data '{\"step\":\"{step_name}\"}'")
 ```
 Exception: `implementation_contract`, `gate_result`, and `task_resolved` have their own event formats. Do not duplicate those.
 
 ## [MANDATORY] Session State Update
 
-After each step completes and is logged, update the session context anchors:
+After each step completes and is logged, update the session context anchors via CLI:
 
-Write `.geas/state/session-latest.md`:
-```markdown
-# Session State — {timestamp}
-
-**Phase:** {current phase: specifying | building | polishing | evolving}
-**Focus Task:** {task-id} — {title}
-**Task State:** {current state from task contract}
-**Last Step:** {step just completed}
-**Next Step:** {first item in remaining_steps, or "phase transition"}
-
-## Recent Events
-- {last 3 events from .geas/ledger/events.jsonl}
-
-## Open Risks
-- {from closure packet open_risks, or "none yet"}
-
-## Active Memory
-- {count} active memory entries, {count} under review
+```bash
+Bash("geas state session-update --phase {phase} --task {task-id} --step {step_name} --summary '{summary_text}'")
 ```
 
-Write `.geas/state/task-focus/{task-id}.md`:
-```markdown
-# {task-id}: {title}
-
-**State:** {current state}
-**Goal:** {from task contract}
-**Pipeline Progress:** {completed steps count} / {total steps count}
-**Last Step:** {step name} — {outcome}
-**Remaining:** {remaining_steps as comma-separated list}
-**Key Risks:** {from worker self-check known_risks or open_risks, or "none"}
+```bash
+Bash("geas state task-focus --id {task-id} --status {state} --step {step_name} --summary '{progress_summary}'")
 ```
+
+The CLI auto-generates timestamps and writes the markdown files to `.geas/state/session-latest.md` and `.geas/state/task-focus/{task-id}.md` respectively.
 
 ## Pipeline Steps
 
@@ -133,7 +116,7 @@ Write `.geas/state/task-focus/{task-id}.md`:
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
 Resolve the implementer slot via profiles.json. If the profile provides a design-capable implementer, spawn it. Otherwise, the primary implementer handles design.
 Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "design", `agent_in_flight` = "{resolved-implementer}"
+Update checkpoint: `Bash("geas state checkpoint set --step design --agent {resolved-implementer}")`
 ```
 Agent(agent: "{resolved-implementer}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-implementer}.md. Write design spec to .geas/missions/{mission_id}/evidence/{task-id}/{resolved-implementer}-design.json")
 ```
@@ -153,7 +136,7 @@ Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-implementer}-de
 - New data model or schema changes
 
 Resolve the design-authority slot via profiles.json. Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "design_guide", `agent_in_flight` = "{resolved-design-authority}"
+Update checkpoint: `Bash("geas state checkpoint set --step design_guide --agent {resolved-design-authority}")`
 ```
 Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-design-authority}.md. Write design guide to .geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}.json")
 ```
@@ -161,12 +144,12 @@ Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authorit
 
 ### Implementation Contract [MANDATORY]
 Invoke `/geas:implementation-contract` — worker writes action plan, quality_specialist and design_authority approve before implementation.
-Update run.json checkpoint: `pipeline_step` = "implementation_contract", `agent_in_flight` = "{worker}"
+Update checkpoint: `Bash("geas state checkpoint set --step implementation_contract --agent {worker}")`
 Verify `.geas/missions/{mission_id}/contracts/{task-id}.json` exists with `status: "approved"`.
 
 ### Implementation [MANDATORY — worktree isolated]
 Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "implementation", `agent_in_flight` = "{worker}"
+Update checkpoint: `Bash("geas state checkpoint set --step implementation --agent {worker}")`
 ```
 Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{worker}.md. Implement the feature. Write evidence to .geas/missions/{mission_id}/evidence/{task-id}/{worker}.json")
 ```
@@ -189,19 +172,23 @@ Before merging the worktree:
 
 Before merging the worktree to the integration branch:
 
-1. Read `.geas/state/locks.json`
-2. Check if any other task holds an `integration` lock:
-   - If yes: **wait**. Add a lock entry with `"status": "waiting"` and `wait_start` timestamp. Do NOT merge until the lock is released.
-   - If no: acquire the lock: `{ "lock_type": "integration", "task_id": "{task-id}", "session_id": "{session-id}", "targets": ["integration_branch"], "status": "held", "acquired_at": "<ISO 8601>" }`
+1. Acquire integration lock via CLI:
+   ```bash
+   Bash("geas lock acquire --task {task-id} --type integration --targets integration_branch --session {session-id}")
+   ```
+2. If the CLI returns `acquired: false` with conflicts: **wait**. The CLI automatically creates a waiting entry.
 3. Merge the worktree branch
-4. **Release the integration lock immediately** after merge (remove the entry from locks.json)
+4. **Release the integration lock immediately** after merge:
+   ```bash
+   Bash("geas lock release --task {task-id}")
+   ```
 
 This ensures integration is single-flight — only one task merges at a time.
 
 After successful merge, status remains `"implementing"` — the task is not yet reviewed or complete.
 
 ### Worker Self-Check [MANDATORY]
-Update run.json checkpoint: `pipeline_step` = "self_check", `agent_in_flight` = "{worker}"
+Update checkpoint: `Bash("geas state checkpoint set --step self_check --agent {worker}")`
 ```
 Agent(agent: "{worker}", prompt: "Implementation for {task-id} is complete. Before handing off to review, produce your self-check artifact. Write .geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json. Required fields: version (\"1.0\"), artifact_type (\"worker_self_check\"), artifact_id (e.g. \"self-check-{task-id}\"), producer_type (your agent type from the domain profile), task_id, known_risks (string[]), untested_paths (string[]), possible_stubs (string[]), what_to_test_next (string[]), confidence (integer 1-5: 1=very_low ... 5=very_high), summary (string), created_at (ISO 8601 timestamp).")
 ```
@@ -209,26 +196,26 @@ Verify `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json` exis
 
 ### Specialist Review (design-authority) [MANDATORY]
 Resolve the design-authority slot via profiles.json. Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "specialist_review", `agent_in_flight` = "{resolved-design-authority}"
+Update checkpoint: `Bash("geas state checkpoint set --step specialist_review --agent {resolved-design-authority}")`
 ```
 Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-design-authority}-review.md. Review implementation. Write to .geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}-review.json")
 ```
 Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}-review.json` exists.
-Update run.json checkpoint: `pipeline_step` = "specialist_review"
+Update checkpoint: `Bash("geas state checkpoint set --step specialist_review --agent null")`
 
 ### Testing (quality_specialist) [MANDATORY]
 Resolve the quality_specialist slot via profiles.json. Generate ContextPacket, then:
-Update run.json checkpoint: `pipeline_step` = "testing", `agent_in_flight` = "{resolved-quality-specialist}"
+Update checkpoint: `Bash("geas state checkpoint set --step testing --agent {resolved-quality-specialist}")`
 ```
 Agent(agent: "{resolved-quality-specialist}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-quality-specialist}.md. Test the implementation. Write results to .geas/missions/{mission_id}/evidence/{task-id}/{resolved-quality-specialist}.json")
 ```
 Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-quality-specialist}.json` exists.
-Update run.json checkpoint: `pipeline_step` = "testing"
+Update checkpoint: `Bash("geas state checkpoint set --step testing --agent null")`
 
 After BOTH specialist_review and testing complete:
-1. Update TaskContract status to `"reviewed"` (specialist reviews done).
-2. Write `.geas/missions/{mission_id}/tasks/{task-id}/integration-result.json` with: `merge_commit` (hash from worktree merge), `conflict_status` ("clean" | "resolved" | "failed"), `base_commit`, `timestamp`. This artifact records the integration outcome.
-3. Update TaskContract status to `"integrated"` (worktree merge + reviews confirmed integration is sound).
+1. Update TaskContract status: `Bash("geas task transition --mission {mission_id} --id {task-id} --to reviewed")`
+2. Write integration-result.json (use Write tool for this task-specific artifact).
+3. Update TaskContract status: `Bash("geas task transition --mission {mission_id} --id {task-id} --to integrated")`
 
 Do NOT update status to `"reviewed"` until both steps finish. The three operations happen atomically after both agents return.
 
@@ -309,7 +296,7 @@ Set `readiness_round: null` initially — may be updated by the challenger step.
 
 **Verify** `.geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json` exists and all required fields are populated before proceeding.
 
-Update run.json checkpoint: `pipeline_step` = "closure_packet"
+Update checkpoint: `Bash("geas state checkpoint set --step closure_packet --agent orchestrator")`
 
 ### Challenger Review [CONDITIONAL — mandatory for normal/high/critical risk]
 
@@ -317,7 +304,7 @@ Update run.json checkpoint: `pipeline_step` = "closure_packet"
 
 **Mandatory condition:** If `risk_level` is `normal`, `high`, or `critical`, this step MUST run.
 
-Resolve the challenger agent. Update run.json checkpoint: `pipeline_step` = "challenger", `agent_in_flight` = "challenger"
+Resolve the challenger agent. Update checkpoint: `Bash("geas state checkpoint set --step challenger --agent challenger")`
 ```
 Agent(agent: "challenger", prompt: "Read the closure packet at .geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json. Read all evidence at .geas/missions/{mission_id}/evidence/{task-id}/. You MUST raise at least 1 substantive concern — surface a real risk, edge case, or technical debt item. For each concern, state clearly whether it is BLOCKING or non-blocking. Write .geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json with the following fields: reviewer_type (\"challenger\"), concerns (array of strings, each prefixed with \"[BLOCKING]\" or \"[non-blocking]\"), blocking (boolean — true if ANY concern is blocking).")
 ```
@@ -325,9 +312,8 @@ Agent(agent: "challenger", prompt: "Read the closure packet at .geas/missions/{m
 Verify `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` exists.
 
 **[MANDATORY] Log step_complete immediately after verification:**
-```
-Append to .geas/ledger/events.jsonl:
-{"event": "step_complete", "task_id": "{task-id}", "step": "challenger", "agent": "challenger", "timestamp": "<actual>"}
+```bash
+Bash("geas event log --type step_complete --task {task-id} --agent challenger --data '{\"step\":\"challenger\"}'")
 ```
 Do NOT skip this log entry — it is required for conformance verification and session recovery.
 
@@ -346,7 +332,7 @@ Do NOT skip this log entry — it is required for conformance verification and s
    - **If escalate:** set task status to `"escalated"`. Write a DecisionRecord. Stop pipeline.
 4. **If `blocking` is false:** record concerns in the closure packet `challenge_review` field. Proceed to Final Verdict.
 
-Update run.json checkpoint: `pipeline_step` = "challenger"
+Update checkpoint: `Bash("geas state checkpoint set --step challenger --agent null")`
 
 ### Final Verdict (product-authority) [MANDATORY]
 **Preconditions:**
@@ -354,7 +340,7 @@ Update run.json checkpoint: `pipeline_step` = "challenger"
 - Closure Packet must be assembled (all required fields populated)
 - Do NOT spawn product-authority until both preconditions are verified
 
-Update run.json checkpoint: `pipeline_step` = "final_verdict", `agent_in_flight` = "product-authority"
+Update checkpoint: `Bash("geas state checkpoint set --step final_verdict --agent product-authority")`
 ```
 Agent(agent: "product-authority", prompt: "Read the closure packet at .geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json (which includes the challenge_review field if challenger ran) and all evidence at .geas/missions/{mission_id}/evidence/{task-id}/. Decide: pass, iterate, or escalate. Write .geas/missions/{mission_id}/tasks/{task-id}/final-verdict.json. Required fields: version (\"1.0\"), artifact_type (\"final_verdict\"), artifact_id (e.g. \"verdict-{task-id}\"), producer_type (\"product_authority\"), created_at (ISO 8601 timestamp), task_id, verdict (\"pass\" | \"iterate\" | \"escalate\"), rationale (why this verdict), closure_packet_ref (path to closure packet). If iterate: include rewind_target (\"ready\" | \"implementing\" | \"reviewed\") and iterate_count. If escalate: include escalation_reason. Also write to .geas/missions/{mission_id}/evidence/{task-id}/product-authority-verdict.json for backward compatibility.")
 ```
@@ -378,17 +364,21 @@ Note: "iterate" is only valid as a Final Verdict outcome. Gate verdicts (evidenc
 #### Lock Release
 
 On task completion (Ship, Cut, or Escalate):
-1. Read `.geas/state/locks.json`
-2. Remove ALL lock entries where `task_id` matches this task (path, interface, resource locks)
-3. Write updated `locks.json`
-4. Log: `{"event": "locks_released", "task_id": "...", "timestamp": "<actual>"}`
+```bash
+Bash("geas lock release --task {task-id}")
+Bash("geas event log --type locks_released --task {task-id}")
+```
+The CLI removes ALL lock entries where `task_id` matches this task and promotes any waiting locks.
 
-- **Ship**: Read `.geas/missions/{mission_id}/tasks/{task-id}.json`, set `"status": "passed"`, Write it back. Then commit directly:
-  Update run.json checkpoint: `pipeline_step` = "resolve"
+- **Ship**: Transition task to passed and commit:
+  ```bash
+  Bash("geas task transition --mission {mission_id} --id {task-id} --to passed")
+  Bash("geas state checkpoint set --step resolve --agent orchestrator")
+  ```
   ```bash
   git add -A && git commit -m "{conventional commit message for task-id}"
   ```
-  Log: `{"event": "task_resolved", "task_id": "{task-id}", "commit": "{hash from git rev-parse HEAD}", "timestamp": "<actual>"}`
+  Log: `Bash("geas event log --type task_resolved --task {task-id} --data '{\"commit\":\"{hash}\"}'")` 
 - **Iterate** (Final Verdict only): does NOT deduct retry_budget (iterate is a product judgment, not a gate failure). Track iterate_count — after 3 cumulative iterates, escalate to orchestration_authority. Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include product_authority's feedback in all subsequent ContextPackets. Resume from the rewind_target specified in the final verdict.
 - **Cut**: status -> `"cancelled"`. Write DecisionRecord.
 
@@ -396,7 +386,7 @@ On task completion (Ship, Cut, or Escalate):
 
 **Skip condition:** If the Final Verdict was Cut or Escalate, skip retrospective. Only run when the task has been resolved as Ship (status = `"passed"`).
 
-Update run.json checkpoint: `pipeline_step` = "retrospective"
+Update checkpoint: `Bash("geas state checkpoint set --step retrospective --agent orchestrator")`
 
 Orchestrator reads all evidence at `.geas/missions/{mission_id}/evidence/{task-id}/` and the closure packet at `.geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json`. Then writes `.geas/missions/{mission_id}/tasks/{task-id}/retrospective.json`:
 
@@ -456,9 +446,10 @@ Invoke `/geas:memorizing` with the task ID for per-task candidate extraction:
 3. For each candidate: invoke `/geas:memorizing` candidate extraction procedure:
    - Determine memory_type and scope
    - Run deduplication against memory-index
-   - Write candidate to `.geas/memory/candidates/{memory-id}.json`
-   - Update `.geas/state/memory-index.json`
-4. Run application logging: for memories that were in this task's packet, record effects based on task outcome.
-5. Log: `{"event": "memory_extraction", "task_id": "...", "candidates": N, "timestamp": "<actual>"}`
+   - Write candidate via CLI: `Bash("geas memory candidate-write --data '<candidate_json>'")`
+   - Update index via CLI: `Bash("geas memory index-update --data '<index_entry_json>'")`
+4. Run application logging: for memories that were in this task's packet, record effects via CLI:
+   `Bash("geas memory log-write --task {task-id} --memory {mem-id} --data '<log_json>'")`
+5. Log: `Bash("geas event log --type memory_extraction --task {task-id} --data '{\"candidates\": N}'")`
 
-Update run.json checkpoint: `pipeline_step` = "memory_extraction"
+Update checkpoint: `Bash("geas state checkpoint set --step memory_extraction --agent orchestrator")`

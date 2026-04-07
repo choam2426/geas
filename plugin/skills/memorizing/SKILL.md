@@ -53,7 +53,11 @@ For each candidate string in `memory_candidates[]`:
    - Applies to the whole project → `project`
    - Applies to a specific agent type → `agent`
    - Applies universally → `global`
-4. Write `.geas/memory/candidates/{memory-id}.json` conforming to `schemas/memory-candidate.schema.json`:
+4. Write the memory candidate via CLI with schema validation:
+   ```bash
+   Bash("geas memory candidate-write --data '<candidate_json>'")
+   ```
+   The candidate must conform to `schemas/memory-candidate.schema.json`:
    ```json
    {
      "meta": {
@@ -82,7 +86,10 @@ For each candidate string in `memory_candidates[]`:
      "source_artifacts": [".geas/missions/{mission_id}/tasks/{task-id}/retrospective.json"]
    }
    ```
-5. Add entry to `.geas/state/memory-index.json`
+5. Add entry to memory index via CLI:
+   ```bash
+   Bash("geas memory index-update --data '<index_entry_json>'")
+   ```
 
 **Automatic extraction triggers** (check during retrospective review, per protocol/08):
 - Same `failure_class` in failure-record.json repeats 2+ times → auto-extract failure_lesson, confidence 0.6
@@ -148,11 +155,14 @@ Agent(agent: "{reviewer}", prompt: "Review memory candidate at .geas/memory/cand
 
 ### On promotion
 
-1. If promoting from candidate: move file from `candidates/` to `entries/`, update state
-2. If promoting within entries/: update state in-place
-3. Set `review_after` to 30 days from now (provisional), 90 days (stable), 180 days (canonical)
-4. Update `.geas/state/memory-index.json`
-5. Log: `{"event": "memory_promoted", "memory_id": "...", "from_state": "...", "to_state": "...", "timestamp": "<actual>"}`
+1. Promote via CLI (handles candidate-to-entry migration, schema validation, and lifecycle checks):
+   ```bash
+   Bash("geas memory promote --id {memory-id} --to provisional")
+   ```
+2. The CLI handles moving from `candidates/` to `entries/` when promoting from candidate state.
+3. Set `review_after` to 30 days from now (provisional), 90 days (stable), 180 days (canonical) in the entry data.
+4. Update memory index: `Bash("geas memory index-update --data '<updated_index_entry>'")`
+5. Log: `Bash("geas event log --type memory_promoted --data '{\"memory_id\":\"...\",\"from_state\":\"...\",\"to_state\":\"...\"}'")` 
 
 ## 5. Application Logging
 
@@ -167,7 +177,11 @@ Agent(agent: "{reviewer}", prompt: "Review memory candidate at .geas/memory/cand
       - Memory had no clear impact on outcome → `neutral`
       - Memory advice contradicted the actual correct approach → `negative` + set followup_action to `weaken`
    c. Determine `usage_surface` from context: `task_packet`, `review_context`, `gate_context`, etc.
-   d. Write `.geas/memory/logs/{task-id}-{memory-id}.json` conforming to `schemas/memory-application-log.schema.json`:
+   d. Write application log via CLI with schema validation:
+      ```bash
+      Bash("geas memory log-write --task {task-id} --memory {memory-id} --data '<log_json>'")
+      ```
+      The log must conform to `schemas/memory-application-log.schema.json`:
       ```json
       {
         "meta": {
@@ -204,7 +218,7 @@ Run during Evolving phase or at session start:
    - If `confidence < 0.3` → transition to `decayed`
 3. Update entry state and memory-index.json
 4. Decayed entries remain in index (not deleted) — they can be reinstated if new evidence appears
-5. Log: `{"event": "memory_decayed", "memory_id": "...", "reason": "...", "timestamp": "<actual>"}`
+5. Log: `Bash("geas event log --type memory_decayed --data '{\"memory_id\":\"...\",\"reason\":\"...\"}'")` 
 
 ## 7. Harmful Reuse Rollback
 

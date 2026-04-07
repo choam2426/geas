@@ -14,7 +14,10 @@ Produces a markdown summary to the conversation and writes `.geas/state/health-c
 
 ## Section 1: Debt Summary
 
-Read `.geas/missions/{mission_id}/evolution/debt-register.json`.
+Read debt data via CLI:
+```bash
+Bash("geas debt list --mission {mission_id}")
+```
 
 Report the following counts:
 
@@ -89,30 +92,17 @@ If a source file does not exist, mark the signal as `value: null, triggered: fal
 
 ## Section 4: Output
 
-Write `.geas/state/health-check.json`:
-
-```json
-{
-  "timestamp": "<ISO 8601>",
-  "signals": [
-    {
-      "name": "memory_bloat",
-      "value": 15,
-      "threshold": 100,
-      "triggered": false
-    },
-    {
-      "name": "debt_stagnation",
-      "value": 2.5,
-      "threshold": 2.0,
-      "triggered": true,
-      "mandatory_response": "orchestration_authority creates a debt resolution plan during phase review. Prioritize debt resolution tasks in the next phase scheduling."
-    }
-  ]
-}
+Generate and write health check via CLI (computes all 8 signals from current `.geas/` state):
+```bash
+Bash("geas health generate")
 ```
 
-Include all 8 signals in the `signals` array. Only include `mandatory_response` on entries where `triggered: true`.
+The CLI writes `.geas/state/health-check.json` with all 8 signals computed, each including `name`, `value`, `threshold`, `triggered`, `detail`, and `mandatory_response` (when triggered). The CLI validates the output against `schemas/health-check.schema.json`.
+
+To read the current health check:
+```bash
+Bash("geas health read")
+```
 
 Then print a markdown summary to the conversation:
 
@@ -149,7 +139,7 @@ The reporting skill also generates product authority briefings at key milestones
 1. Summarize completed tasks, their verdicts, and any open debt
 2. List key decisions made since the last briefing
 3. Highlight risks or signals that require product authority attention
-4. Write the briefing to `.geas/missions/{mission_id}/phase-reviews/{phase}-briefing.md`
+4. Write the briefing (use Write tool for this markdown artifact at `.geas/missions/{mission_id}/phase-reviews/{phase}-briefing.md`)
 
 ---
 
@@ -160,4 +150,4 @@ At session end, generate an audit-trail summary of decisions, tasks, and agent t
 1. Read `.geas/ledger/events.jsonl` for all events in the current session
 2. Summarize: tasks started/completed, gate results, decisions made, escalations
 3. Include agent spawn counts and which agents were most active
-4. Write to `.geas/summaries/session-{timestamp}.md`
+4. Write the session summary (use Write tool for this markdown artifact at `.geas/summaries/session-{timestamp}.md`)

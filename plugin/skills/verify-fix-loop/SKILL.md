@@ -120,7 +120,10 @@ For any escalation, write a DecisionRecord to `.geas/missions/{mission_id}/decis
 }
 ```
 
-Log the escalation event to `.geas/ledger/events.jsonl`.
+Log the escalation event via CLI:
+```bash
+Bash("geas event log --type escalation --task {task-id} --data '{\"escalation_policy\":\"...\",\"retry_budget_exhausted\":true}'")
+```
 
 ---
 

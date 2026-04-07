@@ -13,39 +13,29 @@ Users should not need to run setup manually unless they are troubleshooting.
 
 ### Phase A: Initialize `.geas/` Runtime Directory
 
-Before anything else, create the runtime directory structure in the project root:
+Before anything else, create the runtime directory structure in the project root. Use `mkdir -p` for the base directories that the CLI does not create (CLI commands create their own subdirectories on first write):
 
 ```bash
 mkdir -p .geas/state .geas/state/task-focus .geas/ledger .geas/summaries .geas/memory/_project .geas/memory/agents .geas/memory/candidates .geas/memory/entries .geas/memory/logs .geas/memory/retro .geas/memory/incidents .geas/recovery
 ```
 
-Write the initial memory index `.geas/state/memory-index.json` conforming to `schemas/memory-index.schema.json`:
-```json
-{
-  "meta": {
-    "version": "1.0",
-    "artifact_type": "memory_index",
-    "artifact_id": "mi-init",
-    "producer_type": "orchestration_authority",
-    "created_at": "<ISO 8601>"
-  },
-  "entries": []
-}
+Write the initial memory index via CLI with schema validation:
+```bash
+Bash("geas memory index-update --data '{\"memory_id\":\"_init\",\"state\":\"candidate\",\"memory_type\":\"project_rule\",\"title\":\"init\",\"scope\":\"project\"}'")
 ```
+Note: The CLI creates the initial memory-index.json structure automatically if it does not exist.
 
-Write the initial health check `.geas/state/health-check.json`:
-```json
-{
-  "timestamp": "<ISO 8601>",
-  "signals": []
-}
+Write the initial health check via CLI:
+```bash
+Bash("geas health generate")
 ```
+The CLI creates `.geas/state/health-check.json` with all 8 signals computed from current state.
 
 Then ensure `.geas/` is gitignored. Check if `.gitignore` exists:
 - If yes: append `.geas/` if not already present
 - If no: create `.gitignore` with `.geas/` entry
 
-Write the initial run state file `.geas/state/run.json`:
+Write the initial run state file. Use the Write tool for this initial creation since the CLI state commands expect the file to already exist:
 ```json
 {
   "version": "1.0",
@@ -57,6 +47,13 @@ Write the initial run state file `.geas/state/run.json`:
   "decisions": [],
   "created_at": "<ISO 8601 now>"
 }
+```
+Write to `.geas/state/run.json`.
+
+After initial creation, all subsequent updates use the CLI:
+```bash
+Bash("geas state update --field status --value in_progress")
+Bash("geas state update --field phase --value specifying")
 ```
 
 The run state must conform to the RunState schema. Refer to the mission skill's `schemas/run-state.schema.json` for the full field list.

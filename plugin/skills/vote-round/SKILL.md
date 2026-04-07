@@ -74,9 +74,9 @@ After all voters return, read each vote file.
 
 ### Step 4: Log Result
 
-**[MANDATORY]** Append to `.geas/ledger/events.jsonl`:
-```json
-{"event": "vote_round", "proposal": "...", "voters": [...], "result": "unanimous|approved_with_amendments|decision_triggered", "timestamp": "<actual>"}
+**[MANDATORY]** Log vote result via CLI:
+```bash
+Bash("geas event log --type vote_round --data '{\"proposal\":\"...\",\"voters\":[...],\"result\":\"unanimous|approved_with_amendments|decision_triggered\"}'")
 ```
 
 ---
