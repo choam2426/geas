@@ -315,6 +315,38 @@ Override rules:
 
 Higher-risk work SHOULD make overrides rarer and more visible, not easier.
 
+## CLI Enforcement
+
+The CLI enforces protocol rules at two points:
+
+### Task transition guards
+
+`geas task transition` validates artifact requirements before allowing state changes:
+
+| Transition | Required Artifacts |
+|---|---|
+| drafted → ready | Task contract metadata complete (task_kind, risk_level, gate_profile, vote_round_policy, rubric, base_snapshot) |
+| ready → implementing | Implementation contract (status: approved) |
+| implementing → reviewed | Worker self-check + reviewer evidence |
+| reviewed → integrated | Integration result |
+| integrated → verified | Gate result (verdict: pass) |
+| verified → passed | Closure packet + final verdict (pass) + challenge review (normal/high/critical risk) + retrospective |
+
+Missing artifacts produce exit code 1 with a `missing_artifacts` array.
+
+### Phase transition guards
+
+`geas phase write` validates gate criteria before allowing phase reviews:
+
+| Transition | Gate Criteria |
+|---|---|
+| specifying → building | Mission spec + approved design brief + compiled tasks |
+| building → polishing | All tasks passed/cancelled + no critical debt + high debt mitigated |
+| polishing → evolving | No open critical/high security issues |
+| evolving → complete | Gap assessment + rules update + mission summary |
+
+Unmet criteria produce exit code 1 with an `unmet_criteria` array.
+
 ## Key Statement
 
 Enforcement is the difference between protocol and folklore. If Geas cannot block invalid progression, it is no longer governing the workflow.

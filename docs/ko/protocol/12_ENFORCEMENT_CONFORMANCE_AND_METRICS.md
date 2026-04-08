@@ -315,6 +315,38 @@ Override 규칙:
 
 위험도가 높을수록 override는 더 드물고 더 가시적이어야 한다.
 
+## CLI Enforcement
+
+CLI는 두 지점에서 프로토콜 규칙을 강제한다:
+
+### Task 전환 가드
+
+`geas task transition`은 상태 변경 전에 필수 artifact를 검증한다:
+
+| 전환 | 필수 Artifact |
+|---|---|
+| drafted → ready | Task contract 메타데이터 완비 (task_kind, risk_level, gate_profile, vote_round_policy, rubric, base_snapshot) |
+| ready → implementing | Implementation contract (status: approved) |
+| implementing → reviewed | Worker self-check + reviewer evidence |
+| reviewed → integrated | Integration result |
+| integrated → verified | Gate result (verdict: pass) |
+| verified → passed | Closure packet + final verdict (pass) + challenge review (normal/high/critical risk) + retrospective |
+
+필수 artifact가 누락되면 exit code 1과 함께 `missing_artifacts` 배열을 반환한다.
+
+### Phase 전환 가드
+
+`geas phase write`는 phase review 허용 전에 gate 기준을 검증한다:
+
+| 전환 | Gate 기준 |
+|---|---|
+| specifying → building | Mission spec + 승인된 design brief + 컴파일된 task |
+| building → polishing | 모든 task가 passed/cancelled + critical debt 없음 + high debt 완화 |
+| polishing → evolving | 미해결 critical/high 보안 이슈 없음 |
+| evolving → complete | Gap assessment + rules update + mission summary |
+
+미충족 기준이 있으면 exit code 1과 함께 `unmet_criteria` 배열을 반환한다.
+
 ## 핵심 원칙
 
 Enforcement는 프로토콜과 구전의 차이다. Geas가 유효하지 않은 진행을 차단할 수 없다면, 더 이상 워크플로우를 통치하고 있는 것이 아니다.

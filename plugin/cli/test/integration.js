@@ -216,6 +216,28 @@ function defineTests(tmpDir) {
         r.previous_status === 'drafted' && r.status === 'ready',
     },
     {
+      name: 'create implementation contract stub (for ready->implementing guard)',
+      fn: () => {
+        // The ready->implementing guard requires contracts/{taskId}.json with status "approved"
+        const contractDir = path.join(tmpDir, '.geas', 'missions', MISSION_ID, 'contracts');
+        fs.mkdirSync(contractDir, { recursive: true });
+        const contract = {
+          version: '1.0',
+          artifact_type: 'implementation_contract',
+          artifact_id: 'impl-contract-task-001',
+          task_id: 'task-001',
+          status: 'approved',
+          created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+        };
+        fs.writeFileSync(
+          path.join(contractDir, 'task-001.json'),
+          JSON.stringify(contract, null, 2),
+        );
+        return { created: true, path: path.join(contractDir, 'task-001.json') };
+      },
+      validate: (r) => r.created === true,
+    },
+    {
       name: 'task transition (ready -> implementing)',
       fn: () =>
         runWithCwd(
@@ -470,6 +492,421 @@ function defineCwdTests(mainDir) {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 7: Transition and Phase Guards
+// ---------------------------------------------------------------------------
+
+/**
+ * Tests for transition guards (artifact-existence checks) and phase guards
+ * (gate criteria checks). Each guard has positive and negative test pairs.
+ */
+function defineGuardTests(tmpDir) {
+  // Use a separate mission so guard tests don't interfere with Phase 1-5 state
+  const GUARD_MISSION = 'guard-test-mission';
+
+  return {
+    setup: () => {
+      // Create mission via CLI first, then ensure extra subdirectories exist
+      runWithCwd(`mission create --id ${GUARD_MISSION}`, tmpDir);
+      const missionDir = path.join(tmpDir, '.geas', 'missions', GUARD_MISSION);
+      const dirs = ['tasks', 'contracts', 'evidence', 'phase-reviews', 'evolution'];
+      for (const d of dirs) {
+        fs.mkdirSync(path.join(missionDir, d), { recursive: true });
+      }
+    },
+    tests: [
+      // ── Transition guard: drafted -> ready (negative) ──
+      {
+        name: '[guard] drafted->ready negative: missing risk_level blocks transition',
+        fn: () => {
+          // Create a task with missing metadata (no risk_level, no rubric, etc.)
+          const incompleteTask = {
+            version: '1.0',
+            artifact_type: 'task_contract',
+            artifact_id: 'task-contract-guard-neg-01',
+            producer_type: 'orchestration_authority',
+            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+            task_id: 'guard-neg-01',
+            title: 'Incomplete task',
+            goal: 'Missing metadata fields',
+            task_kind: 'implementation',
+            // risk_level intentionally omitted
+            // gate_profile intentionally omitted
+            // vote_round_policy intentionally omitted
+            // base_snapshot intentionally omitted
+            acceptance_criteria: ['Test'],
+            eval_commands: ['echo ok'],
+            // rubric intentionally omitted
+            retry_budget: 3,
+            scope: { surfaces: ['test/'] },
+            routing: {
+              primary_worker_type: 'software_engineer',
+              required_reviewer_types: ['design_authority'],
+            },
+            status: 'drafted',
+          };
+
+          // Write task file directly (bypassing schema validation so we can test the guard)
+          const taskPath = path.join(
+            tmpDir, '.geas', 'missions', GUARD_MISSION, 'tasks', 'guard-neg-01.json',
+          );
+          fs.writeFileSync(taskPath, JSON.stringify(incompleteTask, null, 2));
+
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" task transition --mission ${GUARD_MISSION} --id guard-neg-01 --to ready`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { blocked: false };
+          } catch (err) {
+            const stderr = err.stderr ? err.stderr.toString() : '';
+            return {
+              blocked: true,
+              exit_code: err.status,
+              has_missing_artifacts: stderr.includes('missing_artifacts'),
+            };
+          }
+        },
+        validate: (r) =>
+          r.blocked === true &&
+          r.exit_code === 1 &&
+          r.has_missing_artifacts === true,
+      },
+
+      // ── Transition guard: drafted -> ready (positive) ──
+      {
+        name: '[guard] drafted->ready positive: complete task transitions successfully',
+        fn: () => {
+          const completeTask = {
+            version: '1.0',
+            artifact_type: 'task_contract',
+            artifact_id: 'task-contract-guard-pos-01',
+            producer_type: 'orchestration_authority',
+            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+            task_id: 'guard-pos-01',
+            title: 'Complete task',
+            goal: 'All metadata present',
+            task_kind: 'implementation',
+            risk_level: 'low',
+            gate_profile: 'implementation_change',
+            vote_round_policy: 'never',
+            base_snapshot: 'abc123',
+            acceptance_criteria: ['Test'],
+            eval_commands: ['echo ok'],
+            rubric: { dimensions: [{ name: 'completeness', threshold: 3 }] },
+            retry_budget: 3,
+            scope: { surfaces: ['test/'] },
+            routing: {
+              primary_worker_type: 'software_engineer',
+              required_reviewer_types: ['design_authority'],
+            },
+            status: 'drafted',
+          };
+          const data = JSON.stringify(completeTask).replace(/"/g, '\\"');
+          runWithCwd(
+            `task create --mission ${GUARD_MISSION} --data "${data}"`,
+            tmpDir,
+          );
+          return runWithCwd(
+            `task transition --mission ${GUARD_MISSION} --id guard-pos-01 --to ready`,
+            tmpDir,
+          );
+        },
+        validate: (r) =>
+          r.previous_status === 'drafted' && r.status === 'ready',
+      },
+
+      // ── Transition guard: implementing -> reviewed (negative) ──
+      {
+        name: '[guard] implementing->reviewed negative: missing worker-self-check blocks transition',
+        fn: () => {
+          // Create a task already in implementing state (write directly)
+          const task = {
+            version: '1.0',
+            artifact_type: 'task_contract',
+            artifact_id: 'task-contract-guard-neg-02',
+            producer_type: 'orchestration_authority',
+            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+            task_id: 'guard-neg-02',
+            title: 'Task without self-check',
+            goal: 'Missing worker-self-check',
+            task_kind: 'implementation',
+            risk_level: 'low',
+            gate_profile: 'implementation_change',
+            vote_round_policy: 'never',
+            base_snapshot: 'abc123',
+            acceptance_criteria: ['Test'],
+            eval_commands: ['echo ok'],
+            rubric: { dimensions: [{ name: 'completeness', threshold: 3 }] },
+            retry_budget: 3,
+            scope: { surfaces: ['test/'] },
+            routing: {
+              primary_worker_type: 'software_engineer',
+              required_reviewer_types: ['design_authority'],
+            },
+            status: 'implementing',
+          };
+          const taskPath = path.join(
+            tmpDir, '.geas', 'missions', GUARD_MISSION, 'tasks', 'guard-neg-02.json',
+          );
+          fs.writeFileSync(taskPath, JSON.stringify(task, null, 2));
+
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" task transition --mission ${GUARD_MISSION} --id guard-neg-02 --to reviewed`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { blocked: false };
+          } catch (err) {
+            const stderr = err.stderr ? err.stderr.toString() : '';
+            return {
+              blocked: true,
+              exit_code: err.status,
+              has_missing_artifacts: stderr.includes('missing_artifacts'),
+            };
+          }
+        },
+        validate: (r) =>
+          r.blocked === true &&
+          r.exit_code === 1 &&
+          r.has_missing_artifacts === true,
+      },
+
+      // ── Transition guard: verified -> passed (negative) ──
+      {
+        name: '[guard] verified->passed negative: missing closure artifacts blocks transition',
+        fn: () => {
+          // Create a task in verified state without closure-packet/final-verdict/retrospective
+          const task = {
+            version: '1.0',
+            artifact_type: 'task_contract',
+            artifact_id: 'task-contract-guard-neg-03',
+            producer_type: 'orchestration_authority',
+            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+            task_id: 'guard-neg-03',
+            title: 'Task without closure artifacts',
+            goal: 'Missing closure-packet, final-verdict, retrospective',
+            task_kind: 'implementation',
+            risk_level: 'low',
+            gate_profile: 'implementation_change',
+            vote_round_policy: 'never',
+            base_snapshot: 'abc123',
+            acceptance_criteria: ['Test'],
+            eval_commands: ['echo ok'],
+            rubric: { dimensions: [{ name: 'completeness', threshold: 3 }] },
+            retry_budget: 3,
+            scope: { surfaces: ['test/'] },
+            routing: {
+              primary_worker_type: 'software_engineer',
+              required_reviewer_types: ['design_authority'],
+            },
+            status: 'verified',
+          };
+          const taskPath = path.join(
+            tmpDir, '.geas', 'missions', GUARD_MISSION, 'tasks', 'guard-neg-03.json',
+          );
+          fs.writeFileSync(taskPath, JSON.stringify(task, null, 2));
+
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" task transition --mission ${GUARD_MISSION} --id guard-neg-03 --to passed`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { blocked: false };
+          } catch (err) {
+            const stderr = err.stderr ? err.stderr.toString() : '';
+            return {
+              blocked: true,
+              exit_code: err.status,
+              has_missing_artifacts: stderr.includes('missing_artifacts'),
+            };
+          }
+        },
+        validate: (r) =>
+          r.blocked === true &&
+          r.exit_code === 1 &&
+          r.has_missing_artifacts === true,
+      },
+
+      // ── Transition guard: verified -> passed (positive) ──
+      {
+        name: '[guard] verified->passed positive: all closure artifacts present allows transition',
+        fn: () => {
+          const taskId = 'guard-pos-02';
+          const missionDir = path.join(tmpDir, '.geas', 'missions', GUARD_MISSION);
+
+          // Create the task contract in verified state
+          const task = {
+            version: '1.0',
+            artifact_type: 'task_contract',
+            artifact_id: `task-contract-${taskId}`,
+            producer_type: 'orchestration_authority',
+            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+            task_id: taskId,
+            title: 'Task with all closure artifacts',
+            goal: 'Closure artifacts present',
+            task_kind: 'implementation',
+            risk_level: 'low',
+            gate_profile: 'implementation_change',
+            vote_round_policy: 'never',
+            base_snapshot: 'abc123',
+            acceptance_criteria: ['Test'],
+            eval_commands: ['echo ok'],
+            rubric: { dimensions: [{ name: 'completeness', threshold: 3 }] },
+            retry_budget: 3,
+            scope: { surfaces: ['test/'] },
+            routing: {
+              primary_worker_type: 'software_engineer',
+              required_reviewer_types: ['design_authority'],
+            },
+            status: 'verified',
+          };
+          fs.writeFileSync(
+            path.join(missionDir, 'tasks', `${taskId}.json`),
+            JSON.stringify(task, null, 2),
+          );
+
+          // Create the task subdirectory with required closure artifacts
+          const taskDir = path.join(missionDir, 'tasks', taskId);
+          fs.mkdirSync(taskDir, { recursive: true });
+
+          fs.writeFileSync(
+            path.join(taskDir, 'closure-packet.json'),
+            JSON.stringify({ artifact_type: 'closure_packet', task_id: taskId }),
+          );
+          fs.writeFileSync(
+            path.join(taskDir, 'final-verdict.json'),
+            JSON.stringify({ artifact_type: 'final_verdict', task_id: taskId, verdict: 'pass' }),
+          );
+          fs.writeFileSync(
+            path.join(taskDir, 'retrospective.json'),
+            JSON.stringify({ artifact_type: 'retrospective', task_id: taskId }),
+          );
+          // challenge-review.json not required for risk_level "low"
+
+          return runWithCwd(
+            `task transition --mission ${GUARD_MISSION} --id ${taskId} --to passed`,
+            tmpDir,
+          );
+        },
+        validate: (r) =>
+          r.previous_status === 'verified' && r.status === 'passed',
+      },
+
+      // ── Phase guard: building -> polishing (negative) ──
+      {
+        name: '[guard] building->polishing negative: task in implementing blocks phase transition',
+        fn: () => {
+          // Ensure there is a task in "implementing" state
+          const task = {
+            version: '1.0',
+            artifact_type: 'task_contract',
+            artifact_id: 'task-contract-phase-neg-01',
+            producer_type: 'orchestration_authority',
+            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+            task_id: 'phase-neg-01',
+            title: 'Task still implementing',
+            goal: 'Block building->polishing',
+            task_kind: 'implementation',
+            risk_level: 'low',
+            gate_profile: 'implementation_change',
+            vote_round_policy: 'never',
+            base_snapshot: 'abc123',
+            acceptance_criteria: ['Test'],
+            eval_commands: ['echo ok'],
+            rubric: { dimensions: [{ name: 'completeness', threshold: 3 }] },
+            retry_budget: 3,
+            scope: { surfaces: ['test/'] },
+            routing: {
+              primary_worker_type: 'software_engineer',
+              required_reviewer_types: ['design_authority'],
+            },
+            status: 'implementing',
+          };
+          fs.writeFileSync(
+            path.join(tmpDir, '.geas', 'missions', GUARD_MISSION, 'tasks', 'phase-neg-01.json'),
+            JSON.stringify(task, null, 2),
+          );
+
+          // Write a phase review with building -> polishing
+          const phaseReview = {
+            version: '1.0',
+            artifact_type: 'phase_review',
+            artifact_id: 'phase-review-build-polish',
+            producer_type: 'orchestration_authority',
+            mission_phase: 'building',
+            status: 'ready_to_exit',
+            summary: 'Attempting building to polishing',
+            next_phase: 'polishing',
+            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+          };
+          const data = JSON.stringify(phaseReview).replace(/"/g, '\\"');
+
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" phase write --mission ${GUARD_MISSION} --data "${data}"`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { blocked: false };
+          } catch (err) {
+            const stderr = err.stderr ? err.stderr.toString() : '';
+            return {
+              blocked: true,
+              exit_code: err.status,
+              has_unmet_criteria: stderr.includes('unmet_criteria'),
+            };
+          }
+        },
+        validate: (r) =>
+          r.blocked === true &&
+          r.exit_code === 1 &&
+          r.has_unmet_criteria === true,
+      },
+
+      // ── Phase guard: evolving -> complete (negative) ──
+      {
+        name: '[guard] evolving->complete negative: schema rejects next_phase "complete"',
+        fn: () => {
+          // The phase-review schema does not allow next_phase: "complete",
+          // so this tests that the schema validation catches it before the guard.
+          const phaseReview = {
+            version: '1.0',
+            artifact_type: 'phase_review',
+            artifact_id: 'phase-review-evolve-complete',
+            producer_type: 'orchestration_authority',
+            mission_phase: 'evolving',
+            status: 'ready_to_exit',
+            summary: 'Attempting evolving to complete',
+            next_phase: 'complete',
+            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+          };
+          const data = JSON.stringify(phaseReview).replace(/"/g, '\\"');
+
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" phase write --mission ${GUARD_MISSION} --data "${data}"`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { blocked: false };
+          } catch (err) {
+            const stderr = err.stderr ? err.stderr.toString() : '';
+            return {
+              blocked: true,
+              exit_code: err.status,
+              // Schema validation error or phase guard error - either way it's blocked
+              has_error: stderr.includes('VALIDATION_ERROR') || stderr.includes('unmet_criteria'),
+            };
+          }
+        },
+        validate: (r) =>
+          r.blocked === true &&
+          r.exit_code === 1 &&
+          r.has_error === true,
+      },
+    ],
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Performance benchmark
 // ---------------------------------------------------------------------------
 
@@ -607,7 +1044,38 @@ function main() {
     }
   }
 
-  const totalTests = tests.length + cwdTestSuite.tests.length;
+  // Phase 7: Transition and Phase Guards
+  console.log('\n--- Phase 7: Transition and Phase Guards ---\n');
+  const guardTestSuite = defineGuardTests(tmpDir);
+  guardTestSuite.setup();
+
+  for (const test of guardTestSuite.tests) {
+    try {
+      const result = test.fn();
+
+      if (result === undefined || result === null) {
+        throw new Error('Command returned null/undefined (not valid JSON)');
+      }
+
+      if (test.validate && !test.validate(result)) {
+        throw new Error(
+          `Validation failed. Got: ${JSON.stringify(result).slice(0, 200)}`,
+        );
+      }
+
+      console.log(`  PASS  ${test.name}`);
+      passed++;
+    } catch (err) {
+      const msg = err.stderr
+        ? err.stderr.toString().trim()
+        : err.message;
+      console.log(`  FAIL  ${test.name}: ${msg.slice(0, 200)}`);
+      failed++;
+      failures.push({ name: test.name, error: msg.slice(0, 500) });
+    }
+  }
+
+  const totalTests = tests.length + cwdTestSuite.tests.length + guardTestSuite.tests.length;
 
   // Run performance benchmark
   const benchOk = runBenchmark(tmpDir);

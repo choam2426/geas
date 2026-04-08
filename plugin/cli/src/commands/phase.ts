@@ -8,6 +8,7 @@ import type { Command } from 'commander';
 import { writeJsonFile } from '../lib/fs-atomic';
 import { resolveGeasDir, resolveMissionDir } from '../lib/paths';
 import { validate } from '../lib/schema';
+import { validatePhaseTransition } from '../lib/phase-guards';
 import { success, validationError, fileError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
 
@@ -33,6 +34,31 @@ export function registerPhaseCommands(program: Command): void {
         if (!result.valid) {
           validationError('phase-review', result.errors || []);
           return;
+        }
+
+        // Phase transition guard: validate gate criteria before writing
+        const currentPhase = data.mission_phase as string | undefined;
+        const nextPhase = data.next_phase as string | undefined;
+        if (currentPhase && nextPhase) {
+          const guardResult = validatePhaseTransition(
+            geasDir,
+            opts.mission,
+            currentPhase,
+            nextPhase
+          );
+          if (!guardResult.valid) {
+            const errMsg = {
+              error: `Phase transition "${currentPhase}" → "${nextPhase}" blocked by unmet criteria`,
+              code: 'PHASE_GUARD_ERROR',
+              mission_id: opts.mission,
+              current_phase: currentPhase,
+              next_phase: nextPhase,
+              unmet_criteria: guardResult.unmet_criteria,
+            };
+            process.stderr.write(JSON.stringify(errMsg) + '\n');
+            process.exit(1);
+            return;
+          }
         }
 
         // Build filename from phase + status + timestamp
