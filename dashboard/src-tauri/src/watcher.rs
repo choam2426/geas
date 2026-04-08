@@ -161,7 +161,7 @@ fn handle_debounced_event(
                 if let Some(root) = resolve_project_root(&event.path) {
                     if notified_roots.insert(root.clone()) {
                         let payload = ProjectChangedPayload {
-                            path: root.to_string_lossy().to_string(),
+                            path: normalize_path(&root),
                         };
                         if let Err(e) = app_handle.emit(PROJECT_CHANGED_EVENT, &payload) {
                             log::warn!("Failed to emit {PROJECT_CHANGED_EVENT}: {e}");
@@ -266,6 +266,15 @@ fn classify_run_change(prev: Option<&RunState>, current: &RunState) -> Vec<Toast
     toasts
 }
 
+/// Normalize a path for cross-platform consistency:
+/// - Strip the `\\?\` extended-length prefix that Windows `canonicalize()` produces
+/// - Convert backslashes to forward slashes
+fn normalize_path(p: &Path) -> String {
+    let s = p.to_string_lossy().to_string();
+    let s = s.strip_prefix(r"\\?\").unwrap_or(&s).to_string();
+    s.replace('\\', "/")
+}
+
 /// Walk up from a changed path to find the project root.
 /// The project root is the parent of the `.geas` directory.
 fn resolve_project_root(changed_path: &Path) -> Option<PathBuf> {
@@ -320,5 +329,23 @@ mod tests {
             resolve_project_root(&p),
             Some(PathBuf::from("/home/user/project"))
         );
+    }
+
+    #[test]
+    fn normalize_path_strips_extended_prefix() {
+        let p = PathBuf::from(r"\\?\C:\Users\foo\project");
+        assert_eq!(normalize_path(&p), "C:/Users/foo/project");
+    }
+
+    #[test]
+    fn normalize_path_converts_backslashes() {
+        let p = PathBuf::from(r"C:\Users\foo\project");
+        assert_eq!(normalize_path(&p), "C:/Users/foo/project");
+    }
+
+    #[test]
+    fn normalize_path_unix_noop() {
+        let p = PathBuf::from("/home/user/project");
+        assert_eq!(normalize_path(&p), "/home/user/project");
     }
 }

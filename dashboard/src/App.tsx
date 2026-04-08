@@ -17,6 +17,14 @@ import { ToastProvider, useToast } from "./contexts/ToastContext";
 import { useNavigationHistory } from "./hooks/useNavigationHistory";
 import type { ToastVariant } from "./components/Toast";
 
+/** Normalize a path for cross-platform comparison:
+ *  - Strip Windows extended-length prefix (\\?\)
+ *  - Convert backslashes to forward slashes
+ *  - Remove trailing slash */
+function normalizePath(p: string): string {
+  return p.replace(/^\\\\\?\\/, '').replace(/\\/g, '/').replace(/\/$/, '');
+}
+
 /** Map toast_type from backend to ToastContext variant */
 const TOAST_VARIANT_MAP: Record<string, ToastVariant> = {
   task_started: "info",
@@ -93,16 +101,20 @@ function AppInner() {
   // Auto-refresh: subscribe to file watcher events
   useEffect(() => {
     const unlisten = listen<{ path: string }>("geas://project-changed", async (event) => {
-      const changedPath = event.payload.path;
-      try {
-        const summary = await invoke<ProjectSummary>("get_project_summary", { path: changedPath });
-        setProjects(prev => prev.map(p => p.path === changedPath ? summary : p));
-      } catch {
-        // Ignore errors from individual project refresh
-      }
+      const changedPath = normalizePath(event.payload.path);
+      setTimeout(async () => {
+        try {
+          const matching = projects.find(p => normalizePath(p.path) === changedPath);
+          if (!matching) return;
+          const summary = await invoke<ProjectSummary>("get_project_summary", { path: matching.path });
+          setProjects(prev => prev.map(p => normalizePath(p.path) === changedPath ? summary : p));
+        } catch {
+          // Ignore errors from individual project refresh
+        }
+      }, 300);
     });
     return () => { unlisten.then(fn => fn()); };
-  }, []);
+  }, [projects]);
 
   // Toast notifications from backend event classification
   const { addToast } = useToast();

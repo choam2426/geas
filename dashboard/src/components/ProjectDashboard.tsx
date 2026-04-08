@@ -6,6 +6,11 @@ import { Archive, Brain, BookOpen, Clock } from "lucide-react";
 import PhaseBadge from "./PhaseBadge";
 import ProgressBar from "./ProgressBar";
 
+/** Normalize a path for cross-platform comparison */
+function normalizePath(p: string): string {
+  return p.replace(/^\\\\\?\\/, '').replace(/\\/g, '/').replace(/\/$/, '');
+}
+
 interface ProjectDashboardProps {
   projectPath: string;
   projectName: string;
@@ -85,18 +90,20 @@ export default function ProjectDashboard({
 
   // Auto-refresh: subscribe to file watcher events
   useEffect(() => {
-    const unlisten = listen<{ path: string }>("geas://project-changed", async (event) => {
-      if (event.payload.path !== projectPath) return;
-      try {
-        const [missionResult, summaryResult] = await Promise.all([
-          invoke<MissionSummary[]>("get_mission_history", { path: projectPath }),
-          invoke<ProjectSummary>("get_project_summary", { path: projectPath }).catch(() => null),
-        ]);
-        setMissions(missionResult);
-        setSummary(summaryResult);
-      } catch {
-        // Ignore refresh errors — keep existing data visible
-      }
+    const unlisten = listen<{ path: string }>("geas://project-changed", (event) => {
+      if (normalizePath(event.payload.path) !== normalizePath(projectPath)) return;
+      setTimeout(async () => {
+        try {
+          const [missionResult, summaryResult] = await Promise.all([
+            invoke<MissionSummary[]>("get_mission_history", { path: projectPath }),
+            invoke<ProjectSummary>("get_project_summary", { path: projectPath }).catch(() => null),
+          ]);
+          setMissions(missionResult);
+          setSummary(summaryResult);
+        } catch {
+          // Ignore refresh errors — keep existing data visible
+        }
+      }, 300);
     });
     return () => { unlisten.then(fn => fn()); };
   }, [projectPath]);
@@ -119,6 +126,39 @@ export default function ProjectDashboard({
             {projectPath}
           </p>
         </div>
+
+        {/* Quick Actions */}
+        {(onViewMemory || onViewRules || onViewTimeline) && (
+          <div className="mb-6 flex gap-2 flex-wrap">
+            {onViewTimeline && (
+              <button
+                onClick={onViewTimeline}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-bg-surface border border-border-default text-sm text-text-secondary cursor-pointer hover:text-text-primary hover:bg-bg-elevated/50 active:scale-95 transition-all"
+              >
+                <Clock size={16} />
+                Timeline
+              </button>
+            )}
+            {onViewMemory && (
+              <button
+                onClick={onViewMemory}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-bg-surface border border-border-default text-sm text-text-secondary cursor-pointer hover:text-text-primary hover:bg-bg-elevated/50 active:scale-95 transition-all"
+              >
+                <Brain size={16} />
+                Memory
+              </button>
+            )}
+            {onViewRules && (
+              <button
+                onClick={onViewRules}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-bg-surface border border-border-default text-sm text-text-secondary cursor-pointer hover:text-text-primary hover:bg-bg-elevated/50 active:scale-95 transition-all"
+              >
+                <BookOpen size={16} />
+                Rules
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Currently Working Card — parallel or single */}
         {(summary?.agent_in_flight || (summary?.parallel_batch && summary.parallel_batch.length > 0)) && (
@@ -215,39 +255,6 @@ export default function ProjectDashboard({
             </p>
           </div>
         </div>
-
-        {/* Quick Actions */}
-        {(onViewMemory || onViewRules || onViewTimeline) && (
-          <div className="mb-6 flex gap-2 flex-wrap">
-            {onViewTimeline && (
-              <button
-                onClick={onViewTimeline}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-bg-surface border border-border-default text-sm text-text-secondary cursor-pointer hover:text-text-primary hover:bg-bg-elevated/50 active:scale-95 transition-all"
-              >
-                <Clock size={16} />
-                Timeline
-              </button>
-            )}
-            {onViewMemory && (
-              <button
-                onClick={onViewMemory}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-bg-surface border border-border-default text-sm text-text-secondary cursor-pointer hover:text-text-primary hover:bg-bg-elevated/50 active:scale-95 transition-all"
-              >
-                <Brain size={16} />
-                Memory
-              </button>
-            )}
-            {onViewRules && (
-              <button
-                onClick={onViewRules}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-bg-surface border border-border-default text-sm text-text-secondary cursor-pointer hover:text-text-primary hover:bg-bg-elevated/50 active:scale-95 transition-all"
-              >
-                <BookOpen size={16} />
-                Rules
-              </button>
-            )}
-          </div>
-        )}
 
         {/* Mission List */}
         <div>
