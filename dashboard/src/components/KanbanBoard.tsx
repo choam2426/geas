@@ -7,6 +7,11 @@ import TaskCard from "./TaskCard";
 import TaskDetailModal from "./TaskDetailModal";
 import DebtPanel from "./DebtPanel";
 
+/** Normalize a path for cross-platform comparison */
+function normalizePath(p: string): string {
+  return p.replace(/^\\\\\?\\/, '').replace(/\\/g, '/').replace(/\/$/, '');
+}
+
 const COLUMNS = [
   { key: "drafted", label: "Drafted", color: "#656d76" },
   { key: "ready", label: "Ready", color: "#58a6ff" },
@@ -113,21 +118,23 @@ export default function KanbanBoard({
 
   // Auto-refresh: subscribe to file watcher events
   useEffect(() => {
-    const unlisten = listen<{ path: string }>("geas://project-changed", async (event) => {
-      if (event.payload.path !== projectPath) return;
+    const unlisten = listen<{ path: string }>("geas://project-changed", (event) => {
+      if (normalizePath(event.payload.path) !== normalizePath(projectPath)) return;
       if (!missionId) return;
-      try {
-        const [taskResult, debtResult] = await Promise.all([
-          invoke<TaskInfo[]>("get_project_tasks", { path: projectPath, mission_id: missionId }),
-          invoke<DebtInfo>("get_project_debt", { path: projectPath, mission_id: missionId }).catch(
-            (): DebtInfo => ({ total: 0, by_severity: { low: 0, normal: 0, high: 0, critical: 0 }, items: [] })
-          ),
-        ]);
-        setTasks(taskResult);
-        setDebt(debtResult);
-      } catch {
-        // Ignore refresh errors — keep existing data visible
-      }
+      setTimeout(async () => {
+        try {
+          const [taskResult, debtResult] = await Promise.all([
+            invoke<TaskInfo[]>("get_project_tasks", { path: projectPath, mission_id: missionId }),
+            invoke<DebtInfo>("get_project_debt", { path: projectPath, mission_id: missionId }).catch(
+              (): DebtInfo => ({ total: 0, by_severity: { low: 0, normal: 0, high: 0, critical: 0 }, items: [] })
+            ),
+          ]);
+          setTasks(taskResult);
+          setDebt(debtResult);
+        } catch {
+          // Ignore refresh errors — keep existing data visible
+        }
+      }, 300);
     });
     return () => { unlisten.then(fn => fn()); };
   }, [projectPath, missionId]);

@@ -53,4 +53,25 @@ export const debtStatusColors: Record<string, { bg: string; text: string }> = {
   mitigated: { bg: "rgba(139,148,158,0.15)", text: "#8b949e" },
 };
 
+export const memoryTypeColors: Record<string, { bg: string; text: string }> = {
+  project_rule: { bg: "rgba(88,166,255,0.15)", text: "#58a6ff" },
+  pattern: { bg: "rgba(188,140,255,0.15)", text: "#bc8cff" },
+  lesson: { bg: "rgba(63,185,80,0.15)", text: "#3fb950" },
+  gotcha: { bg: "rgba(248,81,73,0.15)", text: "#f85149" },
+  preference: { bg: "rgba(210,153,34,0.15)", text: "#d29922" },
+  decision: { bg: "rgba(139,148,158,0.15)", text: "#8b949e" },
+};
+
+export const memoryStateColors: Record<string, { bg: string; text: string }> = {
+  candidate: { bg: "rgba(139,148,158,0.15)", text: "#8b949e" },
+  validated: { bg: "rgba(88,166,255,0.15)", text: "#58a6ff" },
+  promoted: { bg: "rgba(63,185,80,0.15)", text: "#3fb950" },
+  active: { bg: "rgba(86,211,100,0.15)", text: "#56d364" },
+  decayed: { bg: "rgba(210,153,34,0.15)", text: "#d29922" },
+  archived: { bg: "rgba(101,109,118,0.15)", text: "#656d76" },
+  rejected: { bg: "rgba(248,81,73,0.15)", text: "#f85149" },
+  superseded: { bg: "rgba(139,148,158,0.15)", text: "#8b949e" },
+  harmful: { bg: "rgba(248,81,73,0.25)", text: "#f85149" },
+};
+
 export const severityOrder = ["critical", "high", "normal", "low"] as const;
