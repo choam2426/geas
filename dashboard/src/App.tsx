@@ -13,10 +13,24 @@ import MemoryBrowser from "./components/MemoryBrowser";
 import EmptyState from "./components/EmptyState";
 import ErrorState from "./components/ErrorState";
 import AddProjectDialog from "./components/AddProjectDialog";
-import { ToastProvider } from "./contexts/ToastContext";
+import { ToastProvider, useToast } from "./contexts/ToastContext";
 import { useNavigationHistory } from "./hooks/useNavigationHistory";
+import type { ToastVariant } from "./components/Toast";
 
-function App() {
+/** Map toast_type from backend to ToastContext variant */
+const TOAST_VARIANT_MAP: Record<string, ToastVariant> = {
+  task_started: "info",
+  task_completed: "success",
+  gate_pass: "success",
+  gate_fail: "error",
+  phase_changed: "info",
+  mission_completed: "success",
+};
+
+/** Deduplication window in milliseconds */
+const TOAST_DEDUP_WINDOW = 2000;
+
+function AppInner() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const nav = useNavigationHistory();
   const navRef = useRef(nav);
@@ -90,6 +104,34 @@ function App() {
     return () => { unlisten.then(fn => fn()); };
   }, []);
 
+  // Toast notifications from backend event classification
+  const { addToast } = useToast();
+  const lastToastRef = useRef<{ key: string; ts: number }>({ key: "", ts: 0 });
+
+  useEffect(() => {
+    const unlisten = listen<{ toast_type: string; title: string; message: string }>(
+      "geas://toast",
+      (event) => {
+        const { toast_type, title, message } = event.payload;
+        const variant = TOAST_VARIANT_MAP[toast_type] ?? "info";
+
+        // Deduplication: suppress if same toast_type+title within 2s
+        const dedupKey = `${toast_type}:${title}`;
+        const now = Date.now();
+        if (
+          lastToastRef.current.key === dedupKey &&
+          now - lastToastRef.current.ts < TOAST_DEDUP_WINDOW
+        ) {
+          return;
+        }
+        lastToastRef.current = { key: dedupKey, ts: now };
+
+        addToast({ variant, title, message });
+      }
+    );
+    return () => { unlisten.then(fn => fn()); };
+  }, [addToast]);
+
   function handleProjectAdded(_entry: ProjectEntry) {
     setShowAddDialog(false);
     loadProjects();
@@ -108,7 +150,6 @@ function App() {
   const selected = projects.find((p) => p.path === selectedPath) ?? null;
 
   return (
-    <ToastProvider>
     <div className="flex h-screen bg-bg-primary text-text-primary font-sans overflow-hidden">
       <Sidebar
         projects={projects}
@@ -299,6 +340,13 @@ function App() {
         />
       )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ToastProvider>
+      <AppInner />
     </ToastProvider>
   );
 }

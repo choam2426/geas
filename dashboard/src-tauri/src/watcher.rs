@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Duration;
@@ -8,13 +8,27 @@ use notify_debouncer_mini::{new_debouncer, Debouncer};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
+use crate::models::RunState;
+use crate::commands::read_json_file;
+
 /// Event name emitted when a watched project's .geas/ directory changes.
 pub const PROJECT_CHANGED_EVENT: &str = "geas://project-changed";
+
+/// Event name emitted for toast notifications classified from run.json changes.
+pub const TOAST_EVENT: &str = "geas://toast";
 
 /// Payload sent with the project-changed event.
 #[derive(Clone, Debug, Serialize)]
 pub struct ProjectChangedPayload {
     pub path: String,
+}
+
+/// Payload sent with the toast event.
+#[derive(Clone, Debug, Serialize)]
+pub struct ToastEvent {
+    pub toast_type: String,
+    pub title: String,
+    pub message: String,
 }
 
 /// Holds the debounced watcher and the set of currently watched project roots.
@@ -24,7 +38,7 @@ pub struct WatcherState {
 }
 
 /// Subdirectories inside .geas/ that we monitor for changes.
-const GEAS_WATCH_SUBDIRS: &[&str] = &["state", "missions"];
+const GEAS_WATCH_SUBDIRS: &[&str] = &["state", "missions", "ledger", "memory"];
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -35,8 +49,13 @@ const GEAS_WATCH_SUBDIRS: &[&str] = &["state", "missions"];
 pub fn start_watching(app_handle: AppHandle, paths: &[String]) -> Mutex<WatcherState> {
     let handle = app_handle.clone();
 
+    // Store previous RunState per project root for toast classification.
+    let prev_states: std::sync::Arc<Mutex<HashMap<PathBuf, RunState>>> =
+        std::sync::Arc::new(Mutex::new(HashMap::new()));
+    let prev_states_clone = prev_states.clone();
+
     let mut debouncer = new_debouncer(Duration::from_millis(500), move |res| {
-        handle_debounced_event(&handle, res);
+        handle_debounced_event(&handle, &prev_states_clone, res);
     })
     .expect("Failed to create file watcher");
 
@@ -119,15 +138,26 @@ fn unwatch_project(
 
 /// Called by the debouncer when file events arrive. Resolves changed paths
 /// back to their project root and emits `PROJECT_CHANGED_EVENT`.
+/// Also detects run.json changes and emits classified `TOAST_EVENT`.
 fn handle_debounced_event(
     app_handle: &AppHandle,
+    prev_states: &Mutex<HashMap<PathBuf, RunState>>,
     result: notify_debouncer_mini::DebounceEventResult,
 ) {
     match result {
         Ok(events) => {
             // Collect unique project roots that were affected.
             let mut notified_roots: HashSet<PathBuf> = HashSet::new();
+            // Track which project roots had run.json changes
+            let mut run_json_roots: HashSet<PathBuf> = HashSet::new();
+
             for event in &events {
+                // Check if the changed path is a run.json file
+                if event.path.file_name().map(|n| n == "run.json").unwrap_or(false) {
+                    if let Some(root) = resolve_project_root(&event.path) {
+                        run_json_roots.insert(root.clone());
+                    }
+                }
                 if let Some(root) = resolve_project_root(&event.path) {
                     if notified_roots.insert(root.clone()) {
                         let payload = ProjectChangedPayload {
@@ -139,11 +169,101 @@ fn handle_debounced_event(
                     }
                 }
             }
+
+            // Classify run.json changes and emit toast events
+            for root in run_json_roots {
+                let run_path = root.join(".geas").join("state").join("run.json");
+                let new_state: RunState = match read_json_file(&run_path) {
+                    Ok(Some(rs)) => rs,
+                    _ => continue,
+                };
+
+                let toasts = if let Ok(mut map) = prev_states.lock() {
+                    let prev = map.get(&root).cloned();
+                    let toasts = classify_run_change(prev.as_ref(), &new_state);
+                    map.insert(root.clone(), new_state);
+                    toasts
+                } else {
+                    vec![]
+                };
+
+                for toast in toasts {
+                    if let Err(e) = app_handle.emit(TOAST_EVENT, &toast) {
+                        log::warn!("Failed to emit {TOAST_EVENT}: {e}");
+                    }
+                }
+            }
         }
         Err(err) => {
             log::warn!("File watcher error: {err:?}");
         }
     }
+}
+
+/// Compare previous and current RunState to classify changes into toast events.
+fn classify_run_change(prev: Option<&RunState>, current: &RunState) -> Vec<ToastEvent> {
+    let mut toasts = Vec::new();
+
+    match prev {
+        None => {
+            // First time seeing this project — no toasts to emit
+        }
+        Some(prev) => {
+            // Check for mission_completed: status changed to "complete"
+            if current.status.as_deref() == Some("complete")
+                && prev.status.as_deref() != Some("complete")
+            {
+                toasts.push(ToastEvent {
+                    toast_type: "mission_completed".to_string(),
+                    title: "Mission Completed".to_string(),
+                    message: format!(
+                        "Mission {} has completed",
+                        current.mission.as_deref().unwrap_or("unknown")
+                    ),
+                });
+            }
+
+            // Check for phase_changed
+            if current.phase != prev.phase {
+                if let Some(ref phase) = current.phase {
+                    toasts.push(ToastEvent {
+                        toast_type: "phase_changed".to_string(),
+                        title: "Phase Changed".to_string(),
+                        message: format!("Entered {} phase", phase),
+                    });
+                }
+            }
+
+            // Check for task_started: current_task_id changed to a different value
+            if current.current_task_id.is_some()
+                && current.current_task_id != prev.current_task_id
+            {
+                toasts.push(ToastEvent {
+                    toast_type: "task_started".to_string(),
+                    title: "Task Started".to_string(),
+                    message: format!(
+                        "Started {}",
+                        current.current_task_id.as_deref().unwrap_or("unknown")
+                    ),
+                });
+            }
+
+            // Check for task_completed: new task added to completed_tasks
+            let prev_completed: HashSet<&str> =
+                prev.completed_tasks.iter().map(|s| s.as_str()).collect();
+            for task_id in &current.completed_tasks {
+                if !prev_completed.contains(task_id.as_str()) {
+                    toasts.push(ToastEvent {
+                        toast_type: "task_completed".to_string(),
+                        title: "Task Completed".to_string(),
+                        message: format!("{} has been completed", task_id),
+                    });
+                }
+            }
+        }
+    }
+
+    toasts
 }
 
 /// Walk up from a changed path to find the project root.
