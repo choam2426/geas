@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { ProjectEntry, ProjectSummary } from "./types";
@@ -10,12 +10,13 @@ import DebtDetailPanel from "./components/DebtDetailPanel";
 import EmptyState from "./components/EmptyState";
 import ErrorState from "./components/ErrorState";
 import AddProjectDialog from "./components/AddProjectDialog";
+import { useNavigationHistory } from "./hooks/useNavigationHistory";
 
 function App() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [view, setView] = useState<"dashboard" | "overview" | "kanban" | "history" | "debt">("dashboard");
-  const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null);
+  const nav = useNavigationHistory();
+  const navRef = useRef(nav);
+  navRef.current = nav;
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [backendError, setBackendError] = useState<string | null>(null);
@@ -52,15 +53,16 @@ function App() {
       );
       setProjects(summaries);
       // Preserve selection if valid, else select first
-      setSelectedPath((prev) => {
-        if (prev && summaries.some((s) => s.path === prev)) return prev;
-        return summaries.length > 0 ? summaries[0].path : null;
-      });
+      const currentPath = navRef.current.current.selectedPath;
+      if (!currentPath || !summaries.some((s) => s.path === currentPath)) {
+        const firstPath = summaries.length > 0 ? summaries[0].path : null;
+        navRef.current.reset({ view: "dashboard", selectedPath: firstPath, selectedMissionId: null });
+      }
     } catch (err) {
       console.error("Failed to load projects:", err);
       setBackendError(String(err));
       setProjects([]);
-      setSelectedPath(null);
+      navRef.current.reset({ view: "dashboard", selectedPath: null, selectedMissionId: null });
     } finally {
       setLoading(false);
     }
@@ -91,9 +93,14 @@ function App() {
 
   function handleRemoveProject(path: string) {
     setProjects((prev) => prev.filter((p) => p.path !== path));
-    setSelectedPath((prev) => (prev === path ? null : prev));
+    if (nav.current.selectedPath === path) {
+      nav.reset({ view: "dashboard", selectedPath: null, selectedMissionId: null });
+    }
   }
 
+  const selectedPath = nav.current.selectedPath;
+  const view = nav.current.view;
+  const selectedMissionId = nav.current.selectedMissionId;
   const selected = projects.find((p) => p.path === selectedPath) ?? null;
 
   return (
@@ -101,8 +108,8 @@ function App() {
       <Sidebar
         projects={projects}
         selectedPath={selectedPath}
-        onSelect={(path) => { setSelectedPath(path); setView("dashboard"); setSelectedMissionId(null); }}
-        onViewHistory={selected ? () => setView("history") : undefined}
+        onSelect={(path) => { nav.reset({ view: "dashboard", selectedPath: path, selectedMissionId: null }); }}
+        onViewHistory={selected ? () => nav.navigate({ ...nav.current, view: "history", selectedMissionId: null }) : undefined}
         onAddProject={() => setShowAddDialog(true)}
         onRemoveProject={handleRemoveProject}
         onRefresh={loadProjects}
@@ -134,16 +141,13 @@ function App() {
               projectPath={selected.path}
               projectName={selected.name}
               onViewTasks={(missionId) => {
-                setSelectedMissionId(missionId ?? null);
-                setView("kanban");
+                nav.navigate({ ...nav.current, view: "kanban", selectedMissionId: missionId ?? null });
               }}
               onViewDebt={(missionId) => {
-                setSelectedMissionId(missionId ?? null);
-                setView("debt");
+                nav.navigate({ ...nav.current, view: "debt", selectedMissionId: missionId ?? null });
               }}
               onViewKanban={(missionId) => {
-                setSelectedMissionId(missionId);
-                setView("kanban");
+                nav.navigate({ ...nav.current, view: "kanban", selectedMissionId: missionId });
               }}
             />
           </div>
@@ -154,11 +158,10 @@ function App() {
               projectName={selected.mission_name ?? selected.name}
               missionId={selectedMissionId}
               onBack={() => {
-                if (selectedMissionId) {
-                  setSelectedMissionId(null);
-                  setView("dashboard");
+                if (nav.canGoBack) {
+                  nav.goBack();
                 } else {
-                  setView("dashboard");
+                  nav.navigate({ ...nav.current, view: "dashboard", selectedMissionId: null });
                 }
               }}
               currentTaskId={selected.current_task_id}
@@ -174,10 +177,15 @@ function App() {
               projectPath={selected.path}
               projectName={selected.name}
               onSelectMission={(missionId) => {
-                setSelectedMissionId(missionId);
-                setView("kanban");
+                nav.navigate({ ...nav.current, view: "kanban", selectedMissionId: missionId });
               }}
-              onBack={() => { setView("dashboard"); setSelectedMissionId(null); }}
+              onBack={() => {
+                if (nav.canGoBack) {
+                  nav.goBack();
+                } else {
+                  nav.navigate({ ...nav.current, view: "dashboard", selectedMissionId: null });
+                }
+              }}
             />
           </div>
         ) : selected && view === "debt" ? (
@@ -186,7 +194,13 @@ function App() {
               projectPath={selected.path}
               projectName={selected.mission_name ?? selected.name}
               missionId={selectedMissionId}
-              onBack={() => setView("dashboard")}
+              onBack={() => {
+                if (nav.canGoBack) {
+                  nav.goBack();
+                } else {
+                  nav.navigate({ ...nav.current, view: "dashboard", selectedMissionId: null });
+                }
+              }}
             />
           </div>
         ) : selected ? (
@@ -195,16 +209,13 @@ function App() {
               projectPath={selected.path}
               projectName={selected.name}
               onViewTasks={(missionId) => {
-                setSelectedMissionId(missionId ?? null);
-                setView("kanban");
+                nav.navigate({ ...nav.current, view: "kanban", selectedMissionId: missionId ?? null });
               }}
               onViewDebt={(missionId) => {
-                setSelectedMissionId(missionId ?? null);
-                setView("debt");
+                nav.navigate({ ...nav.current, view: "debt", selectedMissionId: missionId ?? null });
               }}
               onViewKanban={(missionId) => {
-                setSelectedMissionId(missionId);
-                setView("kanban");
+                nav.navigate({ ...nav.current, view: "kanban", selectedMissionId: missionId });
               }}
             />
           </div>
