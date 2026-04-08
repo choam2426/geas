@@ -22,6 +22,7 @@ import { registerRecoveryCommands } from './commands/recovery';
 import { registerPhaseCommands } from './commands/phase';
 import { registerDecisionCommands } from './commands/decision';
 import { registerHealthCommands } from './commands/health';
+import { registerEvolutionCommands } from './commands/evolution';
 
 function getVersion(): string {
   try {
@@ -46,7 +47,7 @@ export function run(): void {
   program.option('--cwd <path>', 'Override working directory');
   program.option('--json', 'Force JSON output (default: true)', true);
 
-  // Register all 13 command groups
+  // Register all 14 command groups
   registerStateCommands(program);
   registerMissionCommands(program);
   registerTaskCommands(program);
@@ -60,6 +61,7 @@ export function run(): void {
   registerPhaseCommands(program);
   registerDecisionCommands(program);
   registerHealthCommands(program);
+  registerEvolutionCommands(program);
 
   program.parse(process.argv);
 }

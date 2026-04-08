@@ -6,7 +6,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Command } from 'commander';
-import { resolveGeasDir, normalizePath } from '../lib/paths';
+import { resolveGeasDir, resolveMissionDir, normalizePath } from '../lib/paths';
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
@@ -338,6 +338,178 @@ export function registerTaskCommands(program: Command): void {
           fileError('', 'list', nodeErr.message);
         } else {
           throw err;
+        }
+      }
+    });
+
+  // ── geas task verdict --mission <mid> --task <tid> --data <json> ──
+  cmd
+    .command('verdict')
+    .description('Write a final verdict for a task')
+    .requiredOption('--mission <mid>', 'Mission identifier')
+    .requiredOption('--task <tid>', 'Task identifier')
+    .option('--data <json>', 'JSON data (or pipe via stdin)')
+    .action((opts: { mission: string; task: string; data?: string }, actionCmd: Command) => {
+      try {
+        const data = readInputData(opts.data) as Record<string, unknown>;
+        const geasDir = resolveGeasDir(getCwd(actionCmd));
+        const missionDir = resolveMissionDir(geasDir, opts.mission);
+
+        const result = validate('final-verdict', data);
+        if (!result.valid) {
+          validationError('final-verdict', result.errors || []);
+          return;
+        }
+
+        const taskDir = path.resolve(missionDir, 'tasks', opts.task);
+        ensureDir(taskDir);
+        const filePath = path.resolve(taskDir, 'final-verdict.json');
+        writeJsonFile(filePath, data);
+
+        success({
+          written: normalizePath(filePath),
+          mission_id: opts.mission,
+          task_id: opts.task,
+          artifact_type: 'final_verdict',
+        });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'verdict', nodeErr.message);
+        } else {
+          const msg = err instanceof SyntaxError
+            ? 'Invalid JSON in --data'
+            : (err as Error).message;
+          fileError('', 'verdict', msg);
+        }
+      }
+    });
+
+  // ── geas task self-check --mission <mid> --task <tid> --data <json> ─
+  cmd
+    .command('self-check')
+    .description('Write a worker self-check for a task')
+    .requiredOption('--mission <mid>', 'Mission identifier')
+    .requiredOption('--task <tid>', 'Task identifier')
+    .option('--data <json>', 'JSON data (or pipe via stdin)')
+    .action((opts: { mission: string; task: string; data?: string }, actionCmd: Command) => {
+      try {
+        const data = readInputData(opts.data) as Record<string, unknown>;
+        const geasDir = resolveGeasDir(getCwd(actionCmd));
+        const missionDir = resolveMissionDir(geasDir, opts.mission);
+
+        const result = validate('worker-self-check', data);
+        if (!result.valid) {
+          validationError('worker-self-check', result.errors || []);
+          return;
+        }
+
+        const taskDir = path.resolve(missionDir, 'tasks', opts.task);
+        ensureDir(taskDir);
+        const filePath = path.resolve(taskDir, 'worker-self-check.json');
+        writeJsonFile(filePath, data);
+
+        success({
+          written: normalizePath(filePath),
+          mission_id: opts.mission,
+          task_id: opts.task,
+          artifact_type: 'worker_self_check',
+        });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'self-check', nodeErr.message);
+        } else {
+          const msg = err instanceof SyntaxError
+            ? 'Invalid JSON in --data'
+            : (err as Error).message;
+          fileError('', 'self-check', msg);
+        }
+      }
+    });
+
+  // ── geas task closure --mission <mid> --task <tid> --data <json> ────
+  cmd
+    .command('closure')
+    .description('Write a closure packet for a task')
+    .requiredOption('--mission <mid>', 'Mission identifier')
+    .requiredOption('--task <tid>', 'Task identifier')
+    .option('--data <json>', 'JSON data (or pipe via stdin)')
+    .action((opts: { mission: string; task: string; data?: string }, actionCmd: Command) => {
+      try {
+        const data = readInputData(opts.data) as Record<string, unknown>;
+        const geasDir = resolveGeasDir(getCwd(actionCmd));
+        const missionDir = resolveMissionDir(geasDir, opts.mission);
+
+        const result = validate('closure-packet', data);
+        if (!result.valid) {
+          validationError('closure-packet', result.errors || []);
+          return;
+        }
+
+        const taskDir = path.resolve(missionDir, 'tasks', opts.task);
+        ensureDir(taskDir);
+        const filePath = path.resolve(taskDir, 'closure-packet.json');
+        writeJsonFile(filePath, data);
+
+        success({
+          written: normalizePath(filePath),
+          mission_id: opts.mission,
+          task_id: opts.task,
+          artifact_type: 'closure_packet',
+        });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'closure', nodeErr.message);
+        } else {
+          const msg = err instanceof SyntaxError
+            ? 'Invalid JSON in --data'
+            : (err as Error).message;
+          fileError('', 'closure', msg);
+        }
+      }
+    });
+
+  // ── geas task contract --mission <mid> --task <tid> --data <json> ───
+  cmd
+    .command('contract')
+    .description('Write an implementation contract for a task')
+    .requiredOption('--mission <mid>', 'Mission identifier')
+    .requiredOption('--task <tid>', 'Task identifier')
+    .option('--data <json>', 'JSON data (or pipe via stdin)')
+    .action((opts: { mission: string; task: string; data?: string }, actionCmd: Command) => {
+      try {
+        const data = readInputData(opts.data) as Record<string, unknown>;
+        const geasDir = resolveGeasDir(getCwd(actionCmd));
+        const missionDir = resolveMissionDir(geasDir, opts.mission);
+
+        const result = validate('implementation-contract', data);
+        if (!result.valid) {
+          validationError('implementation-contract', result.errors || []);
+          return;
+        }
+
+        const contractsDir = path.resolve(missionDir, 'contracts');
+        ensureDir(contractsDir);
+        const filePath = path.resolve(contractsDir, `${opts.task}.json`);
+        writeJsonFile(filePath, data);
+
+        success({
+          written: normalizePath(filePath),
+          mission_id: opts.mission,
+          task_id: opts.task,
+          artifact_type: 'implementation_contract',
+        });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'contract', nodeErr.message);
+        } else {
+          const msg = err instanceof SyntaxError
+            ? 'Invalid JSON in --data'
+            : (err as Error).message;
+          fileError('', 'contract', msg);
         }
       }
     });
