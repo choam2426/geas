@@ -108,6 +108,24 @@ export function registerLockCommands(program: Command): void {
           const sessionId =
             opts.session || `session-${now.replace(/[:.]/g, '-')}`;
 
+          // Check if same task already holds an identical lock (idempotent re-acquire)
+          const existingLock = manifest.locks.find(
+            (l) =>
+              l.task_id === opts.task &&
+              l.lock_type === opts.type &&
+              l.status === 'held' &&
+              targets.every((t) => l.targets.includes(t)) &&
+              l.targets.every((t) => targets.includes(t))
+          );
+          if (existingLock) {
+            success({
+              acquired: true,
+              lock: existingLock,
+              already_held: true,
+            });
+            return;
+          }
+
           // Check for conflicts
           const conflicts = findConflicts(
             manifest.locks,

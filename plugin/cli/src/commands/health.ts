@@ -92,7 +92,7 @@ function buildContext(geasDir: string): HealthContext {
 
   if (missionDir) {
     debtRegister = readJsonFile<Record<string, unknown>>(
-      path.join(missionDir, 'debt-register.json')
+      path.join(missionDir, 'evolution', 'debt-register.json')
     );
   }
 
