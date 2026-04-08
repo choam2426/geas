@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import type { MissionSummary, ProjectSummary } from "../types";
 import { Archive } from "lucide-react";
 import PhaseBadge from "./PhaseBadge";
@@ -74,6 +75,24 @@ export default function ProjectDashboard({
     return () => {
       cancelled = true;
     };
+  }, [projectPath]);
+
+  // Auto-refresh: subscribe to file watcher events
+  useEffect(() => {
+    const unlisten = listen<{ path: string }>("geas://project-changed", async (event) => {
+      if (event.payload.path !== projectPath) return;
+      try {
+        const [missionResult, summaryResult] = await Promise.all([
+          invoke<MissionSummary[]>("get_mission_history", { path: projectPath }),
+          invoke<ProjectSummary>("get_project_summary", { path: projectPath }).catch(() => null),
+        ]);
+        setMissions(missionResult);
+        setSummary(summaryResult);
+      } catch {
+        // Ignore refresh errors — keep existing data visible
+      }
+    });
+    return () => { unlisten.then(fn => fn()); };
   }, [projectPath]);
 
   const activeMission = missions.find((m) => m.is_active) ?? null;
