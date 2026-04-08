@@ -122,6 +122,14 @@ Agents CANNOT access `docs/protocol/`, `docs/architecture/`, or any file outside
 
 The `docs/protocol/schemas/` directory is the canonical reference for developers and validation tools. Skill-local `schemas/` copies are the operational copies for runtime use.
 
+## .geas/ CLI-Only Manipulation Rule
+
+All `.geas/` runtime state files (JSON, JSONL, markdown) must be read and written through the `geas` CLI tool (`plugin/cli/`), not through direct Read/Write/Edit tool calls. The CLI auto-manages timestamps (`created_at`, `updated_at`, `timestamp`) and enforces schema validation.
+
+**Exceptions**:
+- Sub-agents spawned with `isolation: "worktree"` or without CLI access may use Read/Write tools directly. The PostToolUse hook handles timestamp injection for these cases.
+- Reading `.geas/` files for context (e.g., checking if a file exists, reading state for decisions) is allowed via Read tool.
+
 ## Tool-Agnostic Rules
 
 Core skills (`plugin/skills/`) MUST NOT hardcode specific tools, frameworks, or package managers.

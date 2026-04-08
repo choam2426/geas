@@ -63,7 +63,7 @@ Example: mission has `domain_profile: "software"`, pipeline says "spawn quality_
 
 ### Event logging
 - Log every transition via the CLI: `Bash("geas event log --type <event_type> [--task <id>] [--agent <name>] [--data '<json>']")`
-- Timestamps are auto-injected by the CLI. Do NOT manually generate timestamps for events.
+- Timestamps are automatically managed. The CLI auto-injects `created_at` on new files, `updated_at` on existing file modifications, and `timestamp` on event ledger entries. Do NOT manually generate timestamps with `date -u` or similar commands.
 
 **[MANDATORY] The following events must always be logged. Omitting any is a protocol violation:**
 - `step_complete` — after each pipeline step completes (format defined in the execution pipeline)

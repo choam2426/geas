@@ -223,7 +223,7 @@ The gate result must conform to `schemas/gate-result.schema.json`.
   "artifact_type": "gate_result",
   "artifact_id": "gate-{task-id}-{timestamp}",
   "producer_type": "quality_specialist",
-  "created_at": "<actual ISO 8601 from date -u>",
+  "created_at": "<auto-injected by CLI>",
   "task_id": "{task-id}",
   "gate_profile": "implementation_change",
   "verdict": "pass",
