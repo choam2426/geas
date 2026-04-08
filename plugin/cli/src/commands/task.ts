@@ -11,6 +11,7 @@ import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
 import { validateTransition } from '../lib/transition-guards';
+import { getCwd } from '../lib/cwd';
 
 // ── State transition validation ─────────────────────────────────────
 
@@ -85,7 +86,7 @@ export function registerTaskCommands(program: Command): void {
     .option('--data <json>', 'JSON data (or pipe via stdin)')
     .action((opts: { mission: string; data?: string }) => {
       try {
-        const geasDir = resolveGeasDir(program.opts().cwd);
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = path.resolve(geasDir, 'missions', opts.mission);
 
         if (!fs.existsSync(missionDir)) {
@@ -152,7 +153,7 @@ export function registerTaskCommands(program: Command): void {
     .requiredOption('--to <status>', 'Target status')
     .action((opts: { mission: string; id: string; to: string }) => {
       try {
-        const geasDir = resolveGeasDir(program.opts().cwd);
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = path.resolve(geasDir, 'missions', opts.mission);
 
         if (!fs.existsSync(missionDir)) {
@@ -252,7 +253,7 @@ export function registerTaskCommands(program: Command): void {
     .requiredOption('--id <task-id>', 'Task identifier')
     .action((opts: { mission: string; id: string }) => {
       try {
-        const geasDir = resolveGeasDir(program.opts().cwd);
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = path.resolve(geasDir, 'missions', opts.mission);
 
         if (!fs.existsSync(missionDir)) {
@@ -294,7 +295,7 @@ export function registerTaskCommands(program: Command): void {
     .requiredOption('--mission <mission-id>', 'Mission identifier')
     .action((opts: { mission: string }) => {
       try {
-        const geasDir = resolveGeasDir(program.opts().cwd);
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = path.resolve(geasDir, 'missions', opts.mission);
 
         if (!fs.existsSync(missionDir)) {

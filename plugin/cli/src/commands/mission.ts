@@ -10,6 +10,7 @@ import { resolveGeasDir, normalizePath } from '../lib/paths';
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
+import { getCwd } from '../lib/cwd';
 
 /** Read JSON from --data flag or piped stdin. */
 function readInputData(dataArg: string | undefined): unknown {
@@ -65,7 +66,7 @@ export function registerMissionCommands(program: Command): void {
     .requiredOption('--id <mission-id>', 'Mission identifier')
     .action((opts: { id: string }) => {
       try {
-        const geasDir = resolveGeasDir(program.opts().cwd);
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = path.resolve(geasDir, 'missions', opts.id);
         const normalized = normalizePath(missionDir);
 
@@ -102,7 +103,7 @@ export function registerMissionCommands(program: Command): void {
     .option('--data <json>', 'JSON data (or pipe via stdin)')
     .action((opts: { id: string; data?: string }) => {
       try {
-        const geasDir = resolveGeasDir(program.opts().cwd);
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = path.resolve(geasDir, 'missions', opts.id);
 
         if (!fs.existsSync(missionDir)) {
@@ -149,7 +150,7 @@ export function registerMissionCommands(program: Command): void {
     .option('--data <json>', 'JSON data (or pipe via stdin)')
     .action((opts: { id: string; data?: string }) => {
       try {
-        const geasDir = resolveGeasDir(program.opts().cwd);
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = path.resolve(geasDir, 'missions', opts.id);
 
         if (!fs.existsSync(missionDir)) {
@@ -196,7 +197,7 @@ export function registerMissionCommands(program: Command): void {
     .option('--artifact <type>', 'Artifact to read: spec, brief, or omit for both')
     .action((opts: { id: string; artifact?: string }) => {
       try {
-        const geasDir = resolveGeasDir(program.opts().cwd);
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = path.resolve(geasDir, 'missions', opts.id);
 
         if (!fs.existsSync(missionDir)) {
