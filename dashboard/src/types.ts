@@ -68,6 +68,7 @@ export interface EventEntry {
   event_type: string;
   timestamp: string;
   task_id?: string;
+  mission_id?: string;
   agent?: string;
   message?: string;
   data?: Record<string, unknown>;
