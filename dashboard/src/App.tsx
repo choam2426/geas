@@ -7,6 +7,9 @@ import ProjectDashboard from "./components/ProjectDashboard";
 import KanbanBoard from "./components/KanbanBoard";
 import MissionHistory from "./components/MissionHistory";
 import DebtDetailPanel from "./components/DebtDetailPanel";
+import RulesViewer from "./components/RulesViewer";
+import TimelineView from "./components/TimelineView";
+import MemoryBrowser from "./components/MemoryBrowser";
 import EmptyState from "./components/EmptyState";
 import ErrorState from "./components/ErrorState";
 import AddProjectDialog from "./components/AddProjectDialog";
@@ -151,6 +154,42 @@ function App() {
               onViewKanban={(missionId) => {
                 nav.navigate({ ...nav.current, view: "kanban", selectedMissionId: missionId });
               }}
+              onViewMemory={() => {
+                nav.navigate({ ...nav.current, view: "memory", selectedMissionId: null });
+              }}
+              onViewRules={() => {
+                nav.navigate({ ...nav.current, view: "rules", selectedMissionId: null });
+              }}
+              onViewTimeline={() => {
+                nav.navigate({ ...nav.current, view: "timeline", selectedMissionId: null });
+              }}
+            />
+          </div>
+        ) : selected && view === "rules" ? (
+          <div key={`rules-${selected.path}`} className="flex flex-1 min-w-0 animate-fade-in">
+            <RulesViewer
+              projectPath={selected.path}
+              onBack={() => {
+                if (nav.canGoBack) {
+                  nav.goBack();
+                } else {
+                  nav.navigate({ ...nav.current, view: "dashboard", selectedMissionId: null });
+                }
+              }}
+            />
+          </div>
+        ) : selected && view === "timeline" ? (
+          <div key={`timeline-${selected.path}-${selectedMissionId ?? ""}`} className="flex flex-1 min-w-0 animate-fade-in">
+            <TimelineView
+              projectPath={selected.path}
+              missionId={selectedMissionId}
+              onBack={() => {
+                if (nav.canGoBack) {
+                  nav.goBack();
+                } else {
+                  nav.navigate({ ...nav.current, view: "dashboard", selectedMissionId: null });
+                }
+              }}
             />
           </div>
         ) : selected && view === "kanban" ? (
@@ -181,6 +220,9 @@ function App() {
               onSelectMission={(missionId) => {
                 nav.navigate({ ...nav.current, view: "kanban", selectedMissionId: missionId });
               }}
+              onViewTimeline={(missionId) => {
+                nav.navigate({ ...nav.current, view: "timeline", selectedMissionId: missionId });
+              }}
               onBack={() => {
                 if (nav.canGoBack) {
                   nav.goBack();
@@ -205,6 +247,19 @@ function App() {
               }}
             />
           </div>
+        ) : selected && view === "memory" ? (
+          <div key={`memory-${selected.path}`} className="flex flex-1 min-w-0 animate-fade-in">
+            <MemoryBrowser
+              projectPath={selected.path}
+              onBack={() => {
+                if (nav.canGoBack) {
+                  nav.goBack();
+                } else {
+                  nav.navigate({ ...nav.current, view: "dashboard", selectedMissionId: null });
+                }
+              }}
+            />
+          </div>
         ) : selected ? (
           <div key={`dashboard-fallback-${selected.path}`} className="flex flex-1 min-w-0 animate-fade-in">
             <ProjectDashboard
@@ -218,6 +273,15 @@ function App() {
               }}
               onViewKanban={(missionId) => {
                 nav.navigate({ ...nav.current, view: "kanban", selectedMissionId: missionId });
+              }}
+              onViewMemory={() => {
+                nav.navigate({ ...nav.current, view: "memory", selectedMissionId: null });
+              }}
+              onViewRules={() => {
+                nav.navigate({ ...nav.current, view: "rules", selectedMissionId: null });
+              }}
+              onViewTimeline={() => {
+                nav.navigate({ ...nav.current, view: "timeline", selectedMissionId: null });
               }}
             />
           </div>

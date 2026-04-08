@@ -211,3 +211,153 @@ pub struct AppConfig {
     pub projects: Vec<ProjectEntry>,
 }
 
+// ---------------------------------------------------------------------------
+// Memory file models (Deserialize only — read-only access)
+// ---------------------------------------------------------------------------
+
+/// Meta block inside a memory JSON file
+#[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
+// ---------------------------------------------------------------------------
+// Event models (for events.jsonl parsing)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EventEntry {
+    #[serde(default, alias = "event")]
+    pub event_type: String,
+    #[serde(default)]
+    pub timestamp: String,
+    #[serde(default)]
+    pub task_id: Option<String>,
+    #[serde(default)]
+    pub agent: Option<String>,
+    #[serde(default)]
+    pub message: Option<String>,
+    #[serde(default)]
+    pub data: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct EventsPage {
+    pub events: Vec<EventEntry>,
+    pub total_count: usize,
+    pub page: usize,
+    pub page_size: usize,
+}
+
+// ---------------------------------------------------------------------------
+// Memory models
+// ---------------------------------------------------------------------------
+
+pub struct MemoryMeta {
+    #[serde(default)]
+    pub version: Option<String>,
+    #[serde(default)]
+    pub artifact_type: Option<String>,
+    #[serde(default)]
+    pub artifact_id: Option<String>,
+    #[serde(default)]
+    pub producer_type: Option<String>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+}
+
+/// Signals block inside a memory JSON file
+#[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
+pub struct MemorySignals {
+    #[serde(default)]
+    pub evidence_count: Option<u32>,
+    #[serde(default)]
+    pub reuse_count: Option<u32>,
+    #[serde(default)]
+    pub successful_reuses: Option<u32>,
+    #[serde(default)]
+    pub failed_reuses: Option<u32>,
+    #[serde(default)]
+    pub contradiction_count: Option<u32>,
+    #[serde(default)]
+    pub confidence: Option<f64>,
+}
+
+/// .geas/memory/{entries,candidates}/**/*.json
+#[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
+pub struct MemoryFile {
+    #[serde(default)]
+    pub meta: Option<MemoryMeta>,
+    #[serde(default)]
+    pub memory_id: Option<String>,
+    #[serde(default)]
+    pub memory_type: Option<String>,
+    #[serde(default)]
+    pub state: Option<String>,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub summary: Option<String>,
+    #[serde(default)]
+    pub scope: Option<String>,
+    #[serde(default)]
+    pub evidence_refs: Option<Vec<String>>,
+    #[serde(default)]
+    pub signals: Option<MemorySignals>,
+    #[serde(default)]
+    pub review_after: Option<String>,
+    #[serde(default)]
+    pub supersedes: Option<Vec<String>>,
+    #[serde(default)]
+    pub superseded_by: Option<String>,
+    #[serde(default)]
+    pub tags: Option<Vec<String>>,
+    #[serde(default)]
+    pub body: Option<Vec<String>>,
+}
+
+// ---------------------------------------------------------------------------
+// Memory frontend return types (Serialize for Tauri IPC)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MemorySummary {
+    pub memory_id: String,
+    pub memory_type: String,
+    pub state: String,
+    pub title: String,
+    pub summary: String,
+    pub scope: String,
+    pub tags: Vec<String>,
+    pub created_at: Option<String>,
+    pub source_dir: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MemoryDetail {
+    pub memory_id: String,
+    pub memory_type: String,
+    pub state: String,
+    pub title: String,
+    pub summary: String,
+    pub scope: String,
+    pub body: Vec<String>,
+    pub tags: Vec<String>,
+    pub evidence_refs: Vec<String>,
+    pub signals: Option<MemorySignalsInfo>,
+    pub review_after: Option<String>,
+    pub supersedes: Vec<String>,
+    pub superseded_by: Option<String>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub source_dir: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MemorySignalsInfo {
+    pub evidence_count: u32,
+    pub reuse_count: u32,
+    pub confidence: f64,
+}
+

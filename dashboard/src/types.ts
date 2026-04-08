@@ -63,3 +63,54 @@ export interface MissionSummary {
   is_active: boolean;
   created_at: string | null;
 }
+
+export interface EventEntry {
+  event_type: string;
+  timestamp: string;
+  task_id?: string;
+  agent?: string;
+  message?: string;
+  data?: Record<string, unknown>;
+}
+
+export interface EventsPage {
+  events: EventEntry[];
+  total_count: number;
+  page: number;
+  page_size: number;
+}
+
+export interface MemorySummary {
+  memory_id: string;
+  memory_type: string;
+  state: string;
+  title: string;
+  summary: string;
+  scope: string;
+  tags: string[];
+  created_at?: string;
+  source_dir: string;
+}
+
+export interface MemoryDetail {
+  memory_id: string;
+  memory_type: string;
+  state: string;
+  title: string;
+  summary: string;
+  scope: string;
+  body: string[];
+  tags: string[];
+  evidence_refs: string[];
+  signals?: {
+    evidence_count: number;
+    reuse_count: number;
+    confidence: number;
+  };
+  review_after?: string;
+  supersedes: string[];
+  superseded_by?: string;
+  created_at?: string;
+  updated_at?: string;
+  source_dir: string;
+}

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { MissionSummary, ProjectSummary } from "../types";
-import { Archive } from "lucide-react";
+import { Archive, Brain, BookOpen, Clock } from "lucide-react";
 import PhaseBadge from "./PhaseBadge";
 import ProgressBar from "./ProgressBar";
 
@@ -12,6 +12,9 @@ interface ProjectDashboardProps {
   onViewTasks: (missionId?: string) => void;
   onViewDebt: (missionId?: string) => void;
   onViewKanban: (missionId: string) => void;
+  onViewMemory?: () => void;
+  onViewRules?: () => void;
+  onViewTimeline?: () => void;
 }
 
 function formatActivity(timestamp: string | null): string {
@@ -39,6 +42,9 @@ export default function ProjectDashboard({
   onViewTasks,
   onViewDebt,
   onViewKanban,
+  onViewMemory,
+  onViewRules,
+  onViewTimeline,
 }: ProjectDashboardProps) {
   const [missions, setMissions] = useState<MissionSummary[]>([]);
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
@@ -209,6 +215,39 @@ export default function ProjectDashboard({
             </p>
           </div>
         </div>
+
+        {/* Quick Actions */}
+        {(onViewMemory || onViewRules || onViewTimeline) && (
+          <div className="mb-6 flex gap-2 flex-wrap">
+            {onViewTimeline && (
+              <button
+                onClick={onViewTimeline}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-bg-surface border border-border-default text-sm text-text-secondary cursor-pointer hover:text-text-primary hover:bg-bg-elevated/50 active:scale-95 transition-all"
+              >
+                <Clock size={16} />
+                Timeline
+              </button>
+            )}
+            {onViewMemory && (
+              <button
+                onClick={onViewMemory}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-bg-surface border border-border-default text-sm text-text-secondary cursor-pointer hover:text-text-primary hover:bg-bg-elevated/50 active:scale-95 transition-all"
+              >
+                <Brain size={16} />
+                Memory
+              </button>
+            )}
+            {onViewRules && (
+              <button
+                onClick={onViewRules}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-bg-surface border border-border-default text-sm text-text-secondary cursor-pointer hover:text-text-primary hover:bg-bg-elevated/50 active:scale-95 transition-all"
+              >
+                <BookOpen size={16} />
+                Rules
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Mission List */}
         <div>

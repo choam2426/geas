@@ -7,9 +7,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use crate::config;
+use std::io::{BufRead, BufReader};
+
 use crate::models::{
-    DebtInfo, DebtItemInfo, DebtRegister, MissionSpec, MissionSummary, ProjectEntry,
-    ProjectSummary, RunState, SeverityRollup, TaskContract, TaskInfo,
+    DebtInfo, DebtItemInfo, DebtRegister, EventEntry, EventsPage, MemoryDetail, MemoryFile,
+    MemorySignalsInfo, MemorySummary, MissionSpec, MissionSummary, ProjectEntry, ProjectSummary,
+    RunState, SeverityRollup, TaskContract, TaskInfo,
 };
 
 // ---------------------------------------------------------------------------
@@ -351,6 +354,49 @@ pub fn get_mission_history(path: String) -> Result<Vec<MissionSummary>, String> 
 }
 
 // ---------------------------------------------------------------------------
+// Memory commands
+// ---------------------------------------------------------------------------
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_project_memories(path: String) -> Result<Vec<MemorySummary>, String> {
+    let geas = geas_dir(&path)?;
+    let memory_dir = geas.join("memory");
+
+    let mut results = Vec::new();
+
+    for source_dir in &["entries", "candidates"] {
+        let dir = memory_dir.join(source_dir);
+        if !dir.is_dir() {
+            continue;
+        }
+        collect_memory_summaries(&dir, source_dir, &mut results);
+    }
+
+    Ok(results)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_memory_detail(path: String, memory_id: String) -> Result<MemoryDetail, String> {
+    if memory_id.is_empty() {
+        return Err("memory_id is required".to_string());
+    }
+    let geas = geas_dir(&path)?;
+    let memory_dir = geas.join("memory");
+
+    for source_dir in &["entries", "candidates"] {
+        let dir = memory_dir.join(source_dir);
+        if !dir.is_dir() {
+            continue;
+        }
+        if let Some(detail) = find_memory_by_id(&dir, source_dir, &memory_id) {
+            return Ok(detail);
+        }
+    }
+
+    Err(format!("Memory not found: {memory_id}"))
+}
+
+// ---------------------------------------------------------------------------
 // Config management commands
 // ---------------------------------------------------------------------------
 
@@ -416,6 +462,108 @@ pub fn remove_project(
     }
 
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Rules
+// ---------------------------------------------------------------------------
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_project_rules(path: String) -> Result<String, String> {
+    let (canonical, geas) = validate_project_path(&path)?;
+    let rules_path = geas.join("rules.md");
+    match fs::read_to_string(&rules_path) {
+        Ok(content) => Ok(content),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
+        Err(e) => Err(format!(
+            "Failed to read rules.md at {}: {e}",
+            rules_path.display()
+        )),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Timeline / Events
+// ---------------------------------------------------------------------------
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_mission_events(
+    path: String,
+    mission_id: Option<String>,
+    event_type: Option<String>,
+    page: usize,
+    page_size: usize,
+) -> Result<EventsPage, String> {
+    let (_canonical, geas) = validate_project_path(&path)?;
+
+    // Check both paths — prefer ledger if both exist
+    let ledger_path = geas.join("ledger").join("events.jsonl");
+    let state_path = geas.join("state").join("events.jsonl");
+    let events_path = if ledger_path.exists() {
+        ledger_path
+    } else if state_path.exists() {
+        state_path
+    } else {
+        return Ok(EventsPage {
+            events: vec![],
+            total_count: 0,
+            page,
+            page_size,
+        });
+    };
+
+    let file = fs::File::open(&events_path)
+        .map_err(|e| format!("Failed to open events.jsonl: {e}"))?;
+    let reader = BufReader::new(file);
+
+    let mut all_events: Vec<EventEntry> = Vec::new();
+
+    for line in reader.lines() {
+        let line = match line {
+            Ok(l) => l,
+            Err(_) => continue,
+        };
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        let entry: EventEntry = match serde_json::from_str(trimmed) {
+            Ok(e) => e,
+            Err(_) => continue, // skip malformed lines
+        };
+
+        // Filter by mission_id if provided
+        if let Some(ref mid) = mission_id {
+            let line_has_mission = trimmed.contains(mid.as_str());
+            if !line_has_mission {
+                continue;
+            }
+        }
+
+        // Filter by event_type if provided
+        if let Some(ref et) = event_type {
+            if entry.event_type != *et {
+                continue;
+            }
+        }
+
+        all_events.push(entry);
+    }
+
+    // Sort by timestamp descending (newest first)
+    all_events.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+
+    let total_count = all_events.len();
+    let skip = page * page_size;
+    let events: Vec<EventEntry> = all_events.into_iter().skip(skip).take(page_size).collect();
+
+    Ok(EventsPage {
+        events,
+        total_count,
+        page,
+        page_size,
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -534,4 +682,114 @@ fn file_mtime(path: &PathBuf) -> Option<String> {
     let modified = metadata.modified().ok()?;
     let datetime: chrono::DateTime<chrono::Utc> = modified.into();
     Some(datetime.format("%Y-%m-%dT%H:%M:%SZ").to_string())
+}
+
+/// Recursively collect memory summaries from a directory, skipping malformed files.
+fn collect_memory_summaries(dir: &Path, source_dir: &str, results: &mut Vec<MemorySummary>) {
+    let entries = match fs::read_dir(dir) {
+        Ok(e) => e,
+        Err(_) => return,
+    };
+
+    for entry in entries {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        let path = entry.path();
+
+        if path.is_dir() {
+            collect_memory_summaries(&path, source_dir, results);
+            continue;
+        }
+
+        if path.extension().and_then(|e| e.to_str()) != Some("json") {
+            continue;
+        }
+
+        let mf: MemoryFile = match read_json_file(&path) {
+            Ok(Some(f)) => f,
+            _ => {
+                log::warn!("Skipping malformed memory file: {}", path.display());
+                continue;
+            }
+        };
+
+        let memory_id = match &mf.memory_id {
+            Some(id) if !id.is_empty() => id.clone(),
+            _ => continue,
+        };
+
+        results.push(MemorySummary {
+            memory_id,
+            memory_type: mf.memory_type.unwrap_or_else(|| "unknown".to_string()),
+            state: mf.state.unwrap_or_else(|| "unknown".to_string()),
+            title: mf.title.unwrap_or_default(),
+            summary: mf.summary.unwrap_or_default(),
+            scope: mf.scope.unwrap_or_else(|| "unknown".to_string()),
+            tags: mf.tags.unwrap_or_default(),
+            created_at: mf.meta.as_ref().and_then(|m| m.created_at.clone()),
+            source_dir: source_dir.to_string(),
+        });
+    }
+}
+
+/// Recursively search for a memory file by memory_id and return its detail.
+fn find_memory_by_id(dir: &Path, source_dir: &str, target_id: &str) -> Option<MemoryDetail> {
+    let entries = fs::read_dir(dir).ok()?;
+
+    for entry in entries {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        let path = entry.path();
+
+        if path.is_dir() {
+            if let Some(detail) = find_memory_by_id(&path, source_dir, target_id) {
+                return Some(detail);
+            }
+            continue;
+        }
+
+        if path.extension().and_then(|e| e.to_str()) != Some("json") {
+            continue;
+        }
+
+        let mf: MemoryFile = match read_json_file(&path) {
+            Ok(Some(f)) => f,
+            _ => continue,
+        };
+
+        if mf.memory_id.as_deref() != Some(target_id) {
+            continue;
+        }
+
+        let signals_info = mf.signals.as_ref().map(|s| MemorySignalsInfo {
+            evidence_count: s.evidence_count.unwrap_or(0),
+            reuse_count: s.reuse_count.unwrap_or(0),
+            confidence: s.confidence.unwrap_or(0.0),
+        });
+
+        return Some(MemoryDetail {
+            memory_id: target_id.to_string(),
+            memory_type: mf.memory_type.unwrap_or_else(|| "unknown".to_string()),
+            state: mf.state.unwrap_or_else(|| "unknown".to_string()),
+            title: mf.title.unwrap_or_default(),
+            summary: mf.summary.unwrap_or_default(),
+            scope: mf.scope.unwrap_or_else(|| "unknown".to_string()),
+            body: mf.body.unwrap_or_default(),
+            tags: mf.tags.unwrap_or_default(),
+            evidence_refs: mf.evidence_refs.unwrap_or_default(),
+            signals: signals_info,
+            review_after: mf.review_after,
+            supersedes: mf.supersedes.unwrap_or_default(),
+            superseded_by: mf.superseded_by,
+            created_at: mf.meta.as_ref().and_then(|m| m.created_at.clone()),
+            updated_at: mf.meta.as_ref().and_then(|m| m.updated_at.clone()),
+            source_dir: source_dir.to_string(),
+        });
+    }
+
+    None
 }
