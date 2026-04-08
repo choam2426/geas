@@ -10,6 +10,7 @@ import { resolveGeasDir, normalizePath } from '../lib/paths';
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
+import { validateTransition } from '../lib/transition-guards';
 
 // ── State transition validation ─────────────────────────────────────
 
@@ -24,8 +25,8 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   ready: ['implementing', 'blocked', 'escalated', 'cancelled'],
   implementing: ['reviewed', 'blocked', 'escalated', 'cancelled'],
   reviewed: ['integrated', 'blocked', 'escalated', 'cancelled'],
-  integrated: ['verified', 'blocked', 'escalated', 'cancelled'],
-  verified: ['passed', 'blocked', 'escalated', 'cancelled'],
+  integrated: ['verified', 'implementing', 'blocked', 'escalated', 'cancelled'],
+  verified: ['passed', 'ready', 'implementing', 'reviewed', 'blocked', 'escalated', 'cancelled'],
   passed: ['blocked', 'escalated', 'cancelled'],
   blocked: ['ready', 'escalated', 'cancelled'],
   escalated: ['ready', 'blocked', 'cancelled'],
@@ -199,6 +200,23 @@ export function registerTaskCommands(program: Command): void {
             current_status: currentStatus,
             target_status: targetStatus,
             allowed_transitions: allowed,
+          };
+          process.stderr.write(JSON.stringify(msg) + '\n');
+          process.exit(1);
+          return;
+        }
+
+        // Artifact guard — check required artifacts exist for this transition
+        const guard = validateTransition(
+          geasDir, opts.mission, opts.id, currentStatus, targetStatus,
+        );
+        if (!guard.valid) {
+          const msg = {
+            error: `Missing required artifacts for transition '${currentStatus}' -> '${targetStatus}'`,
+            code: 'GUARD_ERROR' as const,
+            current_status: currentStatus,
+            target_status: targetStatus,
+            missing_artifacts: guard.missing_artifacts,
           };
           process.stderr.write(JSON.stringify(msg) + '\n');
           process.exit(1);
