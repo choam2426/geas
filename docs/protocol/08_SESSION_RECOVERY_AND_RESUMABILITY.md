@@ -1,4 +1,4 @@
-# 10. Session Recovery and Resumability
+# 08. Session Recovery and Resumability
 
 > **Normative document.**
 > This document defines checkpoints, safe boundaries, recovery classes, recovery packets, and the conservative rules Geas uses to resume interrupted work without pretending certainty.
@@ -32,9 +32,9 @@ Each recovery class describes a category of session interruption and the expecte
 
 A recovery anchor is the minimum set of information the engine needs to assess the situation and decide on a recovery path. A recovery attempt SHOULD gather, at minimum:
 
-- `run.json`
-- latest session summary
-- latest task-focus summary for active tasks
+- `run.json` (including the `checkpoint` field for last known progress)
+- `record.json` for active tasks (section existence shows per-task progress)
+- `events.jsonl` in `state/` for recent event history
 - latest `recovery-packet.json` if available
 - active task artifacts
 - workspace status

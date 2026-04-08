@@ -185,6 +185,8 @@ Failure MUST be recorded through a `FailureRecord`, not by inventing a separate 
 
 An implementation contract is a pre-approved agreement between the worker and reviewers that defines what will be done, how, and what will not be changed. It exists so that everyone — worker, reviewers, and orchestrator — shares the same expectations before work begins. No task may begin implementation without an approved implementation contract.
 
+> **Storage**: The implementation contract is stored as a section in `record.json` (via `geas task record add --section implementation_contract`), not as a separate file.
+
 ### Required fields
 
 | field | description |
@@ -242,6 +244,8 @@ Unrecorded contract drift is non-conformant.
 
 Before claiming implementation completion, the primary worker MUST produce a worker self-check.
 
+> **Storage**: The worker self-check is stored as a section in `record.json` (via `geas task record add --section self_check`), not as a separate file.
+
 ### Schema-minimum fields
 
 - `known_risks[]`
@@ -296,12 +300,12 @@ A team MUST NOT classify a blocker as debt merely to preserve throughput.
 
 | from | to | required condition |
 |---|---|---|
-| `drafted` | `ready` | task compiled, baseline valid, metadata complete |
-| `ready` | `implementing` | implementation contract approved, workspace prepared |
-| `implementing` | `reviewed` | implementation complete, worker self-check exists, required reviews exist |
-| `reviewed` | `integrated` | integration result created |
+| `drafted` | `ready` | `contract.json` exists |
+| `ready` | `implementing` | `record.json` `implementation_contract` section (status=approved) |
+| `implementing` | `reviewed` | `record.json` `self_check` section + `evidence/` implementer role |
+| `reviewed` | `integrated` | `record.json` `gate_result` section (verdict=pass) + `evidence/` reviewer or tester role |
 | `integrated` | `verified` | evidence gate passed |
-| `verified` | `passed` | closure packet complete and final verdict = `pass` |
+| `verified` | `passed` | `record.json` verdict (pass) + `closure` + `retrospective` sections + `challenge_review` (high/critical) |
 | any active | `blocked` | external, structural, or resource issue prevents safe progress |
 | any active | `escalated` | unresolved conflict or authority boundary reached |
 | any active | `cancelled` | explicit cancellation with recorded reason |
@@ -310,6 +314,8 @@ A team MUST NOT classify a blocker as debt merely to preserve throughput.
 | `integrated` | `implementing` | gate fail causes verify-fix loop |
 | `integrated` | `reviewed` | integration failure or divergence requires reconciliation |
 | `verified` | `ready` / `implementing` / `reviewed` | final verdict = `iterate` with explicit restoration target |
+
+**Status source of truth**: The task's lifecycle status lives in `contract.json` (managed by `geas task transition`). `record.json` has no status field -- it accumulates section data only.
 
 ## Transition Invariants
 

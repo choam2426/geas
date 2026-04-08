@@ -9,18 +9,19 @@ Specialist participation counts only when it changes evidence quality. A special
 
 ## Common Specialist Review Artifact
 
-Every specialist review SHOULD include, at minimum:
+Specialist reviews are stored as role-based evidence files in `evidence/{agent}.json` via `geas evidence add`. Every specialist review SHOULD include, at minimum:
 
 | field | description |
 |---|---|
-| `reviewer_type` | which specialist slot produced this review |
-| `status` | `approved`, `changes_requested`, or `blocked` |
+| `agent` | which agent produced this review |
+| `task_id` | the task this review applies to |
+| `role` | the agent's role in this task: `implementer`, `reviewer`, `tester`, or `authority` |
 | `summary` | review findings and rationale |
-| `blocking_concerns[]` | individually addressable blocking issues |
-| `evidence_refs[]` | artifacts examined during review |
-| `notes_on_risk[]` | risk observations relevant to the specialist's jurisdiction |
-| `rubric_scores[]` | optional rubric dimension scores |
-| `memory_suggestions[]` | knowledge worth persisting for future invocations of this specialist type |
+| `verdict` | `approved`, `changes_requested`, or `blocked` |
+| `concerns[]` | individually addressable blocking issues |
+| `criteria_results[]` | per-criterion pass/fail assessments |
+| `rationale` | explanation of the overall verdict |
+| `files_changed[]` | files examined or modified during review |
 
 A review with no evidence reference MAY still exist, but it SHOULD be treated as lower-confidence input and SHOULD NOT be enough to justify closure by itself on higher-assurance work.
 
@@ -95,7 +96,7 @@ When available, specialists SHOULD prefer direct evidence in this order:
 | 1 | canonical artifacts produced for the current task | highest |
 | 2 | reproducible command, test, or verification output | high |
 | 3 | direct inspection of the work output | high |
-| 4 | summaries and memory packets | medium |
+| 4 | rules.md entries and agent memory notes | medium |
 | 5 | prose claims not tied to artifacts | lowest |
 
 Lower-priority evidence MUST NOT overrule higher-priority contradictory evidence without rationale.

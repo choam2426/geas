@@ -150,7 +150,7 @@ Captures what was learned and prepares the system for future work. Prevents miss
 | aspect | content |
 |---|---|
 | **what it does** | compare promised scope with delivered scope / extract lessons, memories, and rules / consolidate debt / prepare carry-forward for next mission |
-| **outputs** | gap assessment, rules update, debt register (final), mission summary, phase review, memory promotion records |
+| **outputs** | gap assessment, rules update, debt register (final), mission summary, phase review |
 | **exit conditions** | gap assessment exists / retrospective bundle exists / rules and memory actions recorded / debt snapshot captured / mission summary exists |
 
 ## Runtime Phases

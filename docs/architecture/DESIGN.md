@@ -19,7 +19,7 @@ Geas introduces a **Contract Engine** — a set of domain-agnostic skills that e
 - A **task contract** defines what will be done, how it will be verified, and who will review it.
 - An **evidence gate** independently verifies that the work meets its contract. "Done" means "evidence proves it."
 - A **closure packet** assembles the full story — implementation, reviews, gate results, risks — for a final product verdict.
-- A **memory system** captures lessons and feeds them back into future work through rules, context packets, and agent memory.
+- A **memory system** captures lessons and feeds them back into future work through rules and agent memory.
 
 The Contract Engine is tool-agnostic and domain-agnostic. It does not know whether agents are writing code, running experiments, or drafting content. It only knows: was there a contract, was it verified, and what did the team learn?
 
@@ -48,7 +48,7 @@ Geas separates concerns into four layers. The key insight: **only the contract e
 ├───────────────────────────┤
 │  Agent Teams              │  Domain profiles fill specialist slots with concrete agents
 ├───────────────────────────┤
-│  Contract Engine          │  13 core skills — the immutable governance pipeline
+│  Contract Engine          │  12 core skills — the immutable governance pipeline
 ├───────────────────────────┤
 │  Tool Adapters            │  File I/O, shell, MCP servers — how agents act on the world
 └───────────────────────────┘
@@ -58,7 +58,7 @@ Geas separates concerns into four layers. The key insight: **only the contract e
 |---|---|---|
 | **Collaboration Surface** | Decouples the human experience from the agent workflow. A team using a dashboard and a team using a CLI both get the same governance guarantees. | Yes |
 | **Agent Teams** | Decouples expertise from process. The Contract Engine does not care whether the quality specialist is a `qa_engineer` or a `methodology_reviewer` — it only cares that the quality slot produced a review. | Yes |
-| **Contract Engine** | The invariant core. 13 skills that enforce the task lifecycle: intake, compilation, context, contracts, gates, verification, voting, memory, scheduling, setup, policy, and reporting. | **No** |
+| **Contract Engine** | The invariant core. 12 skills that enforce the task lifecycle: intake, compilation, contracts, gates, verification, voting, memory, scheduling, setup, policy, and reporting. | **No** |
 | **Tool Adapters** | Decouples agent capabilities from agent identity. An agent that uses `git` and an agent that uses a version-control API both satisfy the same contract. | Yes |
 
 ### Domain Profiles and Slot Resolution
@@ -73,7 +73,7 @@ Orchestrator reads profiles.json
 quality_specialist → qa_engineer → Agent(agent: "qa-engineer", ...)
 ```
 
-The Contract Engine references only slot names (`implementer`, `quality_specialist`, `risk_specialist`, `operations_specialist`, `communication_specialist`). The Orchestrator resolves these to concrete agents at runtime. This is why the same 13 core skills work for software, research, or any future domain.
+The Contract Engine references only slot names (`implementer`, `quality_specialist`, `risk_specialist`, `operations_specialist`, `communication_specialist`). The Orchestrator resolves these to concrete agents at runtime. This is why the same 12 core skills work for software, research, or any future domain.
 
 > For agent types, authority rules, and routing, see `protocol/01_AGENT_TYPES_AND_AUTHORITY.md`.
 
@@ -96,7 +96,7 @@ Specifying ──→ Building ──→ Polishing ──→ Evolving ──→ C
 | **Specifying** | Define WHAT and WHY. Produce mission spec, design brief, and task list. Architecture review required. | User-approved spec + design brief + compiled tasks |
 | **Building** | Execute tasks through the per-task pipeline. Each task follows: contract → implement → review → gate → verdict. | All tasks passed or explicitly deferred |
 | **Polishing** | Address debt, documentation gaps, and quality issues discovered during building. | Debt triaged, gap assessment complete |
-| **Evolving** | Capture lessons. Retrospective, memory promotion, rules update, carry-forward backlog. | Evolution artifacts recorded, mission summary written |
+| **Evolving** | Capture lessons. Retrospective, rules.md update, agent memory update, carry-forward backlog. | Evolution artifacts recorded, mission summary written |
 
 Scale adapts automatically: lightweight missions may compress phases, but the sequence never changes.
 
@@ -122,14 +122,16 @@ Auxiliary states: `blocked`, `escalated`, `cancelled`
 
 No transition happens without evidence. This is the core enforcement mechanism — state changes are artifact-gated, not claim-gated.
 
-| Transition | Artifact | What it proves |
+Per-task artifacts are consolidated into a single `record.json` file with sections accumulated as the task progresses, plus an `evidence/` directory for specialist review artifacts.
+
+| Transition | Record section / artifact | What it proves |
 |---|---|---|
-| drafted → ready | `task-contract.json` | Scope, criteria, and routing are defined |
-| ready → implementing | `implementation-contract.json` | Worker and reviewers agree on the plan |
-| implementing → reviewed | `worker-self-check.json` + specialist reviews | Work is done and assessed |
-| reviewed → integrated | `integration-result.json` | Change merged into baseline |
-| integrated → verified | `gate-result.json` (pass) | Evidence gate confirms quality |
-| verified → passed | `closure-packet.json` + `final-verdict.json` | Decision Maker accepts the result |
+| drafted → ready | `contract` section in record.json | Scope, criteria, and routing are defined |
+| ready → implementing | `implementation_contract` section | Worker and reviewers agree on the plan |
+| implementing → reviewed | `self_check` section + `evidence/` reviews | Work is done and assessed |
+| reviewed → integrated | `integration` section | Change merged into baseline |
+| integrated → verified | `gate` section (pass) | Evidence gate confirms quality |
+| verified → passed | `closure` + `verdict` sections | Decision Maker accepts the result |
 
 > Full state machine, rewind rules, and retry budgets: `protocol/03_TASK_MODEL_AND_LIFECYCLE.md`.
 
@@ -206,7 +208,6 @@ Memory influences behavior through concrete surfaces:
 |---|---|
 | `rules.md` | "Auth endpoints must have rate limiting" — learned from a past gate failure |
 | Agent memory | `.geas/memory/agents/{type}.md` — role-specific guidance read at invocation |
-| Context packets | High-relevance lessons injected into agent briefings |
 | Gate strictness | Tighter thresholds on surfaces with past failures |
 | Scheduling caution | Avoid parallel combinations that previously caused conflicts |
 
@@ -215,18 +216,11 @@ Memory influences behavior through concrete surfaces:
 Memory earns trust through evidence, not through persistence. A lesson is not true because someone said it — it is trusted because it was validated.
 
 ```
-candidate → provisional → stable → canonical
-                ↕               ↕
-           under_review    under_review
-                ↓               ��
-        decayed / superseded / archived
+rules.md        — project-wide knowledge (conventions + learned rules)
+agents/{agent}.md — per-agent notes (role-specific lessons)
 ```
 
-| Transition | Required |
-|---|---|
-| candidate → provisional | 2+ evidence references |
-| provisional → stable | 3+ successful reuses, 0 contradictions |
-| stable → canonical | 5+ reuses across 3+ tasks, joint authority approval |
+Memory is two files. `rules.md` holds all project knowledge and is injected into every agent context. Agent memory files hold role-specific notes and are injected into matching agents.
 
 ### Evolution Loop
 
@@ -234,13 +228,13 @@ After every completed task, the protocol extracts value:
 
 1. **Retrospective** — what worked, what broke, what surprised
 2. **Rule candidates** — patterns worth enforcing ("this type of failure keeps happening")
-3. **Memory promotion** — lessons that earned enough evidence move up
+3. **Memory capture** — lessons recorded and linked to evidence
 4. **Debt tracking** — compromises made visible and owned
 5. **Gap assessment** — promised scope vs. delivered scope, honestly compared
 
 The Evolving phase at mission end consolidates all of this. A mission that does not evolve is a mission that does not learn.
 
-> Memory system: `protocol/07`, `08`, `09`. Evolution loop: `protocol/13`.
+> Memory system: `protocol/07`. Evolution loop: `protocol/11`.
 
 ---
 
@@ -263,7 +257,7 @@ The `PostCompact` hook fires after every compaction event. It reads `run.json`, 
 
 This is not a best-effort recovery — it is a protocol guarantee. The anti-forgetting layer ensures that compaction degrades context gracefully rather than catastrophically.
 
-> Full recovery model: `protocol/10_SESSION_RECOVERY_AND_RESUMABILITY.md`.
+> Full recovery model: `protocol/08_SESSION_RECOVERY_AND_RESUMABILITY.md`.
 
 ---
 
@@ -272,11 +266,10 @@ This is not a best-effort recovery — it is a protocol guarantee. The anti-forg
 ```
 plugin/
 ├── plugin.json                # Manifest
-├── skills/                    # 15 skills (13 core + 2 utility, flat)
+├── skills/                    # 12 skills (flat)
 │   ├── mission/               # Orchestrator: 4-phase pipeline, slot resolution
 │   ├── intake/                # Requirements gathering
 │   ├── task-compiler/         # Mission spec → TaskContracts
-│   ├── context-packet/        # Role-specific briefings
 │   ├── implementation-contract/
 │   ├── evidence-gate/         # Tier 0/1/2 verification
 │   ├── verify-fix-loop/
@@ -285,15 +278,13 @@ plugin/
 │   ├── scheduling/            # Parallel task scheduling
 │   ├── setup/                 # Project init + codebase discovery
 │   ├── policy-managing/
-│   ├── reporting/             # Health signals, briefing, summaries
-│   ├── write-prd/             # SW utility: PRD generation
-│   └── write-stories/         # SW utility: story generation
+│   └── reporting/             # Health signals, briefing, summaries
 ├── agents/
 │   ├── authority/             # 3 spawnable (product-authority, design-authority, challenger)
 │   ├── software/              # 5 specialists (software-engineer, qa-engineer, security-engineer, platform-engineer, technical-writer)
 │   └── research/              # 6 specialists (literature-analyst, research-analyst, methodology-reviewer, research-integrity-reviewer, research-engineer, research-writer)
 └── hooks/
-    ├── hooks.json             # 16 lifecycle hooks
+    ├── hooks.json             # 9 lifecycle hooks
     └── scripts/
 ```
 
@@ -310,30 +301,25 @@ Agent details: `reference/AGENTS.md`. Skill details: `reference/SKILLS.md`. Hook
 ├── state/
 │   ├── run.json                    # Mission state, checkpoint, remaining_steps
 │   ├── locks.json                  # Lock manifest for parallelism
-│   ├── health-check.json           # Health signal results
-│   ├── memory-index.json           # Memory entry registry
-│   ├── session-latest.md           # Post-compact recovery context
-│   └── task-focus/{task_id}.md     # Per-task focus summaries
+│   └── events.jsonl                # Append-only audit trail
 ├── missions/{mission_id}/
 │   ├── spec.json                   # Mission spec (frozen after intake)
-│   ├── tasks/{task_id}.json        # Task contracts
-│   ├── tasks/{task_id}/            # Per-task artifacts (self-check, reviews, gate, verdict, retrospective)
-│   ├── evidence/{task_id}/         # Specialist review evidence
-│   ├── contracts/{task_id}.json    # Implementation contracts
+│   ├── design-brief.json           # Design brief
+│   ├── decisions/                  # Vote round results
 │   ├── evolution/                  # Debt register, gap assessments, rules updates
-│   └── phase-reviews/             # Phase transition reviews
+│   ├── phase-reviews/             # Phase transition reviews
+│   └── tasks/{task_id}/
+│       ├── contract.json           # Task contract (scope, criteria, routing)
+│       ├── record.json             # Accumulated per-task record (all sections)
+│       ├── packets/                # Context packets for workers
+│       └── evidence/               # Role-based agent evidence
 ├── memory/
-│   ├── _project/conventions.md     # Project conventions (detected at setup)
-│   ├── agents/{type}.md            # Per-agent persistent memory
-│   ├── candidates/                 # Pre-promotion memory candidates
-│   ├── entries/                    # Promoted memory entries
-│   └── logs/                       # Memory application logs
-├── ledger/events.jsonl             # Append-only audit trail
+│   └── agents/{type}.md            # Per-agent persistent memory
 ├── recovery/                       # Recovery packets
-└── rules.md                        # Team rules (continuously updated)
+└── rules.md                        # Conventions + team rules (unified)
 ```
 
-> Artifact schemas: `protocol/11_RUNTIME_ARTIFACTS_AND_SCHEMAS.md`.
+> Artifact schemas: `protocol/09_RUNTIME_ARTIFACTS_AND_SCHEMAS.md`.
 
 ---
 
@@ -341,11 +327,11 @@ Agent details: `reference/AGENTS.md`. Skill details: `reference/SKILLS.md`. Hook
 
 Core skills must not assume any specific tool, framework, or package manager. This is what makes the Contract Engine domain-agnostic — the same evidence gate works whether the project uses pytest or a citation validator.
 
-**How it works:** The setup skill detects project conventions during initialization and records them in `.geas/memory/_project/conventions.md`. Skills read this file to know what commands to run. No skill definition needs to change when the project's stack changes.
+**How it works:** The setup skill detects project conventions during initialization and records them in `.geas/rules.md`. Skills read this file to know what commands to run. No skill definition needs to change when the project's stack changes.
 
 **Prohibited in core skills:** Hardcoded tool names, framework assumptions, default package managers.
 
-**Allowed:** References to `conventions.md`, marker file detection (package.json, go.mod, pyproject.toml), multiple-alternative examples.
+**Allowed:** References to `rules.md`, marker file detection (package.json, go.mod, pyproject.toml), multiple-alternative examples.
 
 ---
 
@@ -362,8 +348,8 @@ The protocol documents in `docs/protocol/` are canonical for all protocol-level 
 | Workspace, locks, parallelism | `04_BASELINE_WORKSPACE_SCHEDULER_AND_PARALLELISM` |
 | Gate, vote, verdict | `05_GATE_VOTE_AND_FINAL_VERDICT` |
 | Specialist evidence matrix | `06_SPECIALIST_EVIDENCE_MATRIX` |
-| Memory system | `07`, `08`, `09` |
-| Session recovery | `10_SESSION_RECOVERY_AND_RESUMABILITY` |
-| Artifacts, schemas | `11_RUNTIME_ARTIFACTS_AND_SCHEMAS` |
-| Enforcement, metrics | `12_ENFORCEMENT_CONFORMANCE_AND_METRICS` |
-| Evolution, debt, gap loop | `13_EVOLUTION_DEBT_AND_GAP_LOOP` |
+| Memory system | `07_MEMORY_SYSTEM_OVERVIEW` |
+| Session recovery | `08_SESSION_RECOVERY_AND_RESUMABILITY` |
+| Artifacts, schemas | `09_RUNTIME_ARTIFACTS_AND_SCHEMAS` |
+| Enforcement, metrics | `10_ENFORCEMENT_CONFORMANCE_AND_METRICS` |
+| Evolution, debt, gap loop | `11_EVOLUTION_DEBT_AND_GAP_LOOP` |

@@ -25,6 +25,8 @@ This separation is mandatory. A conformant implementation MUST NOT allow any one
 
 The evidence gate is an ordered, three-tier verification mechanism that determines whether a task's outputs meet the required standard. It runs after implementation and review are complete, and its result (`pass | fail | block | error`) decides whether the task can advance toward closure. The gate does not judge product strategy — it verifies that evidence exists and meets thresholds.
 
+The gate result is stored as the `gate_result` section in the task's `record.json` (via `geas task record add --section gate_result`).
+
 ### Gate profiles
 
 | gate_profile | Tier 0 | Tier 1 | Tier 2 | expected use |
@@ -241,7 +243,7 @@ This does not require a vendor-specific eval system, but it does require explici
 
 ## Worker Self-Check Consumption
 
-The system MUST consume `worker-self-check.json` as more than a note. It directly informs:
+The system MUST consume the `self_check` section of `record.json` as more than a note. It directly informs:
 
 - review focus
 - Quality Specialist verification plan
@@ -304,20 +306,16 @@ A single vote round topic MUST NOT exceed 3 rounds of deliberation. If consensus
 
 The closure packet is the compressed evidence bundle that tells the full story of a task. The Decision Maker renders the final verdict based solely on this packet. If the packet is incomplete, no verdict may be issued.
 
+The closure packet is stored as the `closure` section in the task's `record.json` (via `geas task record add --section closure`). The required fields below become subsections of this record section.
+
 ### Required fields
 
 | field | description |
 |---|---|
-| `task_summary` | what the task accomplished |
 | `change_summary` | what changed and where |
-| `specialist_reviews[]` | review outputs from all required specialist slots |
-| `integration_result` | outcome of merging the change into the baseline |
-| `verification_result` | evidence gate outcome |
-| `worker_self_check` | the worker's structured self-assessment |
+| `reviews[]` | review outputs from all required specialist slots |
 | `open_risks` | risks acknowledged but not fully resolved |
-| `debt_snapshot` | debt introduced or carried by this task |
-| `readiness_round` | vote round result, or explicit null if not required |
-| `challenge_review` | Challenger's pre-ship verification result. Required for high/critical risk; explicit null for low/normal risk |
+| `debt_items` | debt introduced or carried by this task |
 
 ### Completeness rules
 
@@ -365,7 +363,7 @@ What the Challenger must look for:
 - mandatory for `high` and `critical` tasks
 - MUST include at least one substantive challenge
 - MUST distinguish blocking concerns from advisory concerns
-- MUST record output in `challenge-review.json`
+- MUST record output as the `challenge_review` section in the task's `record.json` (via `geas task record add --section challenge_review`). Fields: `concerns[]` (array), `blocking` (boolean).
 
 ### When a blocking concern is raised
 
@@ -382,6 +380,8 @@ A blocking concern MUST NOT be omitted from the closure packet.
 ## Final Verdict
 
 The final verdict is the only mechanism in the protocol that can close a task. Where the evidence gate asks "did verification pass?", the final verdict asks "should the product accept this result?" Only the Decision Maker may issue this verdict, and it must be based on the closure packet.
+
+The final verdict is stored as the `verdict` section in the task's `record.json` (via `geas task record add --section verdict`). Fields: `verdict` (pass/iterate/escalate), `rationale`, `rewind_target` (optional).
 
 ### Verdict types
 

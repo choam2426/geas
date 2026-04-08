@@ -29,7 +29,7 @@ This document is authoritative for:
 - the **scope / non-scope** boundary of the standard
 - the **conformance units** to which compliance claims apply
 
-This document is not a field-by-field schema reference. See doc 11 for artifact contracts and doc 12 for enforcement and metrics.
+This document is not a field-by-field schema reference. See doc 09 for artifact contracts and doc 10 for enforcement and metrics.
 
 ## Conformance Units
 
@@ -41,7 +41,7 @@ A Geas implementation MAY claim conformance only for the specific unit it actual
 | `artifact_producer` | any agent or subsystem that emits canonical Geas artifacts |
 | `artifact_validator` | any hook, CLI, service, or CI component that validates schema and invariant compliance |
 | `reviewer_runtime` | a specialist reviewer or critical reviewer implementation |
-| `memory_engine` | retrieval, promotion, decay, supersession, and packet assembly logic |
+| `memory_engine` | rules.md management, agent memory injection, and memory candidate extraction |
 | `recovery_engine` | checkpointing, safe-boundary detection, and state restoration / resume logic |
 
 A system MUST NOT advertise “full Geas compliance” unless all listed units that it exposes satisfy the mandatory rules of this document.
@@ -61,7 +61,7 @@ When two signals disagree, the following precedence order MUST apply:
 
 Corollaries:
 
-- A memory packet MUST NOT override an explicit current-task acceptance criterion.
+- A memory entry in rules.md MUST NOT override an explicit current-task acceptance criterion.
 - A local rule MUST NOT weaken a higher-order safety or integrity invariant without an explicit, logged override path.
 - A hook MUST NOT “repair” missing evidence by inventing synthetic evidence.
 - Throughput optimization MUST yield to evidence integrity.
@@ -95,7 +95,7 @@ Traceability is bound to the protocol through:
 - specialist reviews and dissent capture
 - decision records
 - debt, rules, retrospective, and gap-assessment artifacts
-- structured telemetry and summary surfaces
+- event log and health signals
 
 ### 3) Verification
 
@@ -121,10 +121,9 @@ Evolution is bound to the protocol through:
 
 - retrospectives
 - rule update loops
-- memory promotion, weakening, decay, and supersession
+- memory updates to rules.md and agent notes
 - technical debt registration and resolution
 - gap assessment
-- harmful-reuse rollback
 - mission-to-mission carry-forward
 
 ## Design Axioms
@@ -183,7 +182,7 @@ The following invariants apply across all documents.
 6. High-risk and critical work MUST receive critical-review challenge before final product judgment.
 7. Recovery MUST resume from a safe boundary or restore to one; it MUST NOT pretend an unsafe in-flight state is complete.
 8. A stale baseline MUST be revalidated before integration or resumed verification.
-9. Superseded or under-review memory MUST NOT be treated as normative current guidance.
+9. Outdated memory entries MUST be removed or updated rather than left to coexist with contradictory current guidance.
 10. Every phase transition MUST preserve scope clarity, debt visibility, and evidence continuity.
 11. Evidence loss MUST block forward motion unless a documented, conservative recovery path exists.
 12. An override MUST be explicit, attributable, scoped, and auditable.
@@ -198,10 +197,10 @@ Geas is designed to reduce the following recurrent failure classes.
 | stale baseline and hidden integration drift | baseline rules, revalidation, integration lane, scheduler locks |
 | scope creep after approval | contract amendments, gap assessment, phase review |
 | review theater without real checking | required reviewer matrix, closure completeness, critical challenge |
-| prompt / context contamination from stale or hostile inputs | packet priority bands, provenance weighting, memory state controls |
+| prompt / context contamination from stale or hostile inputs | selective context injection, rules.md curation, agent memory review |
 | tool misuse or over-delegation | structured tool contracts, authority boundaries, mission mode rigor |
 | recovery hallucination after interruption | two-phase checkpoints, safe boundaries, recovery tables |
-| memory bloat or harmful reuse | confidence scoring, decay, supersession, under-review circuit breaker |
+| memory bloat or harmful reuse | rules.md curation, direct deletion of wrong entries, agent memory review |
 | supply-chain or provenance ambiguity | artifact lineage, validation, release expectations |
 | silent weakening of protocol rigor | conformance hooks, health signals, rules audit, explicit overrides |
 
@@ -302,9 +301,10 @@ This rule exists to preserve validator predictability while allowing the standar
 
 - **Artifact** — a structured, schema-validated JSON object that records a protocol event or decision
 - **Hook** — an enforcement mechanism triggered at lifecycle events to validate invariants
-- **Ledger** — the append-only event log recording significant protocol actions
+- **Ledger** — the append-only event log at `.geas/state/events.jsonl` recording significant protocol actions
+- **Record** — the single execution record file per task (`record.json`) accumulating all pipeline step outputs
 - **Packet** — an assembled context bundle delivered to an agent for a specific task or decision
-- **Context Engineering** — the practice of curating the minimal high-signal token set for each agent interaction (doc 09)
+- **Context Engineering** — the practice of curating the minimal high-signal token set for each agent interaction (doc 07)
 - **Canonical** — the single authoritative version of a given artifact, state, or definition. When multiple representations exist, the canonical one is the source of truth
 
 ## Canonical Ownership
@@ -327,7 +327,7 @@ A project adopting Geas SHOULD maintain a visible protocol version. Any change t
 - required evidence or approval rules
 - artifact completeness conditions
 - recovery safety boundaries
-- memory promotion semantics
+- memory system semantics
 
 Protocol changes SHOULD be introduced by:
 
