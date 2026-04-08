@@ -215,9 +215,6 @@ pub struct AppConfig {
 // Memory file models (Deserialize only — read-only access)
 // ---------------------------------------------------------------------------
 
-/// Meta block inside a memory JSON file
-#[derive(Debug, Clone, Default, Deserialize)]
-#[allow(dead_code)]
 // ---------------------------------------------------------------------------
 // Event models (for events.jsonl parsing)
 // ---------------------------------------------------------------------------
@@ -250,6 +247,9 @@ pub struct EventsPage {
 // Memory models
 // ---------------------------------------------------------------------------
 
+/// Meta block inside a memory JSON file
+#[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
 pub struct MemoryMeta {
     #[serde(default)]
     pub version: Option<String>,

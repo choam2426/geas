@@ -470,7 +470,7 @@ pub fn remove_project(
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn get_project_rules(path: String) -> Result<String, String> {
-    let (canonical, geas) = validate_project_path(&path)?;
+    let (_canonical, geas) = validate_project_path(&path)?;
     let rules_path = geas.join("rules.md");
     match fs::read_to_string(&rules_path) {
         Ok(content) => Ok(content),
