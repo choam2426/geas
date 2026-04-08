@@ -8,7 +8,9 @@ export type ErrorCode =
   | 'FILE_ERROR'
   | 'NOT_FOUND'
   | 'CONFLICT'
-  | 'STATE_ERROR';
+  | 'STATE_ERROR'
+  | 'GUARD_ERROR'
+  | 'PHASE_GUARD_ERROR';
 
 export interface CliError {
   error: string;
