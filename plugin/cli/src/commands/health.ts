@@ -14,6 +14,7 @@ import { readJsonFile, writeJsonFile } from '../lib/fs-atomic';
 import { resolveGeasDir } from '../lib/paths';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
+import { getCwd } from '../lib/cwd';
 
 /** Signal definition: name, threshold, and how to compute the value. */
 interface SignalDef {
@@ -210,7 +211,6 @@ const SIGNAL_DEFS: SignalDef[] = [
     threshold: 3,
     mandatoryResponse: 'Trigger memory review to resolve contradictions before proceeding',
     compute(ctx) {
-      const entries = ((ctx.memoryIndex?.entries as unknown[]) || []) as Record<string, unknown>[];
       // Count from memory entry files for detailed signals
       let totalContradictions = 0;
       const entriesDir = path.join(ctx.geasDir, 'memory', 'entries');
@@ -345,9 +345,9 @@ export function registerHealthCommands(program: Command): void {
   cmd
     .command('generate')
     .description('Generate health-check.json from current state')
-    .action(() => {
+    .action((_opts: unknown, cmd: Command) => {
       try {
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const ctx = buildContext(geasDir);
 
         const signals = SIGNAL_DEFS.map((def) => {
@@ -406,9 +406,9 @@ export function registerHealthCommands(program: Command): void {
   cmd
     .command('read')
     .description('Read current health-check.json')
-    .action(() => {
+    .action((_opts: unknown, cmd: Command) => {
       try {
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const filePath = path.join(geasDir, 'state', 'health-check.json');
         const data = readJsonFile<Record<string, unknown>>(filePath);
         if (!data) {

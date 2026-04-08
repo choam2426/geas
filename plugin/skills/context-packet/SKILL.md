@@ -266,6 +266,24 @@ You MUST include `rubric_scores` in your EvidenceBundle for these dimensions:
 | feature_completeness | 4 | Score 1-5 with rationale |
 ```
 
+## Worktree-Isolated Agents
+
+When generating a context packet for a worktree-isolated agent (any agent spawned with `isolation: "worktree"`), add a **Runtime State Access** section at the top of the packet, immediately after the `## Your Task` section:
+
+```markdown
+## Runtime State Access
+
+You are running in a git worktree. The `.geas/` directory is NOT present in your working directory — it is only in the main project root and is excluded via `.gitignore`.
+
+All `.geas/` paths in this packet use absolute paths so you can read and write them directly. When you need to access any `.geas/` file not listed in this packet, use the same absolute prefix: `{project_root}/.geas/`
+```
+
+The orchestrator resolves `{project_root}` to the actual absolute path of the main session working directory before writing the packet. The packet must contain the resolved absolute path, not the `{project_root}` placeholder.
+
+All `.geas/` paths referenced elsewhere in the packet (evidence write paths, contract read paths, reference paths) must also use the resolved absolute `{project_root}/.geas/` prefix when the target agent is worktree-isolated.
+
+Non-worktree agents do not receive this section. Their packets continue to use relative `.geas/` paths.
+
 ## Rules
 
 1. **Include only what the worker needs** — do not dump the entire project context

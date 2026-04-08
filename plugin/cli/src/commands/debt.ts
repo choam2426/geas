@@ -13,6 +13,7 @@ import type { Command } from 'commander';
 import { success, fileError } from '../lib/output';
 import { resolveGeasDir, resolveMissionDir, normalizePath } from '../lib/paths';
 import { readJsonFile, atomicWriteJsonFile, ensureDir } from '../lib/fs-atomic';
+import { getCwd } from '../lib/cwd';
 
 // --- Types ---
 
@@ -123,7 +124,7 @@ export function registerDebtCommands(program: Command): void {
       task: string;
       owner: string;
       description: string;
-    }) => {
+    }, cmd: Command) => {
       try {
         // Validate severity
         if (!VALID_SEVERITIES.includes(opts.severity)) {
@@ -137,7 +138,7 @@ export function registerDebtCommands(program: Command): void {
           return;
         }
 
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = resolveMissionDir(geasDir, opts.mission);
         const regPath = debtRegisterPath(missionDir);
 
@@ -204,9 +205,9 @@ export function registerDebtCommands(program: Command): void {
     .description('Mark a debt item as resolved and update rollup')
     .requiredOption('--mission <mid>', 'Mission identifier')
     .requiredOption('--id <debt-id>', 'Debt item ID (e.g. DEBT-001)')
-    .action((opts: { mission: string; id: string }) => {
+    .action((opts: { mission: string; id: string }, cmd: Command) => {
       try {
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = resolveMissionDir(geasDir, opts.mission);
         const regPath = debtRegisterPath(missionDir);
 
@@ -256,9 +257,9 @@ export function registerDebtCommands(program: Command): void {
     .requiredOption('--mission <mid>', 'Mission identifier')
     .option('--status <status>', `Filter by status: ${FILTERABLE_STATUSES.join(', ')}`)
     .option('--severity <severity>', `Filter by severity: ${VALID_SEVERITIES.join(', ')}`)
-    .action((opts: { mission: string; status?: string; severity?: string }) => {
+    .action((opts: { mission: string; status?: string; severity?: string }, cmd: Command) => {
       try {
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = resolveMissionDir(geasDir, opts.mission);
         const regPath = debtRegisterPath(missionDir);
 

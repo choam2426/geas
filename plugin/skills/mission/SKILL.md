@@ -23,6 +23,27 @@ These rules apply throughout all phases of the 4-phase execution flow.
 - Use `Agent(agent: "{concrete-type}", prompt: "...")` to spawn. The concrete type is resolved from the slot via profiles.json (see Slot resolution below).
 - Use `Agent(agent: "{concrete-type}", isolation: "worktree", prompt: "...")` for implementer agents.
 
+### Worktree state access rule
+
+Worktree-isolated agents (spawned with `isolation: "worktree"`) run in a separate git worktree directory. The `.geas/` directory is listed in `.gitignore` and is NOT replicated into the worktree. This means relative paths like `.geas/missions/...` will not resolve inside a worktree agent's working directory.
+
+Before spawning any worktree agent, the orchestrator MUST:
+
+1. Resolve `project_root` as the absolute path of the repository root (e.g., `git rev-parse --show-toplevel`). Do NOT use `pwd` alone — it may return a subdirectory if the orchestrator has changed directories.
+2. Replace ALL `.geas/` references in the Agent() prompt with `{project_root}/.geas/` — using the actual resolved absolute path value.
+3. This applies to BOTH read paths (context packets) and write paths (evidence files).
+
+Example:
+```
+# Resolve project_root once at the start of the mission
+project_root=$(git rev-parse --show-toplevel)   # e.g., /home/user/my-project
+
+# Then in every worktree Agent() prompt, use absolute paths:
+Agent(agent: "{worker}", isolation: "worktree", prompt: "Read /home/user/my-project/.geas/missions/.../packets/... Implement the feature. Write evidence to /home/user/my-project/.geas/missions/.../evidence/...")
+```
+
+Non-worktree agents (spawned without `isolation: "worktree"`) run in the main session directory where `.geas/` is directly accessible. Their prompts may continue to use relative `.geas/` paths.
+
 ### Slot resolution
 
 Before spawning any specialist agent, resolve the slot to a concrete agent type:

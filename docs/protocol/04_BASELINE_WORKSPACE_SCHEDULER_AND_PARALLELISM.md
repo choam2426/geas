@@ -94,6 +94,17 @@ A workspace is an isolated execution context for a task (see Glossary in doc 00)
 
 A workspace SHOULD be treated as disposable execution context, not the source of truth. The canonical state remains the validated baseline and runtime artifacts.
 
+### Runtime state and workspaces
+
+The runtime state directory (e.g., `.geas/`) is excluded from version control and therefore is NOT part of the workspace. When a workspace is created — for example, via Git worktree — the runtime state directory is not replicated into it. An agent executing inside a workspace that attempts to access runtime state via a relative path will find nothing.
+
+1. The Orchestrator MUST resolve the project root to an absolute path and pass it to every agent before spawning.
+2. Agents running inside a workspace MUST use the absolute path to the main project's runtime state directory for all runtime state access.
+3. Workspace agents MUST NOT write directly to shared state files (locks, run state, event ledger). They MAY only write to task-scoped paths such as `evidence/{task-id}/`.
+4. When a workspace agent invokes a CLI tool that needs access to the project's runtime state, it MUST pass the project root via a `--cwd` option (or the tool's equivalent mechanism).
+
+These rules ensure that workspace isolation does not break runtime state access, and that shared state remains consistent under concurrent execution.
+
 ### Workspace lifecycle
 
 | phase | what happens |

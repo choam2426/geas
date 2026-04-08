@@ -9,13 +9,7 @@ import type { Command } from 'commander';
 import { resolveGeasDir } from '../lib/paths';
 import { readJsonFile, atomicWriteJsonFile, ensureDir } from '../lib/fs-atomic';
 import { success, fileError } from '../lib/output';
-
-/** Resolve cwd from the --cwd global option or process.cwd(). */
-function getCwd(cmd: Command): string {
-  const root = cmd.parent;
-  const opts = root ? root.opts() : {};
-  return (opts.cwd as string) || process.cwd();
-}
+import { getCwd } from '../lib/cwd';
 
 /** Resolve the run.json path from the .geas/state directory. */
 function runJsonPath(geasDir: string): string {

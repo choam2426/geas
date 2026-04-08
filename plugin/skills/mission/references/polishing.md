@@ -22,9 +22,9 @@ If no CRITICAL/HIGH findings: skip Fix Critical Security Issues and proceed to D
 For each CRITICAL/HIGH finding, run a reduced pipeline:
 1. Generate ContextPacket for the appropriate implementer (resolved via profiles.json) with risk_specialist's finding as primary context
 2. Update checkpoint: `Bash("geas state checkpoint set --step security_fix --agent {worker}")`
-3. Spawn worker with worktree isolation:
+3. Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule"). Spawn worker with worktree isolation:
    ```
-   Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/missions/{mission_id}/packets/polishing/{worker}-fix-{N}.md. Fix the security issue. Write evidence to .geas/missions/{mission_id}/evidence/polishing/{worker}-fix-{N}.json")
+   Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read {project_root}/.geas/missions/{mission_id}/packets/polishing/{worker}-fix-{N}.md. Fix the security issue. Write evidence to {project_root}/.geas/missions/{mission_id}/evidence/polishing/{worker}-fix-{N}.json")
    ```
 4. Merge worktree branch
 5. Specialist Review (design_authority) — verify the fix is correct and doesn't introduce regressions

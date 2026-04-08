@@ -149,9 +149,10 @@ Verify `.geas/missions/{mission_id}/contracts/{task-id}.json` exists with `statu
 
 ### Implementation [MANDATORY — worktree isolated]
 Generate ContextPacket, then:
+Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule").
 Update checkpoint: `Bash("geas state checkpoint set --step implementation --agent {worker}")`
 ```
-Agent(agent: "{worker}", isolation: "worktree", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{worker}.md. Implement the feature. Write evidence to .geas/missions/{mission_id}/evidence/{task-id}/{worker}.json")
+Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read {project_root}/.geas/missions/{mission_id}/packets/{task-id}/{worker}.md. Implement the feature. Write evidence to {project_root}/.geas/missions/{mission_id}/evidence/{task-id}/{worker}.json")
 ```
 Verify evidence exists.
 
@@ -188,11 +189,12 @@ This ensures integration is single-flight — only one task merges at a time.
 After successful merge, status remains `"implementing"` — the task is not yet reviewed or complete.
 
 ### Worker Self-Check [MANDATORY]
+The worker self-check runs in the same worktree as the implementation step. Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule").
 Update checkpoint: `Bash("geas state checkpoint set --step self_check --agent {worker}")`
 ```
-Agent(agent: "{worker}", prompt: "Implementation for {task-id} is complete. Before handing off to review, produce your self-check artifact. Write .geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json. Required fields: version (\"1.0\"), artifact_type (\"worker_self_check\"), artifact_id (e.g. \"self-check-{task-id}\"), producer_type (your agent type from the domain profile), task_id, known_risks (string[]), untested_paths (string[]), possible_stubs (string[]), what_to_test_next (string[]), confidence (integer 1-5: 1=very_low ... 5=very_high), summary (string), created_at (ISO 8601 timestamp).")
+Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Implementation for {task-id} is complete. Before handing off to review, produce your self-check artifact. Write {project_root}/.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json. Required fields: version (\"1.0\"), artifact_type (\"worker_self_check\"), artifact_id (e.g. \"self-check-{task-id}\"), producer_type (your agent type from the domain profile), task_id, known_risks (string[]), untested_paths (string[]), possible_stubs (string[]), what_to_test_next (string[]), confidence (integer 1-5: 1=very_low ... 5=very_high), summary (string), created_at (ISO 8601 timestamp).")
 ```
-Verify `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json` exists. Do NOT proceed to Specialist Review without this file.
+Verify `{project_root}/.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json` exists. Do NOT proceed to Specialist Review without this file.
 
 ### Specialist Review (design-authority) [MANDATORY]
 Resolve the design-authority slot via profiles.json. Generate ContextPacket, then:

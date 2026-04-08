@@ -7,13 +7,7 @@ import type { Command } from 'commander';
 import { resolveGeasDir } from '../lib/paths';
 import { readJsonFile, atomicWriteJsonFile } from '../lib/fs-atomic';
 import { success, fileError } from '../lib/output';
-
-/** Resolve cwd from the --cwd global option or process.cwd(). */
-function getCwd(cmd: Command): string {
-  const root = cmd.parent;
-  const opts = root ? root.opts() : {};
-  return (opts.cwd as string) || process.cwd();
-}
+import { getCwd } from '../lib/cwd';
 
 /** Shape of a single lock entry per lock-manifest.schema.json. */
 interface LockEntry {

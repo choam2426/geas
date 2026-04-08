@@ -11,6 +11,7 @@ import type { Command } from 'commander';
 import { success, fileError } from '../lib/output';
 import { resolveGeasDir, resolveMissionDir, normalizePath } from '../lib/paths';
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
+import { getCwd } from '../lib/cwd';
 
 export function registerEvidenceCommands(program: Command): void {
   const cmd = program
@@ -25,7 +26,7 @@ export function registerEvidenceCommands(program: Command): void {
     .requiredOption('--task <tid>', 'Task identifier')
     .requiredOption('--agent <name>', 'Agent name (used as filename)')
     .requiredOption('--data <json>', 'Evidence data as JSON string')
-    .action((opts: { mission: string; task: string; agent: string; data: string }) => {
+    .action((opts: { mission: string; task: string; agent: string; data: string }, cmd: Command) => {
       try {
         // Parse and validate data
         let evidenceData: Record<string, unknown>;
@@ -41,7 +42,7 @@ export function registerEvidenceCommands(program: Command): void {
           return;
         }
 
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         // Sanitize agent name: only allow alphanumeric, dash, underscore
@@ -77,9 +78,9 @@ export function registerEvidenceCommands(program: Command): void {
     .requiredOption('--mission <mid>', 'Mission identifier')
     .requiredOption('--task <tid>', 'Task identifier')
     .option('--agent <name>', 'Agent name (omit to list all)')
-    .action((opts: { mission: string; task: string; agent?: string }) => {
+    .action((opts: { mission: string; task: string; agent?: string }, cmd: Command) => {
       try {
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = resolveMissionDir(geasDir, opts.mission);
         const evidenceDir = path.resolve(missionDir, 'evidence', opts.task);
 

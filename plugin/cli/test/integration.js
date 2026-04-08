@@ -295,6 +295,142 @@ function defineTests(tmpDir) {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 5: --cwd support (directory isolation tests)
+// ---------------------------------------------------------------------------
+
+/**
+ * Test that --cwd allows running commands from a directory that does NOT
+ * contain .geas/, pointing to a directory that DOES contain .geas/.
+ *
+ * Also verifies that running WITHOUT --cwd from the separate directory
+ * correctly fails (because there is no .geas/ there).
+ */
+function defineCwdTests(mainDir) {
+  // Create a separate temp directory with NO .geas/ structure
+  const worktreeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'geas-cwd-test-'));
+
+  return {
+    worktreeDir,
+    tests: [
+      // --- Positive tests: --cwd should resolve to mainDir ---
+      {
+        name: '[cwd] evidence read with --cwd (from worktree)',
+        fn: () => {
+          const fullCmd = `node "${CLI}" --cwd "${mainDir}" evidence read --mission ${MISSION_ID} --task task-001`;
+          const stdout = execSync(fullCmd, {
+            cwd: worktreeDir,
+            encoding: 'utf-8',
+            timeout: 10000,
+            stdio: ['pipe', 'pipe', 'pipe'],
+          });
+          return JSON.parse(stdout.trim());
+        },
+        validate: (r) =>
+          r.mission_id === MISSION_ID &&
+          r.task_id === 'task-001' &&
+          Array.isArray(r.agents),
+      },
+      {
+        name: '[cwd] debt list with --cwd (from worktree)',
+        fn: () => {
+          const fullCmd = `node "${CLI}" --cwd "${mainDir}" debt list --mission ${MISSION_ID}`;
+          const stdout = execSync(fullCmd, {
+            cwd: worktreeDir,
+            encoding: 'utf-8',
+            timeout: 10000,
+            stdio: ['pipe', 'pipe', 'pipe'],
+          });
+          return JSON.parse(stdout.trim());
+        },
+        validate: (r) =>
+          r.mission_id === MISSION_ID &&
+          r.total === 1 &&
+          r.items[0].debt_id === 'DEBT-001',
+      },
+      {
+        name: '[cwd] state read with --cwd (from worktree)',
+        fn: () => {
+          const fullCmd = `node "${CLI}" --cwd "${mainDir}" state read`;
+          const stdout = execSync(fullCmd, {
+            cwd: worktreeDir,
+            encoding: 'utf-8',
+            timeout: 10000,
+            stdio: ['pipe', 'pipe', 'pipe'],
+          });
+          return JSON.parse(stdout.trim());
+        },
+        validate: (r) =>
+          r.mission_id === MISSION_ID && r.phase === 'building',
+      },
+
+      // --- Negative tests: WITHOUT --cwd should fail from worktree ---
+      {
+        name: '[cwd] evidence read WITHOUT --cwd fails from worktree',
+        fn: () => {
+          try {
+            execSync(
+              `node "${CLI}" evidence read --mission ${MISSION_ID} --task task-001`,
+              {
+                cwd: worktreeDir,
+                encoding: 'utf-8',
+                timeout: 10000,
+                stdio: ['pipe', 'pipe', 'pipe'],
+              },
+            );
+            // If it did not throw, check if the output is an error response
+            return { failed_as_expected: false };
+          } catch {
+            // Command failed (non-zero exit) — this is expected
+            return { failed_as_expected: true };
+          }
+        },
+        validate: (r) => r.failed_as_expected === true,
+      },
+      {
+        name: '[cwd] debt list WITHOUT --cwd fails from worktree',
+        fn: () => {
+          try {
+            execSync(
+              `node "${CLI}" debt list --mission ${MISSION_ID}`,
+              {
+                cwd: worktreeDir,
+                encoding: 'utf-8',
+                timeout: 10000,
+                stdio: ['pipe', 'pipe', 'pipe'],
+              },
+            );
+            return { failed_as_expected: false };
+          } catch {
+            return { failed_as_expected: true };
+          }
+        },
+        validate: (r) => r.failed_as_expected === true,
+      },
+      {
+        name: '[cwd] state read WITHOUT --cwd fails from worktree',
+        fn: () => {
+          try {
+            execSync(
+              `node "${CLI}" state read`,
+              {
+                cwd: worktreeDir,
+                encoding: 'utf-8',
+                timeout: 10000,
+                stdio: ['pipe', 'pipe', 'pipe'],
+              },
+            );
+            return { failed_as_expected: false };
+          } catch {
+            return { failed_as_expected: true };
+          }
+        },
+        validate: (r) => r.failed_as_expected === true,
+      },
+    ],
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Performance benchmark
 // ---------------------------------------------------------------------------
 
@@ -402,6 +538,38 @@ function main() {
     }
   }
 
+  // Phase 5: --cwd support tests
+  console.log('\n--- Phase 5: --cwd support ---\n');
+  const cwdTestSuite = defineCwdTests(tmpDir);
+
+  for (const test of cwdTestSuite.tests) {
+    try {
+      const result = test.fn();
+
+      if (result === undefined || result === null) {
+        throw new Error('Command returned null/undefined (not valid JSON)');
+      }
+
+      if (test.validate && !test.validate(result)) {
+        throw new Error(
+          `Validation failed. Got: ${JSON.stringify(result).slice(0, 200)}`,
+        );
+      }
+
+      console.log(`  PASS  ${test.name}`);
+      passed++;
+    } catch (err) {
+      const msg = err.stderr
+        ? err.stderr.toString().trim()
+        : err.message;
+      console.log(`  FAIL  ${test.name}: ${msg.slice(0, 200)}`);
+      failed++;
+      failures.push({ name: test.name, error: msg.slice(0, 500) });
+    }
+  }
+
+  const totalTests = tests.length + cwdTestSuite.tests.length;
+
   // Run performance benchmark
   const benchOk = runBenchmark(tmpDir);
 
@@ -412,9 +580,15 @@ function main() {
   } catch {
     console.log(`\nWARNING: Could not clean up ${tmpDir}`);
   }
+  try {
+    fs.rmSync(cwdTestSuite.worktreeDir, { recursive: true, force: true });
+    console.log(`Cleaned up worktree: ${cwdTestSuite.worktreeDir}`);
+  } catch {
+    console.log(`\nWARNING: Could not clean up ${cwdTestSuite.worktreeDir}`);
+  }
 
   // Summary
-  console.log(`\n=== Summary: ${passed}/${tests.length} tests passed ===`);
+  console.log(`\n=== Summary: ${passed}/${totalTests} tests passed ===`);
   if (failures.length > 0) {
     console.log('\nFailures:');
     for (const f of failures) {

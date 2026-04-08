@@ -51,9 +51,11 @@ Generate a fix-specific ContextPacket:
 - Reference the full EvidenceBundle for context
 - If the worker's `self_check.untested_paths` overlap with failure areas, highlight the connection
 
+Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule").
+
 Spawn the fixer **with worktree isolation** (implementation agents always use worktree):
 ```
-Agent(agent: "{fixer}", isolation: "worktree", prompt: "Read your ContextPacket at .geas/missions/{mission_id}/packets/{task-id}/{fixer}-fix-{N}.md. Fix the specific failures listed in your packet. Write your results to .geas/missions/{mission_id}/evidence/{task-id}/{fixer}-fix-{N}.json")
+Agent(agent: "{fixer}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read your ContextPacket at {project_root}/.geas/missions/{mission_id}/packets/{task-id}/{fixer}-fix-{N}.md. Fix the specific failures listed in your packet. Write your results to {project_root}/.geas/missions/{mission_id}/evidence/{task-id}/{fixer}-fix-{N}.json")
 ```
 
 After the fixer completes, merge the worktree branch before re-running the evidence gate. If merge conflicts arise, follow the orchestration_authority merge conflict protocol.
