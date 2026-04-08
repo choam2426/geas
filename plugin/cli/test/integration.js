@@ -65,14 +65,16 @@ function createTempDir() {
     JSON.stringify(runState, null, 2),
   );
 
-  // Seed empty memory-index.json
+  // Seed empty memory-index.json (meta wrapper matches memory-index.schema.json)
   const memoryIndex = {
-    version: '1.0',
-    artifact_type: 'memory_index',
-    artifact_id: 'memory-index',
-    producer_type: 'orchestration_authority',
+    meta: {
+      version: '1.0',
+      artifact_type: 'memory_index',
+      artifact_id: 'memory-index',
+      producer_type: 'orchestration_authority',
+      created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+    },
     entries: [],
-    created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
   };
   fs.writeFileSync(
     path.join(geas, 'state', 'memory-index.json'),
@@ -907,6 +909,359 @@ function defineGuardTests(tmpDir) {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 8: Memory Commands
+// ---------------------------------------------------------------------------
+
+/**
+ * Tests for memory subcommands: index-update, promote, candidate-write.
+ * Covers the full memory lifecycle: create index entries, write candidates,
+ * promote through states, and verify cleanup.
+ */
+function defineMemoryTests(tmpDir) {
+  const ts = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const reviewDate = new Date(Date.now() + 30 * 86400000)
+    .toISOString()
+    .replace(/\.\d{3}Z$/, 'Z');
+
+  // Valid memory index entry data (memory_type must be from enum in _defs.schema.json)
+  const indexEntry1 = {
+    memory_id: 'mem-001',
+    memory_type: 'project_rule',
+    state: 'candidate',
+    confidence: 0.5,
+    tags: ['test'],
+    review_after: reviewDate,
+  };
+
+  const indexEntry2 = {
+    memory_id: 'mem-002',
+    memory_type: 'failure_lesson',
+    state: 'candidate',
+    confidence: 0.6,
+    tags: ['integration'],
+    review_after: reviewDate,
+  };
+
+  const indexEntry3 = {
+    memory_id: 'mem-003',
+    memory_type: 'decision_precedent',
+    state: 'provisional',
+    confidence: 0.7,
+    tags: ['arch'],
+    review_after: reviewDate,
+  };
+
+  // Valid memory candidate data
+  const candidateData = {
+    meta: {
+      version: '1.0',
+      artifact_type: 'memory_candidate',
+      artifact_id: 'memory-candidate-mem-promo-001',
+      producer_type: 'orchestration_authority',
+      created_at: ts,
+    },
+    memory_id: 'mem-promo-001',
+    memory_type: 'project_rule',
+    state: 'candidate',
+    title: 'Test pattern',
+    summary: 'A pattern discovered during testing',
+    scope: 'project',
+    evidence_refs: ['evidence-001'],
+    signals: {
+      evidence_count: 1,
+      reuse_count: 0,
+      successful_reuses: 0,
+      failed_reuses: 0,
+      contradiction_count: 0,
+      confidence: 0.5,
+    },
+    candidate_reason: 'Observed during integration test',
+    source_artifacts: ['task-contract-001'],
+  };
+
+  /** Helper: run a memory CLI command via --cwd and return parsed JSON. */
+  function memRun(cmd) {
+    return runWithCwd(`memory ${cmd}`, tmpDir);
+  }
+
+  /** Helper: run a memory CLI command, expecting failure (non-zero exit). */
+  function memRunExpectFail(cmd) {
+    try {
+      const fullCmd = `node "${CLI}" --cwd "${tmpDir}" memory ${cmd}`;
+      execSync(fullCmd, {
+        encoding: 'utf-8',
+        timeout: 10000,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      return { errored: false };
+    } catch (err) {
+      const stderr = err.stderr ? err.stderr.toString() : '';
+      return {
+        errored: true,
+        exit_code: err.status,
+        stderr,
+      };
+    }
+  }
+
+  return [
+    // ── index-update: 7 tests ──
+
+    {
+      name: '[memory] index-update: basic create',
+      fn: () => {
+        const data = JSON.stringify(indexEntry1).replace(/"/g, '\\"');
+        return memRun(`index-update --data "${data}"`);
+      },
+      validate: (r) => r.ok === true && r.action === 'added' && r.memory_id === 'mem-001',
+    },
+
+    {
+      name: '[memory] index-update: add second entry',
+      fn: () => {
+        const data = JSON.stringify(indexEntry2).replace(/"/g, '\\"');
+        const result = memRun(`index-update --data "${data}"`);
+        // Also verify both entries exist by reading the index file
+        const indexPath = path.join(tmpDir, '.geas', 'state', 'memory-index.json');
+        const index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
+        result._entry_count = index.entries.length;
+        return result;
+      },
+      validate: (r) =>
+        r.ok === true &&
+        r.action === 'added' &&
+        r.memory_id === 'mem-002' &&
+        r._entry_count === 2,
+    },
+
+    {
+      name: '[memory] index-update: upsert existing entry',
+      fn: () => {
+        const updated = { ...indexEntry1, confidence: 0.9 };
+        const data = JSON.stringify(updated).replace(/"/g, '\\"');
+        const result = memRun(`index-update --data "${data}"`);
+        // Verify the entry was updated, not added
+        const indexPath = path.join(tmpDir, '.geas', 'state', 'memory-index.json');
+        const index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
+        const entry = index.entries.find((e) => e.memory_id === 'mem-001');
+        result._updated_confidence = entry.confidence;
+        result._entry_count = index.entries.length;
+        return result;
+      },
+      validate: (r) =>
+        r.ok === true &&
+        r.action === 'updated' &&
+        r._updated_confidence === 0.9 &&
+        r._entry_count === 2,
+    },
+
+    {
+      name: '[memory] index-update: missing memory_id errors',
+      fn: () => {
+        // memory_id is required; omitting it triggers fileError (exit code 2)
+        const data = JSON.stringify({ memory_type: 'project_rule', state: 'candidate' }).replace(/"/g, '\\"');
+        return memRunExpectFail(`index-update --data "${data}"`);
+      },
+      validate: (r) => r.errored === true && r.exit_code === 2,
+    },
+
+    {
+      name: '[memory] index-update: invalid JSON errors',
+      fn: () => {
+        // Malformed JSON triggers fileError (exit code 2)
+        return memRunExpectFail('index-update --data "not-valid-json"');
+      },
+      validate: (r) => r.errored === true && r.exit_code === 2,
+    },
+
+    {
+      name: '[memory] index-update: schema validation rejects wrong types',
+      fn: () => {
+        // confidence should be a number, not a string; tags should be array, not string
+        const bad = { memory_id: 'mem-bad', memory_type: 'project_rule', state: 'candidate', confidence: 'high', tags: 'not-array', review_after: reviewDate };
+        const data = JSON.stringify(bad).replace(/"/g, '\\"');
+        const result = memRunExpectFail(`index-update --data "${data}"`);
+        return result;
+      },
+      validate: (r) =>
+        r.errored === true &&
+        r.exit_code === 1 &&
+        r.stderr.includes('VALIDATION_ERROR'),
+    },
+
+    {
+      name: '[memory] index-update: preserve existing entries after adding new',
+      fn: () => {
+        const data = JSON.stringify(indexEntry3).replace(/"/g, '\\"');
+        memRun(`index-update --data "${data}"`);
+        // Read back and verify all 3 entries
+        const indexPath = path.join(tmpDir, '.geas', 'state', 'memory-index.json');
+        const index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
+        const ids = index.entries.map((e) => e.memory_id).sort();
+        return { ids, count: index.entries.length };
+      },
+      validate: (r) =>
+        r.count === 3 &&
+        r.ids[0] === 'mem-001' &&
+        r.ids[1] === 'mem-002' &&
+        r.ids[2] === 'mem-003',
+    },
+
+    // ── promote: 13 tests ──
+
+    {
+      name: '[memory] promote setup: write candidate file',
+      fn: () => {
+        const data = JSON.stringify(candidateData).replace(/"/g, '\\"');
+        return memRun(`candidate-write --data "${data}"`);
+      },
+      validate: (r) => r.ok === true && r.memory_id === 'mem-promo-001',
+    },
+
+    {
+      name: '[memory] promote: candidate to provisional',
+      fn: () => memRun('promote --id mem-promo-001 --to provisional'),
+      validate: (r) =>
+        r.ok === true &&
+        r.memory_id === 'mem-promo-001' &&
+        r.from === 'candidate' &&
+        r.to === 'provisional' &&
+        r.moved_from_candidates === true,
+    },
+
+    {
+      name: '[memory] promote: verify entry file has provisional state',
+      fn: () => {
+        const entryPath = path.join(tmpDir, '.geas', 'memory', 'entries', 'mem-promo-001.json');
+        const data = JSON.parse(fs.readFileSync(entryPath, 'utf-8'));
+        return { state: data.state, has_review_after: typeof data.review_after === 'string' };
+      },
+      validate: (r) => r.state === 'provisional' && r.has_review_after === true,
+    },
+
+    {
+      name: '[memory] promote: provisional to stable',
+      fn: () => memRun('promote --id mem-promo-001 --to stable'),
+      validate: (r) =>
+        r.ok === true &&
+        r.from === 'provisional' &&
+        r.to === 'stable',
+    },
+
+    {
+      name: '[memory] promote: verify entry file has stable state',
+      fn: () => {
+        const entryPath = path.join(tmpDir, '.geas', 'memory', 'entries', 'mem-promo-001.json');
+        const data = JSON.parse(fs.readFileSync(entryPath, 'utf-8'));
+        return { state: data.state };
+      },
+      validate: (r) => r.state === 'stable',
+    },
+
+    {
+      name: '[memory] promote: stable to canonical',
+      fn: () => memRun('promote --id mem-promo-001 --to canonical'),
+      validate: (r) =>
+        r.ok === true &&
+        r.from === 'stable' &&
+        r.to === 'canonical',
+    },
+
+    {
+      name: '[memory] promote: verify entry file has canonical state',
+      fn: () => {
+        const entryPath = path.join(tmpDir, '.geas', 'memory', 'entries', 'mem-promo-001.json');
+        const data = JSON.parse(fs.readFileSync(entryPath, 'utf-8'));
+        return { state: data.state };
+      },
+      validate: (r) => r.state === 'canonical',
+    },
+
+    {
+      name: '[memory] promote: invalid transition candidate to canonical (skip)',
+      fn: () => {
+        // Write a fresh candidate for this test
+        const cand2 = {
+          ...candidateData,
+          memory_id: 'mem-promo-002',
+          meta: { ...candidateData.meta, artifact_id: 'memory-candidate-mem-promo-002' },
+        };
+        const writeData = JSON.stringify(cand2).replace(/"/g, '\\"');
+        memRun(`candidate-write --data "${writeData}"`);
+
+        const result = memRunExpectFail('promote --id mem-promo-002 --to canonical');
+        return result;
+      },
+      validate: (r) =>
+        r.errored === true &&
+        r.exit_code === 2 &&
+        r.stderr.includes('Invalid transition'),
+    },
+
+    {
+      name: '[memory] promote: invalid transition canonical to candidate (backwards)',
+      fn: () => {
+        // mem-promo-001 is currently canonical; canonical cannot go to candidate
+        const result = memRunExpectFail('promote --id mem-promo-001 --to candidate');
+        return result;
+      },
+      validate: (r) =>
+        r.errored === true &&
+        r.exit_code === 2 &&
+        r.stderr.includes('Invalid transition'),
+    },
+
+    {
+      name: '[memory] promote: non-existent id errors',
+      fn: () => {
+        const result = memRunExpectFail('promote --id mem-does-not-exist --to provisional');
+        return result;
+      },
+      validate: (r) =>
+        r.errored === true &&
+        r.exit_code === 2 &&
+        r.stderr.includes('not found'),
+    },
+
+    {
+      name: '[memory] promote: candidate to rejected',
+      fn: () => {
+        // mem-promo-002 is still a candidate (skip-to-canonical failed above)
+        return memRun('promote --id mem-promo-002 --to rejected');
+      },
+      validate: (r) =>
+        r.ok === true &&
+        r.from === 'candidate' &&
+        r.to === 'rejected',
+    },
+
+    {
+      name: '[memory] promote: verify rejected state in entry file',
+      fn: () => {
+        const entryPath = path.join(tmpDir, '.geas', 'memory', 'entries', 'mem-promo-002.json');
+        const data = JSON.parse(fs.readFileSync(entryPath, 'utf-8'));
+        return { state: data.state };
+      },
+      validate: (r) => r.state === 'rejected',
+    },
+
+    {
+      name: '[memory] promote: candidate file deleted after promotion',
+      fn: () => {
+        // After promoting mem-promo-002 from candidate, the candidate file should be gone
+        const candidatePath = path.join(tmpDir, '.geas', 'memory', 'candidates', 'mem-promo-002.json');
+        const entryPath = path.join(tmpDir, '.geas', 'memory', 'entries', 'mem-promo-002.json');
+        return {
+          candidate_exists: fs.existsSync(candidatePath),
+          entry_exists: fs.existsSync(entryPath),
+        };
+      },
+      validate: (r) => r.candidate_exists === false && r.entry_exists === true,
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
 // Performance benchmark
 // ---------------------------------------------------------------------------
 
@@ -1075,7 +1430,37 @@ function main() {
     }
   }
 
-  const totalTests = tests.length + cwdTestSuite.tests.length + guardTestSuite.tests.length;
+  // Phase 8: Memory Commands
+  console.log('\n--- Phase 8: Memory Commands ---\n');
+  const memoryTests = defineMemoryTests(tmpDir);
+
+  for (const test of memoryTests) {
+    try {
+      const result = test.fn();
+
+      if (result === undefined || result === null) {
+        throw new Error('Command returned null/undefined (not valid JSON)');
+      }
+
+      if (test.validate && !test.validate(result)) {
+        throw new Error(
+          `Validation failed. Got: ${JSON.stringify(result).slice(0, 200)}`,
+        );
+      }
+
+      console.log(`  PASS  ${test.name}`);
+      passed++;
+    } catch (err) {
+      const msg = err.stderr
+        ? err.stderr.toString().trim()
+        : err.message;
+      console.log(`  FAIL  ${test.name}: ${msg.slice(0, 200)}`);
+      failed++;
+      failures.push({ name: test.name, error: msg.slice(0, 500) });
+    }
+  }
+
+  const totalTests = tests.length + cwdTestSuite.tests.length + guardTestSuite.tests.length + memoryTests.length;
 
   // Run performance benchmark
   const benchOk = runBenchmark(tmpDir);

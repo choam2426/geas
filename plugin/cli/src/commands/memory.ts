@@ -62,6 +62,11 @@ export function registerMemoryCommands(program: Command): void {
           };
         }
 
+        // Remove top-level timestamp fields injected by enrichTimestamp
+        // (schema has additionalProperties: false — only meta + entries allowed)
+        delete index.created_at;
+        delete index.updated_at;
+
         const entries = (index.entries as Record<string, unknown>[]) || [];
         const memoryId = entry.memory_id as string;
         if (!memoryId) {
@@ -150,9 +155,10 @@ export function registerMemoryCommands(program: Command): void {
         // Update the state
         data.state = targetState;
 
-        // Remove top-level created_at that enrichTimestamp may have injected
-        // (it belongs in meta only; additionalProperties: false rejects it)
+        // Remove top-level timestamp fields that enrichTimestamp may have injected
+        // (they belong in meta only; additionalProperties: false rejects them)
         delete data.created_at;
+        delete data.updated_at;
 
         // If promoting from candidate, transform to entry schema
         if (isCandidate) {
