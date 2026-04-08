@@ -20,7 +20,7 @@ For each task, read `references/pipeline.md` and execute the full per-task pipel
 Write gap assessment and phase review via CLI:
 ```bash
 Bash("geas debt list --mission {mission_id}")  # Read debt state for gap assessment
-# Assemble gap-assessment JSON, then write directly (no CLI for gap-assessment yet — use Write tool)
+Bash("geas evolution gap-assessment --mission {mission_id} --phase building --data '<gap_assessment_json>'")
 ```
 Write the phase review via CLI with schema validation:
 ```bash

@@ -51,7 +51,7 @@ Then ensure `.geas/` is gitignored. Check if `.gitignore` exists:
 - If yes: append `.geas/` if not already present
 - If no: create `.gitignore` with `.geas/` entry
 
-Write the initial run state file. Use the Write tool for this initial creation since the CLI state commands expect the file to already exist:
+Write the initial run state file (use Write tool — BOOTSTRAP EXCEPTION: CLI state commands expect this file to already exist, so initial creation must be direct):
 ```json
 {
   "version": "1.0",
@@ -81,7 +81,7 @@ Phase A also includes codebase discovery — scan project structure, detect stac
 1. Scan project root for configuration files (package.json, go.mod, pyproject.toml, Cargo.toml, Makefile, etc.)
 2. Detect the project stack (language, framework, package manager, test runner)
 3. Read existing build/lint/test commands from configuration files
-4. Write `.geas/memory/_project/conventions.md` with detected conventions:
+4. Write `.geas/memory/_project/conventions.md` with detected conventions (use Write tool — BOOTSTRAP EXCEPTION: no CLI command for conventions.md, and this runs during initial setup before mission starts):
    - Build commands
    - Lint commands
    - Test commands
@@ -108,7 +108,7 @@ If `.geas/memory/agents/` does not exist or has no old-named files, skip this st
 
 ### Phase A-2: Generate `.geas/rules.md`
 
-Write `.geas/rules.md` — the shared rules that ALL agents must follow:
+Write `.geas/rules.md` (use Write tool — BOOTSTRAP EXCEPTION: rules.md is created during initial setup before any CLI-driven workflow begins) — the shared rules that ALL agents must follow:
 
 ```markdown
 # Agent Rules

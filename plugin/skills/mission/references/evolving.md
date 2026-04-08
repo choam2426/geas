@@ -13,7 +13,11 @@ Produce a structured gap assessment comparing what was planned vs what was deliv
    - No corresponding task or task cancelled -> `not_delivered`
 5. Check for `scope_out` items that were delivered anyway -> `unexpected_additions` (need traceability note)
 6. Items explicitly dropped by product_authority decision -> `intentional_cuts`
-7. Assemble the gap assessment JSON and write it (use Write tool for this mission-specific artifact). The data must conform to `schemas/gap-assessment.schema.json`:
+7. Assemble the gap assessment JSON and write it via CLI:
+   ```bash
+   Bash("geas evolution gap-assessment --mission {mission_id} --phase evolving --data '<gap_assessment_json>'")
+   ```
+   The data must conform to `schemas/gap-assessment.schema.json`:
 
 ```json
 {
@@ -59,11 +63,11 @@ If no P0 items remain: skip to product_authority Final Briefing.
 
 1. Read all per-task retrospectives: `.geas/missions/{mission_id}/tasks/*/retrospective.json`
 2. Collect all `rule_candidates[]` across tasks
-3. If no candidates across any task: write `.geas/missions/{mission_id}/evolution/rules-update.json` with `status: "none"`, `reason: "no rule candidates from any task retrospective"`, `evidence_refs: []`, `applies_to: []`. Skip to next step.
+3. If no candidates across any task: write `.geas/missions/{mission_id}/evolution/rules-update.json` (use Write tool — no dedicated CLI command for rules-update) with `status: "none"`, `reason: "no rule candidates from any task retrospective"`, `evidence_refs: []`, `applies_to: []`. Skip to next step.
 4. For each candidate, check approval conditions:
    - `evidence_refs` >= 2 (same pattern observed in 2+ tasks) AND `contradiction_count` = 0 -> auto-approve
    - Otherwise -> spawn domain authority for review
-5. Assemble the rules-update JSON and write it (use Write tool for this mission-specific artifact). The data must conform to `schemas/rules-update.schema.json`:
+5. Assemble the rules-update JSON and write it to `.geas/missions/{mission_id}/evolution/rules-update.json` (use Write tool — no dedicated CLI command for rules-update). The data must conform to `schemas/rules-update.schema.json`:
    ```json
    {
      "version": "1.0",
@@ -113,7 +117,7 @@ Same mandatory steps, same Closure Packet verification, same checkpoint manageme
 
 ### Product-authority Final Briefing [MANDATORY]
 ```
-Agent(agent: "product-authority", prompt: "Final product review. Read the current mission spec at .geas/missions/{mission_id}/spec.json (get mission_id from .geas/state/run.json), .geas/missions/{mission_id}/evolution/gap-assessment-evolving.json, .geas/missions/{mission_id}/evolution/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write JSON to .geas/missions/{mission_id}/evidence/evolving/product-authority-final.json. ALSO write a human-readable markdown summary to .geas/missions/{mission_id}/mission-summary.md covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
+Agent(agent: "product-authority", prompt: "Final product review. Read the current mission spec at .geas/missions/{mission_id}/spec.json (get mission_id from .geas/state/run.json), .geas/missions/{mission_id}/evolution/gap-assessment-evolving.json, .geas/missions/{mission_id}/evolution/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write your evidence via CLI. Run: geas evidence record --mission {mission_id} --task evolving --agent product-authority-final --data '<your-json>'. ALSO write a human-readable markdown summary to .geas/missions/{mission_id}/mission-summary.md (use Write tool — no dedicated CLI command for mission-summary) covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
 ```
 Verify `.geas/missions/{mission_id}/evidence/evolving/product-authority-final.json` exists.
 Verify `.geas/missions/{mission_id}/mission-summary.md` exists.
@@ -134,7 +138,7 @@ Assemble a detailed execution briefing by reading all `.geas/` artifacts. This i
 - `.geas/ledger/token-summary.json` — token usage
 - `.geas/ledger/costs.jsonl` — subagent count
 
-**Write `.geas/missions/{mission_id}/mission-briefing.md`:**
+**Write `.geas/missions/{mission_id}/mission-briefing.md`** (use Write tool — no dedicated CLI command for mission-briefing):
 
 ```markdown
 # Mission Briefing — {mission title}

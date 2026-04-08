@@ -28,7 +28,7 @@ Eliminates the waste cycle: "worker misunderstands requirement → builds wrong 
 Spawn the assigned worker to read their ContextPacket and write a contract:
 
 ```
-Agent(agent: "{worker}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{worker}.md and .geas/missions/{mission_id}/tasks/{task-id}.json. Before implementing, write your implementation contract to .geas/missions/{mission_id}/contracts/{task-id}.json with these fields:
+Agent(agent: "{worker}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{worker}.md and .geas/missions/{mission_id}/tasks/{task-id}.json. Before implementing, write your implementation contract via CLI. Run: geas task contract --mission {mission_id} --task {task-id} --data '<contract_json>'. Required fields:
 - planned_actions: concrete steps you will take
 - edge_cases: edge cases you plan to handle
 - state_transitions: state changes your implementation introduces (if any)
@@ -72,7 +72,7 @@ Write your assessment. If acceptable, approve. If not, list specific concerns.")
 
 ## Output
 
-Write the contract (use Write tool for `.geas/missions/{mission_id}/contracts/{task-id}.json` — the mission directory and contracts subdirectory are created by `geas mission create`). The contract must conform to `schemas/implementation-contract.schema.json`.
+Write the contract via CLI: `Bash("geas task contract --mission {mission_id} --task {task-id} --data '<contract_json>'")`. The mission directory and contracts subdirectory are created by `geas mission create`. The contract must conform to `schemas/implementation-contract.schema.json`.
 
 Log the event via CLI:
 ```bash
