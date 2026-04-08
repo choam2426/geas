@@ -29,4 +29,6 @@ export interface WriteOptions {
   runChecks?: boolean;
   /** Use atomic write (temp file + rename) */
   atomic?: boolean;
+  /** Working directory for post-write checks (defaults to process.cwd()) */
+  cwd?: string;
 }

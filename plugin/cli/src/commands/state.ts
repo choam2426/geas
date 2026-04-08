@@ -49,7 +49,8 @@ export function registerStateCommands(program: Command): void {
     .requiredOption('--value <value>', 'New value (JSON-parsed if possible)')
     .action((opts: { field: string; value: string }) => {
       try {
-        const geas = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geas = resolveGeasDir(cwd);
         const filePath = runJsonPath(geas);
         const data = readJsonFile<Record<string, unknown>>(filePath);
         if (data === null) {
@@ -66,7 +67,7 @@ export function registerStateCommands(program: Command): void {
         }
 
         data[opts.field] = parsedValue;
-        atomicWriteJsonFile(filePath, data);
+        atomicWriteJsonFile(filePath, data, { cwd });
         success({ updated: opts.field, value: parsedValue });
       } catch (err: unknown) {
         const e = err as NodeJS.ErrnoException;
@@ -94,7 +95,8 @@ export function registerStateCommands(program: Command): void {
         batch?: string;
       }) => {
         try {
-          const geas = resolveGeasDir(getCwd(cmd));
+          const cwd = getCwd(cmd);
+          const geas = resolveGeasDir(cwd);
           const filePath = runJsonPath(geas);
           const data = readJsonFile<Record<string, unknown>>(filePath);
           if (data === null) {
@@ -123,7 +125,7 @@ export function registerStateCommands(program: Command): void {
               : {}),
           };
 
-          atomicWriteJsonFile(filePath, data);
+          atomicWriteJsonFile(filePath, data, { cwd });
           success({ checkpoint: data.checkpoint });
         } catch (err: unknown) {
           const e = err as NodeJS.ErrnoException;
@@ -137,7 +139,8 @@ export function registerStateCommands(program: Command): void {
     .description('Clear checkpoint in run.json')
     .action(() => {
       try {
-        const geas = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geas = resolveGeasDir(cwd);
         const filePath = runJsonPath(geas);
         const data = readJsonFile<Record<string, unknown>>(filePath);
         if (data === null) {
@@ -159,7 +162,7 @@ export function registerStateCommands(program: Command): void {
           checkpoint_phase: 'committed',
         };
 
-        atomicWriteJsonFile(filePath, data);
+        atomicWriteJsonFile(filePath, data, { cwd });
         success({ checkpoint: data.checkpoint });
       } catch (err: unknown) {
         const e = err as NodeJS.ErrnoException;

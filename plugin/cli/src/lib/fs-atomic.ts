@@ -74,11 +74,12 @@ export function writeJsonFile(
   options?: WriteOptions
 ): void {
   const shouldCheck = shouldRunChecks(filePath, options);
+  const cwd = options?.cwd || process.cwd();
 
   // Pre-write: enrich timestamps + checkpoint pending
   if (shouldCheck) {
     enrichTimestamp(filePath, data);
-    writeCheckpointPending(filePath, process.cwd());
+    writeCheckpointPending(filePath, cwd);
   }
 
   ensureDir(path.dirname(filePath));
@@ -87,7 +88,7 @@ export function writeJsonFile(
 
   // Post-write checks (no file rewrites — only warnings)
   if (shouldCheck) {
-    const warnings = runPostWriteChecks(filePath, data, process.cwd());
+    const warnings = runPostWriteChecks(filePath, data, cwd);
     for (const w of warnings) {
       emitWarning(w);
     }
@@ -129,11 +130,12 @@ export function atomicWriteJsonFile(
   options?: WriteOptions
 ): void {
   const shouldCheck = shouldRunChecks(filePath, options);
+  const cwd = options?.cwd || process.cwd();
 
   // Pre-write: enrich timestamps + checkpoint pending
   if (shouldCheck) {
     enrichTimestamp(filePath, data);
-    writeCheckpointPending(filePath, process.cwd());
+    writeCheckpointPending(filePath, cwd);
   }
 
   ensureDir(path.dirname(filePath));
@@ -166,7 +168,7 @@ export function atomicWriteJsonFile(
 
   // Post-write checks
   if (shouldCheck) {
-    const warnings = runPostWriteChecks(filePath, data, process.cwd());
+    const warnings = runPostWriteChecks(filePath, data, cwd);
     for (const w of warnings) {
       emitWarning(w);
     }

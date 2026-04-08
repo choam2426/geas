@@ -42,7 +42,8 @@ export function registerEvidenceCommands(program: Command): void {
           return;
         }
 
-        const geasDir = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         // Sanitize agent name: only allow alphanumeric, dash, underscore
@@ -57,7 +58,7 @@ export function registerEvidenceCommands(program: Command): void {
 
         const filePath = path.resolve(evidenceDir, `${agentName}.json`);
 
-        writeJsonFile(filePath, evidenceData);
+        writeJsonFile(filePath, evidenceData, { cwd });
 
         success({
           written: normalizePath(filePath),

@@ -42,7 +42,8 @@ export function registerDecisionCommands(program: Command): void {
           return;
         }
 
-        const geasDir = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         // Determine decision ID from data or generate one
@@ -69,7 +70,7 @@ export function registerDecisionCommands(program: Command): void {
 
         const filePath = path.resolve(decisionsDir, `${safeId}.json`);
 
-        writeJsonFile(filePath, decisionData);
+        writeJsonFile(filePath, decisionData, { cwd });
 
         success({
           written: normalizePath(filePath),
