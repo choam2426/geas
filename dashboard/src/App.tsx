@@ -10,6 +10,7 @@ import DebtDetailPanel from "./components/DebtDetailPanel";
 import EmptyState from "./components/EmptyState";
 import ErrorState from "./components/ErrorState";
 import AddProjectDialog from "./components/AddProjectDialog";
+import { ToastProvider } from "./contexts/ToastContext";
 import { useNavigationHistory } from "./hooks/useNavigationHistory";
 
 function App() {
@@ -104,6 +105,7 @@ function App() {
   const selected = projects.find((p) => p.path === selectedPath) ?? null;
 
   return (
+    <ToastProvider>
     <div className="flex h-screen bg-bg-primary text-text-primary font-sans overflow-hidden">
       <Sidebar
         projects={projects}
@@ -233,6 +235,7 @@ function App() {
         />
       )}
     </div>
+    </ToastProvider>
   );
 }
 
