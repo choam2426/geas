@@ -291,6 +291,45 @@ function defineTests(tmpDir) {
       validate: (r) =>
         r.total === 1 && r.items[0].debt_id === 'DEBT-001',
     },
+    {
+      name: 'updated_at injected on existing file update',
+      fn: () => {
+        // run.json already exists; updating it should inject updated_at
+        // Use a neutral field update so we don't change phase (used by later tests)
+        runWithCwd('state update --field status --value active', tmpDir);
+        const runJson = JSON.parse(
+          fs.readFileSync(
+            path.join(tmpDir, '.geas', 'state', 'run.json'),
+            'utf-8',
+          ),
+        );
+        return runJson;
+      },
+      validate: (r) =>
+        typeof r.updated_at === 'string' &&
+        /^\d{4}-\d{2}-\d{2}T/.test(r.updated_at) &&
+        typeof r.created_at === 'string',
+    },
+    {
+      name: 'JSONL timestamp auto-injected on event log',
+      fn: () => {
+        // Log a fresh event and read the last line of the events JSONL
+        runWithCwd(
+          'event log --type timestamp_test --task task-001',
+          tmpDir,
+        );
+        const eventsPath = path.join(tmpDir, '.geas', 'state', 'events.jsonl');
+        const lines = fs
+          .readFileSync(eventsPath, 'utf-8')
+          .trim()
+          .split('\n');
+        const last = JSON.parse(lines[lines.length - 1]);
+        return last;
+      },
+      validate: (r) =>
+        typeof r.timestamp === 'string' &&
+        /^\d{4}-\d{2}-\d{2}T/.test(r.timestamp),
+    },
   ];
 }
 

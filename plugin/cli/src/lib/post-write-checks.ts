@@ -102,6 +102,13 @@ export function enrichTimestamp(
   if (typeof data !== 'object' || data === null) return data;
 
   const d = data as Record<string, unknown>;
+
+  // If the file already exists on disk, this is an update — inject updated_at
+  if (fs.existsSync(filePath)) {
+    d.updated_at = isoTimestamp();
+  }
+
+  // Inject created_at if missing or placeholder (unchanged logic)
   const ts = (d.created_at as string) || '';
   if (!ts || /:00:00Z$/.test(ts) || /:00:00\.000Z$/.test(ts)) {
     d.created_at = isoTimestamp();

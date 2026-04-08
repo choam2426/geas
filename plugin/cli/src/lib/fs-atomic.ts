@@ -101,6 +101,13 @@ export function writeJsonFile(
  */
 export function appendJsonlFile(filePath: string, entry: unknown): void {
   ensureDir(path.dirname(filePath));
+  // Auto-inject timestamp if the entry is an object without one
+  if (typeof entry === 'object' && entry !== null) {
+    const e = entry as Record<string, unknown>;
+    if (!e.timestamp) {
+      e.timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+    }
+  }
   const line = JSON.stringify(entry) + '\n';
   fs.appendFileSync(filePath, line, 'utf-8');
 }
