@@ -54,6 +54,37 @@ export function validatePhaseTransition(
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Check if a phase-review file exists for the given phase.
+ * Phase reviews are stored as: phase-reviews/{phase}_*.json
+ */
+function hasPhaseReview(missionDir: string, phase: string): boolean {
+  const reviewsDir = path.resolve(missionDir, 'phase-reviews');
+  if (!fs.existsSync(reviewsDir)) return false;
+  try {
+    const files = fs.readdirSync(reviewsDir);
+    return files.some((f) => f.startsWith(`${phase}_`) && f.endsWith('.json'));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if a gap-assessment file exists for the given phase.
+ */
+function hasGapAssessment(missionDir: string, phase: string): boolean {
+  const gapPath = path.resolve(
+    missionDir,
+    'evolution',
+    `gap-assessment-${phase}.json`
+  );
+  return fs.existsSync(gapPath);
+}
+
+// ---------------------------------------------------------------------------
 // Per-transition gate functions
 // ---------------------------------------------------------------------------
 
@@ -93,6 +124,11 @@ function guardSpecifyingToBuilding(missionDir: string): string[] {
     if (taskFiles.length === 0) {
       unmet.push('No task files found in tasks/ (need at least 1)');
     }
+  }
+
+  // Phase review for specifying must exist
+  if (!hasPhaseReview(missionDir, 'specifying')) {
+    unmet.push('No phase-review found for specifying phase');
   }
 
   return unmet;
@@ -154,6 +190,16 @@ function guardBuildingToPolishing(missionDir: string): string[] {
     }
   }
 
+  // Phase review for building must exist
+  if (!hasPhaseReview(missionDir, 'building')) {
+    unmet.push('No phase-review found for building phase');
+  }
+
+  // Gap assessment for building must exist
+  if (!hasGapAssessment(missionDir, 'building')) {
+    unmet.push('evolution/gap-assessment-building.json does not exist');
+  }
+
   return unmet;
 }
 
@@ -203,6 +249,16 @@ function guardPolishingToEvolving(missionDir: string): string[] {
     }
   }
 
+  // Phase review for polishing must exist
+  if (!hasPhaseReview(missionDir, 'polishing')) {
+    unmet.push('No phase-review found for polishing phase');
+  }
+
+  // Gap assessment for polishing must exist
+  if (!hasGapAssessment(missionDir, 'polishing')) {
+    unmet.push('evolution/gap-assessment-polishing.json does not exist');
+  }
+
   return unmet;
 }
 
@@ -233,6 +289,11 @@ function guardEvolvingToComplete(missionDir: string): string[] {
   const summaryPath = path.resolve(missionDir, 'mission-summary.md');
   if (!fs.existsSync(summaryPath)) {
     unmet.push('mission-summary.md does not exist');
+  }
+
+  // Phase review for evolving must exist
+  if (!hasPhaseReview(missionDir, 'evolving')) {
+    unmet.push('No phase-review found for evolving phase');
   }
 
   return unmet;

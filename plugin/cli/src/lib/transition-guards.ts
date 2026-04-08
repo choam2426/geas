@@ -27,6 +27,7 @@ export type GuardResult = GuardPass | GuardFail;
 
 const REWIND_TRANSITIONS: ReadonlySet<string> = new Set([
   'integrated->implementing',
+  'integrated->reviewed',
   'verified->ready',
   'verified->implementing',
   'verified->reviewed',
@@ -229,7 +230,7 @@ function guardVerifiedToPassed(
   );
   const taskContract = readJsonFile<Record<string, unknown>>(taskContractPath);
   const riskLevel = taskContract?.risk_level as string | undefined;
-  const requiresChallenge = ['normal', 'high', 'critical'].includes(
+  const requiresChallenge = ['high', 'critical'].includes(
     riskLevel ?? '',
   );
 
