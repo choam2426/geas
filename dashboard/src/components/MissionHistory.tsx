@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ArrowLeft, Archive, Clock, FileText } from "lucide-react";
 import type { MissionSummary } from "../types";
 import PhaseBadge from "./PhaseBadge";
+import { formatDate } from "../utils/dates";
 
 interface MissionHistoryProps {
   projectPath: string;
@@ -11,17 +12,6 @@ interface MissionHistoryProps {
   onViewTimeline?: (missionId: string) => void;
   onViewDetail?: (missionId: string) => void;
   onBack: () => void;
-}
-
-function formatDate(timestamp: string | null): string {
-  if (!timestamp) return "Unknown";
-  const date = new Date(timestamp);
-  if (isNaN(date.getTime())) return "Unknown";
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 }
 
 export default function MissionHistory({
@@ -134,6 +124,10 @@ export default function MissionHistory({
                     mission.is_active
                       ? "border-l-2 border-accent border-t-border-default border-r-border-default border-b-border-default"
                       : "border-border-default"
+                  } ${
+                    mission.task_total > 0 && mission.task_completed === mission.task_total && !mission.is_active
+                      ? "opacity-60"
+                      : ""
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
