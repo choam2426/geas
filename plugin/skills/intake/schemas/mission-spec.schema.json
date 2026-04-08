@@ -86,7 +86,7 @@
       "items": { "type": "string" },
       "description": "Areas, paths, or systems expected to be touched"
     },
-    "ambiguity_notes": {
+    "ambiguities": {
       "type": "array",
       "items": { "type": "string" },
       "description": "Remaining ambiguities acknowledged but deferred (with rationale)"

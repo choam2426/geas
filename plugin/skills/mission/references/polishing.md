@@ -13,7 +13,7 @@ Read `.geas/missions/{mission_id}/evidence/polishing/{resolved-risk-specialist}.
 - **CRITICAL / HIGH** -> create a fix task (mini-pipeline, see Fix Critical Security Issues)
 - **MEDIUM / LOW** -> add to the debt register via CLI:
      ```bash
-     Bash("geas debt add --mission {mission_id} --title '<finding>' --severity medium --kind security --task polishing --owner risk_specialist")
+     Bash("geas debt add --mission {mission_id} --title '<finding>' --severity normal --kind risk --task polishing --owner risk_specialist")
      ```
 
 If no CRITICAL/HIGH findings: skip Fix Critical Security Issues and proceed to Documentation.
