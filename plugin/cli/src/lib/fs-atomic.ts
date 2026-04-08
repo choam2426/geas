@@ -21,7 +21,7 @@ import { warn as emitWarning } from './output';
 function shouldRunChecks(filePath: string, options?: WriteOptions): boolean {
   if (options?.runChecks !== undefined) return options.runChecks;
   const norm = filePath.replace(/\\/g, '/');
-  return norm.includes('/.geas/') || norm.includes('\\.geas\\');
+  return norm.includes('/.geas/') || norm.startsWith('.geas/');
 }
 
 /**
