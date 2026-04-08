@@ -533,10 +533,19 @@ pub fn get_mission_events(
             Err(_) => continue, // skip malformed lines
         };
 
-        // Filter by mission_id if provided
+        // Filter by mission_id if provided — use parsed field first, fall back to data
         if let Some(ref mid) = mission_id {
-            let line_has_mission = trimmed.contains(mid.as_str());
-            if !line_has_mission {
+            let matches = if let Some(ref entry_mid) = entry.mission_id {
+                entry_mid == mid
+            } else if let Some(ref data) = entry.data {
+                data.get("mission_id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s == mid.as_str())
+                    .unwrap_or(false)
+            } else {
+                false
+            };
+            if !matches {
                 continue;
             }
         }

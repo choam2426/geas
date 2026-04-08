@@ -228,6 +228,8 @@ pub struct EventEntry {
     #[serde(default)]
     pub task_id: Option<String>,
     #[serde(default)]
+    pub mission_id: Option<String>,
+    #[serde(default)]
     pub agent: Option<String>,
     #[serde(default)]
     pub message: Option<String>,
