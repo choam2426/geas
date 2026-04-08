@@ -4,7 +4,7 @@
 Resolve the risk_specialist slot via profiles.json.
 Update checkpoint: `Bash("geas state checkpoint set --step security_review --agent {resolved-risk-specialist}")`
 ```
-Agent(agent: "{resolved-risk-specialist}", prompt: "Full risk review of the project. Check for security vulnerabilities, auth flows, input validation, secrets exposure, dependency vulnerabilities. Write findings with severity (CRITICAL/HIGH/MEDIUM/LOW) to .geas/missions/{mission_id}/evidence/polishing/{resolved-risk-specialist}.json")
+Agent(agent: "{resolved-risk-specialist}", prompt: "Full risk review of the project. Check for security vulnerabilities, auth flows, input validation, secrets exposure, dependency vulnerabilities. Write findings with severity (CRITICAL/HIGH/MEDIUM/LOW) as evidence. Run: geas evidence record --mission {mission_id} --task polishing --agent {resolved-risk-specialist} --data '<your-json>'")
 ```
 Verify `.geas/missions/{mission_id}/evidence/polishing/{resolved-risk-specialist}.json` exists.
 
@@ -24,7 +24,7 @@ For each CRITICAL/HIGH finding, run a reduced pipeline:
 2. Update checkpoint: `Bash("geas state checkpoint set --step security_fix --agent {worker}")`
 3. Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule"). Spawn worker with worktree isolation:
    ```
-   Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read {project_root}/.geas/missions/{mission_id}/packets/polishing/{worker}-fix-{N}.md. Fix the security issue. Write evidence to {project_root}/.geas/missions/{mission_id}/evidence/polishing/{worker}-fix-{N}.json")
+   Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read {project_root}/.geas/missions/{mission_id}/packets/polishing/{worker}-fix-{N}.md. Fix the security issue. Write your evidence by running: node {project_root}/plugin/cli/index.js --cwd {project_root} evidence record --mission {mission_id} --task polishing --agent {worker}-fix-{N} --data '<your-json>'")
    ```
 4. Merge worktree branch
 5. Specialist Review (design_authority) — verify the fix is correct and doesn't introduce regressions
@@ -35,7 +35,7 @@ For each CRITICAL/HIGH finding, run a reduced pipeline:
 Resolve the communication_specialist slot via profiles.json.
 Update checkpoint: `Bash("geas state checkpoint set --step documentation --agent {resolved-communication-specialist}")`
 ```
-Agent(agent: "{resolved-communication-specialist}", prompt: "Read the current mission spec at .geas/missions/{mission_id}/spec.json (get mission_id from .geas/state/run.json), the design-brief at .geas/missions/{mission_id}/design-brief.json, and all evidence at .geas/missions/{mission_id}/evidence/. Write README, API docs, and user-facing documentation. Write to .geas/missions/{mission_id}/evidence/polishing/{resolved-communication-specialist}.json")
+Agent(agent: "{resolved-communication-specialist}", prompt: "Read the current mission spec at .geas/missions/{mission_id}/spec.json (get mission_id from .geas/state/run.json), the design-brief at .geas/missions/{mission_id}/design-brief.json, and all evidence at .geas/missions/{mission_id}/evidence/. Write README, API docs, and user-facing documentation. Write your documentation evidence. Run: geas evidence record --mission {mission_id} --task polishing --agent {resolved-communication-specialist} --data '<your-json>'")
 ```
 Verify `.geas/missions/{mission_id}/evidence/polishing/{resolved-communication-specialist}.json` exists.
 
@@ -52,7 +52,10 @@ Results are recorded in `.geas/missions/{mission_id}/evolution/debt-register.jso
 - Shipping rationale recorded for every known risk
 - Zero open CRITICAL/HIGH security issues
 
-Write the gap assessment (use Write tool for this mission-specific artifact).
+Write the gap assessment via CLI:
+```bash
+Bash("geas evolution gap-assessment --mission {mission_id} --phase polishing --data '<gap_assessment_json>'")
+```
 Write the phase review via CLI:
 ```bash
 Bash("geas phase write --mission {mission_id} --data '<phase_review_json>'")

@@ -55,7 +55,7 @@ Resolve `project_root` — the absolute path of the main session working directo
 
 Spawn the fixer **with worktree isolation** (implementation agents always use worktree):
 ```
-Agent(agent: "{fixer}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read your ContextPacket at {project_root}/.geas/missions/{mission_id}/packets/{task-id}/{fixer}-fix-{N}.md. Fix the specific failures listed in your packet. Write your results to {project_root}/.geas/missions/{mission_id}/evidence/{task-id}/{fixer}-fix-{N}.json")
+Agent(agent: "{fixer}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read your ContextPacket at {project_root}/.geas/missions/{mission_id}/packets/{task-id}/{fixer}-fix-{N}.md. Fix the specific failures listed in your packet. Write your results by running: node {project_root}/plugin/cli/index.js --cwd {project_root} evidence record --mission {mission_id} --task {task-id} --agent {fixer}-fix-{N} --data '<your-json>'")
 ```
 
 After the fixer completes, merge the worktree branch before re-running the evidence gate. If merge conflicts arise, follow the orchestration_authority merge conflict protocol.
@@ -85,7 +85,7 @@ The evidence gate has failed {retry_budget} times for task {task-id}.
 Read the TaskContract at .geas/missions/{mission_id}/tasks/{task-id}.json
 Read all evidence at .geas/missions/{mission_id}/evidence/{task-id}/
 Analyze: Is there a fundamental design issue? Is the approach viable?
-Write your analysis to .geas/missions/{mission_id}/evidence/{task-id}/design-authority-escalation.json
+Write your analysis as evidence. Run: geas evidence record --mission {mission_id} --task {task-id} --agent design-authority-escalation --data '<your-json>'
 ```
 
 Then evaluate design_authority's assessment:
@@ -104,7 +104,11 @@ Invoke `/pivot-protocol` with full context.
 
 ### Write DecisionRecord
 
-For any escalation, write a DecisionRecord to `.geas/missions/{mission_id}/decisions/{dec-id}.json`:
+For any escalation, write a DecisionRecord via CLI:
+```bash
+Bash("geas decision write --mission {mission_id} --data '<decision_record_json>'")
+```
+The data must conform to the decision record schema:
 ```json
 {
   "version": "1.0",

@@ -68,7 +68,7 @@ Temporarily disable or modify a rule. Creates or updates `.geas/state/policy-ove
 3. Read `.geas/state/policy-overrides.json` (create if missing).
 4. If an active override already exists for `rule_id`, mark the existing entry `expired: true` and add the new entry. Never delete the old entry.
 5. Append the new override entry with `expired: false` and `created_at` set to current timestamp.
-6. Write the updated file back (use Write tool for `.geas/state/policy-overrides.json` — no dedicated CLI command for policy overrides yet).
+6. Write the updated file back to `.geas/state/policy-overrides.json` (use Write tool — no dedicated CLI command for policy-overrides).
 7. Confirm to the user:
 
 ```

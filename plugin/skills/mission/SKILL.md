@@ -39,7 +39,7 @@ Example:
 project_root=$(git rev-parse --show-toplevel)   # e.g., /home/user/my-project
 
 # Then in every worktree Agent() prompt, use absolute paths:
-Agent(agent: "{worker}", isolation: "worktree", prompt: "Read /home/user/my-project/.geas/missions/.../packets/... Implement the feature. Write evidence to /home/user/my-project/.geas/missions/.../evidence/...")
+Agent(agent: "{worker}", isolation: "worktree", prompt: "Read /home/user/my-project/.geas/missions/.../packets/... Implement the feature. Write your evidence by running: node /home/user/my-project/plugin/cli/index.js --cwd /home/user/my-project evidence record --mission {mission_id} --task {task-id} --agent {worker} --data '<your-json>'")
 ```
 
 Non-worktree agents (spawned without `isolation: "worktree"`) run in the main session directory where `.geas/` is directly accessible. Their prompts may continue to use relative `.geas/` paths.

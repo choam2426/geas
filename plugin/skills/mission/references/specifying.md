@@ -42,7 +42,7 @@ Bash("geas mission create --id {mission_id}")
 Resolve the design-authority slot via profiles.json. Spawn the resolved agent to review and enrich the design-brief:
 
 ```
-Agent(agent: "{resolved-design-authority}", prompt: "Read the design-brief at .geas/missions/{mission_id}/design-brief.json and the mission spec at .geas/missions/{mission_id}/spec.json. Review the design brief: verify the chosen approach is sound, check for missing risks or concerns, and add any necessary architecture decisions. If the project requires stack-specific rules, add them to .geas/rules.md under a '## Stack Rules' section. Update the design-brief: populate the design_review field with your review summary and any additions you made. Write the updated design-brief back to .geas/missions/{mission_id}/design-brief.json with status: 'reviewing'.")
+Agent(agent: "{resolved-design-authority}", prompt: "Read the design-brief at .geas/missions/{mission_id}/design-brief.json and the mission spec at .geas/missions/{mission_id}/spec.json. Review the design brief: verify the chosen approach is sound, check for missing risks or concerns, and add any necessary architecture decisions. If the project requires stack-specific rules, add them to .geas/rules.md under a '## Stack Rules' section. Update the design-brief: populate the design_review field with your review summary and any additions you made. Write the updated design-brief via CLI. Run: geas mission write-brief --id {mission_id} --data '<updated_design_brief_json>' with status: 'reviewing'.")
 ```
 
 Verify: Read `.geas/missions/{mission_id}/design-brief.json` and confirm `design_review` is populated.
