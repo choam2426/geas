@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { ArrowLeft, Ban, AlertTriangle, XCircle, Pause, ClipboardList } from "lucide-react";
 import type { TaskInfo, DebtInfo } from "../types";
 import TaskCard from "./TaskCard";
@@ -108,6 +109,27 @@ export default function KanbanBoard({
 
     load();
     return () => { cancelled = true; };
+  }, [projectPath, missionId]);
+
+  // Auto-refresh: subscribe to file watcher events
+  useEffect(() => {
+    const unlisten = listen<{ path: string }>("geas://project-changed", async (event) => {
+      if (event.payload.path !== projectPath) return;
+      if (!missionId) return;
+      try {
+        const [taskResult, debtResult] = await Promise.all([
+          invoke<TaskInfo[]>("get_project_tasks", { path: projectPath, mission_id: missionId }),
+          invoke<DebtInfo>("get_project_debt", { path: projectPath, mission_id: missionId }).catch(
+            (): DebtInfo => ({ total: 0, by_severity: { low: 0, normal: 0, high: 0, critical: 0 }, items: [] })
+          ),
+        ]);
+        setTasks(taskResult);
+        setDebt(debtResult);
+      } catch {
+        // Ignore refresh errors — keep existing data visible
+      }
+    });
+    return () => { unlisten.then(fn => fn()); };
   }, [projectPath, missionId]);
 
   const tasksByStatus = new Map<string, TaskInfo[]>();
