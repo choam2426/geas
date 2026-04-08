@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { ArrowLeft, Archive, Clock } from "lucide-react";
+import { ArrowLeft, Archive, Clock, FileText } from "lucide-react";
 import type { MissionSummary } from "../types";
 import PhaseBadge from "./PhaseBadge";
 
@@ -9,6 +9,7 @@ interface MissionHistoryProps {
   projectName: string;
   onSelectMission: (missionId: string) => void;
   onViewTimeline?: (missionId: string) => void;
+  onViewDetail?: (missionId: string) => void;
   onBack: () => void;
 }
 
@@ -28,6 +29,7 @@ export default function MissionHistory({
   projectName,
   onSelectMission,
   onViewTimeline,
+  onViewDetail,
   onBack,
 }: MissionHistoryProps) {
   const [missions, setMissions] = useState<MissionSummary[]>([]);
@@ -168,6 +170,16 @@ export default function MissionHistory({
                       )}
                     </div>
                     <div className="flex items-center gap-2">
+                      {onViewDetail && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onViewDetail(mission.mission_id); }}
+                          className="p-1 rounded hover:bg-bg-elevated transition-colors cursor-pointer"
+                          aria-label="View detail"
+                          title="Detail"
+                        >
+                          <FileText size={14} className="text-text-muted hover:text-text-primary" />
+                        </button>
+                      )}
                       {onViewTimeline && (
                         <button
                           onClick={(e) => { e.stopPropagation(); onViewTimeline(mission.mission_id); }}

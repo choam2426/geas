@@ -9,6 +9,7 @@ import MissionHistory from "./components/MissionHistory";
 import DebtDetailPanel from "./components/DebtDetailPanel";
 import RulesViewer from "./components/RulesViewer";
 import TimelineView from "./components/TimelineView";
+import MissionDetailView from "./components/MissionDetailView";
 import MemoryBrowser from "./components/MemoryBrowser";
 import EmptyState from "./components/EmptyState";
 import ErrorState from "./components/ErrorState";
@@ -218,6 +219,9 @@ function AppInner() {
               onViewTimeline={() => {
                 nav.navigate({ ...nav.current, view: "timeline", selectedMissionId: null });
               }}
+              onViewDetail={(missionId) => {
+                nav.navigate({ ...nav.current, view: "detail", selectedMissionId: missionId });
+              }}
             />
           </div>
         ) : selected && view === "rules" ? (
@@ -236,6 +240,20 @@ function AppInner() {
         ) : selected && view === "timeline" ? (
           <div key={`timeline-${selected.path}-${selectedMissionId ?? ""}`} className="flex flex-1 min-w-0 animate-fade-in">
             <TimelineView
+              projectPath={selected.path}
+              missionId={selectedMissionId}
+              onBack={() => {
+                if (nav.canGoBack) {
+                  nav.goBack();
+                } else {
+                  nav.navigate({ ...nav.current, view: "dashboard", selectedMissionId: null });
+                }
+              }}
+            />
+          </div>
+        ) : selected && view === "detail" && selectedMissionId ? (
+          <div key={`detail-${selected.path}-${selectedMissionId}`} className="flex flex-1 min-w-0 animate-fade-in">
+            <MissionDetailView
               projectPath={selected.path}
               missionId={selectedMissionId}
               onBack={() => {
@@ -277,6 +295,9 @@ function AppInner() {
               }}
               onViewTimeline={(missionId) => {
                 nav.navigate({ ...nav.current, view: "timeline", selectedMissionId: missionId });
+              }}
+              onViewDetail={(missionId) => {
+                nav.navigate({ ...nav.current, view: "detail", selectedMissionId: missionId });
               }}
               onBack={() => {
                 if (nav.canGoBack) {
@@ -337,6 +358,9 @@ function AppInner() {
               }}
               onViewTimeline={() => {
                 nav.navigate({ ...nav.current, view: "timeline", selectedMissionId: null });
+              }}
+              onViewDetail={(missionId) => {
+                nav.navigate({ ...nav.current, view: "detail", selectedMissionId: missionId });
               }}
             />
           </div>

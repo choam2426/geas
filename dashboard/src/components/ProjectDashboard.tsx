@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { MissionSummary, ProjectSummary } from "../types";
-import { Archive, Brain, BookOpen, Clock } from "lucide-react";
+import { Archive, Brain, BookOpen, Clock, FileText } from "lucide-react";
 import PhaseBadge from "./PhaseBadge";
 import ProgressBar from "./ProgressBar";
 
@@ -20,6 +20,7 @@ interface ProjectDashboardProps {
   onViewMemory?: () => void;
   onViewRules?: () => void;
   onViewTimeline?: () => void;
+  onViewDetail?: (missionId: string) => void;
 }
 
 function formatActivity(timestamp: string | null): string {
@@ -50,6 +51,7 @@ export default function ProjectDashboard({
   onViewMemory,
   onViewRules,
   onViewTimeline,
+  onViewDetail,
 }: ProjectDashboardProps) {
   const [missions, setMissions] = useState<MissionSummary[]>([]);
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
@@ -225,6 +227,15 @@ export default function ProjectDashboard({
                 >
                   View Debt
                 </button>
+                {onViewDetail && activeMission && (
+                  <button
+                    onClick={() => onViewDetail(activeMission.mission_id)}
+                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-bg-elevated text-text-secondary text-sm cursor-pointer hover:text-text-primary hover:bg-bg-elevated/80 active:scale-95 transition-all"
+                  >
+                    <FileText size={14} />
+                    Detail
+                  </button>
+                )}
               </div>
             </>
           ) : (
