@@ -11,8 +11,8 @@ use std::io::{BufRead, BufReader};
 
 use crate::models::{
     DebtInfo, DebtItemInfo, DebtRegister, EventEntry, EventsPage, MemoryDetail, MemoryFile,
-    MemorySignalsInfo, MemorySummary, MissionSpec, MissionSummary, ProjectEntry, ProjectSummary,
-    RunState, SeverityRollup, TaskContract, TaskInfo,
+    MemorySignalsInfo, MemorySummary, MissionSpec, MissionSpecDetail, MissionSummary,
+    ProjectEntry, ProjectSummary, RunState, SeverityRollup, TaskContract, TaskInfo,
 };
 
 // ---------------------------------------------------------------------------
@@ -51,6 +51,17 @@ pub(crate) fn read_json_file<T: serde::de::DeserializeOwned>(path: &PathBuf) -> 
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
         Err(e) => Err(format!("Failed to read {}: {e}", path.display())),
     }
+}
+
+/// Validate that a mission_id contains no path traversal characters.
+fn validate_mission_id(mission_id: &str) -> Result<(), String> {
+    if mission_id.is_empty() {
+        return Err("mission_id is required".to_string());
+    }
+    if mission_id.contains('/') || mission_id.contains('\\') || mission_id.contains("..") {
+        return Err(format!("Invalid mission_id: {mission_id}"));
+    }
+    Ok(())
 }
 
 /// Derive a human-friendly project name from the directory path.
@@ -234,9 +245,7 @@ pub fn get_project_summary(path: String) -> Result<ProjectSummary, String> {
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn get_project_tasks(path: String, mission_id: String) -> Result<Vec<TaskInfo>, String> {
-    if mission_id.is_empty() {
-        return Err("mission_id is required".to_string());
-    }
+    validate_mission_id(&mission_id)?;
     let geas = geas_dir(&path)?;
 
     let tasks_dir = geas.join("missions").join(&mission_id).join("tasks");
@@ -245,9 +254,7 @@ pub fn get_project_tasks(path: String, mission_id: String) -> Result<Vec<TaskInf
 
 #[tauri::command(rename_all = "snake_case")]
 pub fn get_project_debt(path: String, mission_id: String) -> Result<DebtInfo, String> {
-    if mission_id.is_empty() {
-        return Err("mission_id is required".to_string());
-    }
+    validate_mission_id(&mission_id)?;
     let geas = geas_dir(&path)?;
 
     let debt_path = geas
@@ -338,7 +345,7 @@ pub fn get_mission_history(path: String) -> Result<Vec<MissionSummary>, String> 
 
         summaries.push(MissionSummary {
             mission_id: dir_name,
-            mission_name: spec.mission,
+            mission_name: spec.mission_name(),
             phase,
             task_total,
             task_completed,
@@ -351,6 +358,37 @@ pub fn get_mission_history(path: String) -> Result<Vec<MissionSummary>, String> 
     summaries.sort_by(|a, b| b.mission_id.cmp(&a.mission_id));
 
     Ok(summaries)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_mission_spec(path: String, mission_id: String) -> Result<MissionSpecDetail, String> {
+    validate_mission_id(&mission_id)?;
+    let geas = geas_dir(&path)?;
+    let spec_path = geas.join("missions").join(&mission_id).join("spec.json");
+    let spec: MissionSpec = read_json_file(&spec_path)?.unwrap_or_default();
+
+    // Call helper methods (borrow &self) before moving fields
+    let mission = spec.mission_name();
+    let scope_in = spec.resolved_scope_in();
+    let scope_out = spec.resolved_scope_out();
+    let constraints = spec.resolved_constraints();
+    let risk_notes = spec.resolved_risk_notes();
+
+    Ok(MissionSpecDetail {
+        mission_id,
+        mission,
+        done_when: spec.done_when,
+        scope_in,
+        scope_out,
+        acceptance_criteria: spec.acceptance_criteria.unwrap_or_default(),
+        constraints,
+        domain_profile: spec.domain_profile,
+        mode: spec.mode,
+        target_user: spec.target_user,
+        risk_notes,
+        assumptions: spec.assumptions.unwrap_or_default(),
+        created_at: spec.created_at,
+    })
 }
 
 // ---------------------------------------------------------------------------

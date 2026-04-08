@@ -64,6 +64,22 @@ export interface MissionSummary {
   created_at: string | null;
 }
 
+export interface MissionSpecDetail {
+  mission_id: string;
+  mission: string | null;
+  done_when: string | null;
+  scope_in: string[];
+  scope_out: string[];
+  acceptance_criteria: string[];
+  constraints: string[];
+  domain_profile: string | null;
+  mode: string | null;
+  target_user: string | null;
+  risk_notes: string[];
+  assumptions: string[];
+  created_at: string | null;
+}
+
 export interface EventEntry {
   event_type: string;
   timestamp: string;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 export interface NavState {
-  view: "dashboard" | "overview" | "kanban" | "history" | "debt" | "rules" | "timeline" | "memory";
+  view: "dashboard" | "overview" | "kanban" | "history" | "debt" | "rules" | "timeline" | "memory" | "detail";
   selectedPath: string | null;
   selectedMissionId: string | null;
 }
