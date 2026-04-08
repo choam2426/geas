@@ -205,17 +205,17 @@ function guardVerifiedToPassed(
 
   // closure-packet.json
   if (!fs.existsSync(path.resolve(taskDir, 'closure-packet.json'))) {
-    missing.push(`tasks/${taskId}/closure-packet.json`);
+    missing.push(`closure-packet.json does not exist for task ${taskId}`);
   }
 
   // final-verdict.json with verdict: "pass"
   const verdictPath = path.resolve(taskDir, 'final-verdict.json');
   const verdict = readJsonFile<Record<string, unknown>>(verdictPath);
   if (!verdict) {
-    missing.push(`tasks/${taskId}/final-verdict.json`);
+    missing.push(`final-verdict.json does not exist for task ${taskId}`);
   } else if (verdict.verdict !== 'pass') {
     missing.push(
-      `tasks/${taskId}/final-verdict.json (verdict must be "pass", got "${verdict.verdict}")`,
+      `final-verdict.json verdict is '${verdict.verdict}', expected 'pass'`,
     );
   }
 
@@ -224,7 +224,7 @@ function guardVerifiedToPassed(
     missing.push(`tasks/${taskId}/retrospective.json`);
   }
 
-  // challenge-review.json — required for normal, high, critical risk
+  // challenge-review.json — required for high, critical risk
   const taskContractPath = path.resolve(
     geasDir, 'missions', missionId, 'tasks', `${taskId}.json`,
   );
@@ -237,7 +237,7 @@ function guardVerifiedToPassed(
   if (requiresChallenge) {
     if (!fs.existsSync(path.resolve(taskDir, 'challenge-review.json'))) {
       missing.push(
-        `tasks/${taskId}/challenge-review.json (required for risk_level "${riskLevel}")`,
+        `challenge-review.json is required for ${riskLevel}-risk task ${taskId}`,
       );
     }
   }

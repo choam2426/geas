@@ -26,7 +26,8 @@ export function registerRecoveryCommands(program: Command): void {
     .action((opts: { data: string }, cmd: Command) => {
       try {
         const data = JSON.parse(opts.data) as Record<string, unknown>;
-        const geasDir = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
 
         const recoveryId = data.recovery_id as string;
         if (!recoveryId) {
@@ -42,7 +43,7 @@ export function registerRecoveryCommands(program: Command): void {
         }
 
         const filePath = path.resolve(geasDir, 'recovery', `${recoveryId}.json`);
-        writeJsonFile(filePath, data);
+        writeJsonFile(filePath, data, { cwd });
 
         success({
           ok: true,

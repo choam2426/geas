@@ -103,7 +103,8 @@ export function registerMissionCommands(program: Command): void {
     .option('--data <json>', 'JSON data (or pipe via stdin)')
     .action((opts: { id: string; data?: string }) => {
       try {
-        const geasDir = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = path.resolve(geasDir, 'missions', opts.id);
 
         if (!fs.existsSync(missionDir)) {
@@ -125,7 +126,7 @@ export function registerMissionCommands(program: Command): void {
         }
 
         const specPath = path.resolve(missionDir, 'spec.json');
-        writeJsonFile(specPath, data);
+        writeJsonFile(specPath, data, { cwd });
 
         success({
           written: normalizePath(specPath),
@@ -150,7 +151,8 @@ export function registerMissionCommands(program: Command): void {
     .option('--data <json>', 'JSON data (or pipe via stdin)')
     .action((opts: { id: string; data?: string }) => {
       try {
-        const geasDir = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = path.resolve(geasDir, 'missions', opts.id);
 
         if (!fs.existsSync(missionDir)) {
@@ -172,7 +174,7 @@ export function registerMissionCommands(program: Command): void {
         }
 
         const briefPath = path.resolve(missionDir, 'design-brief.json');
-        writeJsonFile(briefPath, data);
+        writeJsonFile(briefPath, data, { cwd });
 
         success({
           written: normalizePath(briefPath),

@@ -138,7 +138,8 @@ export function registerDebtCommands(program: Command): void {
           return;
         }
 
-        const geasDir = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = resolveMissionDir(geasDir, opts.mission);
         const regPath = debtRegisterPath(missionDir);
 
@@ -181,7 +182,7 @@ export function registerDebtCommands(program: Command): void {
         register.items.push(newItem);
         recomputeRollups(register);
 
-        atomicWriteJsonFile(regPath, register);
+        atomicWriteJsonFile(regPath, register, { cwd });
 
         success({
           added: true,
@@ -207,7 +208,8 @@ export function registerDebtCommands(program: Command): void {
     .requiredOption('--id <debt-id>', 'Debt item ID (e.g. DEBT-001)')
     .action((opts: { mission: string; id: string }, cmd: Command) => {
       try {
-        const geasDir = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = resolveMissionDir(geasDir, opts.mission);
         const regPath = debtRegisterPath(missionDir);
 
@@ -234,7 +236,7 @@ export function registerDebtCommands(program: Command): void {
         item.status = 'resolved';
         recomputeRollups(register);
 
-        atomicWriteJsonFile(regPath, register);
+        atomicWriteJsonFile(regPath, register, { cwd });
 
         success({
           resolved: true,

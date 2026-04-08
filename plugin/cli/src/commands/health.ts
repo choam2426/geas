@@ -347,7 +347,8 @@ export function registerHealthCommands(program: Command): void {
     .description('Generate health-check.json from current state')
     .action((_opts: unknown, cmd: Command) => {
       try {
-        const geasDir = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
         const ctx = buildContext(geasDir);
 
         const signals = SIGNAL_DEFS.map((def) => {
@@ -388,7 +389,7 @@ export function registerHealthCommands(program: Command): void {
         }
 
         const filePath = path.join(geasDir, 'state', 'health-check.json');
-        writeJsonFile(filePath, healthCheck);
+        writeJsonFile(filePath, healthCheck, { cwd });
 
         success({
           ok: true,

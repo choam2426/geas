@@ -26,7 +26,8 @@ export function registerPhaseCommands(program: Command): void {
     .action((opts: { mission: string; data: string }, cmd: Command) => {
       try {
         const data = JSON.parse(opts.data) as Record<string, unknown>;
-        const geasDir = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         // Validate against phase-review schema
@@ -68,7 +69,7 @@ export function registerPhaseCommands(program: Command): void {
         const filename = `${phase}_${status}_${timestamp}.json`;
 
         const filePath = path.resolve(missionDir, 'phase-reviews', filename);
-        writeJsonFile(filePath, data);
+        writeJsonFile(filePath, data, { cwd });
 
         success({
           ok: true,

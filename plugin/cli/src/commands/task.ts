@@ -86,7 +86,8 @@ export function registerTaskCommands(program: Command): void {
     .option('--data <json>', 'JSON data (or pipe via stdin)')
     .action((opts: { mission: string; data?: string }) => {
       try {
-        const geasDir = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = path.resolve(geasDir, 'missions', opts.mission);
 
         if (!fs.existsSync(missionDir)) {
@@ -126,7 +127,7 @@ export function registerTaskCommands(program: Command): void {
           return;
         }
 
-        writeJsonFile(taskPath, data);
+        writeJsonFile(taskPath, data, { cwd });
 
         success({
           written: normalizePath(taskPath),
@@ -153,7 +154,8 @@ export function registerTaskCommands(program: Command): void {
     .requiredOption('--to <status>', 'Target status')
     .action((opts: { mission: string; id: string; to: string }) => {
       try {
-        const geasDir = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = path.resolve(geasDir, 'missions', opts.mission);
 
         if (!fs.existsSync(missionDir)) {
@@ -226,7 +228,7 @@ export function registerTaskCommands(program: Command): void {
 
         // Apply the transition
         task.status = targetStatus;
-        writeJsonFile(taskPath, task);
+        writeJsonFile(taskPath, task, { cwd });
 
         success({
           task_id: opts.id,
@@ -253,7 +255,8 @@ export function registerTaskCommands(program: Command): void {
     .requiredOption('--id <task-id>', 'Task identifier')
     .action((opts: { mission: string; id: string }) => {
       try {
-        const geasDir = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = path.resolve(geasDir, 'missions', opts.mission);
 
         if (!fs.existsSync(missionDir)) {
@@ -295,7 +298,8 @@ export function registerTaskCommands(program: Command): void {
     .requiredOption('--mission <mission-id>', 'Mission identifier')
     .action((opts: { mission: string }) => {
       try {
-        const geasDir = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = path.resolve(geasDir, 'missions', opts.mission);
 
         if (!fs.existsSync(missionDir)) {
@@ -352,7 +356,8 @@ export function registerTaskCommands(program: Command): void {
     .action((opts: { mission: string; task: string; data?: string }, actionCmd: Command) => {
       try {
         const data = readInputData(opts.data) as Record<string, unknown>;
-        const geasDir = resolveGeasDir(getCwd(actionCmd));
+        const cwd = getCwd(actionCmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         const result = validate('final-verdict', data);
@@ -364,7 +369,7 @@ export function registerTaskCommands(program: Command): void {
         const taskDir = path.resolve(missionDir, 'tasks', opts.task);
         ensureDir(taskDir);
         const filePath = path.resolve(taskDir, 'final-verdict.json');
-        writeJsonFile(filePath, data);
+        writeJsonFile(filePath, data, { cwd });
 
         success({
           written: normalizePath(filePath),
@@ -395,7 +400,8 @@ export function registerTaskCommands(program: Command): void {
     .action((opts: { mission: string; task: string; data?: string }, actionCmd: Command) => {
       try {
         const data = readInputData(opts.data) as Record<string, unknown>;
-        const geasDir = resolveGeasDir(getCwd(actionCmd));
+        const cwd = getCwd(actionCmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         const result = validate('worker-self-check', data);
@@ -407,7 +413,7 @@ export function registerTaskCommands(program: Command): void {
         const taskDir = path.resolve(missionDir, 'tasks', opts.task);
         ensureDir(taskDir);
         const filePath = path.resolve(taskDir, 'worker-self-check.json');
-        writeJsonFile(filePath, data);
+        writeJsonFile(filePath, data, { cwd });
 
         success({
           written: normalizePath(filePath),
@@ -438,7 +444,8 @@ export function registerTaskCommands(program: Command): void {
     .action((opts: { mission: string; task: string; data?: string }, actionCmd: Command) => {
       try {
         const data = readInputData(opts.data) as Record<string, unknown>;
-        const geasDir = resolveGeasDir(getCwd(actionCmd));
+        const cwd = getCwd(actionCmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         const result = validate('closure-packet', data);
@@ -450,7 +457,7 @@ export function registerTaskCommands(program: Command): void {
         const taskDir = path.resolve(missionDir, 'tasks', opts.task);
         ensureDir(taskDir);
         const filePath = path.resolve(taskDir, 'closure-packet.json');
-        writeJsonFile(filePath, data);
+        writeJsonFile(filePath, data, { cwd });
 
         success({
           written: normalizePath(filePath),
@@ -481,7 +488,8 @@ export function registerTaskCommands(program: Command): void {
     .action((opts: { mission: string; task: string; data?: string }, actionCmd: Command) => {
       try {
         const data = readInputData(opts.data) as Record<string, unknown>;
-        const geasDir = resolveGeasDir(getCwd(actionCmd));
+        const cwd = getCwd(actionCmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         const result = validate('implementation-contract', data);
@@ -493,7 +501,7 @@ export function registerTaskCommands(program: Command): void {
         const contractsDir = path.resolve(missionDir, 'contracts');
         ensureDir(contractsDir);
         const filePath = path.resolve(contractsDir, `${opts.task}.json`);
-        writeJsonFile(filePath, data);
+        writeJsonFile(filePath, data, { cwd });
 
         success({
           written: normalizePath(filePath),

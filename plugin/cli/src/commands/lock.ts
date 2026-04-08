@@ -88,7 +88,8 @@ export function registerLockCommands(program: Command): void {
         session?: string;
       }) => {
         try {
-          const geas = resolveGeasDir(getCwd(cmd));
+          const cwd = getCwd(cmd);
+          const geas = resolveGeasDir(cwd);
           const filePath = locksJsonPath(geas);
           const manifest = readLocks(geas);
           const now = new Date()
@@ -148,7 +149,7 @@ export function registerLockCommands(program: Command): void {
           }
 
           manifest.locks.push(newLock);
-          atomicWriteJsonFile(filePath, manifest);
+          atomicWriteJsonFile(filePath, manifest, { cwd });
 
           success({
             acquired: conflicts.length === 0,
@@ -176,7 +177,8 @@ export function registerLockCommands(program: Command): void {
     .requiredOption('--task <id>', 'Task ID whose locks to release')
     .action((opts: { task: string }) => {
       try {
-        const geas = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geas = resolveGeasDir(cwd);
         const filePath = locksJsonPath(geas);
         const manifest = readLocks(geas);
 
@@ -205,7 +207,7 @@ export function registerLockCommands(program: Command): void {
           }
         }
 
-        atomicWriteJsonFile(filePath, manifest);
+        atomicWriteJsonFile(filePath, manifest, { cwd });
         success({ released, task_id: opts.task });
       } catch (err: unknown) {
         const e = err as NodeJS.ErrnoException;
@@ -246,7 +248,8 @@ export function registerLockCommands(program: Command): void {
     .requiredOption('--session <id>', 'Current valid session ID')
     .action((opts: { session: string }) => {
       try {
-        const geas = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geas = resolveGeasDir(cwd);
         const filePath = locksJsonPath(geas);
         const manifest = readLocks(geas);
 
@@ -257,7 +260,7 @@ export function registerLockCommands(program: Command): void {
         );
         const removed = before - manifest.locks.length;
 
-        atomicWriteJsonFile(filePath, manifest);
+        atomicWriteJsonFile(filePath, manifest, { cwd });
         success({ cleaned: removed, remaining: manifest.locks.length });
       } catch (err: unknown) {
         const e = err as NodeJS.ErrnoException;
