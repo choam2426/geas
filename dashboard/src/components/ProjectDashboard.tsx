@@ -5,6 +5,7 @@ import type { MissionSummary, ProjectSummary } from "../types";
 import { Archive, Brain, BookOpen, Clock, FileText } from "lucide-react";
 import PhaseBadge from "./PhaseBadge";
 import ProgressBar from "./ProgressBar";
+import { formatDate } from "../utils/dates";
 
 /** Normalize a path for cross-platform comparison */
 function normalizePath(p: string): string {
@@ -315,6 +316,10 @@ export default function ProjectDashboard({
                       mission.is_active
                         ? "bg-bg-surface border-l-2 border-l-accent"
                         : "bg-transparent"
+                    } ${
+                      mission.task_total > 0 && mission.task_completed === mission.task_total && !mission.is_active
+                        ? "opacity-60"
+                        : ""
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -340,6 +345,9 @@ export default function ProjectDashboard({
                           />
                         </div>
                       )}
+                      <span className="text-xs text-text-muted">
+                        {formatDate(mission.created_at)}
+                      </span>
                     </div>
                   </button>
                 );

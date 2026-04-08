@@ -52,6 +52,20 @@ pub fn start_watching(app_handle: AppHandle, paths: &[String]) -> Mutex<WatcherS
     // Store previous RunState per project root for toast classification.
     let prev_states: std::sync::Arc<Mutex<HashMap<PathBuf, RunState>>> =
         std::sync::Arc::new(Mutex::new(HashMap::new()));
+
+    // Seed prev_states with current run.json for each project so that
+    // the first file-change event can produce a meaningful delta.
+    {
+        let mut map = prev_states.lock().expect("Failed to lock prev_states for seeding");
+        for project_path in paths {
+            let root = PathBuf::from(project_path);
+            let run_path = root.join(".geas").join("state").join("run.json");
+            if let Ok(Some(rs)) = read_json_file::<RunState>(&run_path) {
+                map.insert(root, rs);
+            }
+        }
+    }
+
     let prev_states_clone = prev_states.clone();
 
     let mut debouncer = new_debouncer(Duration::from_millis(500), move |res| {

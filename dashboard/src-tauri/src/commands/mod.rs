@@ -354,8 +354,20 @@ pub fn get_mission_history(path: String) -> Result<Vec<MissionSummary>, String> 
         });
     }
 
-    // Sort by mission_id descending (latest first)
-    summaries.sort_by(|a, b| b.mission_id.cmp(&a.mission_id));
+    // Sort: active missions first, then by created_at descending, null last, fallback mission_id
+    summaries.sort_by(|a, b| {
+        // 1. Active missions first
+        b.is_active.cmp(&a.is_active)
+            // 2. By created_at descending, None last
+            .then_with(|| match (&b.created_at, &a.created_at) {
+                (Some(b_date), Some(a_date)) => b_date.cmp(a_date),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => std::cmp::Ordering::Equal,
+            })
+            // 3. Fallback: mission_id descending
+            .then_with(|| b.mission_id.cmp(&a.mission_id))
+    });
 
     Ok(summaries)
 }
