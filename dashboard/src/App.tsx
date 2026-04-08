@@ -111,7 +111,7 @@ function App() {
 
       <main className="flex flex-1 min-w-0 overflow-hidden">
         {backendError && !loading ? (
-          <div className="flex flex-1 items-center justify-center animate-fade-in">
+          <div className="flex flex-1 min-w-0 items-center justify-center animate-fade-in">
             <div className="text-center max-w-md">
               <p className="text-status-red text-lg font-semibold mb-2">Backend Error</p>
               <p className="text-text-secondary text-sm mb-4">{backendError}</p>
@@ -121,7 +121,7 @@ function App() {
         ) : projects.length === 0 && !loading ? (
           <EmptyState onAddProject={() => setShowAddDialog(true)} />
         ) : selected && (selected.status === "no_geas" || selected.status === "error") ? (
-          <div key={`error-${selected.path}`} className="flex flex-1 animate-fade-in">
+          <div key={`error-${selected.path}`} className="flex flex-1 min-w-0 animate-fade-in">
             <ErrorState
               status={selected.status}
               projectName={selected.name}
@@ -129,7 +129,7 @@ function App() {
             />
           </div>
         ) : selected && view === "dashboard" ? (
-          <div key={`dashboard-${selected.path}`} className="flex flex-1 animate-fade-in">
+          <div key={`dashboard-${selected.path}`} className="flex flex-1 min-w-0 animate-fade-in">
             <ProjectDashboard
               projectPath={selected.path}
               projectName={selected.name}
@@ -148,7 +148,7 @@ function App() {
             />
           </div>
         ) : selected && view === "kanban" ? (
-          <div key={`kanban-${selected.path}-${selectedMissionId ?? ""}`} className="flex flex-1 animate-fade-in">
+          <div key={`kanban-${selected.path}-${selectedMissionId ?? ""}`} className="flex flex-1 min-w-0 animate-fade-in">
             <KanbanBoard
               projectPath={selected.path}
               projectName={selected.mission_name ?? selected.name}
@@ -169,7 +169,7 @@ function App() {
             />
           </div>
         ) : selected && view === "history" ? (
-          <div key={`history-${selected.path}`} className="flex flex-1 animate-fade-in">
+          <div key={`history-${selected.path}`} className="flex flex-1 min-w-0 animate-fade-in">
             <MissionHistory
               projectPath={selected.path}
               projectName={selected.name}
@@ -181,7 +181,7 @@ function App() {
             />
           </div>
         ) : selected && view === "debt" ? (
-          <div key={`debt-${selected.path}`} className="flex flex-1 animate-fade-in">
+          <div key={`debt-${selected.path}`} className="flex flex-1 min-w-0 animate-fade-in">
             <DebtDetailPanel
               projectPath={selected.path}
               projectName={selected.mission_name ?? selected.name}
@@ -190,7 +190,7 @@ function App() {
             />
           </div>
         ) : selected ? (
-          <div key={`dashboard-fallback-${selected.path}`} className="flex flex-1 animate-fade-in">
+          <div key={`dashboard-fallback-${selected.path}`} className="flex flex-1 min-w-0 animate-fade-in">
             <ProjectDashboard
               projectPath={selected.path}
               projectName={selected.name}
