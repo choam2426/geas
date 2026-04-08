@@ -1,4 +1,4 @@
-# 12. Enforcement, Conformance, and Metrics
+# 10. Enforcement, Conformance, and Metrics
 
 > **Normative document.**
 > This document defines enforcement points, allowed and forbidden hook behavior, conformance scenarios, observability expectations, health signals, and mandatory corrective responses.
@@ -124,14 +124,6 @@ The following scenarios define what SHOULD happen when specific protocol violati
 | stub cap check omitted when placeholders are present | blocked |
 | required eval evidence missing on agentic-control changes where mission mode or risk level requires it | blocked |
 
-### Memory evolution
-
-| scenario | expected response |
-|---|---|
-| direct promotion from weak anecdote to stable memory | blocked |
-| superseded memory reused as active normative context | warning, then blocked on repeated occurrence |
-| harmful reuse threshold exceeded without `under_review` transition | conformance failure |
-
 ### Evolution loop
 
 | scenario | expected response |
@@ -205,9 +197,8 @@ Measures whether the protocol is improving itself over time.
 
 | metric | what it tracks |
 |---|---|
-| memory promotion count | memories promoted to higher lifecycle states |
-| successful memory reuse count | memories applied with positive outcome |
-| harmful memory reuse count | memories applied with negative outcome |
+| rules.md update count | new or updated rules from retrospectives |
+| agent memory update count | agent memory notes added or updated |
 | rules-update count | new or modified rules in the period |
 | debt introduced vs resolved | balance of new debt against resolved debt |
 
@@ -325,12 +316,12 @@ The CLI enforces protocol rules at two points:
 
 | Transition | Required Artifacts |
 |---|---|
-| drafted → ready | Task contract metadata complete (task_kind, risk_level, gate_profile, vote_round_policy, rubric, base_snapshot) |
-| ready → implementing | Implementation contract (status: approved) |
-| implementing → reviewed | Worker self-check + reviewer evidence |
-| reviewed → integrated | Integration result |
-| integrated → verified | Gate result (verdict: pass) |
-| verified → passed | Closure packet + final verdict (pass) + challenge review (normal/high/critical risk) + retrospective |
+| drafted → ready | `contract.json` exists |
+| ready → implementing | `record.json` `implementation_contract` section (approved) |
+| implementing → reviewed | `record.json` `self_check` section + `evidence/` from implementer |
+| reviewed → integrated | `record.json` `gate_result` section (pass) + `evidence/` from reviewer or tester |
+| integrated → verified | gate result verdict is pass |
+| verified → passed | `record.json` `verdict` section (pass) + `closure` section + retrospective + `challenge_review` section (high/critical risk) |
 
 Missing artifacts produce exit code 1 with a `missing_artifacts` array.
 
@@ -340,10 +331,9 @@ Missing artifacts produce exit code 1 with a `missing_artifacts` array.
 
 | Transition | Gate Criteria |
 |---|---|
-| specifying → building | Mission spec + approved design brief + compiled tasks |
-| building → polishing | All tasks passed/cancelled + no critical debt + high debt mitigated |
-| polishing → evolving | No open critical/high security issues |
-| evolving → complete | Gap assessment + rules update + mission summary |
+| building → polishing | All tasks passed |
+| polishing → evolving | Security review or debt record |
+| evolving → complete | Gap assessment or mission summary |
 
 Unmet criteria produce exit code 1 with an `unmet_criteria` array.
 

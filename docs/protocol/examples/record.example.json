@@ -1,0 +1,52 @@
+{
+  "version": "1.0",
+  "task_id": "task-001",
+
+  "implementation_contract": {
+    "planned_actions": [
+      "Add bundle targets to tauri.conf.json",
+      "Run cargo tauri build to verify"
+    ],
+    "edge_cases": ["Missing WiX toolset on Windows"],
+    "status": "approved"
+  },
+
+  "self_check": {
+    "confidence": 4,
+    "known_risks": ["Cross-platform targets untested on single OS"],
+    "untested_paths": ["macOS dmg build on Windows host"],
+    "summary": "Build succeeded, MSI and NSIS installers verified"
+  },
+
+  "gate_result": {
+    "verdict": "pass",
+    "tier_results": {
+      "tier_0": { "status": "pass", "details": "Contract exists, all fields present" },
+      "tier_1": { "status": "pass", "details": "cargo check passes, build output verified" },
+      "tier_2": { "status": "pass" }
+    },
+    "rubric_scores": [
+      { "dimension": "core_interaction", "score": 5, "threshold": 3, "passed": true },
+      { "dimension": "feature_completeness", "score": 5, "threshold": 4, "passed": true }
+    ]
+  },
+
+  "verdict": {
+    "verdict": "pass",
+    "rationale": "All acceptance criteria met. Single-line config change with verified build output."
+  },
+
+  "closure": {
+    "change_summary": "Added bundle targets to tauri.conf.json for cross-platform installers",
+    "reviews": [
+      { "reviewer_type": "design-authority", "status": "approved", "summary": "Minimal, correct change" },
+      { "reviewer_type": "qa-engineer", "status": "approved", "summary": "Build verified" }
+    ]
+  },
+
+  "retrospective": {
+    "what_went_well": ["Single-pass implementation, no iteration needed"],
+    "what_broke": [],
+    "memory_candidates": ["Tauri 2 uses targets array, not per-platform objects"]
+  }
+}

@@ -1,4 +1,4 @@
-# 13. Evolution, Debt, and Gap Loop
+# 11. Evolution, Debt, and Gap Loop
 
 > **Normative document.**
 > This document defines the retrospective loop, debt model, gap assessment, and mission-to-mission learning mechanisms that make Geas accumulate operational competence over time.
@@ -202,7 +202,7 @@ The evolving phase exists to consolidate what the mission learned. It is the fin
 
 Typical evolving work includes:
 
-- memory promotion and review
+- memory extraction to rules.md and agent notes
 - rules updates
 - debt rollup
 - gap analysis
@@ -239,7 +239,7 @@ Evolution outputs SHOULD influence the next mission through:
 
 - task templates
 - rules
-- memory packets
+- rules.md and agent memory
 - debt priorities
 - reviewer focus
 

@@ -46,12 +46,10 @@ Gate verdicts: `pass | fail | block | error`. `iterate` is Final Verdict only.
 ```
 plugin/
 ├── plugin.json              # Claude plugin manifest
-├── skills/                  # 15 skills (13 core + 2 utility)
+├── skills/                  # 12 core skills
 │   ├── mission/             # Geas orchestrator
 │   ├── intake/              # Requirements gathering
-│   ├── ...                  # (13 core contract engine skills)
-│   ├── write-prd/           # SW utility
-│   └── write-stories/       # SW utility
+│   └── ...                  # (12 core contract engine skills)
 └── agents/
     ├── authority/           # 3 spawnable authority agents
     ├── software/            # 5 software domain specialists
@@ -59,9 +57,9 @@ plugin/
 
 docs/
 ├── protocol/                # Operating protocol (English, canonical)
-│   ├── 00-13 .md             # 14 protocol documents
-│   ├── schemas/             # 30 JSON Schema (draft 2020-12)
-│   └── examples/            # 16 example files
+│   ├── 00-11 .md             # 12 protocol documents
+│   ├── schemas/             # 18 JSON Schema (draft 2020-12)
+│   └── examples/            # 7 example files
 ├── architecture/DESIGN.md   # Architecture overview
 └── reference/               # SKILLS.md, HOOKS.md
 
@@ -72,16 +70,15 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 - `mission/` — Geas orchestrator: startup, recovery, 4-phase mission, slot resolution via domain profiles
 - `intake/` — Socratic requirements gathering → mission spec with domain_profile selection
 - `task-compiler/` — mission spec + design-brief → TaskContracts with classification, rubric, routing
-- `context-packet/` — role-specific briefings with memory retrieval, conventions injection
 - `implementation-contract/` — pre-implementation agreement between worker and reviewers
 - `evidence-gate/` — Tier 0/1/2 verification (pass/fail/block/error)
 - `verify-fix-loop/` — fail → fix → re-verify with retry budget
 - `vote-round/` — structured agent voting, decisions, and pivot handling
-- `memorizing/` — memory lifecycle: candidate extraction, promotion, review, application logging
+- `memorizing/` — memory lifecycle: 2-state (draft/active), entries + agent notes
 - `scheduling/` — parallel task scheduling: batch construction, lock checks, safe conditions
-- `setup/` — project initialization, codebase discovery, conventions detection
+- `setup/` — project initialization, codebase discovery, rules.md creation
 - `policy-managing/` — rules.md override management
-- `reporting/` — health signals, status briefing, session summary, debt/gap dashboard
+- `reporting/` — health signals, status briefing, debt/gap dashboard
 
 ### Mission references
 - `mission/references/specifying.md` — Specifying phase procedure
@@ -90,17 +87,13 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 - `mission/references/polishing.md` — Polishing phase procedure
 - `mission/references/evolving.md` — Evolving phase procedure
 
-### Utility skills (domain-specific)
-- `write-prd/` — PRD generation
-- `write-stories/` — user story generation
-
 ## Key Design Principles
 
 1. **Contract Engine is tool-agnostic** — core skills must not reference any specific tool.
 2. **Agents are templates, not identity** — the 14-agent team is one configuration. The contract engine works with any agent setup.
 3. **Collaboration surface is an adapter** — don't hardcode surface assumptions into core skills.
 4. **Evidence over declaration** — "agent says done" is never enough. Evidence Gate must verify.
-5. **Memory is a behavior-change mechanism** — memory must alter future actions through rules.md, context packets, gate strictness, and scheduling caution.
+5. **Memory is a behavior-change mechanism** — memory must alter future actions through rules.md and agent memory notes.
 6. **Protocol is north star** — skills are upgraded to match the protocol, not the other way around.
 
 ## Agent Name Rule
@@ -111,24 +104,29 @@ Protocol docs (`docs/protocol/`, `docs/ko/protocol/`), core skills, and agent fi
 
 Skills run inside a plugin runtime. At execution time, agents can ONLY access:
 - Files in the user's project directory (`.geas/`, source code, etc.)
-- The skill's own directory (SKILL.md, schemas/, references/)
+- The skill's own directory (SKILL.md, references/)
 - Other plugin skills (via `/geas:<name>` invocation)
 
 Agents CANNOT access `docs/protocol/`, `docs/architecture/`, or any file outside `plugin/` at runtime. When writing skills:
-- **DO NOT** reference `docs/protocol/schemas/` — use local `schemas/` in the skill directory
+- **DO NOT** reference `docs/protocol/schemas/` — the CLI is the single schema source
 - **DO NOT** reference `docs/protocol/*.md` — inline the protocol requirements in the skill text
-- **DO** put schemas each skill needs in that skill's `schemas/` directory
-- **DO** inline required artifact fields in Agent() prompts (spawned agents can't read schema files)
+- **DO** use CLI commands for all .geas/ writes — CLI generates structure from schemas
+- **DO** define evidence/memory rules in agent.md, not in Agent() prompts
 
-The `docs/protocol/schemas/` directory is the canonical reference for developers and validation tools. Skill-local `schemas/` copies are the operational copies for runtime use.
+The `docs/protocol/schemas/` directory is the canonical reference for developers and validation tools. The CLI (`plugin/cli/`) is the operational schema enforcement layer.
 
 ## .geas/ CLI-Only Manipulation Rule
 
-All `.geas/` runtime state files (JSON, JSONL, markdown) must be read and written through the `geas` CLI tool (`plugin/cli/`), not through direct Read/Write/Edit tool calls. The CLI auto-manages timestamps (`created_at`, `updated_at`, `timestamp`) and enforces schema validation.
+All `.geas/` runtime state files (JSON, JSONL, markdown) must be read and written through the `geas` CLI tool (`plugin/cli/`), not through direct Read/Write/Edit tool calls. The CLI auto-manages timestamps and enforces schema validation. **Zero exceptions for writes.**
 
-**Exceptions**:
-- Sub-agents spawned with `isolation: "worktree"` or without CLI access may use Read/Write tools directly. The PostToolUse hook handles timestamp injection for these cases.
-- Reading `.geas/` files for context (e.g., checking if a file exists, reading state for decisions) is allowed via Read tool.
+Key CLI commands:
+- `geas task record add --section {name}` — add section to record.json (execution record)
+- `geas evidence add --role {role}` — create role-based evidence file
+- `geas task transition --to {state}` — transition with guard validation
+- `geas event log` — append to events.jsonl
+- `geas memory agent-note --agent {name}` — update agent memory
+
+Reading `.geas/` files for context (e.g., checking state for decisions) is allowed via Read tool.
 
 ## Tool-Agnostic Rules
 
@@ -136,7 +134,7 @@ Core skills (`plugin/skills/`) MUST NOT hardcode specific tools, frameworks, or 
 
 **Forbidden**: package manager names, framework names, database names, test tool names, build tool names as defaults.
 
-**Allowed**: `.geas/memory/_project/conventions.md` references, marker file detection (package.json, go.mod), multiple-alternative examples.
+**Allowed**: `.geas/rules.md` references, marker file detection (package.json, go.mod), multiple-alternative examples.
 
 ## Language
 
@@ -153,20 +151,27 @@ All files must be written in English, except `docs/ko/` and `README.ko.md`.
 
 ## Protocol Migration
 
-v3 protocol migration (6 phases) is complete. Domain-agnostic restructure is in progress.
+v3 → v4 migration is in progress. v3 and domain-agnostic restructure are complete.
+
+### v4 optimization (in progress)
+
+- record.json: per-task artifacts consolidated from 9 files to 1 (sections accumulated via CLI)
+- Role-based evidence: `evidence/{agent}.json` with implementer/reviewer/tester/authority roles
+- Memory simplified: 9-state → 2-state (draft/active), 6 schemas → 1, 7 directories → 2
+- Protocol docs: 14 → 12 (memory docs 08+09 merged into 07)
+- Transition guards: 6 per-task + 3 phase guards (mechanical enforcement)
+- CLI-only writes: zero exceptions, CLI generates artifact structure from schemas
+- Agent self-management: evidence + memory rules in agent.md, not per-prompt
+- Deleted: context-packet skill, write-prd, write-stories, agent-telemetry.sh, memory-promotion-gate.sh, memory-superseded-warning.sh
+- Unified: conventions.md + rules.md → rules.md, costs.jsonl + events.jsonl → events.jsonl
 
 ### v3 migration (complete)
 
-- **Phase 1**: 7-state task model, worker self-check, gate/verdict separation, closure packet, challenger review, debate→decision rename
-- **Phase 2**: revalidation-record/lock-manifest schemas, staleness detection, lock lifecycle, safe parallel conditions, compass→mission + parallel-dispatch→scheduling renames
-- **Phase 3**: structured retrospective, rules-update workflow, debt-register.json, gap-assessment.json, phase-review wiring, Evolving exit gate
-- **Phase 4**: memorizing skill (9-state lifecycle, 6-stage promotion), memory retrieval scoring in context-packet, application logging, memory-index, memory hooks
-- **Phase 5**: recovery-packet schema, extended run-state, recovery decision table, session-latest.md + task-focus maintenance, two-phase checkpoint hooks
-- **Phase 6**: conformance-checking, chaos-exercising, policy-managing, reporting (health signals), memory review cadence hook
+6 phases delivered: 7-state task model, gate/verdict separation, structured retrospective, 9-state memory lifecycle, recovery protocol, conformance checking.
 
 ### Domain-agnostic restructure (complete)
 
-Plugin restructured: agents split into authority/ (3) + software/ (5) + research/ (6), skills consolidated to 15 (flat structure). Slot-based agent routing via domain profiles replaces hardcoded agent references. orchestrating renamed to mission. Hooks cleaned up (19 → 16). All docs updated.
+Agents split into authority/ (3) + software/ (5) + research/ (6), skills consolidated to flat structure. Slot-based agent routing via domain profiles.
 
 ### Working with skills
 
@@ -183,17 +188,15 @@ Plugin restructured: agents split into authority/ (3) + software/ (5) + research
 | Design principles, 4 Pillars, terminology | `protocol/00` |
 | Agent types, authority, routing | `protocol/01` |
 | Mission phases, mission model | `protocol/02` |
-| Task states, transitions, self-check | `protocol/03` |
+| Task states, transitions, record.json | `protocol/03` |
 | Workspace, locks, parallelism | `protocol/04` |
 | Gate, vote, closure, verdict | `protocol/05` |
 | Specialist evidence matrix | `protocol/06` |
-| Memory system overview | `protocol/07` |
-| Memory lifecycle, promotion | `protocol/08` |
-| Memory retrieval, context engine | `protocol/09` |
-| Session recovery | `protocol/10` |
-| Runtime artifacts, schemas | `protocol/11` |
-| Enforcement, metrics | `protocol/12` |
-| Evolution, debt, gap loop | `protocol/13` |
+| Memory system (lifecycle + retrieval) | `protocol/07` |
+| Session recovery | `protocol/08` |
+| Runtime artifacts, schemas, directory structure | `protocol/09` |
+| Enforcement, transition guards, metrics | `protocol/10` |
+| Evolution, debt, gap loop | `protocol/11` |
 
 ## When editing skills or agents
 

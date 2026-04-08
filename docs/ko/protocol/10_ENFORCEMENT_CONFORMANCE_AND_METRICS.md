@@ -1,4 +1,4 @@
-# 12. Enforcement, Conformance, and Metrics
+# 10. Enforcement, Conformance, and Metrics
 
 > **기준 문서.**
 > 이 문서는 enforcement point, hook의 허용/금지 행위, conformance 시나리오, observability 기대 수준, health signal, 필수 corrective response를 정의한다.
@@ -124,14 +124,6 @@ Conformance class는 관련 프로토콜 기대치를 그룹화하여, 프로젝
 | placeholder 존재 시 stub cap check 누락 | blocked |
 | mission mode 또는 risk level이 요구하는 agentic-control 변경 건에서 필수 eval evidence 누락 | blocked |
 
-### Memory evolution
-
-| 시나리오 | 기대 응답 |
-|---|---|
-| weak anecdote에서 stable memory로 직접 승격 | blocked |
-| superseded memory를 active normative context로 재사용 | warning, 반복 시 blocked |
-| harmful reuse threshold 초과인데 `under_review` 전환 없음 | conformance failure |
-
 ### Evolution loop
 
 | 시나리오 | 기대 응답 |
@@ -205,9 +197,8 @@ Conformance class는 관련 프로토콜 기대치를 그룹화하여, 프로젝
 
 | metric | 추적 대상 |
 |---|---|
-| memory promotion count | 상위 lifecycle 상태로 승격된 memory 수 |
-| successful memory reuse count | 긍정적 결과로 적용된 memory 수 |
-| harmful memory reuse count | 부정적 결과로 적용된 memory 수 |
+| rules.md update count | retrospective에서 반영된 신규 또는 수정 rule 수 |
+| agent memory update count | 추가 또는 수정된 agent memory 노트 수 |
 | rules-update count | 해당 기간의 신규 또는 수정된 rule 수 |
 | debt introduced vs resolved | 신규 debt와 해결된 debt의 균형 |
 
@@ -325,12 +316,12 @@ CLI는 두 지점에서 프로토콜 규칙을 강제한다:
 
 | 전환 | 필수 Artifact |
 |---|---|
-| drafted → ready | Task contract 메타데이터 완비 (task_kind, risk_level, gate_profile, vote_round_policy, rubric, base_snapshot) |
-| ready → implementing | Implementation contract (status: approved) |
-| implementing → reviewed | Worker self-check + reviewer evidence |
-| reviewed → integrated | Integration result |
-| integrated → verified | Gate result (verdict: pass) |
-| verified → passed | Closure packet + final verdict (pass) + challenge review (normal/high/critical risk) + retrospective |
+| drafted → ready | `contract.json` 존재 |
+| ready → implementing | `record.json` `implementation_contract` 섹션 (approved) |
+| implementing → reviewed | `record.json` `self_check` 섹션 + implementer의 `evidence/` |
+| reviewed → integrated | `record.json` `gate_result` 섹션 (pass) + reviewer 또는 tester의 `evidence/` |
+| integrated → verified | gate result verdict가 pass |
+| verified → passed | `record.json` `verdict` 섹션 (pass) + `closure` 섹션 + retrospective + `challenge_review` 섹션 (high/critical risk) |
 
 필수 artifact가 누락되면 exit code 1과 함께 `missing_artifacts` 배열을 반환한다.
 
@@ -340,13 +331,12 @@ CLI는 두 지점에서 프로토콜 규칙을 강제한다:
 
 | 전환 | Gate 기준 |
 |---|---|
-| specifying → building | Mission spec + 승인된 design brief + 컴파일된 task |
-| building → polishing | 모든 task가 passed/cancelled + critical debt 없음 + high debt 완화 |
-| polishing → evolving | 미해결 critical/high 보안 이슈 없음 |
-| evolving → complete | Gap assessment + rules update + mission summary |
+| building → polishing | 모든 task가 passed |
+| polishing → evolving | Security review 또는 debt record |
+| evolving → complete | Gap assessment 또는 mission summary |
 
 미충족 기준이 있으면 exit code 1과 함께 `unmet_criteria` 배열을 반환한다.
 
-## 핵심 원칙
+## 핵심 선언
 
 Enforcement는 프로토콜과 구전의 차이다. Geas가 유효하지 않은 진행을 차단할 수 없다면, 더 이상 워크플로우를 통치하고 있는 것이 아니다.

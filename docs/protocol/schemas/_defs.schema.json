@@ -3,134 +3,10 @@
   "$id": "_defs.schema.json",
   "title": "GEAS Shared Definitions",
   "$defs": {
-    "commonMeta": {
-      "type": "object",
-      "properties": {
-        "version": {
-          "type": "string",
-          "minLength": 1
-        },
-        "artifact_type": {
-          "type": "string",
-          "minLength": 1
-        },
-        "artifact_id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "producer_type": {
-          "type": "string",
-          "minLength": 1
-        },
-        "created_at": {
-          "$ref": "#/$defs/isoUtcTimestamp"
-        },
-        "updated_at": {
-          "$ref": "#/$defs/isoUtcTimestamp"
-        }
-      },
-      "required": [
-        "version",
-        "artifact_type",
-        "artifact_id",
-        "producer_type",
-        "created_at"
-      ],
-      "additionalProperties": false
-    },
-    "memoryType": {
-      "type": "string",
-      "enum": [
-        "project_rule",
-        "agent_rule",
-        "decision_precedent",
-        "failure_lesson",
-        "security_pattern",
-        "performance_tip",
-        "test_strategy",
-        "integration_pattern",
-        "ux_pattern",
-        "architecture_precedent",
-        "process_improvement",
-        "risk_pattern"
-      ]
-    },
-    "memoryState": {
-      "type": "string",
-      "enum": [
-        "candidate",
-        "provisional",
-        "stable",
-        "canonical",
-        "under_review",
-        "decayed",
-        "superseded",
-        "archived",
-        "rejected"
-      ]
-    },
-    "memoryScope": {
-      "type": "string",
-      "enum": [
-        "task",
-        "mission",
-        "project",
-        "agent",
-        "global"
-      ]
-    },
-    "memorySignals": {
-      "type": "object",
-      "properties": {
-        "evidence_count": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "reuse_count": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Total reuses (successful_reuses + failed_reuses). Maintained for backward compatibility."
-        },
-        "successful_reuses": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "failed_reuses": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "contradiction_count": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "confidence": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1
-        }
-      },
-      "required": [
-        "evidence_count",
-        "reuse_count",
-        "successful_reuses",
-        "failed_reuses",
-        "contradiction_count",
-        "confidence"
-      ],
-      "additionalProperties": false
-    },
     "isoUtcTimestamp": {
       "type": "string",
       "format": "date-time",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
-    },
-    "nonEmptyStringArray": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "minItems": 1
     },
     "agentType": {
       "type": "string",
@@ -150,16 +26,6 @@
         "research_integrity_reviewer",
         "research_engineer",
         "research_writer"
-      ]
-    },
-    "effectKind": {
-      "type": "string",
-      "enum": [
-        "positive",
-        "negative",
-        "neutral",
-        "neutral_but_risky",
-        "unknown"
       ]
     }
   }

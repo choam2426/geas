@@ -1,4 +1,4 @@
-# 11. Runtime Artifacts and Schemas
+# 09. Runtime Artifacts and Schemas
 
 > **Normative document.**
 > This document summarizes the canonical runtime artifact families, their contract philosophy, versioning expectations, and validation failure handling.
@@ -40,59 +40,72 @@ Artifacts produced during the Specifying phase, when the mission is being define
 
 ### Per-task pipeline artifacts
 
-Artifacts produced during the per-task execution pipeline as a task moves through its lifecycle states.
+Each task produces three artifact groups under `tasks/{tid}/`:
 
-| artifact | description |
-|---|---|
-| task contract | defines what the task must accomplish, its classification, and acceptance criteria |
-| implementation contract | pre-implementation agreement between worker and reviewers on approach |
-| worker self-check | the worker's own assessment that implementation meets the contract |
-| specialist review | review by a specialist agent (Quality Specialist, Risk Specialist, etc.) |
-| integration result | outcome of integrating the task's changes into the baseline |
-| gate result | evidence gate verdict with tier-level pass/fail details |
-| vote-round result | structured deliberation outcome when triggered |
-| challenge review | Challenger assessment for high/critical risk tasks |
-| closure packet | assembled evidence bundle for final verdict |
-| final verdict | Decision Maker's pass/iterate/escalate decision |
-| failure record | captures what went wrong when a step fails (created as needed) |
+| artifact | file | description |
+|---|---|---|
+| task contract | `contract.json` | defines what the task must accomplish, its classification, and acceptance criteria |
+| context packets | `packets/{agent}.md` | role-specific briefings delivered to agents before work begins |
+| execution record | `record.json` | single file accumulating all pipeline step outputs (see below) |
+| evidence files | `evidence/{agent}.json` | role-based agent deliverables (implementer, reviewer, tester, authority) |
+| failure record | (inline or separate) | captures what went wrong when a step fails (created as needed) |
+
+#### record.json sections
+
+The execution record accumulates sections as the pipeline progresses. Each section is added via CLI (`geas task record add --section {name}`). Duplicate adds overwrite.
+
+| section | added at step | key fields |
+|---|---|---|
+| `implementation_contract` | implementation contract approval | planned_actions, edge_cases, status |
+| `self_check` | worker self-assessment | confidence (1-5), known_risks, summary |
+| `gate_result` | evidence gate | verdict (pass/fail/block/error), tier_results, rubric_scores |
+| `challenge_review` | challenger review (high/critical) | concerns, blocking |
+| `verdict` | final verdict | verdict (pass/iterate/escalate), rationale |
+| `closure` | closure assembly | change_summary, reviews, open_risks |
+| `retrospective` | task retrospective | what_went_well, what_broke, memory_candidates |
+
+#### evidence roles
+
+Evidence files use role-based required fields:
+
+| role | required fields | typical agents |
+|---|---|---|
+| implementer | summary, files_changed | software-engineer, platform-engineer |
+| reviewer | summary, verdict, concerns | design-authority, security-engineer, challenger |
+| tester | summary, verdict, criteria_results | qa-engineer |
+| authority | summary, verdict, rationale | product-authority |
 
 ### Session and orchestration artifacts
 
 Artifacts that coordinate runtime execution across tasks and sessions.
 
-| artifact | description |
-|---|---|
-| `run.json` | mission-level runtime state including phase, active tasks, and configuration |
-| session summary | high-level record of what happened in a session |
-| task-focus summary | per-task progress snapshot for recovery and context |
-| recovery packet | assessment of interrupted state for the next session |
-| health check | periodic health signal collection |
-| lock / lane state | workspace lock ownership and parallel lane assignments |
+| artifact | file | description |
+|---|---|---|
+| `run.json` | `state/run.json` | mission-level runtime state including phase, active tasks, and checkpoint |
+| `events.jsonl` | `state/events.jsonl` | append-only event log for all pipeline events (single source) |
+| recovery packet | `recovery/` | assessment of interrupted state for the next session |
+| health check | (stdout) | periodic health signal collection |
+| lock / lane state | `state/locks.json` | workspace lock ownership and parallel lane assignments |
 
 ### Evolution artifacts
 
 Artifacts produced during the Evolving phase, when the team reflects on performance and updates its processes.
 
-| artifact | description |
-|---|---|
-| retrospective | structured reflection on what worked, what failed, and what to change |
-| rules update | proposed or applied changes to project rules |
-| debt register | tracked technical or process debt items |
-| gap assessment | identified gaps between protocol requirements and actual practice |
-| mission summary | final record of the completed mission |
-| memory application log | record of which memories were applied and their effect |
+| artifact | file | description |
+|---|---|---|
+| retrospective | `record.json` retrospective section | structured reflection on what worked, what failed, and what to change |
+| rules update | `evolution/rules-update.json` | proposed or applied changes to project rules |
+| debt register | `evolution/debt-register.json` | tracked technical or process debt items |
+| gap assessment | `evolution/gap-assessment.json` | identified gaps between protocol requirements and actual practice |
 
 ### Memory artifacts
 
-Artifacts that capture and manage learned experience across sessions.
+Two-file memory system: `rules.md` for project knowledge, agent markdown files for role-specific notes.
 
-| artifact | description |
-|---|---|
-| memory entry | a single memory candidate or promoted memory |
-| memory review | periodic review of memory health and relevance |
-| memory index | registry of all active memories with metadata |
-| memory packet | context-packet supplement containing relevant memories |
-| supersession or decay notes | record of why a memory was replaced or retired |
+| artifact | file | description |
+|---|---|---|
+| rules | `.geas/rules.md` | project conventions + learned rules + role-specific rules (unified) |
+| agent memory | `memory/agents/{agent}.md` | per-agent markdown notes, injected into agent context |
 
 ## Canonical Metadata
 
@@ -117,6 +130,32 @@ Consistent naming and path structure make artifacts discoverable and reduce the 
 | clear ownership paths | path layout SHOULD make it obvious which mission or task an artifact belongs to |
 | flexible summaries, predictable JSON | summaries MAY use flexible naming, but canonical JSON artifacts SHOULD remain predictable |
 | metadata over filename | a filename alone MUST NOT be the only source of meaning; internal metadata must agree |
+
+## Directory Structure
+
+The canonical `.geas/` runtime directory layout:
+
+```
+.geas/
+  state/
+    run.json                          # mission runtime state
+    events.jsonl                      # append-only event log
+  rules.md                            # conventions + rules + role-specific rules
+  recovery/                           # session recovery packets
+  memory/
+    agents/{agent}.md                 # per-agent memory notes
+  missions/{mid}/
+    spec.json                         # mission spec
+    design-brief.json                 # design brief
+    decisions/                        # vote round results
+    phase-reviews/                    # phase transition reviews
+    evolution/                        # gap-assessment, debt-register, rules-update
+    tasks/{tid}/
+      contract.json                   # task contract (definition)
+      packets/{agent}.md              # context packets (agent briefings)
+      record.json                     # execution record (pipeline outputs)
+      evidence/{agent}.json           # agent evidence files
+```
 
 ## Schema Inventory
 

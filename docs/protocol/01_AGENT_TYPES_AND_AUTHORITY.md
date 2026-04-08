@@ -118,8 +118,7 @@ Responsibilities:
 - invoke vote rounds when required
 - assemble closure packets
 - coordinate learning artifacts at phase boundaries
-- manage memory lifecycle: extraction, promotion review, decay monitoring, and application logging
-- manage agent memory: review memory_suggestions from agent outputs during retrospective, update agent memory files when useful
+- manage memory: extract lessons to rules.md and agent memory from retrospectives and reviews
 - update own agent memory file based on next_time_guidance from retrospective
 
 Prohibitions:
@@ -256,8 +255,8 @@ Projects MAY define local sub-kinds (e.g., `implementation:frontend`, `review:se
 | evidence gate verdict | gate runner / validator | objective mechanism; not a product trade-off decision |
 | readiness vote | reviewer participants | governed by task risk and vote policy |
 | final verdict | Decision Maker | based on closure packet, not intuition alone |
-| memory promotion | Orchestrator plus endorsing authority | see docs 07 and 08 |
-| policy override | local governance path | see doc 12; MUST be explicit and audited |
+| memory update (rules.md, agent notes) | Orchestrator | see doc 07 |
+| policy override | local governance path | see doc 10; MUST be explicit and audited |
 
 ## Required Reviewer Routing Algorithm
 
@@ -405,13 +404,14 @@ The following MUST remain reconstructible from artifacts:
 
 ## Type Naming Rules for Artifacts
 
-Canonical artifact filenames are type-neutral:
+Artifact types map to storage locations as follows:
 
-- `specialist-review.json`
-- `challenge-review.json`
-- `vote-round.json`
-- `final-verdict.json`
-- `decision-record.json`
+| artifact type | storage |
+|---|---|
+| evidence (specialist review, challenge, verdict) | `evidence/{agent}.json` — role field inside, not filename |
+| pipeline step output (self-check, gate, closure, etc.) | `record.json` section — section name identifies type |
+| vote round / decision | `decisions/vote-round-{topic}.json` |
+| task contract | `tasks/{tid}/contract.json` |
 
 Role identity belongs inside validated fields, not inside ad hoc filenames.
 

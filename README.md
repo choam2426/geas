@@ -13,7 +13,7 @@ The current implementation runs as a **Claude Code plugin**. It ships with **sof
 
 > Geas is not a “more agents” project. It is a control system for how agents coordinate, verify, and learn.
 
-**14 agent types · 15 skills · 16 lifecycle hooks · 30 JSON Schemas**
+**14 agent types · 12 skills · 9 lifecycle hooks · 18 JSON Schemas**
 
 ---
 
@@ -25,7 +25,7 @@ The current implementation runs as a **Claude Code plugin**. It ships with **sof
 | Design and review decisions disappear after compaction | **Closure Packets** preserve what happened, why it happened, and who approved it |
 | Parallel work collides late | **Task contracts, scheduling, and lock checks** surface conflicts earlier |
 | Everyone reviews, so nobody really owns the decision | **Authority agents** make approvals and final verdicts explicit |
-| The same mistakes repeat next session | **Retrospectives, memory promotion, and rules** carry lessons forward |
+| The same mistakes repeat next session | **Retrospectives, rules.md, and agent memory** carry lessons forward |
 
 ---
 
@@ -139,7 +139,7 @@ A mission declares its domain profile. The Orchestrator resolves abstract slots 
 [Product Auth]     Final Verdict: PASS.
 [Orchestrator]     Committed. Retro: auth APIs need rate limiting — rule proposed.
 [Orchestrator]     Polishing: risk review, docs, debt.
-[Orchestrator]     Evolving: gap assessment, rules update, memory promotion.
+[Orchestrator]     Evolving: gap assessment, rules update, agent memory update.
 [Orchestrator]     Mission complete. 2/2 tasks passed.
 ```
 
@@ -150,11 +150,11 @@ A mission declares its domain profile. The Orchestrator resolves abstract slots 
 | Document | Description |
 |---|---|
 | [Architecture](docs/architecture/DESIGN.md) | System design, 4-layer architecture, and rationale |
-| [Protocol](docs/protocol/) | 14 operational protocol documents |
-| [Schemas](docs/protocol/schemas/) | 30 JSON Schema definitions (draft 2020-12) |
+| [Protocol](docs/protocol/) | 12 operational protocol documents |
+| [Schemas](docs/protocol/schemas/) | 18 JSON Schema definitions (draft 2020-12) |
 | [Agents](docs/reference/AGENTS.md) | 14 agent types and the slot-based authority model |
-| [Skills](docs/reference/SKILLS.md) | 15 skills (13 core + 2 utility) |
-| [Hooks](docs/reference/HOOKS.md) | 16 lifecycle hooks |
+| [Skills](docs/reference/SKILLS.md) | 12 skills |
+| [Hooks](docs/reference/HOOKS.md) | 9 lifecycle hooks |
 
 ---
 
