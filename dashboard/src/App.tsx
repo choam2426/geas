@@ -43,6 +43,8 @@ function AppInner() {
   const nav = useNavigationHistory();
   const navRef = useRef(nav);
   navRef.current = nav;
+  const projectsRef = useRef(projects);
+  projectsRef.current = projects;
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [backendError, setBackendError] = useState<string | null>(null);
@@ -104,7 +106,7 @@ function AppInner() {
       const changedPath = normalizePath(event.payload.path);
       setTimeout(async () => {
         try {
-          const matching = projects.find(p => normalizePath(p.path) === changedPath);
+          const matching = projectsRef.current.find(p => normalizePath(p.path) === changedPath);
           if (!matching) return;
           const summary = await invoke<ProjectSummary>("get_project_summary", { path: matching.path });
           setProjects(prev => prev.map(p => normalizePath(p.path) === changedPath ? summary : p));
@@ -114,7 +116,7 @@ function AppInner() {
       }, 300);
     });
     return () => { unlisten.then(fn => fn()); };
-  }, [projects]);
+  }, []);
 
   // Toast notifications from backend event classification
   const { addToast } = useToast();
