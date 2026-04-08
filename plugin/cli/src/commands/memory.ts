@@ -3,6 +3,7 @@
  * promotion with lifecycle validation, application log writes.
  */
 
+import * as fs from 'fs';
 import * as path from 'path';
 import type { Command } from 'commander';
 import { readJsonFile, writeJsonFile, atomicWriteJsonFile } from '../lib/fs-atomic';
@@ -185,6 +186,15 @@ export function registerMemoryCommands(program: Command): void {
         }
 
         writeJsonFile(destPath, data);
+
+        // Remove the old candidate file after successful promotion
+        if (isCandidate) {
+          try {
+            fs.unlinkSync(candidatePath);
+          } catch {
+            // Best-effort cleanup: ignore if already removed
+          }
+        }
 
         success({
           ok: true,
