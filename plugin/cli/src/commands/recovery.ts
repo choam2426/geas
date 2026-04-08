@@ -11,6 +11,7 @@ import { writeJsonFile } from '../lib/fs-atomic';
 import { resolveGeasDir } from '../lib/paths';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
+import { getCwd } from '../lib/cwd';
 
 export function registerRecoveryCommands(program: Command): void {
   const cmd = program
@@ -22,10 +23,10 @@ export function registerRecoveryCommands(program: Command): void {
     .command('write')
     .description('Write a recovery packet')
     .requiredOption('--data <json>', 'JSON recovery packet object')
-    .action((opts: { data: string }) => {
+    .action((opts: { data: string }, cmd: Command) => {
       try {
         const data = JSON.parse(opts.data) as Record<string, unknown>;
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
 
         const recoveryId = data.recovery_id as string;
         if (!recoveryId) {

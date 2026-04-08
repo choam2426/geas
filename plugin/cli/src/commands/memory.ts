@@ -9,6 +9,7 @@ import { readJsonFile, writeJsonFile, atomicWriteJsonFile } from '../lib/fs-atom
 import { resolveGeasDir } from '../lib/paths';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
+import { getCwd } from '../lib/cwd';
 
 /**
  * Valid memory lifecycle transitions.
@@ -38,10 +39,10 @@ export function registerMemoryCommands(program: Command): void {
     .command('index-update')
     .description('Add or update an entry in memory-index.json')
     .requiredOption('--data <json>', 'JSON object with memory index entry fields')
-    .action((opts: { data: string }) => {
+    .action((opts: { data: string }, cmd: Command) => {
       try {
         const entry = JSON.parse(opts.data) as Record<string, unknown>;
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const indexPath = path.resolve(geasDir, 'state', 'memory-index.json');
 
         // Read existing index or create empty
@@ -105,9 +106,9 @@ export function registerMemoryCommands(program: Command): void {
     .description('Promote a memory entry to a new lifecycle state')
     .requiredOption('--id <mem-id>', 'Memory ID to promote')
     .requiredOption('--to <state>', 'Target lifecycle state')
-    .action((opts: { id: string; to: string }) => {
+    .action((opts: { id: string; to: string }, cmd: Command) => {
       try {
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const targetState = opts.to;
 
         // Read from entries first, fall back to candidates
@@ -203,10 +204,10 @@ export function registerMemoryCommands(program: Command): void {
     .command('candidate-write')
     .description('Write a memory candidate to candidates/')
     .requiredOption('--data <json>', 'JSON memory candidate object')
-    .action((opts: { data: string }) => {
+    .action((opts: { data: string }, cmd: Command) => {
       try {
         const data = JSON.parse(opts.data) as Record<string, unknown>;
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
 
         const memoryId = data.memory_id as string;
         if (!memoryId) {
@@ -242,10 +243,10 @@ export function registerMemoryCommands(program: Command): void {
     .command('entry-write')
     .description('Write a memory entry to entries/')
     .requiredOption('--data <json>', 'JSON memory entry object')
-    .action((opts: { data: string }) => {
+    .action((opts: { data: string }, cmd: Command) => {
       try {
         const data = JSON.parse(opts.data) as Record<string, unknown>;
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
 
         const memoryId = data.memory_id as string;
         if (!memoryId) {
@@ -283,10 +284,10 @@ export function registerMemoryCommands(program: Command): void {
     .requiredOption('--task <tid>', 'Task ID')
     .requiredOption('--memory <mid>', 'Memory ID')
     .requiredOption('--data <json>', 'JSON application log object')
-    .action((opts: { task: string; memory: string; data: string }) => {
+    .action((opts: { task: string; memory: string; data: string }, cmd: Command) => {
       try {
         const data = JSON.parse(opts.data) as Record<string, unknown>;
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
 
         // Ensure task_id and memory_id are set from flags if not in data
         if (!data.task_id) data.task_id = opts.task;

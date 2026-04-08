@@ -13,6 +13,7 @@ import type { Command } from 'commander';
 import { success, fileError } from '../lib/output';
 import { resolveGeasDir, resolveMissionDir, normalizePath } from '../lib/paths';
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
+import { getCwd } from '../lib/cwd';
 
 export function registerDecisionCommands(program: Command): void {
   const cmd = program
@@ -25,7 +26,7 @@ export function registerDecisionCommands(program: Command): void {
     .description('Write a decision record')
     .requiredOption('--mission <mid>', 'Mission identifier')
     .requiredOption('--data <json>', 'Decision record data as JSON string')
-    .action((opts: { mission: string; data: string }) => {
+    .action((opts: { mission: string; data: string }, cmd: Command) => {
       try {
         // Parse data
         let decisionData: Record<string, unknown>;
@@ -41,7 +42,7 @@ export function registerDecisionCommands(program: Command): void {
           return;
         }
 
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         // Determine decision ID from data or generate one
@@ -87,9 +88,9 @@ export function registerDecisionCommands(program: Command): void {
     .description('Read a decision record by ID')
     .requiredOption('--mission <mid>', 'Mission identifier')
     .requiredOption('--id <dec-id>', 'Decision record ID')
-    .action((opts: { mission: string; id: string }) => {
+    .action((opts: { mission: string; id: string }, cmd: Command) => {
       try {
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         // Sanitize decision ID
@@ -137,9 +138,9 @@ export function registerDecisionCommands(program: Command): void {
     .command('list')
     .description('List all decision records for a mission')
     .requiredOption('--mission <mid>', 'Mission identifier')
-    .action((opts: { mission: string }) => {
+    .action((opts: { mission: string }, cmd: Command) => {
       try {
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = resolveMissionDir(geasDir, opts.mission);
         const decisionsDir = path.resolve(missionDir, 'decisions');
 

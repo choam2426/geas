@@ -9,6 +9,7 @@ import { writeJsonFile } from '../lib/fs-atomic';
 import { resolveGeasDir, resolveMissionDir } from '../lib/paths';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
+import { getCwd } from '../lib/cwd';
 
 export function registerPhaseCommands(program: Command): void {
   const cmd = program
@@ -21,10 +22,10 @@ export function registerPhaseCommands(program: Command): void {
     .description('Write a phase review')
     .requiredOption('--mission <mid>', 'Mission ID')
     .requiredOption('--data <json>', 'JSON phase review object')
-    .action((opts: { mission: string; data: string }) => {
+    .action((opts: { mission: string; data: string }, cmd: Command) => {
       try {
         const data = JSON.parse(opts.data) as Record<string, unknown>;
-        const geasDir = resolveGeasDir();
+        const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         // Validate against phase-review schema
