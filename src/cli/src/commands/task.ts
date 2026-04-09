@@ -405,8 +405,13 @@ export function registerTaskCommands(program: Command): void {
           record = { version: '1.0', task_id: opts.task };
         }
 
-        // Overwrite section
-        record[opts.section] = sectionData;
+        // Merge into existing section (shallow), or create new
+        const existing = record[opts.section];
+        if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+          record[opts.section] = { ...existing as Record<string, unknown>, ...sectionData };
+        } else {
+          record[opts.section] = sectionData;
+        }
 
         // Validate entire record against schema
         const result = validate('record', record);

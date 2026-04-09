@@ -12685,7 +12685,12 @@ function registerTaskCommands(program2) {
       if (!record2) {
         record2 = { version: "1.0", task_id: opts.task };
       }
-      record2[opts.section] = sectionData;
+      const existing = record2[opts.section];
+      if (existing && typeof existing === "object" && !Array.isArray(existing)) {
+        record2[opts.section] = { ...existing, ...sectionData };
+      } else {
+        record2[opts.section] = sectionData;
+      }
       const result = validate("record", record2);
       if (!result.valid) {
         validationError("record", result.errors);
