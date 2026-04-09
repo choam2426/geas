@@ -185,6 +185,9 @@ Read run state: `Bash("geas state read")`
 - **Exists with `status: "complete"`** → fresh run
 - **Does not exist** → first run, invoke `/geas:setup`
 
+When `.geas/` already exists (resume or fresh run), read orchestrator memory:
+- Read `.geas/memory/agents/orchestration-authority.md` if it exists — apply its guidance throughout this session.
+
 #### Lock Initialization
 
 1. Clean up orphan locks from previous sessions:
