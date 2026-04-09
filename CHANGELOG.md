@@ -25,6 +25,7 @@ Test session analysis fixes — schema friction, CLI usability, skill guidance.
 - `geas mission create`: removed `contracts/`, `packets/`, `evidence/` subdirectories (v3 remnants); added `polishing/`
 - `rules.md` template: sub-agent focused rules (evidence by role, scope enforcement, review standards)
 - Orchestrator reads its own memory note (`.geas/memory/agents/orchestration-authority.md`) at startup
+- Mission SKILL.md refactored to 53-line router with progressive loading — orchestration rules moved to `references/orchestration.md`, loaded only when full pipeline is needed
 
 ## [0.8.0] — 2026-04-10
 
