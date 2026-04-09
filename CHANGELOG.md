@@ -6,8 +6,44 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-04-09
+
+Skill-schema alignment, process UX improvements, naming unification, and skill optimization.
+
+### Security
+- CLI path traversal defense: validateIdentifier() + assertContainedIn() on 7 commands
+- Replace silent sanitization with rejection in memory, packet, decision commands
+- .geas/ write-block hook (PreToolUse) prevents direct Write/Edit to runtime state
+
+### Changed
+- Agent type naming unified to hyphens across schemas, agents, profiles, CLI, examples
+- Agent Name Rule in CLAUDE.md updated (hyphen-only convention)
+- Intake skill now asks for mode (lightweight/standard/full_depth) explicitly
+- Setup skill uses CLI-only writes (state init, memory init-rules)
+- Evolving phase has checkpoint management for all agent spawns
+- All 13 skills have Input/Output sections
+
+### Added
+- /geas:help skill with usage guide, commands, and workflow explanation
+- task-contract schema: dependencies array field
+- mission-spec schema: existing_project source enum
+- task-compiler/references/examples.md with annotated examples
+- CLI commands: state init, memory init-rules
+- VALID_PHASES enum validation in evolution.ts
+
+### Fixed
+- Skill-schema mismatches: scope.surfaces, concrete agent types, field names
+- Specifying phase had exactly one task-list approval (no double approval)
+
+### Documentation
+- SKILLS.md and HOOKS.md updated with help skill and write-block hook
+- Protocol example files updated to use hyphenated agent names
+
+## [0.5.1] — 2026-03-30
+
+Previously v2.0.1.
+
 - Legacy cleanup: CLI bug fixes, dead code removal, stale reference fixes
-- Hybrid naming convention documented in CLAUDE.md
 - Protocol version bumped to v1
 - Tag restructuring from v1.x/v2.x to v0.x.y
 
