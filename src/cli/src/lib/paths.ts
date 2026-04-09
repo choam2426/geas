@@ -8,6 +8,7 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
+import { execSync } from 'child_process';
 
 /**
  * Normalize a path: resolve to absolute, convert backslashes to forward slashes.
@@ -17,22 +18,51 @@ export function normalizePath(p: string): string {
 }
 
 /**
- * Resolve the .geas/ directory from the given cwd (or process.cwd()).
- * Verifies the directory exists.
+ * Resolve the .geas/ directory.
  *
- * @throws Error with FILE_ERROR code if .geas/ does not exist.
+ * Always resolves to the MAIN repository's .geas/, never a worktree copy.
+ * Uses `git rev-parse --git-common-dir` to find the main repo root,
+ * which works correctly in both worktrees and the main checkout.
+ *
+ * Resolution order:
+ * 1. Find main repo root via git (--git-common-dir parent)
+ * 2. Check {main_repo_root}/.geas/
+ * 3. Fallback: check cwd/.geas/ (for non-git usage or --cwd override)
+ * 4. If still not found, throw error
  */
 export function resolveGeasDir(cwd?: string): string {
   const base = cwd ?? process.cwd();
-  const geasDir = path.resolve(base, '.geas');
-  if (!fs.existsSync(geasDir)) {
-    const err = new Error(
-      `.geas/ directory not found at ${normalizePath(geasDir)}`
-    );
-    (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
-    throw err;
+
+  // 1. Find main repo root via git
+  try {
+    const gitCommonDir = execSync('git rev-parse --git-common-dir', {
+      cwd: base,
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+
+    // --git-common-dir returns the path to the shared .git directory.
+    // The main repo root is its parent.
+    const mainRepoRoot = path.resolve(base, gitCommonDir, '..');
+    const gitBased = path.resolve(mainRepoRoot, '.geas');
+    if (fs.existsSync(gitBased)) {
+      return normalizePath(gitBased);
+    }
+  } catch {
+    // Not in a git repo — fall through to direct check
   }
-  return normalizePath(geasDir);
+
+  // 2. Fallback: direct check (non-git or --cwd override)
+  const direct = path.resolve(base, '.geas');
+  if (fs.existsSync(direct)) {
+    return normalizePath(direct);
+  }
+
+  const err = new Error(
+    `.geas/ directory not found at ${normalizePath(direct)} (also checked git main repo root)`
+  );
+  (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
+  throw err;
 }
 
 /**

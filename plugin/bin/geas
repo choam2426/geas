@@ -9495,20 +9495,34 @@ var path4 = __toESM(require("path"));
 // src/lib/paths.ts
 var path = __toESM(require("path"));
 var fs = __toESM(require("fs"));
+var import_child_process = require("child_process");
 function normalizePath(p) {
   return path.resolve(p).replace(/\\/g, "/");
 }
 function resolveGeasDir(cwd) {
   const base = cwd ?? process.cwd();
-  const geasDir2 = path.resolve(base, ".geas");
-  if (!fs.existsSync(geasDir2)) {
-    const err = new Error(
-      `.geas/ directory not found at ${normalizePath(geasDir2)}`
-    );
-    err.code = "FILE_ERROR";
-    throw err;
+  try {
+    const gitCommonDir = (0, import_child_process.execSync)("git rev-parse --git-common-dir", {
+      cwd: base,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"]
+    }).trim();
+    const mainRepoRoot = path.resolve(base, gitCommonDir, "..");
+    const gitBased = path.resolve(mainRepoRoot, ".geas");
+    if (fs.existsSync(gitBased)) {
+      return normalizePath(gitBased);
+    }
+  } catch {
   }
-  return normalizePath(geasDir2);
+  const direct = path.resolve(base, ".geas");
+  if (fs.existsSync(direct)) {
+    return normalizePath(direct);
+  }
+  const err = new Error(
+    `.geas/ directory not found at ${normalizePath(direct)} (also checked git main repo root)`
+  );
+  err.code = "FILE_ERROR";
+  throw err;
 }
 function resolveMissionDir(geasDir2, missionId) {
   const missionDir = path.resolve(geasDir2, "missions", missionId);
