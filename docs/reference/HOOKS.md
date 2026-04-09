@@ -21,7 +21,7 @@ Shared library: `plugin/hooks/scripts/lib/geas-hooks.js`
 | 5 | PostToolUse | Write\|Edit | checkpoint-post-write.sh | Cleanup pending checkpoint after write |
 | 6 | PostToolUse | Write\|Edit | packet-stale-check.sh | Warn on stale context packets |
 | 7 | PostToolUse | Bash | integration-lane-check.sh | Warn on merge without integration lock |
-| 8 | Stop | (all) | calculate-cost.sh | Calculate session cost |
+| 8 | Stop | (all) | calculate-cost.sh | Token usage summary |
 | 9 | PostCompact | (all) | restore-context.sh | Restore state after context compaction |
 
 ---
@@ -40,7 +40,7 @@ Session begins
 │   [For each sub-agent spawned]
 │   │
 │   ├─► SubagentStart  → inject-context.sh
-│   │     Inject rules.md + agent memory into sub-agent context
+│   │     Inject rules.md + policy overrides + agent memory into sub-agent context
 │   │
 │   │   [Before each Write tool call to run.json]
 │   │   │
@@ -66,12 +66,12 @@ Session begins
 │   │   [Context compaction fires]
 │   │   │
 │   │   └─► PostCompact → restore-context.sh
-│   │         Re-inject run.json state, remaining_steps, NEXT STEP
+│   │         Re-inject run.json state, session context, L0 anti-forgetting
 │
 Session ends
 │
 └─► Stop               → calculate-cost.sh
-      Token usage + estimated cost summary
+      Token usage summary
 ```
 
 ---
@@ -121,10 +121,11 @@ Fires every time a sub-agent is spawned. Injects project-wide rules and per-agen
 1. Reads `cwd` and `agent_type` from the hook input JSON. Strips plugin prefix (e.g., `geas:software-engineer` → `software-engineer`).
 2. Checks for `.geas/` directory. If absent, exits silently.
 3. Reads `.geas/rules.md` and includes it under `--- PROJECT RULES (.geas/rules.md) ---`.
-4. Reads `.geas/memory/agents/<agent_name>.md` if it exists and includes it under `--- YOUR MEMORY ---`.
-5. Outputs `{"additionalContext": "..."}` on stdout for the runtime to merge into the sub-agent's system context.
+4. Reads `.geas/state/policy-overrides.json`. Filters for active (non-expired) overrides and injects them as `--- ACTIVE POLICY OVERRIDES ---` with rule_id, action, reason, and expires_at for each override.
+5. Reads `.geas/memory/agents/<agent_name>.md` if it exists and includes it under `--- YOUR MEMORY ---`.
+6. Outputs `{"additionalContext": "..."}` on stdout for the runtime to merge into the sub-agent's system context.
 
-**Conditions:** Skips if `cwd` is empty or `.geas/` does not exist. Outputs nothing if neither rules.md nor a memory file is found.
+**Conditions:** Skips if `cwd` is empty or `.geas/` does not exist. Outputs nothing if no rules.md, policy overrides, or memory file is found.
 
 ---
 
@@ -254,17 +255,16 @@ Fires after every `Bash` tool call. Enforces the single-flight integration lane 
 | Blocking | No (exits 0 in all cases) |
 | Timeout | 30 s |
 
-Fires at session end. Parses sub-agent session JSONL files from `~/.claude/projects/` to calculate actual token usage and estimated cost.
+Fires at session end. Parses sub-agent session JSONL files from `~/.claude/projects/` to produce a token usage summary.
 
 1. Locates the Claude project directory by normalizing `cwd` into the project hash format.
-2. Finds the most recently modified session with a `subagents/` subdirectory.
+2. Finds the most recently modified session directory.
 3. Parses all sub-agent JSONL files. Accumulates `input_tokens`, `output_tokens`, `cache_creation_input_tokens`, and `cache_read_input_tokens`.
 4. Reads agent type from `.meta.json` sidecar files.
-5. Calculates estimated cost using Opus pricing as an upper bound.
-6. Writes `.geas/ledger/cost-summary.json` with the full breakdown.
-7. Prints a summary line to stderr:
+5. Writes `.geas/ledger/token-summary.json` with the full breakdown (totals, per-agent, timestamp).
+6. Prints a summary line to stderr:
    ```
-   [Geas] Session cost: $1.23 (8 agents, 12,345 output tokens)
+   [Geas] Token summary: input=N output=N agents=N
    ```
 
 **Conditions:** Skips if `.geas/` does not exist or the Claude project directory cannot be found.
@@ -282,12 +282,23 @@ Fires at session end. Parses sub-agent session JSONL files from `~/.claude/proje
 
 Fires whenever the Claude Code runtime compacts the context window. Re-injects critical state so the orchestrator does not lose track of the current position.
 
-1. Builds a context block from `run.json`: Mode, Phase, Status, Mission, Current task ID, Completed tasks (last 5).
+1. Builds a context block from `run.json`: Phase, Status, Mission, Current task ID, Completed tasks (last 5).
 2. Includes checkpoint data if present: pipeline step, agent in flight, remaining steps, and NEXT STEP (highlighted).
-3. Includes the current task contract (goal + acceptance criteria) if a task is active.
-4. Includes the first 30 lines of `.geas/rules.md`.
-5. When `parallel_batch` is non-null, outputs the batch task list and `completed_in_batch` count.
-6. Outputs `{"additionalContext": "..."}` on stdout.
+3. Includes recovery class if present.
+4. Includes the current task contract (goal + acceptance criteria) if a task is active.
+5. Reads `.geas/state/session-latest.md` and injects it as a `--- SESSION CONTEXT ---` section.
+6. Reads the current task's `record.json` closure section for `open_risks` array.
+7. Includes the first 30 lines of `.geas/rules.md` as `--- KEY RULES ---`.
+8. Includes agent memory file count as `--- MEMORY STATE ---`.
+9. Outputs an `## L0 ANTI-FORGETTING` section with 7 always-preserved items:
+   - Phase and status
+   - Focus task and goal
+   - Rewind reason (recovery class or clean session)
+   - Required next artifact (from remaining_steps)
+   - Open risks (from record.json closure)
+   - Recovery outcome
+   - Active rules count + agent memory file count
+10. Outputs `{"additionalContext": "..."}` on stdout.
 
 **Conditions:** Skips if `cwd` is empty or `.geas/state/run.json` does not exist.
 
@@ -379,4 +390,8 @@ For protocol details on hook failure handling, conformance checking, and metrics
 | `.geas/memory/agents/<name>.md` | inject-context |
 | `.geas/missions/<mid>/tasks/<tid>/contract.json` | protect-geas-state |
 | `.geas/missions/<mid>/spec.json` | protect-geas-state (freeze guard) |
+| `.geas/state/policy-overrides.json` | inject-context |
+| `.geas/state/session-latest.md` | restore-context |
+| `.geas/ledger/token-summary.json` | calculate-cost (writes) |
+| `.geas/missions/<mid>/tasks/<tid>/record.json` | restore-context (reads closure.open_risks) |
 | `.geas/state/events.jsonl` | (event logging via CLI) |
