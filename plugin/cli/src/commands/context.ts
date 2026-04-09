@@ -10,7 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Command } from 'commander';
 import { ensureDir } from '../lib/fs-atomic';
-import { resolveGeasDir, resolveMissionDir } from '../lib/paths';
+import { resolveGeasDir, resolveMissionDir, validateIdentifier } from '../lib/paths';
 import { success, fileError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
 
@@ -29,6 +29,13 @@ export function registerContextCommands(program: Command): void {
     .requiredOption('--data <content>', 'Packet content (string or JSON)')
     .action((opts: { mission: string; task: string; agent: string; data: string }, cmd: Command) => {
       try {
+        validateIdentifier(opts.mission, 'mission ID');
+        validateIdentifier(opts.task, 'task ID');
+        // Reject invalid agent names
+        if (!/^[a-zA-Z0-9_-]+$/.test(opts.agent)) {
+          fileError(opts.agent, 'validate', `Invalid agent name: "${opts.agent}". Only alphanumeric, underscore, and hyphen are allowed.`);
+          return;
+        }
         const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = resolveMissionDir(geasDir, opts.mission);
         const packetsDir = path.resolve(missionDir, 'tasks', opts.task, 'packets');
