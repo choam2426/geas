@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import type { MissionSummary, ProjectSummary } from "../types";
-import { Archive, Brain, BookOpen, Clock, FileText } from "lucide-react";
+import type { MissionSummary, ProjectSummary, HealthCheck } from "../types";
+import { AlertTriangle, Archive, Brain, BookOpen, Clock, FileText } from "lucide-react";
 import PhaseBadge from "./PhaseBadge";
 import ProgressBar from "./ProgressBar";
 import { formatDate } from "../utils/dates";
@@ -56,6 +56,7 @@ export default function ProjectDashboard({
 }: ProjectDashboardProps) {
   const [missions, setMissions] = useState<MissionSummary[]>([]);
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
+  const [healthCheck, setHealthCheck] = useState<HealthCheck | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,13 +67,15 @@ export default function ProjectDashboard({
       setLoading(true);
       setError(null);
       try {
-        const [missionResult, summaryResult] = await Promise.all([
+        const [missionResult, summaryResult, healthResult] = await Promise.all([
           invoke<MissionSummary[]>("get_mission_history", { path: projectPath }),
           invoke<ProjectSummary>("get_project_summary", { path: projectPath }).catch(() => null),
+          invoke<HealthCheck | null>("get_health_check", { path: projectPath }).catch(() => null),
         ]);
         if (!cancelled) {
           setMissions(missionResult);
           setSummary(summaryResult);
+          setHealthCheck(healthResult);
         }
       } catch (err) {
         if (!cancelled) {
@@ -97,12 +100,14 @@ export default function ProjectDashboard({
       if (normalizePath(event.payload.path) !== normalizePath(projectPath)) return;
       setTimeout(async () => {
         try {
-          const [missionResult, summaryResult] = await Promise.all([
+          const [missionResult, summaryResult, healthResult] = await Promise.all([
             invoke<MissionSummary[]>("get_mission_history", { path: projectPath }),
             invoke<ProjectSummary>("get_project_summary", { path: projectPath }).catch(() => null),
+            invoke<HealthCheck | null>("get_health_check", { path: projectPath }).catch(() => null),
           ]);
           setMissions(missionResult);
           setSummary(summaryResult);
+          setHealthCheck(healthResult);
         } catch {
           // Ignore refresh errors — keep existing data visible
         }
@@ -160,6 +165,29 @@ export default function ProjectDashboard({
                 Rules
               </button>
             )}
+          </div>
+        )}
+
+        {/* Health Alert Banner */}
+        {healthCheck?.any_triggered && (
+          <div className="bg-status-red/10 border border-status-red/30 rounded-lg p-4 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle size={16} className="text-status-red" />
+              <span className="text-xs font-semibold text-status-red uppercase tracking-wide">Health Alert</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {healthCheck.signals
+                .filter((s) => s.triggered)
+                .map((s) => (
+                  <div key={s.name} className="bg-bg-surface rounded-md px-3 py-2 border border-border-default">
+                    <p className="text-xs font-medium text-text-primary">{s.name?.replace(/_/g, " ")}</p>
+                    {s.detail && <p className="text-[11px] text-text-muted mt-0.5">{s.detail}</p>}
+                    {s.mandatory_response && (
+                      <p className="text-[11px] text-status-red mt-0.5">{s.mandatory_response}</p>
+                    )}
+                  </div>
+                ))}
+            </div>
           </div>
         )}
 
