@@ -1,6 +1,6 @@
 # INDEX
 
-**Version**: v3  
+**Version**: v1  
 **Status**: normative reading guide for the protocol set
 
 ## 0. Reading Order
