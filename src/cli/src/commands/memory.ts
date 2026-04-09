@@ -41,15 +41,28 @@ export function registerMemoryCommands(program: Command): void {
           return;
         }
 
-        let content = `# Agent Rules
+        let content = `# Project Rules
+
+## CLI Usage
+- All .geas/ writes go through the CLI. Zero exceptions.
+- \`created_at\` and \`updated_at\` are auto-injected by the CLI. Never generate timestamps manually.
+- CLI validates against schemas automatically. If validation fails, fix the data — do not bypass.
 
 ## Evidence
-- Write evidence via CLI: \`geas evidence add --task {tid} --agent {name} --role {role} --set key=value\`
-- Evidence is stored at .geas/missions/{mission_id}/tasks/{task-id}/evidence/{agent}.json
-- created_at is auto-injected by the CLI. No manual timestamp needed.
+- Task evidence: \`geas evidence add --task {tid} --agent {name} --role {role} --set key=value\`
+- Phase evidence (polishing/evolving): \`geas evidence add --phase {phase} --agent {name} --role {role} --set key=value\`
+- Evidence fields by role: implementer needs \`files_changed\`, reviewer needs \`verdict\` + \`concerns\`, tester needs \`verdict\` + \`criteria_results\`, authority needs \`verdict\` + \`rationale\`.
+
+## Scope
+- Respect \`scope.surfaces\` from the TaskContract — only modify files within the declared scope.
+- Out-of-scope changes require implementation contract amendment.
+
+## Artifacts
+- \`producer_type\` = the agent whose judgment produced the content, not the agent that wrote the file.
+- \`record add\` merges into existing sections. Send only the fields you want to update.
+- Phase-level evidence goes to \`polishing/evidence/\` or \`evolution/evidence/\`, not \`tasks/\`.
 
 ## Code
-- Respect scope.surfaces from the TaskContract — only modify files within the declared scope
 `;
 
         if (opts.codeSection) {
