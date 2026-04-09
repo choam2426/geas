@@ -345,7 +345,7 @@ pub fn get_mission_history(path: String) -> Result<Vec<MissionSummary>, String> 
 
         summaries.push(MissionSummary {
             mission_id: dir_name,
-            mission_name: spec.mission_name(),
+            mission_name: spec.mission.clone(),
             phase,
             task_total,
             task_completed,
@@ -379,26 +379,24 @@ pub fn get_mission_spec(path: String, mission_id: String) -> Result<MissionSpecD
     let spec_path = geas.join("missions").join(&mission_id).join("spec.json");
     let spec: MissionSpec = read_json_file(&spec_path)?.unwrap_or_default();
 
-    // Call helper methods (borrow &self) before moving fields
-    let mission = spec.mission_name();
-    let scope_in = spec.resolved_scope_in();
-    let scope_out = spec.resolved_scope_out();
-    let constraints = spec.resolved_constraints();
-    let risk_notes = spec.resolved_risk_notes();
+    let scope = spec.scope.unwrap_or_default();
 
     Ok(MissionSpecDetail {
         mission_id,
-        mission,
+        mission: spec.mission,
         done_when: spec.done_when,
-        scope_in,
-        scope_out,
-        acceptance_criteria: spec.acceptance_criteria.unwrap_or_default(),
-        constraints,
+        scope_in: scope.scope_in,
+        scope_out: scope.scope_out,
+        acceptance_criteria: spec.acceptance_criteria,
+        constraints: spec.constraints,
         domain_profile: spec.domain_profile,
         mode: spec.mode,
         target_user: spec.target_user,
-        risk_notes,
-        assumptions: spec.assumptions.unwrap_or_default(),
+        source: spec.source,
+        risk_notes: spec.risk_notes,
+        assumptions: spec.assumptions,
+        ambiguities: spec.ambiguities,
+        affected_surfaces: spec.affected_surfaces,
         created_at: spec.created_at,
     })
 }
