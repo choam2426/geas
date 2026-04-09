@@ -921,6 +921,182 @@ function defineV4Tests(tmpDir) {
           r.agent === 'non-existent-agent' && r.content === null,
       },
 
+      // ── C5: path traversal rejection ──
+      {
+        name: '[security] evidence add rejects path traversal in task ID',
+        fn: () => {
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" evidence add --mission ${V4_MISSION} --task "../escape" --agent test --role implementer --set "summary=hack" --set "files_changed[0]=x"`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { rejected: false };
+          } catch {
+            return { rejected: true };
+          }
+        },
+        validate: (r) => r.rejected === true,
+      },
+
+      // ── S3: invalid agent name rejection ──
+      {
+        name: '[security] evidence add rejects invalid agent name',
+        fn: () => {
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" evidence add --mission ${V4_MISSION} --task v4-task-001 --agent "bad.name" --role implementer --set "summary=test" --set "files_changed[0]=x"`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { rejected: false };
+          } catch {
+            return { rejected: true };
+          }
+        },
+        validate: (r) => r.rejected === true,
+      },
+
+      // ── I1: evidence add rejects non-existent task ──
+      {
+        name: '[security] evidence add rejects non-existent task',
+        fn: () => {
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" evidence add --mission ${V4_MISSION} --task nonexistent-task --agent test --role implementer --set "summary=test" --set "files_changed[0]=x"`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { rejected: false };
+          } catch {
+            return { rejected: true };
+          }
+        },
+        validate: (r) => r.rejected === true,
+      },
+
+      // ── C2: phase write rejects ready_to_exit without next_phase ──
+      {
+        name: '[v4] phase write rejects ready_to_exit without next_phase',
+        fn: () => {
+          // First ensure the mission directory exists for phase writes
+          const missionDir = path.join(tmpDir, '.geas', 'missions', V4_MISSION);
+          fs.mkdirSync(path.join(missionDir, 'phase-reviews'), { recursive: true });
+
+          const phaseReview = JSON.stringify({
+            version: '1.0',
+            artifact_type: 'phase_review',
+            artifact_id: 'pr-bad',
+            producer_type: 'orchestration_authority',
+            mission_phase: 'evolving',
+            status: 'ready_to_exit',
+            summary: 'Missing next_phase',
+            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+          }).replace(/"/g, '\\"');
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" phase write --mission ${V4_MISSION} --data "${phaseReview}"`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { rejected: false };
+          } catch {
+            return { rejected: true };
+          }
+        },
+        validate: (r) => r.rejected === true,
+      },
+
+      // ── I5: phase write + read-latest ──
+      {
+        name: '[v4] phase write creates timestamped file',
+        fn: () => {
+          // Use ready_to_enter (no next_phase) to avoid triggering the phase
+          // transition guard, which requires all tasks to be passed/cancelled.
+          const phaseReview = JSON.stringify({
+            version: '1.0',
+            artifact_type: 'phase_review',
+            artifact_id: 'pr-building-001',
+            producer_type: 'orchestration_authority',
+            mission_phase: 'building',
+            status: 'ready_to_enter',
+            summary: 'Building phase entered',
+            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+          }).replace(/"/g, '\\"');
+          return runWithCwd(
+            `phase write --mission ${V4_MISSION} --data "${phaseReview}"`,
+            tmpDir,
+          );
+        },
+        validate: (r) => r.ok === true && r.phase === 'building',
+      },
+      {
+        name: '[v4] phase read-latest returns most recent review',
+        fn: () =>
+          runWithCwd(
+            `phase read-latest --mission ${V4_MISSION} --phase building`,
+            tmpDir,
+          ),
+        validate: (r) =>
+          r.phase === 'building' &&
+          r.data != null &&
+          r.data.status === 'ready_to_enter',
+      },
+      {
+        name: '[v4] phase read-latest returns error for missing phase',
+        fn: () => {
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" phase read-latest --mission ${V4_MISSION} --phase specifying`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { rejected: false };
+          } catch {
+            return { rejected: true };
+          }
+        },
+        validate: (r) => r.rejected === true,
+      },
+
+      // ── I4: evolution rules-update ──
+      {
+        name: '[v4] evolution rules-update writes artifact',
+        fn: () => {
+          const data = JSON.stringify({
+            version: '1.0',
+            artifact_type: 'rules_update',
+            artifact_id: 'ru-001',
+            producer_type: 'design_authority',
+            status: 'none',
+            reason: 'No rules changes needed',
+            evidence_refs: [],
+            applies_to: [],
+            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+          }).replace(/"/g, '\\"');
+          return runWithCwd(
+            `evolution rules-update --mission ${V4_MISSION} --data "${data}"`,
+            tmpDir,
+          );
+        },
+        validate: (r) => r.artifact_type === 'rules_update',
+      },
+
+      // ── S2: --set coercion preserves zero-padded strings ──
+      {
+        name: '[v4] --set preserves zero-padded string "001"',
+        fn: () => {
+          // Write with zero-padded value
+          runWithCwd(
+            `task record add --mission ${V4_MISSION} --task v4-task-001 --section self_check --set "confidence=4" --set "summary=coercion test" --set "known_risks[0]=001" --set "untested_paths[0]=none"`,
+            tmpDir,
+          );
+          // Read back
+          return runWithCwd(
+            `task record get --mission ${V4_MISSION} --task v4-task-001 --section self_check`,
+            tmpDir,
+          );
+        },
+        validate: (r) =>
+          r.data.confidence === 4 &&
+          r.data.known_risks[0] === '001',
+      },
+
       // ── mission auto-resolution ──
       {
         name: '[v4] task record add auto-resolves mission from run.json',
