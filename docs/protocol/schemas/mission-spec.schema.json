@@ -8,7 +8,6 @@
     "artifact_id",
     "producer_type",
     "mission_id",
-    "created_at",
     "mission",
     "done_when",
     "scope",

@@ -10184,8 +10184,7 @@ var debt_register_schema_default = {
     "artifact_id",
     "producer_type",
     "scope",
-    "items",
-    "created_at"
+    "items"
   ],
   properties: {
     version: {
@@ -10333,8 +10332,7 @@ var design_brief_schema_default = {
     "status",
     "chosen_approach",
     "non_goals",
-    "verification_strategy",
-    "created_at"
+    "verification_strategy"
   ],
   properties: {
     version: {
@@ -10574,8 +10572,7 @@ var gap_assessment_schema_default = {
     "not_delivered",
     "intentional_cuts",
     "unexpected_additions",
-    "recommended_followups",
-    "created_at"
+    "recommended_followups"
   ],
   properties: {
     version: {
@@ -10662,8 +10659,7 @@ var health_check_schema_default = {
     "artifact_id",
     "producer_type",
     "signals",
-    "any_triggered",
-    "created_at"
+    "any_triggered"
   ],
   properties: {
     version: {
@@ -10801,7 +10797,6 @@ var mission_spec_schema_default = {
     "artifact_id",
     "producer_type",
     "mission_id",
-    "created_at",
     "mission",
     "done_when",
     "scope",
@@ -10917,8 +10912,7 @@ var phase_review_schema_default = {
     "producer_type",
     "mission_phase",
     "status",
-    "summary",
-    "created_at"
+    "summary"
   ],
   properties: {
     version: {
@@ -11041,7 +11035,6 @@ var policy_override_schema_default = {
           "reason",
           "expires_at",
           "approved_by",
-          "created_at",
           "expired"
         ],
         properties: {
@@ -11254,7 +11247,6 @@ var recovery_packet_schema_default = {
     "artifact_type",
     "artifact_id",
     "producer_type",
-    "created_at",
     "recovery_id",
     "recovery_class",
     "focus_task_id",
@@ -11314,8 +11306,7 @@ var rules_update_schema_default = {
     "status",
     "reason",
     "evidence_refs",
-    "applies_to",
-    "created_at"
+    "applies_to"
   ],
   properties: {
     version: {
@@ -11401,7 +11392,7 @@ var run_state_schema_default = {
   description: "Session state and checkpoint for the Geas orchestrator. Written by orchestration-authority, read by restore-context hook for session recovery.",
   type: "object",
   additionalProperties: false,
-  required: ["version", "status", "created_at"],
+  required: ["version", "status"],
   properties: {
     version: {
       type: "string",
@@ -11536,7 +11527,6 @@ var task_contract_schema_default = {
     "artifact_type",
     "artifact_id",
     "producer_type",
-    "created_at",
     "task_id",
     "title",
     "goal",
@@ -11720,8 +11710,7 @@ var vote_round_schema_default = {
     "participants",
     "votes",
     "result",
-    "quorum_met",
-    "created_at"
+    "quorum_met"
   ],
   properties: {
     version: {

@@ -13,8 +13,7 @@
     "status",
     "chosen_approach",
     "non_goals",
-    "verification_strategy",
-    "created_at"
+    "verification_strategy"
   ],
   "properties": {
     "version": {

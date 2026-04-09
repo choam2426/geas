@@ -4,7 +4,7 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "version", "artifact_type", "artifact_id", "producer_type", "created_at",
+    "version", "artifact_type", "artifact_id", "producer_type",
     "recovery_id", "recovery_class", "focus_task_id",
     "detected_problem", "recommended_action",
     "artifacts_found", "artifacts_missing"

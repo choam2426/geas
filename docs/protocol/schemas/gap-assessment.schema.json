@@ -15,8 +15,7 @@
     "not_delivered",
     "intentional_cuts",
     "unexpected_additions",
-    "recommended_followups",
-    "created_at"
+    "recommended_followups"
   ],
   "properties": {
     "version": {

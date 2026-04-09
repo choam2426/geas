@@ -9,8 +9,7 @@
     "artifact_id",
     "producer_type",
     "scope",
-    "items",
-    "created_at"
+    "items"
   ],
   "properties": {
     "version": {

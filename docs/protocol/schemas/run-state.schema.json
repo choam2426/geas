@@ -4,7 +4,7 @@
   "description": "Session state and checkpoint for the Geas orchestrator. Written by orchestration-authority, read by restore-context hook for session recovery.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "status", "created_at"],
+  "required": ["version", "status"],
   "properties": {
     "version": {
       "type": "string",

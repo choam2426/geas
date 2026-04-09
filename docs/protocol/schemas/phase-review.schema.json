@@ -10,8 +10,7 @@
     "producer_type",
     "mission_phase",
     "status",
-    "summary",
-    "created_at"
+    "summary"
   ],
   "properties": {
     "version": {

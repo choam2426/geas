@@ -14,8 +14,7 @@
     "participants",
     "votes",
     "result",
-    "quorum_met",
-    "created_at"
+    "quorum_met"
   ],
   "properties": {
     "version": {

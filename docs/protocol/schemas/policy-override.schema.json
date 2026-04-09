@@ -24,7 +24,6 @@
           "reason",
           "expires_at",
           "approved_by",
-          "created_at",
           "expired"
         ],
         "properties": {

@@ -11,8 +11,7 @@
     "status",
     "reason",
     "evidence_refs",
-    "applies_to",
-    "created_at"
+    "applies_to"
   ],
   "properties": {
     "version": {

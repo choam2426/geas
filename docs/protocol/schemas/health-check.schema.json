@@ -10,8 +10,7 @@
     "artifact_id",
     "producer_type",
     "signals",
-    "any_triggered",
-    "created_at"
+    "any_triggered"
   ],
   "properties": {
     "version": {
