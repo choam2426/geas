@@ -115,7 +115,7 @@ Every canonical artifact SHOULD expose shared metadata so that validators, recov
 | `artifact_type` | identifies which kind of artifact this is |
 | `version` | schema or artifact version for compatibility checking |
 | creation timestamp | when the artifact was produced |
-| producing role or subsystem | the agent whose judgment or expertise produced the artifact's content — not necessarily the agent that physically wrote the file (the orchestrator often writes on behalf of others) |
+| producing role or subsystem | the agent whose judgment or expertise produced the artifact's content |
 | relevant ids | `mission_id`, `task_id`, `memory_id`, or other linking identifiers |
 | source or lineage references | pointers to parent artifacts or triggering events, where applicable |
 
