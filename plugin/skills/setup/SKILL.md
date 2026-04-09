@@ -27,15 +27,15 @@ Users should not need to run setup manually unless they are troubleshooting.
 
 ## Steps
 
-### Phase 0: Ensure CLI Dependencies
+### Phase 0: Verify CLI
 
-Before any CLI commands can run, **always** install dependencies and build the CLI. This ensures the CLI binary matches the latest source, even if `dist/main.js` already exists from a previous version:
+The `geas` command is pre-bundled and available via PATH. Verify it works:
 
 ```bash
-cd plugin/cli && npm install && npm run build
+geas --version
 ```
 
-Do NOT skip this step. Stale builds can cause "unknown command" errors for newly added CLI commands.
+If this fails, the plugin is not installed correctly. Reinstall the geas plugin.
 
 ### Phase A: Initialize `.geas/` Runtime Directory
 

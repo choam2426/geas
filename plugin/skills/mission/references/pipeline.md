@@ -16,15 +16,7 @@ Remove steps that will be skipped (e.g., remove "design" if no UI). After comple
 
 ## CLI Usage for Worktree Agents
 
-Agents spawned with `isolation: "worktree"` cannot use the `geas` CLI alias directly because the `.geas/` directory is not present in their worktree. These agents must use the `--cwd` pattern to invoke CLI commands against the main project root:
-
-```
-node {project_root}/plugin/cli/index.js --cwd {project_root} <command> [args]
-```
-
-Where `{project_root}` is the absolute path of the main session working directory, resolved before spawning the agent (see mission/SKILL.md "Worktree state access rule").
-
-Non-worktree agents can use `geas <command>` directly.
+Worktree-isolated agents can use `geas` commands directly. The CLI auto-detects the `.geas/` directory via `git rev-parse --show-toplevel`, so `--cwd` is not needed even in worktrees.
 
 ## Task File Precondition
 The TaskContract MUST be written to `.geas/missions/{mission_id}/tasks/{task-id}/contract.json` before the pipeline starts. Do NOT enter the pipeline without a task file on disk. This is required for closure validation and session recovery.
@@ -172,7 +164,7 @@ Compose the context packet inline and write via CLI: `Bash("geas packet create -
 Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule").
 Update checkpoint: `Bash("geas state checkpoint set --step implementation --agent {worker}")`
 ```
-Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read {project_root}/.geas/missions/{mission_id}/tasks/{task-id}/packets/{worker}.md. Implement the feature. Write your evidence by running: node {project_root}/plugin/cli/index.js --cwd {project_root} evidence add --task {task-id} --agent {worker} --role implementer --set summary='<implementation summary>' --set files_changed='[\"file1\",\"file2\"]'")
+Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read {project_root}/.geas/missions/{mission_id}/tasks/{task-id}/packets/{worker}.md. Implement the feature. Write your evidence by running: geas evidence add --task {task-id} --agent {worker} --role implementer --set summary='<implementation summary>' --set files_changed='[\"file1\",\"file2\"]'")
 ```
 Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{worker}.json` exists.
 
@@ -180,7 +172,7 @@ Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{worker}.json` exis
 The worker self-check runs in the same worktree as the implementation step (worktree is still alive — merge happens later at Integration). Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule").
 Update checkpoint: `Bash("geas state checkpoint set --step self_check --agent {worker}")`
 ```
-Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Implementation for {task-id} is complete. Before handing off to review, write your self-check to record.json. Run: node {project_root}/plugin/cli/index.js --cwd {project_root} task record add --task {task-id} --section self_check --data '<your-json>'. Required fields: confidence (integer 1-5), known_risks (string[]), untested_paths (string[]), summary (string). The CLI validates against the record schema automatically.")
+Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Implementation for {task-id} is complete. Before handing off to review, write your self-check to record.json. Run: geas task record add --task {task-id} --section self_check --data '<your-json>'. Required fields: confidence (integer 1-5), known_risks (string[]), untested_paths (string[]), summary (string). The CLI validates against the record schema automatically.")
 ```
 Verify record.json has `self_check` section: `Bash("geas task record get --task {task-id} --section self_check")`. Do NOT proceed to Specialist Review without this section.
 

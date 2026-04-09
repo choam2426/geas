@@ -71,7 +71,7 @@ Resolve `project_root` — the absolute path of the main session working directo
 
 Spawn the fixer **with worktree isolation** (implementation agents always use worktree):
 ```
-Agent(agent: "{fixer}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read your ContextPacket at {project_root}/.geas/missions/{mission_id}/tasks/{task-id}/packets/{fixer}-fix-{N}.md. Fix the specific failures listed in your packet. Write your results by running: node {project_root}/plugin/cli/index.js --cwd {project_root} evidence add --task {task-id} --agent {fixer}-fix-{N} --role implementer --set summary=... --set files_changed=...")
+Agent(agent: "{fixer}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read your ContextPacket at {project_root}/.geas/missions/{mission_id}/tasks/{task-id}/packets/{fixer}-fix-{N}.md. Fix the specific failures listed in your packet. Write your results by running: geas evidence add --task {task-id} --agent {fixer}-fix-{N} --role implementer --set summary=... --set files_changed=...")
 ```
 
 After the fixer completes, merge the worktree branch before re-running the evidence gate. If merge conflicts arise, follow the orchestration_authority merge conflict protocol.

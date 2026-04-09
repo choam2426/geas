@@ -24,7 +24,7 @@ For each CRITICAL/HIGH finding, run a reduced pipeline:
 2. Update checkpoint: `Bash("geas state checkpoint set --step security_fix --agent {worker}")`
 3. Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule"). Spawn worker with worktree isolation:
    ```
-   Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read {project_root}/.geas/missions/{mission_id}/tasks/polishing/packets/{worker}-fix-{N}.md. Fix the security issue. Write your evidence by running: node {project_root}/plugin/cli/index.js --cwd {project_root} evidence add --task polishing --agent {worker}-fix-{N} --role implementer --set summary='<fix summary>' --set files_changed='[\"file1\"]'")
+   Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read {project_root}/.geas/missions/{mission_id}/tasks/polishing/packets/{worker}-fix-{N}.md. Fix the security issue. Write your evidence by running: geas evidence add --task polishing --agent {worker}-fix-{N} --role implementer --set summary='<fix summary>' --set files_changed='[\"file1\"]'")
    ```
 4. Merge worktree branch
 5. Specialist Review (design_authority) — verify the fix is correct and doesn't introduce regressions

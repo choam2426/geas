@@ -31,7 +31,7 @@ Bash("geas mission create --id {mission_id}")
    ```
    The CLI validates the brief automatically. Set `status: "draft"`.
 2. Propose a mission mode to the user:
-   - **`lightweight`**: Mission has clear scope, existing patterns apply, low ambiguity. Only minimum fields: `chosen_approach`, `non_goals`, `verification_strategy`.
+   - **`lightweight`**: Mission has clear scope, existing patterns apply, low ambiguity. Only minimum fields: `chosen_approach`, `non_goals`, `verification_strategy`. **Note: lightweight only simplifies intake and design-brief. The Building pipeline (task-compiler, state transitions, agent spawning, evidence gate) is identical across all modes.**
    - **`standard`**: Mission has moderate scope, some architectural decisions, normal risk. Adds: `architecture_decisions`, `risks`, `preserve_list`.
    - **`full_depth`**: Mission has multiple valid approaches, cross-module impact, or significant risk. Adds: `alternatives_considered`, `unresolved_assumptions`. Requires vote round.
 3. User confirms or overrides the mission mode.

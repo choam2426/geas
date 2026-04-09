@@ -55,7 +55,7 @@ Example:
 project_root=$(git rev-parse --show-toplevel)   # e.g., /home/user/my-project
 
 # Then in every worktree Agent() prompt, use absolute paths:
-Agent(agent: "{worker}", isolation: "worktree", prompt: "Read /home/user/my-project/.geas/missions/.../tasks/{task-id}/packets/... Implement the feature. Write your evidence by running: node /home/user/my-project/plugin/cli/index.js --cwd /home/user/my-project evidence add --task {task-id} --agent {worker} --role implementer --set summary=... --set files_changed=...")
+Agent(agent: "{worker}", isolation: "worktree", prompt: "Read /home/user/my-project/.geas/missions/.../tasks/{task-id}/packets/... Implement the feature. Write your evidence by running: geas evidence add --task {task-id} --agent {worker} --role implementer --set summary=... --set files_changed=...")
 ```
 
 Non-worktree agents (spawned without `isolation: "worktree"`) run in the main session directory where `.geas/` is directly accessible. Their prompts may continue to use relative `.geas/` paths.
@@ -159,6 +159,20 @@ Between tasks, a brief status update is acceptable but do NOT wait for user inpu
 - **Specifying → Building transition** (after environment setup completes)
 
 Design-brief and task list each require user approval. Do NOT batch these — present design-brief first, get approval, then compile tasks, then present task list for approval.
+
+---
+
+## Gotchas
+
+These are recurring mistakes. Read before every mission.
+
+1. **Claude Code TaskCreate ≠ geas TaskContract.** Claude Code's built-in TaskCreate tool creates UI-only progress items. Geas TaskContracts are `.geas/missions/{mission_id}/tasks/{task-id}/contract.json` files created via `/geas:task-compiler`. You MUST use task-compiler — never substitute Claude Code tasks for geas tasks.
+
+2. **Lightweight mode ≠ skip pipeline.** Lightweight simplifies intake and design-brief (fewer questions, fewer fields). The Building pipeline (14 steps per task, state transitions, evidence, gate) is IDENTICAL across all modes. No mode allows skipping state transitions or evidence collection.
+
+3. **Orchestrate only — never implement.** The orchestrator does NOT write code, even for "simple" fixes. Spawn an implementer agent. The only direct writes the orchestrator does are: git operations, retrospectives, closure packets, and session state.
+
+4. **"User said commit" ≠ "skip remaining phases."** A user asking to commit means commit the current work. It does NOT mean skip Polishing, Evolving, or any remaining pipeline steps. Complete the full 4-phase flow.
 
 ---
 
