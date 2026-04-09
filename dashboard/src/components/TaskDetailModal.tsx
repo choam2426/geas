@@ -1,10 +1,13 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { X } from "lucide-react";
-import type { TaskInfo } from "../types";
+import type { TaskInfo, TaskRecord, Evidence } from "../types";
 import { riskColors, statusColors, taskKindColors } from "../colors";
 
 interface TaskDetailModalProps {
   task: TaskInfo;
+  projectPath: string;
+  missionId: string;
   onClose: () => void;
 }
 
@@ -29,10 +32,37 @@ function Badge({
 
 export default function TaskDetailModal({
   task,
+  projectPath,
+  missionId,
   onClose,
 }: TaskDetailModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const [record, setRecord] = useState<TaskRecord | null>(null);
+  const [evidence, setEvidence] = useState<Evidence[]>([]);
+  const [detailLoading, setDetailLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchDetail() {
+      try {
+        const result = await invoke<{ record: TaskRecord | null; evidence: Evidence[] }>(
+          "get_task_detail",
+          { path: projectPath, mission_id: missionId, task_id: task.task_id }
+        );
+        if (!cancelled) {
+          setRecord(result.record);
+          setEvidence(result.evidence);
+        }
+      } catch {
+        // ignore — detail is supplementary
+      } finally {
+        if (!cancelled) setDetailLoading(false);
+      }
+    }
+    fetchDetail();
+    return () => { cancelled = true; };
+  }, [projectPath, missionId, task.task_id]);
 
   useEffect(() => {
     previousFocusRef.current = document.activeElement as HTMLElement;
@@ -176,7 +206,7 @@ export default function TaskDetailModal({
         </div>
 
         {/* Scope Surfaces */}
-        <div className="px-5 pt-4 pb-5">
+        <div className="px-5 pt-4">
           <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-1.5">
             Scope Surfaces
           </h3>
@@ -195,6 +225,77 @@ export default function TaskDetailModal({
             <p className="text-sm text-text-muted italic">No scope defined</p>
           )}
         </div>
+
+        {/* Record Pipeline */}
+        <div className="px-5 pt-4">
+          <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+            Pipeline Progress
+          </h3>
+          {detailLoading ? (
+            <div className="h-6 w-full rounded bg-bg-elevated animate-skeleton" />
+          ) : record ? (
+            <div className="flex items-center gap-1">
+              {(["implementation_contract", "self_check", "gate_result", "challenge_review", "verdict", "closure", "retrospective"] as const).map((section) => {
+                const exists = record[section] != null;
+                return (
+                  <div key={section} className="flex flex-col items-center gap-1 flex-1">
+                    <div
+                      className={`w-full h-1.5 rounded-full ${
+                        exists ? "bg-status-green" : "bg-bg-elevated"
+                      }`}
+                    />
+                    <span className={`text-[9px] leading-tight text-center ${
+                      exists ? "text-text-secondary" : "text-text-muted"
+                    }`}>
+                      {section.replace(/_/g, " ").replace("implementation contract", "impl").replace("challenge review", "challenge").replace("retrospective", "retro")}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-text-muted italic">No execution record</p>
+          )}
+        </div>
+
+        {/* Evidence */}
+        {!detailLoading && evidence.length > 0 && (
+          <div className="px-5 pt-4 pb-5">
+            <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+              Evidence
+            </h3>
+            <div className="space-y-2">
+              {evidence.map((ev, i) => (
+                <div key={i} className="bg-bg-elevated rounded-md p-3 border border-border-default">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-xs font-medium text-text-primary">
+                      {ev.agent ?? "unknown"}
+                    </span>
+                    {ev.role && (
+                      <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-accent/15 text-accent">
+                        {ev.role}
+                      </span>
+                    )}
+                    {ev.verdict && (
+                      <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                        ev.verdict === "approved" || ev.verdict === "pass"
+                          ? "bg-status-green/15 text-status-green"
+                          : ev.verdict === "blocked"
+                          ? "bg-status-red/15 text-status-red"
+                          : "bg-status-amber/15 text-status-amber"
+                      }`}>
+                        {ev.verdict}
+                      </span>
+                    )}
+                  </div>
+                  {ev.summary && (
+                    <p className="text-xs text-text-secondary leading-relaxed">{ev.summary}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
