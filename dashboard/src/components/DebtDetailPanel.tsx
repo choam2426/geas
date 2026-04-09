@@ -184,6 +184,23 @@ export default function DebtDetailPanel({
               })}
             </div>
 
+            {/* Kind breakdown */}
+            {debt.by_kind && (
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <span className="text-xs text-text-muted mr-1">Kind:</span>
+                {Object.entries(debt.by_kind)
+                  .filter(([, count]) => (count as number) > 0)
+                  .map(([kind, count]) => (
+                    <span
+                      key={kind}
+                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-bg-elevated text-text-secondary"
+                    >
+                      {(count as number)} {kind.replace(/_/g, " ")}
+                    </span>
+                  ))}
+              </div>
+            )}
+
             {/* Status filter */}
             <div className="flex items-center gap-2 mb-4">
               <span className="text-xs text-text-muted mr-1">Status:</span>
