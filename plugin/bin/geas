@@ -13331,24 +13331,25 @@ function registerMemoryCommands(program2) {
       }
       let content = `# Project Rules
 
-## CLI Usage
-- All .geas/ writes go through the CLI. Zero exceptions.
-- \`created_at\` and \`updated_at\` are auto-injected by the CLI. Never generate timestamps manually.
-- CLI validates against schemas automatically. If validation fails, fix the data \u2014 do not bypass.
-
 ## Evidence
-- Task evidence: \`geas evidence add --task {tid} --agent {name} --role {role} --set key=value\`
-- Phase evidence (polishing/evolving): \`geas evidence add --phase {phase} --agent {name} --role {role} --set key=value\`
-- Evidence fields by role: implementer needs \`files_changed\`, reviewer needs \`verdict\` + \`concerns\`, tester needs \`verdict\` + \`criteria_results\`, authority needs \`verdict\` + \`rationale\`.
+- Write evidence via CLI: \`geas evidence add --task {tid} --agent {name} --role {role} --set key=value\`
+- Required fields by role:
+  - implementer: \`summary\`, \`files_changed\` (array of changed file paths)
+  - reviewer: \`summary\`, \`verdict\` (approved/changes_requested/blocked), \`concerns\` (array)
+  - tester: \`summary\`, \`verdict\`, \`criteria_results\` (array of {criterion, passed, details?})
+  - authority: \`summary\`, \`verdict\`, \`rationale\`
+- Optional for all roles: \`rubric_scores\` (array of {dimension, score (1-5), rationale?})
+- Timestamps are auto-injected by the CLI. Never generate them manually.
 
 ## Scope
-- Respect \`scope.surfaces\` from the TaskContract \u2014 only modify files within the declared scope.
+- Only modify files listed in \`scope.surfaces\` from the TaskContract.
 - Out-of-scope changes require implementation contract amendment.
+- Read the TaskContract before starting work to understand acceptance criteria and scope.
 
-## Artifacts
-- \`producer_type\` = the agent whose judgment produced the content, not the agent that wrote the file.
-- \`record add\` merges into existing sections. Send only the fields you want to update.
-- Phase-level evidence goes to \`polishing/evidence/\` or \`evolution/evidence/\`, not \`tasks/\`.
+## Reviews
+- Reviewers must provide concrete, actionable feedback \u2014 not vague observations.
+- Use \`verdict: "changes_requested"\` with specific \`concerns\` when issues are found.
+- Use \`verdict: "blocked"\` only for critical issues that prevent shipping.
 
 ## Code
 `;

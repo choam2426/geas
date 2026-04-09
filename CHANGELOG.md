@@ -23,6 +23,8 @@ Test session analysis fixes — schema friction, CLI usability, skill guidance.
 ### Changed
 - `geas evidence add`: added `--phase` flag for mission-level evidence (mutually exclusive with `--task`)
 - `geas mission create`: removed `contracts/`, `packets/`, `evidence/` subdirectories (v3 remnants); added `polishing/`
+- `rules.md` template: sub-agent focused rules (evidence by role, scope enforcement, review standards)
+- Orchestrator reads its own memory note (`.geas/memory/agents/orchestration-authority.md`) at startup
 
 ## [0.8.0] — 2026-04-10
 
