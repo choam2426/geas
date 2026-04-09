@@ -207,6 +207,8 @@ Bash("geas task record add --task {task-id} --section gate_result --data '<gate_
 ```
 The gate_result section must include: `verdict` (pass/fail/block/error), `tier_results`, `rubric_scores`, `blocking_dimensions`. The CLI validates automatically.
 
+**gate_result fields:** `verdict` (pass|fail|block|error), `tier_results` (object with `tier_0`, `tier_1`, `tier_2` keys, each having `status` and optional `details`), `rubric_scores[]` (items: `dimension`, `score`, `passed`, optional `threshold`), `blocking_dimensions[]`
+
 If fail -> invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** After fix, re-run gate.
 
 On gate pass, proceed to Integration.
@@ -277,6 +279,8 @@ Bash("geas task record add --task {task-id} --section closure --data '<closure_j
 ```
 The closure section must include: `change_summary` (required), `reviews` (array with reviewer_type/status/summary), `open_risks`, `debt_items`. The CLI validates against the record schema automatically.
 
+**closure fields:** `change_summary`, `reviews[]` (items: `reviewer_type`, `status` (approved|changes_requested|blocked), optional `summary`), `open_risks[]`, `debt_items[]`
+
 **Verify** record.json has `closure` section: `Bash("geas task record get --task {task-id} --section closure")`. Confirm all required fields are populated before proceeding.
 
 Update checkpoint: `Bash("geas state checkpoint set --step closure_packet --agent orchestrator")`
@@ -292,6 +296,8 @@ Update checkpoint: `Bash("geas state checkpoint set --step closure_packet --agen
 Resolve the challenger agent. Update checkpoint: `Bash("geas state checkpoint set --step challenger --agent challenger")`
 ```
 Agent(agent: "challenger", prompt: "Read the closure from record.json via: geas task record get --task {task-id} --section closure. Read all evidence at .geas/missions/{mission_id}/tasks/{task-id}/evidence/. You MUST raise at least 1 substantive concern — surface a real risk, edge case, or technical debt item. For each concern, state clearly whether it is BLOCKING or non-blocking. Write your challenge review to record.json. Run: geas task record add --task {task-id} --section challenge_review --data '<your-json>'. Required fields: concerns (array of objects with severity and description, OR array of strings prefixed with \"[BLOCKING]\" or \"[non-blocking]\"), blocking (boolean — true if ANY concern is blocking). The CLI validates automatically.")
+
+**challenge_review fields:** `concerns[]` (strings or objects with `severity` (blocking|non_blocking) and `description`), `blocking` (boolean), optional `summary`
 ```
 
 Verify record.json has `challenge_review` section: `Bash("geas task record get --task {task-id} --section challenge_review")`.

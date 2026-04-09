@@ -228,6 +228,16 @@ When `run.json` exists with `status: "in_progress"`, classify the recovery:
    ```bash
    Bash("geas recovery write --data '<recovery_packet_json>'")
    ```
+   **Recovery-packet schema fields:**
+   - `recovery_id`: unique string (e.g., `"recovery-{mission_id}-001"`)
+   - `recovery_class`: one of `post_compact_resume`, `warm_session_resume`, `interrupted_subagent_resume`, `dirty_state_recovery`, `manual_repair_required`
+   - `focus_task_id`: task being recovered (string or null)
+   - `detected_problem`: what went wrong
+   - `recommended_action`: what to do
+   - `artifacts_found`: string array of existing artifact paths
+   - `artifacts_missing`: string array of missing artifact paths
+   - `rewind_target` (optional): one of `ready`, `implementing`, `reviewed`, `integrated`
+   - `resolution` (optional): how it was resolved
 4. Update run state: `Bash("geas state update --field recovery_class --value '<class>'")`
 5. Log: `Bash("geas event log --type recovery --data '{\"recovery_class\":\"...\",\"recovery_id\":\"...\",\"focus_task_id\":\"...\"}'")` 
 

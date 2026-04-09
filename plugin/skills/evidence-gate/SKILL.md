@@ -15,6 +15,14 @@ Objective verification of whether a worker's output meets the TaskContract requi
 2. **Worker Self-Check** — read from record.json `self_check` section (`.geas/missions/{mission_id}/tasks/{task-id}/record.json`)
 3. **Specialist Reviews** — read from `.geas/missions/{mission_id}/tasks/{task-id}/evidence/`. Naming: `{agent-type}.json` per agent
 4. **Integration Result** — merge status from worktree integration
+
+**Evidence schema fields by role:**
+- All roles: `version`, `agent`, `task_id`, `role`, `summary`
+- `implementer`: + `files_changed[]`, optional `commit`
+- `reviewer`: + `verdict` (approved|changes_requested|blocked), `concerns[]`
+- `tester`: + `verdict` (pass|iterate|escalate), `criteria_results[]` (items: `criterion`, `passed`, optional `details`)
+- `authority`: + `verdict`, `rationale`
+- Optional for all: `rubric_scores[]` (items: `dimension`, `score` (1-5), optional `rationale`)
 5. **Gate profile** — determines which tiers to run (see below)
 
 ## Gate Profiles
