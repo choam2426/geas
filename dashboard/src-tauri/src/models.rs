@@ -347,6 +347,7 @@ pub struct TaskInfo {
     pub worker_type: Option<String>,
     pub acceptance_criteria: Vec<String>,
     pub scope_surfaces: Vec<String>,
+    pub dependencies: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]

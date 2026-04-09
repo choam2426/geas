@@ -21,6 +21,8 @@ import {
   HelpCircle,
   MonitorSmartphone,
 } from "lucide-react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type {
   MissionSpecDetail,
   DesignBrief,
@@ -82,12 +84,13 @@ export default function MissionDetailView({
   const [voteRounds, setVoteRounds] = useState<VoteRound[]>([]);
   const [phaseReviews, setPhaseReviews] = useState<PhaseReview[]>([]);
   const [gapAssessment, setGapAssessment] = useState<GapAssessment | null>(null);
+  const [missionSummary, setMissionSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSpec = useCallback(async () => {
     try {
-      const [specResult, briefResult, votesResult, reviewsResult, gapResult] = await Promise.all([
+      const [specResult, briefResult, votesResult, reviewsResult, gapResult, summaryResult] = await Promise.all([
         invoke<MissionSpecDetail>("get_mission_spec", {
           path: projectPath,
           mission_id: missionId,
@@ -96,12 +99,14 @@ export default function MissionDetailView({
         invoke<VoteRound[]>("get_vote_rounds", { path: projectPath, mission_id: missionId }).catch(() => []),
         invoke<PhaseReview[]>("get_phase_reviews", { path: projectPath, mission_id: missionId }).catch(() => []),
         invoke<GapAssessment | null>("get_gap_assessment", { path: projectPath, mission_id: missionId }).catch(() => null),
+        invoke<string | null>("get_mission_summary", { path: projectPath, mission_id: missionId }).catch(() => null),
       ]);
       setSpec(specResult);
       setDesignBrief(briefResult);
       setVoteRounds(votesResult);
       setPhaseReviews(reviewsResult);
       setGapAssessment(gapResult);
+      setMissionSummary(summaryResult);
       setError(null);
     } catch (err) {
       setError(String(err));
@@ -294,6 +299,18 @@ export default function MissionDetailView({
               <p className="text-sm text-text-secondary">
                 {spec.done_when}
               </p>
+            </Section>
+          )}
+
+          {/* Mission Summary */}
+          {missionSummary !== null && (
+            <Section
+              icon={<FileText size={16} className="text-accent" />}
+              title="Mission Summary"
+            >
+              <div className="rules-markdown">
+                <Markdown remarkPlugins={[remarkGfm]}>{missionSummary}</Markdown>
+              </div>
             </Section>
           )}
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { X } from "lucide-react";
+import { X, GitBranch } from "lucide-react";
 import type { TaskInfo, TaskRecord, Evidence } from "../types";
 import { riskColors, statusColors, taskKindColors } from "../colors";
 
@@ -225,6 +225,26 @@ export default function TaskDetailModal({
             <p className="text-sm text-text-muted italic">No scope defined</p>
           )}
         </div>
+
+        {/* Dependencies */}
+        {task.dependencies && task.dependencies.length > 0 && (
+          <div className="px-5 pt-4">
+            <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+              <GitBranch size={14} className="text-text-muted" />
+              Dependencies
+            </h3>
+            <div className="flex flex-wrap gap-1.5">
+              {task.dependencies.map((dep, i) => (
+                <span
+                  key={i}
+                  className="inline-flex bg-bg-elevated rounded-md px-2 py-1 text-xs font-mono text-text-secondary"
+                >
+                  {dep}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Record Pipeline */}
         <div className="px-5 pt-4">
