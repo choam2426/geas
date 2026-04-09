@@ -10200,6 +10200,7 @@ var debt_register_schema_default = {
     producer_type: {
       type: "string",
       enum: [
+        "orchestration-authority",
         "design-authority",
         "product-authority"
       ]
