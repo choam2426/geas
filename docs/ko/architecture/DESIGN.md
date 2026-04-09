@@ -300,6 +300,7 @@ Agent 상세: `reference/AGENTS.md`. Skill 상세: `reference/SKILLS.md`. Hook �
 .geas/
 ├── state/
 │   ├── run.json                    # Mission state, checkpoint
+│   ├── locks.json                  # Lock manifest for parallelism
 │   └── events.jsonl                # Append-only audit trail
 ├── missions/{mission_id}/
 │   ├── spec.json                   # Mission spec (frozen after intake)

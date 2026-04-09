@@ -81,7 +81,7 @@ Check the completeness checklist — all items must be true:
 - `scope_out`: approved (>= 1 item)
 - `target_user`: approved
 - `constraints`: approved
-- `affected_surfaces`: identified
+- `scope.surfaces`: identified
 
 Generate the mission ID in the format `mission-{YYYYMMDD}-{8char}` where:
 - `YYYYMMDD` is the current UTC date

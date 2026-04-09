@@ -28,7 +28,7 @@ Specifying produces three user-approved artifacts: mission spec (WHAT/WHY), desi
 ## Task Lifecycle
 
 7 primary states: `drafted → ready → implementing → reviewed → integrated → verified → passed`
-4 auxiliary states: `blocked`, `escalated`, `cancelled`, `paused` (scheduler flag)
+3 auxiliary states: `blocked`, `escalated`, `cancelled`
 
 ## Verification Flow
 
