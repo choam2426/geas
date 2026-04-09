@@ -32,9 +32,11 @@ Bash("geas mission create --id {mission_id}")
    The CLI validates the brief automatically and auto-injects `created_at`. Set `status: "draft"`.
 
    **Schema field reference** (exact names required by CLI validation):
+   - `depth`: `"lightweight"`, `"standard"`, or `"full_depth"` (NOT `mode`)
    - `risks[]`: items have `description` and `mitigation` (not `risk`)
    - `alternatives_considered[]`: items have `approach` and `rejected_reason` (not `rejected_because`)
-   - `design_review`: must be an object with `reviewer_type` and `summary` (not null)
+   - `architecture_decisions[]`: items have `decision`, `rationale`, and optional `constraints` (must be string array, not string)
+   - `design_review`: must be object with `reviewer_type: "design-authority"` (const) and `summary` — set both even for initial draft
    - `producer_type`: must be `"orchestration-authority"` (kebab-case)
 
 2. Propose a mission mode to the user:
