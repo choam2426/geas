@@ -27,7 +27,7 @@ Where `{project_root}` is the absolute path of the main session working director
 Non-worktree agents can use `geas <command>` directly.
 
 ## Task File Precondition
-The TaskContract MUST be written to `.geas/missions/{mission_id}/tasks/{task-id}.json` before the pipeline starts. Do NOT enter the pipeline without a task file on disk. This is required for Closure Packet validation and session recovery.
+The TaskContract MUST be written to `.geas/missions/{mission_id}/tasks/{task-id}/contract.json` before the pipeline starts. Do NOT enter the pipeline without a task file on disk. This is required for closure validation and session recovery.
 
 ## Start Task
 - Read TaskContract. Check dependencies are `"passed"`.
@@ -65,7 +65,7 @@ Before transitioning to `"implementing"`, check for staleness:
    d. **Overlap, auto-resolvable** -> classification = `review_sync`. Update `base_commit`, proceed. Flag for specialist re-review after implementation.
    e. **Overlap, not auto-resolvable** -> classification = `replan_required`. Do NOT proceed. Rewind task to `"ready"`. Update implementation contract.
    f. **Preconditions invalidated** -> classification = `blocking_conflict`. Set task status to `"blocked"`.
-   g. Write the revalidation record to `.geas/missions/{mission_id}/tasks/{task-id}/revalidation-record.json` (use Write tool — no dedicated CLI command for revalidation-record)
+   g. Write the revalidation record to `.geas/missions/{mission_id}/tasks/{task-id}/revalidation-record.json` (use Write tool -- no dedicated CLI command for revalidation-record)
    h. Log event: `Bash("geas event log --type revalidation --task {task-id} --data '{\"classification\":\"...\"}'")` 
 
 Only proceed to `"implementing"` if classification is `clean_sync` or `review_sync`.
@@ -98,7 +98,7 @@ Within a single task's pipeline, these steps may run in parallel:
 - **[specialist_review, testing]** — design-authority and quality_specialist do not reference each other's output. Spawn both in one message. After both return, remove both from `remaining_steps` and log `step_complete` for each.
 
 All other steps are strictly sequential. In particular:
-- **challenger -> final_verdict** — product_authority's prompt requires `challenge-review.json` as input. challenger MUST complete and file MUST be verified before spawning product_authority.
+- **challenger -> final_verdict** — product_authority's prompt requires the `challenge_review` section in record.json. challenger MUST complete and section MUST be verified before spawning product_authority.
 
 ## [MANDATORY] Event Logging
 
@@ -110,33 +110,29 @@ Exception: `implementation_contract`, `gate_result`, and `task_resolved` have th
 
 ## [MANDATORY] Session State Update
 
-After each step completes and is logged, update the session context anchors via CLI:
+After each step completes and is logged, update the session context anchor via CLI:
 
 ```bash
 Bash("geas state session-update --phase {phase} --task {task-id} --step {step_name} --summary '{summary_text}'")
 ```
 
-```bash
-Bash("geas state task-focus --id {task-id} --status {state} --step {step_name} --summary '{progress_summary}'")
-```
-
-The CLI auto-generates timestamps and writes the markdown files to `.geas/state/session-latest.md` and `.geas/state/task-focus/{task-id}.md` respectively.
+The CLI auto-generates timestamps and writes to `.geas/state/session-latest.md`. Task focus is tracked in run.json by the orchestrator (no separate task-focus files).
 
 ## Pipeline Steps
 
 ### Design (implementer — design-capable) [DEFAULT — skip-if: no user-facing interface]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
 Resolve the implementer slot via profiles.json. If the profile provides a design-capable implementer, spawn it. Otherwise, the primary implementer handles design.
-Generate ContextPacket, then:
+Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-implementer} --content '...'")`. Then:
 Update checkpoint: `Bash("geas state checkpoint set --step design --agent {resolved-implementer}")`
 ```
-Agent(agent: "{resolved-implementer}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-implementer}.md. Write your design spec as evidence. Run: geas evidence record --mission {mission_id} --task {task-id} --agent {resolved-implementer}-design --data '<your-json>'")
+Agent(agent: "{resolved-implementer}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-implementer}.md. Write your design spec as evidence. Run: geas evidence add --task {task-id} --agent {resolved-implementer}-design --role implementer --set summary='<design summary>' --set files_changed='[]'")
 ```
-Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-implementer}-design.json` exists.
+Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-implementer}-design.json` exists.
 
 ### Design Guide (design-authority) [DEFAULT — skip when ALL: existing pattern, no new libs, single module, no schema change]
 **Skip** when ALL of these are true:
-- Task follows an existing pattern in conventions.md
+- Task follows an existing pattern in rules.md
 - No new external libraries or services
 - Single module scope (no cross-boundary changes)
 - No data model or schema changes
@@ -147,26 +143,29 @@ Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-implementer}-de
 - Cross-module dependencies
 - New data model or schema changes
 
-Resolve the design-authority slot via profiles.json. Generate ContextPacket, then:
+Resolve the design-authority slot via profiles.json. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-design-authority} --content '...'")`. Then:
 Update checkpoint: `Bash("geas state checkpoint set --step design_guide --agent {resolved-design-authority}")`
 ```
-Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-design-authority}.md. Write your design guide as evidence. Run: geas evidence record --mission {mission_id} --task {task-id} --agent {resolved-design-authority} --data '<your-json>'")
+Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-design-authority}.md. Write your design guide as evidence. Run: geas evidence add --task {task-id} --agent {resolved-design-authority} --role reviewer --set summary='<guide summary>' --set verdict='approved' --set concerns='[]'")
 ```
-Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}.json` exists.
+Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-design-authority}.json` exists.
 
 ### Implementation Contract [MANDATORY]
 Invoke `/geas:implementation-contract` — worker writes action plan, quality_specialist and design_authority approve before implementation.
 Update checkpoint: `Bash("geas state checkpoint set --step implementation_contract --agent {worker}")`
-Verify `.geas/missions/{mission_id}/contracts/{task-id}.json` exists with `status: "approved"`.
+Verify record.json has `implementation_contract` section with `status: "approved"`:
+```bash
+Bash("geas task record get --task {task-id} --section implementation_contract")
+```
 
 ### Implementation [MANDATORY — worktree isolated]
-Generate ContextPacket, then:
+Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {worker} --content '...'")`. Then:
 Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule").
 Update checkpoint: `Bash("geas state checkpoint set --step implementation --agent {worker}")`
 ```
-Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read {project_root}/.geas/missions/{mission_id}/packets/{task-id}/{worker}.md. Implement the feature. Write your evidence by running: node {project_root}/plugin/cli/index.js --cwd {project_root} evidence record --mission {mission_id} --task {task-id} --agent {worker} --data '<your-json>'")
+Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read {project_root}/.geas/missions/{mission_id}/tasks/{task-id}/packets/{worker}.md. Implement the feature. Write your evidence by running: node {project_root}/plugin/cli/index.js --cwd {project_root} evidence add --task {task-id} --agent {worker} --role implementer --set summary='<implementation summary>' --set files_changed='[\"file1\",\"file2\"]'")
 ```
-Verify evidence exists.
+Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{worker}.json` exists.
 
 #### Pre-Integration Staleness Check
 
@@ -179,7 +178,7 @@ Before merging the worktree:
    - `review_sync` -> merge, then specialist re-review required for changed areas
    - `replan_required` -> rewind task to `"ready"`, update implementation contract
    - `blocking_conflict` -> task -> `"blocked"`
-4. If revalidation was needed, write an updated `.geas/missions/{mission_id}/tasks/{task-id}/revalidation-record.json` (use Write tool — no dedicated CLI command for revalidation-record)
+4. If revalidation was needed, write an updated `.geas/missions/{mission_id}/tasks/{task-id}/revalidation-record.json` (use Write tool -- no dedicated CLI command for revalidation-record)
 
 #### Integration Lock
 
@@ -204,38 +203,41 @@ After successful merge, status remains `"implementing"` — the task is not yet 
 The worker self-check runs in the same worktree as the implementation step. Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule").
 Update checkpoint: `Bash("geas state checkpoint set --step self_check --agent {worker}")`
 ```
-Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Implementation for {task-id} is complete. Before handing off to review, produce your self-check artifact. Run: node {project_root}/plugin/cli/index.js --cwd {project_root} task self-check --mission {mission_id} --task {task-id} --data '<your-json>'. Required fields: version (\"1.0\"), artifact_type (\"worker_self_check\"), artifact_id (e.g. \"self-check-{task-id}\"), producer_type (your agent type from the domain profile), task_id, known_risks (string[]), untested_paths (string[]), possible_stubs (string[]), what_to_test_next (string[]), confidence (integer 1-5: 1=very_low ... 5=very_high), summary (string), created_at (ISO 8601 timestamp).")
+Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Implementation for {task-id} is complete. Before handing off to review, write your self-check to record.json. Run: node {project_root}/plugin/cli/index.js --cwd {project_root} task record add --task {task-id} --section self_check --data '<your-json>'. Required fields: confidence (integer 1-5), known_risks (string[]), untested_paths (string[]), summary (string). The CLI validates against the record schema automatically.")
 ```
-Verify `{project_root}/.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json` exists. Do NOT proceed to Specialist Review without this file.
+Verify record.json has `self_check` section: `Bash("geas task record get --task {task-id} --section self_check")`. Do NOT proceed to Specialist Review without this section.
 
 ### Specialist Review (design-authority) [MANDATORY]
-Resolve the design-authority slot via profiles.json. Generate ContextPacket, then:
+Resolve the design-authority slot via profiles.json. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-design-authority}-review --content '...'")`. Then:
 Update checkpoint: `Bash("geas state checkpoint set --step specialist_review --agent {resolved-design-authority}")`
 ```
-Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-design-authority}-review.md. Review implementation. Write your review as evidence. Run: geas evidence record --mission {mission_id} --task {task-id} --agent {resolved-design-authority}-review --data '<your-json>'")
+Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-design-authority}-review.md. Review implementation. Write your review as evidence. Run: geas evidence add --task {task-id} --agent {resolved-design-authority}-review --role reviewer --set summary='<review summary>' --set verdict='approved' --set concerns='[]'")
 ```
-Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}-review.json` exists.
+Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-design-authority}-review.json` exists.
 Update checkpoint: `Bash("geas state checkpoint set --step specialist_review --agent null")`
 
 ### Testing (quality_specialist) [MANDATORY]
-Resolve the quality_specialist slot via profiles.json. Generate ContextPacket, then:
+Resolve the quality_specialist slot via profiles.json. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-quality-specialist} --content '...'")`. Then:
 Update checkpoint: `Bash("geas state checkpoint set --step testing --agent {resolved-quality-specialist}")`
 ```
-Agent(agent: "{resolved-quality-specialist}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{resolved-quality-specialist}.md. Test the implementation. Write your test results as evidence. Run: geas evidence record --mission {mission_id} --task {task-id} --agent {resolved-quality-specialist} --data '<your-json>'")
+Agent(agent: "{resolved-quality-specialist}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-quality-specialist}.md. Test the implementation. Write your test results as evidence. Run: geas evidence add --task {task-id} --agent {resolved-quality-specialist} --role tester --set summary='<test summary>' --set verdict='pass' --set criteria_results='[{\"criterion\":\"...\",\"passed\":true}]'")
 ```
-Verify `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-quality-specialist}.json` exists.
+Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-quality-specialist}.json` exists.
 Update checkpoint: `Bash("geas state checkpoint set --step testing --agent null")`
 
 After BOTH specialist_review and testing complete:
-1. Update TaskContract status: `Bash("geas task transition --mission {mission_id} --id {task-id} --to reviewed")`
-2. Write `.geas/missions/{mission_id}/tasks/{task-id}/integration-result.json` (use Write tool — no dedicated CLI command for integration-result).
-3. Update TaskContract status: `Bash("geas task transition --mission {mission_id} --id {task-id} --to integrated")`
+1. Update TaskContract status: `Bash("geas task transition --id {task-id} --to reviewed")`
+2. Update TaskContract status: `Bash("geas task transition --id {task-id} --to integrated")`
 
-Do NOT update status to `"reviewed"` until both steps finish. The three operations happen atomically after both agents return.
+Do NOT update status to `"reviewed"` until both steps finish. The two operations happen sequentially after both agents return.
 
 ### Evidence Gate
-Run eval_commands from TaskContract. Check acceptance criteria against all evidence.
-Log detailed result with tier breakdown.
+Run eval_commands from TaskContract. Check acceptance criteria against all evidence at `.geas/missions/{mission_id}/tasks/{task-id}/evidence/`.
+Write gate result to record.json:
+```bash
+Bash("geas task record add --task {task-id} --section gate_result --data '<gate_result_json>'")
+```
+The gate_result section must include: `verdict` (pass/fail/block/error), `tier_results`, `rubric_scores`, `blocking_dimensions`. The CLI validates automatically.
 On gate pass: update TaskContract status to `"verified"`.
 If fail -> invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** After fix, re-run gate.
 
@@ -244,75 +246,21 @@ If fail -> invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** Af
 orchestration_authority (Orchestrator) assembles the closure packet by reading all task artifacts. This is NOT an agent spawn — Orchestrator reads and writes directly.
 
 **Read required artifacts:**
-- TaskContract: `.geas/missions/{mission_id}/tasks/{task-id}.json`
-- Worker Self-Check: `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json`
-- Gate Result: `.geas/missions/{mission_id}/tasks/{task-id}/gate-result.json`
-- Specialist Reviews: `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-design-authority}-review.json`, `.geas/missions/{mission_id}/evidence/{task-id}/{resolved-quality-specialist}.json`
+- TaskContract: `.geas/missions/{mission_id}/tasks/{task-id}/contract.json`
+- Self-Check: record.json `self_check` section (`Bash("geas task record get --task {task-id} --section self_check")`)
+- Gate Result: record.json `gate_result` section (`Bash("geas task record get --task {task-id} --section gate_result")`)
+- Specialist Reviews: `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-design-authority}-review.json`, `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-quality-specialist}.json`
 - Integration Result: from worktree merge (commit hash, conflict status)
 
 **If ANY required artifact is missing: go back and execute the missing step. Do NOT proceed.**
 
-**Write** the closure packet via CLI:
+**Write** the closure section to record.json via CLI:
 ```bash
-Bash("geas task closure --mission {mission_id} --task {task-id} --data '<closure_packet_json>'")
+Bash("geas task record add --task {task-id} --section closure --data '<closure_json>'")
 ```
-The data must conform to `schemas/closure-packet.schema.json`:
+The closure section must include: `change_summary` (required), `reviews` (array with reviewer_type/status/summary), `open_risks`, `debt_items`. The CLI validates against the record schema automatically.
 
-```json
-{
-  "version": "1.0",
-  "artifact_type": "closure_packet",
-  "artifact_id": "closure-{task-id}",
-  "producer_type": "orchestration_authority",
-  "created_at": "<ISO 8601 timestamp>",
-  "task_id": "{task-id}",
-  "task_summary": "<one-line summary from TaskContract description>",
-  "change_summary": "<brief description of what was implemented>",
-  "specialist_reviews": [
-    {
-      "reviewer_type": "design_authority",
-      "status": "approved",
-      "summary": "<key finding from design-authority review>"
-    },
-    {
-      "reviewer_type": "quality_specialist",
-      "status": "approved",
-      "summary": "<key finding from quality_specialist review>"
-    }
-  ],
-  "integration_result": {
-    "status": "success",
-    "merge_commit": "<commit hash from worktree merge>"
-  },
-  "verification_result": {
-    "gate_verdict": "pass",
-    "rubric_scores": [
-      { "dimension": "core_interaction", "score": 4, "passed": true },
-      { "dimension": "feature_completeness", "score": 4, "passed": true },
-      { "dimension": "code_quality", "score": 4, "passed": true },
-      { "dimension": "regression_safety", "score": 4, "passed": true }
-    ]
-  },
-  "worker_self_check": {
-    "confidence": 4,
-    "known_risks": ["<from worker-self-check.json known_risks>"],
-    "untested_paths": ["<from worker-self-check.json untested_paths>"]
-  },
-  "open_risks": {
-    "status": "none",
-    "items": []
-  },
-  "debt_snapshot": {
-    "status": "none",
-    "items": []
-  },
-  "readiness_round": null
-}
-```
-
-Set `readiness_round: null` initially — may be updated by the challenger step.
-
-**Verify** `.geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json` exists and all required fields are populated before proceeding.
+**Verify** record.json has `closure` section: `Bash("geas task record get --task {task-id} --section closure")`. Confirm all required fields are populated before proceeding.
 
 Update checkpoint: `Bash("geas state checkpoint set --step closure_packet --agent orchestrator")`
 
@@ -324,10 +272,10 @@ Update checkpoint: `Bash("geas state checkpoint set --step closure_packet --agen
 
 Resolve the challenger agent. Update checkpoint: `Bash("geas state checkpoint set --step challenger --agent challenger")`
 ```
-Agent(agent: "challenger", prompt: "Read the closure packet at .geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json. Read all evidence at .geas/missions/{mission_id}/evidence/{task-id}/. You MUST raise at least 1 substantive concern — surface a real risk, edge case, or technical debt item. For each concern, state clearly whether it is BLOCKING or non-blocking. Write your challenge review to .geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json (use Write tool — no dedicated CLI command for challenge-review). Required fields: reviewer_type (\"challenger\"), concerns (array of strings, each prefixed with \"[BLOCKING]\" or \"[non-blocking]\"), blocking (boolean — true if ANY concern is blocking).")
+Agent(agent: "challenger", prompt: "Read the closure from record.json via: geas task record get --task {task-id} --section closure. Read all evidence at .geas/missions/{mission_id}/tasks/{task-id}/evidence/. You MUST raise at least 1 substantive concern — surface a real risk, edge case, or technical debt item. For each concern, state clearly whether it is BLOCKING or non-blocking. Write your challenge review to record.json. Run: geas task record add --task {task-id} --section challenge_review --data '<your-json>'. Required fields: concerns (array of objects with severity and description, OR array of strings prefixed with \"[BLOCKING]\" or \"[non-blocking]\"), blocking (boolean — true if ANY concern is blocking). The CLI validates automatically.")
 ```
 
-Verify `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` exists.
+Verify record.json has `challenge_review` section: `Bash("geas task record get --task {task-id} --section challenge_review")`.
 
 **[MANDATORY] Log step_complete immediately after verification:**
 ```bash
@@ -337,30 +285,28 @@ Do NOT skip this log entry — it is required for conformance verification and s
 
 **After challenger returns:**
 
-1. Read `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json`.
-2. Update the closure packet: add a `challenge_review` field populated from the review.
-3. **If `blocking` is true:**
-   - Add blocking concerns to `open_risks` in the closure packet: set `status: "present"` and append each blocking concern as an item.
+1. Read the `challenge_review` section from record.json.
+2. **If `blocking` is true:**
+   - Update the `closure` section in record.json: append blocking concerns to `open_risks`.
    - Invoke `/geas:vote-round` as a readiness_round:
      - Participants: orchestration_authority, product_authority, 1 specialist (most relevant to the blocking concern)
      - Vote options: ship / iterate / escalate
-     - Record the outcome in the closure packet `readiness_round` field
-   - **If ship:** convert blocking concerns to acknowledged risks (add `acknowledged: true` to each item in `open_risks`). Proceed to Final Verdict.
+   - **If ship:** convert blocking concerns to acknowledged risks in `closure.open_risks`. Proceed to Final Verdict.
    - **If iterate:** rewind to resolve the blocking concern. Repopulate `remaining_steps` from the rewind point.
    - **If escalate:** set task status to `"escalated"`. Write a DecisionRecord. Stop pipeline.
-4. **If `blocking` is false:** record concerns in the closure packet `challenge_review` field. Proceed to Final Verdict.
+3. **If `blocking` is false:** proceed to Final Verdict.
 
 Update checkpoint: `Bash("geas state checkpoint set --step challenger --agent null")`
 
 ### Final Verdict (product-authority) [MANDATORY]
 **Preconditions:**
-- `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` must exist OR challenger was explicitly skipped for low risk
-- Closure Packet must be assembled (all required fields populated)
+- record.json must have `challenge_review` section OR challenger was explicitly skipped for low risk
+- record.json must have `closure` section with all required fields populated
 - Do NOT spawn product-authority until both preconditions are verified
 
 Update checkpoint: `Bash("geas state checkpoint set --step final_verdict --agent product-authority")`
 ```
-Agent(agent: "product-authority", prompt: "Read the closure packet at .geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json (which includes the challenge_review field if challenger ran) and all evidence at .geas/missions/{mission_id}/evidence/{task-id}/. Decide: pass, iterate, or escalate. Write your verdict via CLI. Run: geas task verdict --mission {mission_id} --task {task-id} --data '<verdict_json>'. Required fields: version (\"1.0\"), artifact_type (\"final_verdict\"), artifact_id (e.g. \"verdict-{task-id}\"), producer_type (\"product_authority\"), created_at (ISO 8601 timestamp), task_id, verdict (\"pass\" | \"iterate\" | \"escalate\"), rationale (why this verdict), closure_packet_ref (path to closure packet). If iterate: include rewind_target (\"ready\" | \"implementing\" | \"reviewed\") and iterate_count. If escalate: include escalation_reason. Also write evidence copy. Run: geas evidence record --mission {mission_id} --task {task-id} --agent product-authority-verdict --data '<verdict_json>'")
+Agent(agent: "product-authority", prompt: "Read the closure and challenge_review sections from record.json via: geas task record get --task {task-id}. Read all evidence at .geas/missions/{mission_id}/tasks/{task-id}/evidence/. Decide: pass, iterate, or escalate. Write your verdict to record.json. Run: geas task record add --task {task-id} --section verdict --data '<verdict_json>'. Required fields: verdict (\"pass\" | \"iterate\" | \"escalate\"), rationale (why this verdict). If iterate: include rewind_target (\"ready\" | \"implementing\" | \"reviewed\"). If escalate: include escalation_reason. The CLI validates automatically. Also write evidence. Run: geas evidence add --task {task-id} --agent product-authority-verdict --role authority --set summary='<verdict summary>' --set verdict='pass' --set rationale='<rationale>'")
 ```
 
 **Verdict rules:**
@@ -371,14 +317,15 @@ Agent(agent: "product-authority", prompt: "Read the closure packet at .geas/miss
 Note: "iterate" is only valid as a Final Verdict outcome. Gate verdicts (evidence-gate) are pass/fail/block/error.
 
 ### Pre-Resolve Check (Mechanical Artifact Gate)
-**Before marking any task as "passed", verify ALL required artifacts exist.** This is a mechanical gate enforced at the `verified -> passed` transition. The CLI `geas task transition --to passed` command validates these artifacts exist on disk before allowing the transition.
+**Before marking any task as "passed", verify ALL required record.json sections exist.** This is a mechanical gate enforced at the `verified -> passed` transition. The CLI `geas task transition --to passed` command validates these sections exist in record.json before allowing the transition.
 
-**Required artifacts (verified -> passed):**
-- `.geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json` exists (assembled in Closure Packet Assembly)
-- `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` exists OR challenger was explicitly skipped (low risk)
-- `.geas/missions/{mission_id}/tasks/{task-id}/final-verdict.json` exists with `verdict: "pass"`
+**Required record.json sections (verified -> passed):**
+- `closure` section exists (assembled in Closure Packet Assembly)
+- `challenge_review` section exists OR challenger was explicitly skipped (low risk)
+- `verdict` section exists with `verdict: "pass"`
+- `retrospective` section exists
 
-**If ANY is missing: go back and execute the missing step. Do NOT proceed without all three.** The CLI will reject the transition with an error listing the missing artifacts.
+**If ANY is missing: go back and execute the missing step. Do NOT proceed.** The CLI will reject the transition with an error listing the missing sections.
 
 ### Resolve
 
@@ -393,7 +340,7 @@ The CLI removes ALL lock entries where `task_id` matches this task and promotes 
 
 - **Ship**: Transition task to passed and commit:
   ```bash
-  Bash("geas task transition --mission {mission_id} --id {task-id} --to passed")
+  Bash("geas task transition --id {task-id} --to passed")
   Bash("geas state checkpoint set --step resolve --agent orchestrator")
   ```
   ```bash
@@ -409,50 +356,40 @@ The CLI removes ALL lock entries where `task_id` matches this task and promotes 
 
 Update checkpoint: `Bash("geas state checkpoint set --step retrospective --agent orchestrator")`
 
-Orchestrator reads all evidence at `.geas/missions/{mission_id}/evidence/{task-id}/` and the closure packet at `.geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json`. Then writes `.geas/missions/{mission_id}/tasks/{task-id}/retrospective.json` (use Write tool — retrospective is an orchestrator-authored artifact with no dedicated CLI command):
+Orchestrator reads all evidence at `.geas/missions/{mission_id}/tasks/{task-id}/evidence/` and the closure section from record.json. Then writes the retrospective section to record.json via CLI:
 
-```json
-{
-  "version": "1.0",
-  "artifact_type": "retrospective",
-  "artifact_id": "retro-{task-id}",
-  "producer_type": "orchestration_authority",
-  "task_id": "{task-id}",
-  "what_went_well": ["things that worked in this task"],
-  "what_broke": ["problems encountered during implementation, review, or gate"],
-  "what_was_surprising": ["unexpected findings or outcomes"],
-  "rule_candidates": ["proposed changes to rules.md — DO NOT modify rules.md directly"],
-  "memory_candidates": ["lessons worth remembering for future tasks"],
-  "debt_candidates": ["new technical debt discovered during retrospective review"],
-  "next_time_guidance": ["specific advice for similar future tasks"],
-  "created_at": "<ISO 8601>"
-}
+```bash
+Bash("geas task record add --task {task-id} --section retrospective --data '<retrospective_json>'")
 ```
+The retrospective section must include: `what_went_well` (required), `what_broke` (required), `what_was_surprising`, `rule_candidates` (proposed changes to rules.md -- DO NOT modify rules.md directly), `memory_candidates`, `debt_candidates`, `next_time_guidance`. The CLI validates against the record schema automatically.
 
-Verify `.geas/missions/{mission_id}/tasks/{task-id}/retrospective.json` exists.
+Verify record.json has `retrospective` section: `Bash("geas task record get --task {task-id} --section retrospective")`.
 
 #### Agent Memory Update
 
 After the retrospective, harvest `memory_suggestions` from the task's artifacts to update per-agent memory files.
 
 Collect `memory_suggestions` from:
-- All specialist reviews at `.geas/missions/{mission_id}/evidence/{task-id}/`
-- Challenge review at `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` (if exists)
-- Worker self-check at `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json`
+- All specialist reviews at `.geas/missions/{mission_id}/tasks/{task-id}/evidence/`
+- Challenge review from record.json `challenge_review` section (if exists)
+- Self-check from record.json `self_check` section
 
 Agent type mapping:
-- For specialist reviews and challenge review: read from the artifact's `producer_type` or `reviewer_type` field
-- For worker self-check: use the task's `routing.primary_worker_type`
+- For specialist reviews: read from the evidence file's `agent` or `role` field
+- For challenge review: challenger agent
+- For self-check: use the task's `routing.primary_worker_type`
 
-Items written to agent memory files SHOULD NOT be duplicated in `retrospective.json`'s `memory_candidates[]`.
+Items written to agent memory files SHOULD NOT be duplicated in the retrospective section's `memory_candidates[]`.
 
-For each agent type that produced suggestions:
-1. Read `.geas/memory/agents/{agent_type}.md` (if exists)
-2. Review each suggestion: useful beyond this task? already known? contradicts existing content?
-3. Rewrite the file: merge new suggestions, remove contradicted or stale entries (when uncertain, keep existing content)
-4. Write the complete updated file
+For each agent type that produced suggestions, update via CLI:
+```bash
+Bash("geas memory agent-note --agent {agent_type} --add '<lesson learned>'")
+```
 
-Additionally, update Orchestrator's own memory file (`.geas/memory/agents/orchestration_authority.md`) based on `next_time_guidance[]` from the retrospective.
+Additionally, update Orchestrator's own memory based on `next_time_guidance[]` from the retrospective:
+```bash
+Bash("geas memory agent-note --agent orchestration_authority --add '<guidance>'")
+```
 
 Agent memory update is performed regardless of mission mode.
 
@@ -460,17 +397,18 @@ Agent memory update is performed regardless of mission mode.
 
 **DO NOT SKIP THIS STEP.** Only skip when task was Cut or Escalate (same as retrospective).
 
-Invoke `/geas:memorizing` with the task ID for per-task candidate extraction:
+Invoke `/geas:memorizing` with the task ID for per-task memory extraction:
 
-1. Read `.geas/missions/{mission_id}/tasks/{task-id}/retrospective.json` -> extract `memory_candidates[]`
-2. If `memory_candidates` is empty: still invoke `/geas:memorizing` for auto-extraction from evidence files at `.geas/missions/{mission_id}/evidence/{task-id}/`. Do NOT skip.
-3. For each candidate: invoke `/geas:memorizing` candidate extraction procedure:
-   - Determine memory_type and scope
-   - Run deduplication against memory-index
-   - Write candidate via CLI: `Bash("geas memory candidate-write --data '<candidate_json>'")`
-   - Update index via CLI: `Bash("geas memory index-update --data '<index_entry_json>'")`
-4. Run application logging: for memories that were in this task's packet, record effects via CLI:
-   `Bash("geas memory log-write --task {task-id} --memory {mem-id} --data '<log_json>'")`
+1. Read record.json `retrospective` section -> extract `memory_candidates[]`
+2. If `memory_candidates` is empty: still invoke `/geas:memorizing` for auto-extraction from evidence files at `.geas/missions/{mission_id}/tasks/{task-id}/evidence/`. Do NOT skip.
+3. For each candidate that is project-level knowledge (conventions, patterns, rules):
+   - Evaluate if it should be added to `.geas/rules.md`
+   - If approved (evidence_refs >= 2 or domain authority approval): apply to rules.md
+4. For each candidate that is agent-specific:
+   - Write to the relevant agent's memory file via CLI:
+     ```bash
+     Bash("geas memory agent-note --agent {agent_type} --add '<lesson>'")
+     ```
 5. Log: `Bash("geas event log --type memory_extraction --task {task-id} --data '{\"candidates\": N}'")`
 
 Update checkpoint: `Bash("geas state checkpoint set --step memory_extraction --agent orchestrator")`

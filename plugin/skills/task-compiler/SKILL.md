@@ -20,7 +20,7 @@ You need these before compiling:
 1. **User story or feature description** — what needs to be built
 2. **Mission spec** — read from `.geas/missions/{mission_id}/spec.json` for mission-level context
 3. **Design-brief** — read from `.geas/missions/{mission_id}/design-brief.json` for approach context and architecture decisions
-4. **Architecture context** — from `.geas/memory/_project/conventions.md`
+4. **Architecture context** — from `.geas/rules.md`
 5. **Existing task contracts** — check `.geas/missions/{mission_id}/tasks/` for dependencies
 
 ## Compilation Process
@@ -137,9 +137,9 @@ Example:
 
 ### Step 7: Set Eval Commands
 
-Read build/lint/test commands from `.geas/memory/_project/conventions.md`. If the conventions file has a Build Commands section, use those exact commands.
+Read build/lint/test commands from `.geas/rules.md`. If rules.md has a Build Commands or Code section, use those exact commands.
 
-If no conventions file exists, detect from the project's configuration files (package.json scripts, Makefile targets, pyproject.toml tool sections, etc.) and set appropriate commands.
+If rules.md has no build commands, detect from the project's configuration files (package.json scripts, Makefile targets, pyproject.toml tool sections, etc.) and set appropriate commands.
 
 If no commands are configured yet, set eval_commands to what the project should have based on its stack — the implementation worker will configure them.
 
@@ -197,11 +197,10 @@ Write the rubric as an object with a `dimensions` array. The orchestration_autho
 
 ## Output
 
-Write the TaskContract via CLI with schema validation (the CLI creates the tasks directory automatically):
+Write the TaskContract via CLI (the CLI creates the tasks directory automatically and enforces schema validation):
 ```bash
 Bash("geas task create --mission {mission_id} --data '<task_contract_json>'")
 ```
-The task contract must conform to `schemas/task-contract.schema.json`.
 
 Example output:
 ```json

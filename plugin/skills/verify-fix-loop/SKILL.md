@@ -14,8 +14,8 @@ After the evidence gate fails, this loop ensures bugs are actually fixed — not
 ## Entry Point
 
 Read the gate failure details:
-1. **TaskContract** from `.geas/missions/{mission_id}/tasks/{task-id}.json` — for retry_budget and escalation_policy
-2. **Failed EvidenceBundle** from `.geas/missions/{mission_id}/evidence/{task-id}/quality-specialist.json` — for specific failures
+1. **TaskContract** from `.geas/missions/{mission_id}/tasks/{task-id}/contract.json` — for retry_budget and escalation_policy
+2. **Failed EvidenceBundle** from `.geas/missions/{mission_id}/tasks/{task-id}/evidence/quality-specialist.json` — for specific failures
 3. **Gate verdict** — which tier failed (mechanical or semantic) and why
 
 ---
@@ -55,7 +55,7 @@ Resolve `project_root` — the absolute path of the main session working directo
 
 Spawn the fixer **with worktree isolation** (implementation agents always use worktree):
 ```
-Agent(agent: "{fixer}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read your ContextPacket at {project_root}/.geas/missions/{mission_id}/packets/{task-id}/{fixer}-fix-{N}.md. Fix the specific failures listed in your packet. Write your results by running: node {project_root}/plugin/cli/index.js --cwd {project_root} evidence record --mission {mission_id} --task {task-id} --agent {fixer}-fix-{N} --data '<your-json>'")
+Agent(agent: "{fixer}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read your ContextPacket at {project_root}/.geas/missions/{mission_id}/tasks/{task-id}/packets/{fixer}-fix-{N}.md. Fix the specific failures listed in your packet. Write your results by running: node {project_root}/plugin/cli/index.js --cwd {project_root} evidence add --task {task-id} --agent {fixer}-fix-{N} --role implementer --set summary=... --set files_changed=...")
 ```
 
 After the fixer completes, merge the worktree branch before re-running the evidence gate. If merge conflicts arise, follow the orchestration_authority merge conflict protocol.
@@ -82,10 +82,10 @@ Follow the TaskContract's `escalation_policy`:
 Spawn **design-authority** for architectural review:
 ```
 The evidence gate has failed {retry_budget} times for task {task-id}.
-Read the TaskContract at .geas/missions/{mission_id}/tasks/{task-id}.json
-Read all evidence at .geas/missions/{mission_id}/evidence/{task-id}/
+Read the TaskContract at .geas/missions/{mission_id}/tasks/{task-id}/contract.json
+Read all evidence at .geas/missions/{mission_id}/tasks/{task-id}/evidence/
 Analyze: Is there a fundamental design issue? Is the approach viable?
-Write your analysis as evidence. Run: geas evidence record --mission {mission_id} --task {task-id} --agent design-authority-escalation --data '<your-json>'
+Write your analysis as evidence. Run: geas evidence add --task {task-id} --agent design-authority-escalation --role authority --set "summary=<assessment>" --set "verdict=<approved|blocked>" --set "rationale=<reasoning>"
 ```
 
 Then evaluate design_authority's assessment:

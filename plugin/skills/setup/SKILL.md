@@ -32,14 +32,8 @@ Skip this step if both `node_modules/` and `dist/main.js` already exist.
 Before anything else, create the runtime directory structure in the project root. Use `mkdir -p` for the base directories that the CLI does not create (CLI commands create their own subdirectories on first write):
 
 ```bash
-mkdir -p .geas/state .geas/state/task-focus .geas/ledger .geas/summaries .geas/memory/_project .geas/memory/agents .geas/memory/candidates .geas/memory/entries .geas/memory/logs .geas/memory/retro .geas/memory/incidents .geas/recovery
+mkdir -p .geas/state .geas/memory/agents .geas/recovery
 ```
-
-Write the initial memory index via CLI with schema validation:
-```bash
-Bash("geas memory index-update --data '{\"memory_id\":\"_init\",\"state\":\"candidate\",\"memory_type\":\"project_rule\",\"title\":\"init\",\"scope\":\"project\"}'")
-```
-Note: The CLI creates the initial memory-index.json structure automatically if it does not exist.
 
 Write the initial health check via CLI:
 ```bash
@@ -72,23 +66,23 @@ Bash("geas state update --field status --value in_progress")
 Bash("geas state update --field phase --value specifying")
 ```
 
-The run state must conform to the RunState schema. Refer to the mission skill's `schemas/run-state.schema.json` for the full field list.
+The CLI enforces schema validation on the RunState.
 
 ### Phase A-1.5: Codebase Discovery (Onboarding)
 
-Phase A also includes codebase discovery — scan project structure, detect stack, and generate `.geas/memory/_project/conventions.md`. This absorbs the functionality of the former onboard skill.
+Phase A also includes codebase discovery — scan project structure, detect stack, and populate the Code section of `.geas/rules.md`. This absorbs the functionality of the former onboard skill.
 
 1. Scan project root for configuration files (package.json, go.mod, pyproject.toml, Cargo.toml, Makefile, etc.)
 2. Detect the project stack (language, framework, package manager, test runner)
 3. Read existing build/lint/test commands from configuration files
-4. Write `.geas/memory/_project/conventions.md` with detected conventions (use Write tool — BOOTSTRAP EXCEPTION: no CLI command for conventions.md, and this runs during initial setup before mission starts):
+4. Append detected conventions to `.geas/rules.md` under a `## Code` section (use Write tool — BOOTSTRAP EXCEPTION: rules.md is created during initial setup before any CLI-driven workflow begins):
    - Build commands
    - Lint commands
    - Test commands
    - Dev server start command
    - Project structure notes
 
-If the project is empty (no source files yet), write a minimal conventions.md noting that commands will be populated as the project develops.
+If the project is empty (no source files yet), write a minimal Code section noting that commands will be populated as the project develops.
 
 ### Phase A-1.6: Agent Memory Migration
 
@@ -114,9 +108,9 @@ Write `.geas/rules.md` (use Write tool — BOOTSTRAP EXCEPTION: rules.md is crea
 # Agent Rules
 
 ## Evidence
-- Write results to .geas/missions/{mission_id}/evidence/{task-id}/{your-name}.json as JSON (read mission_id from .geas/state/run.json)
-- Required fields: agent, task_id, summary, files_changed, created_at
-- created_at is auto-injected by the PostToolUse hook. No manual timestamp needed.
+- Write evidence via CLI: `geas evidence add --task {tid} --agent {name} --role {role} --set key=value`
+- Evidence is stored at .geas/missions/{mission_id}/tasks/{task-id}/evidence/{agent}.json
+- created_at is auto-injected by the CLI. No manual timestamp needed.
 
 ## Code
 - Respect scope.paths from the TaskContract — only modify files within the declared scope
@@ -126,7 +120,7 @@ Write `.geas/rules.md` (use Write tool — BOOTSTRAP EXCEPTION: rules.md is crea
 
 ```
 Setup complete:
-- .geas/: initialized (state, ledger, summaries, memory, recovery)
+- .geas/: initialized (state, memory/agents, recovery)
 - Mission directories will be created by intake when the mission starts.
 
 Ready! Stay in Claude and describe your mission in natural language.

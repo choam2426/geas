@@ -62,27 +62,27 @@ Calculate all 8 signals from protocol doc 12. For each signal: read the source d
 
 | Signal | Threshold | Source | Calculation |
 |--------|-----------|--------|-------------|
-| `memory_bloat` | entries > 100 with 0 reuses in last 10 tasks | `.geas/state/memory-index.json` | Count index entries where `reuse_count = 0` |
-| `review_gap` | > 20% miss rate in last 5 tasks | `.geas/ledger/events.jsonl` | Count tasks without specialist review evidence / total tasks (last 5) |
-| `gate_quality_issue` | > 30% `iterate` rate in last 10 tasks | `.geas/ledger/events.jsonl` | Count `final_verdict = iterate` events / total final verdict events (last 10) |
-| `contradiction_accumulation` | 2+ stable memories with `contradiction_count >= 3` | `.geas/state/memory-index.json` | Count index entries where `state = stable` and `contradiction_count >= 3` |
-| `repeated_failure_class` | same failure class 3+ times | `.geas/ledger/events.jsonl` | Group gate failure events by `blocking_dimensions`; flag any group with count >= 3 |
+| `memory_bloat` | rules.md > 200 lines or agent notes > 50 lines each | `.geas/rules.md`, `.geas/memory/agents/*.md` | Count total lines in rules.md and each agent note file |
+| `review_gap` | > 20% miss rate in last 5 tasks | `.geas/state/events.jsonl` | Count tasks without specialist review evidence / total tasks (last 5) |
+| `gate_quality_issue` | > 30% `iterate` rate in last 10 tasks | `.geas/state/events.jsonl` | Count `final_verdict = iterate` events / total final verdict events (last 10) |
+| `contradiction_accumulation` | 2+ conflicting rules in rules.md | `.geas/rules.md` | Scan rules.md for contradictory guidance |
+| `repeated_failure_class` | same failure class 3+ times | `.geas/state/events.jsonl` | Group gate failure events by `blocking_dimensions`; flag any group with count >= 3 |
 | `debt_stagnation` | `accepted` >= 2x `resolved` per phase | `.geas/missions/{mission_id}/evolution/debt-register.json` | `accepted_count / resolved_count` (if resolved = 0 and accepted > 0, value = infinity → triggered) |
-| `scope_control_weakness` | > 30% scope change after impl contract in last 5 tasks | `.geas/ledger/events.jsonl` | Count `revalidation_triggered` events after `implementation_contract_approved` per task (last 5); flag if > 30% of those tasks have at least one such event |
-| `worker_low_confidence` | > 25% `confidence <= 2` in last 10 tasks | `.geas/missions/{mission_id}/tasks/*/worker-self-check.json` | Count self-check files with `confidence <= 2` / total self-check files (last 10 by `created_at`) |
+| `scope_control_weakness` | > 30% scope change after impl contract in last 5 tasks | `.geas/state/events.jsonl` | Count `revalidation_triggered` events after `implementation_contract_approved` per task (last 5); flag if > 30% of those tasks have at least one such event |
+| `worker_low_confidence` | > 25% `confidence <= 2` in last 10 tasks | `.geas/missions/{mission_id}/tasks/*/record.json` | Count record.json `self_check` sections with `confidence <= 2` / total (last 10 by `created_at`) |
 
 ### Mandatory Responses
 
 When a signal is triggered, include the mandatory response in the output and take the described action:
 
-1. **memory_bloat** — `orchestration_authority` batch-reviews memories with 0 reuses at the next retrospective. Items past their `review_after` date are transitioned to `decayed`.
+1. **memory_bloat** — `orchestration_authority` reviews and trims `rules.md` and agent notes, removing stale or redundant entries.
 2. **review_gap** — `orchestration_authority` activates blocking at the `pre_gate` hook for specialist review omissions starting from the next task.
 3. **gate_quality_issue** — `orchestration_authority` creates a rule candidate for rubric criteria clarification. Adjusts evidence gate thresholds if needed.
-4. **contradiction_accumulation** — immediately transition the affected memory entries to `under_review` and apply doc 08 decay rules.
-5. **repeated_failure_class** — automatically register the failure pattern as a memory candidate and trigger the Retrospective to Rule Update process from doc 13.
+4. **contradiction_accumulation** — `orchestration_authority` edits `rules.md` to resolve contradictions and remove the weaker rule.
+5. **repeated_failure_class** — automatically add the failure pattern as a rule in `rules.md` and update relevant agent notes.
 6. **debt_stagnation** — `orchestration_authority` creates a debt resolution plan during phase review. Prioritize debt resolution tasks in the next phase scheduling.
 7. **scope_control_weakness** — `orchestration_authority` strengthens the implementation contract approval process. Makes re-approval mandatory on scope changes.
-8. **worker_low_confidence** — `orchestration_authority` reviews task granularity and improves L1/L2 memory quality in context packets.
+8. **worker_low_confidence** — `orchestration_authority` reviews task granularity and improves agent memory notes for relevant workers.
 
 ### Missing source data
 
@@ -97,7 +97,7 @@ Generate and write health check via CLI (computes all 8 signals from current `.g
 Bash("geas health generate")
 ```
 
-The CLI writes `.geas/state/health-check.json` with all 8 signals computed, each including `name`, `value`, `threshold`, `triggered`, `detail`, and `mandatory_response` (when triggered). The CLI validates the output against `schemas/health-check.schema.json`.
+The CLI writes `.geas/state/health-check.json` with all 8 signals computed, each including `name`, `value`, `threshold`, `triggered`, `detail`, and `mandatory_response` (when triggered). The CLI enforces schema validation.
 
 To read the current health check:
 ```bash
@@ -147,7 +147,7 @@ The reporting skill also generates product authority briefings at key milestones
 
 At session end, generate an audit-trail summary of decisions, tasks, and agent telemetry:
 
-1. Read `.geas/ledger/events.jsonl` for all events in the current session
+1. Read `.geas/state/events.jsonl` for all events in the current session
 2. Summarize: tasks started/completed, gate results, decisions made, escalations
 3. Include agent spawn counts and which agents were most active
-4. Write the session summary (use Write tool for this markdown artifact at `.geas/summaries/session-{timestamp}.md`)
+4. Write the session summary (use Write tool for this markdown artifact at `.geas/missions/{mission_id}/phase-reviews/session-{timestamp}.md`)

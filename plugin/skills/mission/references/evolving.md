@@ -17,25 +17,7 @@ Produce a structured gap assessment comparing what was planned vs what was deliv
    ```bash
    Bash("geas evolution gap-assessment --mission {mission_id} --phase evolving --data '<gap_assessment_json>'")
    ```
-   The data must conform to `schemas/gap-assessment.schema.json`:
-
-```json
-{
-  "version": "1.0",
-  "artifact_type": "gap_assessment",
-  "artifact_id": "ga-evolving",
-  "producer_type": "product_authority",
-  "scope_in_summary": "<what was planned — summarize from current mission spec scope_in>",
-  "scope_out_summary": "<what was explicitly excluded — from current mission spec scope_out>",
-  "fully_delivered": ["item 1", "item 2"],
-  "partially_delivered": ["item 3 — missing error handling"],
-  "not_delivered": ["item 4"],
-  "intentional_cuts": ["item 5 — cut per decision dec-003"],
-  "unexpected_additions": [],
-  "recommended_followups": ["Complete item 3 error handling", "Address item 4 in next mission"],
-  "created_at": "<ISO 8601>"
-}
-```
+   The CLI validates the data automatically. Required fields: `scope_in_summary`, `fully_delivered`, `partially_delivered`, `not_delivered`, `intentional_cuts`, `recommended_followups`.
 
 8. **Forward-feeding rule**: Items appearing in `partially_delivered` or `not_delivered` across 2+ gap assessments are automatically fed into the next mission spec's constraints during intake.
 9. Reject any work that falls under `scope_out` — Evolving refines, it does not expand.
@@ -61,49 +43,31 @@ If no P0 items remain: skip to product_authority Final Briefing.
 
 ### Rules Update Approval
 
-1. Read all per-task retrospectives: `.geas/missions/{mission_id}/tasks/*/retrospective.json`
+1. Read all per-task retrospectives from record.json: for each task directory in `.geas/missions/{mission_id}/tasks/`, read `record.json` and extract the `retrospective` section
 2. Collect all `rule_candidates[]` across tasks
 3. If no candidates across any task: write `.geas/missions/{mission_id}/evolution/rules-update.json` (use Write tool — no dedicated CLI command for rules-update) with `status: "none"`, `reason: "no rule candidates from any task retrospective"`, `evidence_refs: []`, `applies_to: []`. Skip to next step.
 4. For each candidate, check approval conditions:
    - `evidence_refs` >= 2 (same pattern observed in 2+ tasks) AND `contradiction_count` = 0 -> auto-approve
    - Otherwise -> spawn domain authority for review
-5. Assemble the rules-update JSON and write it to `.geas/missions/{mission_id}/evolution/rules-update.json` (use Write tool — no dedicated CLI command for rules-update). The data must conform to `schemas/rules-update.schema.json`:
-   ```json
-   {
-     "version": "1.0",
-     "artifact_type": "rules_update",
-     "artifact_id": "ru-{mission-id}",
-     "producer_type": "orchestration_authority",
-     "status": "approved",
-     "affected_rule_ids": ["rule-001", "rule-002"],
-     "reason": "<aggregated rationale>",
-     "evidence_refs": ["retro-task-001", "retro-task-003"],
-     "applies_to": ["rules.md section X"],
-     "created_at": "<ISO 8601>"
-   }
-   ```
+5. Assemble the rules-update JSON and write it to `.geas/missions/{mission_id}/evolution/rules-update.json` (use Write tool -- no dedicated CLI command for rules-update). Required fields: `status` (approved/none), `reason`, `evidence_refs`, `applies_to`.
 6. If `status: "approved"`: apply changes to `.geas/rules.md`
 7. Log: `Bash("geas event log --type rules_update --data '{\"status\":\"approved|none\"}'")` 
 
-### Memory Promotion
+### Memory Consolidation
 
-Batch review and promotion of accumulated memory candidates across the mission.
+Batch review of accumulated memory across the mission. Memory uses a 2-file model: `rules.md` for project knowledge, `memory/agents/{agent}.md` for per-agent notes.
 
-1. Read all candidates from `.geas/memory/candidates/`
-2. For each candidate:
-   a. Check promotion conditions: evidence_refs >= 2 OR similar incidents >= 2 OR explicit approval
-   b. If conditions met and no domain review yet: spawn domain authority (per memorizing skill section 3)
-   c. If domain authority approves (promote_provisional): promote candidate -> provisional
-      - Move from `candidates/` to `entries/`
-      - Update state, set `review_after` to 30 days from now
-      - Update memory-index.json
-   d. If rejected: set state to `rejected` in candidate file, update index
-   e. If keep: leave as candidate for future evidence
-3. Check existing provisional entries for stable promotion:
-   - 3+ successful_reuses + 0 contradictions -> spawn domain authority for stable review
-4. Run decay detection (memorizing skill section 6)
-5. Run application logging for all mission tasks (memorizing skill section 5)
-6. Log: `Bash("geas event log --type memory_promotion_batch --data '{\"promoted\":N,\"rejected\":M,\"decayed\":K}'")` 
+1. Read all per-task retrospectives from record.json -> collect all `memory_candidates[]` and `rule_candidates[]`
+2. For project-level candidates (conventions, patterns, recurring issues):
+   - If approved (evidence_refs >= 2 or domain authority approval): apply to `.geas/rules.md`
+   - If rejected or uncertain: skip (do not modify rules.md)
+3. For agent-specific candidates:
+   - Write to the relevant agent's memory file via CLI:
+     ```bash
+     Bash("geas memory agent-note --agent {agent_type} --add '<lesson>'")
+     ```
+4. Review existing agent memory files for stale or contradicted entries. Rewrite if needed.
+5. Log: `Bash("geas event log --type memory_consolidation --data '{\"rules_added\":N,\"agent_notes_added\":M}'")` 
 
 ### Execute P0 Items
 For each P0 item, run the full pipeline from `references/pipeline.md`:
@@ -117,9 +81,9 @@ Same mandatory steps, same Closure Packet verification, same checkpoint manageme
 
 ### Product-authority Final Briefing [MANDATORY]
 ```
-Agent(agent: "product-authority", prompt: "Final product review. Read the current mission spec at .geas/missions/{mission_id}/spec.json (get mission_id from .geas/state/run.json), .geas/missions/{mission_id}/evolution/gap-assessment-evolving.json, .geas/missions/{mission_id}/evolution/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write your evidence via CLI. Run: geas evidence record --mission {mission_id} --task evolving --agent product-authority-final --data '<your-json>'. ALSO write a human-readable markdown summary to .geas/missions/{mission_id}/mission-summary.md (use Write tool — no dedicated CLI command for mission-summary) covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
+Agent(agent: "product-authority", prompt: "Final product review. Read the current mission spec at .geas/missions/{mission_id}/spec.json (get mission_id from .geas/state/run.json), .geas/missions/{mission_id}/evolution/gap-assessment-evolving.json, .geas/missions/{mission_id}/evolution/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write your evidence via CLI. Run: geas evidence add --task evolving --agent product-authority-final --role authority --set summary='<strategic summary>' --set verdict='pass' --set rationale='<final assessment>'. ALSO write a human-readable markdown summary to .geas/missions/{mission_id}/mission-summary.md (use Write tool -- no dedicated CLI command for mission-summary) covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
 ```
-Verify `.geas/missions/{mission_id}/evidence/evolving/product-authority-final.json` exists.
+Verify `.geas/missions/{mission_id}/tasks/evolving/evidence/product-authority-final.json` exists.
 Verify `.geas/missions/{mission_id}/mission-summary.md` exists.
 
 ### Mission Briefing [MANDATORY — orchestrator writes directly]
@@ -127,16 +91,11 @@ Verify `.geas/missions/{mission_id}/mission-summary.md` exists.
 Assemble a detailed execution briefing by reading all `.geas/` artifacts. This is NOT an agent spawn — orchestrator reads and writes directly.
 
 **Read these sources:**
-- `events.jsonl` — find `run_started` timestamp for this mission, then all events after it
-- `.geas/missions/{mission_id}/tasks/*.json` — filter to tasks with `task_compiled` events after `run_started`
-- `.geas/missions/{mission_id}/tasks/{task-id}/gate-result.json` — gate verdict and iteration count
-- `.geas/missions/{mission_id}/tasks/{task-id}/challenge-review.json` — challenger execution
-- `.geas/missions/{mission_id}/tasks/{task-id}/final-verdict.json` — verdict
+- `.geas/state/events.jsonl` — find `run_started` timestamp for this mission, then all events after it
+- `.geas/missions/{mission_id}/tasks/{task-id}/contract.json` — filter to tasks with `task_compiled` events after `run_started`
+- `.geas/missions/{mission_id}/tasks/{task-id}/record.json` — gate_result (verdict, iteration count), challenge_review (challenger execution), verdict (final verdict), closure (open risks)
 - `.geas/missions/{mission_id}/evolution/debt-register.json` — open debt items
 - `.geas/missions/{mission_id}/evolution/gap-assessment-evolving.json` — recommended follow-ups
-- `.geas/missions/{mission_id}/tasks/{task-id}/closure-packet.json` — open risks
-- `.geas/ledger/token-summary.json` — token usage
-- `.geas/ledger/costs.jsonl` — subagent count
 
 **Write `.geas/missions/{mission_id}/mission-briefing.md`** (use Write tool — no dedicated CLI command for mission-briefing):
 
@@ -153,7 +112,7 @@ Assemble a detailed execution briefing by reading all `.geas/` artifacts. This i
 
 - **Total duration:** {run_started to phase_complete(complete)}
 - **Phase breakdown:** specifying {Xm} | building {Xm} | polishing {Xm} | evolving {Xm}
-- **Subagents spawned:** {count from costs.jsonl agent_stop events}
+- **Subagents spawned:** {count from events.jsonl agent_stop events}
 - **Token usage:** input {X}K | output {X}K
 - **Git commits:** {count of task_resolved events with commit field}
 - **Memory candidates:** {count} new
@@ -165,7 +124,7 @@ Assemble a detailed execution briefing by reading all `.geas/` artifacts. This i
 - {debt_id} ({severity}): {title}
 
 ### Risks
-{for each task, from closure-packet open_risks.items:}
+{for each task, from record.json closure.open_risks:}
 - {task_id}: {description}
 
 ### Recommended Follow-ups
@@ -233,7 +192,7 @@ Assemble a detailed execution briefing by reading all `.geas/` artifacts. This i
 ─── EVOLUTION ─────────────────────────────────────
 
   Rules updated:  {count} new rules added to rules.md
-  Memory:         {count} candidates → {promoted} promoted
+  Agent notes:    {count} notes added across {N} agent memory files
   Follow-ups:
     • {recommended follow-up}
     • ...
@@ -249,7 +208,7 @@ Verify `.geas/missions/{mission_id}/mission-briefing.md` exists.
 
 Orchestrator runs release directly:
 1. Determine version bump (from gap-assessment and debt status)
-2. Generate changelog from `.geas/ledger/events.jsonl`
+2. Generate changelog from `.geas/state/events.jsonl`
 3. Commit version bump and changelog
 4. Tag release with semantic version
 5. Log: `Bash("geas event log --type release_created --data '{\"version\":\"...\"}'")` 

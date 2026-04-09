@@ -17,8 +17,8 @@ Eliminates the waste cycle: "worker misunderstands requirement → builds wrong 
 
 ## Inputs
 
-1. **TaskContract** — from `.geas/missions/{mission_id}/tasks/{task-id}.json`
-2. **ContextPacket** — the worker's packet at `.geas/missions/{mission_id}/packets/{task-id}/{worker}.md`
+1. **TaskContract** — from `.geas/missions/{mission_id}/tasks/{task-id}/contract.json`
+2. **ContextPacket** — the worker's packet at `.geas/missions/{mission_id}/tasks/{task-id}/packets/{worker}.md`
 3. **Prior evidence** — communication_specialist design, design_authority design guide (if available)
 
 ## Process
@@ -28,7 +28,7 @@ Eliminates the waste cycle: "worker misunderstands requirement → builds wrong 
 Spawn the assigned worker to read their ContextPacket and write a contract:
 
 ```
-Agent(agent: "{worker}", prompt: "Read .geas/missions/{mission_id}/packets/{task-id}/{worker}.md and .geas/missions/{mission_id}/tasks/{task-id}.json. Before implementing, write your implementation contract via CLI. Run: geas task contract --mission {mission_id} --task {task-id} --data '<contract_json>'. Required fields:
+Agent(agent: "{worker}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{worker}.md and .geas/missions/{mission_id}/tasks/{task-id}/contract.json. Before implementing, write your implementation contract via CLI. Run: geas task record add --task {task-id} --section implementation_contract --set planned_actions=... (or use --file with a JSON file). Required fields:
 - planned_actions: concrete steps you will take
 - edge_cases: edge cases you plan to handle
 - state_transitions: state changes your implementation introduces (if any)
@@ -37,14 +37,14 @@ Agent(agent: "{worker}", prompt: "Read .geas/missions/{mission_id}/packets/{task
 Set status to 'draft'.")
 ```
 
-Verify `.geas/missions/{mission_id}/contracts/{task-id}.json` exists.
+Verify that `record.json` now contains the `implementation_contract` section.
 
 ### Step 2: quality_specialist Reviews
 
 Spawn quality_specialist to review the contract from a quality verification perspective:
 
 ```
-Agent(agent: "quality-specialist", prompt: "Read .geas/missions/{mission_id}/contracts/{task-id}.json and .geas/missions/{mission_id}/tasks/{task-id}.json. Review this implementation contract:
+Agent(agent: "quality-specialist", prompt: "Read the implementation_contract section from .geas/missions/{mission_id}/tasks/{task-id}/record.json and .geas/missions/{mission_id}/tasks/{task-id}/contract.json. Review this implementation contract:
 - Are demo_steps sufficient to verify all acceptance criteria?
 - Are there missing edge_cases that should be handled?
 - Are non_goals reasonable — anything critical being excluded?
@@ -57,7 +57,7 @@ Write your assessment. If acceptable, approve. If not, list specific concerns.")
 Spawn design_authority to review the contract from a technical perspective:
 
 ```
-Agent(agent: "design-authority", prompt: "Read .geas/missions/{mission_id}/contracts/{task-id}.json, .geas/missions/{mission_id}/tasks/{task-id}.json, and any prior design guide at .geas/missions/{mission_id}/evidence/{task-id}/design-authority.json. Review this implementation contract:
+Agent(agent: "design-authority", prompt: "Read the implementation_contract section from .geas/missions/{mission_id}/tasks/{task-id}/record.json, .geas/missions/{mission_id}/tasks/{task-id}/contract.json, and any prior design guide at .geas/missions/{mission_id}/tasks/{task-id}/evidence/design-authority.json. Review this implementation contract:
 - Are planned_actions consistent with the design guide?
 - Are non_goals appropriate — nothing critical being excluded?
 - Are there technical edge_cases the worker missed?
@@ -72,7 +72,11 @@ Write your assessment. If acceptable, approve. If not, list specific concerns.")
 
 ## Output
 
-Write the contract via CLI: `Bash("geas task contract --mission {mission_id} --task {task-id} --data '<contract_json>'")`. The mission directory and contracts subdirectory are created by `geas mission create`. The contract must conform to `schemas/implementation-contract.schema.json`.
+Write the contract to record.json via CLI:
+```bash
+Bash("geas task record add --task {task-id} --section implementation_contract --file <contract_json_file>")
+```
+The CLI enforces schema validation and auto-manages timestamps.
 
 Log the event via CLI:
 ```bash

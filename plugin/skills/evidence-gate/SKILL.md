@@ -11,9 +11,9 @@ Objective verification of whether a worker's output meets the TaskContract requi
 
 ## Inputs
 
-1. **TaskContract** — read from `.geas/missions/{mission_id}/tasks/{task-id}.json`
-2. **Worker Self-Check** — read from `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json`
-3. **Specialist Reviews** — read from `.geas/missions/{mission_id}/evidence/{task-id}/`. Naming: `{agent-type}-review.json` when the agent produces multiple artifacts (e.g., `design-authority-review.json` for specialist review, distinct from `design-authority.json` design guide), or `{agent-type}.json` when the agent produces one artifact (e.g., `quality-specialist.json` for testing, `design-authority.json` for design guide)
+1. **TaskContract** — read from `.geas/missions/{mission_id}/tasks/{task-id}/contract.json`
+2. **Worker Self-Check** — read from record.json `self_check` section (`.geas/missions/{mission_id}/tasks/{task-id}/record.json`)
+3. **Specialist Reviews** — read from `.geas/missions/{mission_id}/tasks/{task-id}/evidence/`. Naming: `{agent-type}.json` per agent
 4. **Integration Result** — merge status from worktree integration
 5. **Gate profile** — determines which tiers to run (see below)
 
@@ -34,8 +34,8 @@ Verify that all prerequisites are in place before running expensive checks.
 ### Checks
 
 1. **Required artifacts existence**
-   - `worker-self-check.json` must exist at `.geas/missions/{mission_id}/tasks/{task-id}/worker-self-check.json`
-   - Specialist reviews must exist (per the task's required reviewer set)
+   - record.json must contain a `self_check` section (`.geas/missions/{mission_id}/tasks/{task-id}/record.json`)
+   - Specialist reviews must exist in `tasks/{task-id}/evidence/` (per the task's required reviewer set)
    - Integration result must be recorded (for `implementation_change` profile)
 
 2. **Task state eligibility**
@@ -119,7 +119,7 @@ Compare files changed against the task's `scope.paths`:
 Verify that each item in the implementation contract's `known_risks` has been handled:
 - **Mitigated**: evidence shows the risk was addressed
 - **Accepted with rationale**: explicit rationale recorded for accepting the risk
-- **Deferred to debt**: recorded in `.geas/missions/{mission_id}/evolution/debt-register.json`
+- **Deferred to debt**: recorded in the debt register
 
 Any `known_risk` with no handling status -> Tier 2 fails.
 
@@ -152,13 +152,13 @@ UI-sensitive tasks add:
 
 #### Low Confidence Threshold Adjustment
 
-Read `confidence` from `worker-self-check.json`. If `confidence` <= 2, add +1 to **every** rubric dimension threshold.
+Read `confidence` from record.json `self_check` section. If `confidence` <= 2, add +1 to **every** rubric dimension threshold.
 
 Example: if confidence is 2, thresholds become: `core_interaction` 3->4, `feature_completeness` 4->5, `code_quality` 4->5, `regression_safety` 4->5.
 
 #### Stub Check
 
-If `possible_stubs[]` from the worker self-check is non-empty:
+If `possible_stubs[]` from the record.json `self_check` section is non-empty:
 1. Verify those locations are not left as stubs
 2. If confirmed stubs exist: `feature_completeness` is capped at a maximum of 2
 3. If confirmed stub count exceeds the stub cap: gate immediately returns `block`
@@ -211,11 +211,10 @@ If the gate verdict is `error`:
 
 ## Output
 
-Write gate result via CLI with schema validation. Record evidence:
+Write gate result to record.json via CLI:
 ```bash
-Bash("geas evidence record --mission {mission_id} --task {task-id} --agent gate-result --data '<gate_result_json>'")
+Bash("geas task record add --task {task-id} --section gate_result --file <gate_result_json_file>")
 ```
-The gate result must conform to `schemas/gate-result.schema.json`.
 
 ```json
 {
@@ -289,6 +288,6 @@ Write the DecisionRecord via CLI (the CLI creates the decisions directory automa
 ```bash
 Bash("geas decision write --mission {mission_id} --data '<decision_record_json>'")
 ```
-The decision record must conform to `schemas/decision-record.schema.json`.
+The CLI enforces schema validation on the decision record.
 
 This creates a durable record of WHY a decision was made, not just WHAT happened.

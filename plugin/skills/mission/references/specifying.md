@@ -12,7 +12,7 @@ Always runs. Scale adapts to the request.
 
 ### 2. Onboard Check
 
-If `.geas/memory/_project/conventions.md` is missing, invoke `/geas:setup` to scan the existing project before proceeding.
+If `.geas/rules.md` is missing, invoke `/geas:setup` to scan the existing project before proceeding.
 
 ### 3. Design Brief
 
@@ -29,7 +29,7 @@ Bash("geas mission create --id {mission_id}")
    ```bash
    Bash("geas mission write-brief --id {mission_id} --data '<design_brief_json>'")
    ```
-   The brief must conform to `schemas/design-brief.schema.json` with `status: "draft"`.
+   The CLI validates the brief automatically. Set `status: "draft"`.
 2. Propose a mission mode to the user:
    - **`lightweight`**: Mission has clear scope, existing patterns apply, low ambiguity. Only minimum fields: `chosen_approach`, `non_goals`, `verification_strategy`.
    - **`standard`**: Mission has moderate scope, some architectural decisions, normal risk. Adds: `architecture_decisions`, `risks`, `preserve_list`.
@@ -146,7 +146,7 @@ Omit sections marked `[standard+]` for lightweight missions. Omit sections marke
 - Input: mission spec (`.geas/missions/{mission_id}/spec.json`) + approved design-brief (`.geas/missions/{mission_id}/design-brief.json`)
 - For each logical unit of work, invoke `/geas:task-compiler`.
 - Each TaskContract MUST include a `rubric` object with a `dimensions` array. Base dimensions: core_interaction(3), feature_completeness(4), output_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
-- Output: `.geas/missions/{mission_id}/tasks/{task-id}.json`
+- Output: `.geas/missions/{mission_id}/tasks/{task-id}/contract.json`
 - Log each: `{"event": "task_compiled", "task_id": "...", "timestamp": "<actual>"}`
 
 ### 5. Task List User Approval
@@ -226,14 +226,14 @@ All conditions must be true:
 - Mission spec frozen (`.geas/missions/{mission_id}/spec.json` exists)
 - Design-brief approved (`status: "approved"` AND `design_review` exists in `.geas/missions/{mission_id}/design-brief.json`)
 - Tasks compiled (at least 1 task in `.geas/missions/{mission_id}/tasks/` for this mission)
-- Task list approved (`task_list_approved` event in ledger for this mission)
-- Environment setup completed (`environment_setup_complete` event in ledger for this mission)
+- Task list approved (`task_list_approved` event in events.jsonl for this mission)
+- Environment setup completed (`environment_setup_complete` event in events.jsonl for this mission)
 
 Write the phase review via CLI with schema validation:
 ```bash
 Bash("geas phase write --mission {mission_id} --data '<phase_review_json>'")
 ```
-The phase review must conform to `schemas/phase-review.schema.json`:
+The CLI validates the phase review automatically:
 ```json
 {
   "version": "1.0",

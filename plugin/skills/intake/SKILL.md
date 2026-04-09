@@ -100,7 +100,7 @@ Write the mission spec via CLI with schema validation:
 ```bash
 Bash("geas mission write-spec --id {mission_id} --data '<spec_json>'")
 ```
-The spec must conform to `schemas/mission-spec.schema.json`. Include:
+The CLI validates the spec against the schema automatically. Include:
 - `"version": "1.0"`, `"artifact_type": "mission_spec"`, `"artifact_id": "mission-{YYYYMMDD}-{8char}"`
 - `"producer_type": "orchestration_authority"`, `"mission_id": "mission-{YYYYMMDD}-{8char}"`
 - `"created_at"` (actual UTC timestamp)
@@ -191,5 +191,5 @@ For lightweight missions (adding a feature to an existing project):
 - **New product**: full intake → `.geas/missions/{mission_id}/spec.json` with `source: "full_intake"`
 - **Existing project (first geas usage)**: minimal intake → `.geas/missions/{mission_id}/spec.json` with `source: "existing_project"`
 - **Existing project (subsequent missions)**: lightweight intake → `.geas/missions/{mission_id}/spec.json` with `source: "quick_intake"` or `"full_intake"`
-- **Format**: JSON conforming to `schemas/mission-spec.schema.json`
+- **Format**: JSON validated by the CLI automatically
 - **Immutability**: Once confirmed, the mission spec should not be modified during execution. If scope must change, trigger a vote round for scope change instead.

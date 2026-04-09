@@ -39,7 +39,7 @@ Example:
 project_root=$(git rev-parse --show-toplevel)   # e.g., /home/user/my-project
 
 # Then in every worktree Agent() prompt, use absolute paths:
-Agent(agent: "{worker}", isolation: "worktree", prompt: "Read /home/user/my-project/.geas/missions/.../packets/... Implement the feature. Write your evidence by running: node /home/user/my-project/plugin/cli/index.js --cwd /home/user/my-project evidence record --mission {mission_id} --task {task-id} --agent {worker} --data '<your-json>'")
+Agent(agent: "{worker}", isolation: "worktree", prompt: "Read /home/user/my-project/.geas/missions/.../tasks/{task-id}/packets/... Implement the feature. Write your evidence by running: node /home/user/my-project/plugin/cli/index.js --cwd /home/user/my-project evidence add --task {task-id} --agent {worker} --role implementer --set summary=... --set files_changed=...")
 ```
 
 Non-worktree agents (spawned without `isolation: "worktree"`) run in the main session directory where `.geas/` is directly accessible. Their prompts may continue to use relative `.geas/` paths.
@@ -59,7 +59,7 @@ Example: mission has `domain_profile: "software"`, pipeline says "spawn quality_
 ### Evidence verification
 - After every Agent() return, **Read the expected evidence file** to verify it exists.
 - If missing: the step failed. Retry once, then log error and proceed.
-- Evidence paths: `.geas/missions/{mission_id}/evidence/{task-id}/{agent-name}.json`
+- Evidence paths: `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{agent-name}.json`
 
 ### Event logging
 - Log every transition via the CLI: `Bash("geas event log --type <event_type> [--task <id>] [--agent <name>] [--data '<json>']")`
@@ -99,7 +99,7 @@ This applies to every task — sequential or parallel. If the task file does not
 
 ### Rules evolving
 - `.geas/rules.md` is a living document. Changes go through a structured `rules-update.json` workflow.
-- During per-task retrospectives, orchestration_authority produces `rule_candidates[]` in `retrospective.json`. These are proposals, NOT direct modifications.
+- During per-task retrospectives, orchestration_authority produces `rule_candidates[]` in the record.json `retrospective` section. These are proposals, NOT direct modifications.
 - Rule candidates accumulate during the Building phase. Batch approval happens in the Evolving phase (Step 4.2.5).
 - Approved rules updates are applied to `.geas/rules.md` and recorded in `.geas/missions/{mission_id}/evolution/rules-update.json` with `status: "approved"`.
 - Approval conditions (per doc 13): orchestration_authority + domain authority, OR evidence_refs >= 2 with contradiction_count = 0.
@@ -208,9 +208,9 @@ When `run.json` exists with `status: "in_progress"`, classify the recovery:
 #### Stale Packet Check
 
 After recovery completes and before resuming the pipeline:
-1. Check if context packets exist for the focus task at `.geas/missions/{mission_id}/packets/{task-id}/`
+1. Check if context packets exist for the focus task at `.geas/missions/{mission_id}/tasks/{task-id}/packets/`
 2. If packets exist: compare their timestamps against the last event in `events.jsonl`
-3. If packets are older than the last event → packets are stale. Regenerate by invoking `/geas:context-packet` before spawning the next agent.
+3. If packets are older than the last event → packets are stale. Regenerate via `geas packet create` before spawning the next agent.
 4. Also regenerate after: revalidation, rewind, rules.md update, memory state change to under_review/superseded.
 
 #### Session State Maintenance
@@ -218,8 +218,6 @@ After recovery completes and before resuming the pipeline:
 The orchestrator is responsible for maintaining two context anchors:
 
 1. **`.geas/state/session-latest.md`** — updated after each pipeline step completion. Contains phase, focus task, last/next step, recent events, open risks, memory summary. See the execution pipeline skills for the exact format.
-
-2. **`.geas/state/task-focus/{task-id}.md`** — updated after each step for the focus task. Contains task state, goal, progress, remaining steps, key risks. One file per active task.
 
 These files are consumed by `restore-context.sh` during post-compact recovery.
 
