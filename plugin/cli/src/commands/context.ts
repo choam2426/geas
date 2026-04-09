@@ -1,8 +1,9 @@
 /**
- * Context command group — context packet write.
+ * Context command group — context packet write (legacy).
  *
- * Context packets are role-specific briefings written as .md or .json files
- * to .geas/missions/{mid}/packets/{tid}/{agent}.{ext}.
+ * v4: Prefer `geas packet create` instead. This command is kept for
+ * backward compatibility. Packets now live at
+ * .geas/missions/{mid}/tasks/{tid}/packets/{agent}.{ext}.
  */
 
 import * as fs from 'fs';
@@ -30,7 +31,7 @@ export function registerContextCommands(program: Command): void {
       try {
         const geasDir = resolveGeasDir(getCwd(cmd));
         const missionDir = resolveMissionDir(geasDir, opts.mission);
-        const packetsDir = path.resolve(missionDir, 'packets', opts.task);
+        const packetsDir = path.resolve(missionDir, 'tasks', opts.task, 'packets');
         ensureDir(packetsDir);
 
         // Detect if content is JSON or markdown
@@ -61,7 +62,7 @@ export function registerContextCommands(program: Command): void {
         });
       } catch (err: unknown) {
         fileError(
-          `packets/${opts.task}/${opts.agent}`,
+          `tasks/${opts.task}/packets/${opts.agent}`,
           'write',
           (err as Error).message
         );
