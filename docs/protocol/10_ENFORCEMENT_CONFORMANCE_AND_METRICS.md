@@ -276,7 +276,7 @@ When a health signal exceeds its threshold, a project SHOULD define mandatory re
 | memory bloat | review or archive low-value items |
 | review gap | strengthen blocking at `pre_gate` |
 | gate quality issue | clarify rubric or eval coverage |
-| contradiction accumulation | move affected memory to `under_review` |
+| contradiction accumulation | review and update or remove contradicting entries in rules.md and agent notes |
 | repeated failure class | emit rule candidate and memory candidate |
 | debt stagnation | schedule debt work explicitly |
 | scope-control weakness | require stricter contract amendment |
@@ -316,11 +316,11 @@ The CLI enforces protocol rules at two points:
 
 | Transition | Required Artifacts |
 |---|---|
-| drafted → ready | `contract.json` exists |
+| drafted → ready | `contract.json` exists with required fields (task_kind, risk_level, gate_profile, vote_round_policy, base_snapshot, rubric.dimensions[]) |
 | ready → implementing | `record.json` `implementation_contract` section (approved) |
 | implementing → reviewed | `record.json` `self_check` section + `evidence/` from implementer |
 | reviewed → integrated | `record.json` `gate_result` section (pass) + `evidence/` from reviewer or tester |
-| integrated → verified | gate result verdict is pass |
+| integrated → verified | (no additional check — gate pass verified at previous transition) |
 | verified → passed | `record.json` `verdict` section (pass) + `closure` section + retrospective + `challenge_review` section (high/critical risk) |
 
 Missing artifacts produce exit code 1 with a `missing_artifacts` array.
@@ -331,9 +331,10 @@ Missing artifacts produce exit code 1 with a `missing_artifacts` array.
 
 | Transition | Gate Criteria |
 |---|---|
-| building → polishing | All tasks passed |
-| polishing → evolving | Security review or debt record |
-| evolving → complete | Gap assessment or mission summary |
+| specifying → building | `spec.json` exists, `design-brief.json` approved, tasks/ has ≥1 task |
+| building → polishing | All tasks passed or cancelled, `evolution/gap-assessment-building.json` exists |
+| polishing → evolving | `evolution/gap-assessment-polishing.json` AND `evolution/debt-register.json` exist, no blocked/escalated tasks |
+| evolving → complete | `evolution/gap-assessment-evolving.json` AND `mission-summary.md` exist |
 
 Unmet criteria produce exit code 1 with an `unmet_criteria` array.
 
