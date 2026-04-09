@@ -1,7 +1,7 @@
 ---
 name: design-authority
 model: opus
-slot: design_authority
+slot: design-authority
 ---
 
 # Design Authority

@@ -12,7 +12,7 @@ Produce a structured gap assessment comparing what was planned vs what was deliv
    - Task exists but partially complete or with caveats -> `partially_delivered`
    - No corresponding task or task cancelled -> `not_delivered`
 5. Check for `scope_out` items that were delivered anyway -> `unexpected_additions` (need traceability note)
-6. Items explicitly dropped by product_authority decision -> `intentional_cuts`
+6. Items explicitly dropped by product-authority decision -> `intentional_cuts`
 7. Assemble the gap assessment JSON and write it via CLI:
    ```bash
    Bash("geas evolution gap-assessment --mission {mission_id} --phase evolving --data '<gap_assessment_json>'")
@@ -39,7 +39,7 @@ Present the prioritized list to the user:
   Proceed with P0 items?
 ```
 
-If no P0 items remain: skip to product_authority Final Briefing.
+If no P0 items remain: skip to product-authority Final Briefing.
 
 ### Rules Update Approval
 
@@ -243,7 +243,7 @@ Invoke `/geas:reporting` to generate session audit trail.
 
 **If ANY artifact is missing: go back and execute the missing step. Do NOT close without all 5.**
 
-**Debt triage check**: Read debt-register.json. If any item has `severity: "critical"` and `status: "open"`, the exit gate fails. Product_authority must decide: (a) immediate fix as task, (b) accept with mandatory rationale, or (c) defer to next mission. Record decision in a DecisionRecord with `decision_type: "critical_debt_triage"`.
+**Debt triage check**: Read debt-register.json. If any item has `severity: "critical"` and `status: "open"`, the exit gate fails. Product-authority must decide: (a) immediate fix as task, (b) accept with mandatory rationale, or (c) defer to next mission. Record decision in a DecisionRecord with `decision_type: "critical_debt_triage"`.
 
 Write the evolving phase review via CLI:
 ```bash
@@ -255,7 +255,7 @@ The phase review data:
   "version": "1.0",
   "artifact_type": "phase_review",
   "artifact_id": "pr-evolving",
-  "producer_type": "orchestration_authority",
+  "producer_type": "orchestration-authority",
   "mission_phase": "evolving",
   "status": "ready_to_exit",
   "summary": "<evolving outcomes>",

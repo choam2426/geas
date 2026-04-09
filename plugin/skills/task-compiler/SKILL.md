@@ -194,7 +194,7 @@ Assign quality rubric dimensions based on task type. Every task gets the base di
 | `ux_clarity` | 3 |
 | `visual_coherence` | 3 |
 
-Write the rubric as an object with a `dimensions` array. The orchestration_authority or the user may adjust thresholds for specific tasks.
+Write the rubric as an object with a `dimensions` array. The orchestration-authority or the user may adjust thresholds for specific tasks.
 
 ## Output
 
@@ -209,7 +209,7 @@ Example output:
   "version": "1.0",
   "artifact_type": "task_contract",
   "artifact_id": "task-contract-task-003",
-  "producer_type": "orchestration_authority",
+  "producer_type": "orchestration-authority",
   "created_at": "2026-03-24T10:00:00Z",
   "task_id": "task-003",
   "title": "[Frontend] Login form with email/password",

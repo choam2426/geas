@@ -94,7 +94,7 @@ Override recorded.
   action:      disable
   reason:      hotfix deployment
   expires_at:  2026-04-03T00:00:00Z
-  approved_by: product_authority
+  approved_by: product-authority
 ```
 
 **policy-overrides.json format:**
@@ -107,7 +107,7 @@ Override recorded.
       "action": "disable",
       "reason": "hotfix deployment",
       "expires_at": "2026-04-03T00:00:00Z",
-      "approved_by": "product_authority",
+      "approved_by": "product-authority",
       "created_at": "2026-04-02T12:00:00Z",
       "expired": false
     }
@@ -123,7 +123,7 @@ Fields:
 | `action`     | string  | `disable` or `modify`                                         |
 | `reason`     | string  | Justification for the override                                |
 | `expires_at` | string  | ISO 8601 — when the override automatically expires            |
-| `approved_by`| string  | Agent type who approved (e.g. `product_authority`)            |
+| `approved_by`| string  | Agent type who approved (e.g. `product-authority`)            |
 | `created_at` | string  | ISO 8601 — when the override was recorded                     |
 | `expired`    | boolean | `false` = currently active; `true` = past expiry or superseded |
 
@@ -152,7 +152,7 @@ Re-enabled (expired overrides removed):
   - require-retrospective  (was disabled, expired 2026-04-03T00:00:00Z)
 
 Still active:
-  - gate-tier2-mandatory   (expires 2026-04-10T00:00:00Z, approved_by: product_authority)
+  - gate-tier2-mandatory   (expires 2026-04-10T00:00:00Z, approved_by: product-authority)
 ```
 
 If no overrides have expired:
@@ -179,8 +179,8 @@ Show all overrides ever recorded, including expired ones, for audit purposes.
 
 | # | Rule ID                | Action  | Reason              | Approved By       | Created At           | Expires At           | Status   |
 |---|------------------------|---------|---------------------|-------------------|----------------------|----------------------|----------|
-| 1 | require-retrospective  | disable | hotfix deployment   | product_authority | 2026-04-02T12:00:00Z | 2026-04-03T00:00:00Z | expired  |
-| 2 | gate-tier2-mandatory   | disable | load test window    | product_authority | 2026-04-05T09:00:00Z | 2026-04-10T00:00:00Z | active   |
+| 1 | require-retrospective  | disable | hotfix deployment   | product-authority | 2026-04-02T12:00:00Z | 2026-04-03T00:00:00Z | expired  |
+| 2 | gate-tier2-mandatory   | disable | load test window    | product-authority | 2026-04-05T09:00:00Z | 2026-04-10T00:00:00Z | active   |
 
 Total overrides recorded: 2  |  Active: 1  |  Expired: 1
 ```
@@ -197,11 +197,11 @@ No override history found. No overrides have been applied to this project.
 
 1. **Every override requires `reason` and `approved_by`.** An override without both fields must be rejected before writing.
 
-2. **No permanent overrides without `product_authority` explicit approval.** If `expires_at` is more than 30 days from `created_at`, require `approved_by: product_authority`. If a different agent type is provided, reject with:
+2. **No permanent overrides without `product-authority` explicit approval.** If `expires_at` is more than 30 days from `created_at`, require `approved_by: product-authority`. If a different agent type is provided, reject with:
 
    ```
-   Permanent overrides (> 30 days) require approved_by: product_authority.
-   Provided: <value>. Request approval from product_authority before applying.
+   Permanent overrides (> 30 days) require approved_by: product-authority.
+   Provided: <value>. Request approval from product-authority before applying.
    ```
 
 3. **Override history is preserved.** Expired or superseded entries are never deleted — only marked `expired: true`. The full history must remain available for audit via the "Override history" capability.
@@ -216,7 +216,7 @@ No override history found. No overrides have been applied to this project.
 
 - Before a hotfix deployment that cannot wait for the normal gate cycle.
 - During a load-test window when specific evidence requirements would be impractical.
-- When `product_authority` grants a temporary process exception for a release deadline.
+- When `product-authority` grants a temporary process exception for a release deadline.
 - At session start: run "Check expiry" to re-enable any rules whose override window has closed.
 
 ---

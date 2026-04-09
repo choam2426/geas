@@ -239,7 +239,7 @@ The CLI validates the phase review automatically:
   "version": "1.0",
   "artifact_type": "phase_review",
   "artifact_id": "pr-specifying-{mission_id}",
-  "producer_type": "orchestration_authority",
+  "producer_type": "orchestration-authority",
   "mission_phase": "specifying",
   "status": "ready_to_exit",
   "summary": "<specifying outcomes>",

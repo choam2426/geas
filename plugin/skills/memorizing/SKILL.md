@@ -36,9 +36,9 @@ Manages project memory through two files: `.geas/rules.md` (project-wide rules) 
 ├── rules.md              # Project-wide rules ALL agents follow
 └── memory/
     └── agents/           # Per-agent memory notes
-        ├── software_engineer.md
-        ├── design_authority.md
-        ├── quality_specialist.md
+        ├── software-engineer.md
+        ├── design-authority.md
+        ├── quality-specialist.md
         └── ...
 ```
 
@@ -110,7 +110,7 @@ Before adding a new entry:
 
 ### Per-task (inline)
 
-After extraction, `orchestration_authority` reviews each `[DRAFT]` item:
+After extraction, `orchestration-authority` reviews each `[DRAFT]` item:
 - **Promote**: Remove `[DRAFT]` prefix — the rule is now active
 - **Reject**: Remove the entry entirely
 - **Defer**: Keep as `[DRAFT]` for batch review during Evolving
@@ -150,7 +150,7 @@ When rules in `.geas/rules.md` contradict each other:
 1. Identify the conflicting rules
 2. Determine which has more supporting evidence (more task references)
 3. Keep the stronger rule, remove or revise the weaker one
-4. If unclear, `orchestration_authority` makes the call
+4. If unclear, `orchestration-authority` makes the call
 5. Log the resolution
 
 ## Conflict Resolution Priority

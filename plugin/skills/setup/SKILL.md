@@ -5,7 +5,7 @@ description: First-time setup — initialize .geas/ runtime directory, generate 
 
 # Setup
 
-orchestration_authority should invoke this automatically on the first natural-language request in a new project.
+orchestration-authority should invoke this automatically on the first natural-language request in a new project.
 
 Users should not need to run setup manually unless they are troubleshooting.
 
@@ -92,11 +92,11 @@ If `.geas/memory/agents/` already exists with files from a previous version, mig
 
 | old file | action |
 |---|---|
-| `frontend_engineer.md` + `backend_engineer.md` | merge into `software_engineer.md` (concatenate with `---` separator) |
-| `devops_engineer.md` | rename to `platform_engineer.md` |
+| `frontend_engineer.md` + `backend_engineer.md` | merge into `software-engineer.md` (concatenate with `---` separator) |
+| `devops_engineer.md` | rename to `platform-engineer.md` |
 | `critical_reviewer.md` | rename to `challenger.md` |
-| `ui_ux_designer.md` | merge relevant content into `software_engineer.md` |
-| `architecture_authority.md` | rename to `design_authority.md` |
+| `ui_ux_designer.md` | merge relevant content into `software-engineer.md` |
+| `architecture_authority.md` | rename to `design-authority.md` |
 
 Migration is best-effort. Log what was migrated. Do not delete originals until migration is confirmed successful.
 

@@ -74,7 +74,7 @@ Spawn the fixer **with worktree isolation** (implementation agents always use wo
 Agent(agent: "{fixer}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read your ContextPacket at {project_root}/.geas/missions/{mission_id}/tasks/{task-id}/packets/{fixer}-fix-{N}.md. Fix the specific failures listed in your packet. Write your results by running: geas evidence add --task {task-id} --agent {fixer}-fix-{N} --role implementer --set summary=... --set files_changed=...")
 ```
 
-After the fixer completes, merge the worktree branch before re-running the evidence gate. If merge conflicts arise, follow the orchestration_authority merge conflict protocol.
+After the fixer completes, merge the worktree branch before re-running the evidence gate. If merge conflicts arise, follow the orchestration-authority merge conflict protocol.
 
 #### Step C — Re-run Evidence Gate
 After the fixer completes:
@@ -104,15 +104,15 @@ Analyze: Is there a fundamental design issue? Is the approach viable?
 Write your analysis as evidence. Run: geas evidence add --task {task-id} --agent design-authority-escalation --role authority --set "summary=<assessment>" --set "verdict=<approved|blocked>" --set "rationale=<reasoning>"
 ```
 
-Then evaluate design_authority's assessment:
-- If design_authority identifies a fixable root cause: apply the fix, re-test one more time.
-- If design_authority says the approach is broken: escalate to product_authority.
+Then evaluate design-authority's assessment:
+- If design-authority identifies a fixable root cause: apply the fix, re-test one more time.
+- If design-authority says the approach is broken: escalate to product-authority.
 
 ### `"product-authority-decision"`
 
 Spawn **product-authority** with full context:
 - TaskContract, all evidence bundles, gate verdicts
-- product_authority decides: scope cut, feature drop, alternative approach, or push through.
+- product-authority decides: scope cut, feature drop, alternative approach, or push through.
 
 ### `"pivot"`
 
@@ -161,8 +161,8 @@ Evidence Gate PASS?
                   NO    -> ... (up to retry_budget)
                            Budget exhausted?
                            -> escalation_policy:
-                              design-authority-review -> design_authority analysis -> fixable? -> one more try
-                              product-authority-decision -> product_authority decides
+                              design-authority-review -> design-authority analysis -> fixable? -> one more try
+                              product-authority-decision -> product-authority decides
                               pivot -> /geas:vote-round
                            -> Write DecisionRecord
 ```

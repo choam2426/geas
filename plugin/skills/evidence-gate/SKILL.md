@@ -52,7 +52,7 @@ Verify that all prerequisites are in place before running expensive checks.
 ### On Tier 0 Failure
 
 - **Missing required artifact**: verdict = `block`. Does NOT consume retry_budget. Gate re-entry not allowed until the artifact is created.
-- **Task state ineligible**: verdict = `error`. The orchestration_authority inspects and corrects the state.
+- **Task state ineligible**: verdict = `error`. The orchestration-authority inspects and corrects the state.
 - **Baseline mismatch**: verdict = `block`. Re-enter after performing revalidation.
 - **Missing required reviewer**: verdict = `block`. Does NOT consume retry_budget.
 
@@ -128,7 +128,7 @@ Any `known_risk` with no handling status -> Tier 2 fails.
 Read the `rubric` array from the TaskContract. For each dimension:
 
 1. Identify the evaluator's evidence:
-   - `design_authority` review evidence -> `code_quality` score
+   - `design-authority` review evidence -> `code_quality` score
    - `quality_specialist` evidence -> `core_interaction`, `feature_completeness`, `regression_safety` scores
    - `quality_specialist` or `communication_specialist` evidence -> `ux_clarity`, `visual_coherence` scores (UI-sensitive tasks)
 2. Read the evaluator's `rubric_scores` from their review
@@ -140,7 +140,7 @@ Read the `rubric` array from the TaskContract. For each dimension:
 |---|---|---:|
 | `core_interaction` | `quality_specialist` | 3 |
 | `feature_completeness` | `quality_specialist` | 4 |
-| `code_quality` | `design_authority` | 4 |
+| `code_quality` | `design-authority` | 4 |
 | `regression_safety` | `quality_specialist` | 4 |
 
 UI-sensitive tasks add:
@@ -204,7 +204,7 @@ Conditions that produce `block`:
 
 If the gate verdict is `error`:
 - `retry_budget` is NOT consumed
-- The orchestration_authority resolves the cause and re-runs the gate
+- The orchestration-authority resolves the cause and re-runs the gate
 - If the same cause produces `error` 3 consecutive times, the task transitions to `blocked` and the cause is recorded
 
 ---
@@ -265,8 +265,8 @@ Bash("geas event log --type gate_result --task {task-id} --data '{\"result\":\"p
    - After fix, re-run the gate
 3. If retries exhausted:
    - Follow the `escalation_policy`:
-     - `"design-authority-review"`: spawn the `design_authority` for architectural review, write a DecisionRecord
-     - `"product-authority-decision"`: spawn the `product_authority` for a strategic decision (continue/cut/pivot)
+     - `"design-authority-review"`: spawn the `design-authority` for architectural review, write a DecisionRecord
+     - `"product-authority-decision"`: spawn the `product-authority` for a strategic decision (continue/cut/pivot)
      - `"pivot"`: invoke `/geas:vote-round`
    - Update TaskContract status: `Bash("geas task transition --mission {mission_id} --id {task-id} --to escalated")`
    - Write a DecisionRecord via CLI: `Bash("geas decision write --mission {mission_id} --data '<decision_json>'")`
@@ -276,7 +276,7 @@ Bash("geas event log --type gate_result --task {task-id} --data '{\"result\":\"p
 1. Do NOT decrement `retry_budget` (`retry_budget_after` = `retry_budget_before`)
 2. Record the blocking cause in the gate result
 3. Task cannot re-enter the gate until the blocking cause is resolved
-4. The orchestration_authority is responsible for resolving the block
+4. The orchestration-authority is responsible for resolving the block
 
 ---
 

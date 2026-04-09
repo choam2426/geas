@@ -90,7 +90,7 @@ The orchestrator manages each task's pipeline independently:
 - **Independent progression:** When an agent returns for task A, the orchestrator spawns task A's next step immediately. It does NOT wait for other tasks to reach the same step.
 - **Parallel spawning:** The orchestrator MAY spawn agents for different tasks in the same message (parallel tool calls). Example: `Agent(implementer, "implement task-003")` and `Agent(implementer, "implement task-009")` in one message.
 - **Step groups:** Within a single task, the orchestrator also applies step group rules from the execution pipeline (e.g., spawning design-authority + quality-specialist simultaneously for the same task).
-- **All mandatory steps apply:** Implementation contract, code review, testing, challenger challenge, product_authority verdict, retrospective, and resolve are mandatory for every task in the batch. Do NOT skip any because of parallelism.
+- **All mandatory steps apply:** Implementation contract, code review, testing, challenger challenge, product-authority verdict, retrospective, and resolve are mandatory for every task in the batch. Do NOT skip any because of parallelism.
 
 **Checkpoint during batch:** Before each agent spawn, update `last_updated` in run.json. `agent_in_flight` stays `null` during batches (multiple agents active). The authoritative progress record is the evidence files and task file statuses.
 
@@ -179,4 +179,4 @@ Speculative execution is PROHIBITED for:
 
 ### Deadlock Handling
 
-If two tasks hold mutually conflicting locks, the state transitions to `manual_repair_required`. No automatic resolution is attempted. The orchestration_authority or a human operator must intervene to release a lock or rewind a task.
+If two tasks hold mutually conflicting locks, the state transitions to `manual_repair_required`. No automatic resolution is attempted. The orchestration-authority or a human operator must intervene to release a lock or rewind a task.

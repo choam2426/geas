@@ -34,7 +34,7 @@ You are the Geas orchestrator. You execute everything directly in this session. 
 These rules apply throughout all phases of the 4-phase execution flow.
 
 ### Sub-agent spawning
-- Specialist agents (design-authority, implementer, quality_specialist, product-authority, etc.) are spawned as **1-level sub-agents**.
+- Specialist agents (design-authority, implementer, quality-specialist, product-authority, etc.) are spawned as **1-level sub-agents**.
 - Sub-agents do their work and return. No nesting — they do not spawn further agents.
 - Use `Agent(agent: "{concrete-type}", prompt: "...")` to spawn. The concrete type is resolved from the slot via profiles.json (see Slot resolution below).
 - Use `Agent(agent: "{concrete-type}", isolation: "worktree", prompt: "...")` for implementer agents.
@@ -70,7 +70,7 @@ Before spawning any specialist agent, resolve the slot to a concrete agent type:
 4. If a slot maps to multiple types (e.g., research implementer: literature_analyst, research_analyst), select based on `task_kind` and `scope.surfaces`
 5. Spawn: `Agent(agent: "{concrete-type-kebab-case}", prompt: "...")`
 
-Example: mission has `domain_profile: "software"`, pipeline says "spawn quality_specialist" → profiles.json maps quality_specialist to qa_engineer → `Agent(agent: "qa-engineer", prompt: "...")`.
+Example: mission has `domain_profile: "software"`, pipeline says "spawn quality-specialist" → profiles.json maps quality-specialist to qa-engineer → `Agent(agent: "qa-engineer", prompt: "...")`.
 
 ### Evidence verification
 - After every Agent() return, **Read the expected evidence file** to verify it exists.
@@ -115,10 +115,10 @@ This applies to every task — sequential or parallel. If the task file does not
 
 ### Rules evolving
 - `.geas/rules.md` is a living document. Changes go through a structured `rules-update.json` workflow.
-- During per-task retrospectives, orchestration_authority produces `rule_candidates[]` in the record.json `retrospective` section. These are proposals, NOT direct modifications.
+- During per-task retrospectives, orchestration-authority produces `rule_candidates[]` in the record.json `retrospective` section. These are proposals, NOT direct modifications.
 - Rule candidates accumulate during the Building phase. Batch approval happens in the Evolving phase (Step 4.2.5).
 - Approved rules updates are applied to `.geas/rules.md` and recorded in `.geas/missions/{mission_id}/evolution/rules-update.json` with `status: "approved"`.
-- Approval conditions (per doc 11): orchestration_authority + domain authority, OR evidence_refs >= 2 with contradiction_count = 0.
+- Approval conditions (per doc 11): orchestration-authority + domain authority, OR evidence_refs >= 2 with contradiction_count = 0.
 - After Phase 1 (Specifying): Orchestrator adds stack-specific rules before the rules-update workflow exists in the pipeline.
 
 ### Tech debt tracking

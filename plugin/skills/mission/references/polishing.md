@@ -27,8 +27,8 @@ For each CRITICAL/HIGH finding, run a reduced pipeline:
    Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read {project_root}/.geas/missions/{mission_id}/tasks/polishing/packets/{worker}-fix-{N}.md. Fix the security issue. Write your evidence by running: geas evidence add --task polishing --agent {worker}-fix-{N} --role implementer --set summary='<fix summary>' --set files_changed='[\"file1\"]'")
    ```
 4. Merge worktree branch
-5. Specialist Review (design_authority) — verify the fix is correct and doesn't introduce regressions
-6. Testing (quality_specialist) — verify the fix with `eval_commands` from rules.md
+5. Specialist Review (design-authority) — verify the fix is correct and doesn't introduce regressions
+6. Testing (quality-specialist) — verify the fix with `eval_commands` from rules.md
 7. If fix fails: retry once (`retry_budget: 2`). If still fails: register as HIGH debt and proceed — do not block Polishing phase indefinitely
 
 ### Documentation (communication_specialist)

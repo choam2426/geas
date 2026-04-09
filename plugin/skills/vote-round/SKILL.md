@@ -12,7 +12,7 @@ Structured parallel voting on a major proposal. Multiple agents evaluate indepen
 ## Inputs
 
 - **Proposal document** — the proposal being voted on (path provided by caller)
-- **Voter list** — 2-4 agent types selected by orchestration_authority (challenger always included)
+- **Voter list** — 2-4 agent types selected by orchestration-authority (challenger always included)
 - **Proposal context** — TaskContract, design-brief, or other relevant artifacts
 
 ---
@@ -46,7 +46,7 @@ Trust the agents on these. Keep moving.
 
 ### Step 1: Identify Voters
 
-orchestration_authority selects 2-4 voters based on the proposal's domain. challenger is always included.
+orchestration-authority selects 2-4 voters based on the proposal's domain. challenger is always included.
 
 ### Step 2: Spawn Voters in Parallel
 
@@ -78,7 +78,7 @@ After all voters return, read each vote file.
 - **Any disagree with severity: major** → `decision_triggered`:
   1. Orchestrator facilitates structured decision resolution based on the vote results, using the proposal and all vote files as context.
   2. After decision resolution, re-vote (one re-vote maximum).
-  3. If still no consensus after re-vote, orchestration_authority synthesizes a decision and the user decides.
+  3. If still no consensus after re-vote, orchestration-authority synthesizes a decision and the user decides.
 
 ### Step 4: Log Result
 
@@ -100,4 +100,4 @@ Vote evidence files at the location specified by the caller (e.g., `.geas/missio
 1. **challenger always participates** — no exceptions, even if the proposal seems obvious
 2. **Voters are independent** — they do not see each other's votes before voting
 3. **Disagreement is not failure** — minor disagreements become amendments, major disagreements trigger structured decision. Both produce better decisions than ignoring dissent.
-4. **One re-vote maximum** — after decision, one more vote round. If still no consensus, orchestration_authority synthesizes and the user decides.
+4. **One re-vote maximum** — after decision, one more vote round. If still no consensus, orchestration-authority synthesizes and the user decides.

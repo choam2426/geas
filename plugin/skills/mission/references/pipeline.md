@@ -91,10 +91,10 @@ The CLI writes locks.json atomically. If any acquisition fails (conflict), relea
 ## Step Groups
 
 Within a single task's pipeline, these steps may run in parallel:
-- **[specialist_review, testing]** — design-authority and quality_specialist do not reference each other's output. Spawn both in one message. After both return, remove both from `remaining_steps` and log `step_complete` for each.
+- **[specialist_review, testing]** — design-authority and quality-specialist do not reference each other's output. Spawn both in one message. After both return, remove both from `remaining_steps` and log `step_complete` for each.
 
 All other steps are strictly sequential. In particular:
-- **challenger -> final_verdict** — product_authority's prompt requires the `challenge_review` section in record.json. challenger MUST complete and section MUST be verified before spawning product_authority.
+- **challenger -> final_verdict** — product-authority's prompt requires the `challenge_review` section in record.json. challenger MUST complete and section MUST be verified before spawning product-authority.
 
 ## [MANDATORY] Event Logging
 
@@ -147,7 +147,7 @@ Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{missio
 Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-design-authority}.json` exists.
 
 ### Implementation Contract [MANDATORY]
-Invoke `/geas:implementation-contract` — worker writes action plan, quality_specialist and design_authority approve before implementation.
+Invoke `/geas:implementation-contract` — worker writes action plan, quality-specialist and design-authority approve before implementation.
 Update checkpoint: `Bash("geas state checkpoint set --step implementation_contract --agent {worker}")`
 Verify record.json has `implementation_contract` section with `status: "approved"`:
 ```bash
@@ -185,8 +185,8 @@ Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{missio
 Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-design-authority}-review.json` exists.
 Update checkpoint: `Bash("geas state checkpoint set --step specialist_review --agent null")`
 
-### Testing (quality_specialist) [MANDATORY]
-Resolve the quality_specialist slot via profiles.json. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-quality-specialist} --content '...'")`. Then:
+### Testing (quality-specialist) [MANDATORY]
+Resolve the quality-specialist slot via profiles.json. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-quality-specialist} --content '...'")`. Then:
 Update checkpoint: `Bash("geas state checkpoint set --step testing --agent {resolved-quality-specialist}")`
 ```
 Agent(agent: "{resolved-quality-specialist}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-quality-specialist}.md. Test the implementation. Write your test results as evidence. Run: geas evidence add --task {task-id} --agent {resolved-quality-specialist} --role tester --set summary='<test summary>' --set verdict='pass' --set criteria_results='[{\"criterion\":\"...\",\"passed\":true}]'")
@@ -260,7 +260,7 @@ After successful merge:
 
 ### Closure Packet Assembly [MANDATORY — after gate pass]
 
-orchestration_authority (Orchestrator) assembles the closure packet by reading all task artifacts. This is NOT an agent spawn — Orchestrator reads and writes directly.
+orchestration-authority (Orchestrator) assembles the closure packet by reading all task artifacts. This is NOT an agent spawn — Orchestrator reads and writes directly.
 
 **Read required artifacts:**
 - TaskContract: `.geas/missions/{mission_id}/tasks/{task-id}/contract.json`
@@ -285,7 +285,7 @@ Update checkpoint: `Bash("geas state checkpoint set --step closure_packet --agen
 
 **Skip condition:** If `risk_level` is `low`, skip this step. Remove `"challenger"` from `remaining_steps`, update run.json checkpoint, and proceed directly to Final Verdict.
 
-**Discretionary:** If `risk_level` is `normal`, this step is at orchestration_authority's discretion.
+**Discretionary:** If `risk_level` is `normal`, this step is at orchestration-authority's discretion.
 
 **Mandatory condition:** If `risk_level` is `high` or `critical`, this step MUST run.
 
@@ -308,7 +308,7 @@ Do NOT skip this log entry — it is required for conformance verification and s
 2. **If `blocking` is true:**
    - Update the `closure` section in record.json: append blocking concerns to `open_risks`.
    - Invoke `/geas:vote-round` as a readiness_round:
-     - Participants: orchestration_authority, product_authority, 1 specialist (most relevant to the blocking concern)
+     - Participants: orchestration-authority, product-authority, 1 specialist (most relevant to the blocking concern)
      - Vote options: ship / iterate / escalate
    - **If ship:** convert blocking concerns to acknowledged risks in `closure.open_risks`. Proceed to Final Verdict.
    - **If iterate:** rewind to resolve the blocking concern. Repopulate `remaining_steps` from the rewind point.
@@ -384,7 +384,7 @@ Bash("geas memory agent-note --agent {agent_type} --add '<lesson learned>'")
 
 Additionally, update Orchestrator's own memory based on `next_time_guidance[]` from the retrospective:
 ```bash
-Bash("geas memory agent-note --agent orchestration_authority --add '<guidance>'")
+Bash("geas memory agent-note --agent orchestration-authority --add '<guidance>'")
 ```
 
 Agent memory update is performed regardless of mission mode.
@@ -429,5 +429,5 @@ The CLI removes ALL lock entries where `task_id` matches this task and promotes 
   git add -A && git commit -m "{conventional commit message for task-id}"
   ```
   Log: `Bash("geas event log --type task_resolved --task {task-id} --data '{\"commit\":\"{hash}\"}'")` 
-- **Iterate** (Final Verdict only): does NOT deduct retry_budget (iterate is a product judgment, not a gate failure). Track iterate_count — after 3 cumulative iterates, escalate to orchestration_authority. Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include product_authority's feedback in all subsequent ContextPackets. Resume from the rewind_target specified in the final verdict.
+- **Iterate** (Final Verdict only): does NOT deduct retry_budget (iterate is a product judgment, not a gate failure). Track iterate_count — after 3 cumulative iterates, escalate to orchestration-authority. Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include product-authority's feedback in all subsequent ContextPackets. Resume from the rewind_target specified in the final verdict.
 - **Cancel**: status -> `"cancelled"`. Transition via `Bash("geas task transition --mission {mission_id} --id {task-id} --to cancelled")`. Write DecisionRecord.
