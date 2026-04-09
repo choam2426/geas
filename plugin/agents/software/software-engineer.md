@@ -30,7 +30,7 @@ Priority order — check in this sequence:
 
 Additional guidance:
 
-- Follow the stack conventions in `.geas/memory/_project/conventions.md`
+- Follow the stack conventions in `.geas/rules.md`
 - Validate all inputs before processing — both API inputs and user inputs
 - Separate concerns: data logic from route handlers, presentation from business logic
 - Never expose internal errors to clients or users

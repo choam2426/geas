@@ -468,8 +468,8 @@ For protocol details on hook failure handling, conformance checking, and metrics
 | `.geas/missions/<mid>/evolution/debt-register.json` | check-debt |
 | `.geas/rules.md` | session-init (creates), inject-context (reads), restore-context (reads) |
 | `.geas/memory/agents/<name>.md` | inject-context |
-| `.geas/missions/<mid>/tasks/<tid>.json` | protect-geas-state, verify-task-status |
-| `.geas/missions/<mid>/evidence/<tid>/*.json` | verify-task-status |
+| `.geas/missions/<mid>/tasks/<tid>/contract.json` | protect-geas-state, verify-task-status |
+| `.geas/missions/<mid>/tasks/<tid>/evidence/*.json` | verify-task-status |
+| `.geas/missions/<mid>/tasks/<tid>/record.json` | verify-task-status |
 | `.geas/missions/<mid>/spec.json` | protect-geas-state (freeze guard) |
-| `.geas/ledger/events.jsonl` | (event logging via CLI) |
-| `.geas/ledger/cost-summary.json` | calculate-cost |
+| `.geas/state/events.jsonl` | (event logging via CLI) |
