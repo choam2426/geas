@@ -52,7 +52,7 @@ const mid = d.mission_id || '';
 const mdir = mid ? path.join(geas, 'missions', mid) : geas;
 let taskGoal = '';
 if (tid) {
-  const task = h.readJson(path.join(mdir, 'tasks', tid + '.json'));
+  const task = h.readJson(path.join(mdir, 'tasks', tid, 'contract.json'));
   if (task) {
     taskGoal = task.goal || '';
     parts.push('Task goal: ' + taskGoal);
@@ -71,11 +71,11 @@ if (h.exists(slPath)) {
   if (sc) { parts.push(''); parts.push('--- SESSION CONTEXT ---'); parts.push(sc); }
 }
 
-// Open risks from closure packet
+// Open risks from record.json closure section
 let openRisks = [];
 if (tid) {
-  const cpkt = h.readJson(path.join(mdir, 'tasks', tid, 'closure-packet.json'));
-  if (cpkt && cpkt.open_risks) openRisks = cpkt.open_risks.items || [];
+  const record = h.readJson(path.join(mdir, 'tasks', tid, 'record.json'));
+  if (record && record.closure && record.closure.open_risks) openRisks = record.closure.open_risks;
 }
 
 // Rules summary (first 30 lines)
@@ -86,18 +86,13 @@ if (h.exists(rulesPath)) {
   parts.push(''); parts.push('--- KEY RULES ---'); parts.push(rulesLines.join('\n').trim());
 }
 
-// MEMORY STATE SUMMARY
-const mi = h.readJson(path.join(geas, 'state', 'memory-index.json'));
+// MEMORY STATE SUMMARY (v4: count agent memory files)
+const agentsDir = path.join(geas, 'memory', 'agents');
 let memTotal = 0;
-const memCounts = {};
-if (mi && mi.entries) {
-  memTotal = mi.entries.length;
-  mi.entries.forEach(e => { const s = e.state || 'unknown'; memCounts[s] = (memCounts[s]||0)+1; });
-}
+try { if (fs.existsSync(agentsDir)) memTotal = fs.readdirSync(agentsDir).filter(f => f.endsWith('.md')).length; } catch(e) {}
 if (memTotal > 0) {
   parts.push(''); parts.push('--- MEMORY STATE ---');
-  const summary = Object.entries(memCounts).sort().map(([s,c]) => s+': '+c).join(', ');
-  parts.push('Total memories: ' + memTotal + ' (' + summary + ')');
+  parts.push('Agent notes: ' + memTotal + ' agent memory file(s)');
 }
 
 // L0 ANTI-FORGETTING (always-preserved items)
@@ -114,7 +109,7 @@ if (openRisks.length) {
 } else l0.push('5. Open risks: (none found)');
 l0.push('6. Recovery outcome: ' + (d.recovery_class || '(clean session)'));
 const ruleCount = rulesLines.filter(l => l.trim() && !l.trim().startsWith('#')).length;
-l0.push('7. Active rules: ' + ruleCount + ' lines loaded from rules.md | Memories: ' + memTotal + ' entries');
+l0.push('7. Active rules: ' + ruleCount + ' lines loaded from rules.md | Memories: ' + memTotal + ' agent note(s)');
 
 l0.forEach(item => parts.push(item));
 
