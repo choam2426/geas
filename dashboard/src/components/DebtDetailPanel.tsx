@@ -38,7 +38,7 @@ export default function DebtDetailPanel({
       setError(null);
       try {
         if (!missionId) {
-          setDebt({ total: 0, by_severity: { low: 0, normal: 0, high: 0, critical: 0 }, items: [] });
+          setDebt({ total: 0, by_severity: { low: 0, normal: 0, high: 0, critical: 0 }, by_kind: { output_quality: 0, verification_gap: 0, structural: 0, risk: 0, process: 0, documentation: 0, operations: 0 }, items: [] });
           setLoading(false);
           return;
         }
