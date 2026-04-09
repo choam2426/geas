@@ -161,10 +161,19 @@ function guardPolishingToEvolving(missionDir: string): string[] {
     unmet.push('evolution/gap-assessment-polishing.json does not exist');
   }
 
-  // Debt register required (even if empty)
+  // Debt register: if it exists, check for critical open items.
+  // Missing file = no debt found during polishing, which is acceptable.
   const debtPath = path.resolve(missionDir, 'evolution', 'debt-register.json');
-  if (!fs.existsSync(debtPath)) {
-    unmet.push('evolution/debt-register.json does not exist');
+  if (fs.existsSync(debtPath)) {
+    const debt = readJsonFile<Record<string, unknown>>(debtPath);
+    if (debt && Array.isArray(debt.items)) {
+      const criticalOpen = (debt.items as Array<Record<string, unknown>>).filter(
+        (i) => i.severity === 'critical' && i.status === 'open',
+      );
+      if (criticalOpen.length > 0) {
+        unmet.push(`Debt register has ${criticalOpen.length} critical open item(s)`);
+      }
+    }
   }
 
   // No blocked/escalated tasks

@@ -170,7 +170,7 @@ Look at existing TaskContracts in `.geas/missions/{mission_id}/tasks/`:
 - If this task needs another task's output (e.g., frontend needs backend API) → add to `dependencies`
 - If this task blocks others → note for scheduling
 
-### Step 10: Capture Base Commit
+### Step 10: Capture Base Snapshot
 
 Run `git rev-parse HEAD` to get the current commit hash. Record this as `base_snapshot`. This anchors the task to a known repository state and is used for staleness detection during integration.
 
