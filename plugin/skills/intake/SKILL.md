@@ -111,6 +111,12 @@ The CLI validates the spec against the schema automatically and auto-injects `cr
 - `"version": "1.0"`, `"artifact_type": "mission_spec"`, `"artifact_id": "{mission_id}"`
 - `"producer_type": "orchestration-authority"`, `"mission_id": "{mission_id}"`
 
+**Mission-spec schema fields (exact names required):**
+- `scope`: nested object with `in` (string array) and `out` (string array) — NOT flat `scope_in`/`scope_out`
+- `risk_notes`: string array (not `risks`)
+- `affected_surfaces`: string array, top-level (not inside `scope`)
+- `constraints`, `assumptions`, `ambiguities`: string arrays
+
 Always include the `source` field:
 - `"full_intake"` — complete Socratic exploration with user
 - `"quick_intake"` — user skipped detailed intake
