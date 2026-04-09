@@ -32,7 +32,7 @@ When the orchestrator reaches a point where new tasks could start (Phase 2 entry
    - If `base_commit != tip`: run revalidation procedure
      - `clean_sync`: eligible (update base_commit first)
      - `review_sync`: eligible (flag for re-review after implementation)
-     - `replan_required` or `blocking_conflict`: **exclude from batch**. Rewind or block as appropriate. Write revalidation-record.json.
+     - `replan_required` or `blocking_conflict`: **exclude from batch**. Rewind or block as appropriate. Log event via `geas event log --type revalidation`.
 4. **Lock conflict check**: For each pair of candidate tasks in the batch:
    - Compare their `scope.paths` — if any paths overlap, they have a path lock conflict. Remove the later task (by ID order) from the batch.
    - If either task touches API contracts that the other also touches, they have an interface lock conflict. Remove the later task.

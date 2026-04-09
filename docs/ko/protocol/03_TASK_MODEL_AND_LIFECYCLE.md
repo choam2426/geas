@@ -157,29 +157,7 @@ task에 반드시 있어야 하는 것:
 
 ## 실패는 상태가 아니다
 
-실패는 별도 유사 상태를 만들지 말고 `FailureRecord`로 기록한다.
-
-### FailureRecord 필수 필드
-
-| 필드 | 설명 |
-|---|---|
-| `task_id` | 실패한 task |
-| `failed_at_state` | 어떤 상태에서 실패했는지 |
-| `failure_reason` | 왜 실패했는지 |
-| `rewind_target` | 어디로 상태 복원할지 |
-| `timestamp` | 실패 시점 |
-| `retry_budget_before` | 실패 전 남은 재시도 횟수 |
-| `retry_budget_after` | 실패 후 남은 재시도 횟수 |
-
-### FailureRecord 추가 권장 필드
-
-| 필드 | 설명 |
-|---|---|
-| `failure_class` | 실패 유형 분류 |
-| `artifact_refs` | 검토한 artifact 참조 |
-| `suspected_root_cause` | 추정 근본 원인 |
-| `structural_or_implementation` | 구조적 문제인지 구현 문제인지 |
-| `candidates_emitted` | 메모리·규칙 후보가 나왔는지 |
+실패는 task 상태가 아니다. gate가 실패하거나 verdict가 iterate되면, `geas task transition`으로 rewind target 상태로 되돌린다. 실패는 `events.jsonl`에 이벤트로 기록한다 (이벤트 유형: `gate_failed`, `verdict_iterate`, `unrecoverable_error`). 별도 failure artifact는 필요하지 않다.
 
 ## 구현 계약
 

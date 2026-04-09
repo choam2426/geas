@@ -157,29 +157,7 @@ A `critical` task SHOULD remain as small as practical.
 
 ## Failure Is Not a State
 
-Failure MUST be recorded through a `FailureRecord`, not by inventing a separate quasi-state.
-
-### FailureRecord required fields
-
-| field | description |
-|---|---|
-| `task_id` | which task failed |
-| `failed_at_state` | state the task was in when it failed |
-| `failure_reason` | why it failed |
-| `rewind_target` | which state to restore to |
-| `timestamp` | when the failure occurred |
-| `retry_budget_before` | retry attempts remaining before this failure |
-| `retry_budget_after` | retry attempts remaining after this failure |
-
-### FailureRecord additional recommended fields
-
-| field | description |
-|---|---|
-| `failure_class` | classification of failure type |
-| `artifact_refs` | artifacts examined during failure analysis |
-| `suspected_root_cause` | best guess at the underlying cause |
-| `structural_or_implementation` | whether the failure is structural or implementation-related |
-| `candidates_emitted` | whether memory or rule candidates were produced |
+Failure is not a task state. When a gate fails or a verdict iterates, the task rewinds to its rewind target via `geas task transition`. The failure is recorded as an event in `events.jsonl` (event type: `gate_failed`, `verdict_iterate`, or `unrecoverable_error`). No separate failure artifact is needed.
 
 ## Implementation Contract
 

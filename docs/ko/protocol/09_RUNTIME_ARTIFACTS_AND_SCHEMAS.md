@@ -48,7 +48,6 @@ Specifying phase에서 생성되는 artifact로, mission을 정의하고 task로
 | context packet | `packets/{agent}.md` | 작업 시작 전 에이전트에게 전달되는 역할별 브리핑 |
 | execution record | `record.json` | 모든 pipeline 단계 출력을 축적하는 단일 파일 (아래 참조) |
 | evidence 파일 | `evidence/{agent}.json` | 역할별 에이전트 산출물 (implementer, reviewer, tester, authority) |
-| failure record | (인라인 또는 별도) | 단계 실패 시 무엇이 잘못되었는지 기록 (필요 시 생성) |
 
 #### record.json 섹션
 
