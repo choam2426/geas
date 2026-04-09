@@ -46,10 +46,10 @@ Gate verdicts: `pass | fail | block | error`. `iterate` is Final Verdict only.
 ```
 plugin/
 ├── plugin.json              # Claude plugin manifest
-├── skills/                  # 12 core skills
+├── skills/                  # 13 skills (12 core + 1 utility)
 │   ├── mission/             # Geas orchestrator
 │   ├── intake/              # Requirements gathering
-│   └── ...                  # (12 core contract engine skills)
+│   └── ...                  # (12 core contract engine + 1 utility skill)
 └── agents/
     ├── authority/           # 3 spawnable authority agents
     ├── software/            # 5 software domain specialists
@@ -79,6 +79,9 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 - `setup/` — project initialization, codebase discovery, rules.md creation
 - `policy-managing/` — rules.md override management
 - `reporting/` — health signals, status briefing, debt/gap dashboard
+
+### Utility skills
+- `help/` — explains geas usage, available commands, workflows, and multi-agent process
 
 ### Mission references
 - `mission/references/specifying.md` — Specifying phase procedure

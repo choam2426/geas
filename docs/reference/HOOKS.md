@@ -10,19 +10,20 @@ Shared library: `plugin/hooks/scripts/lib/geas-hooks.js`
 
 ## Hook Inventory
 
-9 hook scripts + 1 shared helper library (`geas-hooks.js`) across 6 lifecycle events.
+10 hook scripts + 1 shared helper library (`geas-hooks.js`) across 6 lifecycle events.
 
 | # | Event | Matcher | Script | Purpose |
 |---|-------|---------|--------|---------|
 | 1 | SessionStart | (all) | session-init.sh | Session initialization + memory review cadence |
 | 2 | SubagentStart | (all) | inject-context.sh | Inject rules and agent memory into sub-agent |
-| 3 | PreToolUse | Write | checkpoint-pre-write.sh | Backup run.json before write (two-phase checkpoint) |
-| 4 | PostToolUse | Write\|Edit | protect-geas-state.sh | Scope guard, timestamp injection, spec freeze warning |
-| 5 | PostToolUse | Write\|Edit | checkpoint-post-write.sh | Cleanup pending checkpoint after write |
-| 6 | PostToolUse | Write\|Edit | packet-stale-check.sh | Warn on stale context packets |
-| 7 | PostToolUse | Bash | integration-lane-check.sh | Warn on merge without integration lock |
-| 8 | Stop | (all) | calculate-cost.sh | Token usage summary |
-| 9 | PostCompact | (all) | restore-context.sh | Restore state after context compaction |
+| 3 | PreToolUse | Write\|Edit | geas-write-block.js | Block direct Write/Edit to .geas/ paths |
+| 4 | PreToolUse | Write | checkpoint-pre-write.sh | Backup run.json before write (two-phase checkpoint) |
+| 5 | PostToolUse | Write\|Edit | protect-geas-state.sh | Scope guard, timestamp injection, spec freeze warning |
+| 6 | PostToolUse | Write\|Edit | checkpoint-post-write.sh | Cleanup pending checkpoint after write |
+| 7 | PostToolUse | Write\|Edit | packet-stale-check.sh | Warn on stale context packets |
+| 8 | PostToolUse | Bash | integration-lane-check.sh | Warn on merge without integration lock |
+| 9 | Stop | (all) | calculate-cost.sh | Token usage summary |
+| 10 | PostCompact | (all) | restore-context.sh | Restore state after context compaction |
 
 ---
 
@@ -42,6 +43,11 @@ Session begins
 │   ├─► SubagentStart  → inject-context.sh
 │   │     Inject rules.md + policy overrides + agent memory into sub-agent context
 │   │
+│   │   [Before each Write or Edit tool call]
+│   │   │
+│   │   ├─► PreToolUse (Write|Edit) → geas-write-block.js
+│   │   │     Block direct writes to .geas/ paths (CLI-only enforcement)
+│   │   │
 │   │   [Before each Write tool call to run.json]
 │   │   │
 │   │   ├─► PreToolUse (Write) → checkpoint-pre-write.sh
@@ -129,7 +135,27 @@ Fires every time a sub-agent is spawned. Injects project-wide rules and per-agen
 
 ---
 
-### Hook 3 — checkpoint-pre-write.sh
+### Hook 3 — geas-write-block.js
+
+| Field | Value |
+|---|---|
+| Event | `PreToolUse` |
+| Matcher | `Write\|Edit` |
+| Script | `plugin/hooks/scripts/geas-write-block.js` |
+| Blocking | Yes (exits 2 to block `.geas/` writes) |
+| Timeout | 10 s |
+
+Fires before every `Write` or `Edit` tool call. Blocks direct file modifications to `.geas/` paths, enforcing the CLI-only manipulation rule.
+
+1. Reads the hook input JSON and extracts `file_path`.
+2. Checks if the target path contains `.geas/`. If not, exits 0 (allow).
+3. If the target is inside `.geas/`, outputs `{"decision":"block","reason":"..."}` and exits 2 (block).
+
+All `.geas/` file modifications must go through the `geas` CLI, which auto-manages timestamps and enforces schema validation.
+
+---
+
+### Hook 4 — checkpoint-pre-write.sh
 
 | Field | Value |
 |---|---|
@@ -144,13 +170,13 @@ Fires before every `Write` tool call. Implements the first half of a two-phase c
 1. Checks if the write target is `.geas/state/run.json`. All other writes are ignored.
 2. Copies `run.json` to `_checkpoint_pending` as a backup.
 
-Works in tandem with `checkpoint-post-write.sh` (Hook 5).
+Works in tandem with `checkpoint-post-write.sh` (Hook 6).
 
 **Conditions:** Only acts on writes to `.geas/state/run.json`. Skips if `run.json` does not exist yet.
 
 ---
 
-### Hook 4 — protect-geas-state.sh
+### Hook 5 — protect-geas-state.sh
 
 | Field | Value |
 |---|---|
@@ -183,7 +209,7 @@ If the written file matches `*/.geas/missions/*/spec.json`, prints:
 
 ---
 
-### Hook 5 — checkpoint-post-write.sh
+### Hook 6 — checkpoint-post-write.sh
 
 | Field | Value |
 |---|---|
@@ -198,11 +224,11 @@ Fires after every `Write` or `Edit`. Implements the second half of the two-phase
 1. Checks if the write target is `.geas/state/run.json`. All other writes are ignored.
 2. Removes `.geas/state/_checkpoint_pending` if it exists, confirming the write completed successfully.
 
-Works in tandem with `checkpoint-pre-write.sh` (Hook 3).
+Works in tandem with `checkpoint-pre-write.sh` (Hook 4).
 
 ---
 
-### Hook 6 — packet-stale-check.sh
+### Hook 7 — packet-stale-check.sh
 
 | Field | Value |
 |---|---|
@@ -225,7 +251,7 @@ Fires after every `Write` or `Edit` to `run.json`.
 
 ---
 
-### Hook 7 — integration-lane-check.sh
+### Hook 8 — integration-lane-check.sh
 
 | Field | Value |
 |---|---|
@@ -246,7 +272,7 @@ Fires after every `Bash` tool call. Enforces the single-flight integration lane 
 
 ---
 
-### Hook 8 — calculate-cost.sh
+### Hook 9 — calculate-cost.sh
 
 | Field | Value |
 |---|---|
@@ -271,7 +297,7 @@ Fires at session end. Parses sub-agent session JSONL files from `~/.claude/proje
 
 ---
 
-### Hook 9 — restore-context.sh
+### Hook 10 — restore-context.sh
 
 | Field | Value |
 |---|---|

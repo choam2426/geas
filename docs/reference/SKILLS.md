@@ -1,6 +1,6 @@
 # Skills Reference
 
-Geas has **12 core skills** — domain-agnostic, tool-agnostic contract engine skills that implement the governed execution pipeline.
+Geas has **13 skills** (12 core + 1 utility) — domain-agnostic, tool-agnostic skills that implement the governed execution pipeline.
 
 Skills are invoked via `/geas:{name}`. Most skills are invoked by the orchestrator as part of the execution pipeline; a few are user-invocable (marked below). For full behavior details, read each skill's `SKILL.md`.
 
@@ -97,6 +97,20 @@ Debt/gap dashboard and health signal calculation. Produces `health-check.json` a
 
 ---
 
+## Utility Skills
+
+| Skill | Description | Key Responsibility |
+|-------|-------------|-------------------|
+| `help` | Usage guide and command reference | Explains geas concepts, commands, and workflows |
+
+### help
+
+Explains geas usage, available commands, workflows, and the multi-agent process. Produces conversational output only — no files are written. Context-aware when `.geas/state/run.json` exists.
+
+**User-invocable:** Yes (`/geas:help`)
+
+---
+
 ## Skill Dependencies
 
 The execution pipeline invokes skills in a defined order:
@@ -124,7 +138,7 @@ mission (orchestrator)
 
 ## Absorption Reference
 
-Skills were consolidated from 27 to 12. The following table documents what was merged and what was deleted, for migration reference.
+Core skills were consolidated from 27 to 12. The following table documents what was merged and what was deleted, for migration reference.
 
 | Former Skill | Disposition | Notes |
 |-------------|-------------|-------|
