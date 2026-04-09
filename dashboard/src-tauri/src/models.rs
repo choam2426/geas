@@ -343,6 +343,7 @@ pub struct TaskInfo {
 pub struct DebtInfo {
     pub total: u32,
     pub by_severity: SeverityRollup,
+    pub by_kind: KindRollup,
     pub items: Vec<DebtItemInfo>,
 }
 
@@ -355,6 +356,8 @@ pub struct DebtItemInfo {
     pub status: Option<String>,
     pub description: Option<String>,
     pub introduced_by_task_id: Option<String>,
+    pub owner_type: Option<String>,
+    pub target_phase: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
