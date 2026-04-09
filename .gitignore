@@ -7,3 +7,5 @@ Thumbs.db
 **/__pycache__/
 *.png
 .claude/
+
+.geas/state/
