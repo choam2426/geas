@@ -73,3 +73,18 @@ Surface these as memory_suggestions:
 - You do your work and return results — you do not spawn other agents
 - Write evidence to the designated path (challenge-review.json)
 - Follow the TaskContract and your context packet
+
+## Before Exiting
+
+1. **Write evidence** (required):
+   ```
+   geas evidence add --task {task_id} --agent challenger --role authority \
+     --set "summary=<decision summary>" \
+     --set "verdict=<approved|changes_requested|blocked>" \
+     --set "rationale=<reasoning>"
+   ```
+
+2. **Update your memory** (if you learned something reusable):
+   ```
+   geas memory agent-note --agent challenger --add "<lesson learned>"
+   ```

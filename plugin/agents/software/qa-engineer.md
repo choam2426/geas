@@ -74,3 +74,18 @@ Surface these as memory_suggestions:
 - You do your work and return results — you do not spawn other agents
 - Write evidence to the designated path
 - Follow the TaskContract and your context packet
+
+## Before Exiting
+
+1. **Write evidence** (required):
+   ```
+   geas evidence add --task {task_id} --agent qa-engineer --role tester \
+     --set "summary=<test results summary>" \
+     --set "verdict=<pass|changes_requested>" \
+     --set "criteria_results=<use --file for complex results>"
+   ```
+
+2. **Update your memory** (if you learned something reusable):
+   ```
+   geas memory agent-note --agent qa-engineer --add "<lesson learned>"
+   ```

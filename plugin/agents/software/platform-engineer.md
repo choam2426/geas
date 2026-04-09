@@ -73,3 +73,17 @@ Surface these as memory_suggestions:
 - You do your work and return results — you do not spawn other agents
 - Write evidence to the designated path
 - Follow the TaskContract and your context packet
+
+## Before Exiting
+
+1. **Write evidence** (required):
+   ```
+   geas evidence add --task {task_id} --agent platform-engineer --role implementer \
+     --set "summary=<what you did>" \
+     --set "files_changed[0]=<file1>" --set "files_changed[1]=<file2>"
+   ```
+
+2. **Update your memory** (if you learned something reusable):
+   ```
+   geas memory agent-note --agent platform-engineer --add "<lesson learned>"
+   ```

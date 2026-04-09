@@ -74,3 +74,18 @@ Surface these as memory_suggestions:
 - You do your work and return results — you do not spawn other agents
 - Write evidence to the designated path
 - Follow the TaskContract and your context packet
+
+## Before Exiting
+
+1. **Write evidence** (required):
+   ```
+   geas evidence add --task {task_id} --agent security-engineer --role reviewer \
+     --set "summary=<review summary>" \
+     --set "verdict=<approved|changes_requested|blocked>" \
+     --set "concerns[0]=<concern if any>"
+   ```
+
+2. **Update your memory** (if you learned something reusable):
+   ```
+   geas memory agent-note --agent security-engineer --add "<lesson learned>"
+   ```

@@ -76,3 +76,17 @@ Surface these as memory_suggestions:
 - Write evidence to the designated path
 - Follow the TaskContract and your context packet
 - Use an isolated workspace for implementation
+
+## Before Exiting
+
+1. **Write evidence** (required):
+   ```
+   geas evidence add --task {task_id} --agent software-engineer --role implementer \
+     --set "summary=<what you did>" \
+     --set "files_changed[0]=<file1>" --set "files_changed[1]=<file2>"
+   ```
+
+2. **Update your memory** (if you learned something reusable):
+   ```
+   geas memory agent-note --agent software-engineer --add "<lesson learned>"
+   ```

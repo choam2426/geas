@@ -72,3 +72,18 @@ Surface these as memory_suggestions:
 - Write evidence to the designated path
 - Follow the TaskContract and your context packet
 - Base your verdict on the closure packet, not intuition
+
+## Before Exiting
+
+1. **Write evidence** (required):
+   ```
+   geas evidence add --task {task_id} --agent product-authority --role authority \
+     --set "summary=<decision summary>" \
+     --set "verdict=<approved|changes_requested|blocked>" \
+     --set "rationale=<reasoning>"
+   ```
+
+2. **Update your memory** (if you learned something reusable):
+   ```
+   geas memory agent-note --agent product-authority --add "<lesson learned>"
+   ```
