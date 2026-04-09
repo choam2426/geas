@@ -247,12 +247,12 @@ A mission MUST enter `evolving` before closure for any non-trivial change. A pro
 
 The Phase Semantics section above lists all artifacts each phase produces. This section defines which of those artifacts **must exist before transitioning** to the next phase. Attempting a transition without these is a protocol violation.
 
-| transition | must exist | what it confirms |
-|---|---|---|
-| `specifying` → `building` | phase review | mission frozen, tasks ready, design brief approved (when required) |
-| `building` → `polishing` | phase review, gap assessment | all MVP tasks passed, scope vs delivery status |
-| `polishing` → `evolving` | phase review, gap assessment, debt register | specialist reviews complete, debt triaged |
-| `evolving` → close | phase review, gap assessment, retrospective, debt register, mission summary | lessons extracted, debt finalized, mission documented |
+| Phase exit | Required artifacts |
+|---|---|
+| `specifying` → `building` | spec.json, design-brief.json (approved), ≥1 task contract |
+| `building` → `polishing` | all tasks passed/cancelled, gap-assessment-building.json |
+| `polishing` → `evolving` | gap-assessment-polishing.json, debt-register.json, no blocked/escalated tasks |
+| `evolving` → close | gap-assessment-evolving.json, mission-summary.md |
 
 ### Additional recommended artifacts
 
