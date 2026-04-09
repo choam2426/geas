@@ -16,10 +16,14 @@ if (!filePath.replace(/\\\\/g,'/').endsWith('.geas/state/run.json')) process.exi
 const d = h.readJson(filePath);
 if (!d || !d.current_task_id || !d.recovery_class) process.exit(0);
 
-const packetsDir = path.join(h.geasDir(cwd), 'packets', d.current_task_id);
+const mid = d.mission_id || '';
+const geas = h.geasDir(cwd);
+const packetsDir = mid
+  ? path.join(geas, 'missions', mid, 'tasks', d.current_task_id, 'packets')
+  : path.join(geas, 'tasks', d.current_task_id, 'packets');
 try {
   const files = fs.readdirSync(packetsDir).filter(f => f.endsWith('.md'));
   if (files.length)
-    h.warn('Recovery detected (' + d.recovery_class + '). Context packets in packets/' + d.current_task_id + '/ may be stale. Consider regenerating.');
+    h.warn('Recovery detected (' + d.recovery_class + '). Context packets in tasks/' + d.current_task_id + '/packets/ may be stale. Consider regenerating.');
 } catch {}
 " <<< "$(cat)"

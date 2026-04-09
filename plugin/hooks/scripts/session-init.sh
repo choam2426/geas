@@ -38,26 +38,19 @@ if (d) {
 // Create rules.md if missing
 const rulesPath = path.join(geas, 'rules.md');
 if (!h.exists(rulesPath)) {
-  const template = '# Agent Rules\n\n## Evidence\n- Write results to .geas/missions/{mission_id}/evidence/{task-id}/{your-name}.json as JSON (read mission_id from .geas/state/run.json)\n- Required fields: agent, task_id, summary, files_changed, created_at\n- created_at is auto-injected by the PostToolUse hook. No manual timestamp needed.\n\n## Code\n- Respect scope.paths from the TaskContract — only modify files within the declared scope\n- Do not modify files outside the task scope\n';
+  const template = '# Agent Rules\n\n## Evidence\n- Write evidence via CLI: geas evidence add --task {task_id} --agent {your-name} --role {role} --set summary=... --set files_changed=...\n- Evidence is stored at .geas/missions/{mission_id}/tasks/{task-id}/evidence/{your-name}.json\n- created_at is auto-injected by the PostToolUse hook. No manual timestamp needed.\n\n## Code\n- Respect scope.paths from the TaskContract — only modify files within the declared scope\n';
   fs.writeFileSync(rulesPath, template, 'utf8');
   h.info('Created .geas/rules.md with initial template.');
 }
 
-// Memory review cadence check
-const mi = h.readJson(path.join(geas, 'state', 'memory-index.json'));
-if (mi && mi.entries) {
-  const now = new Date();
-  const reviewable = ['provisional', 'stable', 'canonical'];
-  const expired = mi.entries.filter(e =>
-    reviewable.includes(e.state) && e.review_after && new Date(e.review_after) < now
-  );
-  if (expired.length) {
-    h.info(expired.length + ' memory entries past review date:');
-    expired.slice(0, 10).forEach(e =>
-      process.stderr.write('  - ' + e.memory_id + ' (' + e.state + ') due: ' + e.review_after + '\\n')
-    );
-    if (expired.length > 10) process.stderr.write('  ... and ' + (expired.length - 10) + ' more\\n');
-    h.info('Run /geas:memorizing for batch review.');
-  }
+// Check agent memory files exist
+const agentsDir = path.join(geas, 'memory', 'agents');
+if (h.exists(agentsDir)) {
+  try {
+    const files = fs.readdirSync(agentsDir).filter(f => f.endsWith('.md'));
+    if (files.length) {
+      h.info('Agent memory: ' + files.length + ' agent note(s) found.');
+    }
+  } catch(e) {}
 }
 " <<< "$(cat)"

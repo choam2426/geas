@@ -46,16 +46,6 @@
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/memory-promotion-gate.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/memory-superseded-warning.sh",
-            "timeout": 10
-          },
-          {
-            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/checkpoint-post-write.sh",
             "timeout": 10
           },
@@ -89,18 +79,7 @@
         ]
       }
     ],
-    "SubagentStop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/agent-telemetry.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
+    "SubagentStop": [],
     "PostCompact": [
       {
         "matcher": "",
