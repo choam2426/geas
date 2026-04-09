@@ -6,6 +6,45 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-04-10
+
+CLI restructure, pipeline enforcement, and process reliability improvements.
+
+### Breaking
+- CLI source moved from `plugin/cli/` to `src/cli/` (development only)
+- CLI is now a pre-built single-file bundle at `plugin/bin/geas`
+- `--cwd` flag no longer required for worktree agents (auto-detection via git)
+
+### Changed
+- CLI uses esbuild single-file bundle with embedded JSON schemas (no runtime fs reads)
+- `resolveGeasDir` uses `git rev-parse --git-common-dir` to always find main repo `.geas/`, even in worktrees
+- Setup Phase 0 simplified: no more `npm install && npm run build` — CLI is pre-bundled
+- All worktree Agent() prompts simplified: `geas` replaces `node {project_root}/plugin/cli/index.js --cwd {project_root}`
+- Pipeline `remaining_steps` now includes `integration` step
+- `integrated` state transition moved to worktree merge point (after gate pass)
+- Building→Polishing transition now clears checkpoint and current_task_id
+- Evolving phase: `phase: complete` must be set last (triggers CLI auto-cleanup)
+- Setup: `.geas/` gitignore is now user's choice (not forced)
+
+### Added
+- `plugin/bin/geas` — single-file CLI bundle, auto-registered in PATH by Claude Code
+- `drafted → ready` transition explicitly added to pipeline Start Task
+- Integration step in pipeline: merge + worktree cleanup after gate pass
+- Mission SKILL.md Gotchas section (4 items: TaskCreate confusion, lightweight mode, orchestrate-only, commit≠skip)
+- Lightweight mode clarification in specifying.md
+- CLI `state update --field phase --value complete` auto-clears mission_id, mission, completed_tasks
+- Help skill mandatory display rule
+
+### Fixed
+- Help skill output not displayed to user (just said "displayed")
+- CLI commands failing after `cd plugin/cli` changed session CWD
+- Stale CLI builds causing "unknown command" errors
+
+### Removed
+- `plugin/cli/` directory (replaced by `src/cli/` + `plugin/bin/geas`)
+- Setup Phase 0 CLI build step (no longer needed)
+- Worktree `--cwd` requirement in all skill files
+
 ## [0.6.0] — 2026-04-09
 
 Skill-schema alignment, process UX improvements, naming unification, and skill optimization.

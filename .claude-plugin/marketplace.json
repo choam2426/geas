@@ -6,14 +6,14 @@
     },
     "metadata": {
         "description": "A protocol that brings order to multi-agent team-driven work — governed decisions, traceable artifacts, contract-based verification, and continuous learning.",
-        "version": "0.6.0"
+        "version": "0.7.0"
     },
     "plugins": [
         {
             "name": "geas",
             "source": "./plugin",
             "description": "A protocol that brings order to multi-agent team-driven work — governed decisions, traceable artifacts, contract-based verification, and continuous learning.",
-            "version": "0.6.0",
+            "version": "0.7.0",
             "author": {
                 "name": "choam2426",
                 "email": "choam2426@gmail.com"

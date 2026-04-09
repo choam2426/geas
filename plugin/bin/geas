@@ -14310,7 +14310,7 @@ function registerPacketCommands(program2) {
 
 // src/main.ts
 function getVersion() {
-  return "0.6.0";
+  return "0.7.0";
 }
 function run() {
   const program2 = new Command();
