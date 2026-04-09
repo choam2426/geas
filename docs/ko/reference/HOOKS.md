@@ -164,9 +164,9 @@ sub-agent가 생성될 때마다 실행된다. 프로젝트 규칙과 agent별 m
 
 **1. Scope 경로 경고**
 
-현재 task 파일에서 `scope.paths` 허용 목록을 읽는다. 기록된 파일이 glob 패턴과 일치하지 않으면 경고한다:
+현재 task 파일에서 `scope.surfaces` 허용 목록을 읽는다. 기록된 파일이 glob 패턴과 일치하지 않으면 경고한다:
 ```
-[Geas] WARNING: Write to <rel_path> outside scope.paths in <task_id>
+[Geas] WARNING: Write to <rel_path> outside scope.surfaces in <task_id>
 ```
 `.geas/` 내부 경로는 항상 면제된다.
 
@@ -320,7 +320,7 @@ Claude Code 런타임이 컨텍스트 윈도우를 압축할 때마다 실행된
 | `warn(msg)` | stderr에 `[Geas] WARNING: <msg>`를 출력한다 |
 | `info(msg)` | stderr에 `[Geas] <msg>`를 출력한다 |
 | `fnmatch(str, pattern)` | `*`와 `?`를 지원하는 glob 매칭 |
-| `matchScope(rel, paths)` | 상대 경로가 scope.paths 항목과 일치하는지 확인한다 |
+| `matchScope(rel, paths)` | 상대 경로가 scope.surfaces 항목과 일치하는지 확인한다 |
 | `outputContext(ctx)` | stdout에 `{"additionalContext": "..."}`를 출력한다 |
 | `exists(path)` | 파일 존재 여부를 확인한다 |
 | `relPath(filePath, cwd)` | 슬래시로 정규화된 상대 경로를 반환한다 |

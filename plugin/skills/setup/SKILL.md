@@ -113,7 +113,7 @@ Write `.geas/rules.md` (use Write tool — BOOTSTRAP EXCEPTION: rules.md is crea
 - created_at is auto-injected by the CLI. No manual timestamp needed.
 
 ## Code
-- Respect scope.paths from the TaskContract — only modify files within the declared scope
+- Respect scope.surfaces from the TaskContract — only modify files within the declared scope
 ```
 
 ### Phase B: Report Results

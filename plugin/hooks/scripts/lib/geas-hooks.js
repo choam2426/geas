@@ -62,7 +62,7 @@ function fnmatch(str, pattern) {
   return new RegExp(re).test(str);
 }
 
-/** Check if a relative path matches any scope.paths entry (fnmatch + directory prefix) */
+/** Check if a relative path matches any scope.surfaces entry (fnmatch + directory prefix) */
 function matchScope(rel, scopePaths) {
   if (!scopePaths || !scopePaths.length) return true;
   return scopePaths.some(p =>

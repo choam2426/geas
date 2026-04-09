@@ -73,7 +73,7 @@ Memory 생명주기 관리. `rules.md` 갱신과 agent별 노트(`memory/agents/
 
 ### scheduling
 
-병렬 task 관리 프로토콜. 배치 구성 규칙, 파이프라인 인터리빙, 체크포인트 관리를 정의한다. 안전 병렬 조건: `scope.paths` 경로 겹침 없음, 공유 인터페이스 lock 없음, 통합 의존성 없음. Task 수준 병렬화만 지원한다.
+병렬 task 관리 프로토콜. 배치 구성 규칙, 파이프라인 인터리빙, 체크포인트 관리를 정의한다. 안전 병렬 조건: `scope.surfaces` 경로 겹침 없음, 공유 인터페이스 lock 없음, 통합 의존성 없음. Task 수준 병렬화만 지원한다.
 
 **호출:** Building phase에서 여러 task가 ready 상태일 때 `mission`이 호출한다.
 

@@ -61,7 +61,7 @@ Before transitioning to `"implementing"`, check for staleness:
 3. If `base_snapshot == tip`: no staleness, proceed
 4. If `base_snapshot != tip`: run revalidation:
    a. Compute changed files: `git diff {base_snapshot}..{tip} --name-only`
-   b. Compare against the task's `scope.paths`
+   b. Compare against the task's `scope.surfaces`
    c. **No overlap** -> classification = `clean_sync`. Update `base_snapshot` to current tip in the TaskContract. Proceed.
    d. **Overlap, auto-resolvable** -> classification = `review_sync`. Update `base_snapshot`, proceed. Flag for specialist re-review after implementation.
    e. **Overlap, not auto-resolvable** -> classification = `replan_required`. Do NOT proceed. Rewind task to `"ready"`. Update implementation contract.
@@ -177,7 +177,7 @@ Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{worker}.json` exis
 Before merging the worktree:
 
 1. Re-check: compare `base_snapshot` with current `tip(integration_branch)` using `git diff {base_snapshot}..HEAD --name-only`
-2. Compare against `scope.paths`
+2. Compare against `scope.surfaces`
 3. Classify:
    - `clean_sync` -> fast-forward merge or trivial rebase, proceed
    - `review_sync` -> merge, then specialist re-review required for changed areas

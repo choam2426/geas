@@ -164,9 +164,9 @@ Fires after every `Write` or `Edit` tool call. Three responsibilities:
 
 **1. Scope path warning**
 
-Reads the current task's `scope.paths` allowlist from the task file. If the written file does not match any glob pattern, prints:
+Reads the current task's `scope.surfaces` allowlist from the task file. If the written file does not match any glob pattern, prints:
 ```
-[Geas] WARNING: Write to <rel_path> outside scope.paths in <task_id>
+[Geas] WARNING: Write to <rel_path> outside scope.surfaces in <task_id>
 ```
 Paths inside `.geas/` itself are always exempt.
 
@@ -320,7 +320,7 @@ All hook scripts use this shared Node.js module for common operations. Utility f
 | `warn(msg)` | Print `[Geas] WARNING: <msg>` to stderr |
 | `info(msg)` | Print `[Geas] <msg>` to stderr |
 | `fnmatch(str, pattern)` | Glob matching with `*` and `?` |
-| `matchScope(rel, paths)` | Check if a relative path matches any scope.paths entry |
+| `matchScope(rel, paths)` | Check if a relative path matches any scope.surfaces entry |
 | `outputContext(ctx)` | Output `{"additionalContext": "..."}` to stdout |
 | `exists(path)` | Check if a file exists |
 | `relPath(filePath, cwd)` | Get relative path normalized to forward slashes |

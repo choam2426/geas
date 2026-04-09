@@ -177,7 +177,7 @@ Lock은 동시 task 간의 안전하지 않은 겹침을 방지하는 조율 장
 
 Critical task가 "독립이 증명되었다"고 판단하려면 다음을 모두 충족해야 한다:
 
-- `scope.paths`가 겹치지 않는다
+- `scope.surfaces`가 겹치지 않는다
 - lock 충돌이 없다
 - 한 task의 산출물이 다른 task의 입력이 아니다
 - Design Authority가 독립성을 확인했다

@@ -257,7 +257,7 @@ After task-compiler produces each TaskContract, verify these fields exist:
 - `gate_profile` (implementation_change | artifact_only | closure_ready)
 
 If ANY field is missing:
-1. Read the task's goal, acceptance_criteria, and scope.paths
+1. Read the task's goal, acceptance_criteria, and scope.surfaces
 2. Apply task-compiler/SKILL.md classification criteria:
    - Risk Signals for risk_level
    - Decision Tree for vote_round_policy

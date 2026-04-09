@@ -107,10 +107,10 @@ For each criterion in `acceptance_criteria`:
 
 ### Part B: Scope Violation Check
 
-Compare files changed against the task's `scope.paths`:
-1. Read `scope.paths` from the TaskContract (or implementation contract)
+Compare files changed against the task's `scope.surfaces`:
+1. Read `scope.surfaces` from the TaskContract (or implementation contract)
 2. List all files modified by the worker
-3. Flag any file outside `scope.paths` as a potential scope violation
+3. Flag any file outside `scope.surfaces` as a potential scope violation
 4. Minor scope violations (e.g., shared config files): record as warning
 5. Major scope violations (touching unrelated modules): Tier 2 fails
 

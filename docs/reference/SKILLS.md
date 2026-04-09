@@ -73,7 +73,7 @@ Memory lifecycle management. Manages `rules.md` updates and per-agent notes (`me
 
 ### scheduling
 
-Protocol for parallel task management. Defines batch construction rules, pipeline interleaving, and checkpoint management. Safe parallel conditions: no path overlap in `scope.paths`, no shared interface locks, no integration dependencies. Task-level parallelism only.
+Protocol for parallel task management. Defines batch construction rules, pipeline interleaving, and checkpoint management. Safe parallel conditions: no path overlap in `scope.surfaces`, no shared interface locks, no integration dependencies. Task-level parallelism only.
 
 **Invocation:** Called by `mission` during Building phase when multiple tasks are ready.
 
