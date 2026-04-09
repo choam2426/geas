@@ -82,7 +82,7 @@ Surface these as memory_suggestions:
 
 2. **Write evidence** (required — include self-review findings):
    ```
-   geas evidence add --task {task_id} --agent design-authority --role authority \
+   geas evidence add --task {task_id} --agent design-authority --role reviewer \
      --set "summary=<decision summary, informed by self-review>" \
      --set "verdict=<approved|changes_requested|blocked>" \
      --set "rationale=<reasoning>"

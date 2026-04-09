@@ -42,6 +42,18 @@ A review with no evidence reference MAY still exist, but it SHOULD be treated as
 | Design Authority | structural decisions, interfaces, dependencies, maintainability | design review summary, structural fit assessment | incompatible boundary, brittle coupling, unsafe complexity |
 | Challenger | entire closure story from an adversarial perspective | challenge review with at least one substantive concern | hidden assumption, unexamined risk, premature closure logic |
 
+### Slot vs Evidence Role
+
+A **slot** is the organizational function an agent fills (e.g., Design Authority, Challenger). The **evidence role** determines the required fields when writing evidence via CLI.
+
+| Slot | Evidence Role | Rationale |
+|------|--------------|-----------|
+| Design Authority | `reviewer` | Reviews structural quality; evidence requires verdict + concerns |
+| Challenger | `authority` | Issues blocking/non-blocking decisions; evidence requires verdict + rationale |
+| Product Authority | `authority` | Issues final verdict; evidence requires verdict + rationale |
+
+Challenger also writes to `record.json:challenge_review` (dual-write) because the `verified→passed` transition guard checks this section directly.
+
 ### Specialist slots
 
 | slot | MUST inspect | SHOULD produce | common blocking conditions |
