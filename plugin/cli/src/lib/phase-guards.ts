@@ -12,6 +12,16 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { readJsonFile } from './fs-atomic';
 
+/**
+ * Valid phase adjacency. Only these forward transitions are allowed.
+ */
+const VALID_PHASE_TRANSITIONS: ReadonlySet<string> = new Set([
+  'specifying -> building',
+  'building -> polishing',
+  'polishing -> evolving',
+  'evolving -> complete',
+]);
+
 export interface PhaseGuardPass {
   valid: true;
 }
@@ -33,6 +43,15 @@ export function validatePhaseTransition(
   nextPhase: string
 ): PhaseGuardResult {
   const key = `${currentPhase} -> ${nextPhase}`;
+
+  // Reject invalid phase adjacency
+  if (!VALID_PHASE_TRANSITIONS.has(key)) {
+    return {
+      valid: false,
+      unmet_criteria: [`Invalid phase transition: "${currentPhase}" → "${nextPhase}" is not a valid phase progression`],
+    };
+  }
+
   const guard = transitionGuards[key];
 
   if (!guard) {

@@ -314,6 +314,16 @@ function guardVerifiedToPassed(
     if (!Array.isArray(reviews) || reviews.length === 0) {
       missing.push('record.json:closure.reviews must have at least 1 review');
     }
+
+    // Check no review is in blocked state
+    if (Array.isArray(reviews)) {
+      for (const review of reviews) {
+        const reviewObj = review as Record<string, unknown>;
+        if (reviewObj.status === 'blocked') {
+          missing.push(`record.json:closure.reviews contains a review with status "blocked" (from ${reviewObj.reviewer_type || 'unknown'})`);
+        }
+      }
+    }
   }
 
   // retrospective section
@@ -326,6 +336,33 @@ function guardVerifiedToPassed(
     geasDir, 'missions', missionId, 'tasks', taskId, 'contract.json',
   );
   const contract = readJsonFile<Record<string, unknown>>(contractPath);
+
+  // Check required reviewer coverage from contract
+  const routing = contract?.routing as Record<string, unknown> | undefined;
+  const requiredReviewers = routing?.required_reviewer_types as string[] | undefined;
+  if (Array.isArray(requiredReviewers) && requiredReviewers.length > 0) {
+    for (const reviewerType of requiredReviewers) {
+      // Check if any evidence file has this agent type as a substring in the filename
+      // or has a matching role (reviewer/tester/authority)
+      const evidenceDir = path.resolve(
+        geasDir, 'missions', missionId, 'tasks', taskId, 'evidence',
+      );
+      if (fs.existsSync(evidenceDir)) {
+        const files = fs.readdirSync(evidenceDir).filter(f => f.endsWith('.json'));
+        const hasEvidence = files.some(f => {
+          const name = f.replace('.json', '');
+          // Match by agent type name (e.g., "design-authority" in "design-authority.json" or "design-authority-review.json")
+          return name === reviewerType || name.replace(/_/g, '-') === reviewerType.replace(/_/g, '-') || name.startsWith(reviewerType.replace(/_/g, '-'));
+        });
+        if (!hasEvidence) {
+          missing.push(`evidence/ missing for required reviewer type "${reviewerType}"`);
+        }
+      } else {
+        missing.push(`evidence/ directory does not exist (required reviewer "${reviewerType}" not covered)`);
+      }
+    }
+  }
+
   const riskLevel = contract?.risk_level as string | undefined;
   const requiresChallenge = ['high', 'critical'].includes(riskLevel ?? '');
 
