@@ -6,6 +6,19 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.8.1] — 2026-04-10
+
+Test session analysis fixes — schema friction, CLI usability, skill guidance.
+
+### Fixed
+- `format: "date-time"` removed from `_defs.schema.json` — suppresses Ajv `unknown format ignored` warning on every CLI validation
+- `geas task record add` now shallow-merges into existing sections instead of replacing — partial updates (e.g., changing just `status`) no longer require resending all fields
+- Redundant user confirmation at specifying→building transition removed
+- Mission-spec field reference added to intake skill (`scope` is nested object, not flat `scope_in`/`scope_out`)
+- Gap-assessment must be written before phase review — explicit ordering note in building.md
+- `rules-update` `producer_type`: conditional on status — omit when `status: "none"`, required (domain authority) otherwise
+- `producer_type` semantics clarified in protocol 09 (en + ko): the agent whose judgment produced the content
+
 ## [0.8.0] — 2026-04-10
 
 Schema alignment, Windows compatibility, flexible agent selection, and CLI improvements.
