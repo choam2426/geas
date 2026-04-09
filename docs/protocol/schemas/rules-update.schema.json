@@ -28,6 +28,7 @@
     "producer_type": {
       "type": "string",
       "enum": [
+        "orchestration-authority",
         "design-authority",
         "product-authority",
         "qa-engineer",

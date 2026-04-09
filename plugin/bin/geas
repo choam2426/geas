@@ -11322,6 +11322,7 @@ var rules_update_schema_default = {
     producer_type: {
       type: "string",
       enum: [
+        "orchestration-authority",
         "design-authority",
         "product-authority",
         "qa-engineer",

@@ -58,7 +58,7 @@ If no P0 items remain: skip to product-authority Final Briefing.
      ```bash
      Bash("geas state checkpoint clear")
      ```
-5. Assemble the rules-update JSON and write it via CLI: `Bash("geas evolution rules-update --mission {mission_id} --data '<rules_update_json>'")`  Required fields: `status` (approved/none), `reason`, `evidence_refs`, `applies_to`. **`producer_type`**: the authority responsible for the rule decision — NOT orchestration-authority. For auto-approved rules, use the most relevant domain authority (e.g., design-authority for architectural rules). For authority-reviewed rules, use the reviewing authority. For `status: "none"`, use product-authority (as the authority who confirmed no rules needed).
+5. Assemble the rules-update JSON and write it via CLI: `Bash("geas evolution rules-update --mission {mission_id} --data '<rules_update_json>'")`  Required fields: `status` (approved/none), `reason`, `evidence_refs`, `applies_to`. **`producer_type`**: `orchestration-authority` when no rule changes (`status: "none"`) or auto-approved. The reviewing domain authority when a domain authority was spawned to review.
    **Note:** When `status` is `"approved"`, `affected_rule_ids[]` is required (at least 1 item).
 6. If `status: "approved"`: apply changes to `.geas/rules.md`
 7. Log: `Bash("geas event log --type rules_update --data '{\"status\":\"approved|none\"}'")` 
