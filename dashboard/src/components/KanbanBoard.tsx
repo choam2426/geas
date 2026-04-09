@@ -85,7 +85,7 @@ export default function KanbanBoard({
       try {
         if (!missionId) {
           setTasks([]);
-          setDebt({ total: 0, by_severity: { low: 0, normal: 0, high: 0, critical: 0 }, items: [] });
+          setDebt({ total: 0, by_severity: { low: 0, normal: 0, high: 0, critical: 0 }, by_kind: { output_quality: 0, verification_gap: 0, structural: 0, risk: 0, process: 0, documentation: 0, operations: 0 }, items: [] });
           setLoading(false);
           return;
         }
@@ -97,6 +97,7 @@ export default function KanbanBoard({
             (): DebtInfo => ({
               total: 0,
               by_severity: { low: 0, normal: 0, high: 0, critical: 0 },
+              by_kind: { output_quality: 0, verification_gap: 0, structural: 0, risk: 0, process: 0, documentation: 0, operations: 0 },
               items: [],
             })
           ),
@@ -126,7 +127,7 @@ export default function KanbanBoard({
           const [taskResult, debtResult] = await Promise.all([
             invoke<TaskInfo[]>("get_project_tasks", { path: projectPath, mission_id: missionId }),
             invoke<DebtInfo>("get_project_debt", { path: projectPath, mission_id: missionId }).catch(
-              (): DebtInfo => ({ total: 0, by_severity: { low: 0, normal: 0, high: 0, critical: 0 }, items: [] })
+              (): DebtInfo => ({ total: 0, by_severity: { low: 0, normal: 0, high: 0, critical: 0 }, by_kind: { output_quality: 0, verification_gap: 0, structural: 0, risk: 0, process: 0, documentation: 0, operations: 0 }, items: [] })
             ),
           ]);
           setTasks(taskResult);
@@ -291,8 +292,13 @@ export default function KanbanBoard({
       )}
 
       {/* Task detail modal */}
-      {selectedTask && (
-        <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />
+      {selectedTask && missionId && (
+        <TaskDetailModal
+          task={selectedTask}
+          projectPath={projectPath}
+          missionId={missionId}
+          onClose={() => setSelectedTask(null)}
+        />
       )}
     </div>
   );
