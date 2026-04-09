@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::commands::{name_from_path, read_json_file};
-use crate::models::{Checkpoint, DebtItem, DebtRegister, MissionSpec, Rubric, RunState, SeverityRollup, TaskContract, TaskScope};
+use crate::models::{Checkpoint, DebtItem, DebtRegister, KindRollup, MissionSpec, Rubric, RunState, SeverityRollup, TaskContract, TaskScope};
 
 #[test]
 fn name_from_unix_path() {
@@ -143,13 +143,48 @@ fn debt_register_empty_items() {
 }
 
 #[test]
-fn severity_rollup_medium_alias() {
-    let json = r#"{ "low": 1, "medium": 3, "high": 2, "critical": 0 }"#;
+fn severity_rollup_canonical_only() {
+    let json = r#"{ "low": 1, "normal": 3, "high": 2, "critical": 0 }"#;
     let sr: SeverityRollup = serde_json::from_str(json).unwrap();
     assert_eq!(sr.low, 1);
     assert_eq!(sr.normal, 3);
     assert_eq!(sr.high, 2);
     assert_eq!(sr.critical, 0);
+}
+
+#[test]
+fn debt_register_with_kind_rollup() {
+    let json = r#"{
+        "version": "1.0",
+        "artifact_type": "debt_register",
+        "artifact_id": "dr-001",
+        "producer_type": "design_authority",
+        "scope": "mission",
+        "created_at": "2026-04-06T10:00:00Z",
+        "items": [{
+            "debt_id": "debt-001",
+            "severity": "high",
+            "kind": "risk",
+            "title": "Missing error handling",
+            "description": "Desc",
+            "status": "open",
+            "owner_type": "software-engineer",
+            "target_phase": "polishing"
+        }],
+        "rollup_by_severity": { "low": 0, "normal": 1, "high": 1, "critical": 0 },
+        "rollup_by_kind": {
+            "output_quality": 0, "verification_gap": 0, "structural": 0,
+            "risk": 1, "process": 0, "documentation": 0, "operations": 0
+        }
+    }"#;
+
+    let dr: DebtRegister = serde_json::from_str(json).unwrap();
+    assert_eq!(dr.version.as_deref(), Some("1.0"));
+    assert_eq!(dr.scope.as_deref(), Some("mission"));
+    let kind = dr.rollup_by_kind.unwrap();
+    assert_eq!(kind.risk, 1);
+    assert_eq!(dr.items[0].owner_type.as_deref(), Some("software-engineer"));
+    assert_eq!(dr.items[0].target_phase.as_deref(), Some("polishing"));
 }
 
 #[test]
