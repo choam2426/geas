@@ -77,16 +77,16 @@ Surface these as memory_suggestions:
 ## Before Exiting
 
 1. **Self-review**:
-   - Did I stay within scope.paths from the TaskContract?
-   - Did I address all acceptance criteria?
-   - Are there untested paths or edge cases I should flag?
-   - Did I introduce any unintended side effects?
+   - Did I miss any operational concerns worth flagging?
+   - Is my approval/rejection rationale clear and evidence-based?
+   - Are there deployment risks I noticed but didn't document?
 
 2. **Write evidence** (required — include self-review findings):
    ```
-   geas evidence add --task {task_id} --agent platform-engineer --role implementer \
-     --set "summary=<what you did, informed by self-review>" \
-     --set "files_changed[0]=<file1>" --set "files_changed[1]=<file2>"
+   geas evidence add --task {task_id} --agent platform-engineer --role reviewer \
+     --set "summary=<review summary, informed by self-review>" \
+     --set "verdict=<approved|changes_requested|blocked>" \
+     --set "concerns[0]=<concern if any>"
    ```
 
 3. **Update your memory** (only if self-review found a reusable lesson):

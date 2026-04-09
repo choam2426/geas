@@ -55,14 +55,14 @@ The TaskContract MUST be written to `.geas/missions/{mission_id}/tasks/{task-id}
 
 Before transitioning to `"implementing"`, check for staleness:
 
-1. Read `base_commit` from the TaskContract
+1. Read `base_snapshot` from the TaskContract
 2. Get current integration branch tip: `git rev-parse HEAD`
-3. If `base_commit == tip`: no staleness, proceed
-4. If `base_commit != tip`: run revalidation:
-   a. Compute changed files: `git diff {base_commit}..{tip} --name-only`
+3. If `base_snapshot == tip`: no staleness, proceed
+4. If `base_snapshot != tip`: run revalidation:
+   a. Compute changed files: `git diff {base_snapshot}..{tip} --name-only`
    b. Compare against the task's `scope.paths`
-   c. **No overlap** -> classification = `clean_sync`. Update `base_commit` to current tip in the TaskContract. Proceed.
-   d. **Overlap, auto-resolvable** -> classification = `review_sync`. Update `base_commit`, proceed. Flag for specialist re-review after implementation.
+   c. **No overlap** -> classification = `clean_sync`. Update `base_snapshot` to current tip in the TaskContract. Proceed.
+   d. **Overlap, auto-resolvable** -> classification = `review_sync`. Update `base_snapshot`, proceed. Flag for specialist re-review after implementation.
    e. **Overlap, not auto-resolvable** -> classification = `replan_required`. Do NOT proceed. Rewind task to `"ready"`. Update implementation contract.
    f. **Preconditions invalidated** -> classification = `blocking_conflict`. Set task status to `"blocked"`.
    g. Log event: `Bash("geas event log --type revalidation --task {task-id} --data '{\"classification\":\"...\",\"action_taken\":\"...\"}'")` 
@@ -170,7 +170,7 @@ Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{worker}.json` exis
 
 Before merging the worktree:
 
-1. Re-check: compare `base_commit` with current `tip(integration_branch)` using `git diff {base_commit}..HEAD --name-only`
+1. Re-check: compare `base_snapshot` with current `tip(integration_branch)` using `git diff {base_snapshot}..HEAD --name-only`
 2. Compare against `scope.paths`
 3. Classify:
    - `clean_sync` -> fast-forward merge or trivial rebase, proceed
@@ -226,9 +226,8 @@ Update checkpoint: `Bash("geas state checkpoint set --step testing --agent null"
 
 After BOTH specialist_review and testing complete:
 1. Update TaskContract status: `Bash("geas task transition --id {task-id} --to reviewed")`
-2. Update TaskContract status: `Bash("geas task transition --id {task-id} --to integrated")`
 
-Do NOT update status to `"reviewed"` until both steps finish. The two operations happen sequentially after both agents return.
+Do NOT update status to `"reviewed"` until both steps finish.
 
 ### Evidence Gate
 Run eval_commands from TaskContract. Check acceptance criteria against all evidence at `.geas/missions/{mission_id}/tasks/{task-id}/evidence/`.
@@ -237,8 +236,12 @@ Write gate result to record.json:
 Bash("geas task record add --task {task-id} --section gate_result --data '<gate_result_json>'")
 ```
 The gate_result section must include: `verdict` (pass/fail/block/error), `tier_results`, `rubric_scores`, `blocking_dimensions`. The CLI validates automatically.
-On gate pass: update TaskContract status to `"verified"`.
+
 If fail -> invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** After fix, re-run gate.
+
+On gate pass:
+1. Update TaskContract status: `Bash("geas task transition --id {task-id} --to integrated")` (guard checks gate_result.verdict === "pass")
+2. Update TaskContract status to `"verified"`: `Bash("geas task transition --id {task-id} --to verified")`
 
 ### Closure Packet Assembly [MANDATORY — after gate pass]
 
@@ -263,11 +266,13 @@ The closure section must include: `change_summary` (required), `reviews` (array 
 
 Update checkpoint: `Bash("geas state checkpoint set --step closure_packet --agent orchestrator")`
 
-### Challenger Review [CONDITIONAL — mandatory for normal/high/critical risk]
+### Challenger Review [CONDITIONAL — mandatory for high/critical risk]
 
-**Skip condition:** If `risk_level` is `low`, this step is at orchestration_authority's discretion. If skipped: remove `"challenger"` from `remaining_steps`, update run.json checkpoint, and proceed directly to Final Verdict.
+**Skip condition:** If `risk_level` is `low`, skip this step. Remove `"challenger"` from `remaining_steps`, update run.json checkpoint, and proceed directly to Final Verdict.
 
-**Mandatory condition:** If `risk_level` is `normal`, `high`, or `critical`, this step MUST run.
+**Discretionary:** If `risk_level` is `normal`, this step is at orchestration_authority's discretion.
+
+**Mandatory condition:** If `risk_level` is `high` or `critical`, this step MUST run.
 
 Resolve the challenger agent. Update checkpoint: `Bash("geas state checkpoint set --step challenger --agent challenger")`
 ```

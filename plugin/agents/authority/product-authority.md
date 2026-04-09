@@ -84,7 +84,7 @@ Surface these as memory_suggestions:
    ```
    geas evidence add --task {task_id} --agent product-authority --role authority \
      --set "summary=<decision summary, informed by self-review>" \
-     --set "verdict=<approved|changes_requested|blocked>" \
+     --set "verdict=<pass|iterate|escalate>" \
      --set "rationale=<reasoning>"
    ```
 

@@ -5,7 +5,7 @@
         "email": "choam2426@gmail.com"
     },
     "metadata": {
-        "description": "A protocol that brings order to multi-agent team-driven development — governed decisions, traceable artifacts, contract-based verification, and continuous learning.",
+        "description": "A protocol that brings order to multi-agent team-driven work — governed decisions, traceable artifacts, contract-based verification, and continuous learning.",
         "version": "2.1.0"
     },
     "plugins": [
