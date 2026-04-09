@@ -111,9 +111,8 @@ function coerceValue(raw: string): unknown {
   if (raw === 'true') return true;
   if (raw === 'false') return false;
 
-  // Number (integer or float)
-  if (/^-?\d+$/.test(raw)) return parseInt(raw, 10);
-  if (/^-?\d+\.\d+$/.test(raw)) return parseFloat(raw);
+  // Integer — but NOT zero-padded like "001" or "0100"
+  if (raw === '0' || /^-?[1-9]\d*$/.test(raw)) return parseInt(raw, 10);
 
   // JSON array or object
   if ((raw.startsWith('[') && raw.endsWith(']')) ||
