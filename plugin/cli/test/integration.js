@@ -592,6 +592,8 @@ function defineGuardTests(tmpDir) {
             closure: { change_summary: 'Done', reviews: [{ reviewer: 'tester', outcome: 'approved' }], open_risks: [], debt_items: [] },
             retrospective: { what_went_well: ['Tests pass'], what_broke: [] },
           });
+          // Satisfy required_reviewer_types: ['design_authority'] from contract
+          writeEvidence(taskId, 'design-authority', { role: 'reviewer', summary: 'Approved', verdict: 'pass' });
           return runWithCwd(
             `task transition --mission ${GUARD_MISSION} --id ${taskId} --to passed`,
             tmpDir,

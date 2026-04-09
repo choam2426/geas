@@ -333,8 +333,8 @@ Missing artifacts produce exit code 1 with a `missing_artifacts` array.
 |---|---|
 | specifying → building | `spec.json` exists, `design-brief.json` approved, tasks/ has ≥1 task |
 | building → polishing | All tasks passed or cancelled, `evolution/gap-assessment-building.json` exists |
-| polishing → evolving | `evolution/gap-assessment-polishing.json` AND `evolution/debt-register.json` exist, no blocked/escalated tasks |
-| evolving → complete | `evolution/gap-assessment-evolving.json` AND `mission-summary.md` exist |
+| polishing → evolving | `evolution/gap-assessment-polishing.json` exists, `evolution/debt-register.json` if present has no critical open items, no blocked/escalated tasks |
+| evolving → complete | `evolution/gap-assessment-evolving.json` AND `mission-summary.md` exist, `evolution/debt-register.json` if present has no critical open items |
 
 Unmet criteria produce exit code 1 with an `unmet_criteria` array.
 
