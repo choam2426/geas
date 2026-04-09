@@ -339,7 +339,7 @@ Note: "iterate" is only valid as a Final Verdict outcome. Gate verdicts (evidenc
 
 ### Retrospective [MANDATORY — before Resolve]
 
-**Skip condition:** If the Final Verdict was Cut or Escalate, skip retrospective. Only run when the verdict is `pass`.
+**Skip condition:** If the Final Verdict was Escalate, skip retrospective. Only run when the verdict is `pass`.
 
 Update checkpoint: `Bash("geas state checkpoint set --step retrospective --agent orchestrator")`
 
@@ -382,7 +382,7 @@ Agent memory update is performed regardless of mission mode.
 
 ### Memory Extraction [MANDATORY after Retrospective, Ship only]
 
-**DO NOT SKIP THIS STEP.** Only skip when task was Cut or Escalate (same as retrospective).
+**DO NOT SKIP THIS STEP.** Only skip when task was Escalate (same as retrospective).
 
 Invoke `/geas:memorizing` with the task ID for per-task memory extraction:
 
@@ -404,7 +404,7 @@ Update checkpoint: `Bash("geas state checkpoint set --step memory_extraction --a
 
 #### Lock Release
 
-On task completion (Ship, Cut, or Escalate):
+On task completion (Pass, Cancel, or Escalate):
 ```bash
 Bash("geas lock release --task {task-id}")
 Bash("geas event log --type locks_released --task {task-id}")
@@ -421,4 +421,4 @@ The CLI removes ALL lock entries where `task_id` matches this task and promotes 
   ```
   Log: `Bash("geas event log --type task_resolved --task {task-id} --data '{\"commit\":\"{hash}\"}'")` 
 - **Iterate** (Final Verdict only): does NOT deduct retry_budget (iterate is a product judgment, not a gate failure). Track iterate_count — after 3 cumulative iterates, escalate to orchestration_authority. Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include product_authority's feedback in all subsequent ContextPackets. Resume from the rewind_target specified in the final verdict.
-- **Cut**: status -> `"cancelled"`. Write DecisionRecord.
+- **Cancel**: status -> `"cancelled"`. Transition via `Bash("geas task transition --mission {mission_id} --id {task-id} --to cancelled")`. Write DecisionRecord.

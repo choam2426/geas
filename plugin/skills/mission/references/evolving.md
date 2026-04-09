@@ -224,7 +224,7 @@ Invoke `/geas:reporting` to generate session audit trail.
 2. `.geas/missions/{mission_id}/evolution/debt-register.json` — all open debt triaged (no items with `severity: "high"` or `"critical"` and `status: "open"`)
 3. `.geas/missions/{mission_id}/evolution/rules-update.json` — exists with `status: "approved"` or `"none"` (produced in Rules Update Approval step)
 4. `.geas/missions/{mission_id}/mission-summary.md` — produced in product_authority Final Briefing step
-5. `.geas/missions/{mission_id}/phase-reviews/evolving.json` — write now (see below)
+5. Phase review for evolving — write via `geas phase write` (see below), verify via `geas phase read-latest --mission {mission_id} --phase evolving`
 
 **If ANY artifact is missing: go back and execute the missing step. Do NOT close without all 5.**
 

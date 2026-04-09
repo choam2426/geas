@@ -237,11 +237,13 @@ The review system MUST consume it for:
 
 `confidence` is a 1–5 scalar:
 
-- `1` — highly uncertain
-- `2` — meaningful risk of incomplete or incorrect implementation
-- `3` — moderate confidence with known gaps
-- `4` — strong confidence with limited caveats
-- `5` — high confidence and strong evidence
+| score | meaning |
+|---|---|
+| `1` | highly uncertain |
+| `2` | meaningful risk of incomplete or incorrect implementation |
+| `3` | moderate confidence with known gaps |
+| `4` | strong confidence with limited caveats |
+| `5` | high confidence and strong evidence |
 
 A confidence score MUST NOT be treated as proof. It is a review signal, not a verdict.
 
@@ -251,8 +253,10 @@ Any task MAY emit debt during implementation, review, verification, or closure.
 
 ### Minimum debt classification
 
-- `severity = low | normal | high | critical`
-- `kind = output_quality | verification_gap | structural | risk | process | documentation | operations`
+| axis | values |
+|---|---|
+| `severity` | `low` · `normal` · `high` · `critical` |
+| `kind` | `output_quality` · `verification_gap` · `structural` · `risk` · `process` · `documentation` · `operations` |
 
 Debt differs from blockers:
 

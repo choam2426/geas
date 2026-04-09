@@ -261,7 +261,7 @@ Fires at session end. Parses sub-agent session JSONL files from `~/.claude/proje
 2. Finds the most recently modified session directory.
 3. Parses all sub-agent JSONL files. Accumulates `input_tokens`, `output_tokens`, `cache_creation_input_tokens`, and `cache_read_input_tokens`.
 4. Reads agent type from `.meta.json` sidecar files.
-5. Writes `.geas/ledger/token-summary.json` with the full breakdown (totals, per-agent, timestamp).
+5. Writes `.geas/state/token-summary.json` with the full breakdown (totals, per-agent, timestamp).
 6. Prints a summary line to stderr:
    ```
    [Geas] Token summary: input=N output=N agents=N
@@ -393,5 +393,5 @@ For protocol details on hook failure handling, conformance checking, and metrics
 | `.geas/missions/<mid>/spec.json` | protect-geas-state (freeze guard) |
 | `.geas/state/policy-overrides.json` | inject-context |
 | `.geas/state/session-latest.md` | restore-context |
-| `.geas/ledger/token-summary.json` | calculate-cost (writes) |
+| `.geas/state/token-summary.json` | calculate-cost (writes) |
 | `.geas/state/events.jsonl` | (event logging via CLI) |
