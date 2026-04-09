@@ -43,6 +43,9 @@
     "created_at": {
       "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
     },
+    "updated_at": {
+      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
+    },
     "task_id": {
       "type": "string"
     },

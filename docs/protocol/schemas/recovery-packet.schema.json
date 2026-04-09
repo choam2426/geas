@@ -15,6 +15,7 @@
     "artifact_id": { "type": "string" },
     "producer_type": { "$ref": "_defs.schema.json#/$defs/agentType" },
     "created_at": { "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp" },
+    "updated_at": { "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp" },
     "recovery_id": { "type": "string", "minLength": 1 },
     "recovery_class": {
       "type": "string",

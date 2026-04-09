@@ -42,16 +42,20 @@
 
 미션 mode에 따라 엄격도가 결정된다: `lightweight`(가장 가벼움) → `standard` → `full_depth`(가장 엄격). 아래 필드는 `lightweight`에서는 생략 가능, `standard`에서는 포함 권장, `full_depth`에서는 사실상 필수. Recovery, traceability, scope 관리에 필요한 맥락을 담는다.
 
-| 필드 | 설명 |
-|---|---|
-| 제외 범위 / 비목표 | scope creep 방지를 위한 명시적 제외 항목 |
-| 리스크 요약 | 알려진 리스크와 대응 방안 |
-| 외부 의존성 요약 | 팀 통제 밖의 의존성 |
-| phase 소유자 노트 | Orchestrator의 phase별 맥락 메모 |
-| 초기 부채 또는 알려진 제약 | 기존 기술 또는 프로세스 부채 |
-| 롤백 / 범위 축소 전략 | 필요 시 통제된 후퇴 계획 |
+| 필드 | 스키마 필드명 | 설명 |
+|---|---|---|
+| 제외 범위 / 비목표 | `scope.out` | scope creep 방지를 위한 명시적 제외 항목 |
+| 리스크 노트 | `risk_notes` | 알려진 리스크와 대응 방안 |
+| 영향 범위 | `affected_surfaces` | 변경이 예상되는 영역, 경로, 시스템 |
+| 제약 | `constraints` | 작업 범위를 한정하는 기술적·비즈니스 경계 |
+| 가정 | `assumptions` | 미션이 의존하는 확인된 가정 |
+| 미해소 모호성 | `ambiguities` | 유예된 모호성과 그 근거 |
+| 외부 의존성 요약 | — | 팀 통제 밖의 의존성 |
+| phase 소유자 노트 | — | Orchestrator의 phase별 맥락 메모 |
+| 초기 부채 또는 알려진 제약 | — | 기존 기술 또는 프로세스 부채 |
+| 롤백 / 범위 축소 전략 | — | 필요 시 통제된 후퇴 계획 |
 
-프로젝트는 schema가 확장될 때까지 이를 동반 artifact에 저장할 수 있다.
+스키마 필드명이 있는 항목은 `mission-spec.schema.json`에 정의되어 있다. `—`으로 표시된 항목은 동반 artifact에 저장할 수 있다.
 
 ## Mission Intent Enum
 

@@ -92,6 +92,9 @@
     "created_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "updated_at": {
+      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   }
 }

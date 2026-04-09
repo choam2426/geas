@@ -42,16 +42,20 @@ A mission MUST contain at least the following fields:
 
 Mission mode defines rigor levels: `lightweight` (lightest) → `standard` → `full_depth` (strictest). These fields are optional under `lightweight`, expected under `standard`, and effectively required under `full_depth`. They capture context that improves recovery, traceability, and scope discipline.
 
-| field | description |
-|---|---|
-| excluded scope / non-goals | explicitly out-of-scope items to prevent creep |
-| risk summary | known risks and their mitigations |
-| external dependency summary | dependencies outside the team's control |
-| phase owner notes | per-phase context from the Orchestrator |
-| initial debt or known constraints | pre-existing technical or process debt |
-| rollback / de-scope strategy | plan for controlled retreat if needed |
+| field | schema field name | description |
+|---|---|---|
+| excluded scope / non-goals | `scope.out` | explicitly out-of-scope items to prevent creep |
+| risk notes | `risk_notes` | known risks and their mitigations |
+| affected surfaces | `affected_surfaces` | areas, paths, or systems expected to be touched |
+| constraints | `constraints` | technical or business boundaries that scope the work |
+| assumptions | `assumptions` | confirmed assumptions the mission relies on |
+| ambiguities | `ambiguities` | deferred ambiguities with rationale |
+| external dependency summary | — | dependencies outside the team's control |
+| phase owner notes | — | per-phase context from the Orchestrator |
+| initial debt or known constraints | — | pre-existing technical or process debt |
+| rollback / de-scope strategy | — | plan for controlled retreat if needed |
 
-A project MAY store these in companion artifacts until schemas are extended.
+Fields with a schema field name are defined in `mission-spec.schema.json`. Fields marked `—` MAY be stored in companion artifacts.
 
 ## Mission Intent Enum
 

@@ -135,6 +135,9 @@
     },
     "created_at": {
       "type": "string"
+    },
+    "updated_at": {
+      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   }
 }

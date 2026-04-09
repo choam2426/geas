@@ -9610,7 +9610,7 @@ function isoTimestamp() {
 }
 function enrichTimestamp(filePath, data) {
   const normFp = norm(filePath);
-  if (!/\/.geas\/.*\.json$/.test(normFp)) return data;
+  if (!normFp.includes("/.geas/") || !normFp.endsWith(".json")) return data;
   if (typeof data !== "object" || data === null) return data;
   const d = data;
   if (fs2.existsSync(filePath)) {
@@ -9646,7 +9646,7 @@ function checkScopeAndFrozenSpec(filePath, _data, cwd) {
       }
     }
   }
-  if (/\/.geas\/missions\/[^/]+\/spec\.json$/.test(normFp)) {
+  if (normFp.includes("/.geas/missions/") && normFp.endsWith("/spec.json")) {
     warnings.push(
       "Mission spec was modified. Mission specs should be frozen after intake. Use a vote round for scope changes."
     );
@@ -9655,7 +9655,7 @@ function checkScopeAndFrozenSpec(filePath, _data, cwd) {
 }
 function checkTaskPassedEvidence(filePath, data, cwd) {
   const normFp = norm(filePath);
-  if (!/\/.geas\/missions\/[^/]+\/tasks\/[^/]+\/contract\.json$/.test(normFp)) return [];
+  if (!normFp.includes("/.geas/missions/") || !normFp.endsWith("/contract.json")) return [];
   const d = typeof data === "object" && data !== null ? data : null;
   if (!d || d.status !== "passed") return [];
   const tid = d.task_id || d.id || "";
@@ -10309,6 +10309,9 @@ var debt_register_schema_default = {
     },
     created_at: {
       type: "string"
+    },
+    updated_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   }
 };
@@ -10474,6 +10477,9 @@ var design_brief_schema_default = {
       type: "string",
       description: "ISO 8601 timestamp"
     },
+    updated_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
+    },
     approved_at: {
       type: ["string", "null"],
       description: "ISO 8601 timestamp when user approved, or null"
@@ -10495,6 +10501,7 @@ var evidence_schema_default = {
     role: { type: "string", enum: ["implementer", "reviewer", "tester", "authority"] },
     summary: { type: "string", minLength: 1 },
     created_at: { $ref: "_defs.schema.json#/$defs/isoUtcTimestamp" },
+    updated_at: { $ref: "_defs.schema.json#/$defs/isoUtcTimestamp" },
     files_changed: { type: "array", items: { type: "string" } },
     commit: { type: "string" },
     verdict: { type: "string", enum: ["approved", "changes_requested", "blocked", "pass", "iterate", "escalate"] },
@@ -10634,6 +10641,9 @@ var gap_assessment_schema_default = {
     },
     created_at: {
       type: "string"
+    },
+    updated_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   }
 };
@@ -10733,6 +10743,9 @@ var health_check_schema_default = {
     created_at: {
       type: "string",
       format: "date-time"
+    },
+    updated_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   }
 };
@@ -10814,6 +10827,9 @@ var mission_spec_schema_default = {
       pattern: "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$"
     },
     created_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
+    },
+    updated_at: {
       $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     },
     source: {
@@ -10981,6 +10997,9 @@ var phase_review_schema_default = {
     },
     created_at: {
       type: "string"
+    },
+    updated_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   },
   if: {
@@ -11056,6 +11075,9 @@ var policy_override_schema_default = {
           created_at: {
             type: "string",
             format: "date-time"
+          },
+          updated_at: {
+            $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
           },
           expired: {
             type: "boolean",
@@ -11246,6 +11268,7 @@ var recovery_packet_schema_default = {
     artifact_id: { type: "string" },
     producer_type: { $ref: "_defs.schema.json#/$defs/agentType" },
     created_at: { $ref: "_defs.schema.json#/$defs/isoUtcTimestamp" },
+    updated_at: { $ref: "_defs.schema.json#/$defs/isoUtcTimestamp" },
     recovery_id: { type: "string", minLength: 1 },
     recovery_class: {
       type: "string",
@@ -11347,6 +11370,9 @@ var rules_update_schema_default = {
     },
     created_at: {
       type: "string"
+    },
+    updated_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   },
   if: {
@@ -11491,6 +11517,9 @@ var run_state_schema_default = {
     created_at: {
       type: "string",
       format: "date-time"
+    },
+    updated_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   }
 };
@@ -11539,6 +11568,9 @@ var task_contract_schema_default = {
       $ref: "_defs.schema.json#/$defs/agentType"
     },
     created_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
+    },
+    updated_at: {
       $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     },
     task_id: {
@@ -11773,6 +11805,9 @@ var vote_round_schema_default = {
     created_at: {
       type: "string",
       format: "date-time"
+    },
+    updated_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   }
 };

@@ -60,6 +60,9 @@
             "type": "string",
             "format": "date-time"
           },
+          "updated_at": {
+            "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
+          },
           "expired": {
             "type": "boolean",
             "description": "false = currently active; true = past expiry or superseded by a newer override"

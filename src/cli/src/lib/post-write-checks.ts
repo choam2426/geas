@@ -96,7 +96,7 @@ export function enrichTimestamp(
   data: unknown
 ): unknown {
   const normFp = norm(filePath);
-  if (!/\/.geas\/.*\.json$/.test(normFp)) return data;
+  if (!normFp.includes('/.geas/') || !normFp.endsWith('.json')) return data;
   if (typeof data !== 'object' || data === null) return data;
 
   const d = data as Record<string, unknown>;
@@ -154,7 +154,7 @@ export function checkScopeAndFrozenSpec(
   }
 
   // --- Mission spec frozen warning ---
-  if (/\/.geas\/missions\/[^/]+\/spec\.json$/.test(normFp)) {
+  if (normFp.includes('/.geas/missions/') && normFp.endsWith('/spec.json')) {
     warnings.push(
       'Mission spec was modified. Mission specs should be frozen after intake. Use a vote round for scope changes.'
     );
@@ -182,7 +182,7 @@ export function checkTaskPassedEvidence(
 ): string[] {
   const normFp = norm(filePath);
   // v4: tasks/{tid}/contract.json (directory per task)
-  if (!/\/.geas\/missions\/[^/]+\/tasks\/[^/]+\/contract\.json$/.test(normFp)) return [];
+  if (!normFp.includes('/.geas/missions/') || !normFp.endsWith('/contract.json')) return [];
 
   const d = (typeof data === 'object' && data !== null)
     ? (data as Record<string, unknown>)

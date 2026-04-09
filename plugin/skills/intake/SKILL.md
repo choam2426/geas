@@ -95,7 +95,7 @@ Check the completeness checklist — all items must be true:
 - `scope_out`: approved (>= 1 item)
 - `target_user`: approved
 - `constraints`: approved
-- `scope.surfaces`: identified
+- `affected_surfaces`: identified
 
 Generate the mission ID in the format `mission-{YYYYMMDD}-{8char}` where:
 - `YYYYMMDD` is the current UTC date
@@ -114,10 +114,9 @@ Write the mission spec via CLI with schema validation:
 ```bash
 Bash("geas mission write-spec --id {mission_id} --data '<spec_json>'")
 ```
-The CLI validates the spec against the schema automatically. Include:
+The CLI validates the spec against the schema automatically and auto-injects `created_at`. Include:
 - `"version": "1.0"`, `"artifact_type": "mission_spec"`, `"artifact_id": "mission-{YYYYMMDD}-{8char}"`
-- `"producer_type": "orchestration_authority"`, `"mission_id": "mission-{YYYYMMDD}-{8char}"`
-- `"created_at"` (actual UTC timestamp)
+- `"producer_type": "orchestration-authority"`, `"mission_id": "mission-{YYYYMMDD}-{8char}"`
 
 Always include the `source` field:
 - `"full_intake"` — complete Socratic exploration with user
