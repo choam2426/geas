@@ -137,42 +137,42 @@ pub struct TaskContract {
     pub scope: Option<TaskScope>,
 }
 
-/// Nested scope block used in older spec.json files (scope.in / scope.out)
+/// Scope block inside a MissionSpec (scope.in / scope.out)
 #[derive(Debug, Clone, Default, Deserialize)]
-pub struct MissionScopeNested {
+pub struct MissionScope {
     #[serde(default, rename = "in")]
-    pub scope_in: Option<Vec<String>>,
+    pub scope_in: Vec<String>,
     #[serde(default, rename = "out")]
-    pub scope_out: Option<Vec<String>>,
-    #[serde(default)]
-    pub constraints: Option<Vec<String>>,
+    pub scope_out: Vec<String>,
 }
 
 /// .geas/missions/{id}/spec.json
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct MissionSpec {
     #[serde(default)]
+    pub version: Option<String>,
+    #[serde(default)]
+    pub artifact_type: Option<String>,
+    #[serde(default)]
+    pub artifact_id: Option<String>,
+    #[serde(default)]
+    pub producer_type: Option<String>,
+    #[serde(default)]
+    pub mission_id: Option<String>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default)]
     pub mission: Option<String>,
-    /// Older specs may use "title" instead of "mission"
-    #[serde(default)]
-    pub title: Option<String>,
-    /// Older specs may use "statement" instead of "mission"
-    #[serde(default)]
-    pub statement: Option<String>,
     #[serde(default)]
     pub done_when: Option<String>,
-    /// Flat scope fields (newer format)
     #[serde(default)]
-    pub scope_in: Option<Vec<String>>,
+    pub scope: Option<MissionScope>,
     #[serde(default)]
-    pub scope_out: Option<Vec<String>>,
-    /// Nested scope block (older format: scope.in / scope.out)
+    pub acceptance_criteria: Vec<String>,
     #[serde(default)]
-    pub scope: Option<MissionScopeNested>,
+    pub constraints: Vec<String>,
     #[serde(default)]
-    pub acceptance_criteria: Option<Vec<String>>,
-    #[serde(default)]
-    pub constraints: Option<Vec<String>>,
+    pub source: Option<String>,
     #[serde(default)]
     pub domain_profile: Option<String>,
     #[serde(default)]
@@ -180,56 +180,15 @@ pub struct MissionSpec {
     #[serde(default)]
     pub target_user: Option<String>,
     #[serde(default)]
-    pub risk_notes: Option<Vec<String>>,
-    /// Older specs may use "risks" instead of "risk_notes"
+    pub affected_surfaces: Vec<String>,
     #[serde(default)]
-    pub risks: Option<Vec<String>>,
+    pub risk_notes: Vec<String>,
     #[serde(default)]
-    pub assumptions: Option<Vec<String>>,
+    pub assumptions: Vec<String>,
     #[serde(default)]
-    pub created_at: Option<String>,
-}
-
-impl MissionSpec {
-    /// Return the mission name, checking mission -> title -> statement fallback chain
-    pub fn mission_name(&self) -> Option<String> {
-        self.mission
-            .clone()
-            .or_else(|| self.title.clone())
-            .or_else(|| self.statement.clone())
-    }
-
-    /// Return scope_in, merging flat and nested formats
-    pub fn resolved_scope_in(&self) -> Vec<String> {
-        self.scope_in
-            .clone()
-            .or_else(|| self.scope.as_ref().and_then(|s| s.scope_in.clone()))
-            .unwrap_or_default()
-    }
-
-    /// Return scope_out, merging flat and nested formats
-    pub fn resolved_scope_out(&self) -> Vec<String> {
-        self.scope_out
-            .clone()
-            .or_else(|| self.scope.as_ref().and_then(|s| s.scope_out.clone()))
-            .unwrap_or_default()
-    }
-
-    /// Return constraints, merging flat and nested formats
-    pub fn resolved_constraints(&self) -> Vec<String> {
-        self.constraints
-            .clone()
-            .or_else(|| self.scope.as_ref().and_then(|s| s.constraints.clone()))
-            .unwrap_or_default()
-    }
-
-    /// Return risk_notes, falling back to "risks"
-    pub fn resolved_risk_notes(&self) -> Vec<String> {
-        self.risk_notes
-            .clone()
-            .or_else(|| self.risks.clone())
-            .unwrap_or_default()
-    }
+    pub ambiguities: Vec<String>,
+    #[serde(default)]
+    pub completeness_checklist: Option<serde_json::Value>,
 }
 
 /// Detail struct returned to the frontend for mission spec rendering
@@ -245,8 +204,11 @@ pub struct MissionSpecDetail {
     pub domain_profile: Option<String>,
     pub mode: Option<String>,
     pub target_user: Option<String>,
+    pub source: Option<String>,
     pub risk_notes: Vec<String>,
     pub assumptions: Vec<String>,
+    pub ambiguities: Vec<String>,
+    pub affected_surfaces: Vec<String>,
     pub created_at: Option<String>,
 }
 

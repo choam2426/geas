@@ -185,6 +185,48 @@ fn mission_spec_extra_fields_ignored() {
 }
 
 #[test]
+fn mission_spec_canonical_fields() {
+    let json = r#"{
+        "version": "1.0",
+        "artifact_type": "mission_spec",
+        "artifact_id": "ms-001",
+        "producer_type": "product_authority",
+        "mission_id": "mission-001",
+        "created_at": "2026-04-01T08:00:00Z",
+        "mission": "Build the dashboard MVP",
+        "done_when": "All tasks pass",
+        "scope": {
+            "in": ["models", "commands"],
+            "out": ["CI/CD"]
+        },
+        "acceptance_criteria": ["AC1"],
+        "constraints": ["No breaking changes"],
+        "source": "full_intake",
+        "domain_profile": "software",
+        "mode": "standard",
+        "target_user": "developer",
+        "affected_surfaces": ["dashboard"],
+        "risk_notes": ["Tight deadline"],
+        "assumptions": ["Schema is stable"],
+        "ambiguities": ["Memory format unclear"]
+    }"#;
+
+    let spec: MissionSpec = serde_json::from_str(json).unwrap();
+    assert_eq!(spec.version.as_deref(), Some("1.0"));
+    assert_eq!(spec.artifact_type.as_deref(), Some("mission_spec"));
+    assert_eq!(spec.artifact_id.as_deref(), Some("ms-001"));
+    assert_eq!(spec.producer_type.as_deref(), Some("product_authority"));
+    assert_eq!(spec.mission_id.as_deref(), Some("mission-001"));
+    assert_eq!(spec.mission.as_deref(), Some("Build the dashboard MVP"));
+    assert_eq!(spec.source.as_deref(), Some("full_intake"));
+    assert_eq!(spec.affected_surfaces.len(), 1);
+    assert_eq!(spec.ambiguities.len(), 1);
+    let scope = spec.scope.unwrap();
+    assert_eq!(scope.scope_in.len(), 2);
+    assert_eq!(scope.scope_out.len(), 1);
+}
+
+#[test]
 fn debt_item_with_introduced_by_task_id() {
     let json = r#"{
         "debt_id": "debt-001",
