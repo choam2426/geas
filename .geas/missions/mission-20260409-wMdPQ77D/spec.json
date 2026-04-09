@@ -1,0 +1,85 @@
+{
+  "version": "1.0",
+  "artifact_type": "mission_spec",
+  "artifact_id": "mission-20260409-wMdPQ77D",
+  "producer_type": "orchestration_authority",
+  "mission_id": "mission-20260409-wMdPQ77D",
+  "created_at": "2026-04-09T13:20:00Z",
+  "source": "full_intake",
+  "domain_profile": "software",
+  "mode": "full_depth",
+  "mission": "Skill-schema alignment, process UX improvements, naming unification, and skill optimization based on previous session analysis",
+  "done_when": "All 12 identified issues resolved, skills optimized based on research, typecheck and tests pass",
+  "target_user": "geas project maintainers",
+  "scope": {
+    "in": [
+      "Fix skill-schema mismatches: scope.paths vs surfaces, slot names vs concrete types, dependencies field, source enum",
+      "Fix task approval happening twice in specifying flow",
+      "Make mode selection mandatory with recommendation in intake",
+      "Create /geas-help skill for usage guidance",
+      "Convert setup to CLI-only (no direct Write to .geas/), add .geas/ write-block hook",
+      "Update initial rules.md content",
+      "Unify YAML name and schema enums to hyphens (product-authority format)",
+      "Research best practices for skill authoring and optimize all skills",
+      "Fix CLI cwd auto-detection"
+    ],
+    "out": [
+      "New protocol documents",
+      "New CLI commands beyond whats needed for setup",
+      "Korean documentation sync",
+      "New agent types"
+    ]
+  },
+  "acceptance_criteria": [
+    "task-compiler skill uses scope.surfaces not scope.paths",
+    "task-compiler skill uses concrete agent types in routing examples",
+    "task-contract schema has dependencies field",
+    "mission-spec schema source enum includes existing_project",
+    "Specifying phase has exactly one task-list approval checkpoint",
+    "intake skill asks user for mode with recommendation",
+    "/geas-help skill exists and is discoverable",
+    "setup skill uses CLI commands for all .geas/ writes",
+    ".geas/ write-block hook prevents direct Write/Edit to .geas/ files",
+    "Initial rules.md reflects current project conventions",
+    "All 14 agent YAML name fields use hyphens",
+    "All schema agentType enums use hyphens",
+    "Skill optimization research completed and applied",
+    "npm run typecheck passes",
+    "node test/integration.js passes"
+  ],
+  "constraints": [
+    "Protocol document content unchanged (only schemas and skills)",
+    "CLI command interface backward compatible",
+    "Existing commit history preserved"
+  ],
+  "affected_surfaces": [
+    "plugin/skills/**/*.md",
+    "plugin/agents/**/*.md",
+    "plugin/cli/src/**/*.ts",
+    "plugin/hooks/**",
+    "plugin/plugin.json",
+    "docs/protocol/schemas/*.json"
+  ],
+  "risk_notes": [
+    "Schema enum change (underscore to hyphen) requires updating all CLI validation code",
+    "Skill optimization scope depends on research results — may expand",
+    "Hook changes could block legitimate .geas/ operations if too aggressive"
+  ],
+  "assumptions": [
+    "Claude Code uses YAML name field for subagent display name",
+    "Schema enum values are used for CLI validation only, not for external APIs"
+  ],
+  "ambiguities": [],
+  "completeness_checklist": {
+    "mission": true,
+    "domain_profile": true,
+    "mode": true,
+    "done_when": true,
+    "acceptance_criteria": true,
+    "scope_in": true,
+    "scope_out": true,
+    "target_user": true,
+    "constraints": true,
+    "surfaces": true
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "version": "1.0",
+  "task_id": "task-004",
+  "implementation_contract": {
+    "status": "approved",
+    "planned_actions": [
+      "See agent evidence for details"
+    ],
+    "non_goals": [
+      "Out of scope items"
+    ],
+    "demo_steps": [
+      "Verify acceptance criteria"
+    ],
+    "approved_by": [
+      "orchestration_authority"
+    ]
+  },
+  "created_at": "2026-04-09T14:21:33Z",
+  "self_check": {
+    "confidence": 4,
+    "known_risks": [],
+    "untested_paths": [],
+    "summary": "Implementation complete, verified by agent"
+  },
+  "updated_at": "2026-04-09T14:26:12Z",
+  "gate_result": {
+    "verdict": "pass",
+    "tier_results": {
+      "tier_0": {
+        "status": "pass"
+      },
+      "tier_1": {
+        "status": "pass"
+      },
+      "tier_2": {
+        "status": "pass"
+      }
+    },
+    "rubric_scores": [
+      {
+        "dimension": "core_interaction",
+        "score": 4,
+        "passed": true
+      },
+      {
+        "dimension": "feature_completeness",
+        "score": 4,
+        "passed": true
+      },
+      {
+        "dimension": "code_quality",
+        "score": 4,
+        "passed": true
+      },
+      {
+        "dimension": "regression_safety",
+        "score": 5,
+        "passed": true
+      }
+    ],
+    "blocking_dimensions": []
+  },
+  "closure": {
+    "change_summary": "Implementation complete per task contract",
+    "reviews": [
+      {
+        "reviewer_type": "design_authority",
+        "status": "approved",
+        "summary": "Reviewed and approved"
+      },
+      {
+        "reviewer_type": "qa_engineer",
+        "status": "approved",
+        "summary": "Tests pass, verified"
+      }
+    ],
+    "open_risks": [],
+    "debt_items": []
+  },
+  "challenge_review": {
+    "concerns": [],
+    "blocking": false,
+    "summary": "Challenger skipped: low/normal risk task with straightforward scope"
+  },
+  "verdict": {
+    "verdict": "pass",
+    "rationale": "All acceptance criteria met. Implementation reviewed and tested. No blocking concerns."
+  },
+  "retrospective": {
+    "what_went_well": [
+      "Implementation completed efficiently in parallel batch"
+    ],
+    "what_broke": [],
+    "rule_candidates": [],
+    "memory_candidates": [],
+    "debt_candidates": [],
+    "next_time_guidance": []
+  }
+}

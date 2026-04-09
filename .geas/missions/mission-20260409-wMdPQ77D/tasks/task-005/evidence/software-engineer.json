@@ -1,0 +1,11 @@
+{
+  "summary": "Added mandatory mode selection question to intake skill with lightweight/standard/full_depth options and recommendation guidance. Verified specifying.md has exactly one task-list approval checkpoint (Step 5) - no double approval issue found.",
+  "files_changed": [
+    "plugin/skills/intake/SKILL.md"
+  ],
+  "version": "1.0",
+  "agent": "software-engineer",
+  "task_id": "task-005",
+  "role": "implementer",
+  "created_at": "2026-04-09T14:18:07Z"
+}

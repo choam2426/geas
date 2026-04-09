@@ -1,0 +1,99 @@
+{
+  "version": "1.0",
+  "artifact_type": "design_brief",
+  "artifact_id": "design-brief-mission-20260409-wMdPQ77D",
+  "producer_type": "orchestration_authority",
+  "mission_id": "mission-20260409-wMdPQ77D",
+  "depth": "full_depth",
+  "status": "approved",
+  "created_at": "2026-04-09T13:30:00Z",
+  "approved_at": "2026-04-09T13:35:00Z",
+  "vote_round_ref": ".geas/missions/mission-20260409-wMdPQ77D/decisions/pending/",
+  "chosen_approach": "Five-track: T1 security first, T4 naming next, T2+T3 parallel, T5 last.",
+  "non_goals": [
+    "New protocol documents",
+    "Korean docs sync",
+    "New agent types",
+    "CLI interface changes beyond security"
+  ],
+  "verification_strategy": "typecheck, integration tests, grep for stale underscore agents, grep for scope.paths, write-block hook test.",
+  "alternatives_considered": [
+    {
+      "approach": "Make CLI lenient",
+      "rejected_reason": "94% failures from skills. Fix skills not CLI."
+    },
+    {
+      "approach": "Rewrite CLI validation",
+      "rejected_reason": "Validation caught real errors."
+    }
+  ],
+  "architecture_decisions": [
+    {
+      "decision": "validateIdentifier() at all command boundaries + assertContainedIn()",
+      "rationale": "Defense in depth.",
+      "constraints": [
+        "Must not break valid identifiers"
+      ]
+    },
+    {
+      "decision": "YAML name + schema enums = hyphens",
+      "rationale": "User confirmed. 155 refs across 43 files.",
+      "constraints": [
+        "Both schema copies must sync",
+        "Integration tests must update"
+      ]
+    },
+    {
+      "decision": "Skills include exact JSON examples",
+      "rationale": "94% CLI failures from mismatch.",
+      "constraints": [
+        "Track schema changes"
+      ]
+    },
+    {
+      "decision": ".geas/ write-block via PreToolUse hook",
+      "rationale": "CLI only write path.",
+      "constraints": [
+        "Verify PreToolUse can block",
+        "Fallback to PostToolUse warning"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "description": "T4 blast radius: 43 files 155 refs",
+      "mitigation": "Single commit + grep verification script"
+    },
+    {
+      "description": "PreToolUse may not support blocking",
+      "mitigation": "Fallback: PostToolUse warning"
+    },
+    {
+      "description": "18-22 tasks estimated",
+      "mitigation": "Parallel execution where possible"
+    }
+  ],
+  "preserve_list": [
+    "CLI command interface",
+    "Protocol document content",
+    "Commit history",
+    "Agent personality content"
+  ],
+  "unresolved_assumptions": [
+    "Hyphenated YAML name works with Claude Code subagent_type",
+    "PreToolUse can block on Windows"
+  ],
+  "design_review": {
+    "reviewer_type": "design_authority",
+    "summary": "Approved with 6 additions. T4 blast radius is 155 refs across 43 files. assertContainedIn exists but never called. evolving.md has no checkpoint instructions. PreToolUse blocking needs verification.",
+    "additions": [
+      "T4 atomic manifest",
+      "evolving.md checkpoint gap",
+      "Write-block Windows path normalization",
+      "PreToolUse block verification",
+      "profiles.json coordination",
+      "Post-T4 grep verification"
+    ]
+  },
+  "updated_at": "2026-04-09T13:33:03Z"
+}

@@ -1,0 +1,16 @@
+{
+  "voter": "challenger",
+  "vote": "agree",
+  "severity": null,
+  "rationale": "The design is structurally sound. The three-track decomposition is well-ordered -- naming first (highest file fan-out), code cleanup second (isolated to CLI), release last (depends on everything else). Schemas already use underscores so the rename aligns filenames with the existing source of truth. The evolution.ts cwd bug is real and confirmed (only command file that omits { cwd } on writeJsonFile). The v3 no-ops (checkMemoryPromotion, checkStaleMemoryRefs) are genuinely dead code that should go. The design review by design-authority already caught the most critical gap (version discrepancy: plugin.json is 2.1.0, not 2.0.1 as the tag mapping assumes). If that discrepancy is resolved by confirming v0.5.1 is the target for current HEAD regardless of the 2.1.0 numbering, the approach holds. However, I have several concerns that must be tracked during execution.",
+  "concerns": [
+    "BLOCKING-ADJACENT: The tag flattening mapping is built on 8 tags, but HEAD is at v2.1.0 (68 commits past v2.0.1). The design brief says 'HEAD continues as v0.5.1' but never explicitly accounts for the 2.1.0 version bump. If the worker mechanically follows the mapping table, v0.5.1 would point to the v2.0.1 commit (8947287), not current HEAD. The brief must clarify: is v0.5.1 a NEW tag on HEAD, or a remapped v2.0.1 tag? The design review flagged this but no resolution is recorded in the brief.",
+    "The 'challenger.md' agent file has no hyphen and does not need renaming, but the brief says '14 agent files'. Only 13 files actually need renaming. This is cosmetic but signals the brief was written from assumption rather than filesystem inspection. The worker should enumerate before executing.",
+    "The mission scope says 'Korean documentation sync' is out of scope, but the design review correctly adds that Korean INDEX.md must be updated to v1. This creates a contradiction -- the spec excludes Korean doc sync while the design review requires it. The worker needs clear guidance on whether docs/ko/protocol/INDEX.md is in or out.",
+    "The verify-fix-loop SKILL.md line 103 references '/pivot-protocol' (a deleted skill). The evidence-gate SKILL.md line 270 says 'invoke pivot protocol' without specifying a concrete skill path. These are stale references that the design review identified but the brief does not list as explicit cleanup targets. They risk being missed during execution.",
+    "Tag force-push is irreversible. If the mapping is wrong or a tag points to the wrong commit, the original version history is destroyed. The verification strategy says 'git tag --list shows only v0.x.y tags' but does not verify that each new tag points to the correct commit. A tag-to-commit verification step should be added.",
+    "The mission.ts duplicate readInputData (lines 16-44) lacks --file support that the shared lib/input.ts provides. When deduplicating, the worker must ensure all existing call sites in mission.ts are tested with both --data and stdin input modes, since the local version may have subtle behavioral differences from lib/input.ts."
+  ],
+  "alternative": null,
+  "created_at": "2026-04-09T12:54:50Z"
+}

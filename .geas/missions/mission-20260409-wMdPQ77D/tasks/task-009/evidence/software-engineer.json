@@ -1,0 +1,21 @@
+{
+  "summary": "Added Input/Output sections to 10 skills (help, intake, memorizing, mission, policy-managing, reporting, scheduling, setup, verify-fix-loop, vote-round). Created task-compiler/references/examples.md with 3 annotated examples (simple low-risk, complex high-risk with vote round, classification decision table). Verified all 13 SKILL.md files are under 500 lines (max is 332 lines for mission).",
+  "files_changed": [
+    "plugin/skills/help/SKILL.md",
+    "plugin/skills/intake/SKILL.md",
+    "plugin/skills/memorizing/SKILL.md",
+    "plugin/skills/mission/SKILL.md",
+    "plugin/skills/policy-managing/SKILL.md",
+    "plugin/skills/reporting/SKILL.md",
+    "plugin/skills/scheduling/SKILL.md",
+    "plugin/skills/setup/SKILL.md",
+    "plugin/skills/verify-fix-loop/SKILL.md",
+    "plugin/skills/vote-round/SKILL.md",
+    "plugin/skills/task-compiler/references/examples.md"
+  ],
+  "version": "1.0",
+  "agent": "software-engineer",
+  "task_id": "task-009",
+  "role": "implementer",
+  "created_at": "2026-04-09T14:29:49Z"
+}

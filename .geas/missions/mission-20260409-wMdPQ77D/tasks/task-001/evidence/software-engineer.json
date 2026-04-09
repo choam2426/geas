@@ -1,0 +1,17 @@
+{
+  "summary": "Added validateIdentifier and assertContainedIn to packet, debt, decision, evolution, recovery, lock, memory commands. Replaced sanitization with rejection in memory, packet, decision. Added VALID_PHASES enum to evolution. Lock task existence check omitted to avoid regression (validateIdentifier already prevents path traversal).",
+  "files_changed": [
+    "plugin/cli/src/commands/packet.ts",
+    "plugin/cli/src/commands/debt.ts",
+    "plugin/cli/src/commands/decision.ts",
+    "plugin/cli/src/commands/evolution.ts",
+    "plugin/cli/src/commands/recovery.ts",
+    "plugin/cli/src/commands/lock.ts",
+    "plugin/cli/src/commands/memory.ts"
+  ],
+  "version": "1.0",
+  "agent": "software-engineer",
+  "task_id": "task-001",
+  "role": "implementer",
+  "created_at": "2026-04-09T13:51:55Z"
+}

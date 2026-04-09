@@ -1,0 +1,105 @@
+{
+  "version": "1.0",
+  "task_id": "task-009",
+  "implementation_contract": {
+    "status": "approved",
+    "planned_actions": [
+      "Add Input/Output sections to all 12 skills",
+      "Create task-compiler/references/examples.md with annotated examples",
+      "Check line counts and split if any exceeds 500 lines"
+    ],
+    "non_goals": [
+      "Changing skill behavior",
+      "Rewriting skill logic"
+    ],
+    "demo_steps": [
+      "Verify all 12 SKILL.md have Input and Output sections",
+      "Verify task-compiler/references/examples.md exists",
+      "Verify no SKILL.md exceeds 500 lines"
+    ],
+    "approved_by": [
+      "orchestration_authority"
+    ]
+  },
+  "created_at": "2026-04-09T14:27:04Z",
+  "self_check": {
+    "confidence": 5,
+    "known_risks": [],
+    "untested_paths": [],
+    "summary": "I/O sections added to all skills, examples created, line counts verified under 500"
+  },
+  "updated_at": "2026-04-09T14:30:37Z",
+  "gate_result": {
+    "verdict": "pass",
+    "tier_results": {
+      "tier_0": {
+        "status": "pass"
+      },
+      "tier_1": {
+        "status": "pass"
+      },
+      "tier_2": {
+        "status": "pass"
+      }
+    },
+    "rubric_scores": [
+      {
+        "dimension": "core_interaction",
+        "score": 4,
+        "passed": true
+      },
+      {
+        "dimension": "feature_completeness",
+        "score": 5,
+        "passed": true
+      },
+      {
+        "dimension": "code_quality",
+        "score": 4,
+        "passed": true
+      },
+      {
+        "dimension": "regression_safety",
+        "score": 5,
+        "passed": true
+      }
+    ],
+    "blocking_dimensions": []
+  },
+  "closure": {
+    "change_summary": "Added Input/Output sections to all 12 skills, created task-compiler examples, verified line counts under 500",
+    "reviews": [
+      {
+        "reviewer_type": "design_authority",
+        "status": "approved",
+        "summary": "All skills have I/O sections"
+      },
+      {
+        "reviewer_type": "qa_engineer",
+        "status": "approved",
+        "summary": "Verified"
+      }
+    ],
+    "open_risks": [],
+    "debt_items": []
+  },
+  "challenge_review": {
+    "concerns": [],
+    "blocking": false,
+    "summary": "Challenger skipped: normal risk documentation task"
+  },
+  "verdict": {
+    "verdict": "pass",
+    "rationale": "All acceptance criteria met"
+  },
+  "retrospective": {
+    "what_went_well": [
+      "I/O sections added efficiently across all skills"
+    ],
+    "what_broke": [],
+    "rule_candidates": [],
+    "memory_candidates": [],
+    "debt_candidates": [],
+    "next_time_guidance": []
+  }
+}

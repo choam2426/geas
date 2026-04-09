@@ -1,0 +1,12 @@
+{
+  "summary": "Added checkpoint management to evolving.md agent spawns, added checkpoint clear and current_task_id null at mission completion and session end",
+  "files_changed": [
+    "plugin/skills/mission/references/evolving.md",
+    "plugin/skills/mission/SKILL.md"
+  ],
+  "version": "1.0",
+  "agent": "software-engineer",
+  "task_id": "task-008",
+  "role": "implementer",
+  "created_at": "2026-04-09T14:18:27Z"
+}

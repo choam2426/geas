@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "artifact_type": "task_contract",
+  "artifact_id": "task-contract-task-007",
+  "producer_type": "orchestration_authority",
+  "created_at": "2026-04-09T13:35:00Z",
+  "task_id": "task-007",
+  "title": "[T3c] Setup CLI-only + write-block hook",
+  "goal": "Convert setup to CLI writes, create PreToolUse hook blocking Write/Edit on .geas/, update rules.md",
+  "task_kind": "implementation",
+  "risk_level": "high",
+  "gate_profile": "implementation_change",
+  "vote_round_policy": "never",
+  "acceptance_criteria": [
+    "Setup uses no Write/Edit to .geas/",
+    "CLI handles initial run.json and rules.md creation",
+    "Hook blocks Write/Edit on .geas/ with warning",
+    "Hook allows Read and Bash",
+    "Initial rules.md reflects current conventions"
+  ],
+  "eval_commands": [
+    "cd plugin/cli && npm run build",
+    "cd plugin/cli && npm run typecheck"
+  ],
+  "rubric": {
+    "dimensions": [
+      {
+        "name": "core_interaction",
+        "threshold": 3
+      },
+      {
+        "name": "feature_completeness",
+        "threshold": 4
+      },
+      {
+        "name": "code_quality",
+        "threshold": 4
+      },
+      {
+        "name": "regression_safety",
+        "threshold": 4
+      }
+    ]
+  },
+  "retry_budget": 2,
+  "scope": {
+    "surfaces": [
+      "plugin/skills/setup/SKILL.md",
+      "plugin/cli/src/",
+      "plugin/hooks/"
+    ]
+  },
+  "routing": {
+    "primary_worker_type": "software_engineer",
+    "required_reviewer_types": [
+      "security_engineer"
+    ]
+  },
+  "base_snapshot": "68092964098f9dfabf9df72b9c5b454499d43459",
+  "status": "passed",
+  "updated_at": "2026-04-09T14:26:26Z"
+}
