@@ -7,6 +7,21 @@ description: Memory management — extract learnings from retrospectives, update
 
 Manages project memory through two files: `.geas/rules.md` (project-wide rules) and `.geas/memory/agents/{agent}.md` (agent-specific notes). Orchestrator invokes this skill after retrospective (per-task extraction) and during Evolving (batch review).
 
+## Inputs
+
+- **record.json `retrospective` section** — contains `memory_candidates[]` from per-task retrospective
+- **`.geas/rules.md`** — current project-wide rules (for deduplication)
+- **`.geas/memory/agents/*.md`** — current agent notes (for deduplication)
+- **Task ID** — source task for tracing extracted learnings
+
+## Output
+
+- **Updated `.geas/rules.md`** — new or strengthened project-wide rules (with `[DRAFT]` prefix until promoted)
+- **Updated `.geas/memory/agents/{agent}.md`** — new or strengthened agent-specific notes
+- **Event log entries** — `memory_extracted`, `memory_reviewed`, or `memory_cleanup` events in `events.jsonl`
+
+---
+
 ## When to Use
 
 - **Per-task**: After retrospective completes, extract learnings from `memory_candidates[]` in the retrospective section of record.json

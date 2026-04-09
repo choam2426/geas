@@ -9,6 +9,22 @@ orchestration_authority should invoke this automatically on the first natural-la
 
 Users should not need to run setup manually unless they are troubleshooting.
 
+## Inputs
+
+- **Project directory** — the repository root where `.geas/` will be initialized
+- **Existing codebase** (optional) — configuration files (package.json, go.mod, etc.) for stack detection
+- **Previous `.geas/memory/agents/`** (optional) — old agent notes requiring migration
+
+## Output
+
+- **`.geas/` directory** — initialized with `state/`, `memory/agents/`, `recovery/` subdirectories
+- **`.geas/state/run.json`** — initial run state (version 1.0, status initialized)
+- **`.geas/state/health-check.json`** — initial health check with all 8 signals
+- **`.geas/rules.md`** — project-wide rules with detected code conventions
+- **`.gitignore`** — updated to include `.geas/` entry
+
+---
+
 ## Steps
 
 ### Phase 0: Ensure CLI Dependencies

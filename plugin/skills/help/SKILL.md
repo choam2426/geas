@@ -9,6 +9,18 @@ Welcome to Geas -- a governance framework for multi-agent AI work. Every decisio
 
 ---
 
+## Inputs
+
+- **User question or keyword** — natural language query about geas usage, commands, workflows, or concepts
+- **Context** — current `.geas/state/run.json` status (optional, for context-aware help)
+
+## Output
+
+- **Formatted explanation** — markdown response explaining the relevant geas concept, command usage, or workflow step
+- No files written — this skill produces conversational output only
+
+---
+
 ## Available Commands
 
 | Command | Purpose |

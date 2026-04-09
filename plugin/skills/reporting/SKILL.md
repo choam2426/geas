@@ -12,6 +12,24 @@ Produces a markdown summary to the conversation and writes `.geas/state/health-c
 
 ---
 
+## Inputs
+
+- **Mission ID** — identifies which mission to report on
+- **`.geas/missions/{mission_id}/evolution/debt-register.json`** — debt data
+- **`.geas/missions/{mission_id}/evolution/gap-assessment-*.json`** — gap assessment data
+- **`.geas/state/events.jsonl`** — event log for health signal computation
+- **`.geas/rules.md`** and **`.geas/memory/agents/*.md`** — for memory_bloat signal
+- **`.geas/missions/{mission_id}/tasks/*/record.json`** — for worker_low_confidence signal
+
+## Output
+
+- **`.geas/state/health-check.json`** — structured health check with all 8 signals (via `geas health generate`)
+- **Markdown summary** — printed to conversation with debt, gaps, health signals, and required actions
+- **`.geas/missions/{mission_id}/phase-reviews/{phase}-briefing.md`** — product authority briefing (at milestones)
+- **`.geas/missions/{mission_id}/phase-reviews/session-{timestamp}.md`** — session end summary
+
+---
+
 ## Section 1: Debt Summary
 
 Read debt data via CLI:

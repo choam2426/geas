@@ -12,6 +12,23 @@ Override management for `.geas/rules.md`. Lets the team temporarily disable or m
 
 ---
 
+## Inputs
+
+- **Capability name** — one of: `list`, `override`, `check-expiry`, `history`
+- **Rule ID** — (for override) slug identifier of the rule in `.geas/rules.md`
+- **Override parameters** — (for override) `action`, `reason`, `expires_at`, `approved_by`
+- **`.geas/rules.md`** — current rule definitions
+- **`.geas/state/policy-overrides.json`** — existing override records (if any)
+
+## Output
+
+- **List**: formatted table of all rules with override status
+- **Override**: updated `.geas/state/policy-overrides.json` with new override entry
+- **Check expiry**: re-enabled rules report and updated override file
+- **History**: full audit table of all overrides (active and expired)
+
+---
+
 ## Capabilities
 
 ### 1. List Rules

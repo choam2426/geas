@@ -13,6 +13,22 @@ You are the Geas orchestrator. You execute everything directly in this session. 
 
 ---
 
+## Inputs
+
+- **User mission request** — natural language description of what to build or accomplish
+- **`.geas/state/run.json`** — current run state (for recovery and phase tracking)
+- **`.geas/state/_checkpoint_pending`** — interrupted checkpoint data (if recovering)
+- **`references/profiles.json`** — domain profile to slot mapping for agent resolution
+
+## Output
+
+- **Completed mission** — all tasks passed through the 4-phase pipeline
+- **`.geas/missions/{mission_id}/`** — full mission directory with spec, tasks, evidence, and evolution artifacts
+- **`.geas/state/run.json`** — updated run state reflecting mission completion
+- **`.geas/state/events.jsonl`** — complete event log of all transitions, gate results, and decisions
+
+---
+
 ## Orchestration Rules
 
 These rules apply throughout all phases of the 4-phase execution flow.

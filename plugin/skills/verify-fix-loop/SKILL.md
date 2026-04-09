@@ -11,6 +11,22 @@ After the evidence gate fails, this loop ensures bugs are actually fixed — not
 
 ---
 
+## Inputs
+
+- **TaskContract** — from `.geas/missions/{mission_id}/tasks/{task-id}/contract.json` (for retry_budget and escalation_policy)
+- **Failed EvidenceBundle** — from `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{reviewer}.json` (specific failures)
+- **Gate verdict** — which tier failed (mechanical or semantic) and why
+- **`.geas/state/run.json`** — current iteration count tracking
+
+## Output
+
+- **Gate PASS** — loop exits, pipeline continues to Closure Packet
+- **Updated evidence** — new `{fixer}-fix-{N}.json` per iteration in the evidence directory
+- **DecisionRecord** (on escalation) — written via `geas decision write` when retry budget exhausted
+- **Event log entry** — `escalation` event logged when budget is exhausted
+
+---
+
 ## Entry Point
 
 Read the gate failure details:

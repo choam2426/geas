@@ -14,6 +14,22 @@ The orchestrator assigns multiple tasks to run simultaneously. Each task progres
 
 ---
 
+## Inputs
+
+- **Task files** — all tasks in `.geas/missions/{mission_id}/tasks/` with their status, dependencies, and scope surfaces
+- **`.geas/state/run.json`** — current run state including checkpoint and batch tracking
+- **Lock state** — current lock holdings for path, interface, and resource conflicts
+- **Integration branch tip** — for staleness checking against `base_snapshot`
+
+## Output
+
+- **Batch assignment** — list of 2-4 tasks eligible for parallel execution
+- **Lock acquisitions** — path/interface locks acquired per batch task via CLI
+- **Updated checkpoint** — `run.json` updated with `parallel_batch` and `completed_in_batch`
+- **Event log entries** — `task_started`, `task_resolved` events per batch task
+
+---
+
 ## Preconditions
 
 - Worktree isolation must be available (git repo initialized). If unavailable, fall back to sequential execution (batch size 1).

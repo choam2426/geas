@@ -9,6 +9,14 @@ Structured parallel voting on a major proposal. Multiple agents evaluate indepen
 
 ---
 
+## Inputs
+
+- **Proposal document** — the proposal being voted on (path provided by caller)
+- **Voter list** — 2-4 agent types selected by orchestration_authority (challenger always included)
+- **Proposal context** — TaskContract, design-brief, or other relevant artifacts
+
+---
+
 ## When to Use
 
 Orchestrator invokes this after a major proposal that affects project direction:

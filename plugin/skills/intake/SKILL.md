@@ -11,6 +11,14 @@ Before any mission execution, run this gate to freeze the mission specification.
 
 Missions arrive as natural language with hidden assumptions, ambiguous scope, and implicit constraints. This gate surfaces those gaps through collaborative exploration and produces an immutable mission spec file (`.geas/missions/{mission_id}/spec.json`) before the team starts building.
 
+## Inputs
+
+- **Raw mission description** — natural language from the user describing what they want to build
+- **Project context** — existing codebase structure, `.geas/rules.md` conventions (if available)
+- **Domain profile hint** — user's indication of work type (software, research, etc.)
+
+---
+
 ## Process
 
 ### Step 1: Assess Scope
