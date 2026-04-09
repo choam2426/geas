@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::commands::{name_from_path, read_json_file};
-use crate::models::{Checkpoint, DebtItem, DebtRegister, MissionSpec, RunState, SeverityRollup, TaskContract, TaskScope};
+use crate::models::{Checkpoint, DebtItem, DebtRegister, MissionSpec, Rubric, RunState, SeverityRollup, TaskContract, TaskScope};
 
 #[test]
 fn name_from_unix_path() {
@@ -213,6 +213,56 @@ fn debt_item_without_new_fields() {
     let item: DebtItem = serde_json::from_str(json).unwrap();
     assert!(item.description.is_none());
     assert!(item.introduced_by_task_id.is_none());
+}
+
+#[test]
+fn task_contract_with_schema_fields() {
+    let json = r#"{
+        "version": "1.0",
+        "artifact_type": "task_contract",
+        "artifact_id": "tc-001",
+        "producer_type": "orchestration_authority",
+        "created_at": "2026-04-06T10:00:00Z",
+        "task_id": "task-012",
+        "title": "Extend TaskInfo",
+        "goal": "Add new fields to TaskInfo",
+        "task_kind": "implementation",
+        "risk_level": "normal",
+        "status": "ready",
+        "gate_profile": "implementation_change",
+        "vote_round_policy": "auto",
+        "eval_commands": ["cargo test", "npm test"],
+        "rubric": {
+            "dimensions": [
+                { "name": "correctness", "threshold": 4 },
+                { "name": "completeness", "threshold": 3 }
+            ]
+        },
+        "retry_budget": 3,
+        "base_snapshot": "abc123",
+        "acceptance_criteria": ["AC1", "AC2"],
+        "scope": { "surfaces": ["models.rs"] },
+        "routing": {
+            "primary_worker_type": "software-engineer",
+            "required_reviewer_types": ["design-authority"]
+        }
+    }"#;
+
+    let tc: TaskContract = serde_json::from_str(json).unwrap();
+    assert_eq!(tc.version.as_deref(), Some("1.0"));
+    assert_eq!(tc.artifact_type.as_deref(), Some("task_contract"));
+    assert_eq!(tc.artifact_id.as_deref(), Some("tc-001"));
+    assert_eq!(tc.producer_type.as_deref(), Some("orchestration_authority"));
+    assert_eq!(tc.created_at.as_deref(), Some("2026-04-06T10:00:00Z"));
+    assert_eq!(tc.gate_profile.as_deref(), Some("implementation_change"));
+    assert_eq!(tc.vote_round_policy.as_deref(), Some("auto"));
+    assert_eq!(tc.eval_commands.len(), 2);
+    let rubric = tc.rubric.unwrap();
+    assert_eq!(rubric.dimensions.len(), 2);
+    assert_eq!(rubric.dimensions[0].name, "correctness");
+    assert_eq!(rubric.dimensions[0].threshold, 4);
+    assert_eq!(tc.retry_budget, Some(3));
+    assert_eq!(tc.base_snapshot.as_deref(), Some("abc123"));
 }
 
 #[test]

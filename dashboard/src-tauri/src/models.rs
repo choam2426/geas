@@ -60,7 +60,7 @@ pub struct RunState {
 }
 
 /// Routing block inside a TaskContract
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
 pub struct TaskRouting {
     #[serde(default)]
@@ -70,15 +70,41 @@ pub struct TaskRouting {
 }
 
 /// Scope block inside a TaskContract
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct TaskScope {
     #[serde(default)]
     pub surfaces: Vec<String>,
 }
 
-/// .geas/missions/{id}/tasks/*.json
-#[derive(Debug, Clone, Default, Deserialize)]
+/// Rubric dimension
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct RubricDimension {
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub threshold: u32,
+}
+
+/// Rubric block inside a TaskContract
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct Rubric {
+    #[serde(default)]
+    pub dimensions: Vec<RubricDimension>,
+}
+
+/// .geas/missions/{id}/tasks/{tid}/contract.json
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct TaskContract {
+    #[serde(default)]
+    pub version: Option<String>,
+    #[serde(default)]
+    pub artifact_type: Option<String>,
+    #[serde(default)]
+    pub artifact_id: Option<String>,
+    #[serde(default)]
+    pub producer_type: Option<String>,
+    #[serde(default)]
+    pub created_at: Option<String>,
     #[serde(default)]
     pub task_id: Option<String>,
     #[serde(default)]
@@ -91,6 +117,18 @@ pub struct TaskContract {
     pub risk_level: Option<String>,
     #[serde(default)]
     pub task_kind: Option<String>,
+    #[serde(default)]
+    pub gate_profile: Option<String>,
+    #[serde(default)]
+    pub vote_round_policy: Option<String>,
+    #[serde(default)]
+    pub eval_commands: Vec<String>,
+    #[serde(default)]
+    pub rubric: Option<Rubric>,
+    #[serde(default)]
+    pub retry_budget: Option<u32>,
+    #[serde(default)]
+    pub base_snapshot: Option<String>,
     #[serde(default)]
     pub routing: Option<TaskRouting>,
     #[serde(default)]
