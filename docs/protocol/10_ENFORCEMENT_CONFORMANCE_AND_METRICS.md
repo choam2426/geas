@@ -338,6 +338,8 @@ Missing artifacts produce exit code 1 with a `missing_artifacts` array.
 
 Unmet criteria produce exit code 1 with an `unmet_criteria` array.
 
+> **Note:** Phase reference documents (`specifying.md`, `building.md`, `polishing.md`, `evolving.md`) describe the complete recommended procedure for each phase. Phase guards enforce only the mechanical prerequisites — artifact existence and state conditions. Guards are a subset of the full procedure, not a complete replacement. Agents should follow the full reference procedure; guards enforce the minimum gate criteria.
+
 ## Key Statement
 
 Enforcement is the difference between protocol and folklore. If Geas cannot block invalid progression, it is no longer governing the workflow.

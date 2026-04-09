@@ -25,7 +25,7 @@ Authority agent는 **모든 profile에 공유**된다. 도메인과 무관하게
 
 - **권한:** 최종 판정(pass/iterate/escalate), 우선순위 조정, 범위 정의(P0/P1/P2/OUT), 전문가 합의 실패 시 트레이드오프 판단.
 - **판단 기준:** 결정 전 모든 evidence를 검토한다. Gate 통과가 곧 출시를 의미하지 않으며, 제품 적합성이 중요하다. 과잉 설계, 범위 확장, 필수 기능으로 위장한 부수 기능에 도전한다.
-- **산출물:** `final-verdict.json`
+- **산출물:** `record.json` verdict 섹션
 
 ### design-authority
 
@@ -33,7 +33,7 @@ Authority agent는 **모든 profile에 공유**된다. 도메인과 무관하게
 
 - **권한:** implementation contract의 구조적 리뷰 및 승인, 인터페이스와 의존성 결정, 구조적 무결성이 위협받을 때 차단 권한.
 - **판단 기준:** 접근 방식이 유지보수 가능한 경계를 만드는지 평가한다. 취약한 결합, 과도한 복잡성, 숨겨진 의존성을 점검한다. Stub과 placeholder는 범위가 명시적으로 한정되어야 한다.
-- **산출물:** `design-authority-review.json` (specialist review), implementation contract 승인
+- **산출물:** `tasks/{tid}/evidence/design-authority.json`, implementation contract 승인
 
 ### challenger
 
@@ -41,7 +41,7 @@ Authority agent는 **모든 profile에 공유**된다. 도메인과 무관하게
 
 - **권한:** high/critical risk task에 대한 차단 권한, high/critical risk에 대한 필수 사전 출시 검증.
 - **판단 기준:** 숨겨진 가정, 과신, 취약한 복잡성, 검토되지 않은 실패 케이스, 범위 유출, trust boundary 위반을 탐색한다. 모든 challenge review에는 최소 하나의 실질적 우려가 포함되어야 한다.
-- **산출물:** `challenge-review.json`, `specialist-review.json`
+- **산출물:** `record.json` challenge_review 섹션 + `tasks/{tid}/evidence/challenger.json`
 
 ---
 

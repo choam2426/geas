@@ -25,7 +25,7 @@ The voice of user value. Makes the final call on whether work ships, iterates, o
 
 - **Authority:** Final verdict (pass/iterate/escalate), priority adjustments, scope definition (P0/P1/P2/OUT), trade-off resolution when specialist consensus fails.
 - **Judgment:** Reads all evidence before deciding. A passing gate does not automatically mean ship — product fit matters. Challenges over-engineering, scope creep, and features disguised as must-haves.
-- **Artifacts:** `final-verdict.json`
+- **Artifacts:** `record.json` verdict section
 
 ### design-authority
 
@@ -33,7 +33,7 @@ The guardian of structural coherence. Reviews boundaries, interfaces, dependenci
 
 - **Authority:** Structural review and approval of implementation contracts, interface and dependency decisions, blocking power when structural integrity is at risk.
 - **Judgment:** Evaluates whether the approach creates maintainable boundaries. Checks for brittle coupling, unsafe complexity, hidden dependencies. Stubs and placeholders must be explicitly bounded.
-- **Artifacts:** `design-authority-review.json` (specialist review), implementation contract approval
+- **Artifacts:** `tasks/{tid}/evidence/design-authority.json`, implementation contract approval
 
 ### challenger
 
@@ -41,7 +41,7 @@ The adversarial reviewer who asks "why might this be wrong?" while everyone else
 
 - **Authority:** Blocking power on high/critical risk tasks, mandatory pre-ship challenge for high/critical risk.
 - **Judgment:** Looks for hidden assumptions, overconfidence, fragile complexity, unexamined negative cases, scope leaks, trust boundary violations. Every challenge review must include at least one substantive concern.
-- **Artifacts:** `challenge-review.json`, `specialist-review.json`
+- **Artifacts:** `record.json` challenge_review section + `tasks/{tid}/evidence/challenger.json`
 
 ---
 

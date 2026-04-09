@@ -72,21 +72,26 @@ task에 반드시 있어야 하는 것:
 
 | 필드 | 설명 |
 |---|---|
+| `version` | 이 artifact의 schema 버전 |
+| `artifact_type` | 반드시 `"task_contract"`이어야 함 |
+| `artifact_id` | 이 artifact의 전역 고유 식별자 |
+| `producer_type` | 이 contract를 생성한 agent 타입 |
+| `created_at` | contract 생성 시각 (ISO 8601) |
 | `task_id` | task 고유 식별자 |
 | `title` | 사람이 읽을 수 있는 짧은 이름 |
-| `description` | 이 task가 무엇을 달성하고 왜 하는지 |
+| `goal` | 이 task가 무엇을 달성하고 왜 하는지 |
 | `task_kind` | 작업 유형 분류 (task 분류 참조) |
 | `risk_level` | 영향 범위와 실패 비용 평가 |
-| `status` | 현재 생명주기 상태 |
-| `base_snapshot` | task 진입 시점의 공유 작업 상태 참조 — staleness 감지, 통합 기준, 롤백 지점으로 쓰인다 |
-| `scope.surfaces` | 영향받는 표면, 경로, 도메인 |
-| `acceptance_criteria[]` | 완료를 정의하는 관찰 가능하고 반증 가능한 조건 |
-| `routing.primary_worker_type` | 주 구현자로 배정된 specialist 타입 |
-| `routing.required_reviewer_types[]` | 리뷰 필수 specialist 타입 (라우팅 알고리즘이 산출) |
 | `gate_profile` | 적용할 게이트 단계 |
 | `vote_round_policy` | 구조화된 심의 시점 |
+| `acceptance_criteria[]` | 완료를 정의하는 관찰 가능하고 반증 가능한 조건 |
+| `eval_commands[]` | quality specialist가 인수 기준을 검증할 때 실행하는 명령 |
+| `rubric` | 게이트 평가에 사용되는 채점 항목과 가중치 |
 | `retry_budget` | 남은 검증 재시도 횟수 |
-| `workspace` | 이 task를 위한 격리된 실행 환경 |
+| `scope` | `surfaces` 배열을 포함하는 객체 — 영향받는 표면, 경로, 도메인 |
+| `routing` | `primary_worker_type`과 `required_reviewer_types[]`를 포함하는 객체 |
+| `base_snapshot` | task 진입 시점의 공유 작업 상태 참조 — staleness 감지, 통합 기준, 롤백 지점으로 쓰인다 |
+| `status` | 현재 생명주기 상태 |
 
 ### 추가 권장 필드
 

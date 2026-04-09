@@ -45,11 +45,11 @@ If no P0 items remain: skip to product_authority Final Briefing.
 
 1. Read all per-task retrospectives from record.json: for each task directory in `.geas/missions/{mission_id}/tasks/`, read `record.json` and extract the `retrospective` section
 2. Collect all `rule_candidates[]` across tasks
-3. If no candidates across any task: write `.geas/missions/{mission_id}/evolution/rules-update.json` (use Write tool — no dedicated CLI command for rules-update) with `status: "none"`, `reason: "no rule candidates from any task retrospective"`, `evidence_refs: []`, `applies_to: []`. Skip to next step.
+3. If no candidates across any task: write rules-update via CLI: `Bash("geas evolution rules-update --mission {mission_id} --data '<rules_update_json>'")`  with `status: "none"`, `reason: "no rule candidates from any task retrospective"`, `evidence_refs: []`, `applies_to: []`. Skip to next step.
 4. For each candidate, check approval conditions:
    - `evidence_refs` >= 2 (same pattern observed in 2+ tasks) AND `contradiction_count` = 0 -> auto-approve
    - Otherwise -> spawn domain authority for review
-5. Assemble the rules-update JSON and write it to `.geas/missions/{mission_id}/evolution/rules-update.json` (use Write tool -- no dedicated CLI command for rules-update). Required fields: `status` (approved/none), `reason`, `evidence_refs`, `applies_to`.
+5. Assemble the rules-update JSON and write it via CLI: `Bash("geas evolution rules-update --mission {mission_id} --data '<rules_update_json>'")`  Required fields: `status` (approved/none), `reason`, `evidence_refs`, `applies_to`.
 6. If `status: "approved"`: apply changes to `.geas/rules.md`
 7. Log: `Bash("geas event log --type rules_update --data '{\"status\":\"approved|none\"}'")` 
 
