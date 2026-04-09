@@ -20,7 +20,7 @@
         "demo_steps": { "type": "array", "items": { "type": "string" } },
         "status": { "type": "string", "enum": ["draft", "in_review", "approved", "revision_requested"] }
       },
-      "required": ["planned_actions", "status"],
+      "required": ["planned_actions", "non_goals", "status"],
       "additionalProperties": true
     },
 
@@ -32,7 +32,7 @@
         "untested_paths": { "type": "array", "items": { "type": "string" } },
         "summary": { "type": "string", "minLength": 1 }
       },
-      "required": ["confidence", "summary"],
+      "required": ["confidence", "summary", "known_risks", "untested_paths"],
       "additionalProperties": true
     },
 
@@ -124,7 +124,7 @@
         "open_risks": { "type": "array", "items": { "type": "string" } },
         "debt_items": { "type": "array", "items": { "type": "string" } }
       },
-      "required": ["change_summary"],
+      "required": ["change_summary", "reviews", "open_risks", "debt_items"],
       "additionalProperties": true
     },
 

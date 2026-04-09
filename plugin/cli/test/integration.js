@@ -208,6 +208,7 @@ function defineTests(tmpDir) {
         // v4: ready->implementing guard requires record.json:implementation_contract section with status "approved"
         const sectionData = JSON.stringify({
           planned_actions: ['Implement feature'],
+          non_goals: ['Out-of-scope refactoring'],
           status: 'approved',
         }).replace(/"/g, '\\"');
         return runWithCwd(
@@ -587,7 +588,7 @@ function defineGuardTests(tmpDir) {
           writeTaskContract(taskId, { status: 'verified' });
           writeRecord(taskId, {
             verdict: { verdict: 'pass', rationale: 'All good' },
-            closure: { change_summary: 'Done' },
+            closure: { change_summary: 'Done', reviews: [], open_risks: [], debt_items: [] },
             retrospective: { what_went_well: ['Tests pass'], what_broke: [] },
           });
           return runWithCwd(
@@ -685,7 +686,7 @@ function defineV4Tests(tmpDir) {
         name: '[v4] record add with --set',
         fn: () =>
           runWithCwd(
-            `task record add --mission ${V4_MISSION} --task v4-task-001 --section self_check --set confidence=4 --set "summary=All tests pass"`,
+            `task record add --mission ${V4_MISSION} --task v4-task-001 --section self_check --set confidence=4 --set "summary=All tests pass" --set "known_risks=[]" --set "untested_paths=[]"`,
             tmpDir,
           ),
         validate: (r) => r.section === 'self_check' && r.action === 'added',
@@ -713,6 +714,7 @@ function defineV4Tests(tmpDir) {
             confidence: 5,
             summary: 'Updated after fix',
             known_risks: ['None'],
+            untested_paths: ['Edge case handling'],
           }).replace(/"/g, '\\"');
           return runWithCwd(
             `task record add --mission ${V4_MISSION} --task v4-task-001 --section self_check --data "${sectionData}"`,
