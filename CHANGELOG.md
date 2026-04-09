@@ -8,7 +8,7 @@ All notable changes to this project are documented in this file.
 
 ## [0.8.0] — 2026-04-10
 
-Schema alignment, Windows compatibility, and flexible agent selection.
+Schema alignment, Windows compatibility, flexible agent selection, and CLI improvements.
 
 ### Fixed
 - `enrichTimestamp` Windows path regex bug — regex required leading `/`, failing on Windows paths like `A:/...`. Replaced with `includes`/`endsWith` pattern. Same fix applied to `checkScopeAndFrozenSpec` and `checkTaskPassedEvidence`.
@@ -25,6 +25,7 @@ Schema alignment, Windows compatibility, and flexible agent selection.
 
 ### Added
 - Optional `updated_at` field added to 13 schemas that have `created_at` (CLI auto-injects on file updates)
+- `geas mission create` auto-generates mission ID when `--id` is omitted — orchestrators no longer need to generate IDs manually
 
 ## [0.7.0] — 2026-04-10
 
