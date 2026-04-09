@@ -588,7 +588,8 @@ function defineGuardTests(tmpDir) {
           writeTaskContract(taskId, { status: 'verified' });
           writeRecord(taskId, {
             verdict: { verdict: 'pass', rationale: 'All good' },
-            closure: { change_summary: 'Done', reviews: [], open_risks: [], debt_items: [] },
+            gate_result: { verdict: 'pass', tier: 1 },
+            closure: { change_summary: 'Done', reviews: [{ reviewer: 'tester', outcome: 'approved' }], open_risks: [], debt_items: [] },
             retrospective: { what_went_well: ['Tests pass'], what_broke: [] },
           });
           return runWithCwd(

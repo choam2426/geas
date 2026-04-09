@@ -269,8 +269,9 @@ function guardIntegratedToVerified(
 }
 
 /**
- * verified -> passed: record.json must have verdict (pass), closure,
- * retrospective sections. challenge_review required for high/critical risk.
+ * verified -> passed: record.json must have verdict (pass), gate_result (pass),
+ * closure (with ≥1 review), retrospective sections.
+ * challenge_review required for high/critical risk, and must not be blocking.
  */
 function guardVerifiedToPassed(
   geasDir: string,
@@ -292,9 +293,27 @@ function guardVerifiedToPassed(
     }
   }
 
-  // closure section
+  // C3: gate_result.verdict must be "pass" (re-verify)
+  if (!hasRecordSection(record, 'gate_result', { field: 'verdict', value: 'pass' })) {
+    const sec = record?.['gate_result'] as Record<string, unknown> | undefined;
+    if (!sec) {
+      missing.push('record.json:gate_result section');
+    } else {
+      missing.push(
+        `record.json:gate_result.verdict must be "pass" (got "${sec.verdict}")`,
+      );
+    }
+  }
+
+  // C3: closure section with at least 1 review
   if (!hasRecordSection(record, 'closure')) {
     missing.push('record.json:closure section');
+  } else {
+    const closure = record!['closure'] as Record<string, unknown>;
+    const reviews = closure.reviews as Array<Record<string, unknown>> | undefined;
+    if (!Array.isArray(reviews) || reviews.length === 0) {
+      missing.push('record.json:closure.reviews must have at least 1 review');
+    }
   }
 
   // retrospective section
@@ -310,10 +329,18 @@ function guardVerifiedToPassed(
   const riskLevel = contract?.risk_level as string | undefined;
   const requiresChallenge = ['high', 'critical'].includes(riskLevel ?? '');
 
-  if (requiresChallenge && !hasRecordSection(record, 'challenge_review')) {
-    missing.push(
-      `record.json:challenge_review section (required for ${riskLevel}-risk task)`,
-    );
+  if (requiresChallenge) {
+    if (!hasRecordSection(record, 'challenge_review')) {
+      missing.push(
+        `record.json:challenge_review section (required for ${riskLevel}-risk task)`,
+      );
+    } else {
+      // C3: challenge_review must not be blocking
+      const cr = record!['challenge_review'] as Record<string, unknown>;
+      if (cr.blocking === true) {
+        missing.push('record.json:challenge_review.blocking is true (must be resolved before passing)');
+      }
+    }
   }
 
   return missing.length === 0
