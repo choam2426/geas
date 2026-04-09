@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::commands::{name_from_path, read_json_file};
-use crate::models::{DebtItem, DebtRegister, MissionSpec, RunState, SeverityRollup, TaskContract, TaskScope};
+use crate::models::{Checkpoint, DebtItem, DebtRegister, MissionSpec, RunState, SeverityRollup, TaskContract, TaskScope};
 
 #[test]
 fn name_from_unix_path() {
@@ -213,4 +213,45 @@ fn debt_item_without_new_fields() {
     let item: DebtItem = serde_json::from_str(json).unwrap();
     assert!(item.description.is_none());
     assert!(item.introduced_by_task_id.is_none());
+}
+
+#[test]
+fn run_state_with_new_fields() {
+    let json = r#"{
+        "version": "1.0",
+        "status": "in_progress",
+        "mission_id": "mission-001",
+        "mission": "Build dashboard",
+        "phase": "building",
+        "current_task_id": "task-003",
+        "completed_tasks": ["task-001", "task-002"],
+        "decisions": ["decision-001"],
+        "session_latest_path": ".geas/state/session-latest.md",
+        "recovery_class": "warm_session_resume",
+        "scheduler_state": "active",
+        "created_at": "2026-04-06T10:00:00Z",
+        "checkpoint": {
+            "last_updated": "2026-04-06T10:00:00Z",
+            "pipeline_step": "implementation",
+            "agent_in_flight": "software-engineer",
+            "pending_evidence": ["evidence-001"],
+            "retry_count": 2,
+            "parallel_batch": ["task-003", "task-004"],
+            "completed_in_batch": ["task-003"],
+            "remaining_steps": ["review", "integrate"],
+            "checkpoint_phase": "committed"
+        }
+    }"#;
+
+    let rs: RunState = serde_json::from_str(json).unwrap();
+    assert_eq!(rs.decisions.len(), 1);
+    assert_eq!(rs.session_latest_path.as_deref(), Some(".geas/state/session-latest.md"));
+    assert_eq!(rs.recovery_class.as_deref(), Some("warm_session_resume"));
+    assert_eq!(rs.scheduler_state.as_deref(), Some("active"));
+    assert_eq!(rs.created_at.as_deref(), Some("2026-04-06T10:00:00Z"));
+    let cp = rs.checkpoint.unwrap();
+    assert_eq!(cp.pending_evidence.len(), 1);
+    assert_eq!(cp.retry_count, Some(2));
+    assert_eq!(cp.remaining_steps.len(), 2);
+    assert_eq!(cp.checkpoint_phase.as_deref(), Some("committed"));
 }

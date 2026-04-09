@@ -17,6 +17,14 @@ pub struct Checkpoint {
     pub parallel_batch: Option<Vec<String>>,
     #[serde(default)]
     pub completed_in_batch: Vec<String>,
+    #[serde(default)]
+    pub pending_evidence: Vec<String>,
+    #[serde(default)]
+    pub retry_count: Option<u32>,
+    #[serde(default)]
+    pub remaining_steps: Vec<String>,
+    #[serde(default)]
+    pub checkpoint_phase: Option<String>,
 }
 
 /// .geas/state/run.json
@@ -37,6 +45,16 @@ pub struct RunState {
     pub current_task_id: Option<String>,
     #[serde(default)]
     pub completed_tasks: Vec<String>,
+    #[serde(default)]
+    pub decisions: Vec<String>,
+    #[serde(default)]
+    pub session_latest_path: Option<String>,
+    #[serde(default)]
+    pub recovery_class: Option<String>,
+    #[serde(default)]
+    pub scheduler_state: Option<String>,
+    #[serde(default)]
+    pub created_at: Option<String>,
     #[serde(default)]
     pub checkpoint: Option<Checkpoint>,
 }
