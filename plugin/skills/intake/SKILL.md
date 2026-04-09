@@ -97,26 +97,19 @@ Check the completeness checklist — all items must be true:
 - `constraints`: approved
 - `affected_surfaces`: identified
 
-Generate the mission ID in the format `mission-{YYYYMMDD}-{8char}` where:
-- `YYYYMMDD` is the current UTC date
-- `{8char}` is 8 random alphanumeric characters ([a-zA-Z0-9])
-
-Example: `mission-20260407-x7Kq9mPv`
-
-The concrete generation method (shell command, language library, etc.) is determined by the runtime environment — do not hardcode a specific tool. Verify uniqueness by checking that `.geas/missions/{generated_id}/` does not already exist.
-
-Create the mission directory structure (CLI creates all subdirectories automatically):
+Create the mission directory structure. The CLI auto-generates the mission ID and returns it:
 ```bash
-Bash("geas mission create --id {mission_id}")
+Bash("geas mission create")
 ```
+The response includes `mission_id` (e.g., `mission-20260407-x7Kq9mPv`). Use this ID for all subsequent commands.
 
 Write the mission spec via CLI with schema validation:
 ```bash
 Bash("geas mission write-spec --id {mission_id} --data '<spec_json>'")
 ```
 The CLI validates the spec against the schema automatically and auto-injects `created_at`. Include:
-- `"version": "1.0"`, `"artifact_type": "mission_spec"`, `"artifact_id": "mission-{YYYYMMDD}-{8char}"`
-- `"producer_type": "orchestration-authority"`, `"mission_id": "mission-{YYYYMMDD}-{8char}"`
+- `"version": "1.0"`, `"artifact_type": "mission_spec"`, `"artifact_id": "{mission_id}"`
+- `"producer_type": "orchestration-authority"`, `"mission_id": "{mission_id}"`
 
 Always include the `source` field:
 - `"full_intake"` — complete Socratic exploration with user

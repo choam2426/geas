@@ -10136,6 +10136,7 @@ function registerStateCommands(program2) {
 // src/commands/mission.ts
 var fs6 = __toESM(require("fs"));
 var path5 = __toESM(require("path"));
+var crypto = __toESM(require("crypto"));
 
 // ../../docs/protocol/schemas/_defs.schema.json
 var defs_schema_default = {
@@ -11946,6 +11947,20 @@ function coerceValue(raw) {
 }
 
 // src/commands/mission.ts
+function generateMissionId() {
+  const now = /* @__PURE__ */ new Date();
+  const y = now.getUTCFullYear();
+  const m = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(now.getUTCDate()).padStart(2, "0");
+  const date = `${y}${m}${d}`;
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = crypto.randomBytes(8);
+  let rand = "";
+  for (let i = 0; i < 8; i++) {
+    rand += chars[bytes[i] % chars.length];
+  }
+  return `mission-${date}-${rand}`;
+}
 var MISSION_SUBDIRS = [
   "tasks",
   "evidence",
@@ -11957,11 +11972,26 @@ var MISSION_SUBDIRS = [
 ];
 function registerMissionCommands(program2) {
   const cmd = program2.command("mission").description("Mission CRUD (spec, design-brief, directory)");
-  cmd.command("create").description("Create a mission directory with full subdirectory structure").requiredOption("--id <mission-id>", "Mission identifier").action((opts) => {
+  cmd.command("create").description("Create a mission directory with full subdirectory structure. Auto-generates ID if --id is omitted.").option("--id <mission-id>", "Mission identifier (auto-generated if omitted)").action((opts) => {
     try {
-      validateIdentifier(opts.id, "mission ID");
       const geasDir2 = resolveGeasDir(getCwd(cmd));
-      const missionDir = path5.resolve(geasDir2, "missions", opts.id);
+      const missionsDir = path5.resolve(geasDir2, "missions");
+      let missionId;
+      if (opts.id) {
+        validateIdentifier(opts.id, "mission ID");
+        missionId = opts.id;
+      } else {
+        let attempts = 0;
+        do {
+          missionId = generateMissionId();
+          attempts++;
+          if (attempts > 10) {
+            fileError("", "create", "Failed to generate unique mission ID after 10 attempts");
+            return;
+          }
+        } while (fs6.existsSync(path5.resolve(missionsDir, missionId)));
+      }
+      const missionDir = path5.resolve(missionsDir, missionId);
       const normalized = normalizePath(missionDir);
       if (fs6.existsSync(missionDir)) {
         fileError(normalized, "create", `Mission directory already exists: ${normalized}`);
@@ -11973,6 +12003,7 @@ function registerMissionCommands(program2) {
       }
       success({
         created: normalized,
+        mission_id: missionId,
         subdirectories: MISSION_SUBDIRS
       });
     } catch (err) {

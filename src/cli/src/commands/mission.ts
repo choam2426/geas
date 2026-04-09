@@ -5,6 +5,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import type { Command } from 'commander';
 import { resolveGeasDir, normalizePath, validateIdentifier } from '../lib/paths';
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
@@ -12,6 +13,22 @@ import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
 import { readInputData } from '../lib/input';
+
+/** Generate a mission ID in the format mission-{YYYYMMDD}-{8alphanumeric}. */
+function generateMissionId(): string {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(now.getUTCDate()).padStart(2, '0');
+  const date = `${y}${m}${d}`;
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = crypto.randomBytes(8);
+  let rand = '';
+  for (let i = 0; i < 8; i++) {
+    rand += chars[bytes[i] % chars.length];
+  }
+  return `mission-${date}-${rand}`;
+}
 
 /** Subdirectories that must exist inside a mission directory. */
 const MISSION_SUBDIRS = [
@@ -29,16 +46,34 @@ export function registerMissionCommands(program: Command): void {
     .command('mission')
     .description('Mission CRUD (spec, design-brief, directory)');
 
-  // ── geas mission create --id <mission-id> ─────────────────────────
+  // ── geas mission create [--id <mission-id>] ───────────────────────
   cmd
     .command('create')
-    .description('Create a mission directory with full subdirectory structure')
-    .requiredOption('--id <mission-id>', 'Mission identifier')
-    .action((opts: { id: string }) => {
+    .description('Create a mission directory with full subdirectory structure. Auto-generates ID if --id is omitted.')
+    .option('--id <mission-id>', 'Mission identifier (auto-generated if omitted)')
+    .action((opts: { id?: string }) => {
       try {
-        validateIdentifier(opts.id, 'mission ID');
         const geasDir = resolveGeasDir(getCwd(cmd));
-        const missionDir = path.resolve(geasDir, 'missions', opts.id);
+        const missionsDir = path.resolve(geasDir, 'missions');
+
+        let missionId: string;
+        if (opts.id) {
+          validateIdentifier(opts.id, 'mission ID');
+          missionId = opts.id;
+        } else {
+          // Auto-generate with uniqueness check
+          let attempts = 0;
+          do {
+            missionId = generateMissionId();
+            attempts++;
+            if (attempts > 10) {
+              fileError('', 'create', 'Failed to generate unique mission ID after 10 attempts');
+              return;
+            }
+          } while (fs.existsSync(path.resolve(missionsDir, missionId)));
+        }
+
+        const missionDir = path.resolve(missionsDir, missionId);
         const normalized = normalizePath(missionDir);
 
         if (fs.existsSync(missionDir)) {
@@ -54,6 +89,7 @@ export function registerMissionCommands(program: Command): void {
 
         success({
           created: normalized,
+          mission_id: missionId,
           subdirectories: MISSION_SUBDIRS,
         });
       } catch (err: unknown) {
