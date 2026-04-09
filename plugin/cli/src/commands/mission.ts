@@ -11,37 +11,7 @@ import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
-
-/** Read JSON from --data flag or piped stdin. */
-function readInputData(dataArg: string | undefined): unknown {
-  let raw: string | undefined = dataArg;
-
-  if (!raw) {
-    // Try reading from stdin (piped, non-TTY)
-    try {
-      if (!process.stdin.isTTY) {
-        raw = fs.readFileSync(0, 'utf-8').trim();
-      }
-    } catch {
-      // stdin not available or empty
-    }
-  }
-
-  if (!raw) {
-    const err = new Error('No data provided. Use --data <json> or pipe JSON to stdin.');
-    (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
-    throw err;
-  }
-
-  try {
-    return JSON.parse(raw);
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    const err = new Error(`Invalid JSON in --data: ${msg}`);
-    (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
-    throw err;
-  }
-}
+import { readInputData } from '../lib/input';
 
 /** Subdirectories that must exist inside a mission directory. */
 const MISSION_SUBDIRS = [
@@ -118,7 +88,7 @@ export function registerMissionCommands(program: Command): void {
           return;
         }
 
-        const data = readInputData(opts.data);
+        const data = readInputData(opts.data, undefined);
 
         // Validate against mission-spec schema
         const result = validate('mission-spec', data);
@@ -167,7 +137,7 @@ export function registerMissionCommands(program: Command): void {
           return;
         }
 
-        const data = readInputData(opts.data);
+        const data = readInputData(opts.data, undefined);
 
         // Validate against design-brief schema
         const result = validate('design-brief', data);

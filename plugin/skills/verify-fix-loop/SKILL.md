@@ -100,7 +100,7 @@ Spawn **product-authority** with full context:
 
 ### `"pivot"`
 
-Invoke `/pivot-protocol` with full context.
+Invoke `/geas:vote-round` with full context.
 
 ### Write DecisionRecord
 
@@ -147,6 +147,6 @@ Evidence Gate PASS?
                            -> escalation_policy:
                               design-authority-review -> design_authority analysis -> fixable? -> one more try
                               product-authority-decision -> product_authority decides
-                              pivot -> Pivot Protocol
+                              pivot -> /geas:vote-round
                            -> Write DecisionRecord
 ```

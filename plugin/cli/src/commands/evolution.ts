@@ -27,7 +27,8 @@ export function registerEvolutionCommands(program: Command): void {
     .action((opts: { mission: string; phase: string; data?: string }, actionCmd: Command) => {
       try {
         const data = readInputData(opts.data, undefined) as Record<string, unknown>;
-        const geasDir = resolveGeasDir(getCwd(actionCmd));
+        const cwd = getCwd(actionCmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         const result = validate('gap-assessment', data);
@@ -39,7 +40,7 @@ export function registerEvolutionCommands(program: Command): void {
         const evolutionDir = path.resolve(missionDir, 'evolution');
         ensureDir(evolutionDir);
         const filePath = path.resolve(evolutionDir, `gap-assessment-${opts.phase}.json`);
-        writeJsonFile(filePath, data);
+        writeJsonFile(filePath, data, { cwd });
 
         success({
           written: normalizePath(filePath),
@@ -83,7 +84,7 @@ export function registerEvolutionCommands(program: Command): void {
         const evolutionDir = path.resolve(missionDir, 'evolution');
         ensureDir(evolutionDir);
         const filePath = path.resolve(evolutionDir, 'rules-update.json');
-        writeJsonFile(filePath, data);
+        writeJsonFile(filePath, data, { cwd });
 
         success({
           written: normalizePath(filePath),

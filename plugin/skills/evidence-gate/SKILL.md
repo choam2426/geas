@@ -267,7 +267,7 @@ Bash("geas event log --type gate_result --task {task-id} --data '{\"result\":\"p
    - Follow the `escalation_policy`:
      - `"design-authority-review"`: spawn the `design_authority` for architectural review, write a DecisionRecord
      - `"product-authority-decision"`: spawn the `product_authority` for a strategic decision (continue/cut/pivot)
-     - `"pivot"`: invoke pivot protocol
+     - `"pivot"`: invoke `/geas:vote-round`
    - Update TaskContract status: `Bash("geas task transition --mission {mission_id} --id {task-id} --to escalated")`
    - Write a DecisionRecord via CLI: `Bash("geas decision write --mission {mission_id} --data '<decision_json>'")`
 

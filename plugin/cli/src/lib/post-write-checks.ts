@@ -1,13 +1,11 @@
 /**
- * Post-write checks -- replicates 8 PostToolUse hook behaviors inside the CLI.
+ * Post-write checks -- replicates 6 PostToolUse hook behaviors inside the CLI.
  *
  * Each check function maps to a specific hook:
  * - checkTimestampAndScope      -> protect-geas-state.sh
  * - checkTaskPassedEvidence     -> verify-task-status.sh
  * - checkDebtThreshold          -> check-debt.sh
  * - checkLockConflicts          -> lock-conflict-check.sh
- * - checkMemoryPromotion        -> memory-promotion-gate.sh
- * - checkStaleMemoryRefs        -> memory-superseded-warning.sh
  * - writeCheckpointPending      -> checkpoint-pre-write.sh
  * - cleanupCheckpointPending    -> checkpoint-post-write.sh
  * - checkPacketStaleness        -> packet-stale-check.sh
@@ -224,7 +222,7 @@ export function checkTaskPassedEvidence(
   // v4: verdict, challenge_review, retrospective are record.json sections
   const recordPath = path.join(tdir, 'record.json');
   const record = readJsonSafe(recordPath);
-  const sections = (record?.sections as Record<string, unknown>) || record || {};
+  const sections = record || {};
 
   // Always required: verdict section in record.json
   if (!sections.verdict) {
@@ -371,41 +369,7 @@ export function checkLockConflicts(
 }
 
 // ---------------------------------------------------------------------------
-// 5. checkMemoryPromotion  (memory-promotion-gate.sh)
-// ---------------------------------------------------------------------------
-
-/**
- * v4: Memory is simplified to 2-state (draft/active) with agent .md files.
- * No structured promotion guards needed. Retained as no-op for dispatcher compatibility.
- */
-export function checkMemoryPromotion(
-  _filePath: string,
-  _data: unknown,
-  _cwd: string
-): string[] {
-  // v4 simplified memory has no structured promotion pipeline.
-  return [];
-}
-
-// ---------------------------------------------------------------------------
-// 6. checkStaleMemoryRefs  (memory-superseded-warning.sh)
-// ---------------------------------------------------------------------------
-
-/**
- * v4: Memory is simplified to 2-state (draft/active) with agent .md files.
- * No memory-index.json to check against. Retained as no-op for dispatcher compatibility.
- */
-export function checkStaleMemoryRefs(
-  _filePath: string,
-  _data: unknown,
-  _cwd: string
-): string[] {
-  // v4 simplified memory has no memory-index.json or stale state tracking.
-  return [];
-}
-
-// ---------------------------------------------------------------------------
-// 7a. writeCheckpointPending  (checkpoint-pre-write.sh)
+// 5a. writeCheckpointPending  (checkpoint-pre-write.sh)
 // ---------------------------------------------------------------------------
 
 /**
@@ -436,7 +400,7 @@ export function writeCheckpointPending(
 }
 
 // ---------------------------------------------------------------------------
-// 7b. cleanupCheckpointPending  (checkpoint-post-write.sh)
+// 5b. cleanupCheckpointPending  (checkpoint-post-write.sh)
 // ---------------------------------------------------------------------------
 
 /**
@@ -460,7 +424,7 @@ export function cleanupCheckpointPending(
 }
 
 // ---------------------------------------------------------------------------
-// 8. checkPacketStaleness  (packet-stale-check.sh)
+// 6. checkPacketStaleness  (packet-stale-check.sh)
 // ---------------------------------------------------------------------------
 
 /**
@@ -529,16 +493,10 @@ export function runPostWriteChecks(
   // 4. Lock conflicts
   warnings.push(...checkLockConflicts(filePath, data, cwd));
 
-  // 5. Memory promotion guards
-  warnings.push(...checkMemoryPromotion(filePath, data, cwd));
-
-  // 6. Stale memory refs
-  warnings.push(...checkStaleMemoryRefs(filePath, data, cwd));
-
-  // 7. Checkpoint cleanup (post-write for run.json)
+  // 5. Checkpoint cleanup (post-write for run.json)
   cleanupCheckpointPending(filePath, cwd);
 
-  // 8. Packet staleness (run.json)
+  // 6. Packet staleness (run.json)
   warnings.push(...checkPacketStaleness(filePath, data, cwd));
 
   return warnings;

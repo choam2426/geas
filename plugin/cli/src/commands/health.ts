@@ -191,7 +191,7 @@ const SIGNAL_DEFS: SignalDef[] = [
         const recordPath = path.join(ctx.missionDir, 'tasks', tid, 'record.json');
         try {
           const record = JSON.parse(fs.readFileSync(recordPath, 'utf-8')) as Record<string, unknown>;
-          const sections = (record.sections as Record<string, unknown>) || record;
+          const sections = record;
           const gateResult = sections.gate_result as Record<string, unknown> | undefined;
           if (gateResult) {
             total++;
@@ -318,7 +318,7 @@ const SIGNAL_DEFS: SignalDef[] = [
         const recordPath = path.join(ctx.missionDir, 'tasks', tid, 'record.json');
         try {
           const record = JSON.parse(fs.readFileSync(recordPath, 'utf-8')) as Record<string, unknown>;
-          const sections = (record.sections as Record<string, unknown>) || record;
+          const sections = record;
           const selfCheck = sections.self_check as Record<string, unknown> | undefined;
           if (selfCheck && typeof selfCheck.confidence === 'number' && selfCheck.confidence <= 2) {
             lowConfidence++;

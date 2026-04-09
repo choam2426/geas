@@ -98,7 +98,15 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 
 ## Agent Name Rule
 
-Protocol docs (`docs/protocol/`, `docs/ko/protocol/`), core skills, and agent file names all use **agent type names** (e.g., `product-authority`, `design-authority`, `challenger`, `software-engineer`, `platform-engineer`). Character names appear only inside agent file content as personality/identity, never as file names or references.
+Agent type names follow a **hybrid naming convention** across contexts:
+
+- **File names** use hyphens: `product-authority.md`, `software-engineer.md`
+- **YAML frontmatter `name` field** uses underscores: `product_authority`, `software_engineer`
+- **JSON schema enum values** use underscores: `product_authority`
+- **Skill text and protocol prose** may use either format depending on context — hyphens for display/file references, underscores for schema/JSON contexts
+- **The canonical identifier for routing** is the YAML `name` field (underscores)
+
+Character names appear only inside agent file content as personality/identity, never as file names or references.
 
 ## Runtime Accessibility Rule
 
