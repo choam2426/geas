@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 /// Checkpoint within RunState
 #[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
 pub struct Checkpoint {
     #[serde(default)]
     pub last_updated: Option<String>,
@@ -154,6 +155,7 @@ pub struct MissionScope {
 
 /// .geas/missions/{id}/spec.json
 #[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
 pub struct MissionSpec {
     #[serde(default)]
     pub version: Option<String>,
@@ -277,6 +279,7 @@ pub struct KindRollup {
 
 /// .geas/missions/{id}/evolution/debt-register.json
 #[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
 pub struct DebtRegister {
     #[serde(default)]
     pub version: Option<String>,
