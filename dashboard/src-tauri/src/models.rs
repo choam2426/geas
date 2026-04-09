@@ -229,6 +229,10 @@ pub struct DebtItem {
     pub status: Option<String>,
     #[serde(default)]
     pub introduced_by_task_id: Option<String>,
+    #[serde(default)]
+    pub owner_type: Option<String>,
+    #[serde(default)]
+    pub target_phase: Option<String>,
 }
 
 /// Severity rollup counts
@@ -236,7 +240,7 @@ pub struct DebtItem {
 pub struct SeverityRollup {
     #[serde(default)]
     pub low: u32,
-    #[serde(default, alias = "medium")]
+    #[serde(default)]
     pub normal: u32,
     #[serde(default)]
     pub high: u32,
@@ -244,13 +248,46 @@ pub struct SeverityRollup {
     pub critical: u32,
 }
 
+/// Kind rollup counts
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct KindRollup {
+    #[serde(default)]
+    pub output_quality: u32,
+    #[serde(default)]
+    pub verification_gap: u32,
+    #[serde(default)]
+    pub structural: u32,
+    #[serde(default)]
+    pub risk: u32,
+    #[serde(default)]
+    pub process: u32,
+    #[serde(default)]
+    pub documentation: u32,
+    #[serde(default)]
+    pub operations: u32,
+}
+
 /// .geas/missions/{id}/evolution/debt-register.json
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct DebtRegister {
     #[serde(default)]
+    pub version: Option<String>,
+    #[serde(default)]
+    pub artifact_type: Option<String>,
+    #[serde(default)]
+    pub artifact_id: Option<String>,
+    #[serde(default)]
+    pub producer_type: Option<String>,
+    #[serde(default)]
+    pub scope: Option<String>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default)]
     pub items: Vec<DebtItem>,
     #[serde(default)]
     pub rollup_by_severity: Option<SeverityRollup>,
+    #[serde(default)]
+    pub rollup_by_kind: Option<KindRollup>,
 }
 
 
