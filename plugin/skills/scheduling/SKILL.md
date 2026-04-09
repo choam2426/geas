@@ -27,10 +27,10 @@ When the orchestrator reaches a point where new tasks could start (Phase 2 entry
 
 1. Read all task files in `.geas/missions/{mission_id}/tasks/`.
 2. Filter: `status == "ready"` AND every ID in `depends_on` has a task file with `status == "passed"`.
-3. **Staleness check per task**: For each candidate, compare `base_commit` with `tip(integration_branch)`.
-   - If `base_commit == tip`: eligible
-   - If `base_commit != tip`: run revalidation procedure
-     - `clean_sync`: eligible (update base_commit first)
+3. **Staleness check per task**: For each candidate, compare `base_snapshot` with `tip(integration_branch)`.
+   - If `base_snapshot == tip`: eligible
+   - If `base_snapshot != tip`: run revalidation procedure
+     - `clean_sync`: eligible (update base_snapshot first)
      - `review_sync`: eligible (flag for re-review after implementation)
      - `replan_required` or `blocking_conflict`: **exclude from batch**. Rewind or block as appropriate. Log event via `geas event log --type revalidation`.
 4. **Lock conflict check**: For each pair of candidate tasks in the batch:
@@ -157,7 +157,7 @@ Speculative execution is PROHIBITED for:
 
 `paused` and `parked` are scheduler execution flags, not task states. The task's state (doc 03) does not change.
 
-- **`paused`**: short suspension. On resume: baseline check only. If `base_commit` is 10+ commits behind `tip(integration_branch)`, run full revalidation.
+- **`paused`**: short suspension. On resume: baseline check only. If `base_snapshot` is 10+ commits behind `tip(integration_branch)`, run full revalidation.
 - **`parked`**: longer hold. On resume: mandatory revalidation. Parking reason must be recorded in `run.json`.
 - **Hotfix preemption**: hotfixes may preempt regular tasks. A preemption record must be left with: preempted `task_id`, preemption reason, task state at preemption time.
 
