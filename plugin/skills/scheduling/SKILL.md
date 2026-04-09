@@ -59,7 +59,7 @@ For each task in the batch:
 
 Update checkpoint via CLI:
 ```bash
-Bash("geas state checkpoint set --step batch_active --agent null --batch STORY-003,STORY-009")
+Bash("geas state checkpoint set --step batch_active --agent null --batch task-003,task-009")
 ```
 
 Note: during batch execution, `remaining_steps` is empty at the batch level. Each task's pipeline progress is tracked by the orchestrator internally (in context) and by evidence file presence.
@@ -70,9 +70,9 @@ Note: during batch execution, `remaining_steps` is empty at the batch level. Eac
 
 The orchestrator manages each task's pipeline independently:
 
-- Each task follows the per-task pipeline defined in `orchestrating/references/pipeline.md`.
+- Each task follows the per-task pipeline defined in `mission/references/pipeline.md`.
 - **Independent progression:** When an agent returns for task A, the orchestrator spawns task A's next step immediately. It does NOT wait for other tasks to reach the same step.
-- **Parallel spawning:** The orchestrator MAY spawn agents for different tasks in the same message (parallel tool calls). Example: `Agent(implementer, "implement STORY-003")` and `Agent(implementer, "implement STORY-009")` in one message.
+- **Parallel spawning:** The orchestrator MAY spawn agents for different tasks in the same message (parallel tool calls). Example: `Agent(implementer, "implement task-003")` and `Agent(implementer, "implement task-009")` in one message.
 - **Step groups:** Within a single task, the orchestrator also applies step group rules from the execution pipeline (e.g., spawning design-authority + quality-specialist simultaneously for the same task).
 - **All mandatory steps apply:** Implementation contract, code review, testing, challenger challenge, product_authority verdict, retrospective, and resolve are mandatory for every task in the batch. Do NOT skip any because of parallelism.
 

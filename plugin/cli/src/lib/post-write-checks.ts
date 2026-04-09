@@ -139,8 +139,9 @@ export function checkScopeAndFrozenSpec(
     if (run && run.current_task_id) {
       const mid = (run.mission_id as string) || '';
       const mdir = mid ? path.join(geas, 'missions', mid) : geas;
+      // v4: tasks/{tid}/contract.json (directory per task)
       const task = readJsonSafe(
-        path.join(mdir, 'tasks', run.current_task_id + '.json')
+        path.join(mdir, 'tasks', run.current_task_id as string, 'contract.json')
       );
       if (task) {
         const scope = task.scope as Record<string, unknown> | undefined;
@@ -169,11 +170,11 @@ export function checkScopeAndFrozenSpec(
 // ---------------------------------------------------------------------------
 
 /**
- * When a task file is written with status "passed", verifies:
- * - Required reviewer evidence exists (from routing.required_reviewer_types).
- * - product-authority-verdict.json exists.
- * - challenge-review.json exists for high/critical risk tasks.
- * - retrospective.json exists.
+ * When a task contract is written with status "passed", verifies:
+ * - Required reviewer evidence exists in tasks/{tid}/evidence/ (from routing.required_reviewer_types).
+ * - record.json has verdict section.
+ * - record.json has challenge_review section for high/critical risk tasks.
+ * - record.json has retrospective section.
  * - All reviewer evidence files have rubric_scores.
  */
 export function checkTaskPassedEvidence(
@@ -182,7 +183,8 @@ export function checkTaskPassedEvidence(
   cwd: string
 ): string[] {
   const normFp = norm(filePath);
-  if (!/\/.geas\/missions\/[^/]+\/tasks\/[^/]+\.json$/.test(normFp)) return [];
+  // v4: tasks/{tid}/contract.json (directory per task)
+  if (!/\/.geas\/missions\/[^/]+\/tasks\/[^/]+\/contract\.json$/.test(normFp)) return [];
 
   const d = (typeof data === 'object' && data !== null)
     ? (data as Record<string, unknown>)
@@ -198,7 +200,8 @@ export function checkTaskPassedEvidence(
   if (!mid) return [];
 
   const mdir = path.join(geas, 'missions', mid);
-  const edir = path.join(mdir, 'evidence', tid);
+  // v4: evidence at tasks/{tid}/evidence/
+  const edir = path.join(mdir, 'tasks', tid, 'evidence');
   const tdir = path.join(mdir, 'tasks', tid);
 
   const warnings: string[] = [];
@@ -218,22 +221,27 @@ export function checkTaskPassedEvidence(
     }
   }
 
-  // Always required: product-authority verdict
-  if (!fileExists(path.join(edir, 'product-authority-verdict.json'))) {
-    warnings.push(`${tid} marked as passed but product-authority-verdict.json is missing`);
+  // v4: verdict, challenge_review, retrospective are record.json sections
+  const recordPath = path.join(tdir, 'record.json');
+  const record = readJsonSafe(recordPath);
+  const sections = (record?.sections as Record<string, unknown>) || record || {};
+
+  // Always required: verdict section in record.json
+  if (!sections.verdict) {
+    warnings.push(`${tid} marked as passed but record.json verdict section is missing`);
   }
 
   // Challenge review required for high/critical
   const riskLevel = (d.risk_level as string) || 'normal';
   if (['high', 'critical'].includes(riskLevel)) {
-    if (!fileExists(path.join(tdir, 'challenge-review.json'))) {
-      warnings.push(`${tid} is ${riskLevel} risk but challenge-review.json is missing`);
+    if (!sections.challenge_review) {
+      warnings.push(`${tid} is ${riskLevel} risk but record.json challenge_review section is missing`);
     }
   }
 
   // Retrospective required
-  if (!fileExists(path.join(tdir, 'retrospective.json'))) {
-    warnings.push(`${tid} marked as passed but retrospective.json is missing`);
+  if (!sections.retrospective) {
+    warnings.push(`${tid} marked as passed but record.json retrospective section is missing`);
   }
 
   // Rubric scores check on all evidence files
@@ -367,50 +375,16 @@ export function checkLockConflicts(
 // ---------------------------------------------------------------------------
 
 /**
- * Validates memory lifecycle state transition guards.
- * - provisional requires evidence_refs >= 2 or evidence_count >= 2
- * - stable requires successful_reuses >= 3 AND contradiction_count == 0
- * - canonical requires successful_reuses >= 5
+ * v4: Memory is simplified to 2-state (draft/active) with agent .md files.
+ * No structured promotion guards needed. Retained as no-op for dispatcher compatibility.
  */
 export function checkMemoryPromotion(
-  filePath: string,
-  data: unknown,
+  _filePath: string,
+  _data: unknown,
   _cwd: string
 ): string[] {
-  const normFp = norm(filePath);
-  if (!normFp.includes('/.geas/memory/entries/')) return [];
-
-  const d = (typeof data === 'object' && data !== null)
-    ? (data as Record<string, unknown>)
-    : null;
-  if (!d || !d.state) return [];
-
-  const refs = Array.isArray(d.evidence_refs) ? d.evidence_refs.length : 0;
-  const evidenceCount = (d.evidence_count as number) || 0;
-  const reuses = (d.successful_reuses as number) || 0;
-  const contradictions = (d.contradiction_count as number) || 0;
-  const memId = (d.memory_id as string) || '?';
-  const state = d.state as string;
-
-  const warnings: string[] = [];
-
-  if (state === 'provisional' && refs < 2 && evidenceCount < 2) {
-    warnings.push(
-      `Memory ${memId}: provisional requires evidence_refs >= 2 or evidence_count >= 2 (has ${refs})`
-    );
-  }
-  if (state === 'stable' && (reuses < 3 || contradictions > 0)) {
-    warnings.push(
-      `Memory ${memId}: stable requires successful_reuses >= 3 AND contradiction_count == 0 (has reuses=${reuses}, contradictions=${contradictions})`
-    );
-  }
-  if (state === 'canonical' && reuses < 5) {
-    warnings.push(
-      `Memory ${memId}: canonical requires successful_reuses >= 5 (has ${reuses})`
-    );
-  }
-
-  return warnings;
+  // v4 simplified memory has no structured promotion pipeline.
+  return [];
 }
 
 // ---------------------------------------------------------------------------
@@ -418,54 +392,16 @@ export function checkMemoryPromotion(
 // ---------------------------------------------------------------------------
 
 /**
- * Warns if a file references memory IDs that are in a stale state
- * (superseded, under_review, decayed, archived, rejected).
- * Scans the file content for [mem-xxx] patterns and checks against memory-index.json.
+ * v4: Memory is simplified to 2-state (draft/active) with agent .md files.
+ * No memory-index.json to check against. Retained as no-op for dispatcher compatibility.
  */
 export function checkStaleMemoryRefs(
-  filePath: string,
+  _filePath: string,
   _data: unknown,
-  cwd: string
+  _cwd: string
 ): string[] {
-  const normFp = norm(filePath);
-  if (!normFp.includes('/.geas/missions/')) return [];
-
-  const geas = geasDir(cwd);
-  const mi = readJsonSafe(path.join(geas, 'state', 'memory-index.json'));
-  if (!mi || !Array.isArray(mi.entries)) return [];
-
-  interface MemoryIndexEntry {
-    memory_id: string;
-    state: string;
-  }
-
-  const entries = mi.entries as MemoryIndexEntry[];
-  const stateMap: Record<string, string> = {};
-  for (const e of entries) {
-    stateMap[e.memory_id] = e.state;
-  }
-
-  let content: string;
-  try {
-    content = fs.readFileSync(filePath, 'utf-8');
-  } catch {
-    return [];
-  }
-
-  const idMatches = content.match(/\[mem-[^\]]+\]/g) || [];
-  const ids = idMatches.map((m) => m.slice(1, -1));
-  const staleStates = ['superseded', 'under_review', 'decayed', 'archived', 'rejected'];
-
-  const warnings: string[] = [];
-  for (const id of ids) {
-    if (staleStates.includes(stateMap[id])) {
-      warnings.push(
-        `Packet references ${id} which is ${stateMap[id]}. Consider regenerating.`
-      );
-    }
-  }
-
-  return warnings;
+  // v4 simplified memory has no memory-index.json or stale state tracking.
+  return [];
 }
 
 // ---------------------------------------------------------------------------

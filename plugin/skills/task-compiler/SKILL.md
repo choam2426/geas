@@ -40,11 +40,12 @@ Determine the four classification fields based on the task nature:
 | Signal | task_kind |
 |--------|-----------|
 | Writing or modifying application code | `implementation` |
-| Writing documentation, README, guides | `docs` |
-| CI/CD, environment, infrastructure files | `config` |
+| Writing documentation, README, guides | `documentation` |
+| CI/CD, environment, infrastructure files | `configuration` |
 | UI/UX wireframes, design specs | `design` |
-| Security review, code audit, compliance check | `audit` |
-| Version bump, changelog, deployment | `release` |
+| Security review, code audit, compliance check | `review` |
+| Research, data gathering, feasibility study | `analysis` |
+| Version bump, changelog, deployment | `delivery` |
 
 **`risk_level`** — how much damage a failure could cause:
 
