@@ -15,8 +15,10 @@ Schema alignment, Windows compatibility, flexible agent selection, and CLI impro
 - Intake skill field name mismatches with mission-spec schema: `risks` → `risk_notes`, `scope.surfaces` → `affected_surfaces`
 - Intake skill `producer_type` example used snake_case (`orchestration_authority`) instead of kebab-case
 - 66 snake_case agent type references across 17 skill/agent files converted to kebab-case per Agent Name Rule
+- Design-brief field name mismatches: added schema field reference to specifying.md (`rejected_reason`, `description`, `design_review` structure)
 
 ### Changed
+- `created_at` removed from `required` in all 12 schemas — CLI auto-injects, agents no longer need to include it
 - `domain_profile` is now a hint, not a hard constraint — orchestrator freely selects the best agent per task from the full agent pool. Mixed-domain missions (research + development) can use agents from any domain.
 - `profiles.json`: `slot_mapping` renamed to `defaults` (semantic clarity)
 - Slot resolution in pipeline/specifying/polishing: mandatory profile lookup replaced with best-fit agent selection
