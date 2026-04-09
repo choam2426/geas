@@ -32,7 +32,7 @@ Show every rule currently defined in `.geas/rules.md`, annotated with its overri
 
 | Rule ID                   | Summary                                      | Override Status        |
 |---------------------------|----------------------------------------------|------------------------|
-| require-retrospective     | Every passed task requires retrospective.json | DISABLED until 2026-04-03 (hotfix deployment) |
+| require-retrospective     | Every passed task requires retrospective section in record.json | DISABLED until 2026-04-03 (hotfix deployment) |
 | gate-tier2-mandatory      | Tier 2 evidence required for high-risk tasks  | active (no override)   |
 | memory-promotion-min-3    | Minimum 3 evidence refs to promote memory     | active (no override)   |
 ```

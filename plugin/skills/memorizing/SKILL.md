@@ -1,257 +1,145 @@
 ---
 name: memorizing
-description: Memory lifecycle management — candidate extraction, promotion pipeline, review, application logging, index maintenance, decay and harmful reuse detection.
+description: Memory management — extract learnings from retrospectives, update rules.md and agent memory notes. 2-file model for simplicity and directness.
 ---
 
 # Memorizing
 
-Manages the full memory lifecycle. Orchestrator invokes this skill after retrospective (per-task extraction) and during Evolving (batch promotion).
+Manages project memory through two files: `.geas/rules.md` (project-wide rules) and `.geas/memory/agents/{agent}.md` (agent-specific notes). Orchestrator invokes this skill after retrospective (per-task extraction) and during Evolving (batch review).
 
 ## When to Use
 
-- **Per-task**: After retrospective completes, extract memory candidates from `memory_candidates[]`
-- **Evolving phase**: Batch review and promotion of accumulated candidates
-- **Wrap-Up**: Inline extraction and promotion for single-task executions
-- **Session start**: Decay detection on existing entries
+- **Per-task**: After retrospective completes, extract learnings from `memory_candidates[]` in the retrospective section of record.json
+- **Evolving phase**: Batch review of rules.md and agent notes — trim stale content, resolve contradictions
+- **Wrap-Up**: Inline extraction for single-task executions
+- **Session start**: Review rules.md for staleness
 
-## Directory Structure
+## Memory Files
 
 ```
-.geas/memory/
-├── candidates/      # memory-candidate.json files (state = candidate)
-│   └── {memory-id}.json
-├── entries/         # promoted memory-entry.json files (provisional/stable/canonical)
-│   └── {memory-id}.json
-└── logs/            # memory-application-log.json files
-    └── {task-id}-{memory-id}.json
+.geas/
+├── rules.md              # Project-wide rules ALL agents follow
+└── memory/
+    └── agents/           # Per-agent memory notes
+        ├── software_engineer.md
+        ├── design_authority.md
+        ├── quality_specialist.md
+        └── ...
 ```
 
-Central index: `.geas/state/memory-index.json`
+**Two states only**: `draft` (proposed, not yet reviewed) and `active` (reviewed and applied). Draft items are appended with a `[DRAFT]` prefix in rules.md or agent notes. After review, the prefix is removed.
 
-## 1. Candidate Extraction
+## 1. Extract Learnings
 
-Input: `.geas/missions/{mission_id}/tasks/{task-id}/retrospective.json` → `memory_candidates[]`
+Input: record.json `retrospective` section → `memory_candidates[]`
 
 For each candidate string in `memory_candidates[]`:
 
-1. Generate `memory_id`: `mem-{task-id}-{N}` (N = sequential within task)
-2. Determine `memory_type` based on content:
-   - Failure/bug pattern → `failure_lesson`
-   - Architecture decision → `architecture_precedent` or `decision_precedent`
-   - Security finding → `security_pattern`
-   - Performance insight → `performance_tip`
-   - Test approach → `test_strategy`
-   - Integration issue → `integration_pattern`
-   - UI/UX pattern → `ux_pattern`
-   - Process improvement → `process_improvement`
-   - Risk pattern → `risk_pattern`
-   - Project convention → `project_rule`
-   - Agent-specific learning → `agent_rule`
-3. Determine `scope`:
-   - Applies to this task only → `task`
-   - Applies to the mission → `mission`
-   - Applies to the whole project → `project`
-   - Applies to a specific agent type → `agent`
-   - Applies universally → `global`
-4. Write the memory candidate via CLI with schema validation:
-   ```bash
-   Bash("geas memory candidate-write --data '<candidate_json>'")
-   ```
-   The candidate must conform to `schemas/memory-candidate.schema.json`:
-   ```json
-   {
-     "meta": {
-       "version": "1.0",
-       "artifact_type": "memory_candidate",
-       "artifact_id": "{memory-id}",
-       "producer_type": "orchestration_authority",
-       "created_at": "<ISO 8601>"
-     },
-     "memory_id": "{memory-id}",
-     "memory_type": "<determined type>",
-     "state": "candidate",
-     "title": "<short title from candidate string>",
-     "summary": "<the candidate string from retrospective>",
-     "scope": "<determined scope>",
-     "evidence_refs": ["retro-{task-id}"],
-     "signals": {
-       "evidence_count": 1,
-       "reuse_count": 0,
-       "successful_reuses": 0,
-       "failed_reuses": 0,
-       "contradiction_count": 0,
-       "confidence": 0.4
-     },
-     "candidate_reason": "Extracted from task {task-id} retrospective",
-     "source_artifacts": [".geas/missions/{mission_id}/tasks/{task-id}/retrospective.json"]
-   }
-   ```
-5. Add entry to memory index via CLI:
-   ```bash
-   Bash("geas memory index-update --data '<index_entry_json>'")
+1. Classify the learning:
+   - **Project-wide rule** — applies to all agents (conventions, patterns, failure lessons, architecture decisions)
+   - **Agent-specific note** — applies to a specific agent type (workflow tips, domain expertise, role-specific patterns)
+
+2. Determine the target:
+   - Project-wide → append to `.geas/rules.md`
+   - Agent-specific → append to `.geas/memory/agents/{agent}.md`
+
+3. Write the learning:
+
+   **For rules.md** (use Write tool to append):
+   ```markdown
+   ## [DRAFT] {Short title}
+   {Learning description from retrospective}
+   Source: task-{task-id}
    ```
 
-**Automatic extraction triggers** (check during retrospective review, per protocol/08):
-- Same `failure_class` in failure-record.json repeats 2+ times → auto-extract failure_lesson, confidence 0.6
-- Same reviewer concern `category` in specialist-review.json across 2+ tasks → auto-extract, confidence 0.6
-- Same `recovery_class` recovery incident repeats 2+ times → auto-extract risk_pattern, confidence 0.4
-- A specific demo/test recipe effectively used in 3+ tasks → auto-extract test_strategy, confidence 0.6
-- Conflicts in integration-result.json occur 2+ times for the same path/domain → auto-extract integration_pattern, confidence 0.4
-- `confidence <= 2` in worker-self-check.json repeats 2+ times for the same `task_kind` → auto-extract risk_pattern, confidence 0.4
+   **For agent notes** (use CLI):
+   ```bash
+   Bash("geas memory agent-note --agent {agent-name} --add '[DRAFT] {learning description}'")
+   ```
+
+4. Log the event:
+   ```bash
+   Bash("geas event log --type memory_extracted --data '{\"target\":\"rules.md|agents/{agent}.md\",\"source_task\":\"{task-id}\"}'")
+   ```
+
+### Classification Guide
+
+| Pattern | Target | Section in rules.md |
+|---------|--------|-------------------|
+| Failure/bug pattern | rules.md | `## Failure Lessons` |
+| Architecture decision | rules.md | `## Architecture` |
+| Security finding | rules.md | `## Security` |
+| Project convention | rules.md | `## Code` |
+| Build/test approach | rules.md | `## Code` |
+| Agent workflow tip | agents/{agent}.md | — |
+| Agent-specific learning | agents/{agent}.md | — |
+| Role-specific pattern | agents/{agent}.md | — |
+
+### Automatic Extraction Triggers
+
+Check during retrospective review:
+- Same failure class repeats 2+ times across tasks → auto-extract to rules.md
+- Same reviewer concern across 2+ tasks → auto-extract to rules.md
+- `confidence <= 2` in record.json `self_check` repeats 2+ times for same `task_kind` → auto-extract to relevant agent note
 
 ## 2. Deduplication
 
-Before creating a new candidate:
+Before adding a new entry:
 
-1. Read `.geas/state/memory-index.json`
-2. Compare candidate title and summary against existing entries (all states)
-3. **If semantically similar entry exists**:
-   - Add this task's retrospective to the existing entry's `evidence_refs`
-   - Increment `evidence_count` in signals
-   - If confidence was 0.4, bump to 0.6 (2+ evidence refs)
-   - Skip creating new candidate
-4. **If no match**: proceed with new candidate creation
+1. Read `.geas/rules.md` (or the target agent note)
+2. Compare the candidate against existing entries
+3. **If semantically similar rule exists**: strengthen the existing rule with the new evidence instead of adding a duplicate. Append the task reference.
+4. **If no match**: proceed with new entry
 
-Similarity check: entries with the same `memory_type` and overlapping keywords in title/summary are considered similar.
+## 3. Review and Promotion
 
-## 3. Domain Review
+### Per-task (inline)
 
-For each new candidate, determine the domain authority reviewer:
+After extraction, `orchestration_authority` reviews each `[DRAFT]` item:
+- **Promote**: Remove `[DRAFT]` prefix — the rule is now active
+- **Reject**: Remove the entry entirely
+- **Defer**: Keep as `[DRAFT]` for batch review during Evolving
 
-| memory_type | reviewer_type |
-|-------------|--------------|
-| security_pattern | risk_specialist |
-| architecture_precedent | design_authority |
-| test_strategy | quality_specialist |
-| performance_tip | design_authority |
-| integration_pattern | design_authority |
-| ux_pattern | communication_specialist |
-| process_improvement | orchestration_authority |
-| failure_lesson | orchestration_authority |
-| decision_precedent | product_authority |
-| risk_pattern | orchestration_authority |
-| project_rule | orchestration_authority |
-| agent_rule | orchestration_authority |
+### Evolving phase (batch)
 
-**Mission (batch)**: Domain authority reviews during Evolving phase. Spawn the reviewer agent:
-```
-Agent(agent: "{reviewer}", prompt: "Review memory candidate at .geas/memory/candidates/{memory-id}.json. Decide: promote_provisional (ready to try applying), keep (needs more evidence), or reject (not useful). Write your review to .geas/memory/candidates/{memory-id}-review.json (use Write tool — no dedicated CLI command for memory-review). Required fields: version, artifact_type (memory_review), artifact_id, producer_type, memory_id, decision (promote_provisional/keep/reject), rationale, created_at.")
-```
+During the Evolving phase, review all `[DRAFT]` items across both files:
 
-**Lightweight (inline)**: If candidate has evidence_refs >= 2 or comes from a repeated pattern, auto-promote to provisional. Otherwise keep as candidate for future review.
-
-## 4. Promotion Pipeline
-
-### State transitions
-
-| From | To | Conditions |
-|------|----|-----------|
-| candidate | provisional | 2+ evidence_refs OR 2+ similar incidents OR domain authority approval |
-| provisional | stable | 3+ successful_reuses + 0 contradictions + domain authority review |
-| stable | canonical | 5+ successful_reuses (3+ different tasks) + joint approval (orchestration_authority + domain authority) |
-| any active | under_review | failed_reuses >= 2 OR confidence < 0.3 OR manual request |
-| under_review | reinstated/superseded/archived/rejected | Review decision |
-| any | decayed | review_after passed + 0 reuses in period, OR contradiction_count >= 3, OR confidence < 0.3 |
-
-### On promotion
-
-1. Promote via CLI (handles candidate-to-entry migration, schema validation, and lifecycle checks):
+1. Read `.geas/rules.md` — find all `[DRAFT]` entries
+2. Read all `.geas/memory/agents/*.md` — find all `[DRAFT]` entries
+3. For each draft:
+   - Has supporting evidence from 2+ tasks → promote (remove `[DRAFT]`)
+   - Single-task evidence but clearly useful → promote
+   - No longer relevant or contradicted → remove
+4. Log promotions/removals:
    ```bash
-   Bash("geas memory promote --id {memory-id} --to provisional")
+   Bash("geas event log --type memory_reviewed --data '{\"promoted\":N,\"removed\":N}'")
    ```
-2. The CLI handles moving from `candidates/` to `entries/` when promoting from candidate state.
-3. Set `review_after` to 30 days from now (provisional), 90 days (stable), 180 days (canonical) in the entry data.
-4. Update memory index: `Bash("geas memory index-update --data '<updated_index_entry>'")`
-5. Log: `Bash("geas event log --type memory_promoted --data '{\"memory_id\":\"...\",\"from_state\":\"...\",\"to_state\":\"...\"}'")` 
 
-## 5. Application Logging
-
-**Collected by orchestrator** after task completion (at retrospective time):
-
-1. Read the memory-packet that was generated for this task's agents (if any)
-2. For each `applicable_memory_id` in the packet:
-   a. Read the task outcome (passed/failed/iterate) and gate result
-   b. Determine `effect`:
-      - Task passed and memory advice was relevant → `positive`
-      - Task failed in an area the memory addressed → `negative`
-      - Memory had no clear impact on outcome → `neutral`
-      - Memory advice contradicted the actual correct approach → `negative` + set followup_action to `weaken`
-   c. Determine `usage_surface` from context: `task_packet`, `review_context`, `gate_context`, etc.
-   d. Write application log via CLI with schema validation:
-      ```bash
-      Bash("geas memory log-write --task {task-id} --memory {memory-id} --data '<log_json>'")
-      ```
-      The log must conform to `schemas/memory-application-log.schema.json`:
-      ```json
-      {
-        "meta": {
-          "version": "1.0",
-          "artifact_type": "memory_application_log",
-          "artifact_id": "mal-{task-id}-{memory-id}",
-          "producer_type": "orchestration_authority",
-          "created_at": "<ISO 8601>"
-        },
-        "memory_id": "{memory-id}",
-        "task_id": "{task-id}",
-        "applied_by_type": "<agent type that received the packet>",
-        "usage_surface": "task_packet",
-        "effect": "positive | negative | neutral",
-        "notes": "<brief explanation>",
-        "followup_action": "none | strengthen | weaken | supersede | review_required"
-      }
-      ```
-3. Update memory entry signals:
-   - `positive` → `successful_reuses += 1`, `reuse_count += 1`, `confidence += 0.1` (cap at 1.0)
-   - `negative` → `failed_reuses += 1`, `reuse_count += 1`, `confidence -= 0.1` (floor at 0.0)
-   - `neutral` → `reuse_count += 1` (no confidence change)
-   - If effect notes mention contradiction → `contradiction_count += 1`, `confidence -= 0.2`
-4. Check harmful reuse threshold (see section 7)
-
-## 6. Decay Detection
+## 4. Staleness Detection
 
 Run during Evolving phase or at session start:
 
-1. Read `.geas/state/memory-index.json`
-2. For each entry with state `provisional`, `stable`, or `canonical`:
-   - If `review_after` has passed AND no application logs exist since `review_after` → transition to `decayed`
-   - If `contradiction_count >= 3` → transition to `decayed`
-   - If `confidence < 0.3` → transition to `decayed`
-3. Update entry state and memory-index.json
-4. Decayed entries remain in index (not deleted) — they can be reinstated if new evidence appears
-5. Log: `Bash("geas event log --type memory_decayed --data '{\"memory_id\":\"...\",\"reason\":\"...\"}'")` 
+1. Read `.geas/rules.md` — check for rules that may be outdated
+2. Read `.geas/memory/agents/*.md` — check for stale notes
+3. Indicators of staleness:
+   - Rule references files/paths that no longer exist
+   - Rule contradicts current project conventions
+   - Agent note references deprecated patterns
+4. Remove or update stale entries
+5. Log: `Bash("geas event log --type memory_cleanup --data '{\"stale_removed\":N}'")` 
 
-## 7. Harmful Reuse Rollback
+## 5. Contradiction Resolution
 
-When `failed_reuses >= 2` for any memory entry:
+When rules in `.geas/rules.md` contradict each other:
 
-1. Transition to `under_review`
-2. orchestration_authority convenes review with the memory's domain authority
-3. Review decision options:
-   - **reinstate**: update guidance text, reset failed_reuses, resume from previous state
-   - **supersede**: create new memory entry that replaces this one, set `superseded_by` on old entry
-   - **archive**: preserve for historical reference, remove from active retrieval
-   - **reject**: mark as permanently invalid
-4. Write `memory-review.json` with the decision
-5. **Reinstate circuit breaker**: if an entry has been through under_review 3+ times, mandatory archive — no more reinstating
-
-## Confidence Reference
-
-| Evidence refs | Initial confidence |
-|---|---|
-| 1 | 0.4 |
-| 2 | 0.6 |
-| 3+ | 0.8 |
-
-Adjustments per application: positive +0.1, negative -0.1, contradiction -0.2. Clamped to [0.0, 1.0].
-
-## Memory Type Reference
-
-Valid types (from `_defs.schema.json`): `project_rule`, `agent_rule`, `decision_precedent`, `failure_lesson`, `security_pattern`, `performance_tip`, `test_strategy`, `integration_pattern`, `ux_pattern`, `architecture_precedent`, `process_improvement`, `risk_pattern`
-
-## Memory State Reference
-
-Valid states (from `_defs.schema.json`): `candidate`, `provisional`, `stable`, `canonical`, `under_review`, `decayed`, `superseded`, `archived`, `rejected`
+1. Identify the conflicting rules
+2. Determine which has more supporting evidence (more task references)
+3. Keep the stronger rule, remove or revise the weaker one
+4. If unclear, `orchestration_authority` makes the call
+5. Log the resolution
 
 ## Conflict Resolution Priority
 
-When multiple memories conflict (from doc 07): `rules.md` > `project_memory` > `agent_memory` > `risk_memory`
+When rules conflict: **rules.md** > **agent-specific notes**
+
+Rules.md is the single source of truth for project-wide behavior. Agent notes supplement but never override rules.md.

@@ -110,8 +110,8 @@ When a session resumes and run.json has `parallel_batch` set (non-null):
 1. Read `parallel_batch` and `completed_in_batch`.
 2. Compute remaining: tasks in `parallel_batch` but not in `completed_in_batch`.
 3. For each remaining task, check evidence:
-   - `.geas/missions/{mission_id}/tasks/{task-id}/final-verdict.json` exists AND `.geas/missions/{mission_id}/tasks/{task-id}/retrospective.json` exists → task is complete. Set task file status to `"passed"`, add to `completed_in_batch`.
-   - `final-verdict.json` exists but no retro → resume from retrospective step only.
+   - record.json contains both `verdict` and `retrospective` sections → task is complete. Set task file status to `"passed"`, add to `completed_in_batch`.
+   - record.json contains `verdict` section but no `retrospective` section → resume from retrospective step only.
    - Neither exists → re-execute the full pipeline for this task.
 4. Update run.json with corrected `completed_in_batch`.
 5. Continue with section 3 for any remaining tasks.
