@@ -1320,9 +1320,9 @@ function runBenchmark(tmpDir) {
 function main() {
   console.log('=== Geas CLI E2E Integration Test (v4) ===\n');
 
-  // Verify CLI is built
-  if (!fs.existsSync(path.resolve(__dirname, '..', 'dist', 'main.js'))) {
-    console.error('ERROR: CLI not built. Run: cd plugin/cli && npm run build');
+  // Verify CLI bundle exists
+  if (!fs.existsSync(CLI)) {
+    console.error('ERROR: CLI bundle not found at ' + CLI + '. Run: cd src/cli && npm run bundle');
     process.exit(2);
   }
 
