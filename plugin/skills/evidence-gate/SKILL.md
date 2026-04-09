@@ -44,7 +44,7 @@ Verify that all prerequisites are in place before running expensive checks.
    - `closure_ready` profile: task must be in `reviewed` or `integrated` state
 
 3. **Baseline check**
-   - For `implementation_change`: verify `base_snapshot` ancestry — the integration branch must contain the declared base commit
+   - For `implementation_change`: verify `base_snapshot` ancestry — the integration branch must contain the declared base snapshot
 
 4. **Required reviewer presence**
    - All agent types listed in the task's required reviewer set must have submitted reviews
