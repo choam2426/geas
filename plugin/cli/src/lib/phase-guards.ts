@@ -131,6 +131,12 @@ function guardBuildingToPolishing(missionDir: string): string[] {
   const unmet: string[] = [];
 
   const tasks = readAllTasks(missionDir);
+
+  // #8: At least 1 task must exist
+  if (tasks.length === 0) {
+    unmet.push('No tasks found (need at least 1 task with status "passed" or "cancelled")');
+  }
+
   for (const { file, task } of tasks) {
     const status = task.status as string | undefined;
     if (status !== 'passed' && status !== 'cancelled') {
@@ -190,6 +196,7 @@ function guardPolishingToEvolving(missionDir: string): string[] {
 
 /**
  * evolving -> complete: gap-assessment AND mission-summary required.
+ * I2: debt-register critical open items block completion.
  */
 function guardEvolvingToComplete(missionDir: string): string[] {
   const unmet: string[] = [];
@@ -202,6 +209,20 @@ function guardEvolvingToComplete(missionDir: string): string[] {
   const summaryPath = path.resolve(missionDir, 'mission-summary.md');
   if (!fs.existsSync(summaryPath)) {
     unmet.push('mission-summary.md does not exist');
+  }
+
+  // I2: Debt register — missing = OK (no debt found), critical open = block
+  const debtPath = path.resolve(missionDir, 'evolution', 'debt-register.json');
+  if (fs.existsSync(debtPath)) {
+    const debt = readJsonFile<Record<string, unknown>>(debtPath);
+    if (debt && Array.isArray(debt.items)) {
+      const criticalOpen = (debt.items as Array<Record<string, unknown>>).filter(
+        (i) => i.severity === 'critical' && i.status === 'open',
+      );
+      if (criticalOpen.length > 0) {
+        unmet.push(`Debt register has ${criticalOpen.length} critical open item(s)`);
+      }
+    }
   }
 
   return unmet;
