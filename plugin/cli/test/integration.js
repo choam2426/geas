@@ -662,6 +662,38 @@ function defineGuardTests(tmpDir) {
         },
         validate: (r) => r.blocked === true && r.exit_code === 1 && r.has_error === true,
       },
+
+      // ── R3: phase adjacency rejects invalid pair ──
+      {
+        name: '[guard] phase write rejects invalid phase transition (building -> complete)',
+        fn: () => {
+          // Ensure phase-reviews directory exists
+          const missionDir = path.join(tmpDir, '.geas', 'missions', GUARD_MISSION, 'phase-reviews');
+          fs.mkdirSync(missionDir, { recursive: true });
+
+          const phaseReview = JSON.stringify({
+            version: '1.0',
+            artifact_type: 'phase_review',
+            artifact_id: 'pr-invalid',
+            producer_type: 'orchestration_authority',
+            mission_phase: 'building',
+            status: 'ready_to_exit',
+            next_phase: 'complete',
+            summary: 'Invalid skip attempt',
+            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+          }).replace(/"/g, '\\"');
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" phase write --mission ${GUARD_MISSION} --data "${phaseReview}"`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { rejected: false };
+          } catch {
+            return { rejected: true };
+          }
+        },
+        validate: (r) => r.rejected === true,
+      },
     ],
   };
 }
@@ -1161,6 +1193,57 @@ function defineV4Tests(tmpDir) {
         validate: (r) =>
           r.data.confidence === 4 &&
           !Object.prototype.hasOwnProperty.call(r.data || {}, '__proto__'),
+      },
+
+      // ── R3: mission.ts path traversal ──
+      {
+        name: '[security] mission create rejects path traversal',
+        fn: () => {
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" mission create --id "../escape"`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { rejected: false };
+          } catch {
+            return { rejected: true };
+          }
+        },
+        validate: (r) => r.rejected === true,
+      },
+
+      // ── R3: context.ts path traversal ──
+      {
+        name: '[security] context write rejects path traversal in task ID',
+        fn: () => {
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" context write --mission ${V4_MISSION} --task "../escape" --agent test --data "hello"`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { rejected: false };
+          } catch {
+            return { rejected: true };
+          }
+        },
+        validate: (r) => r.rejected === true,
+      },
+
+      // ── R3: evidence read validates IDs ──
+      {
+        name: '[security] evidence read rejects path traversal in task ID',
+        fn: () => {
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" evidence read --mission ${V4_MISSION} --task "../escape"`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { rejected: false };
+          } catch {
+            return { rejected: true };
+          }
+        },
+        validate: (r) => r.rejected === true,
       },
 
       // ── mission auto-resolution ──
