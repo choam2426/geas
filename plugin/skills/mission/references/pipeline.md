@@ -9,7 +9,7 @@ EVERY task, regardless of dependencies or position in the batch, MUST execute AL
 ## remaining_steps
 
 ```json
-"remaining_steps": ["design", "design_guide", "implementation_contract", "implementation", "self_check", "specialist_review", "testing", "evidence_gate", "closure_packet", "challenger", "final_verdict", "retrospective", "memory_extraction", "resolve"]
+"remaining_steps": ["design", "design_guide", "implementation_contract", "implementation", "self_check", "specialist_review", "testing", "evidence_gate", "integration", "closure_packet", "challenger", "final_verdict", "retrospective", "memory_extraction", "resolve"]
 ```
 
 Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
@@ -37,6 +37,10 @@ The TaskContract MUST be written to `.geas/missions/{mission_id}/tasks/{task-id}
   - `task_kind` missing → assign `"implementation"`
   - `gate_profile` missing → assign `"implementation_change"`
   - Log: `{"event": "classification_defaulted", "task_id": "...", "fields_defaulted": [...], "timestamp": "<actual>"}`
+- Transition to ready (guard checks contract.json exists with required fields):
+  ```bash
+  Bash("geas task transition --id {task-id} --to ready")
+  ```
 - Log `task_started` event: `Bash("geas event log --type task_started --task {task-id}")`
 - Do NOT transition to `"implementing"` yet — that happens after the Implementation Contract is approved (the guard requires it).
 - **Rubric check**: If the TaskContract is missing `rubric`, insert the default before proceeding:
@@ -172,40 +176,8 @@ Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are runn
 ```
 Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{worker}.json` exists.
 
-#### Pre-Integration Staleness Check
-
-Before merging the worktree:
-
-1. Re-check: compare `base_snapshot` with current `tip(integration_branch)` using `git diff {base_snapshot}..HEAD --name-only`
-2. Compare against `scope.surfaces`
-3. Classify:
-   - `clean_sync` -> fast-forward merge or trivial rebase, proceed
-   - `review_sync` -> merge, then specialist re-review required for changed areas
-   - `replan_required` -> rewind task to `"ready"`, update implementation contract
-   - `blocking_conflict` -> task -> `"blocked"`
-4. If revalidation was needed, log event: `Bash("geas event log --type revalidation --task {task-id} --data '{\"classification\":\"...\",\"action_taken\":\"...\"}'")` 
-
-#### Integration Lock
-
-Before merging the worktree to the integration branch:
-
-1. Acquire integration lock via CLI:
-   ```bash
-   Bash("geas lock acquire --task {task-id} --type integration --targets integration_branch --session {session-id}")
-   ```
-2. If the CLI returns `acquired: false` with conflicts: **wait**. The CLI automatically creates a waiting entry.
-3. Merge the worktree branch
-4. **Release the integration lock immediately** after merge:
-   ```bash
-   Bash("geas lock release --task {task-id}")
-   ```
-
-This ensures integration is single-flight — only one task merges at a time.
-
-After successful merge, status remains `"implementing"` — the task is not yet reviewed or complete.
-
 ### Worker Self-Check [MANDATORY]
-The worker self-check runs in the same worktree as the implementation step. Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule").
+The worker self-check runs in the same worktree as the implementation step (worktree is still alive — merge happens later at Integration). Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule").
 Update checkpoint: `Bash("geas state checkpoint set --step self_check --agent {worker}")`
 ```
 Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Implementation for {task-id} is complete. Before handing off to review, write your self-check to record.json. Run: node {project_root}/plugin/cli/index.js --cwd {project_root} task record add --task {task-id} --section self_check --data '<your-json>'. Required fields: confidence (integer 1-5), known_risks (string[]), untested_paths (string[]), summary (string). The CLI validates against the record schema automatically.")
@@ -245,9 +217,54 @@ The gate_result section must include: `verdict` (pass/fail/block/error), `tier_r
 
 If fail -> invoke `/geas:verify-fix-loop`. **Spawn the worker agent to fix.** After fix, re-run gate.
 
-On gate pass:
-1. Update TaskContract status: `Bash("geas task transition --id {task-id} --to integrated")` (guard checks gate_result.verdict === "pass")
-2. Update TaskContract status to `"verified"`: `Bash("geas task transition --id {task-id} --to verified")`
+On gate pass, proceed to Integration.
+
+### Integration [MANDATORY — after gate pass]
+
+Merge the worktree into the integration baseline. The worktree has been alive since the Implementation step.
+
+#### Pre-Integration Staleness Check
+
+Before merging the worktree:
+
+1. Re-check: compare `base_snapshot` with current `tip(integration_branch)` using `git diff {base_snapshot}..HEAD --name-only`
+2. Compare against `scope.surfaces`
+3. Classify:
+   - `clean_sync` -> fast-forward merge or trivial rebase, proceed
+   - `review_sync` -> merge, then specialist re-review required for changed areas
+   - `replan_required` -> rewind task to `"ready"`, update implementation contract
+   - `blocking_conflict` -> task -> `"blocked"`
+4. If revalidation was needed, log event: `Bash("geas event log --type revalidation --task {task-id} --data '{\"classification\":\"...\",\"action_taken\":\"...\"}'")` 
+
+#### Integration Lock
+
+Before merging the worktree to the integration branch:
+
+1. Acquire integration lock via CLI:
+   ```bash
+   Bash("geas lock acquire --task {task-id} --type integration --targets integration_branch --session {session-id}")
+   ```
+2. If the CLI returns `acquired: false` with conflicts: **wait**. The CLI automatically creates a waiting entry.
+3. Merge the worktree branch
+4. **Release the integration lock immediately** after merge:
+   ```bash
+   Bash("geas lock release --task {task-id}")
+   ```
+
+This ensures integration is single-flight — only one task merges at a time.
+
+#### Transition and Worktree Cleanup
+
+After successful merge:
+1. Transition to `"integrated"` (guard checks gate_result.verdict === "pass"):
+   ```bash
+   Bash("geas task transition --id {task-id} --to integrated")
+   ```
+2. Clean up the worktree — it is no longer needed after merge.
+3. Transition to `"verified"`:
+   ```bash
+   Bash("geas task transition --id {task-id} --to verified")
+   ```
 
 ### Closure Packet Assembly [MANDATORY — after gate pass]
 

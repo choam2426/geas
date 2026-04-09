@@ -115,8 +115,22 @@ export function registerStateCommands(program: Command): void {
         }
 
         data[opts.field] = parsedValue;
+
+        // Auto-cleanup: when phase transitions to "complete", reset mission fields
+        if (opts.field === 'phase' && parsedValue === 'complete') {
+          data.mission_id = null;
+          data.mission = null;
+          data.completed_tasks = [];
+          data.current_task_id = null;
+        }
+
         atomicWriteJsonFile(filePath, data, { cwd });
-        success({ updated: opts.field, value: parsedValue });
+
+        if (opts.field === 'phase' && parsedValue === 'complete') {
+          success({ updated: opts.field, value: parsedValue, auto_cleared: ['mission_id', 'mission', 'completed_tasks', 'current_task_id'] });
+        } else {
+          success({ updated: opts.field, value: parsedValue });
+        }
       } catch (err: unknown) {
         const e = err as NodeJS.ErrnoException;
         fileError('.geas/state/run.json', 'update', e.message);

@@ -270,7 +270,9 @@ Update run state:
 ```bash
 Bash("geas state checkpoint clear")
 Bash("geas state update --field current_task_id --value null")
-Bash("geas state update --field phase --value complete")
 Bash("geas state update --field status --value complete")
+Bash("geas state update --field phase --value complete")
 ```
+The `phase: complete` transition MUST be last — the CLI auto-clears `mission_id`, `mission`, `completed_tasks`, and `current_task_id` when phase is set to `complete`, leaving run.json clean for the next mission.
+
 Log: `Bash("geas event log --type phase_complete --data '{\"phase\":\"complete\"}'")` 

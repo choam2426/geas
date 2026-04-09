@@ -19,6 +19,10 @@ Welcome to Geas -- a governance framework for multi-agent AI work. Every decisio
 - **Formatted explanation** — markdown response explaining the relevant geas concept, command usage, or workflow step
 - No files written — this skill produces conversational output only
 
+## [MANDATORY] Display Rule
+
+You MUST output the full content of this skill file (from "Available Commands" onward) directly to the user as your response. Do NOT summarize, abbreviate, or say "displayed" without actually printing the content. The user must see the complete help text in the conversation.
+
 ---
 
 ## Available Commands

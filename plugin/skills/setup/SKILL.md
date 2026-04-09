@@ -29,19 +29,13 @@ Users should not need to run setup manually unless they are troubleshooting.
 
 ### Phase 0: Ensure CLI Dependencies
 
-Before any CLI commands can run, verify that the CLI's npm dependencies are installed. Check if `plugin/cli/node_modules` exists relative to the plugin directory. If it does not:
+Before any CLI commands can run, **always** install dependencies and build the CLI. This ensures the CLI binary matches the latest source, even if `dist/main.js` already exists from a previous version:
 
 ```bash
-cd plugin/cli && npm install
+cd plugin/cli && npm install && npm run build
 ```
 
-If `plugin/cli/dist/main.js` also does not exist, the CLI must be built:
-
-```bash
-cd plugin/cli && npm run build
-```
-
-Skip this step if both `node_modules/` and `dist/main.js` already exist.
+Do NOT skip this step. Stale builds can cause "unknown command" errors for newly added CLI commands.
 
 ### Phase A: Initialize `.geas/` Runtime Directory
 
@@ -64,9 +58,9 @@ geas health generate
 ```
 The CLI creates `.geas/state/health-check.json` with all 8 signals computed from current state.
 
-Then ensure `.geas/` is gitignored. Check if `.gitignore` exists:
-- If yes: append `.geas/` if not already present
-- If no: create `.gitignore` with `.geas/` entry
+Then ask the user whether `.geas/` should be added to `.gitignore`:
+- If the user wants it gitignored (default recommendation): append `.geas/` to `.gitignore` (create the file if it doesn't exist)
+- If the user wants `.geas/` tracked in git: skip this step
 
 After initialization, all state updates use the CLI:
 ```bash

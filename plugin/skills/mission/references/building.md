@@ -30,4 +30,12 @@ where phase review has `mission_phase: "building"`, `next_phase: "polishing"`.
 
 If any gate criteria unmet: set `status: "blocked"`. List unmet criteria. After 3 consecutive failures -> invoke `/geas:vote-round`.
 
+### State Cleanup
+
+Before transitioning to polishing, clean up run state:
+```bash
+Bash("geas state checkpoint clear")
+Bash("geas state update --field current_task_id --value null")
+```
+
 Log: `Bash("geas event log --type phase_complete --data '{\"phase\":\"building\"}'")` 
