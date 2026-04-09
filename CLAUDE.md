@@ -46,6 +46,8 @@ Gate verdicts: `pass | fail | block | error`. `iterate` is Final Verdict only.
 ```
 plugin/
 ├── plugin.json              # Claude plugin manifest
+├── bin/
+│   └── geas                 # Pre-built CLI bundle (single file)
 ├── skills/                  # 13 skills (12 core + 1 utility)
 │   ├── mission/             # Geas orchestrator
 │   ├── intake/              # Requirements gathering
@@ -54,6 +56,9 @@ plugin/
     ├── authority/           # 3 spawnable authority agents
     ├── software/            # 5 software domain specialists
     └── research/            # 6 research domain specialists
+
+src/
+└── cli/                     # CLI source (development only)
 
 docs/
 ├── protocol/                # Operating protocol (English, canonical)
@@ -124,11 +129,11 @@ Agents CANNOT access `docs/protocol/`, `docs/architecture/`, or any file outside
 - **DO** use CLI commands for all .geas/ writes — CLI generates structure from schemas
 - **DO** define evidence/memory rules in agent.md, not in Agent() prompts
 
-The `docs/protocol/schemas/` directory is the canonical reference for developers and validation tools. The CLI (`plugin/cli/`) is the operational schema enforcement layer.
+The `docs/protocol/schemas/` directory is the canonical reference for developers and validation tools. The CLI (`plugin/bin/geas`, pre-built bundle; source at `src/cli/`) is the operational schema enforcement layer.
 
 ## .geas/ CLI-Only Manipulation Rule
 
-All `.geas/` runtime state files (JSON, JSONL, markdown) must be read and written through the `geas` CLI tool (`plugin/cli/`), not through direct Read/Write/Edit tool calls. The CLI auto-manages timestamps and enforces schema validation. **Zero exceptions for writes.**
+All `.geas/` runtime state files (JSON, JSONL, markdown) must be read and written through the `geas` CLI tool (`plugin/bin/geas`; source at `src/cli/`), not through direct Read/Write/Edit tool calls. The CLI auto-manages timestamps and enforces schema validation. **Zero exceptions for writes.**
 
 Key CLI commands:
 - `geas task record add --section {name}` — add section to record.json (execution record)

@@ -23,7 +23,7 @@ const os = require('os');
 // Helpers
 // ---------------------------------------------------------------------------
 
-const CLI = path.resolve(__dirname, '..', 'index.js');
+const CLI = path.resolve(__dirname, '..', '..', '..', 'plugin', 'bin', 'geas');
 const MISSION_ID = 'test-mission-001';
 
 /** Create a fresh temp directory with the required .geas/ structure. */
