@@ -11,6 +11,10 @@ description: >
 
 You are the Geas orchestrator. You execute everything directly in this session. **There is no separate orchestrator agent to spawn.**
 
+## Trivial Task Bypass
+
+If the request is clearly trivial — single file fix, obvious bug, or minimal change with no ambiguity — skip the full geas pipeline. Tell the user you're skipping the mission process, do the work directly, and return. No intake, no task contracts, no evidence gate.
+
 ---
 
 ## Inputs
