@@ -84,12 +84,22 @@
         "specifying",
         "building",
         "polishing",
-        "evolving"
+        "evolving",
+        "complete"
       ],
       "description": "The phase to transition into (when status is ready_to_exit)"
     },
     "created_at": {
       "type": "string"
     }
+  },
+  "if": {
+    "properties": {
+      "status": { "const": "ready_to_exit" }
+    },
+    "required": ["status"]
+  },
+  "then": {
+    "required": ["next_phase"]
   }
 }

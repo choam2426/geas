@@ -112,7 +112,7 @@
     },
     "retry_budget": {
       "type": "integer",
-      "minimum": 1
+      "minimum": 0
     },
     "scope": {
       "type": "object",
