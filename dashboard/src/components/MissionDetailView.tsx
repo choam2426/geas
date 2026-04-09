@@ -13,8 +13,21 @@ import {
   User,
   Layers,
   Settings,
+  Compass,
+  GitBranch,
+  MessageSquare,
+  ClipboardCheck,
+  SearchCheck,
+  HelpCircle,
+  MonitorSmartphone,
 } from "lucide-react";
-import type { MissionSpecDetail } from "../types";
+import type {
+  MissionSpecDetail,
+  DesignBrief,
+  VoteRound,
+  PhaseReview,
+  GapAssessment,
+} from "../types";
 
 /** Normalize a path for cross-platform comparison */
 function normalizePath(p: string): string {
@@ -65,16 +78,30 @@ export default function MissionDetailView({
   onBack,
 }: MissionDetailViewProps) {
   const [spec, setSpec] = useState<MissionSpecDetail | null>(null);
+  const [designBrief, setDesignBrief] = useState<DesignBrief | null>(null);
+  const [voteRounds, setVoteRounds] = useState<VoteRound[]>([]);
+  const [phaseReviews, setPhaseReviews] = useState<PhaseReview[]>([]);
+  const [gapAssessment, setGapAssessment] = useState<GapAssessment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSpec = useCallback(async () => {
     try {
-      const result = await invoke<MissionSpecDetail>("get_mission_spec", {
-        path: projectPath,
-        mission_id: missionId,
-      });
-      setSpec(result);
+      const [specResult, briefResult, votesResult, reviewsResult, gapResult] = await Promise.all([
+        invoke<MissionSpecDetail>("get_mission_spec", {
+          path: projectPath,
+          mission_id: missionId,
+        }),
+        invoke<DesignBrief | null>("get_design_brief", { path: projectPath, mission_id: missionId }).catch(() => null),
+        invoke<VoteRound[]>("get_vote_rounds", { path: projectPath, mission_id: missionId }).catch(() => []),
+        invoke<PhaseReview[]>("get_phase_reviews", { path: projectPath, mission_id: missionId }).catch(() => []),
+        invoke<GapAssessment | null>("get_gap_assessment", { path: projectPath, mission_id: missionId }).catch(() => null),
+      ]);
+      setSpec(specResult);
+      setDesignBrief(briefResult);
+      setVoteRounds(votesResult);
+      setPhaseReviews(reviewsResult);
+      setGapAssessment(gapResult);
       setError(null);
     } catch (err) {
       setError(String(err));
@@ -215,6 +242,8 @@ export default function MissionDetailView({
   const hasScope = spec.scope_in.length > 0 || spec.scope_out.length > 0;
   const hasRiskNotes = spec.risk_notes.length > 0;
   const hasAssumptions = spec.assumptions.length > 0;
+  const hasAmbiguities = spec.ambiguities.length > 0;
+  const hasAffectedSurfaces = spec.affected_surfaces.length > 0;
 
   return (
     <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
@@ -419,13 +448,388 @@ export default function MissionDetailView({
             </Section>
           )}
 
+          {/* Ambiguities */}
+          {hasAmbiguities && (
+            <Section
+              icon={<HelpCircle size={16} className="text-status-amber" />}
+              title="Ambiguities"
+            >
+              <ul className="space-y-1.5">
+                {spec.ambiguities.map((item, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-sm text-text-secondary"
+                  >
+                    <HelpCircle
+                      size={14}
+                      className="text-status-amber mt-0.5 shrink-0"
+                    />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {/* Affected Surfaces */}
+          {hasAffectedSurfaces && (
+            <Section
+              icon={<MonitorSmartphone size={16} className="text-accent" />}
+              title="Affected Surfaces"
+            >
+              <ul className="space-y-1.5">
+                {spec.affected_surfaces.map((item, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-sm text-text-secondary"
+                  >
+                    <MonitorSmartphone
+                      size={14}
+                      className="text-accent mt-0.5 shrink-0"
+                    />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {/* Design Brief */}
+          {designBrief && (
+            <Section
+              icon={<Compass size={16} className="text-accent" />}
+              title="Design Brief"
+            >
+              <div className="space-y-4">
+                {/* Badges */}
+                <div className="flex flex-wrap gap-2">
+                  {designBrief.depth && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-bg-elevated text-text-secondary">
+                      {designBrief.depth}
+                    </span>
+                  )}
+                  {designBrief.status && (
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                      designBrief.status === "approved" ? "bg-status-green/10 text-status-green" :
+                      designBrief.status === "rejected" ? "bg-status-red/10 text-status-red" :
+                      "bg-bg-elevated text-text-secondary"
+                    }`}>
+                      {designBrief.status}
+                    </span>
+                  )}
+                </div>
+
+                {/* Chosen Approach */}
+                {designBrief.chosen_approach && (
+                  <div>
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-1">
+                      Chosen Approach
+                    </h4>
+                    <p className="text-sm text-text-secondary">{designBrief.chosen_approach}</p>
+                  </div>
+                )}
+
+                {/* Non-Goals */}
+                {designBrief.non_goals.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+                      Non-Goals
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {designBrief.non_goals.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-text-secondary">
+                          <X size={14} className="text-status-red mt-0.5 shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Verification Strategy */}
+                {designBrief.verification_strategy && (
+                  <div>
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-1">
+                      Verification Strategy
+                    </h4>
+                    <p className="text-sm text-text-secondary">{designBrief.verification_strategy}</p>
+                  </div>
+                )}
+
+                {/* Alternatives Considered */}
+                {designBrief.alternatives_considered.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+                      Alternatives Considered
+                    </h4>
+                    <ul className="space-y-2">
+                      {designBrief.alternatives_considered.map((alt, i) => (
+                        <li key={i} className="text-sm border-l-2 border-border-default pl-3">
+                          {alt.approach && (
+                            <p className="text-text-secondary font-medium">{alt.approach}</p>
+                          )}
+                          {alt.rejected_reason && (
+                            <p className="text-text-muted text-xs mt-0.5">Rejected: {alt.rejected_reason}</p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Architecture Decisions */}
+                {designBrief.architecture_decisions.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+                      Architecture Decisions
+                    </h4>
+                    <ul className="space-y-2">
+                      {designBrief.architecture_decisions.map((dec, i) => (
+                        <li key={i} className="text-sm border-l-2 border-accent/30 pl-3">
+                          {dec.decision && (
+                            <p className="text-text-secondary font-medium">{dec.decision}</p>
+                          )}
+                          {dec.rationale && (
+                            <p className="text-text-muted text-xs mt-0.5">{dec.rationale}</p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Risks */}
+                {designBrief.risks.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+                      Risks
+                    </h4>
+                    <ul className="space-y-2">
+                      {designBrief.risks.map((risk, i) => (
+                        <li key={i} className="text-sm border-l-2 border-status-red/30 pl-3">
+                          {risk.description && (
+                            <p className="text-text-secondary">{risk.description}</p>
+                          )}
+                          {risk.mitigation && (
+                            <p className="text-text-muted text-xs mt-0.5">Mitigation: {risk.mitigation}</p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </Section>
+          )}
+
+          {/* Phase Reviews */}
+          {phaseReviews.length > 0 && (
+            <Section
+              icon={<ClipboardCheck size={16} className="text-status-green" />}
+              title="Phase Reviews"
+            >
+              <div className="space-y-4">
+                {phaseReviews.map((review, i) => (
+                  <div key={i} className="border-l-2 border-border-default pl-3 space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {review.mission_phase && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-bg-elevated text-text-secondary">
+                          {review.mission_phase}
+                        </span>
+                      )}
+                      {review.status && (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          review.status === "passed" ? "bg-status-green/10 text-status-green" :
+                          review.status === "failed" ? "bg-status-red/10 text-status-red" :
+                          "bg-bg-elevated text-text-secondary"
+                        }`}>
+                          {review.status}
+                        </span>
+                      )}
+                    </div>
+                    {review.summary && (
+                      <p className="text-sm text-text-secondary">{review.summary}</p>
+                    )}
+                    {review.gate_criteria_met.length > 0 && (
+                      <ul className="space-y-1">
+                        {review.gate_criteria_met.map((c, j) => (
+                          <li key={j} className="flex items-start gap-2 text-sm text-text-secondary">
+                            <Check size={14} className="text-status-green mt-0.5 shrink-0" />
+                            <span>{c}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {review.gate_criteria_unmet.length > 0 && (
+                      <ul className="space-y-1">
+                        {review.gate_criteria_unmet.map((c, j) => (
+                          <li key={j} className="flex items-start gap-2 text-sm text-text-secondary">
+                            <X size={14} className="text-status-red mt-0.5 shrink-0" />
+                            <span>{c}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* Vote Rounds */}
+          {voteRounds.length > 0 && (
+            <Section
+              icon={<MessageSquare size={16} className="text-accent" />}
+              title="Vote Rounds"
+            >
+              <div className="space-y-4">
+                {voteRounds.map((round, i) => (
+                  <div key={i} className="border-l-2 border-border-default pl-3 space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {round.round_type && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-bg-elevated text-text-secondary">
+                          {round.round_type}
+                        </span>
+                      )}
+                      {round.result && (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          round.result === "approved" || round.result === "accepted" ? "bg-status-green/10 text-status-green" :
+                          round.result === "rejected" ? "bg-status-red/10 text-status-red" :
+                          "bg-bg-elevated text-text-secondary"
+                        }`}>
+                          {round.result}
+                        </span>
+                      )}
+                    </div>
+                    {round.proposal_summary && (
+                      <p className="text-sm text-text-secondary">{round.proposal_summary}</p>
+                    )}
+                    {round.votes.length > 0 && (
+                      <div className="space-y-1.5 mt-1">
+                        {round.votes.map((v, j) => (
+                          <div key={j} className="flex items-start gap-2 text-sm">
+                            <span className="text-text-muted font-medium shrink-0">
+                              {v.voter ?? "Unknown"}
+                            </span>
+                            <span className={`inline-flex items-center px-1.5 py-0 rounded text-xs font-medium shrink-0 ${
+                              v.vote === "agree" ? "bg-status-green/10 text-status-green" :
+                              v.vote === "disagree" ? "bg-status-red/10 text-status-red" :
+                              "bg-bg-elevated text-text-secondary"
+                            }`}>
+                              {v.vote ?? "?"}
+                            </span>
+                            {v.rationale && (
+                              <span className="text-text-muted text-xs">{v.rationale}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* Gap Assessment */}
+          {gapAssessment && (
+            <Section
+              icon={<SearchCheck size={16} className="text-status-amber" />}
+              title="Gap Assessment"
+            >
+              <div className="space-y-4">
+                {gapAssessment.fully_delivered.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+                      Fully Delivered
+                    </h4>
+                    <ul className="space-y-1">
+                      {gapAssessment.fully_delivered.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-text-secondary">
+                          <Check size={14} className="text-status-green mt-0.5 shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {gapAssessment.partially_delivered.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+                      Partially Delivered
+                    </h4>
+                    <ul className="space-y-1">
+                      {gapAssessment.partially_delivered.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-text-secondary">
+                          <AlertTriangle size={14} className="text-status-amber mt-0.5 shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {gapAssessment.not_delivered.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+                      Not Delivered
+                    </h4>
+                    <ul className="space-y-1">
+                      {gapAssessment.not_delivered.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-text-secondary">
+                          <X size={14} className="text-status-red mt-0.5 shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {gapAssessment.intentional_cuts.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+                      Intentional Cuts
+                    </h4>
+                    <ul className="space-y-1">
+                      {gapAssessment.intentional_cuts.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-text-secondary">
+                          <GitBranch size={14} className="text-text-muted mt-0.5 shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {gapAssessment.recommended_followups.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+                      Recommended Follow-ups
+                    </h4>
+                    <ul className="space-y-1">
+                      {gapAssessment.recommended_followups.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-text-secondary">
+                          <Lightbulb size={14} className="text-status-amber mt-0.5 shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </Section>
+          )}
+
           {/* Empty content notice */}
           {!spec.done_when &&
             !hasScope &&
             spec.acceptance_criteria.length === 0 &&
             spec.constraints.length === 0 &&
             !hasRiskNotes &&
-            !hasAssumptions && (
+            !hasAssumptions &&
+            !hasAmbiguities &&
+            !hasAffectedSurfaces &&
+            !designBrief &&
+            voteRounds.length === 0 &&
+            phaseReviews.length === 0 &&
+            !gapAssessment && (
               <div className="text-center py-8">
                 <User
                   size={40}
