@@ -45,8 +45,8 @@ export const taskKindColors: Record<string, { bg: string; text: string }> = {
 };
 
 export const debtStatusColors: Record<string, { bg: string; text: string }> = {
-  open: { bg: "rgba(248,81,73,0.15)", text: "#f85149" },
-  accepted: { bg: "rgba(210,153,34,0.15)", text: "#d29922" },
+  open: { bg: "rgba(210,153,34,0.15)", text: "#d29922" },
+  accepted: { bg: "rgba(88,166,255,0.15)", text: "#58a6ff" },
   scheduled: { bg: "rgba(88,166,255,0.15)", text: "#58a6ff" },
   resolved: { bg: "rgba(63,185,80,0.15)", text: "#3fb950" },
   dropped: { bg: "rgba(101,109,118,0.15)", text: "#656d76" },

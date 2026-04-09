@@ -280,9 +280,11 @@ export default function TaskDetailModal({
                       <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
                         ev.verdict === "approved" || ev.verdict === "pass"
                           ? "bg-status-green/15 text-status-green"
-                          : ev.verdict === "blocked"
+                          : ev.verdict === "blocked" || ev.verdict === "escalate"
                           ? "bg-status-red/15 text-status-red"
-                          : "bg-status-amber/15 text-status-amber"
+                          : ev.verdict === "changes_requested" || ev.verdict === "iterate"
+                          ? "bg-status-amber/15 text-status-amber"
+                          : "bg-bg-elevated text-text-secondary"
                       }`}>
                         {ev.verdict}
                       </span>

@@ -101,11 +101,11 @@ export interface MissionSpecDetail {
 export interface EventEntry {
   event_type: string;
   timestamp: string;
-  task_id?: string;
-  mission_id?: string;
-  agent?: string;
-  message?: string;
-  data?: Record<string, unknown>;
+  task_id: string | null;
+  mission_id: string | null;
+  agent: string | null;
+  message: string | null;
+  data: unknown | null;
 }
 
 export interface EventsPage {
@@ -141,6 +141,7 @@ export interface ImplContract {
   worker: string | null;
   edge_cases: string[];
   non_goals: string[];
+  demo_steps: string[];
 }
 
 export interface SelfCheck {
@@ -209,6 +210,8 @@ export interface RecordRetrospective {
 export interface TaskRecord {
   version: string | null;
   task_id: string | null;
+  created_at: string | null;
+  updated_at: string | null;
   implementation_contract: ImplContract | null;
   self_check: SelfCheck | null;
   gate_result: GateResult | null;
@@ -226,7 +229,7 @@ export interface Evidence {
   files_changed: string[];
   commit: string | null;
   verdict: string | null;
-  concerns: string[];
+  concerns: (string | { severity: string; description: string })[];
   blocking: boolean | null;
   rationale: string | null;
   criteria_results: { criterion: string | null; passed: boolean | null; details: string | null }[];
@@ -255,6 +258,18 @@ export interface DesignRisk {
   mitigation: string | null;
 }
 
+export interface DesignReview {
+  reviewer_type: string | null;
+  summary: string | null;
+  additions: string[];
+}
+
+export interface RejectionHistoryEntry {
+  reason: string | null;
+  revision_summary: string | null;
+  rejected_at: string | null;
+}
+
 export interface DesignBrief {
   depth: string | null;
   status: string | null;
@@ -264,7 +279,13 @@ export interface DesignBrief {
   alternatives_considered: Alternative[];
   architecture_decisions: ArchDecision[];
   risks: DesignRisk[];
+  preserve_list: string[];
+  unresolved_assumptions: string[];
+  design_review: DesignReview | null;
+  vote_round_ref: string | null;
+  rejection_history: RejectionHistoryEntry[];
   created_at: string | null;
+  approved_at: string | null;
 }
 
 export interface Vote {
@@ -281,6 +302,7 @@ export interface VoteRound {
   votes: Vote[];
   result: string | null;
   quorum_met: boolean | null;
+  quorum_failure_count: number | null;
   proposal_summary: string | null;
   created_at: string | null;
 }

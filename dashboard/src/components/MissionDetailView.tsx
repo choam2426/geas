@@ -512,6 +512,8 @@ export default function MissionDetailView({
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                       designBrief.status === "approved" ? "bg-status-green/10 text-status-green" :
                       designBrief.status === "rejected" ? "bg-status-red/10 text-status-red" :
+                      designBrief.status === "reviewing" ? "bg-status-blue/10 text-status-blue" :
+                      designBrief.status === "draft" ? "bg-bg-elevated text-text-muted" :
                       "bg-bg-elevated text-text-secondary"
                     }`}>
                       {designBrief.status}
@@ -618,6 +620,79 @@ export default function MissionDetailView({
                     </ul>
                   </div>
                 )}
+
+                {/* Preserve List */}
+                {designBrief.preserve_list?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+                      Preserve List
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {designBrief.preserve_list.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-text-secondary">
+                          <Shield size={14} className="text-status-blue mt-0.5 shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Unresolved Assumptions */}
+                {designBrief.unresolved_assumptions?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+                      Unresolved Assumptions
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {designBrief.unresolved_assumptions.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-text-secondary">
+                          <HelpCircle size={14} className="text-status-yellow mt-0.5 shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Design Review */}
+                {designBrief.design_review && (
+                  <div className="border-l-2 border-accent/30 pl-3">
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-1">
+                      Design Review — {designBrief.design_review.reviewer_type}
+                    </h4>
+                    {designBrief.design_review.summary && (
+                      <p className="text-sm text-text-secondary">{designBrief.design_review.summary}</p>
+                    )}
+                    {designBrief.design_review.additions?.length > 0 && (
+                      <ul className="mt-1.5 space-y-1">
+                        {designBrief.design_review.additions.map((a, i) => (
+                          <li key={i} className="text-xs text-text-muted">+ {a}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {/* Rejection History */}
+                {designBrief.rejection_history?.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
+                      Rejection History
+                    </h4>
+                    <ul className="space-y-2">
+                      {designBrief.rejection_history.map((entry, i) => (
+                        <li key={i} className="text-sm border-l-2 border-status-red/30 pl-3">
+                          <p className="text-text-secondary">{entry.reason}</p>
+                          <p className="text-text-muted text-xs mt-0.5">Revision: {entry.revision_summary}</p>
+                          {entry.rejected_at && (
+                            <p className="text-text-muted text-xs">{entry.rejected_at}</p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </Section>
           )}
@@ -639,11 +714,12 @@ export default function MissionDetailView({
                       )}
                       {review.status && (
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                          review.status === "passed" ? "bg-status-green/10 text-status-green" :
-                          review.status === "failed" ? "bg-status-red/10 text-status-red" :
+                          review.status === "ready_to_exit" ? "bg-status-green/10 text-status-green" :
+                          review.status === "ready_to_enter" ? "bg-status-blue/10 text-status-blue" :
+                          review.status === "blocked" || review.status === "escalated" ? "bg-status-red/10 text-status-red" :
                           "bg-bg-elevated text-text-secondary"
                         }`}>
-                          {review.status}
+                          {review.status.replace(/_/g, " ")}
                         </span>
                       )}
                     </div>
@@ -693,11 +769,18 @@ export default function MissionDetailView({
                       )}
                       {round.result && (
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                          round.result === "approved" || round.result === "accepted" ? "bg-status-green/10 text-status-green" :
-                          round.result === "rejected" ? "bg-status-red/10 text-status-red" :
+                          round.result === "agree" || round.result === "ship" ? "bg-status-green/10 text-status-green" :
+                          round.result === "disagree" || round.result === "escalate" ? "bg-status-red/10 text-status-red" :
+                          round.result === "iterate" ? "bg-status-amber/10 text-status-amber" :
+                          round.result === "inconclusive" ? "bg-bg-elevated text-text-muted" :
                           "bg-bg-elevated text-text-secondary"
                         }`}>
                           {round.result}
+                        </span>
+                      )}
+                      {round.quorum_met === false && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-status-red/10 text-status-red">
+                          quorum not met{round.quorum_failure_count ? ` (${round.quorum_failure_count})` : ""}
                         </span>
                       )}
                     </div>
@@ -712,8 +795,9 @@ export default function MissionDetailView({
                               {v.voter ?? "Unknown"}
                             </span>
                             <span className={`inline-flex items-center px-1.5 py-0 rounded text-xs font-medium shrink-0 ${
-                              v.vote === "agree" ? "bg-status-green/10 text-status-green" :
-                              v.vote === "disagree" ? "bg-status-red/10 text-status-red" :
+                              v.vote === "agree" || v.vote === "ship" ? "bg-status-green/10 text-status-green" :
+                              v.vote === "disagree" || v.vote === "escalate" ? "bg-status-red/10 text-status-red" :
+                              v.vote === "iterate" ? "bg-status-amber/10 text-status-amber" :
                               "bg-bg-elevated text-text-secondary"
                             }`}>
                               {v.vote ?? "?"}

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::commands::{name_from_path, read_json_file};
 use crate::models::{Checkpoint, DebtItem, DebtRegister, KindRollup, MissionSpec, Rubric, RunState, SeverityRollup, TaskContract, TaskScope};
-use crate::models::{Record, Evidence, HealthCheck, DesignBrief, VoteRound, PhaseReview, GapAssessment};
+use crate::models::{Record, Evidence, HealthCheck, DesignBrief, VoteRound, PhaseReview, GapAssessment, DesignReviewBlock, RejectionHistoryEntry};
 
 #[test]
 fn name_from_unix_path() {
@@ -511,4 +511,214 @@ fn gap_assessment_delivery() {
     let ga: GapAssessment = serde_json::from_str(json).unwrap();
     assert_eq!(ga.fully_delivered.len(), 1);
     assert_eq!(ga.intentional_cuts.len(), 1);
+}
+
+// ---------------------------------------------------------------------------
+// DesignBrief new fields
+// ---------------------------------------------------------------------------
+
+#[test]
+fn design_brief_new_fields_full() {
+    let json = r#"{
+        "version": "1.0",
+        "artifact_type": "design_brief",
+        "artifact_id": "db-002",
+        "producer_type": "orchestration_authority",
+        "mission_id": "mission-002",
+        "depth": "full",
+        "status": "approved",
+        "chosen_approach": "Top-down redesign",
+        "unresolved_assumptions": ["Schema might change", "API rate limits unknown"],
+        "design_review": {
+            "reviewer_type": "design-authority",
+            "summary": "Approved with minor additions",
+            "additions": ["Add error boundary", "Include fallback UI"]
+        },
+        "vote_round_ref": "vr-002",
+        "rejection_history": [
+            {
+                "reason": "Missing error handling",
+                "revision_summary": "Added try-catch blocks",
+                "rejected_at": "2026-04-05T09:00:00Z"
+            },
+            {
+                "reason": "Insufficient test coverage",
+                "revision_summary": "Added unit tests for edge cases",
+                "rejected_at": "2026-04-06T11:00:00Z"
+            }
+        ],
+        "approved_at": "2026-04-07T14:00:00Z",
+        "created_at": "2026-04-04T08:00:00Z"
+    }"#;
+
+    let db: DesignBrief = serde_json::from_str(json).unwrap();
+    assert_eq!(db.unresolved_assumptions.len(), 2);
+    assert_eq!(db.unresolved_assumptions[0], "Schema might change");
+
+    let review = db.design_review.unwrap();
+    assert_eq!(review.reviewer_type.as_deref(), Some("design-authority"));
+    assert_eq!(review.summary.as_deref(), Some("Approved with minor additions"));
+    assert_eq!(review.additions.len(), 2);
+    assert_eq!(review.additions[0], "Add error boundary");
+
+    assert_eq!(db.vote_round_ref.as_deref(), Some("vr-002"));
+
+    assert_eq!(db.rejection_history.len(), 2);
+    assert_eq!(db.rejection_history[0].reason.as_deref(), Some("Missing error handling"));
+    assert_eq!(db.rejection_history[1].rejected_at.as_deref(), Some("2026-04-06T11:00:00Z"));
+
+    assert_eq!(db.approved_at.as_deref(), Some("2026-04-07T14:00:00Z"));
+}
+
+#[test]
+fn design_brief_new_fields_missing_defaults_to_empty() {
+    let json = r#"{
+        "version": "1.0",
+        "status": "draft"
+    }"#;
+
+    let db: DesignBrief = serde_json::from_str(json).unwrap();
+    assert!(db.unresolved_assumptions.is_empty());
+    assert!(db.design_review.is_none());
+    assert!(db.vote_round_ref.is_none());
+    assert!(db.rejection_history.is_empty());
+    assert!(db.approved_at.is_none());
+}
+
+// ---------------------------------------------------------------------------
+// VoteRound quorum_failure_count
+// ---------------------------------------------------------------------------
+
+#[test]
+fn vote_round_with_quorum_failure_count() {
+    let json = r#"{
+        "version": "1.0",
+        "artifact_type": "vote_round",
+        "artifact_id": "vr-003",
+        "round_type": "proposal_round",
+        "participants": ["design-authority", "challenger"],
+        "votes": [],
+        "result": "no_quorum",
+        "quorum_met": false,
+        "quorum_failure_count": 2,
+        "created_at": "2026-04-06T10:00:00Z"
+    }"#;
+
+    let vr: VoteRound = serde_json::from_str(json).unwrap();
+    assert_eq!(vr.quorum_failure_count, Some(2));
+    assert_eq!(vr.quorum_met, Some(false));
+}
+
+#[test]
+fn vote_round_missing_quorum_failure_count_defaults_to_none() {
+    let json = r#"{
+        "version": "1.0",
+        "votes": [],
+        "quorum_met": true
+    }"#;
+
+    let vr: VoteRound = serde_json::from_str(json).unwrap();
+    assert!(vr.quorum_failure_count.is_none());
+}
+
+// ---------------------------------------------------------------------------
+// Evidence concerns mixed type (Vec<serde_json::Value>)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn evidence_concerns_mixed_types() {
+    let json = r#"{
+        "version": "1.0",
+        "agent": "challenger",
+        "task_id": "task-005",
+        "role": "reviewer",
+        "summary": "Found issues",
+        "concerns": [
+            "string concern",
+            { "severity": "blocking", "description": "object concern" }
+        ],
+        "blocking": true
+    }"#;
+
+    let ev: Evidence = serde_json::from_str(json).unwrap();
+    assert_eq!(ev.concerns.len(), 2);
+
+    // First concern is a plain string
+    assert!(ev.concerns[0].is_string());
+    assert_eq!(ev.concerns[0].as_str().unwrap(), "string concern");
+
+    // Second concern is an object
+    assert!(ev.concerns[1].is_object());
+    let obj = ev.concerns[1].as_object().unwrap();
+    assert_eq!(obj.get("severity").unwrap().as_str().unwrap(), "blocking");
+    assert_eq!(obj.get("description").unwrap().as_str().unwrap(), "object concern");
+}
+
+#[test]
+fn evidence_concerns_empty() {
+    let json = r#"{ "concerns": [] }"#;
+    let ev: Evidence = serde_json::from_str(json).unwrap();
+    assert!(ev.concerns.is_empty());
+}
+
+#[test]
+fn evidence_concerns_missing_defaults_to_empty() {
+    let json = r#"{}"#;
+    let ev: Evidence = serde_json::from_str(json).unwrap();
+    assert!(ev.concerns.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// DesignReviewBlock standalone
+// ---------------------------------------------------------------------------
+
+#[test]
+fn design_review_block_full() {
+    let json = r#"{
+        "reviewer_type": "design-authority",
+        "summary": "Approved with conditions",
+        "additions": ["Add logging", "Update docs"]
+    }"#;
+
+    let drb: DesignReviewBlock = serde_json::from_str(json).unwrap();
+    assert_eq!(drb.reviewer_type.as_deref(), Some("design-authority"));
+    assert_eq!(drb.summary.as_deref(), Some("Approved with conditions"));
+    assert_eq!(drb.additions.len(), 2);
+    assert_eq!(drb.additions[1], "Update docs");
+}
+
+#[test]
+fn design_review_block_empty() {
+    let json = r#"{}"#;
+    let drb: DesignReviewBlock = serde_json::from_str(json).unwrap();
+    assert!(drb.reviewer_type.is_none());
+    assert!(drb.summary.is_none());
+    assert!(drb.additions.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// RejectionHistoryEntry standalone
+// ---------------------------------------------------------------------------
+
+#[test]
+fn rejection_history_entry_full() {
+    let json = r#"{
+        "reason": "Insufficient coverage",
+        "revision_summary": "Added 15 new tests",
+        "rejected_at": "2026-04-05T12:00:00Z"
+    }"#;
+
+    let rhe: RejectionHistoryEntry = serde_json::from_str(json).unwrap();
+    assert_eq!(rhe.reason.as_deref(), Some("Insufficient coverage"));
+    assert_eq!(rhe.revision_summary.as_deref(), Some("Added 15 new tests"));
+    assert_eq!(rhe.rejected_at.as_deref(), Some("2026-04-05T12:00:00Z"));
+}
+
+#[test]
+fn rejection_history_entry_empty() {
+    let json = r#"{}"#;
+    let rhe: RejectionHistoryEntry = serde_json::from_str(json).unwrap();
+    assert!(rhe.reason.is_none());
+    assert!(rhe.revision_summary.is_none());
+    assert!(rhe.rejected_at.is_none());
 }

@@ -607,7 +607,7 @@ pub struct Evidence {
     #[serde(default)]
     pub verdict: Option<String>,
     #[serde(default)]
-    pub concerns: Vec<String>,
+    pub concerns: Vec<serde_json::Value>,
     #[serde(default)]
     pub blocking: Option<bool>,
     #[serde(default)]
@@ -681,6 +681,28 @@ pub struct DesignRisk {
     pub mitigation: Option<String>,
 }
 
+/// Design review block inside a DesignBrief
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct DesignReviewBlock {
+    #[serde(default)]
+    pub reviewer_type: Option<String>,
+    #[serde(default)]
+    pub summary: Option<String>,
+    #[serde(default)]
+    pub additions: Vec<String>,
+}
+
+/// Rejection history entry inside a DesignBrief
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct RejectionHistoryEntry {
+    #[serde(default)]
+    pub reason: Option<String>,
+    #[serde(default)]
+    pub revision_summary: Option<String>,
+    #[serde(default)]
+    pub rejected_at: Option<String>,
+}
+
 /// .geas/missions/{mid}/design-brief.json
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct DesignBrief {
@@ -713,7 +735,17 @@ pub struct DesignBrief {
     #[serde(default)]
     pub preserve_list: Vec<String>,
     #[serde(default)]
+    pub unresolved_assumptions: Vec<String>,
+    #[serde(default)]
+    pub design_review: Option<DesignReviewBlock>,
+    #[serde(default)]
+    pub vote_round_ref: Option<String>,
+    #[serde(default)]
+    pub rejection_history: Vec<RejectionHistoryEntry>,
+    #[serde(default)]
     pub created_at: Option<String>,
+    #[serde(default)]
+    pub approved_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -751,6 +783,8 @@ pub struct VoteRound {
     pub result: Option<String>,
     #[serde(default)]
     pub quorum_met: Option<bool>,
+    #[serde(default)]
+    pub quorum_failure_count: Option<u32>,
     #[serde(default)]
     pub proposal_summary: Option<String>,
     #[serde(default)]

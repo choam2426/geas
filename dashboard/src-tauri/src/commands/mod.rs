@@ -533,13 +533,13 @@ pub fn get_mission_events(
 ) -> Result<EventsPage, String> {
     let (_canonical, geas) = validate_project_path(&path)?;
 
-    // Check both paths — prefer ledger if both exist
-    let ledger_path = geas.join("ledger").join("events.jsonl");
+    // Check both paths — prefer state (canonical v4 location)
     let state_path = geas.join("state").join("events.jsonl");
-    let events_path = if ledger_path.exists() {
-        ledger_path
-    } else if state_path.exists() {
+    let ledger_path = geas.join("ledger").join("events.jsonl");
+    let events_path = if state_path.exists() {
         state_path
+    } else if ledger_path.exists() {
+        ledger_path
     } else {
         return Ok(EventsPage {
             events: vec![],
