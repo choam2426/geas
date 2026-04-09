@@ -81,7 +81,13 @@ Surface these as memory_suggestions:
    - Did I consider irreversible consequences?
    - Are there concerns I noticed but didn't escalate?
 
-2. **Write evidence** (required — include self-review findings):
+2. **Write challenge_review to record.json** (required — the verified→passed guard checks this):
+   ```
+   geas task record add --task {task_id} --section challenge_review \
+     --data '{"concerns":[{"severity":"blocking|non_blocking","description":"..."}],"blocking":false,"summary":"..."}'
+   ```
+
+3. **Write evidence** (required — include self-review findings):
    ```
    geas evidence add --task {task_id} --agent challenger --role authority \
      --set "summary=<decision summary, informed by self-review>" \
@@ -89,7 +95,7 @@ Surface these as memory_suggestions:
      --set "rationale=<reasoning>"
    ```
 
-3. **Update your memory** (only if self-review found a reusable lesson):
+4. **Update your memory** (only if self-review found a reusable lesson):
    ```
    geas memory agent-note --agent challenger --add "<lesson learned>"
    ```
