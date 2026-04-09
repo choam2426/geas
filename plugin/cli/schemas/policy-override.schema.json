@@ -54,7 +54,7 @@
           },
           "approved_by": {
             "type": "string",
-            "description": "Agent type who authorized this override (e.g. product_authority)"
+            "description": "Agent type who authorized this override (e.g. product-authority)"
           },
           "created_at": {
             "type": "string",

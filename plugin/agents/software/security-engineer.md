@@ -1,5 +1,5 @@
 ---
-name: security_engineer
+name: security-engineer
 model: opus
 slot: risk_specialist
 domain: software

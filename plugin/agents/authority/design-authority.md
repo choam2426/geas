@@ -1,5 +1,5 @@
 ---
-name: design_authority
+name: design-authority
 model: opus
 slot: design_authority
 ---

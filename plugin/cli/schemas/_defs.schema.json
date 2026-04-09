@@ -11,21 +11,21 @@
     "agentType": {
       "type": "string",
       "enum": [
-        "orchestration_authority",
-        "product_authority",
-        "design_authority",
+        "orchestration-authority",
+        "product-authority",
+        "design-authority",
         "challenger",
-        "software_engineer",
-        "qa_engineer",
-        "security_engineer",
-        "platform_engineer",
-        "technical_writer",
-        "literature_analyst",
-        "research_analyst",
-        "methodology_reviewer",
-        "research_integrity_reviewer",
-        "research_engineer",
-        "research_writer"
+        "software-engineer",
+        "qa-engineer",
+        "security-engineer",
+        "platform-engineer",
+        "technical-writer",
+        "literature-analyst",
+        "research-analyst",
+        "methodology-reviewer",
+        "research-integrity-reviewer",
+        "research-engineer",
+        "research-writer"
       ]
     }
   }

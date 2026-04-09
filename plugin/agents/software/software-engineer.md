@@ -1,5 +1,5 @@
 ---
-name: software_engineer
+name: software-engineer
 model: opus
 slot: implementer
 domain: software

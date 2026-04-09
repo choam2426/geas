@@ -1,5 +1,5 @@
 ---
-name: product_authority
+name: product-authority
 model: opus
 slot: decision_maker
 ---

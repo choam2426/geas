@@ -1,5 +1,5 @@
 ---
-name: methodology_reviewer
+name: methodology-reviewer
 model: opus
 slot: quality_specialist
 domain: research

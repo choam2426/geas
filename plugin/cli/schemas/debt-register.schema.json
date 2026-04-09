@@ -27,8 +27,8 @@
     "producer_type": {
       "type": "string",
       "enum": [
-        "design_authority",
-        "product_authority"
+        "design-authority",
+        "product-authority"
       ]
     },
     "scope": {

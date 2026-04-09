@@ -28,7 +28,7 @@
     },
     "producer_type": {
       "type": "string",
-      "const": "orchestration_authority"
+      "const": "orchestration-authority"
     },
     "signals": {
       "type": "array",

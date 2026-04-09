@@ -373,7 +373,7 @@ export function registerHealthCommands(program: Command): void {
           version: '1.0',
           artifact_type: 'health_check',
           artifact_id: `health-check-${timestamp.replace(/:/g, '-')}`,
-          producer_type: 'orchestration_authority',
+          producer_type: 'orchestration-authority',
           signals,
           any_triggered: anyTriggered,
           trigger_context: 'manual',

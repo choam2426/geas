@@ -33,8 +33,8 @@
     "producer_type": {
       "type": "string",
       "enum": [
-        "product_authority",
-        "orchestration_authority"
+        "product-authority",
+        "orchestration-authority"
       ]
     },
     "scope_in_summary": {

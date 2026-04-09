@@ -1,5 +1,5 @@
 ---
-name: research_integrity_reviewer
+name: research-integrity-reviewer
 model: opus
 slot: risk_specialist
 domain: research

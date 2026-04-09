@@ -1,5 +1,5 @@
 ---
-name: research_analyst
+name: research-analyst
 model: opus
 slot: implementer
 domain: research

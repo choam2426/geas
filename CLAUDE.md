@@ -36,7 +36,7 @@ Specifying produces three user-approved artifacts: mission spec (WHAT/WHY), desi
 Evidence Gate (Tier 0 → Tier 1 → Tier 2)
     → Closure Packet assembly
     → Challenger Review (high/critical required)
-    → Final Verdict (product_authority: pass / iterate / escalate)
+    → Final Verdict (product-authority: pass / iterate / escalate)
 ```
 
 Gate verdicts: `pass | fail | block | error`. `iterate` is Final Verdict only.
@@ -98,13 +98,13 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 
 ## Agent Name Rule
 
-Agent type names follow a **hybrid naming convention** across contexts:
+Agent type names use **hyphens consistently** across all contexts:
 
-- **File names** use hyphens: `product-authority.md`, `software-engineer.md`
-- **YAML frontmatter `name` field** uses underscores: `product_authority`, `software_engineer`
-- **JSON schema enum values** use underscores: `product_authority`
-- **Skill text and protocol prose** may use either format depending on context — hyphens for display/file references, underscores for schema/JSON contexts
-- **The canonical identifier for routing** is the YAML `name` field (underscores)
+- **File names**: `product-authority.md`, `software-engineer.md`
+- **YAML frontmatter `name` field**: `product-authority`, `software-engineer`
+- **JSON schema enum values**: `product-authority`
+- **Skill text and protocol prose**: `product-authority`, `software-engineer`
+- **The canonical identifier for routing** is the YAML `name` field (hyphens)
 
 Character names appear only inside agent file content as personality/identity, never as file names or references.
 

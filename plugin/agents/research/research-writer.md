@@ -1,5 +1,5 @@
 ---
-name: research_writer
+name: research-writer
 model: opus
 slot: communication_specialist
 domain: research

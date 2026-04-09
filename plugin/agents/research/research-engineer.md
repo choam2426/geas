@@ -1,5 +1,5 @@
 ---
-name: research_engineer
+name: research-engineer
 model: opus
 slot: operations_specialist
 domain: research

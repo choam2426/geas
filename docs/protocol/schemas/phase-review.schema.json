@@ -28,8 +28,8 @@
     "producer_type": {
       "type": "string",
       "enum": [
-        "orchestration_authority",
-        "product_authority"
+        "orchestration-authority",
+        "product-authority"
       ]
     },
     "mission_phase": {

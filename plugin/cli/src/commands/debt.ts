@@ -56,7 +56,7 @@ function createEmptyRegister(missionId: string): DebtRegister {
     version: '1.0',
     artifact_type: 'debt_register',
     artifact_id: `debt-register-${missionId}`,
-    producer_type: 'design_authority',
+    producer_type: 'design-authority',
     scope: 'mission',
     items: [],
     rollup_by_severity: {},

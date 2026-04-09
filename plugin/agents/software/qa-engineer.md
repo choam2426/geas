@@ -1,5 +1,5 @@
 ---
-name: qa_engineer
+name: qa-engineer
 model: opus
 slot: quality_specialist
 domain: software

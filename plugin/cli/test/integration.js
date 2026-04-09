@@ -91,7 +91,7 @@ const TASK_CONTRACT = {
   version: '1.0',
   artifact_type: 'task_contract',
   artifact_id: 'task-contract-task-001',
-  producer_type: 'orchestration_authority',
+  producer_type: 'orchestration-authority',
   created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
   task_id: 'task-001',
   title: 'Integration test task',
@@ -106,8 +106,8 @@ const TASK_CONTRACT = {
   retry_budget: 3,
   scope: { surfaces: ['test/'] },
   routing: {
-    primary_worker_type: 'software_engineer',
-    required_reviewer_types: ['design_authority'],
+    primary_worker_type: 'software-engineer',
+    required_reviewer_types: ['design-authority'],
   },
   base_snapshot: 'abc123',
   status: 'drafted',
@@ -242,7 +242,7 @@ function defineTests(tmpDir) {
       name: 'debt add',
       fn: () =>
         run(
-          `debt add --mission ${MISSION_ID} --title "test debt" --severity low --kind output_quality --task task-001 --owner software_engineer`,
+          `debt add --mission ${MISSION_ID} --title "test debt" --severity low --kind output_quality --task task-001 --owner software-engineer`,
           tmpDir,
         ),
       validate: (r) => r.added === true && r.debt_id === 'DEBT-001',
@@ -454,7 +454,7 @@ function defineGuardTests(tmpDir) {
       version: '1.0',
       artifact_type: 'task_contract',
       artifact_id: `task-contract-${taskId}`,
-      producer_type: 'orchestration_authority',
+      producer_type: 'orchestration-authority',
       created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
       task_id: taskId,
       title: 'Guard test task',
@@ -469,7 +469,7 @@ function defineGuardTests(tmpDir) {
       rubric: { dimensions: [{ name: 'completeness', threshold: 3 }] },
       retry_budget: 3,
       scope: { surfaces: ['test/'] },
-      routing: { primary_worker_type: 'software_engineer', required_reviewer_types: ['design_authority'] },
+      routing: { primary_worker_type: 'software-engineer', required_reviewer_types: ['design-authority'] },
       status: 'drafted',
       ...overrides,
     };
@@ -592,7 +592,7 @@ function defineGuardTests(tmpDir) {
             closure: { change_summary: 'Done', reviews: [{ reviewer: 'tester', outcome: 'approved' }], open_risks: [], debt_items: [] },
             retrospective: { what_went_well: ['Tests pass'], what_broke: [] },
           });
-          // Satisfy required_reviewer_types: ['design_authority'] from contract
+          // Satisfy required_reviewer_types: ['design-authority'] from contract
           writeEvidence(taskId, 'design-authority', { role: 'reviewer', summary: 'Approved', verdict: 'pass' });
           return runWithCwd(
             `task transition --mission ${GUARD_MISSION} --id ${taskId} --to passed`,
@@ -611,7 +611,7 @@ function defineGuardTests(tmpDir) {
             version: '1.0',
             artifact_type: 'phase_review',
             artifact_id: 'phase-review-build-polish',
-            producer_type: 'orchestration_authority',
+            producer_type: 'orchestration-authority',
             mission_phase: 'building',
             status: 'ready_to_exit',
             summary: 'Attempting building to polishing',
@@ -641,7 +641,7 @@ function defineGuardTests(tmpDir) {
             version: '1.0',
             artifact_type: 'phase_review',
             artifact_id: 'phase-review-evolve-complete',
-            producer_type: 'orchestration_authority',
+            producer_type: 'orchestration-authority',
             mission_phase: 'evolving',
             status: 'ready_to_exit',
             summary: 'Attempting evolving to complete',
@@ -675,7 +675,7 @@ function defineGuardTests(tmpDir) {
             version: '1.0',
             artifact_type: 'phase_review',
             artifact_id: 'pr-invalid',
-            producer_type: 'orchestration_authority',
+            producer_type: 'orchestration-authority',
             mission_phase: 'building',
             status: 'ready_to_exit',
             next_phase: 'complete',
@@ -1018,7 +1018,7 @@ function defineV4Tests(tmpDir) {
             version: '1.0',
             artifact_type: 'phase_review',
             artifact_id: 'pr-bad',
-            producer_type: 'orchestration_authority',
+            producer_type: 'orchestration-authority',
             mission_phase: 'evolving',
             status: 'ready_to_exit',
             summary: 'Missing next_phase',
@@ -1047,7 +1047,7 @@ function defineV4Tests(tmpDir) {
             version: '1.0',
             artifact_type: 'phase_review',
             artifact_id: 'pr-building-001',
-            producer_type: 'orchestration_authority',
+            producer_type: 'orchestration-authority',
             mission_phase: 'building',
             status: 'ready_to_enter',
             summary: 'Building phase entered',
@@ -1096,7 +1096,7 @@ function defineV4Tests(tmpDir) {
             version: '1.0',
             artifact_type: 'rules_update',
             artifact_id: 'ru-001',
-            producer_type: 'design_authority',
+            producer_type: 'design-authority',
             status: 'none',
             reason: 'No rules changes needed',
             evidence_refs: [],
@@ -1138,11 +1138,11 @@ function defineV4Tests(tmpDir) {
           try {
             const data = JSON.stringify({
               version: '1.0', artifact_type: 'task_contract', artifact_id: 'tc-bad',
-              producer_type: 'orchestration_authority', created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+              producer_type: 'orchestration-authority', created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
               task_id: 'bad-task', title: 'Bad', goal: 'Bad', task_kind: 'implementation',
               risk_level: 'low', gate_profile: 'implementation_change', vote_round_policy: 'never',
               acceptance_criteria: ['x'], eval_commands: [], rubric: { dimensions: [{ name: 'core_interaction', threshold: 3 }] },
-              retry_budget: 3, scope: { surfaces: ['src/'] }, routing: { primary_worker_type: 'software_engineer', required_reviewer_types: ['design_authority'] },
+              retry_budget: 3, scope: { surfaces: ['src/'] }, routing: { primary_worker_type: 'software-engineer', required_reviewer_types: ['design-authority'] },
               base_snapshot: 'abc123', status: 'drafted'
             }).replace(/"/g, '\\"');
             execSync(

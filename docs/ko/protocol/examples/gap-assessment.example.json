@@ -2,7 +2,7 @@
   "version": "1.0",
   "artifact_type": "gap_assessment",
   "artifact_id": "gap-mvp-001",
-  "producer_type": "product_authority",
+  "producer_type": "product-authority",
   "scope_in_summary": "MVP 범위: 로그인, 회원가입, 비밀번호 재설정 플로우 전체 구현. 인증 토큰 관리 및 세션 유지 포함.",
   "scope_out_summary": "로그인과 회원가입은 완전히 출시됨. 비밀번호 재설정은 UI만 구현되었고 이메일 토큰 백엔드는 미완료. 세션 복원 경로는 부분 구현.",
   "fully_delivered": [

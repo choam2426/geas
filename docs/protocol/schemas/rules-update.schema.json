@@ -29,10 +29,10 @@
     "producer_type": {
       "type": "string",
       "enum": [
-        "design_authority",
-        "product_authority",
-        "qa_engineer",
-        "security_engineer"
+        "design-authority",
+        "product-authority",
+        "qa-engineer",
+        "security-engineer"
       ]
     },
     "status": {

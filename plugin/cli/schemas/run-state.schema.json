@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RunState",
-  "description": "Session state and checkpoint for the Geas orchestrator. Written by orchestration_authority, read by restore-context hook for session recovery.",
+  "description": "Session state and checkpoint for the Geas orchestrator. Written by orchestration-authority, read by restore-context hook for session recovery.",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "status", "created_at"],

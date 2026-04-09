@@ -31,8 +31,8 @@
     },
     "producer_type": {
       "type": "string",
-      "const": "orchestration_authority",
-      "description": "Always orchestration_authority for design briefs"
+      "const": "orchestration-authority",
+      "description": "Always orchestration-authority for design briefs"
     },
     "mission_id": {
       "type": "string",
@@ -123,7 +123,7 @@
       "properties": {
         "reviewer_type": {
           "type": "string",
-          "const": "design_authority"
+          "const": "design-authority"
         },
         "summary": {
           "type": "string",
