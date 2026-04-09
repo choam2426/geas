@@ -13,7 +13,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Command } from 'commander';
 import { success, fileError } from '../lib/output';
-import { resolveGeasDir, normalizePath } from '../lib/paths';
+import { resolveGeasDir, normalizePath, validateIdentifier, assertContainedIn } from '../lib/paths';
 import { readJsonFile, ensureDir } from '../lib/fs-atomic';
 import { writeCheckpointPending } from '../lib/post-write-checks';
 import { getCwd } from '../lib/cwd';
@@ -58,14 +58,11 @@ export function registerPacketCommands(program: Command): void {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
         const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission');
+        validateIdentifier(opts.task, 'task');
+        validateIdentifier(opts.agent, 'agent');
         const missionDir = path.resolve(geasDir, 'missions', missionId);
-
-        // Sanitize agent name
-        const agentName = opts.agent.replace(/[^a-zA-Z0-9_-]/g, '');
-        if (!agentName) {
-          fileError(opts.agent, 'validate', 'Agent name is empty after sanitization');
-          return;
-        }
+        const agentName = opts.agent;
 
         // Get content from --content, --file, or stdin
         let content: string | undefined;
@@ -101,6 +98,7 @@ export function registerPacketCommands(program: Command): void {
         ensureDir(packetsDir);
 
         const filePath = path.resolve(packetsDir, `${agentName}.md`);
+        assertContainedIn(filePath, missionDir);
 
         // Checkpoint pending
         writeCheckpointPending(filePath, cwd);
@@ -135,10 +133,14 @@ export function registerPacketCommands(program: Command): void {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
         const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission');
+        validateIdentifier(opts.task, 'task');
+        validateIdentifier(opts.agent, 'agent');
         const missionDir = path.resolve(geasDir, 'missions', missionId);
 
-        const agentName = opts.agent.replace(/[^a-zA-Z0-9_-]/g, '');
+        const agentName = opts.agent;
         const filePath = path.resolve(missionDir, 'tasks', opts.task, 'packets', `${agentName}.md`);
+        assertContainedIn(filePath, missionDir);
 
         if (!fs.existsSync(filePath)) {
           fileError(normalizePath(filePath), 'read', 'Packet not found');

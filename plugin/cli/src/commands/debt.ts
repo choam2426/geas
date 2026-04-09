@@ -11,7 +11,7 @@
 import * as path from 'path';
 import type { Command } from 'commander';
 import { success, fileError } from '../lib/output';
-import { resolveGeasDir, resolveMissionDir, normalizePath } from '../lib/paths';
+import { resolveGeasDir, resolveMissionDir, normalizePath, validateIdentifier, assertContainedIn } from '../lib/paths';
 import { readJsonFile, atomicWriteJsonFile, ensureDir } from '../lib/fs-atomic';
 import { getCwd } from '../lib/cwd';
 
@@ -140,8 +140,12 @@ export function registerDebtCommands(program: Command): void {
 
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
+        validateIdentifier(opts.mission, 'mission');
+        validateIdentifier(opts.task, 'task');
+        validateIdentifier(opts.owner, 'owner');
         const missionDir = resolveMissionDir(geasDir, opts.mission);
         const regPath = debtRegisterPath(missionDir);
+        assertContainedIn(regPath, missionDir);
 
         // Ensure evolution directory exists
         ensureDir(path.dirname(regPath));
@@ -210,8 +214,11 @@ export function registerDebtCommands(program: Command): void {
       try {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
+        validateIdentifier(opts.mission, 'mission');
+        validateIdentifier(opts.id, 'debt_id');
         const missionDir = resolveMissionDir(geasDir, opts.mission);
         const regPath = debtRegisterPath(missionDir);
+        assertContainedIn(regPath, missionDir);
 
         const register = readJsonFile<DebtRegister>(regPath);
         if (!register) {
@@ -262,8 +269,10 @@ export function registerDebtCommands(program: Command): void {
     .action((opts: { mission: string; status?: string; severity?: string }, cmd: Command) => {
       try {
         const geasDir = resolveGeasDir(getCwd(cmd));
+        validateIdentifier(opts.mission, 'mission');
         const missionDir = resolveMissionDir(geasDir, opts.mission);
         const regPath = debtRegisterPath(missionDir);
+        assertContainedIn(regPath, missionDir);
 
         const register = readJsonFile<DebtRegister>(regPath);
         if (!register) {

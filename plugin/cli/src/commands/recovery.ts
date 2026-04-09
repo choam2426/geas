@@ -8,7 +8,7 @@
 import * as path from 'path';
 import type { Command } from 'commander';
 import { writeJsonFile } from '../lib/fs-atomic';
-import { resolveGeasDir } from '../lib/paths';
+import { resolveGeasDir, validateIdentifier, assertContainedIn } from '../lib/paths';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
@@ -34,6 +34,7 @@ export function registerRecoveryCommands(program: Command): void {
           fileError('recovery/', 'write', 'recovery_id is required in --data');
           return;
         }
+        validateIdentifier(recoveryId, 'recovery_id');
 
         // Validate against recovery-packet schema
         const result = validate('recovery-packet', data);
@@ -43,6 +44,7 @@ export function registerRecoveryCommands(program: Command): void {
         }
 
         const filePath = path.resolve(geasDir, 'recovery', `${recoveryId}.json`);
+        assertContainedIn(filePath, geasDir);
         writeJsonFile(filePath, data, { cwd });
 
         success({

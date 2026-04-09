@@ -6,11 +6,13 @@
 import * as path from 'path';
 import type { Command } from 'commander';
 import { writeJsonFile, ensureDir } from '../lib/fs-atomic';
-import { resolveGeasDir, resolveMissionDir, normalizePath } from '../lib/paths';
+import { resolveGeasDir, resolveMissionDir, normalizePath, validateIdentifier, assertContainedIn } from '../lib/paths';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
 import { readInputData } from '../lib/input';
+
+const VALID_PHASES = ['specifying', 'building', 'polishing', 'evolving'];
 
 export function registerEvolutionCommands(program: Command): void {
   const cmd = program
@@ -29,6 +31,13 @@ export function registerEvolutionCommands(program: Command): void {
         const data = readInputData(opts.data, undefined) as Record<string, unknown>;
         const cwd = getCwd(actionCmd);
         const geasDir = resolveGeasDir(cwd);
+        validateIdentifier(opts.mission, 'mission');
+
+        if (!VALID_PHASES.includes(opts.phase)) {
+          fileError('', 'validate', `Invalid phase '${opts.phase}'. Must be one of: ${VALID_PHASES.join(', ')}`);
+          return;
+        }
+
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         const result = validate('gap-assessment', data);
@@ -40,6 +49,7 @@ export function registerEvolutionCommands(program: Command): void {
         const evolutionDir = path.resolve(missionDir, 'evolution');
         ensureDir(evolutionDir);
         const filePath = path.resolve(evolutionDir, `gap-assessment-${opts.phase}.json`);
+        assertContainedIn(filePath, missionDir);
         writeJsonFile(filePath, data, { cwd });
 
         success({
@@ -73,6 +83,7 @@ export function registerEvolutionCommands(program: Command): void {
         const data = readInputData(opts.data, opts.file) as Record<string, unknown>;
         const cwd = getCwd(actionCmd);
         const geasDir = resolveGeasDir(cwd);
+        validateIdentifier(opts.mission, 'mission');
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         const result = validate('rules-update', data);
@@ -84,6 +95,7 @@ export function registerEvolutionCommands(program: Command): void {
         const evolutionDir = path.resolve(missionDir, 'evolution');
         ensureDir(evolutionDir);
         const filePath = path.resolve(evolutionDir, 'rules-update.json');
+        assertContainedIn(filePath, missionDir);
         writeJsonFile(filePath, data, { cwd });
 
         success({

@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Command } from 'commander';
 import { success, fileError } from '../lib/output';
-import { resolveGeasDir, resolveMissionDir, normalizePath } from '../lib/paths';
+import { resolveGeasDir, resolveMissionDir, normalizePath, validateIdentifier, assertContainedIn } from '../lib/paths';
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { getCwd } from '../lib/cwd';
 
@@ -44,6 +44,7 @@ export function registerDecisionCommands(program: Command): void {
 
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
+        validateIdentifier(opts.mission, 'mission');
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         // Determine decision ID from data or generate one
@@ -58,24 +59,21 @@ export function registerDecisionCommands(program: Command): void {
           decisionData.decision_id = decisionId;
         }
 
-        // Sanitize decision ID for use as filename
-        const safeId = decisionId.replace(/[^a-zA-Z0-9_-]/g, '');
-        if (!safeId) {
-          fileError(decisionId, 'validate', 'Decision ID is empty after sanitization');
-          return;
-        }
+        // Validate decision ID
+        validateIdentifier(decisionId, 'decision_id');
 
         const decisionsDir = path.resolve(missionDir, 'decisions');
         ensureDir(decisionsDir);
 
-        const filePath = path.resolve(decisionsDir, `${safeId}.json`);
+        const filePath = path.resolve(decisionsDir, `${decisionId}.json`);
+        assertContainedIn(filePath, missionDir);
 
         writeJsonFile(filePath, decisionData, { cwd });
 
         success({
           written: normalizePath(filePath),
           mission_id: opts.mission,
-          decision_id: safeId,
+          decision_id: decisionId,
         });
       } catch (err: unknown) {
         const nodeErr = err as NodeJS.ErrnoException;
@@ -92,31 +90,28 @@ export function registerDecisionCommands(program: Command): void {
     .action((opts: { mission: string; id: string }, cmd: Command) => {
       try {
         const geasDir = resolveGeasDir(getCwd(cmd));
+        validateIdentifier(opts.mission, 'mission');
+        validateIdentifier(opts.id, 'decision_id');
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
-        // Sanitize decision ID
-        const safeId = opts.id.replace(/[^a-zA-Z0-9_-]/g, '');
-        if (!safeId) {
-          fileError(opts.id, 'validate', 'Decision ID is empty after sanitization');
-          return;
-        }
-
-        const filePath = path.resolve(missionDir, 'decisions', `${safeId}.json`);
+        const filePath = path.resolve(missionDir, 'decisions', `${opts.id}.json`);
+        assertContainedIn(filePath, missionDir);
         const data = readJsonFile(filePath);
 
         if (data === null) {
           // Also check inside the pending/ subdirectory
-          const pendingPath = path.resolve(missionDir, 'decisions', 'pending', `${safeId}.json`);
+          const pendingPath = path.resolve(missionDir, 'decisions', 'pending', `${opts.id}.json`);
+          assertContainedIn(pendingPath, missionDir);
           const pendingData = readJsonFile(pendingPath);
 
           if (pendingData === null) {
-            fileError(normalizePath(filePath), 'read', `Decision record '${safeId}' not found`);
+            fileError(normalizePath(filePath), 'read', `Decision record '${opts.id}' not found`);
             return;
           }
 
           success({
             mission_id: opts.mission,
-            decision_id: safeId,
+            decision_id: opts.id,
             status: 'pending',
             decision: pendingData,
           });
@@ -125,7 +120,7 @@ export function registerDecisionCommands(program: Command): void {
 
         success({
           mission_id: opts.mission,
-          decision_id: safeId,
+          decision_id: opts.id,
           decision: data,
         });
       } catch (err: unknown) {
@@ -142,6 +137,7 @@ export function registerDecisionCommands(program: Command): void {
     .action((opts: { mission: string }, cmd: Command) => {
       try {
         const geasDir = resolveGeasDir(getCwd(cmd));
+        validateIdentifier(opts.mission, 'mission');
         const missionDir = resolveMissionDir(geasDir, opts.mission);
         const decisionsDir = path.resolve(missionDir, 'decisions');
 

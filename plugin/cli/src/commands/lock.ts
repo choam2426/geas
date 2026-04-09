@@ -4,7 +4,7 @@
 
 import * as path from 'path';
 import type { Command } from 'commander';
-import { resolveGeasDir } from '../lib/paths';
+import { resolveGeasDir, validateIdentifier } from '../lib/paths';
 import { readJsonFile, atomicWriteJsonFile } from '../lib/fs-atomic';
 import { success, fileError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
@@ -90,6 +90,8 @@ export function registerLockCommands(program: Command): void {
         try {
           const cwd = getCwd(cmd);
           const geas = resolveGeasDir(cwd);
+          validateIdentifier(opts.task, 'task');
+
           const filePath = locksJsonPath(geas);
           const manifest = readLocks(geas);
           const now = new Date()
@@ -179,6 +181,7 @@ export function registerLockCommands(program: Command): void {
       try {
         const cwd = getCwd(cmd);
         const geas = resolveGeasDir(cwd);
+        validateIdentifier(opts.task, 'task');
         const filePath = locksJsonPath(geas);
         const manifest = readLocks(geas);
 
@@ -224,6 +227,9 @@ export function registerLockCommands(program: Command): void {
     .action((opts: { task?: string; type?: string }) => {
       try {
         const geas = resolveGeasDir(getCwd(cmd));
+        if (opts.task) {
+          validateIdentifier(opts.task, 'task');
+        }
         const manifest = readLocks(geas);
 
         let locks = manifest.locks;
@@ -250,6 +256,7 @@ export function registerLockCommands(program: Command): void {
       try {
         const cwd = getCwd(cmd);
         const geas = resolveGeasDir(cwd);
+        validateIdentifier(opts.session, 'session');
         const filePath = locksJsonPath(geas);
         const manifest = readLocks(geas);
 

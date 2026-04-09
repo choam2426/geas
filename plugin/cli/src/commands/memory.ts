@@ -13,7 +13,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Command } from 'commander';
 import { success, fileError } from '../lib/output';
-import { resolveGeasDir, normalizePath } from '../lib/paths';
+import { resolveGeasDir, normalizePath, validateIdentifier, assertContainedIn } from '../lib/paths';
 import { ensureDir } from '../lib/fs-atomic';
 import { writeCheckpointPending } from '../lib/post-write-checks';
 import { getCwd } from '../lib/cwd';
@@ -34,17 +34,15 @@ export function registerMemoryCommands(program: Command): void {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
 
-        // Sanitize agent name
-        const agentName = opts.agent.replace(/[^a-zA-Z0-9_-]/g, '');
-        if (!agentName) {
-          fileError(opts.agent, 'validate', 'Agent name is empty after sanitization');
-          return;
-        }
+        // Validate agent name (reject, never sanitize)
+        validateIdentifier(opts.agent, 'agent');
+        const agentName = opts.agent;
 
         const agentsDir = path.resolve(geasDir, 'memory', 'agents');
         ensureDir(agentsDir);
 
         const filePath = path.resolve(agentsDir, `${agentName}.md`);
+        assertContainedIn(filePath, geasDir);
 
         // Checkpoint pending
         writeCheckpointPending(filePath, cwd);
@@ -93,12 +91,10 @@ export function registerMemoryCommands(program: Command): void {
         const geasDir = resolveGeasDir(cwd);
 
         if (opts.agent) {
-          const agentName = opts.agent.replace(/[^a-zA-Z0-9_-]/g, '');
-          if (!agentName) {
-            fileError(opts.agent, 'validate', 'Agent name is empty after sanitization');
-            return;
-          }
+          validateIdentifier(opts.agent, 'agent');
+          const agentName = opts.agent;
           const filePath = path.resolve(geasDir, 'memory', 'agents', `${agentName}.md`);
+          assertContainedIn(filePath, geasDir);
           if (!fs.existsSync(filePath)) {
             success({ agent: agentName, content: null, message: 'No memory notes found' });
             return;
