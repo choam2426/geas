@@ -1097,6 +1097,70 @@ function defineV4Tests(tmpDir) {
           r.data.known_risks[0] === '001',
       },
 
+      // ── task.ts path traversal rejection ──
+      {
+        name: '[security] task create rejects path traversal in mission ID',
+        fn: () => {
+          try {
+            const data = JSON.stringify({
+              version: '1.0', artifact_type: 'task_contract', artifact_id: 'tc-bad',
+              producer_type: 'orchestration_authority', created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+              task_id: 'bad-task', title: 'Bad', goal: 'Bad', task_kind: 'implementation',
+              risk_level: 'low', gate_profile: 'implementation_change', vote_round_policy: 'never',
+              acceptance_criteria: ['x'], eval_commands: [], rubric: { dimensions: [{ name: 'core_interaction', threshold: 3 }] },
+              retry_budget: 3, scope: { surfaces: ['src/'] }, routing: { primary_worker_type: 'software_engineer', required_reviewer_types: ['design_authority'] },
+              base_snapshot: 'abc123', status: 'drafted'
+            }).replace(/"/g, '\\"');
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" task create --mission "../escape" --data "${data}"`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { rejected: false };
+          } catch {
+            return { rejected: true };
+          }
+        },
+        validate: (r) => r.rejected === true,
+      },
+
+      // ── task transition path traversal ──
+      {
+        name: '[security] task transition rejects path traversal in task ID',
+        fn: () => {
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" task transition --mission ${V4_MISSION} --id "../escape" --to ready`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { rejected: false };
+          } catch {
+            return { rejected: true };
+          }
+        },
+        validate: (r) => r.rejected === true,
+      },
+
+      // ── prototype pollution defense ──
+      {
+        name: '[security] --set blocks __proto__ key',
+        fn: () => {
+          // Write with __proto__ key - should be silently ignored
+          runWithCwd(
+            `task record add --mission ${V4_MISSION} --task v4-task-001 --section self_check --set "confidence=4" --set "summary=proto test" --set "__proto__=polluted" --set "known_risks[0]=none" --set "untested_paths[0]=none"`,
+            tmpDir,
+          );
+          // Read back and verify __proto__ was not injected
+          const result = runWithCwd(
+            `task record get --mission ${V4_MISSION} --task v4-task-001 --section self_check`,
+            tmpDir,
+          );
+          return result;
+        },
+        validate: (r) =>
+          r.data.confidence === 4 &&
+          !Object.prototype.hasOwnProperty.call(r.data || {}, '__proto__'),
+      },
+
       // ── mission auto-resolution ──
       {
         name: '[v4] task record add auto-resolves mission from run.json',
