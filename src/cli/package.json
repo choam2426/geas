@@ -4,17 +4,18 @@
   "description": "CLI for Geas plugin — wraps all .geas/ file I/O into atomic commands",
   "main": "index.js",
   "scripts": {
-    "build": "npm run copy-schemas && tsc",
-    "copy-schemas": "node -e \"const fs=require('fs'),p=require('path');const src=p.resolve(__dirname,'../../docs/protocol/schemas'),dst=p.resolve(__dirname,'schemas');fs.mkdirSync(dst,{recursive:true});fs.readdirSync(src).filter(f=>f.endsWith('.schema.json')).forEach(f=>fs.copyFileSync(p.join(src,f),p.join(dst,f)));console.log('Schemas copied: '+fs.readdirSync(dst).filter(f=>f.endsWith('.schema.json')).length+' files.')\"",
+    "build": "tsc",
+    "bundle": "node esbuild.config.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "commander": "^12.1.0",
-    "ajv": "^8.17.1"
+    "ajv": "^8.17.1",
+    "commander": "^12.1.0"
   },
   "devDependencies": {
-    "typescript": "^5.6.0",
-    "@types/node": "^20.14.0"
+    "@types/node": "^20.14.0",
+    "esbuild": "^0.28.0",
+    "typescript": "^5.6.0"
   },
   "engines": {
     "node": ">=18.0.0"
