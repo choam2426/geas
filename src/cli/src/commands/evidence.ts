@@ -44,7 +44,8 @@ export function registerEvidenceCommands(program: Command): void {
     .command('add')
     .description('Create or overwrite a role-based evidence file')
     .option('--mission <mid>', 'Mission identifier (auto-resolved from run.json)')
-    .requiredOption('--task <tid>', 'Task identifier')
+    .option('--task <tid>', 'Task identifier (use --phase for phase-level evidence)')
+    .option('--phase <phase>', 'Phase name for mission-level evidence (polishing, evolving)')
     .requiredOption('--agent <name>', 'Agent name (used as filename)')
     .requiredOption('--role <role>', 'Agent role (implementer, reviewer, tester, authority)')
     .option('--data <json>', 'Evidence data as JSON string')
@@ -52,7 +53,8 @@ export function registerEvidenceCommands(program: Command): void {
     .option('--set <key=value...>', 'Set individual fields', collectSet, [])
     .action((opts: {
       mission?: string;
-      task: string;
+      task?: string;
+      phase?: string;
       agent: string;
       role: string;
       data?: string;
@@ -64,7 +66,17 @@ export function registerEvidenceCommands(program: Command): void {
         const geasDir = resolveGeasDir(cwd);
         const missionId = resolveMissionId(geasDir, opts.mission);
         validateIdentifier(missionId, 'mission ID');
-        validateIdentifier(opts.task, 'task ID');
+
+        if (!opts.task && !opts.phase) {
+          fileError('', 'evidence add', 'Either --task or --phase is required.');
+          return;
+        }
+        if (opts.task && opts.phase) {
+          fileError('', 'evidence add', 'Use --task or --phase, not both.');
+          return;
+        }
+
+        if (opts.task) validateIdentifier(opts.task, 'task ID');
 
         // Reject invalid agent names instead of sanitizing (S3)
         if (!SAFE_AGENT_RE.test(opts.agent)) {
@@ -92,7 +104,7 @@ export function registerEvidenceCommands(program: Command): void {
         // Force-overwrite metadata from CLI flags (I1: prevent spoofing)
         evidenceData.version = '1.0';
         evidenceData.agent = agentName;
-        evidenceData.task_id = opts.task;
+        evidenceData.task_id = opts.task || opts.phase!;
         evidenceData.role = opts.role;
 
         // Validate against evidence schema (includes role-based allOf checks)
@@ -102,15 +114,22 @@ export function registerEvidenceCommands(program: Command): void {
           return;
         }
 
-        // v4: evidence lives inside tasks/{tid}/evidence/
         const missionDir = path.resolve(geasDir, 'missions', missionId);
-        const evidenceDir = path.resolve(missionDir, 'tasks', opts.task, 'evidence');
+        let evidenceDir: string;
 
-        // Verify task exists (I1: prevent orphan evidence)
-        const contractPath = path.resolve(missionDir, 'tasks', opts.task, 'contract.json');
-        if (!fs.existsSync(contractPath)) {
-          fileError(`tasks/${opts.task}/contract.json`, 'validate', 'Task does not exist. Cannot create evidence for non-existent task.');
-          return;
+        if (opts.phase) {
+          // Phase-level evidence: missions/{mid}/evidence/
+          evidenceDir = path.resolve(missionDir, 'evidence');
+        } else {
+          // Task-level evidence: missions/{mid}/tasks/{tid}/evidence/
+          evidenceDir = path.resolve(missionDir, 'tasks', opts.task!, 'evidence');
+
+          // Verify task exists (I1: prevent orphan evidence)
+          const contractPath = path.resolve(missionDir, 'tasks', opts.task!, 'contract.json');
+          if (!fs.existsSync(contractPath)) {
+            fileError(`tasks/${opts.task}/contract.json`, 'validate', 'Task does not exist. Cannot create evidence for non-existent task.');
+            return;
+          }
         }
 
         ensureDir(evidenceDir);
@@ -121,7 +140,7 @@ export function registerEvidenceCommands(program: Command): void {
         success({
           written: normalizePath(filePath),
           mission_id: missionId,
-          task_id: opts.task,
+          ...(opts.task ? { task_id: opts.task } : { phase: opts.phase }),
           agent: agentName,
           role: opts.role,
         });

@@ -94,12 +94,12 @@ Same mandatory steps, same Closure Packet verification, same checkpoint manageme
 Bash("geas state checkpoint set --step product_authority_final --agent product-authority")
 ```
 ```
-Agent(agent: "product-authority", prompt: "Final product review. Read the current mission spec at .geas/missions/{mission_id}/spec.json (get mission_id from .geas/state/run.json), .geas/missions/{mission_id}/evolution/gap-assessment-evolving.json, .geas/missions/{mission_id}/evolution/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write your evidence via CLI. Run: geas evidence add --task evolving --agent product-authority-final --role authority --set summary='<strategic summary>' --set verdict='pass' --set rationale='<final assessment>'. ALSO write a human-readable markdown summary to .geas/missions/{mission_id}/mission-summary.md (use Write tool -- no dedicated CLI command for mission-summary) covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
+Agent(agent: "product-authority", prompt: "Final product review. Read the current mission spec at .geas/missions/{mission_id}/spec.json (get mission_id from .geas/state/run.json), .geas/missions/{mission_id}/evolution/gap-assessment-evolving.json, .geas/missions/{mission_id}/evolution/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write your evidence via CLI. Run: geas evidence add --phase evolving --agent product-authority-final --role authority --set summary='<strategic summary>' --set verdict='pass' --set rationale='<final assessment>'. ALSO write a human-readable markdown summary to .geas/missions/{mission_id}/mission-summary.md (use Write tool -- no dedicated CLI command for mission-summary) covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
 ```
 ```bash
 Bash("geas state checkpoint clear")
 ```
-Verify `.geas/missions/{mission_id}/tasks/evolving/evidence/product-authority-final.json` exists.
+Verify `.geas/missions/{mission_id}/evidence/product-authority-final.json` exists.
 Verify `.geas/missions/{mission_id}/mission-summary.md` exists.
 
 ### Mission Briefing [MANDATORY — orchestrator writes directly]

@@ -11964,8 +11964,6 @@ function generateMissionId() {
 var MISSION_SUBDIRS = [
   "tasks",
   "evidence",
-  "contracts",
-  "packets",
   "decisions/pending",
   "evolution",
   "phase-reviews"
@@ -12785,13 +12783,21 @@ function resolveMissionId2(geasDir2, missionOpt) {
 var SAFE_AGENT_RE = /^[a-zA-Z0-9_-]+$/;
 function registerEvidenceCommands(program2) {
   const cmd = program2.command("evidence").description("Role-based evidence file management");
-  cmd.command("add").description("Create or overwrite a role-based evidence file").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").requiredOption("--task <tid>", "Task identifier").requiredOption("--agent <name>", "Agent name (used as filename)").requiredOption("--role <role>", "Agent role (implementer, reviewer, tester, authority)").option("--data <json>", "Evidence data as JSON string").option("--file <path>", "Read evidence data from JSON file").option("--set <key=value...>", "Set individual fields", collectSet2, []).action((opts) => {
+  cmd.command("add").description("Create or overwrite a role-based evidence file").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").option("--task <tid>", "Task identifier (use --phase for phase-level evidence)").option("--phase <phase>", "Phase name for mission-level evidence (polishing, evolving)").requiredOption("--agent <name>", "Agent name (used as filename)").requiredOption("--role <role>", "Agent role (implementer, reviewer, tester, authority)").option("--data <json>", "Evidence data as JSON string").option("--file <path>", "Read evidence data from JSON file").option("--set <key=value...>", "Set individual fields", collectSet2, []).action((opts) => {
     try {
       const cwd = getCwd(cmd);
       const geasDir2 = resolveGeasDir(cwd);
       const missionId = resolveMissionId2(geasDir2, opts.mission);
       validateIdentifier(missionId, "mission ID");
-      validateIdentifier(opts.task, "task ID");
+      if (!opts.task && !opts.phase) {
+        fileError("", "evidence add", "Either --task or --phase is required.");
+        return;
+      }
+      if (opts.task && opts.phase) {
+        fileError("", "evidence add", "Use --task or --phase, not both.");
+        return;
+      }
+      if (opts.task) validateIdentifier(opts.task, "task ID");
       if (!SAFE_AGENT_RE.test(opts.agent)) {
         fileError(opts.agent, "validate", `Invalid agent name: "${opts.agent}". Only alphanumeric, underscore, and hyphen are allowed.`);
         return;
@@ -12812,7 +12818,7 @@ function registerEvidenceCommands(program2) {
       }
       evidenceData.version = "1.0";
       evidenceData.agent = agentName;
-      evidenceData.task_id = opts.task;
+      evidenceData.task_id = opts.task || opts.phase;
       evidenceData.role = opts.role;
       const result = validate("evidence", evidenceData);
       if (!result.valid) {
@@ -12820,11 +12826,16 @@ function registerEvidenceCommands(program2) {
         return;
       }
       const missionDir = path8.resolve(geasDir2, "missions", missionId);
-      const evidenceDir = path8.resolve(missionDir, "tasks", opts.task, "evidence");
-      const contractPath = path8.resolve(missionDir, "tasks", opts.task, "contract.json");
-      if (!fs9.existsSync(contractPath)) {
-        fileError(`tasks/${opts.task}/contract.json`, "validate", "Task does not exist. Cannot create evidence for non-existent task.");
-        return;
+      let evidenceDir;
+      if (opts.phase) {
+        evidenceDir = path8.resolve(missionDir, "evidence");
+      } else {
+        evidenceDir = path8.resolve(missionDir, "tasks", opts.task, "evidence");
+        const contractPath = path8.resolve(missionDir, "tasks", opts.task, "contract.json");
+        if (!fs9.existsSync(contractPath)) {
+          fileError(`tasks/${opts.task}/contract.json`, "validate", "Task does not exist. Cannot create evidence for non-existent task.");
+          return;
+        }
       }
       ensureDir(evidenceDir);
       const filePath = path8.resolve(evidenceDir, `${agentName}.json`);
@@ -12832,7 +12843,7 @@ function registerEvidenceCommands(program2) {
       success({
         written: normalizePath(filePath),
         mission_id: missionId,
-        task_id: opts.task,
+        ...opts.task ? { task_id: opts.task } : { phase: opts.phase },
         agent: agentName,
         role: opts.role
       });

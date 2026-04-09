@@ -34,8 +34,6 @@ function generateMissionId(): string {
 const MISSION_SUBDIRS = [
   'tasks',
   'evidence',
-  'contracts',
-  'packets',
   'decisions/pending',
   'evolution',
   'phase-reviews',
