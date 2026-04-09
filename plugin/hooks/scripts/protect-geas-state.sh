@@ -20,7 +20,7 @@ if (!rel.startsWith('.geas/') && !rel.startsWith('.geas\\\\')) {
   if (run && run.current_task_id) {
     const mid = run.mission_id || '';
     const mdir = mid ? path.join(geas, 'missions', mid) : geas;
-    const task = h.readJson(path.join(mdir, 'tasks', run.current_task_id + '.json'));
+    const task = h.readJson(path.join(mdir, 'tasks', run.current_task_id, 'contract.json'));
     if (task) {
       const scopePaths = (task.scope && task.scope.paths) || [];
       if (scopePaths.length && !h.matchScope(rel, scopePaths))
