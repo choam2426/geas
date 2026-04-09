@@ -1,6 +1,10 @@
 /**
  * Task command group — create task contract, transition status,
- * read task contract, list tasks.
+ * read task contract, list tasks, record add/get.
+ *
+ * v4: task contract lives at tasks/{tid}/contract.json (was tasks/{tid}.json).
+ *     record.json accumulates pipeline step outputs as sections.
+ *     verdict/self-check/closure/contract subcommands removed — use record add.
  */
 
 import * as fs from 'fs';
@@ -12,6 +16,7 @@ import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
 import { validateTransition } from '../lib/transition-guards';
 import { getCwd } from '../lib/cwd';
+import { readInputData, parseSetFlags } from '../lib/input';
 
 // ── State transition validation ─────────────────────────────────────
 
@@ -40,66 +45,63 @@ function isValidTransition(from: string, to: string): boolean {
   return allowed.includes(to);
 }
 
-// ── Input data reading ──────────────────────────────────────────────
+// ── Valid record.json section names ─────────────────────────────────
 
-/** Read JSON from --data flag or piped stdin. */
-function readInputData(dataArg: string | undefined): unknown {
-  let raw: string | undefined = dataArg;
+const VALID_SECTIONS = [
+  'implementation_contract',
+  'self_check',
+  'gate_result',
+  'challenge_review',
+  'verdict',
+  'closure',
+  'retrospective',
+] as const;
 
-  if (!raw) {
-    // Try reading from stdin (piped, non-TTY)
-    try {
-      if (!process.stdin.isTTY) {
-        raw = fs.readFileSync(0, 'utf-8').trim();
-      }
-    } catch {
-      // stdin not available or empty
-    }
+type SectionName = typeof VALID_SECTIONS[number];
+
+function isValidSection(s: string): s is SectionName {
+  return (VALID_SECTIONS as readonly string[]).includes(s);
+}
+
+/**
+ * Resolve the mission directory, trying --mission flag first,
+ * then falling back to run.json's mission_id.
+ */
+function resolveMissionId(geasDir: string, missionOpt?: string): string {
+  if (missionOpt) return missionOpt;
+
+  // Auto-resolve from run.json
+  const runPath = path.resolve(geasDir, 'state', 'run.json');
+  const run = readJsonFile<Record<string, unknown>>(runPath);
+  if (run?.mission_id && typeof run.mission_id === 'string') {
+    return run.mission_id;
   }
 
-  if (!raw) {
-    const err = new Error('No data provided. Use --data <json> or pipe JSON to stdin.');
-    (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
-    throw err;
-  }
-
-  try {
-    return JSON.parse(raw);
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    const err = new Error(`Invalid JSON in --data: ${msg}`);
-    (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
-    throw err;
-  }
+  const err = new Error('No --mission provided and no mission_id in run.json');
+  (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
+  throw err;
 }
 
 export function registerTaskCommands(program: Command): void {
   const cmd = program
     .command('task')
-    .description('Task CRUD (contracts, status transitions)');
+    .description('Task CRUD (contracts, status transitions, execution record)');
 
   // ── geas task create --mission <mid> --data <json> ────────────────
   cmd
     .command('create')
     .description('Create a task contract with schema validation')
-    .requiredOption('--mission <mission-id>', 'Mission identifier')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
     .option('--data <json>', 'JSON data (or pipe via stdin)')
-    .action((opts: { mission: string; data?: string }) => {
+    .option('--file <path>', 'Read JSON data from file')
+    .action((opts: { mission?: string; data?: string; file?: string }) => {
       try {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
-        const missionDir = path.resolve(geasDir, 'missions', opts.mission);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        const missionDir = resolveMissionDir(geasDir, missionId);
 
-        if (!fs.existsSync(missionDir)) {
-          fileError(
-            normalizePath(missionDir),
-            'create',
-            `Mission directory not found: ${normalizePath(missionDir)}`
-          );
-          return;
-        }
-
-        const data = readInputData(opts.data) as Record<string, unknown>;
+        const data = readInputData(opts.data, opts.file) as Record<string, unknown>;
 
         // Validate against task-contract schema
         const result = validate('task-contract', data);
@@ -114,25 +116,30 @@ export function registerTaskCommands(program: Command): void {
           return;
         }
 
-        const tasksDir = path.resolve(missionDir, 'tasks');
-        ensureDir(tasksDir);
+        // v4: tasks/{tid}/contract.json (directory per task)
+        const taskDir = path.resolve(missionDir, 'tasks', taskId);
+        ensureDir(taskDir);
 
-        const taskPath = path.resolve(tasksDir, `${taskId}.json`);
-        if (fs.existsSync(taskPath)) {
+        const contractPath = path.resolve(taskDir, 'contract.json');
+        if (fs.existsSync(contractPath)) {
           fileError(
-            normalizePath(taskPath),
+            normalizePath(contractPath),
             'create',
-            `Task contract already exists: ${normalizePath(taskPath)}`
+            `Task contract already exists: ${normalizePath(contractPath)}`
           );
           return;
         }
 
-        writeJsonFile(taskPath, data, { cwd });
+        // Create subdirectories for evidence and packets
+        ensureDir(path.resolve(taskDir, 'evidence'));
+        ensureDir(path.resolve(taskDir, 'packets'));
+
+        writeJsonFile(contractPath, data, { cwd });
 
         success({
-          written: normalizePath(taskPath),
+          written: normalizePath(contractPath),
           task_id: taskId,
-          mission_id: opts.mission,
+          mission_id: missionId,
           artifact_type: 'task_contract',
         });
       } catch (err: unknown) {
@@ -149,32 +156,25 @@ export function registerTaskCommands(program: Command): void {
   cmd
     .command('transition')
     .description('Validate and apply a task status transition')
-    .requiredOption('--mission <mission-id>', 'Mission identifier')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
     .requiredOption('--id <task-id>', 'Task identifier')
     .requiredOption('--to <status>', 'Target status')
-    .action((opts: { mission: string; id: string; to: string }) => {
+    .action((opts: { mission?: string; id: string; to: string }) => {
       try {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
-        const missionDir = path.resolve(geasDir, 'missions', opts.mission);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        const missionDir = resolveMissionDir(geasDir, missionId);
 
-        if (!fs.existsSync(missionDir)) {
-          fileError(
-            normalizePath(missionDir),
-            'transition',
-            `Mission directory not found: ${normalizePath(missionDir)}`
-          );
-          return;
-        }
-
-        const taskPath = path.resolve(missionDir, 'tasks', `${opts.id}.json`);
-        const task = readJsonFile<Record<string, unknown>>(taskPath);
+        // v4: contract.json lives inside tasks/{tid}/
+        const contractPath = path.resolve(missionDir, 'tasks', opts.id, 'contract.json');
+        const task = readJsonFile<Record<string, unknown>>(contractPath);
 
         if (!task) {
           fileError(
-            normalizePath(taskPath),
+            normalizePath(contractPath),
             'transition',
-            `Task contract not found: ${normalizePath(taskPath)}`
+            `Task contract not found: ${normalizePath(contractPath)}`
           );
           return;
         }
@@ -211,7 +211,7 @@ export function registerTaskCommands(program: Command): void {
 
         // Artifact guard — check required artifacts exist for this transition
         const guard = validateTransition(
-          geasDir, opts.mission, opts.id, currentStatus, targetStatus,
+          geasDir, missionId, opts.id, currentStatus, targetStatus,
         );
         if (!guard.valid) {
           const msg = {
@@ -228,14 +228,14 @@ export function registerTaskCommands(program: Command): void {
 
         // Apply the transition
         task.status = targetStatus;
-        writeJsonFile(taskPath, task, { cwd });
+        writeJsonFile(contractPath, task, { cwd });
 
         success({
           task_id: opts.id,
-          mission_id: opts.mission,
+          mission_id: missionId,
           previous_status: currentStatus,
           status: targetStatus,
-          path: normalizePath(taskPath),
+          path: normalizePath(contractPath),
         });
       } catch (err: unknown) {
         const nodeErr = err as NodeJS.ErrnoException;
@@ -251,31 +251,23 @@ export function registerTaskCommands(program: Command): void {
   cmd
     .command('read')
     .description('Read a task contract')
-    .requiredOption('--mission <mission-id>', 'Mission identifier')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
     .requiredOption('--id <task-id>', 'Task identifier')
-    .action((opts: { mission: string; id: string }) => {
+    .action((opts: { mission?: string; id: string }) => {
       try {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
-        const missionDir = path.resolve(geasDir, 'missions', opts.mission);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        const missionDir = resolveMissionDir(geasDir, missionId);
 
-        if (!fs.existsSync(missionDir)) {
-          fileError(
-            normalizePath(missionDir),
-            'read',
-            `Mission directory not found: ${normalizePath(missionDir)}`
-          );
-          return;
-        }
-
-        const taskPath = path.resolve(missionDir, 'tasks', `${opts.id}.json`);
-        const task = readJsonFile(taskPath);
+        const contractPath = path.resolve(missionDir, 'tasks', opts.id, 'contract.json');
+        const task = readJsonFile(contractPath);
 
         if (!task) {
           fileError(
-            normalizePath(taskPath),
+            normalizePath(contractPath),
             'read',
-            `Task contract not found: ${normalizePath(taskPath)}`
+            `Task contract not found: ${normalizePath(contractPath)}`
           );
           return;
         }
@@ -295,21 +287,13 @@ export function registerTaskCommands(program: Command): void {
   cmd
     .command('list')
     .description('List all tasks with id, title, status')
-    .requiredOption('--mission <mission-id>', 'Mission identifier')
-    .action((opts: { mission: string }) => {
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .action((opts: { mission?: string }) => {
       try {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
-        const missionDir = path.resolve(geasDir, 'missions', opts.mission);
-
-        if (!fs.existsSync(missionDir)) {
-          fileError(
-            normalizePath(missionDir),
-            'list',
-            `Mission directory not found: ${normalizePath(missionDir)}`
-          );
-          return;
-        }
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        const missionDir = resolveMissionDir(geasDir, missionId);
 
         const tasksDir = path.resolve(missionDir, 'tasks');
         if (!fs.existsSync(tasksDir)) {
@@ -317,12 +301,14 @@ export function registerTaskCommands(program: Command): void {
           return;
         }
 
-        const files = fs.readdirSync(tasksDir).filter(f => f.endsWith('.json'));
+        // v4: each task is a directory with contract.json inside
+        const entries = fs.readdirSync(tasksDir, { withFileTypes: true });
         const tasks: Array<{ task_id: string; title: string; status: string }> = [];
 
-        for (const file of files) {
-          const filePath = path.resolve(tasksDir, file);
-          const task = readJsonFile<Record<string, unknown>>(filePath);
+        for (const entry of entries) {
+          if (!entry.isDirectory()) continue;
+          const contractPath = path.resolve(tasksDir, entry.name, 'contract.json');
+          const task = readJsonFile<Record<string, unknown>>(contractPath);
           if (task && task.task_id) {
             tasks.push({
               task_id: task.task_id as string,
@@ -346,179 +332,148 @@ export function registerTaskCommands(program: Command): void {
       }
     });
 
-  // ── geas task verdict --mission <mid> --task <tid> --data <json> ──
-  cmd
-    .command('verdict')
-    .description('Write a final verdict for a task')
-    .requiredOption('--mission <mid>', 'Mission identifier')
-    .requiredOption('--task <tid>', 'Task identifier')
-    .option('--data <json>', 'JSON data (or pipe via stdin)')
-    .action((opts: { mission: string; task: string; data?: string }, actionCmd: Command) => {
-      try {
-        const data = readInputData(opts.data) as Record<string, unknown>;
-        const cwd = getCwd(actionCmd);
-        const geasDir = resolveGeasDir(cwd);
-        const missionDir = resolveMissionDir(geasDir, opts.mission);
+  // ── geas task record add ──────────────────────────────────────────
+  const record = cmd
+    .command('record')
+    .description('Task execution record (record.json) management');
 
-        const result = validate('final-verdict', data);
-        if (!result.valid) {
-          validationError('final-verdict', result.errors || []);
+  record
+    .command('add')
+    .description('Add or overwrite a section in record.json')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .requiredOption('--task <task-id>', 'Task identifier')
+    .requiredOption('--section <name>', `Section name (${VALID_SECTIONS.join(', ')})`)
+    .option('--data <json>', 'Section data as JSON string')
+    .option('--file <path>', 'Read section data from JSON file')
+    .option('--set <key=value...>', 'Set individual fields', collectSet, [])
+    .action((opts: {
+      mission?: string;
+      task: string;
+      section: string;
+      data?: string;
+      file?: string;
+      set: string[];
+    }) => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        const missionDir = resolveMissionDir(geasDir, missionId);
+
+        // Validate section name
+        if (!isValidSection(opts.section)) {
+          fileError('', 'record add', `Invalid section: '${opts.section}'. Valid: ${VALID_SECTIONS.join(', ')}`);
           return;
         }
 
         const taskDir = path.resolve(missionDir, 'tasks', opts.task);
-        ensureDir(taskDir);
-        const filePath = path.resolve(taskDir, 'final-verdict.json');
-        writeJsonFile(filePath, data, { cwd });
+        if (!fs.existsSync(taskDir)) {
+          fileError(normalizePath(taskDir), 'record add', `Task directory not found: ${opts.task}`);
+          return;
+        }
+
+        // Build section data from --data/--file or --set
+        let sectionData: Record<string, unknown>;
+
+        if (opts.data || opts.file) {
+          sectionData = readInputData(opts.data, opts.file) as Record<string, unknown>;
+          // Merge --set overrides on top
+          if (opts.set.length > 0) {
+            const overrides = parseSetFlags(opts.set);
+            Object.assign(sectionData, overrides);
+          }
+        } else if (opts.set.length > 0) {
+          sectionData = parseSetFlags(opts.set);
+        } else {
+          fileError('', 'record add', 'No data provided. Use --data, --file, or --set.');
+          return;
+        }
+
+        // Read existing record or create new
+        const recordPath = path.resolve(taskDir, 'record.json');
+        let record = readJsonFile<Record<string, unknown>>(recordPath);
+        if (!record) {
+          record = { version: '1.0', task_id: opts.task };
+        }
+
+        // Overwrite section
+        record[opts.section] = sectionData;
+
+        // Validate entire record against schema
+        const result = validate('record', record);
+        if (!result.valid) {
+          validationError('record', result.errors!);
+          return;
+        }
+
+        writeJsonFile(recordPath, record, { cwd });
 
         success({
-          written: normalizePath(filePath),
-          mission_id: opts.mission,
+          written: normalizePath(recordPath),
           task_id: opts.task,
-          artifact_type: 'final_verdict',
+          mission_id: missionId,
+          section: opts.section,
+          action: 'added',
         });
       } catch (err: unknown) {
         const nodeErr = err as NodeJS.ErrnoException;
         if (nodeErr.code === 'FILE_ERROR') {
-          fileError('', 'verdict', nodeErr.message);
+          fileError('', 'record add', nodeErr.message);
         } else {
-          const msg = err instanceof SyntaxError
-            ? 'Invalid JSON in --data'
-            : (err as Error).message;
-          fileError('', 'verdict', msg);
+          throw err;
         }
       }
     });
 
-  // ── geas task self-check --mission <mid> --task <tid> --data <json> ─
-  cmd
-    .command('self-check')
-    .description('Write a worker self-check for a task')
-    .requiredOption('--mission <mid>', 'Mission identifier')
-    .requiredOption('--task <tid>', 'Task identifier')
-    .option('--data <json>', 'JSON data (or pipe via stdin)')
-    .action((opts: { mission: string; task: string; data?: string }, actionCmd: Command) => {
+  // ── geas task record get ──────────────────────────────────────────
+  record
+    .command('get')
+    .description('Read record.json (full or specific section)')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .requiredOption('--task <task-id>', 'Task identifier')
+    .option('--section <name>', 'Section name (omit for full record)')
+    .action((opts: { mission?: string; task: string; section?: string }) => {
       try {
-        const data = readInputData(opts.data) as Record<string, unknown>;
-        const cwd = getCwd(actionCmd);
+        const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
-        const missionDir = resolveMissionDir(geasDir, opts.mission);
-
-        const result = validate('worker-self-check', data);
-        if (!result.valid) {
-          validationError('worker-self-check', result.errors || []);
-          return;
-        }
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        const missionDir = resolveMissionDir(geasDir, missionId);
 
         const taskDir = path.resolve(missionDir, 'tasks', opts.task);
-        ensureDir(taskDir);
-        const filePath = path.resolve(taskDir, 'worker-self-check.json');
-        writeJsonFile(filePath, data, { cwd });
+        const recordPath = path.resolve(taskDir, 'record.json');
+        const record = readJsonFile<Record<string, unknown>>(recordPath);
 
-        success({
-          written: normalizePath(filePath),
-          mission_id: opts.mission,
-          task_id: opts.task,
-          artifact_type: 'worker_self_check',
-        });
-      } catch (err: unknown) {
-        const nodeErr = err as NodeJS.ErrnoException;
-        if (nodeErr.code === 'FILE_ERROR') {
-          fileError('', 'self-check', nodeErr.message);
-        } else {
-          const msg = err instanceof SyntaxError
-            ? 'Invalid JSON in --data'
-            : (err as Error).message;
-          fileError('', 'self-check', msg);
-        }
-      }
-    });
-
-  // ── geas task closure --mission <mid> --task <tid> --data <json> ────
-  cmd
-    .command('closure')
-    .description('Write a closure packet for a task')
-    .requiredOption('--mission <mid>', 'Mission identifier')
-    .requiredOption('--task <tid>', 'Task identifier')
-    .option('--data <json>', 'JSON data (or pipe via stdin)')
-    .action((opts: { mission: string; task: string; data?: string }, actionCmd: Command) => {
-      try {
-        const data = readInputData(opts.data) as Record<string, unknown>;
-        const cwd = getCwd(actionCmd);
-        const geasDir = resolveGeasDir(cwd);
-        const missionDir = resolveMissionDir(geasDir, opts.mission);
-
-        const result = validate('closure-packet', data);
-        if (!result.valid) {
-          validationError('closure-packet', result.errors || []);
+        if (!record) {
+          fileError(normalizePath(recordPath), 'record get', 'record.json not found');
           return;
         }
 
-        const taskDir = path.resolve(missionDir, 'tasks', opts.task);
-        ensureDir(taskDir);
-        const filePath = path.resolve(taskDir, 'closure-packet.json');
-        writeJsonFile(filePath, data, { cwd });
-
-        success({
-          written: normalizePath(filePath),
-          mission_id: opts.mission,
-          task_id: opts.task,
-          artifact_type: 'closure_packet',
-        });
+        if (opts.section) {
+          if (!isValidSection(opts.section)) {
+            fileError('', 'record get', `Invalid section: '${opts.section}'. Valid: ${VALID_SECTIONS.join(', ')}`);
+            return;
+          }
+          const section = record[opts.section];
+          if (section === undefined) {
+            fileError('', 'record get', `Section '${opts.section}' not found in record.json`);
+            return;
+          }
+          success({ task_id: opts.task, section: opts.section, data: section });
+        } else {
+          success(record);
+        }
       } catch (err: unknown) {
         const nodeErr = err as NodeJS.ErrnoException;
         if (nodeErr.code === 'FILE_ERROR') {
-          fileError('', 'closure', nodeErr.message);
+          fileError('', 'record get', nodeErr.message);
         } else {
-          const msg = err instanceof SyntaxError
-            ? 'Invalid JSON in --data'
-            : (err as Error).message;
-          fileError('', 'closure', msg);
+          throw err;
         }
       }
     });
+}
 
-  // ── geas task contract --mission <mid> --task <tid> --data <json> ───
-  cmd
-    .command('contract')
-    .description('Write an implementation contract for a task')
-    .requiredOption('--mission <mid>', 'Mission identifier')
-    .requiredOption('--task <tid>', 'Task identifier')
-    .option('--data <json>', 'JSON data (or pipe via stdin)')
-    .action((opts: { mission: string; task: string; data?: string }, actionCmd: Command) => {
-      try {
-        const data = readInputData(opts.data) as Record<string, unknown>;
-        const cwd = getCwd(actionCmd);
-        const geasDir = resolveGeasDir(cwd);
-        const missionDir = resolveMissionDir(geasDir, opts.mission);
-
-        const result = validate('implementation-contract', data);
-        if (!result.valid) {
-          validationError('implementation-contract', result.errors || []);
-          return;
-        }
-
-        const contractsDir = path.resolve(missionDir, 'contracts');
-        ensureDir(contractsDir);
-        const filePath = path.resolve(contractsDir, `${opts.task}.json`);
-        writeJsonFile(filePath, data, { cwd });
-
-        success({
-          written: normalizePath(filePath),
-          mission_id: opts.mission,
-          task_id: opts.task,
-          artifact_type: 'implementation_contract',
-        });
-      } catch (err: unknown) {
-        const nodeErr = err as NodeJS.ErrnoException;
-        if (nodeErr.code === 'FILE_ERROR') {
-          fileError('', 'contract', nodeErr.message);
-        } else {
-          const msg = err instanceof SyntaxError
-            ? 'Invalid JSON in --data'
-            : (err as Error).message;
-          fileError('', 'contract', msg);
-        }
-      }
-    });
+/** Commander variadic option collector for --set. */
+function collectSet(value: string, previous: string[]): string[] {
+  return previous.concat([value]);
 }
