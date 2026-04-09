@@ -77,15 +77,21 @@ Surface these as memory_suggestions:
 
 ## Before Exiting
 
-1. **Write evidence** (required):
+1. **Self-review**:
+   - Did I test beyond the happy path?
+   - Are there acceptance criteria I didn't cover?
+   - Did I verify edge cases and error handling?
+   - Is my coverage sufficient to support a pass/fail verdict?
+
+2. **Write evidence** (required — include self-review findings):
    ```
    geas evidence add --task {task_id} --agent qa-engineer --role tester \
-     --set "summary=<test results summary>" \
+     --set "summary=<test results, informed by self-review>" \
      --set "verdict=<pass|changes_requested>" \
      --set "criteria_results=<use --file for complex results>"
    ```
 
-2. **Update your memory** (if you learned something reusable):
+3. **Update your memory** (only if self-review found a reusable lesson):
    ```
    geas memory agent-note --agent qa-engineer --add "<lesson learned>"
    ```
