@@ -56,6 +56,8 @@ pub struct RunState {
     #[serde(default)]
     pub created_at: Option<String>,
     #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
     pub checkpoint: Option<Checkpoint>,
 }
 
@@ -106,6 +108,8 @@ pub struct TaskContract {
     #[serde(default)]
     pub created_at: Option<String>,
     #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
     pub task_id: Option<String>,
     #[serde(default)]
     pub title: Option<String>,
@@ -129,6 +133,8 @@ pub struct TaskContract {
     pub retry_budget: Option<u32>,
     #[serde(default)]
     pub base_snapshot: Option<String>,
+    #[serde(default)]
+    pub dependencies: Option<Vec<String>>,
     #[serde(default)]
     pub routing: Option<TaskRouting>,
     #[serde(default)]
@@ -161,6 +167,8 @@ pub struct MissionSpec {
     pub mission_id: Option<String>,
     #[serde(default)]
     pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
     #[serde(default)]
     pub mission: Option<String>,
     #[serde(default)]
@@ -282,6 +290,8 @@ pub struct DebtRegister {
     pub scope: Option<String>,
     #[serde(default)]
     pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
     #[serde(default)]
     pub items: Vec<DebtItem>,
     #[serde(default)]
@@ -601,6 +611,8 @@ pub struct Evidence {
     #[serde(default)]
     pub created_at: Option<String>,
     #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
     pub files_changed: Vec<String>,
     #[serde(default)]
     pub commit: Option<String>,
@@ -653,6 +665,8 @@ pub struct HealthCheck {
     pub trigger_context: Option<String>,
     #[serde(default)]
     pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -745,6 +759,8 @@ pub struct DesignBrief {
     #[serde(default)]
     pub created_at: Option<String>,
     #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
     pub approved_at: Option<String>,
 }
 
@@ -789,6 +805,8 @@ pub struct VoteRound {
     pub proposal_summary: Option<String>,
     #[serde(default)]
     pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
 }
 
 /// .geas/missions/{mid}/phase-reviews/*.json
@@ -818,6 +836,8 @@ pub struct PhaseReview {
     pub next_phase: Option<String>,
     #[serde(default)]
     pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
 }
 
 /// .geas/missions/{mid}/evolution/gap-assessment.json
@@ -849,6 +869,8 @@ pub struct GapAssessment {
     pub recommended_followups: Vec<String>,
     #[serde(default)]
     pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
 }
 
 /// Agent memory (markdown file)

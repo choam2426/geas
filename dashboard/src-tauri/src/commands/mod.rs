@@ -520,6 +520,27 @@ pub fn get_project_rules(path: String) -> Result<String, String> {
 }
 
 // ---------------------------------------------------------------------------
+// Mission summary (markdown)
+// ---------------------------------------------------------------------------
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_mission_summary(path: String, mission_id: String) -> Result<Option<String>, String> {
+    validate_mission_id(&mission_id)?;
+    let geas = geas_dir(&path)?;
+    let summary_path = geas
+        .join("missions")
+        .join(&mission_id)
+        .join("mission-summary.md");
+    match fs::read_to_string(&summary_path) {
+        Ok(content) => Ok(Some(content)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(format!(
+            "Failed to read mission-summary.md: {e}"
+        )),
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Timeline / Events
 // ---------------------------------------------------------------------------
 

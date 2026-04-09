@@ -20,6 +20,7 @@ pub fn run() {
             commands::get_project_debt,
             commands::get_mission_history,
             commands::get_mission_spec,
+            commands::get_mission_summary,
             commands::get_project_rules,
             commands::get_mission_events,
             commands::get_project_memories,
