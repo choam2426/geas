@@ -79,14 +79,20 @@ Surface these as memory_suggestions:
 
 ## Before Exiting
 
-1. **Write evidence** (required):
+1. **Self-review**:
+   - Did I stay within scope.paths from the TaskContract?
+   - Did I address all acceptance criteria?
+   - Are there untested paths or edge cases I should flag?
+   - Did I introduce any unintended side effects?
+
+2. **Write evidence** (required — include self-review findings):
    ```
    geas evidence add --task {task_id} --agent software-engineer --role implementer \
-     --set "summary=<what you did>" \
+     --set "summary=<what you did, informed by self-review>" \
      --set "files_changed[0]=<file1>" --set "files_changed[1]=<file2>"
    ```
 
-2. **Update your memory** (if you learned something reusable):
+3. **Update your memory** (only if self-review found a reusable lesson):
    ```
    geas memory agent-note --agent software-engineer --add "<lesson learned>"
    ```

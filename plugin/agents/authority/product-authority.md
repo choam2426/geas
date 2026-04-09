@@ -75,15 +75,20 @@ Surface these as memory_suggestions:
 
 ## Before Exiting
 
-1. **Write evidence** (required):
+1. **Self-review**:
+   - Is my judgment rationale clear and well-supported?
+   - Did I consider irreversible consequences?
+   - Are there concerns I noticed but didn't escalate?
+
+2. **Write evidence** (required — include self-review findings):
    ```
    geas evidence add --task {task_id} --agent product-authority --role authority \
-     --set "summary=<decision summary>" \
+     --set "summary=<decision summary, informed by self-review>" \
      --set "verdict=<approved|changes_requested|blocked>" \
      --set "rationale=<reasoning>"
    ```
 
-2. **Update your memory** (if you learned something reusable):
+3. **Update your memory** (only if self-review found a reusable lesson):
    ```
    geas memory agent-note --agent product-authority --add "<lesson learned>"
    ```

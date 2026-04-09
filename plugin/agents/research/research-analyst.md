@@ -55,15 +55,20 @@ Surface these as memory_suggestions:
 
 ## Before Exiting
 
-1. **Write evidence** (required):
+1. **Self-review**:
+   - Did I miss any concerns worth flagging?
+   - Is my approval/rejection rationale clear and evidence-based?
+   - Are there risks I noticed but didn't document?
+
+2. **Write evidence** (required — include self-review findings):
    ```
    geas evidence add --task {task_id} --agent research-analyst --role reviewer \
-     --set "summary=<review summary>" \
+     --set "summary=<review summary, informed by self-review>" \
      --set "verdict=<approved|changes_requested|blocked>" \
      --set "concerns[0]=<concern if any>"
    ```
 
-2. **Update your memory** (if you learned something reusable):
+3. **Update your memory** (only if self-review found a reusable lesson):
    ```
    geas memory agent-note --agent research-analyst --add "<lesson learned>"
    ```
