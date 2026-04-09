@@ -371,10 +371,6 @@ pub struct AppConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Memory file models (Deserialize only — read-only access)
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
 // Event models (for events.jsonl parsing)
 // ---------------------------------------------------------------------------
 
@@ -405,13 +401,239 @@ pub struct EventsPage {
 }
 
 // ---------------------------------------------------------------------------
-// Memory models
+// New artifact models (post-optimization schemas)
 // ---------------------------------------------------------------------------
 
-/// Meta block inside a memory JSON file
-#[derive(Debug, Clone, Default, Deserialize)]
-#[allow(dead_code)]
-pub struct MemoryMeta {
+/// record.json section: implementation_contract
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct ImplContract {
+    #[serde(default)]
+    pub planned_actions: Vec<String>,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub worker: Option<String>,
+    #[serde(default)]
+    pub edge_cases: Vec<String>,
+    #[serde(default)]
+    pub non_goals: Vec<String>,
+    #[serde(default)]
+    pub demo_steps: Vec<String>,
+}
+
+/// record.json section: self_check
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct SelfCheck {
+    #[serde(default)]
+    pub confidence: Option<u32>,
+    #[serde(default)]
+    pub summary: Option<String>,
+    #[serde(default)]
+    pub known_risks: Vec<String>,
+    #[serde(default)]
+    pub untested_paths: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct TierResult {
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub details: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct TierResults {
+    #[serde(default)]
+    pub tier_0: Option<TierResult>,
+    #[serde(default)]
+    pub tier_1: Option<TierResult>,
+    #[serde(default)]
+    pub tier_2: Option<TierResult>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct RubricScore {
+    #[serde(default)]
+    pub dimension: Option<String>,
+    #[serde(default)]
+    pub score: Option<f64>,
+    #[serde(default)]
+    pub threshold: Option<f64>,
+    #[serde(default)]
+    pub passed: Option<bool>,
+    #[serde(default)]
+    pub rationale: Option<String>,
+}
+
+/// record.json section: gate_result
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct GateResult {
+    #[serde(default)]
+    pub verdict: Option<String>,
+    #[serde(default)]
+    pub tier_results: Option<TierResults>,
+    #[serde(default)]
+    pub rubric_scores: Vec<RubricScore>,
+    #[serde(default)]
+    pub blocking_dimensions: Vec<String>,
+}
+
+/// record.json section: challenge_review
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct ChallengeReview {
+    #[serde(default)]
+    pub concerns: Vec<serde_json::Value>,
+    #[serde(default)]
+    pub blocking: Option<bool>,
+    #[serde(default)]
+    pub summary: Option<String>,
+}
+
+/// record.json section: verdict
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct Verdict {
+    #[serde(default)]
+    pub verdict: Option<String>,
+    #[serde(default)]
+    pub rationale: Option<String>,
+    #[serde(default)]
+    pub rewind_target: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct ClosureReview {
+    #[serde(default)]
+    pub reviewer_type: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub summary: Option<String>,
+}
+
+/// record.json section: closure
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct Closure {
+    #[serde(default)]
+    pub change_summary: Option<String>,
+    #[serde(default)]
+    pub task_summary: Option<String>,
+    #[serde(default)]
+    pub reviews: Vec<ClosureReview>,
+    #[serde(default)]
+    pub open_risks: Vec<String>,
+    #[serde(default)]
+    pub debt_items: Vec<String>,
+}
+
+/// record.json section: retrospective
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct Retrospective {
+    #[serde(default)]
+    pub what_went_well: Vec<String>,
+    #[serde(default)]
+    pub what_broke: Vec<String>,
+    #[serde(default)]
+    pub what_was_surprising: Vec<String>,
+    #[serde(default)]
+    pub rule_candidates: Vec<String>,
+    #[serde(default)]
+    pub memory_candidates: Vec<String>,
+    #[serde(default)]
+    pub debt_candidates: Vec<String>,
+    #[serde(default)]
+    pub next_time_guidance: Vec<String>,
+}
+
+/// .geas/missions/{mid}/tasks/{tid}/record.json
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct Record {
+    #[serde(default)]
+    pub version: Option<String>,
+    #[serde(default)]
+    pub task_id: Option<String>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default)]
+    pub updated_at: Option<String>,
+    #[serde(default)]
+    pub implementation_contract: Option<ImplContract>,
+    #[serde(default)]
+    pub self_check: Option<SelfCheck>,
+    #[serde(default)]
+    pub gate_result: Option<GateResult>,
+    #[serde(default)]
+    pub challenge_review: Option<ChallengeReview>,
+    #[serde(default)]
+    pub verdict: Option<Verdict>,
+    #[serde(default)]
+    pub closure: Option<Closure>,
+    #[serde(default)]
+    pub retrospective: Option<Retrospective>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct CriteriaResult {
+    #[serde(default)]
+    pub criterion: Option<String>,
+    #[serde(default)]
+    pub passed: Option<bool>,
+    #[serde(default)]
+    pub details: Option<String>,
+}
+
+/// .geas/missions/{mid}/tasks/{tid}/evidence/{agent}.json
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct Evidence {
+    #[serde(default)]
+    pub version: Option<String>,
+    #[serde(default)]
+    pub agent: Option<String>,
+    #[serde(default)]
+    pub task_id: Option<String>,
+    #[serde(default)]
+    pub role: Option<String>,
+    #[serde(default)]
+    pub summary: Option<String>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default)]
+    pub files_changed: Vec<String>,
+    #[serde(default)]
+    pub commit: Option<String>,
+    #[serde(default)]
+    pub verdict: Option<String>,
+    #[serde(default)]
+    pub concerns: Vec<String>,
+    #[serde(default)]
+    pub blocking: Option<bool>,
+    #[serde(default)]
+    pub rationale: Option<String>,
+    #[serde(default)]
+    pub criteria_results: Vec<CriteriaResult>,
+    #[serde(default)]
+    pub rubric_scores: Vec<RubricScore>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct HealthSignal {
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub value: Option<f64>,
+    #[serde(default)]
+    pub threshold: Option<f64>,
+    #[serde(default)]
+    pub triggered: bool,
+    #[serde(default)]
+    pub detail: Option<String>,
+    #[serde(default)]
+    pub mandatory_response: Option<String>,
+}
+
+/// .geas/state/health-check.json
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct HealthCheck {
     #[serde(default)]
     pub version: Option<String>,
     #[serde(default)]
@@ -421,104 +643,181 @@ pub struct MemoryMeta {
     #[serde(default)]
     pub producer_type: Option<String>,
     #[serde(default)]
+    pub signals: Vec<HealthSignal>,
+    #[serde(default)]
+    pub any_triggered: bool,
+    #[serde(default)]
+    pub trigger_context: Option<String>,
+    #[serde(default)]
     pub created_at: Option<String>,
-    #[serde(default)]
-    pub updated_at: Option<String>,
 }
 
-/// Signals block inside a memory JSON file
-#[derive(Debug, Clone, Default, Deserialize)]
-#[allow(dead_code)]
-pub struct MemorySignals {
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct Alternative {
     #[serde(default)]
-    pub evidence_count: Option<u32>,
+    pub approach: Option<String>,
     #[serde(default)]
-    pub reuse_count: Option<u32>,
-    #[serde(default)]
-    pub successful_reuses: Option<u32>,
-    #[serde(default)]
-    pub failed_reuses: Option<u32>,
-    #[serde(default)]
-    pub contradiction_count: Option<u32>,
-    #[serde(default)]
-    pub confidence: Option<f64>,
+    pub rejected_reason: Option<String>,
 }
 
-/// .geas/memory/{entries,candidates}/**/*.json
-#[derive(Debug, Clone, Default, Deserialize)]
-#[allow(dead_code)]
-pub struct MemoryFile {
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct ArchDecision {
     #[serde(default)]
-    pub meta: Option<MemoryMeta>,
+    pub decision: Option<String>,
     #[serde(default)]
-    pub memory_id: Option<String>,
+    pub rationale: Option<String>,
     #[serde(default)]
-    pub memory_type: Option<String>,
+    pub constraints: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct DesignRisk {
     #[serde(default)]
-    pub state: Option<String>,
+    pub description: Option<String>,
     #[serde(default)]
-    pub title: Option<String>,
+    pub mitigation: Option<String>,
+}
+
+/// .geas/missions/{mid}/design-brief.json
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct DesignBrief {
+    #[serde(default)]
+    pub version: Option<String>,
+    #[serde(default)]
+    pub artifact_type: Option<String>,
+    #[serde(default)]
+    pub artifact_id: Option<String>,
+    #[serde(default)]
+    pub producer_type: Option<String>,
+    #[serde(default)]
+    pub mission_id: Option<String>,
+    #[serde(default)]
+    pub depth: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub chosen_approach: Option<String>,
+    #[serde(default)]
+    pub non_goals: Vec<String>,
+    #[serde(default)]
+    pub verification_strategy: Option<String>,
+    #[serde(default)]
+    pub alternatives_considered: Vec<Alternative>,
+    #[serde(default)]
+    pub architecture_decisions: Vec<ArchDecision>,
+    #[serde(default)]
+    pub risks: Vec<DesignRisk>,
+    #[serde(default)]
+    pub preserve_list: Vec<String>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct Vote {
+    #[serde(default)]
+    pub voter: Option<String>,
+    #[serde(default)]
+    pub vote: Option<String>,
+    #[serde(default)]
+    pub rationale: Option<String>,
+    #[serde(default)]
+    pub severity: Option<String>,
+}
+
+/// .geas/missions/{mid}/decisions/*.json
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct VoteRound {
+    #[serde(default)]
+    pub version: Option<String>,
+    #[serde(default)]
+    pub artifact_type: Option<String>,
+    #[serde(default)]
+    pub artifact_id: Option<String>,
+    #[serde(default)]
+    pub producer_type: Option<String>,
+    #[serde(default)]
+    pub round_type: Option<String>,
+    #[serde(default)]
+    pub task_id: Option<String>,
+    #[serde(default)]
+    pub participants: Vec<String>,
+    #[serde(default)]
+    pub votes: Vec<Vote>,
+    #[serde(default)]
+    pub result: Option<String>,
+    #[serde(default)]
+    pub quorum_met: Option<bool>,
+    #[serde(default)]
+    pub proposal_summary: Option<String>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+}
+
+/// .geas/missions/{mid}/phase-reviews/*.json
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct PhaseReview {
+    #[serde(default)]
+    pub version: Option<String>,
+    #[serde(default)]
+    pub artifact_type: Option<String>,
+    #[serde(default)]
+    pub artifact_id: Option<String>,
+    #[serde(default)]
+    pub producer_type: Option<String>,
+    #[serde(default)]
+    pub mission_phase: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
     #[serde(default)]
     pub summary: Option<String>,
     #[serde(default)]
-    pub scope: Option<String>,
+    pub gate_criteria_met: Vec<String>,
     #[serde(default)]
-    pub evidence_refs: Option<Vec<String>>,
+    pub gate_criteria_unmet: Vec<String>,
     #[serde(default)]
-    pub signals: Option<MemorySignals>,
+    pub risk_notes: Vec<String>,
     #[serde(default)]
-    pub review_after: Option<String>,
+    pub next_phase: Option<String>,
     #[serde(default)]
-    pub supersedes: Option<Vec<String>>,
-    #[serde(default)]
-    pub superseded_by: Option<String>,
-    #[serde(default)]
-    pub tags: Option<Vec<String>>,
-    #[serde(default)]
-    pub body: Option<Vec<String>>,
-}
-
-// ---------------------------------------------------------------------------
-// Memory frontend return types (Serialize for Tauri IPC)
-// ---------------------------------------------------------------------------
-
-#[derive(Debug, Clone, Serialize)]
-pub struct MemorySummary {
-    pub memory_id: String,
-    pub memory_type: String,
-    pub state: String,
-    pub title: String,
-    pub summary: String,
-    pub scope: String,
-    pub tags: Vec<String>,
     pub created_at: Option<String>,
-    pub source_dir: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct MemoryDetail {
-    pub memory_id: String,
-    pub memory_type: String,
-    pub state: String,
-    pub title: String,
-    pub summary: String,
-    pub scope: String,
-    pub body: Vec<String>,
-    pub tags: Vec<String>,
-    pub evidence_refs: Vec<String>,
-    pub signals: Option<MemorySignalsInfo>,
-    pub review_after: Option<String>,
-    pub supersedes: Vec<String>,
-    pub superseded_by: Option<String>,
+/// .geas/missions/{mid}/evolution/gap-assessment.json
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct GapAssessment {
+    #[serde(default)]
+    pub version: Option<String>,
+    #[serde(default)]
+    pub artifact_type: Option<String>,
+    #[serde(default)]
+    pub artifact_id: Option<String>,
+    #[serde(default)]
+    pub producer_type: Option<String>,
+    #[serde(default)]
+    pub scope_in_summary: Option<String>,
+    #[serde(default)]
+    pub scope_out_summary: Option<String>,
+    #[serde(default)]
+    pub fully_delivered: Vec<String>,
+    #[serde(default)]
+    pub partially_delivered: Vec<String>,
+    #[serde(default)]
+    pub not_delivered: Vec<String>,
+    #[serde(default)]
+    pub intentional_cuts: Vec<String>,
+    #[serde(default)]
+    pub unexpected_additions: Vec<String>,
+    #[serde(default)]
+    pub recommended_followups: Vec<String>,
+    #[serde(default)]
     pub created_at: Option<String>,
-    pub updated_at: Option<String>,
-    pub source_dir: String,
 }
 
+/// Agent memory (markdown file)
 #[derive(Debug, Clone, Serialize)]
-pub struct MemorySignalsInfo {
-    pub evidence_count: u32,
-    pub reuse_count: u32,
-    pub confidence: f64,
+pub struct AgentMemory {
+    pub agent_name: String,
+    pub content: String,
 }
 

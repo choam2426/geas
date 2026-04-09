@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::commands::{name_from_path, read_json_file};
 use crate::models::{Checkpoint, DebtItem, DebtRegister, KindRollup, MissionSpec, Rubric, RunState, SeverityRollup, TaskContract, TaskScope};
+use crate::models::{Record, Evidence, HealthCheck, DesignBrief, VoteRound, PhaseReview, GapAssessment};
 
 #[test]
 fn name_from_unix_path() {
@@ -381,4 +382,133 @@ fn run_state_with_new_fields() {
     assert_eq!(cp.retry_count, Some(2));
     assert_eq!(cp.remaining_steps.len(), 2);
     assert_eq!(cp.checkpoint_phase.as_deref(), Some("committed"));
+}
+
+#[test]
+fn record_partial_sections() {
+    let json = r#"{
+        "version": "1.0",
+        "task_id": "task-001",
+        "self_check": { "confidence": 4, "summary": "Looks good" },
+        "gate_result": { "verdict": "pass" }
+    }"#;
+    let rec: Record = serde_json::from_str(json).unwrap();
+    assert_eq!(rec.task_id.as_deref(), Some("task-001"));
+    assert!(rec.self_check.is_some());
+    assert_eq!(rec.self_check.unwrap().confidence, Some(4));
+    assert!(rec.gate_result.is_some());
+    assert_eq!(rec.gate_result.unwrap().verdict.as_deref(), Some("pass"));
+    assert!(rec.implementation_contract.is_none());
+    assert!(rec.verdict.is_none());
+}
+
+#[test]
+fn evidence_implementer() {
+    let json = r#"{
+        "version": "1.0",
+        "agent": "software-engineer",
+        "task_id": "task-001",
+        "role": "implementer",
+        "summary": "Implemented feature X",
+        "created_at": "2026-04-06T10:00:00Z",
+        "files_changed": ["src/main.rs", "src/lib.rs"],
+        "commit": "abc123"
+    }"#;
+    let ev: Evidence = serde_json::from_str(json).unwrap();
+    assert_eq!(ev.agent.as_deref(), Some("software-engineer"));
+    assert_eq!(ev.role.as_deref(), Some("implementer"));
+    assert_eq!(ev.files_changed.len(), 2);
+    assert_eq!(ev.commit.as_deref(), Some("abc123"));
+}
+
+#[test]
+fn health_check_with_signals() {
+    let json = r#"{
+        "version": "1.0",
+        "artifact_type": "health_check",
+        "artifact_id": "hc-001",
+        "producer_type": "orchestration_authority",
+        "any_triggered": true,
+        "trigger_context": "phase_transition",
+        "created_at": "2026-04-06T10:00:00Z",
+        "signals": [
+            { "name": "memory_bloat", "value": 5.0, "threshold": 10.0, "triggered": false },
+            { "name": "debt_stagnation", "value": 15.0, "threshold": 10.0, "triggered": true, "detail": "3 items stale", "mandatory_response": "Review debt" }
+        ]
+    }"#;
+    let hc: HealthCheck = serde_json::from_str(json).unwrap();
+    assert!(hc.any_triggered);
+    assert_eq!(hc.signals.len(), 2);
+    assert!(hc.signals[1].triggered);
+    assert_eq!(hc.signals[1].mandatory_response.as_deref(), Some("Review debt"));
+}
+
+#[test]
+fn design_brief_standard() {
+    let json = r#"{
+        "version": "1.0",
+        "artifact_type": "design_brief",
+        "artifact_id": "db-001",
+        "producer_type": "orchestration_authority",
+        "mission_id": "mission-001",
+        "depth": "standard",
+        "status": "approved",
+        "chosen_approach": "Bottom-up refactor",
+        "non_goals": ["CI changes"],
+        "verification_strategy": "Unit tests + integration test",
+        "created_at": "2026-04-06T10:00:00Z",
+        "architecture_decisions": [
+            { "decision": "Use serde", "rationale": "Standard Rust" }
+        ]
+    }"#;
+    let db: DesignBrief = serde_json::from_str(json).unwrap();
+    assert_eq!(db.chosen_approach.as_deref(), Some("Bottom-up refactor"));
+    assert_eq!(db.depth.as_deref(), Some("standard"));
+    assert_eq!(db.architecture_decisions.len(), 1);
+}
+
+#[test]
+fn vote_round_with_votes() {
+    let json = r#"{
+        "version": "1.0",
+        "artifact_type": "vote_round",
+        "artifact_id": "vr-001",
+        "producer_type": "orchestration_authority",
+        "round_type": "proposal_round",
+        "task_id": "task-001",
+        "participants": ["design-authority", "challenger"],
+        "votes": [
+            { "voter": "design-authority", "vote": "agree", "rationale": "Looks good" },
+            { "voter": "challenger", "vote": "disagree", "rationale": "Missing tests", "severity": "major" }
+        ],
+        "result": "disagree",
+        "quorum_met": true,
+        "created_at": "2026-04-06T10:00:00Z"
+    }"#;
+    let vr: VoteRound = serde_json::from_str(json).unwrap();
+    assert_eq!(vr.votes.len(), 2);
+    assert_eq!(vr.votes[1].severity.as_deref(), Some("major"));
+    assert_eq!(vr.result.as_deref(), Some("disagree"));
+}
+
+#[test]
+fn gap_assessment_delivery() {
+    let json = r#"{
+        "version": "1.0",
+        "artifact_type": "gap_assessment",
+        "artifact_id": "ga-001",
+        "producer_type": "product_authority",
+        "scope_in_summary": "All features",
+        "scope_out_summary": "No CI",
+        "fully_delivered": ["Feature A"],
+        "partially_delivered": ["Feature B"],
+        "not_delivered": [],
+        "intentional_cuts": ["Feature C"],
+        "unexpected_additions": [],
+        "recommended_followups": ["Polish Feature B"],
+        "created_at": "2026-04-06T10:00:00Z"
+    }"#;
+    let ga: GapAssessment = serde_json::from_str(json).unwrap();
+    assert_eq!(ga.fully_delivered.len(), 1);
+    assert_eq!(ga.intentional_cuts.len(), 1);
 }
