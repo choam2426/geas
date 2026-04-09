@@ -4,9 +4,10 @@
  */
 
 import * as path from 'path';
+import * as fs from 'fs';
 import type { Command } from 'commander';
-import { writeJsonFile } from '../lib/fs-atomic';
-import { resolveGeasDir, resolveMissionDir } from '../lib/paths';
+import { writeJsonFile, readJsonFile } from '../lib/fs-atomic';
+import { resolveGeasDir, resolveMissionDir, validateIdentifier } from '../lib/paths';
 import { validate } from '../lib/schema';
 import { validatePhaseTransition } from '../lib/phase-guards';
 import { success, validationError, fileError } from '../lib/output';
@@ -28,12 +29,21 @@ export function registerPhaseCommands(program: Command): void {
         const data = JSON.parse(opts.data) as Record<string, unknown>;
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
+        validateIdentifier(opts.mission, 'mission ID');
         const missionDir = resolveMissionDir(geasDir, opts.mission);
 
         // Validate against phase-review schema
         const result = validate('phase-review', data);
         if (!result.valid) {
           validationError('phase-review', result.errors || []);
+          return;
+        }
+
+        // C2: Enforce next_phase for ready_to_exit status (defense in depth)
+        if ((data.status as string) === 'ready_to_exit' && !data.next_phase) {
+          validationError('phase-review', [
+            'next_phase is required when status is "ready_to_exit"',
+          ]);
           return;
         }
 
@@ -83,6 +93,61 @@ export function registerPhaseCommands(program: Command): void {
           ? 'Invalid JSON in --data'
           : (err as Error).message;
         fileError('phase-reviews/', 'write', msg);
+      }
+    });
+
+  // --- read-latest ---
+  cmd
+    .command('read-latest')
+    .description('Read the most recent phase review for a given phase')
+    .requiredOption('--mission <mid>', 'Mission ID')
+    .requiredOption('--phase <phase>', 'Phase name')
+    .action((opts: { mission: string; phase: string }, actionCmd: Command) => {
+      try {
+        const cwd = getCwd(actionCmd);
+        const geasDir = resolveGeasDir(cwd);
+        validateIdentifier(opts.mission, 'mission ID');
+        const missionDir = resolveMissionDir(geasDir, opts.mission);
+        const reviewsDir = path.resolve(missionDir, 'phase-reviews');
+
+        if (!fs.existsSync(reviewsDir)) {
+          fileError('phase-reviews/', 'read', 'No phase-reviews directory found');
+          return;
+        }
+
+        // Find all files matching the phase prefix, pick latest by filename sort (timestamp in name)
+        const files = fs.readdirSync(reviewsDir)
+          .filter((f: string) => f.startsWith(`${opts.phase}_`) && f.endsWith('.json'))
+          .sort()
+          .reverse();
+
+        if (files.length === 0) {
+          fileError('phase-reviews/', 'read', `No phase review found for phase "${opts.phase}"`);
+          return;
+        }
+
+        const latestFile = files[0];
+        const filePath = path.resolve(reviewsDir, latestFile);
+        const data = readJsonFile(filePath);
+        if (!data) {
+          fileError(latestFile, 'read', 'Failed to parse phase review JSON');
+          return;
+        }
+
+        success({
+          mission_id: opts.mission,
+          phase: opts.phase,
+          file: latestFile,
+          path: filePath,
+          data,
+        });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('phase-reviews/', 'read-latest', nodeErr.message);
+        } else {
+          fileError('phase-reviews/', 'read-latest', (err as Error).message);
+        }
       }
     });
 }
