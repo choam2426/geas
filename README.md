@@ -13,7 +13,7 @@ The current implementation runs as a **Claude Code plugin**. It ships with **sof
 
 > Geas is not a “more agents” project. It is a control system for how agents coordinate, verify, and learn.
 
-**14 agent types · 12 skills · 9 lifecycle hooks · 18 JSON Schemas**
+**14 agent types · 12 skills · 9 lifecycle hooks · 16 JSON Schemas**
 
 ---
 
@@ -151,7 +151,7 @@ A mission declares its domain profile. The Orchestrator resolves abstract slots 
 |---|---|
 | [Architecture](docs/architecture/DESIGN.md) | System design, 4-layer architecture, and rationale |
 | [Protocol](docs/protocol/) | 12 operational protocol documents |
-| [Schemas](docs/protocol/schemas/) | 18 JSON Schema definitions (draft 2020-12) |
+| [Schemas](docs/protocol/schemas/) | 16 JSON Schema definitions (draft 2020-12) |
 | [Agents](docs/reference/AGENTS.md) | 14 agent types and the slot-based authority model |
 | [Skills](docs/reference/SKILLS.md) | 12 skills |
 | [Hooks](docs/reference/HOOKS.md) | 9 lifecycle hooks |

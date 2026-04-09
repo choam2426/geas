@@ -48,7 +48,6 @@ Each task produces three artifact groups under `tasks/{tid}/`:
 | context packets | `packets/{agent}.md` | role-specific briefings delivered to agents before work begins |
 | execution record | `record.json` | single file accumulating all pipeline step outputs (see below) |
 | evidence files | `evidence/{agent}.json` | role-based agent deliverables (implementer, reviewer, tester, authority) |
-| failure record | (inline or separate) | captures what went wrong when a step fails (created as needed) |
 
 #### record.json sections
 

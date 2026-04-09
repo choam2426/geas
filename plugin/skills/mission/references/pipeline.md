@@ -65,8 +65,7 @@ Before transitioning to `"implementing"`, check for staleness:
    d. **Overlap, auto-resolvable** -> classification = `review_sync`. Update `base_commit`, proceed. Flag for specialist re-review after implementation.
    e. **Overlap, not auto-resolvable** -> classification = `replan_required`. Do NOT proceed. Rewind task to `"ready"`. Update implementation contract.
    f. **Preconditions invalidated** -> classification = `blocking_conflict`. Set task status to `"blocked"`.
-   g. Write the revalidation record to `.geas/missions/{mission_id}/tasks/{task-id}/revalidation-record.json` (use Write tool -- no dedicated CLI command for revalidation-record)
-   h. Log event: `Bash("geas event log --type revalidation --task {task-id} --data '{\"classification\":\"...\"}'")` 
+   g. Log event: `Bash("geas event log --type revalidation --task {task-id} --data '{\"classification\":\"...\",\"action_taken\":\"...\"}'")` 
 
 Only proceed to `"implementing"` if classification is `clean_sync` or `review_sync`.
 
@@ -178,7 +177,7 @@ Before merging the worktree:
    - `review_sync` -> merge, then specialist re-review required for changed areas
    - `replan_required` -> rewind task to `"ready"`, update implementation contract
    - `blocking_conflict` -> task -> `"blocked"`
-4. If revalidation was needed, write an updated `.geas/missions/{mission_id}/tasks/{task-id}/revalidation-record.json` (use Write tool -- no dedicated CLI command for revalidation-record)
+4. If revalidation was needed, log event: `Bash("geas event log --type revalidation --task {task-id} --data '{\"classification\":\"...\",\"action_taken\":\"...\"}'")` 
 
 #### Integration Lock
 

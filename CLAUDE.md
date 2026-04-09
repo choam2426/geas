@@ -58,7 +58,7 @@ plugin/
 docs/
 ├── protocol/                # Operating protocol (English, canonical)
 │   ├── 00-11 .md             # 12 protocol documents
-│   ├── schemas/             # 18 JSON Schema (draft 2020-12)
+│   ├── schemas/             # 16 JSON Schema (draft 2020-12)
 │   └── examples/            # 7 example files
 ├── architecture/DESIGN.md   # Architecture overview
 └── reference/               # SKILLS.md, HOOKS.md
