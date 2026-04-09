@@ -16,6 +16,7 @@ Schema alignment, Windows compatibility, flexible agent selection, and CLI impro
 - Intake skill `producer_type` example used snake_case (`orchestration_authority`) instead of kebab-case
 - 66 snake_case agent type references across 17 skill/agent files converted to kebab-case per Agent Name Rule
 - Design-brief field name mismatches: added schema field reference to specifying.md (`rejected_reason`, `description`, `design_review` structure)
+- Added schema field references for recovery-packet, record (gate_result, closure, challenge_review), evidence, rules-update to prevent agent field name guessing
 
 ### Changed
 - `created_at` removed from `required` in all 12 schemas — CLI auto-injects, agents no longer need to include it
