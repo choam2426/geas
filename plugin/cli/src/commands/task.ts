@@ -10,7 +10,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Command } from 'commander';
-import { resolveGeasDir, resolveMissionDir, normalizePath } from '../lib/paths';
+import { resolveGeasDir, resolveMissionDir, normalizePath, validateIdentifier } from '../lib/paths';
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
@@ -99,6 +99,7 @@ export function registerTaskCommands(program: Command): void {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
         const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
         const missionDir = resolveMissionDir(geasDir, missionId);
 
         const data = readInputData(opts.data, opts.file) as Record<string, unknown>;
@@ -115,6 +116,7 @@ export function registerTaskCommands(program: Command): void {
           fileError('', 'create', 'task_id is required in the data');
           return;
         }
+        validateIdentifier(taskId, 'task ID');
 
         // v4: tasks/{tid}/contract.json (directory per task)
         const taskDir = path.resolve(missionDir, 'tasks', taskId);
@@ -164,6 +166,8 @@ export function registerTaskCommands(program: Command): void {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
         const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(opts.id, 'task ID');
         const missionDir = resolveMissionDir(geasDir, missionId);
 
         // v4: contract.json lives inside tasks/{tid}/
@@ -258,6 +262,8 @@ export function registerTaskCommands(program: Command): void {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
         const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(opts.id, 'task ID');
         const missionDir = resolveMissionDir(geasDir, missionId);
 
         const contractPath = path.resolve(missionDir, 'tasks', opts.id, 'contract.json');
@@ -293,6 +299,7 @@ export function registerTaskCommands(program: Command): void {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
         const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
         const missionDir = resolveMissionDir(geasDir, missionId);
 
         const tasksDir = path.resolve(missionDir, 'tasks');
@@ -358,6 +365,8 @@ export function registerTaskCommands(program: Command): void {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
         const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(opts.task, 'task ID');
         const missionDir = resolveMissionDir(geasDir, missionId);
 
         // Validate section name
@@ -437,6 +446,8 @@ export function registerTaskCommands(program: Command): void {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
         const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(opts.task, 'task ID');
         const missionDir = resolveMissionDir(geasDir, missionId);
 
         const taskDir = path.resolve(missionDir, 'tasks', opts.task);

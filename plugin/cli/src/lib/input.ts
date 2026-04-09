@@ -65,6 +65,9 @@ export function readInputData(
   }
 }
 
+// Block prototype pollution keys
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 /**
  * Parse --set flags into a flat key-value object.
  * Supports simple keys and array notation:
@@ -76,7 +79,7 @@ export function readInputData(
  * @returns Object with parsed values (numbers auto-detected)
  */
 export function parseSetFlags(setArgs: string[]): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
+  const result: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
 
   for (const arg of setArgs) {
     const eqIdx = arg.indexOf('=');
@@ -85,6 +88,8 @@ export function parseSetFlags(setArgs: string[]): Record<string, unknown> {
     const key = arg.substring(0, eqIdx).trim();
     const rawValue = arg.substring(eqIdx + 1);
 
+    if (DANGEROUS_KEYS.has(key)) continue;
+
     // Auto-detect types
     const value = coerceValue(rawValue);
 
@@ -92,6 +97,7 @@ export function parseSetFlags(setArgs: string[]): Record<string, unknown> {
     const arrMatch = key.match(/^(.+?)\[(\d+)\]$/);
     if (arrMatch) {
       const arrKey = arrMatch[1];
+      if (DANGEROUS_KEYS.has(arrKey)) continue;
       const idx = parseInt(arrMatch[2], 10);
       if (!Array.isArray(result[arrKey])) {
         result[arrKey] = [];

@@ -126,7 +126,7 @@ Resolve the implementer slot via profiles.json. If the profile provides a design
 Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-implementer} --content '...'")`. Then:
 Update checkpoint: `Bash("geas state checkpoint set --step design --agent {resolved-implementer}")`
 ```
-Agent(agent: "{resolved-implementer}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-implementer}.md. Write your design spec as evidence. Run: geas evidence add --task {task-id} --agent {resolved-implementer}-design --role implementer --set summary='<design summary>' --set files_changed='[]'")
+Agent(agent: "{resolved-implementer}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-implementer}.md. Write your design spec as evidence. Run: geas evidence add --task {task-id} --agent {resolved-implementer}-design --role reviewer --set summary='<design summary>' --set verdict='approved' --set concerns='[]'")
 ```
 Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-implementer}-design.json` exists.
 
