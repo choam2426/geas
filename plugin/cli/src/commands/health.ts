@@ -31,7 +31,6 @@ interface HealthContext {
   runState: Record<string, unknown> | null;
   debtRegister: Record<string, unknown> | null;
   taskFiles: Record<string, unknown>[];
-  evidenceDir: string;
   missionDir: string | null;
 }
 
@@ -47,19 +46,38 @@ function listJsonFiles(dir: string): string[] {
 }
 
 /**
+ * List subdirectories in a directory. Returns empty array on error.
+ */
+function listSubdirs(dir: string): string[] {
+  try {
+    return fs.readdirSync(dir).filter((f) => {
+      try {
+        return fs.statSync(path.join(dir, f)).isDirectory();
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Read all task contract files from the current mission.
+ * v4: tasks are directories with contract.json inside (tasks/{tid}/contract.json).
  */
 function readTaskFiles(missionDir: string | null): Record<string, unknown>[] {
   if (!missionDir) return [];
   const tasksDir = path.join(missionDir, 'tasks');
-  const files = listJsonFiles(tasksDir);
+  const taskDirs = listSubdirs(tasksDir);
   const tasks: Record<string, unknown>[] = [];
-  for (const f of files) {
+  for (const tid of taskDirs) {
     try {
-      const content = JSON.parse(fs.readFileSync(path.join(tasksDir, f), 'utf-8'));
+      const contractPath = path.join(tasksDir, tid, 'contract.json');
+      const content = JSON.parse(fs.readFileSync(contractPath, 'utf-8'));
       tasks.push(content as Record<string, unknown>);
     } catch {
-      // Skip malformed files
+      // Skip directories without a valid contract.json
     }
   }
   return tasks;
@@ -71,9 +89,6 @@ function readTaskFiles(missionDir: string | null): Record<string, unknown>[] {
 function buildContext(geasDir: string): HealthContext {
   const runState = readJsonFile<Record<string, unknown>>(
     path.join(geasDir, 'state', 'run.json')
-  );
-  const memoryIndex = readJsonFile<Record<string, unknown>>(
-    path.join(geasDir, 'state', 'memory-index.json')
   );
 
   const missionId = runState?.mission_id as string | undefined;
@@ -97,15 +112,13 @@ function buildContext(geasDir: string): HealthContext {
   }
 
   const taskFiles = readTaskFiles(missionDir);
-  const evidenceDir = missionDir ? path.join(missionDir, 'evidence') : '';
 
   return {
     geasDir,
-    memoryIndex,
+    memoryIndex: null,
     runState,
     debtRegister,
     taskFiles,
-    evidenceDir,
     missionDir,
   };
 }
@@ -116,20 +129,17 @@ function buildContext(geasDir: string): HealthContext {
 const SIGNAL_DEFS: SignalDef[] = [
   {
     // 1. memory_bloat: ratio of non-active memory entries
+    // v4: memory is simplified to 2-state (draft/active) with agent .md files
+    // No structured index to scan — this signal is retained for schema compatibility
     name: 'memory_bloat',
     threshold: 0.4,
     mandatoryResponse: 'Trigger memory review cycle to archive or decay stale entries',
-    compute(ctx) {
-      const entries = ((ctx.memoryIndex?.entries as unknown[]) || []) as Record<string, unknown>[];
-      if (entries.length === 0) {
-        return { value: 0, detail: 'No memory entries' };
-      }
-      const activeStates = new Set(['candidate', 'provisional', 'stable', 'canonical']);
-      const nonActive = entries.filter((e) => !activeStates.has(e.state as string));
-      const ratio = nonActive.length / entries.length;
+    compute(_ctx) {
+      // v4 simplified memory has no structured memory-index.json.
+      // This signal is retained for schema compatibility but always reports 0.
       return {
-        value: Math.round(ratio * 100) / 100,
-        detail: `${nonActive.length}/${entries.length} entries in non-active states`,
+        value: 0,
+        detail: 'v4 memory model uses simplified 2-state agent notes',
       };
     },
   },
@@ -148,8 +158,9 @@ const SIGNAL_DEFS: SignalDef[] = [
       let missing = 0;
       for (const t of completed) {
         const tid = (t.task_id as string) || (t.id as string) || '';
-        if (!tid) continue;
-        const edir = path.join(ctx.evidenceDir, tid);
+        if (!tid || !ctx.missionDir) continue;
+        // v4: evidence lives at tasks/{tid}/evidence/
+        const edir = path.join(ctx.missionDir, 'tasks', tid, 'evidence');
         const evidenceFiles = listJsonFiles(edir);
         if (evidenceFiles.length === 0) {
           missing++;
@@ -168,32 +179,29 @@ const SIGNAL_DEFS: SignalDef[] = [
     threshold: 0.3,
     mandatoryResponse: 'Review gate criteria and consider lowering scope or splitting tasks',
     compute(ctx) {
-      // Scan evidence directories for gate-result files
-      if (!ctx.evidenceDir) {
-        return { value: 0, detail: 'No evidence directory' };
+      // v4: gate_result is a section in tasks/{tid}/record.json
+      if (!ctx.missionDir) {
+        return { value: 0, detail: 'No mission directory' };
       }
       let total = 0;
       let issues = 0;
-      try {
-        const taskDirs = fs.readdirSync(ctx.evidenceDir);
-        for (const td of taskDirs) {
-          const dir = path.join(ctx.evidenceDir, td);
-          const files = listJsonFiles(dir);
-          for (const f of files) {
-            if (!f.includes('gate-result')) continue;
-            try {
-              const gr = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf-8')) as Record<string, unknown>;
-              total++;
-              if (gr.verdict === 'fail' || gr.verdict === 'block') {
-                issues++;
-              }
-            } catch {
-              // Skip malformed files
+      for (const t of ctx.taskFiles) {
+        const tid = (t.task_id as string) || (t.id as string) || '';
+        if (!tid) continue;
+        const recordPath = path.join(ctx.missionDir, 'tasks', tid, 'record.json');
+        try {
+          const record = JSON.parse(fs.readFileSync(recordPath, 'utf-8')) as Record<string, unknown>;
+          const sections = (record.sections as Record<string, unknown>) || record;
+          const gateResult = sections.gate_result as Record<string, unknown> | undefined;
+          if (gateResult) {
+            total++;
+            if (gateResult.verdict === 'fail' || gateResult.verdict === 'block') {
+              issues++;
             }
           }
+        } catch {
+          // Skip tasks without record.json
         }
-      } catch {
-        // Evidence dir doesn't exist
       }
       if (total === 0) {
         return { value: 0, detail: 'No gate results found' };
@@ -207,33 +215,24 @@ const SIGNAL_DEFS: SignalDef[] = [
   },
   {
     // 4. contradiction_accumulation: total contradictions across memory entries
+    // v4: memory is simplified to 2-state (draft/active) with memory/agents/{agent}.md
+    // No structured contradiction_count in v4 — always returns 0
     name: 'contradiction_accumulation',
     threshold: 3,
     mandatoryResponse: 'Trigger memory review to resolve contradictions before proceeding',
-    compute(ctx) {
-      // Count from memory entry files for detailed signals
-      let totalContradictions = 0;
-      const entriesDir = path.join(ctx.geasDir, 'memory', 'entries');
-      const files = listJsonFiles(entriesDir);
-      for (const f of files) {
-        try {
-          const entry = JSON.parse(fs.readFileSync(path.join(entriesDir, f), 'utf-8')) as Record<string, unknown>;
-          const signals = entry.signals as Record<string, unknown> | undefined;
-          if (signals) {
-            totalContradictions += (signals.contradiction_count as number) || 0;
-          }
-        } catch {
-          // Skip malformed files
-        }
-      }
+    compute(_ctx) {
+      // v4 simplified memory has no structured contradiction tracking.
+      // This signal is retained for schema compatibility but always reports 0.
       return {
-        value: totalContradictions,
-        detail: `${totalContradictions} total contradictions across ${files.length} entries`,
+        value: 0,
+        detail: 'v4 memory model has no structured contradiction tracking',
       };
     },
   },
   {
     // 5. repeated_failure_class: count of tasks that failed gate 2+ times
+    // v4: gate_result is in record.json (single result per task). Repeated failures
+    // are tracked via retry_count in the contract or evidence files.
     name: 'repeated_failure_class',
     threshold: 2,
     mandatoryResponse: 'Investigate root cause of repeated failures and consider process change',
@@ -241,15 +240,15 @@ const SIGNAL_DEFS: SignalDef[] = [
       let repeatedFailures = 0;
       for (const t of ctx.taskFiles) {
         const tid = (t.task_id as string) || (t.id as string) || '';
-        if (!tid) continue;
-        const edir = path.join(ctx.evidenceDir, tid);
+        if (!tid || !ctx.missionDir) continue;
+        // v4: evidence files at tasks/{tid}/evidence/ — count fail verdicts
+        const edir = path.join(ctx.missionDir, 'tasks', tid, 'evidence');
         const files = listJsonFiles(edir);
         let failCount = 0;
         for (const f of files) {
-          if (!f.includes('gate-result')) continue;
           try {
-            const gr = JSON.parse(fs.readFileSync(path.join(edir, f), 'utf-8')) as Record<string, unknown>;
-            if (gr.verdict === 'fail') failCount++;
+            const ev = JSON.parse(fs.readFileSync(path.join(edir, f), 'utf-8')) as Record<string, unknown>;
+            if (ev.verdict === 'fail') failCount++;
           } catch {
             // Skip
           }
@@ -306,6 +305,7 @@ const SIGNAL_DEFS: SignalDef[] = [
   },
   {
     // 8. worker_low_confidence: tasks where self-check had confidence <= 2
+    // v4: self_check is a section in record.json
     name: 'worker_low_confidence',
     threshold: 2,
     mandatoryResponse: 'Review task difficulty, consider splitting or providing additional context',
@@ -313,19 +313,18 @@ const SIGNAL_DEFS: SignalDef[] = [
       let lowConfidence = 0;
       for (const t of ctx.taskFiles) {
         const tid = (t.task_id as string) || (t.id as string) || '';
-        if (!tid) continue;
-        const edir = path.join(ctx.evidenceDir, tid);
-        const files = listJsonFiles(edir);
-        for (const f of files) {
-          if (!f.includes('self-check')) continue;
-          try {
-            const sc = JSON.parse(fs.readFileSync(path.join(edir, f), 'utf-8')) as Record<string, unknown>;
-            if (typeof sc.confidence === 'number' && sc.confidence <= 2) {
-              lowConfidence++;
-            }
-          } catch {
-            // Skip
+        if (!tid || !ctx.missionDir) continue;
+        // v4: self_check is in record.json
+        const recordPath = path.join(ctx.missionDir, 'tasks', tid, 'record.json');
+        try {
+          const record = JSON.parse(fs.readFileSync(recordPath, 'utf-8')) as Record<string, unknown>;
+          const sections = (record.sections as Record<string, unknown>) || record;
+          const selfCheck = sections.self_check as Record<string, unknown> | undefined;
+          if (selfCheck && typeof selfCheck.confidence === 'number' && selfCheck.confidence <= 2) {
+            lowConfidence++;
           }
+        } catch {
+          // Skip tasks without record.json
         }
       }
       return {

@@ -6,7 +6,7 @@ user-invocable: true
 
 # Reporting
 
-Invokable anytime via `/geas:reporting`. The orchestrating skill calls this at phase transitions, session start, and evolving phase entry.
+Invokable anytime via `/geas:reporting`. The mission skill calls this at phase transitions, session start, and evolving phase entry.
 
 Produces a markdown summary to the conversation and writes `.geas/state/health-check.json`.
 
@@ -58,7 +58,7 @@ If the file does not exist, report: "No gap assessment found — run after at le
 
 ## Section 3: Health Signals
 
-Calculate all 8 signals from protocol doc 12. For each signal: read the source data, compute the value, compare against the threshold, and determine whether it is triggered.
+Calculate all 8 signals from protocol doc 10. For each signal: read the source data, compute the value, compare against the threshold, and determine whether it is triggered.
 
 | Signal | Threshold | Source | Calculation |
 |--------|-----------|--------|-------------|

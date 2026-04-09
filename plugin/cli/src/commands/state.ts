@@ -1,6 +1,6 @@
 /**
  * State command group — run.json read/write, checkpoint management,
- * session-latest.md, task-focus updates.
+ * session-latest.md.
  */
 
 import * as fs from 'fs';
@@ -232,65 +232,4 @@ export function registerStateCommands(program: Command): void {
       }
     );
 
-  // --- state task-focus ---
-  cmd
-    .command('task-focus')
-    .description('Write/update task-focus/<id>.md')
-    .requiredOption('--id <id>', 'Task ID')
-    .option('--status <status>', 'Task status')
-    .option('--step <step>', 'Current pipeline step')
-    .option('--summary <text>', 'Summary text')
-    .option('--blockers <text>', 'Blockers description')
-    .action(
-      (opts: {
-        id: string;
-        status?: string;
-        step?: string;
-        summary?: string;
-        blockers?: string;
-      }) => {
-        try {
-          const geas = resolveGeasDir(getCwd(cmd));
-          const focusDir = path.join(geas, 'state', 'task-focus');
-          const focusPath = path.join(focusDir, `${opts.id}.md`);
-
-          const now = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-          const lines: string[] = [
-            `# Task Focus: ${opts.id}`,
-            '',
-            `**Updated**: ${now}`,
-          ];
-
-          if (opts.status) {
-            lines.push(`**Status**: ${opts.status}`);
-          }
-          if (opts.step) {
-            lines.push(`**Pipeline Step**: ${opts.step}`);
-          }
-          if (opts.summary) {
-            lines.push('', '## Summary', '', opts.summary);
-          }
-          if (opts.blockers) {
-            lines.push('', '## Blockers', '', opts.blockers);
-          }
-
-          lines.push('');
-
-          ensureDir(focusDir);
-          fs.writeFileSync(focusPath, lines.join('\n'), 'utf-8');
-
-          success({
-            written: `task-focus/${opts.id}.md`,
-            path: focusPath.replace(/\\/g, '/'),
-          });
-        } catch (err: unknown) {
-          const e = err as NodeJS.ErrnoException;
-          fileError(
-            `task-focus/${opts.id}.md`,
-            'write',
-            e.message
-          );
-        }
-      }
-    );
 }

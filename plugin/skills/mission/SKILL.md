@@ -102,7 +102,7 @@ This applies to every task — sequential or parallel. If the task file does not
 - During per-task retrospectives, orchestration_authority produces `rule_candidates[]` in the record.json `retrospective` section. These are proposals, NOT direct modifications.
 - Rule candidates accumulate during the Building phase. Batch approval happens in the Evolving phase (Step 4.2.5).
 - Approved rules updates are applied to `.geas/rules.md` and recorded in `.geas/missions/{mission_id}/evolution/rules-update.json` with `status: "approved"`.
-- Approval conditions (per doc 13): orchestration_authority + domain authority, OR evidence_refs >= 2 with contradiction_count = 0.
+- Approval conditions (per doc 11): orchestration_authority + domain authority, OR evidence_refs >= 2 with contradiction_count = 0.
 - After Phase 1 (Specifying): Orchestrator adds stack-specific rules before the rules-update workflow exists in the pipeline.
 
 ### Tech debt tracking
@@ -211,7 +211,7 @@ After recovery completes and before resuming the pipeline:
 1. Check if context packets exist for the focus task at `.geas/missions/{mission_id}/tasks/{task-id}/packets/`
 2. If packets exist: compare their timestamps against the last event in `events.jsonl`
 3. If packets are older than the last event → packets are stale. Regenerate via `geas packet create` before spawning the next agent.
-4. Also regenerate after: revalidation, rewind, rules.md update, memory state change to under_review/superseded.
+4. Also regenerate after: revalidation, rewind, rules.md update, agent memory updated.
 
 #### Session State Maintenance
 

@@ -15,7 +15,7 @@ import type { Command } from 'commander';
 import { success, fileError } from '../lib/output';
 import { resolveGeasDir, normalizePath } from '../lib/paths';
 import { readJsonFile, ensureDir } from '../lib/fs-atomic';
-import { enrichTimestamp, writeCheckpointPending } from '../lib/post-write-checks';
+import { writeCheckpointPending } from '../lib/post-write-checks';
 import { getCwd } from '../lib/cwd';
 
 /**
