@@ -158,6 +158,11 @@ Verify record.json has `implementation_contract` section with `status: "approved
 Bash("geas task record get --task {task-id} --section implementation_contract")
 ```
 
+Transition to implementing (guard checks implementation_contract.status === "approved"):
+```bash
+Bash("geas task transition --id {task-id} --to implementing")
+```
+
 ### Implementation [MANDATORY — worktree isolated]
 Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {worker} --content '...'")`. Then:
 Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule").

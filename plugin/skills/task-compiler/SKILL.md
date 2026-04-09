@@ -172,7 +172,7 @@ Look at existing TaskContracts in `.geas/missions/{mission_id}/tasks/`:
 
 ### Step 10: Capture Base Commit
 
-Run `git rev-parse HEAD` to get the current commit hash. Record this as `base_commit`. This anchors the task to a known repository state and is used for staleness detection during integration.
+Run `git rev-parse HEAD` to get the current commit hash. Record this as `base_snapshot`. This anchors the task to a known repository state and is used for staleness detection during integration.
 
 ### Step 11: Generate Rubric
 
@@ -244,7 +244,7 @@ Example output:
     "primary_worker_type": "implementer",
     "required_reviewer_types": ["design_authority", "quality_specialist"]
   },
-  "base_commit": "a1b2c3d4e5f6...",
+  "base_snapshot": "a1b2c3d4e5f6...",
   "status": "drafted"
 }
 ```
