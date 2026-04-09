@@ -53,7 +53,7 @@ Surface these as memory_suggestions:
 ## Before Exiting
 
 1. **Self-review**:
-   - Did I stay within scope.paths from the TaskContract?
+   - Did I stay within scope.surfaces from the TaskContract?
    - Did I address all acceptance criteria?
    - Are there untested paths or edge cases I should flag?
    - Did I introduce any unintended side effects?

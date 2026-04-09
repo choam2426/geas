@@ -112,12 +112,12 @@ Always include at least one reviewer type. For `high` or `critical` risk_level, 
 ### Step 5: Define Scope
 
 Define the paths the task IS allowed to touch (allowlist):
-- **`scope.paths`**: files and directories the worker may create or modify
+- **`scope.surfaces`**: files and directories the worker may create or modify
   - Be specific: `src/components/auth/`, `src/api/auth/`, `tests/auth/`
   - Include test directories relevant to the task
   - Do NOT include `.geas/`, `plugin/`, or unrelated modules
 
-Workers must not modify files outside `scope.paths`. Scope compliance is verified during code review and evidence gate.
+Workers must not modify files outside `scope.surfaces`. Scope compliance is verified during code review and evidence gate.
 
 ### Step 6: Define Acceptance Criteria
 

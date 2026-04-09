@@ -22,9 +22,9 @@ if (!rel.startsWith('.geas/') && !rel.startsWith('.geas\\\\')) {
     const mdir = mid ? path.join(geas, 'missions', mid) : geas;
     const task = h.readJson(path.join(mdir, 'tasks', run.current_task_id, 'contract.json'));
     if (task) {
-      const scopePaths = (task.scope && task.scope.paths) || [];
+      const scopePaths = (task.scope && task.scope.surfaces) || [];
       if (scopePaths.length && !h.matchScope(rel, scopePaths))
-        h.warn('Write to ' + rel + ' outside scope.paths in ' + run.current_task_id);
+        h.warn('Write to ' + rel + ' outside scope.surfaces in ' + run.current_task_id);
     }
   }
 }

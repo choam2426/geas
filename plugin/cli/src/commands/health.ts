@@ -282,9 +282,9 @@ const SIGNAL_DEFS: SignalDef[] = [
     // 7. scope_control_weakness: tasks with scope warnings (from post-write checks)
     name: 'scope_control_weakness',
     threshold: 2,
-    mandatoryResponse: 'Review task scope definitions and tighten scope.paths constraints',
+    mandatoryResponse: 'Review task scope definitions and tighten scope.surfaces constraints',
     compute(ctx) {
-      // Count tasks where scope.surfaces or scope.paths is empty
+      // Count tasks where scope.surfaces is empty
       let weakScope = 0;
       for (const t of ctx.taskFiles) {
         const scope = t.scope as Record<string, unknown> | undefined;
@@ -292,7 +292,7 @@ const SIGNAL_DEFS: SignalDef[] = [
           weakScope++;
           continue;
         }
-        const paths = (scope.paths as string[]) || (scope.surfaces as string[]) || [];
+        const paths = (scope.surfaces as string[]) || [];
         if (paths.length === 0) {
           weakScope++;
         }

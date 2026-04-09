@@ -61,7 +61,7 @@ function fnmatch(str: string, pattern: string): boolean {
   return new RegExp(re).test(str);
 }
 
-/** Check if a relative path matches any scope.paths entry. */
+/** Check if a relative path matches any scope.surfaces entry. */
 function matchScope(rel: string, scopePaths: string[]): boolean {
   if (!scopePaths || scopePaths.length === 0) return true;
   return scopePaths.some(
@@ -145,10 +145,10 @@ export function checkScopeAndFrozenSpec(
       );
       if (task) {
         const scope = task.scope as Record<string, unknown> | undefined;
-        const scopePaths = (scope?.paths as string[]) || [];
+        const scopePaths = (scope?.surfaces as string[]) || [];
         if (scopePaths.length > 0 && !matchScope(rel, scopePaths)) {
           warnings.push(
-            `Write to ${rel} outside scope.paths in ${run.current_task_id}`
+            `Write to ${rel} outside scope.surfaces in ${run.current_task_id}`
           );
         }
       }

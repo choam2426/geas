@@ -200,7 +200,7 @@ An approved contract MUST be amended and re-approved when any of the following o
 
 A scope change is material when any of the following are true:
 
-- paths outside the task's `scope.paths` are changed
+- paths outside the task's `scope.surfaces` are changed
 - acceptance criteria are added or modified
 - risk_level increases
 - a new external dependency is introduced
