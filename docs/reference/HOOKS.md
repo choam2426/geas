@@ -112,16 +112,10 @@ Runs once when a Claude Code session starts. Combines session initialization wit
    ```
 5. Creates `.geas/rules.md` if it does not exist, using a built-in template.
 
-**Memory review cadence** (integrated):
+**Agent memory check** (integrated):
 
-6. Reads `.geas/state/memory-index.json`. If absent, skips.
-7. Checks `active` entries whose `review_after` date has passed.
-8. Prints a warning listing up to 10 expired entries:
-   ```
-   [Geas] 3 memory entries past review date:
-     - mem-001 (active) due: 2026-03-15T00:00:00Z
-   [Geas] Run /geas:memorizing for batch review.
-   ```
+6. Checks `.geas/memory/agents/` for agent note files.
+7. Reports count of agent memory files found.
 
 ---
 
@@ -463,7 +457,7 @@ For protocol details on hook failure handling, conformance checking, and metrics
 |---|---|
 | `.geas/state/run.json` | session-init, restore-context, checkpoint-pre-write, checkpoint-post-write, packet-stale-check, verify-task-status |
 | `.geas/state/_checkpoint_pending` | checkpoint-pre-write (creates), checkpoint-post-write (removes) |
-| `.geas/state/memory-index.json` | session-init (review cadence) |
+| `.geas/memory/agents/*.md` | session-init (count check), inject-context, restore-context |
 | `.geas/state/locks.json` | lock-conflict-check, integration-lane-check |
 | `.geas/missions/<mid>/evolution/debt-register.json` | check-debt |
 | `.geas/rules.md` | session-init (creates), inject-context (reads), restore-context (reads) |
