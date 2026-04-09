@@ -72,21 +72,26 @@ A task MUST contain at least:
 
 | field | description |
 |---|---|
+| `version` | schema version for this artifact |
+| `artifact_type` | must be `"task_contract"` |
+| `artifact_id` | globally unique identifier for this artifact |
+| `producer_type` | agent type that produced this contract |
+| `created_at` | ISO 8601 timestamp of contract creation |
 | `task_id` | unique identifier for this task |
 | `title` | short human-readable name |
-| `description` | what this task accomplishes and why |
+| `goal` | what this task accomplishes and why |
 | `task_kind` | classification of work type (see Task Classification) |
 | `risk_level` | blast radius and failure cost assessment |
-| `status` | current lifecycle state |
-| `base_snapshot` | reference to the shared work state when this task was admitted — used to detect staleness, guide integration, and define rollback point |
-| `scope.surfaces` | affected surfaces, paths, or domains |
-| `acceptance_criteria[]` | observable, falsifiable conditions that define completion |
-| `routing.primary_worker_type` | specialist type assigned as primary implementer |
-| `routing.required_reviewer_types[]` | specialist types required to review (computed by routing algorithm) |
 | `gate_profile` | which gate tiers apply |
 | `vote_round_policy` | when structured deliberation occurs |
+| `acceptance_criteria[]` | observable, falsifiable conditions that define completion |
+| `eval_commands[]` | commands the quality specialist runs to verify acceptance criteria |
+| `rubric` | scoring dimensions and weights used during gate evaluation |
 | `retry_budget` | remaining verification retry attempts |
-| `workspace` | isolated execution context for this task |
+| `scope` | object containing `surfaces` array — affected surfaces, paths, or domains |
+| `routing` | object containing `primary_worker_type` and `required_reviewer_types[]` |
+| `base_snapshot` | reference to the shared work state when this task was admitted — used to detect staleness, guide integration, and define rollback point |
+| `status` | current lifecycle state |
 
 ### Additional recommended fields
 

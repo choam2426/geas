@@ -10,7 +10,7 @@ Shared library: `plugin/hooks/scripts/lib/geas-hooks.js`
 
 ## Hook Inventory
 
-10 hooks (9 scripts + 1 shared library) across 6 lifecycle events.
+9 hook scripts + 1 shared helper library (`geas-hooks.js`) across 6 lifecycle events.
 
 | # | Event | Matcher | Script | Purpose |
 |---|-------|---------|--------|---------|

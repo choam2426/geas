@@ -85,7 +85,7 @@ Surface these as memory_suggestions:
    geas evidence add --task {task_id} --agent design-authority --role reviewer \
      --set "summary=<decision summary, informed by self-review>" \
      --set "verdict=<approved|changes_requested|blocked>" \
-     --set "rationale=<reasoning>"
+     --set "concerns[0]=<primary structural concern or observation>"
    ```
 
 3. **Update your memory** (only if self-review found a reusable lesson):
