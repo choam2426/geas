@@ -34,6 +34,19 @@ When `.geas/` already exists (resume or fresh run), read orchestrator memory:
 ### Phase 1: Specifying
 Invoke `/geas:intake` → update run state with mission_id and mission → Read `references/specifying.md` and follow.
 
+### Session Handoff (Specifying → Building)
+After specifying completes, if the mission has 3+ tasks or context is getting heavy, suggest the user start a new session for building:
+
+```
+Specifying complete. Session state saved — the next session will auto-resume
+from building phase via /geas:mission.
+
+Recommend starting a fresh session for building (cleaner context, better
+quality). Continue here or start a new session — either works.
+```
+
+The recovery system handles seamless resume: run.json has the phase, task contracts are written, checkpoint is clear.
+
 ### Phase 2: Building
 Read `references/building.md` for phase management. For each task, read `references/pipeline.md` and execute.
 
