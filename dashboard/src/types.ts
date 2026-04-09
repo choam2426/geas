@@ -3,6 +3,23 @@ export interface ProjectEntry {
   path: string;
 }
 
+export interface SeverityRollup {
+  low: number;
+  normal: number;
+  high: number;
+  critical: number;
+}
+
+export interface KindRollup {
+  output_quality: number;
+  verification_gap: number;
+  structural: number;
+  risk: number;
+  process: number;
+  documentation: number;
+  operations: number;
+}
+
 export interface ProjectSummary {
   name: string;
   path: string;
@@ -11,12 +28,7 @@ export interface ProjectSummary {
   task_total: number;
   task_completed: number;
   debt_total: number;
-  debt_by_severity: {
-    low: number;
-    normal: number;
-    high: number;
-    critical: number;
-  };
+  debt_by_severity: SeverityRollup;
   last_activity: string | null;
   status: "ok" | "no_geas" | "error";
   current_task_id: string | null;
@@ -46,11 +58,14 @@ export interface DebtItem {
   status: string | null;
   description: string | null;
   introduced_by_task_id: string | null;
+  owner_type: string | null;
+  target_phase: string | null;
 }
 
 export interface DebtInfo {
   total: number;
-  by_severity: { low: number; normal: number; high: number; critical: number };
+  by_severity: SeverityRollup;
+  by_kind: KindRollup;
   items: DebtItem[];
 }
 
@@ -75,8 +90,11 @@ export interface MissionSpecDetail {
   domain_profile: string | null;
   mode: string | null;
   target_user: string | null;
+  source: string | null;
   risk_notes: string[];
   assumptions: string[];
+  ambiguities: string[];
+  affected_surfaces: string[];
   created_at: string | null;
 }
 
@@ -97,37 +115,200 @@ export interface EventsPage {
   page_size: number;
 }
 
-export interface MemorySummary {
-  memory_id: string;
-  memory_type: string;
-  state: string;
-  title: string;
-  summary: string;
-  scope: string;
-  tags: string[];
-  created_at?: string;
-  source_dir: string;
+// --- New artifact types ---
+
+export interface HealthSignal {
+  name: string | null;
+  value: number | null;
+  threshold: number | null;
+  triggered: boolean;
+  detail: string | null;
+  mandatory_response: string | null;
 }
 
-export interface MemoryDetail {
-  memory_id: string;
-  memory_type: string;
-  state: string;
-  title: string;
-  summary: string;
-  scope: string;
-  body: string[];
-  tags: string[];
-  evidence_refs: string[];
-  signals?: {
-    evidence_count: number;
-    reuse_count: number;
-    confidence: number;
-  };
-  review_after?: string;
-  supersedes: string[];
-  superseded_by?: string;
-  created_at?: string;
-  updated_at?: string;
-  source_dir: string;
+export interface HealthCheck {
+  version: string | null;
+  artifact_type: string | null;
+  signals: HealthSignal[];
+  any_triggered: boolean;
+  trigger_context: string | null;
+  created_at: string | null;
+}
+
+export interface ImplContract {
+  planned_actions: string[];
+  status: string | null;
+  worker: string | null;
+  edge_cases: string[];
+  non_goals: string[];
+}
+
+export interface SelfCheck {
+  confidence: number | null;
+  summary: string | null;
+  known_risks: string[];
+  untested_paths: string[];
+}
+
+export interface RubricScore {
+  dimension: string | null;
+  score: number | null;
+  threshold: number | null;
+  passed: boolean | null;
+  rationale: string | null;
+}
+
+export interface TierResult {
+  status: string | null;
+  details: string | null;
+}
+
+export interface GateResult {
+  verdict: string | null;
+  tier_results: { tier_0?: TierResult; tier_1?: TierResult; tier_2?: TierResult } | null;
+  rubric_scores: RubricScore[];
+  blocking_dimensions: string[];
+}
+
+export interface ChallengeReview {
+  concerns: unknown[];
+  blocking: boolean | null;
+  summary: string | null;
+}
+
+export interface RecordVerdict {
+  verdict: string | null;
+  rationale: string | null;
+  rewind_target: string | null;
+}
+
+export interface ClosureReview {
+  reviewer_type: string | null;
+  status: string | null;
+  summary: string | null;
+}
+
+export interface Closure {
+  change_summary: string | null;
+  task_summary: string | null;
+  reviews: ClosureReview[];
+  open_risks: string[];
+  debt_items: string[];
+}
+
+export interface RecordRetrospective {
+  what_went_well: string[];
+  what_broke: string[];
+  what_was_surprising: string[];
+  rule_candidates: string[];
+  memory_candidates: string[];
+  debt_candidates: string[];
+  next_time_guidance: string[];
+}
+
+export interface TaskRecord {
+  version: string | null;
+  task_id: string | null;
+  implementation_contract: ImplContract | null;
+  self_check: SelfCheck | null;
+  gate_result: GateResult | null;
+  challenge_review: ChallengeReview | null;
+  verdict: RecordVerdict | null;
+  closure: Closure | null;
+  retrospective: RecordRetrospective | null;
+}
+
+export interface Evidence {
+  agent: string | null;
+  role: string | null;
+  summary: string | null;
+  created_at: string | null;
+  files_changed: string[];
+  commit: string | null;
+  verdict: string | null;
+  concerns: string[];
+  blocking: boolean | null;
+  rationale: string | null;
+  criteria_results: { criterion: string | null; passed: boolean | null; details: string | null }[];
+  rubric_scores: RubricScore[];
+}
+
+export interface TaskDetail {
+  contract: TaskInfo | null;
+  record: TaskRecord | null;
+  evidence: Evidence[];
+}
+
+export interface Alternative {
+  approach: string | null;
+  rejected_reason: string | null;
+}
+
+export interface ArchDecision {
+  decision: string | null;
+  rationale: string | null;
+  constraints: string[];
+}
+
+export interface DesignRisk {
+  description: string | null;
+  mitigation: string | null;
+}
+
+export interface DesignBrief {
+  depth: string | null;
+  status: string | null;
+  chosen_approach: string | null;
+  non_goals: string[];
+  verification_strategy: string | null;
+  alternatives_considered: Alternative[];
+  architecture_decisions: ArchDecision[];
+  risks: DesignRisk[];
+  created_at: string | null;
+}
+
+export interface Vote {
+  voter: string | null;
+  vote: string | null;
+  rationale: string | null;
+  severity: string | null;
+}
+
+export interface VoteRound {
+  round_type: string | null;
+  task_id: string | null;
+  participants: string[];
+  votes: Vote[];
+  result: string | null;
+  quorum_met: boolean | null;
+  proposal_summary: string | null;
+  created_at: string | null;
+}
+
+export interface PhaseReview {
+  mission_phase: string | null;
+  status: string | null;
+  summary: string | null;
+  gate_criteria_met: string[];
+  gate_criteria_unmet: string[];
+  risk_notes: string[];
+  next_phase: string | null;
+  created_at: string | null;
+}
+
+export interface GapAssessment {
+  scope_in_summary: string | null;
+  scope_out_summary: string | null;
+  fully_delivered: string[];
+  partially_delivered: string[];
+  not_delivered: string[];
+  intentional_cuts: string[];
+  unexpected_additions: string[];
+  recommended_followups: string[];
+  created_at: string | null;
+}
+
+export interface AgentMemory {
+  agent_name: string;
+  content: string;
 }
