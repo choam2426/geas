@@ -115,7 +115,7 @@ Evolving phase에서 생성되는 artifact로, 팀이 성과를 돌아보고 프
 | `artifact_type` | artifact의 종류 식별 |
 | `version` | 호환성 검사를 위한 스키마 또는 artifact 버전 |
 | 생성 타임스탬프 | artifact 생성 시점 |
-| 생산 역할 또는 하위 시스템 | artifact를 생성한 에이전트 또는 하위 시스템 |
+| 생산 역할 또는 하위 시스템 | artifact 내용을 판단·생산한 에이전트 — 파일을 물리적으로 기록한 에이전트와 다를 수 있음 (오케스트레이터가 다른 에이전트를 대신해 기록하는 경우가 많음) |
 | 관련 id | `mission_id`, `task_id`, `memory_id` 등 연결 식별자 |
 | 소스 또는 lineage 참조 | 부모 artifact나 트리거 이벤트에 대한 포인터 (해당 시) |
 
