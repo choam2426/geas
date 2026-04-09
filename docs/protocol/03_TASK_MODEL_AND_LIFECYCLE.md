@@ -169,12 +169,9 @@ An implementation contract is a pre-approved agreement between the worker and re
 
 | field | description |
 |---|---|
-| `plan` | detailed description of what will be done, in what order, and how — specific enough for the worker to execute and reviewers to verify |
-| `affected_surfaces` | areas, paths, or domains changed by this task |
-| `non_goals` | what this task explicitly will NOT do |
-| `demo_steps` | how to demonstrate the result after completion |
-| `known_risks` | identified risks and how they are handled |
-| `required_checks` | verification checks needed to confirm success |
+| `planned_actions` | concrete steps to be taken, in order — specific enough for the worker to execute and reviewers to verify |
+| `non_goals` | what this task explicitly will NOT do (scope creep prevention) |
+| `status` | contract lifecycle: `draft`, `in_review`, `approved`, `revision_requested` |
 
 ### What a good contract additionally clarifies
 
@@ -226,13 +223,10 @@ Before claiming implementation completion, the primary worker MUST produce a wor
 
 ### Schema-minimum fields
 
-- `known_risks[]`
-- `untested_paths[]`
-- `possible_stubs[]`
-- `what_to_test_next[]`
-- `confidence`
-- `summary`
-- `memory_suggestions[]` — knowledge worth persisting for future invocations of this worker type
+- `confidence` — integer 1-5 (see Confidence semantics below)
+- `summary` — assessment of what was done and current state
+- `known_risks[]` — risks the worker identified during implementation
+- `untested_paths[]` — code paths or scenarios the worker did not test
 
 ### Interpretation rules
 

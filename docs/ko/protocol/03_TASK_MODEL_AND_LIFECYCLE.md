@@ -169,12 +169,9 @@ task에 반드시 있어야 하는 것:
 
 | 필드 | 설명 |
 |---|---|
-| `plan` | 무엇을, 어떤 순서로, 어떻게 할 것인지 — worker가 실행하고 리뷰어가 검증할 수 있을 만큼 구체적으로 |
-| `affected_surfaces` | 이 작업으로 변경되는 영역 |
-| `non_goals` | 이 task의 범위에서 의도적으로 제외한 것 |
-| `demo_steps` | 결과를 확인하는 시연 절차 |
-| `known_risks` | 사전에 파악한 리스크와 대응 방침 |
-| `required_checks` | 완료 여부를 판단하기 위해 실행할 검증 항목 |
+| `planned_actions` | 수행할 구체적 단계 — worker가 실행하고 reviewer가 검증할 수 있을 정도로 구체적 |
+| `non_goals` | 이 task가 명시적으로 하지 않을 것 (scope creep 방지) |
+| `status` | 계약 상태: `draft`, `in_review`, `approved`, `revision_requested` |
 
 ### 좋은 계약이 추가로 밝혀야 하는 것
 
@@ -226,15 +223,10 @@ task에 반드시 있어야 하는 것:
 
 ### 필수 필드
 
-| 필드 | 설명 |
-|---|---|
-| `known_risks[]` | worker가 인지하고 있는 리스크 |
-| `untested_paths[]` | 검증하지 못한 경로나 시나리오 |
-| `possible_stubs[]` | 임시 구현이나 미완성으로 남긴 부분 |
-| `what_to_test_next[]` | 리뷰어가 우선 확인해야 할 항목 |
-| `confidence` | 구현 완성도에 대한 worker의 자체 평가 (1-5) |
-| `summary` | 작업 내용 요약 |
-| `memory_suggestions[]` | 같은 worker 타입의 미래 호출을 위해 보존할 만한 지식 |
+- `confidence` — 정수 1-5 (아래 Confidence semantics 참조)
+- `summary` — 수행한 내용과 현재 상태 평가
+- `known_risks[]` — 구현 중 발견한 위험
+- `untested_paths[]` — 테스트하지 않은 코드 경로나 시나리오
 
 ### 활용 방식
 
