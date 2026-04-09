@@ -6,6 +6,26 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-04-10
+
+Schema alignment, Windows compatibility, and flexible agent selection.
+
+### Fixed
+- `enrichTimestamp` Windows path regex bug — regex required leading `/`, failing on Windows paths like `A:/...`. Replaced with `includes`/`endsWith` pattern. Same fix applied to `checkScopeAndFrozenSpec` and `checkTaskPassedEvidence`.
+- Intake skill field name mismatches with mission-spec schema: `risks` → `risk_notes`, `scope.surfaces` → `affected_surfaces`
+- Intake skill `producer_type` example used snake_case (`orchestration_authority`) instead of kebab-case
+- 66 snake_case agent type references across 17 skill/agent files converted to kebab-case per Agent Name Rule
+
+### Changed
+- `domain_profile` is now a hint, not a hard constraint — orchestrator freely selects the best agent per task from the full agent pool. Mixed-domain missions (research + development) can use agents from any domain.
+- `profiles.json`: `slot_mapping` renamed to `defaults` (semantic clarity)
+- Slot resolution in pipeline/specifying/polishing: mandatory profile lookup replaced with best-fit agent selection
+- Protocol 02 metadata table now maps conceptual field names to schema field names (en + ko)
+- Intake skill: `created_at` no longer manually included — CLI auto-injects
+
+### Added
+- Optional `updated_at` field added to 13 schemas that have `created_at` (CLI auto-injects on file updates)
+
 ## [0.7.0] — 2026-04-10
 
 CLI restructure, pipeline enforcement, and process reliability improvements.
