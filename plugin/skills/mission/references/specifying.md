@@ -227,6 +227,8 @@ If no dependencies are needed:
 
 ### 7. Close Specifying
 
+**No additional user confirmation needed** — the task list was already approved in step 5. Proceed directly.
+
 **Phase review** — verify gate criteria for specifying -> building.
 
 All conditions must be true:
