@@ -147,6 +147,8 @@ export function registerEvidenceCommands(program: Command): void {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
         const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(opts.task, 'task ID');
         const missionDir = path.resolve(geasDir, 'missions', missionId);
 
         // v4: evidence inside tasks/{tid}/evidence/
