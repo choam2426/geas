@@ -18,6 +18,11 @@ Test session analysis fixes — schema friction, CLI usability, skill guidance.
 - Gap-assessment must be written before phase review — explicit ordering note in building.md
 - `rules-update` `producer_type`: conditional on status — omit when `status: "none"`, required (domain authority) otherwise
 - `producer_type` semantics clarified in protocol 09 (en + ko): the agent whose judgment produced the content
+- Phase-level evidence (polishing, evolving) now stored at `missions/{mid}/evidence/` instead of creating pseudo-task directories (`tasks/polishing/`, `tasks/evolving/`)
+
+### Changed
+- `geas evidence add`: added `--phase` flag for mission-level evidence (mutually exclusive with `--task`)
+- `geas mission create`: removed `contracts/` and `packets/` subdirectories (v3 remnants — now at `tasks/{tid}/` level)
 
 ## [0.8.0] — 2026-04-10
 
