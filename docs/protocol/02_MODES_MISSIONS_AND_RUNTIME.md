@@ -100,7 +100,7 @@ Every mission operates through the following phases in order. A small mission MA
 ### Phase flow
 
 ```text
-specifying --[phase gate 1]--> building --[phase gate 2]--> polishing --[phase gate 3]--> evolving --[phase gate 4]--> close
+specifying --[phase gate 1]--> building --[phase gate 2]--> polishing --[phase gate 3]--> evolving --[phase gate 4]--> complete
 ```
 
 ### Phase-gate principles

@@ -382,16 +382,16 @@ For protocol details on hook failure handling, conformance checking, and metrics
 
 | Path | Used by |
 |---|---|
-| `.geas/state/run.json` | session-init, restore-context, checkpoint-pre-write, checkpoint-post-write, packet-stale-check |
+| `.geas/state/run.json` | session-init, restore-context, protect-geas-state, checkpoint-pre-write, checkpoint-post-write, packet-stale-check |
 | `.geas/state/_checkpoint_pending` | checkpoint-pre-write (creates), checkpoint-post-write (removes) |
 | `.geas/memory/agents/*.md` | session-init (count check), inject-context, restore-context |
 | `.geas/state/locks.json` | integration-lane-check |
 | `.geas/rules.md` | session-init (creates), inject-context (reads), restore-context (reads) |
-| `.geas/memory/agents/<name>.md` | inject-context |
-| `.geas/missions/<mid>/tasks/<tid>/contract.json` | protect-geas-state |
+| `.geas/missions/<mid>/tasks/<tid>/contract.json` | protect-geas-state (scope check), restore-context (goal + criteria) |
+| `.geas/missions/<mid>/tasks/<tid>/packets/*.md` | packet-stale-check (staleness check) |
+| `.geas/missions/<mid>/tasks/<tid>/record.json` | restore-context (reads closure.open_risks) |
 | `.geas/missions/<mid>/spec.json` | protect-geas-state (freeze guard) |
 | `.geas/state/policy-overrides.json` | inject-context |
 | `.geas/state/session-latest.md` | restore-context |
 | `.geas/ledger/token-summary.json` | calculate-cost (writes) |
-| `.geas/missions/<mid>/tasks/<tid>/record.json` | restore-context (reads closure.open_risks) |
 | `.geas/state/events.jsonl` | (event logging via CLI) |
