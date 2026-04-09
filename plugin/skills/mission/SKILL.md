@@ -35,7 +35,7 @@ When `.geas/` already exists (resume or fresh run), read orchestrator memory:
 Invoke `/geas:intake` → update run state with mission_id and mission → Read `references/specifying.md` and follow.
 
 ### Session Handoff (Specifying → Building)
-After specifying completes, if the mission has 3+ tasks or context is getting heavy, suggest the user start a new session for building:
+After specifying completes, if the mission has 5+ tasks, suggest the user start a new session for building:
 
 ```
 Specifying complete. Session state saved — the next session will auto-resume
