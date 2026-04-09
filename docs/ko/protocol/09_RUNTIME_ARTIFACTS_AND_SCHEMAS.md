@@ -148,8 +148,10 @@ canonical `.geas/` 런타임 디렉터리 레이아웃:
     design-brief.json                 # design brief
     decisions/                        # vote round 결과
     phase-reviews/                    # phase 전이 review
+    polishing/                        # polishing phase evidence
+      evidence/{agent}.json
     evolution/                        # gap-assessment, debt-register, rules-update
-    evidence/{agent}.json             # phase 레벨 evidence (polishing, evolving)
+      evidence/{agent}.json           # evolving phase evidence
     tasks/{tid}/
       contract.json                   # task contract (정의)
       packets/{agent}.md              # context packet (에이전트 브리핑)

@@ -99,7 +99,7 @@ Agent(agent: "product-authority", prompt: "Final product review. Read the curren
 ```bash
 Bash("geas state checkpoint clear")
 ```
-Verify `.geas/missions/{mission_id}/evidence/product-authority-final.json` exists.
+Verify `.geas/missions/{mission_id}/evolution/evidence/product-authority-final.json` exists.
 Verify `.geas/missions/{mission_id}/mission-summary.md` exists.
 
 ### Mission Briefing [MANDATORY — orchestrator writes directly]

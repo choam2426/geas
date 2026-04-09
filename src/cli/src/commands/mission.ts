@@ -33,8 +33,8 @@ function generateMissionId(): string {
 /** Subdirectories that must exist inside a mission directory. */
 const MISSION_SUBDIRS = [
   'tasks',
-  'evidence',
   'decisions/pending',
+  'polishing',
   'evolution',
   'phase-reviews',
 ];

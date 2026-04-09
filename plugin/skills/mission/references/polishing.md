@@ -6,10 +6,10 @@ Update checkpoint: `Bash("geas state checkpoint set --step security_review --age
 ```
 Agent(agent: "{resolved-risk-specialist}", prompt: "Full risk review of the project. Check for security vulnerabilities, auth flows, input validation, secrets exposure, dependency vulnerabilities. Write findings with severity (CRITICAL/HIGH/MEDIUM/LOW) as evidence. Run: geas evidence add --phase polishing --agent {resolved-risk-specialist} --role reviewer --set summary='<security review summary>' --set verdict='<approved or changes_requested>' --set concerns='[\"finding1\",\"finding2\"]'")
 ```
-Verify `.geas/missions/{mission_id}/evidence/{resolved-risk-specialist}.json` exists.
+Verify `.geas/missions/{mission_id}/polishing/evidence/{resolved-risk-specialist}.json` exists.
 
 ### Triage Findings
-Read `.geas/missions/{mission_id}/evidence/{resolved-risk-specialist}.json`. Classify each finding by severity:
+Read `.geas/missions/{mission_id}/polishing/evidence/{resolved-risk-specialist}.json`. Classify each finding by severity:
 - **CRITICAL / HIGH** -> create a fix task (mini-pipeline, see Fix Critical Security Issues)
 - **MEDIUM / LOW** -> add to the debt register via CLI:
      ```bash
@@ -37,7 +37,7 @@ Update checkpoint: `Bash("geas state checkpoint set --step documentation --agent
 ```
 Agent(agent: "{resolved-communication-specialist}", prompt: "Read the current mission spec at .geas/missions/{mission_id}/spec.json (get mission_id from .geas/state/run.json), the design-brief at .geas/missions/{mission_id}/design-brief.json, and all task evidence. Write README, API docs, and user-facing documentation. Write your documentation evidence. Run: geas evidence add --phase polishing --agent {resolved-communication-specialist} --role implementer --set summary='<documentation summary>' --set files_changed='[\"README.md\"]'")
 ```
-Verify `.geas/missions/{mission_id}/evidence/{resolved-communication-specialist}.json` exists.
+Verify `.geas/missions/{mission_id}/polishing/evidence/{resolved-communication-specialist}.json` exists.
 
 ### Entropy Scan
 Update checkpoint: `Bash("geas state checkpoint set --step entropy_scan --agent {resolved-design-authority}")`

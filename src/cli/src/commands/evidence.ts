@@ -118,8 +118,9 @@ export function registerEvidenceCommands(program: Command): void {
         let evidenceDir: string;
 
         if (opts.phase) {
-          // Phase-level evidence: missions/{mid}/evidence/
-          evidenceDir = path.resolve(missionDir, 'evidence');
+          // Phase-level evidence: polishing → polishing/evidence/, evolving → evolution/evidence/
+          const phaseDir = opts.phase === 'evolving' ? 'evolution' : opts.phase;
+          evidenceDir = path.resolve(missionDir, phaseDir, 'evidence');
         } else {
           // Task-level evidence: missions/{mid}/tasks/{tid}/evidence/
           evidenceDir = path.resolve(missionDir, 'tasks', opts.task!, 'evidence');

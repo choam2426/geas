@@ -11963,8 +11963,8 @@ function generateMissionId() {
 }
 var MISSION_SUBDIRS = [
   "tasks",
-  "evidence",
   "decisions/pending",
+  "polishing",
   "evolution",
   "phase-reviews"
 ];
@@ -12828,7 +12828,8 @@ function registerEvidenceCommands(program2) {
       const missionDir = path8.resolve(geasDir2, "missions", missionId);
       let evidenceDir;
       if (opts.phase) {
-        evidenceDir = path8.resolve(missionDir, "evidence");
+        const phaseDir = opts.phase === "evolving" ? "evolution" : opts.phase;
+        evidenceDir = path8.resolve(missionDir, phaseDir, "evidence");
       } else {
         evidenceDir = path8.resolve(missionDir, "tasks", opts.task, "evidence");
         const contractPath = path8.resolve(missionDir, "tasks", opts.task, "contract.json");

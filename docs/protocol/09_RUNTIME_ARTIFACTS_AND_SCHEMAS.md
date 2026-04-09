@@ -148,8 +148,10 @@ The canonical `.geas/` runtime directory layout:
     design-brief.json                 # design brief
     decisions/                        # vote round results
     phase-reviews/                    # phase transition reviews
+    polishing/                        # polishing phase evidence
+      evidence/{agent}.json
     evolution/                        # gap-assessment, debt-register, rules-update
-    evidence/{agent}.json             # phase-level evidence (polishing, evolving)
+      evidence/{agent}.json           # evolving phase evidence
     tasks/{tid}/
       contract.json                   # task contract (definition)
       packets/{agent}.md              # context packets (agent briefings)
