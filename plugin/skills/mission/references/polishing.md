@@ -1,7 +1,7 @@
 # Polishing Phase [MANDATORY — do not skip]
 
 ### Security Review (risk_specialist)
-Resolve the risk_specialist slot via profiles.json.
+Select the best agent for the risk_specialist role, using profiles.json as default preference when domain_profile is set.
 Update checkpoint: `Bash("geas state checkpoint set --step security_review --agent {resolved-risk-specialist}")`
 ```
 Agent(agent: "{resolved-risk-specialist}", prompt: "Full risk review of the project. Check for security vulnerabilities, auth flows, input validation, secrets exposure, dependency vulnerabilities. Write findings with severity (CRITICAL/HIGH/MEDIUM/LOW) as evidence. Run: geas evidence add --task polishing --agent {resolved-risk-specialist} --role reviewer --set summary='<security review summary>' --set verdict='<approved or changes_requested>' --set concerns='[\"finding1\",\"finding2\"]'")
@@ -20,7 +20,7 @@ If no CRITICAL/HIGH findings: skip Fix Critical Security Issues and proceed to D
 
 ### Fix Critical Security Issues
 For each CRITICAL/HIGH finding, run a reduced pipeline:
-1. Generate ContextPacket for the appropriate implementer (resolved via profiles.json) with risk_specialist's finding as primary context
+1. Generate ContextPacket for the appropriate implementer (select the best agent for the role, using profiles.json as default preference when domain_profile is set) with risk_specialist's finding as primary context
 2. Update checkpoint: `Bash("geas state checkpoint set --step security_fix --agent {worker}")`
 3. Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule"). Spawn worker with worktree isolation:
    ```
@@ -32,7 +32,7 @@ For each CRITICAL/HIGH finding, run a reduced pipeline:
 7. If fix fails: retry once (`retry_budget: 2`). If still fails: register as HIGH debt and proceed — do not block Polishing phase indefinitely
 
 ### Documentation (communication_specialist)
-Resolve the communication_specialist slot via profiles.json.
+Select the best agent for the communication_specialist role, using profiles.json as default preference when domain_profile is set.
 Update checkpoint: `Bash("geas state checkpoint set --step documentation --agent {resolved-communication-specialist}")`
 ```
 Agent(agent: "{resolved-communication-specialist}", prompt: "Read the current mission spec at .geas/missions/{mission_id}/spec.json (get mission_id from .geas/state/run.json), the design-brief at .geas/missions/{mission_id}/design-brief.json, and all task evidence. Write README, API docs, and user-facing documentation. Write your documentation evidence. Run: geas evidence add --task polishing --agent {resolved-communication-specialist} --role implementer --set summary='<documentation summary>' --set files_changed='[\"README.md\"]'")

@@ -118,7 +118,7 @@ The CLI auto-generates timestamps and writes to `.geas/state/session-latest.md`.
 
 ### Design (implementer — design-capable) [DEFAULT — skip-if: no user-facing interface]
 **Must run if the task has any user-facing interface (pages, forms, dashboards).**
-Resolve the implementer slot via profiles.json. If the profile provides a design-capable implementer, spawn it. Otherwise, the primary implementer handles design.
+Select the appropriate agent for this role. Use profiles.json defaults if the mission has a domain_profile, but choose the best-fit agent based on the task's needs. If the selected implementer is design-capable, spawn it. Otherwise, the primary implementer handles design.
 Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-implementer} --content '...'")`. Then:
 Update checkpoint: `Bash("geas state checkpoint set --step design --agent {resolved-implementer}")`
 ```
@@ -139,7 +139,7 @@ Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-implement
 - Cross-module dependencies
 - New data model or schema changes
 
-Resolve the design-authority slot via profiles.json. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-design-authority} --content '...'")`. Then:
+Select the appropriate agent for this role. Use profiles.json defaults if the mission has a domain_profile, but choose the best-fit agent based on the task's needs. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-design-authority} --content '...'")`. Then:
 Update checkpoint: `Bash("geas state checkpoint set --step design_guide --agent {resolved-design-authority}")`
 ```
 Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-design-authority}.md. Write your design guide as evidence. Run: geas evidence add --task {task-id} --agent {resolved-design-authority} --role reviewer --set summary='<guide summary>' --set verdict='approved' --set concerns='[]'")
@@ -177,7 +177,7 @@ Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are runn
 Verify record.json has `self_check` section: `Bash("geas task record get --task {task-id} --section self_check")`. Do NOT proceed to Specialist Review without this section.
 
 ### Specialist Review (design-authority) [MANDATORY]
-Resolve the design-authority slot via profiles.json. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-design-authority}-review --content '...'")`. Then:
+Select the appropriate agent for this role. Use profiles.json defaults if the mission has a domain_profile, but choose the best-fit agent based on the task's needs. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-design-authority}-review --content '...'")`. Then:
 Update checkpoint: `Bash("geas state checkpoint set --step specialist_review --agent {resolved-design-authority}")`
 ```
 Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-design-authority}-review.md. Review implementation. Write your review as evidence. Run: geas evidence add --task {task-id} --agent {resolved-design-authority}-review --role reviewer --set summary='<review summary>' --set verdict='approved' --set concerns='[]'")
@@ -186,7 +186,7 @@ Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-design-au
 Update checkpoint: `Bash("geas state checkpoint set --step specialist_review --agent null")`
 
 ### Testing (quality-specialist) [MANDATORY]
-Resolve the quality-specialist slot via profiles.json. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-quality-specialist} --content '...'")`. Then:
+Select the appropriate agent for this role. Use profiles.json defaults if the mission has a domain_profile, but choose the best-fit agent based on the task's needs. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-quality-specialist} --content '...'")`. Then:
 Update checkpoint: `Bash("geas state checkpoint set --step testing --agent {resolved-quality-specialist}")`
 ```
 Agent(agent: "{resolved-quality-specialist}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-quality-specialist}.md. Test the implementation. Write your test results as evidence. Run: geas evidence add --task {task-id} --agent {resolved-quality-specialist} --role tester --set summary='<test summary>' --set verdict='pass' --set criteria_results='[{\"criterion\":\"...\",\"passed\":true}]'")

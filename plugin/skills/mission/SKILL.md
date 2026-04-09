@@ -3,7 +3,7 @@ name: mission
 description: >
   Geas orchestrator — coordinates the multi-agent team through domain-agnostic slot resolution.
   Manages setup, intake, routing, and executes the unified 4-phase execution flow.
-  Resolves agent slots to concrete types via domain profiles before spawning.
+  Resolves agent slots to concrete types using all available agents, with domain profiles as hints.
   Do NOT spawn this as an agent. This is a skill that runs in the main session.
 ---
 
@@ -60,17 +60,18 @@ Agent(agent: "{worker}", isolation: "worktree", prompt: "Read /home/user/my-proj
 
 Non-worktree agents (spawned without `isolation: "worktree"`) run in the main session directory where `.geas/` is directly accessible. Their prompts may continue to use relative `.geas/` paths.
 
-### Slot resolution
+### Agent selection
 
-Before spawning any specialist agent, resolve the slot to a concrete agent type:
+The orchestrator selects the best agent for each task based on the task's `task_kind`, `scope.surfaces`, and required expertise. All agents from `agents/` are available regardless of domain.
 
-1. Read the mission's `domain_profile` from `.geas/state/run.json`
-2. Load `references/profiles.json` to get the slot mapping for that profile
-3. Resolve: slot name → concrete agent type(s) from the mapping
-4. If a slot maps to multiple types (e.g., research implementer: literature_analyst, research_analyst), select based on `task_kind` and `scope.surfaces`
+Selection process:
+1. Identify the slot needed (implementer, quality-specialist, risk-specialist, etc.)
+2. If the mission has a `domain_profile`, use `references/profiles.json` as a **default preference** — not a restriction
+3. Override the default when a task clearly needs a different agent (e.g., a research task within a software mission → use research-analyst instead of software-engineer)
+4. When mixing domains, choose the agent whose expertise best matches the specific task
 5. Spawn: `Agent(agent: "{concrete-type-kebab-case}", prompt: "...")`
 
-Example: mission has `domain_profile: "software"`, pipeline says "spawn quality-specialist" → profiles.json maps quality-specialist to qa-engineer → `Agent(agent: "qa-engineer", prompt: "...")`.
+Example: software mission has a literature review task → spawn `research-analyst` for that task, `software-engineer` for implementation tasks. The `domain_profile: "software"` guides defaults but does not prevent using research agents.
 
 ### Evidence verification
 - After every Agent() return, **Read the expected evidence file** to verify it exists.

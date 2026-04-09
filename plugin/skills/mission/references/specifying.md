@@ -39,7 +39,7 @@ Bash("geas mission create --id {mission_id}")
 
 #### 3b. Design Review (always)
 
-Resolve the design-authority slot via profiles.json. Spawn the resolved agent to review and enrich the design-brief:
+Select the best agent for the design-authority role, using profiles.json as default preference when domain_profile is set. Spawn the selected agent to review and enrich the design-brief:
 
 ```
 Agent(agent: "{resolved-design-authority}", prompt: "Read the design-brief at .geas/missions/{mission_id}/design-brief.json and the mission spec at .geas/missions/{mission_id}/spec.json. Review the design brief: verify the chosen approach is sound, check for missing risks or concerns, and add any necessary architecture decisions. If the project requires stack-specific rules, add them to .geas/rules.md under a '## Stack Rules' section. Update the design-brief: populate the design_review field with your review summary and any additions you made. Write the updated design-brief via CLI. Run: geas mission write-brief --id {mission_id} --data '<updated_design_brief_json>' with status: 'reviewing'.")
@@ -56,7 +56,7 @@ Log: `{"event": "step_complete", "step": "design_brief_design_review", "agent": 
 Invoke `/geas:vote-round` as a `proposal_round`:
 - Proposal: `.geas/missions/{mission_id}/design-brief.json`
 - Voters: orchestrator selects based on design-brief content. Minimum quorum: design-authority + 1 specialist (per doc 05 proposal_round rules).
-  - Implementation work → include relevant implementer (resolved via profiles.json)
+  - Implementation work → include the best-fit implementer, using profiles.json as default preference when domain_profile is set
   - High risk → include `challenger`
 - Output: vote-round artifact in `.geas/missions/{mission_id}/decisions/`
 - Record `vote_round_ref` in the design-brief.

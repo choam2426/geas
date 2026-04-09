@@ -1,7 +1,7 @@
 {
   "software": {
-    "description": "Software development",
-    "slot_mapping": {
+    "description": "Software development — default agent preferences for implementation-heavy missions",
+    "defaults": {
       "implementer": ["software-engineer"],
       "quality_specialist": ["qa-engineer"],
       "risk_specialist": ["security-engineer"],
@@ -10,8 +10,8 @@
     }
   },
   "research": {
-    "description": "Research",
-    "slot_mapping": {
+    "description": "Research — default agent preferences for analysis and synthesis missions",
+    "defaults": {
       "implementer": ["literature-analyst", "research-analyst"],
       "quality_specialist": ["methodology-reviewer"],
       "risk_specialist": ["research-integrity-reviewer"],

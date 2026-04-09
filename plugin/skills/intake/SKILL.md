@@ -40,7 +40,7 @@ Rules:
 - Stop when all checklist items are satisfied — no fixed question limit
 
 Question categories:
-1. **Domain profile**: "What type of work is this?" (software development / research / other)
+1. **Domain profile** (optional hint): "What type of work is this?" (software development / research / mixed / other). Sets default agent preferences but does not restrict agent selection — the orchestrator picks the best agent per task regardless of profile.
 2. **Mission mode** (MANDATORY — must always be asked): Present the three mode options with a recommendation based on scope assessment:
    - **lightweight**: Clear scope, existing patterns apply, low ambiguity. Fastest execution.
    - **standard**: Moderate scope, some architectural decisions, normal risk. Balanced depth.
@@ -87,7 +87,7 @@ As each section is approved, mark it in the completeness checklist.
 
 Check the completeness checklist — all items must be true:
 - `mission`: approved
-- `domain_profile`: selected
+- `domain_profile`: selected or omitted (optional — sets default agent preferences)
 - `mode`: selected (lightweight / standard / full_depth)
 - `done_when`: approved (one-sentence success definition)
 - `acceptance_criteria`: approved (>= 3 items)
