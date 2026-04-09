@@ -10,7 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Command } from 'commander';
 import { success, validationError, fileError } from '../lib/output';
-import { resolveGeasDir, normalizePath } from '../lib/paths';
+import { resolveGeasDir, normalizePath, validateIdentifier } from '../lib/paths';
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
 import { getCwd } from '../lib/cwd';
@@ -30,6 +30,9 @@ function resolveMissionId(geasDir: string, missionOpt?: string): string {
   (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
   throw err;
 }
+
+/** Reject invalid agent names instead of sanitizing (S3) */
+const SAFE_AGENT_RE = /^[a-zA-Z0-9_-]+$/;
 
 export function registerEvidenceCommands(program: Command): void {
   const cmd = program
@@ -60,13 +63,15 @@ export function registerEvidenceCommands(program: Command): void {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
         const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(opts.task, 'task ID');
 
-        // Sanitize agent name
-        const agentName = opts.agent.replace(/[^a-zA-Z0-9_-]/g, '');
-        if (!agentName) {
-          fileError(opts.agent, 'validate', 'Agent name is empty after sanitization');
+        // Reject invalid agent names instead of sanitizing (S3)
+        if (!SAFE_AGENT_RE.test(opts.agent)) {
+          fileError(opts.agent, 'validate', `Invalid agent name: "${opts.agent}". Only alphanumeric, underscore, and hyphen are allowed.`);
           return;
         }
+        const agentName = opts.agent;
 
         // Build evidence data
         let evidenceData: Record<string, unknown>;
@@ -84,11 +89,11 @@ export function registerEvidenceCommands(program: Command): void {
           return;
         }
 
-        // Auto-inject common fields from flags
-        evidenceData.version = evidenceData.version || '1.0';
-        evidenceData.agent = evidenceData.agent || agentName;
-        evidenceData.task_id = evidenceData.task_id || opts.task;
-        evidenceData.role = evidenceData.role || opts.role;
+        // Force-overwrite metadata from CLI flags (I1: prevent spoofing)
+        evidenceData.version = '1.0';
+        evidenceData.agent = agentName;
+        evidenceData.task_id = opts.task;
+        evidenceData.role = opts.role;
 
         // Validate against evidence schema (includes role-based allOf checks)
         const result = validate('evidence', evidenceData);
@@ -100,6 +105,14 @@ export function registerEvidenceCommands(program: Command): void {
         // v4: evidence lives inside tasks/{tid}/evidence/
         const missionDir = path.resolve(geasDir, 'missions', missionId);
         const evidenceDir = path.resolve(missionDir, 'tasks', opts.task, 'evidence');
+
+        // Verify task exists (I1: prevent orphan evidence)
+        const contractPath = path.resolve(missionDir, 'tasks', opts.task, 'contract.json');
+        if (!fs.existsSync(contractPath)) {
+          fileError(`tasks/${opts.task}/contract.json`, 'validate', 'Task does not exist. Cannot create evidence for non-existent task.');
+          return;
+        }
+
         ensureDir(evidenceDir);
 
         const filePath = path.resolve(evidenceDir, `${agentName}.json`);
@@ -140,11 +153,11 @@ export function registerEvidenceCommands(program: Command): void {
         const evidenceDir = path.resolve(missionDir, 'tasks', opts.task, 'evidence');
 
         if (opts.agent) {
-          const agentName = opts.agent.replace(/[^a-zA-Z0-9_-]/g, '');
-          if (!agentName) {
-            fileError(opts.agent, 'validate', 'Agent name is empty after sanitization');
+          if (!SAFE_AGENT_RE.test(opts.agent)) {
+            fileError(opts.agent, 'validate', `Invalid agent name: "${opts.agent}". Only alphanumeric, underscore, and hyphen are allowed.`);
             return;
           }
+          const agentName = opts.agent;
 
           const filePath = path.resolve(evidenceDir, `${agentName}.json`);
           const data = readJsonFile(filePath);

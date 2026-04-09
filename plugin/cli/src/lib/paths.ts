@@ -63,3 +63,35 @@ export function resolveMissionDir(
 export function relPath(filePath: string, cwd: string): string {
   return path.relative(cwd, filePath).replace(/\\/g, '/');
 }
+
+/**
+ * Validate that an identifier (missionId, taskId) contains only safe characters.
+ * Rejects path traversal attempts like "../" or special characters.
+ */
+const SAFE_ID_RE = /^[A-Za-z0-9_-]+$/;
+
+export function validateIdentifier(id: string, label: string): void {
+  if (!SAFE_ID_RE.test(id)) {
+    const err = new Error(
+      `Invalid ${label}: "${id}". Only alphanumeric, underscore, and hyphen are allowed.`,
+    );
+    (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
+    throw err;
+  }
+}
+
+/**
+ * Verify that a resolved path is contained within the expected base directory.
+ * Prevents path traversal attacks.
+ */
+export function assertContainedIn(resolvedPath: string, baseDir: string): void {
+  const normalizedBase = path.resolve(baseDir) + path.sep;
+  const normalizedPath = path.resolve(resolvedPath);
+  if (!normalizedPath.startsWith(normalizedBase) && normalizedPath !== path.resolve(baseDir)) {
+    const err = new Error(
+      `Path "${resolvedPath}" escapes base directory "${baseDir}"`,
+    );
+    (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
+    throw err;
+  }
+}
