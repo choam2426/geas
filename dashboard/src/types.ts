@@ -48,6 +48,7 @@ export interface TaskInfo {
   worker_type: string | null;
   acceptance_criteria: string[];
   scope_surfaces: string[];
+  dependencies: string[];
 }
 
 export interface DebtItem {
@@ -60,6 +61,7 @@ export interface DebtItem {
   introduced_by_task_id: string | null;
   owner_type: string | null;
   target_phase: string | null;
+  updated_at?: string;
 }
 
 export interface DebtInfo {
@@ -96,6 +98,7 @@ export interface MissionSpecDetail {
   ambiguities: string[];
   affected_surfaces: string[];
   created_at: string | null;
+  updated_at?: string;
 }
 
 export interface EventEntry {
@@ -133,6 +136,7 @@ export interface HealthCheck {
   any_triggered: boolean;
   trigger_context: string | null;
   created_at: string | null;
+  updated_at?: string;
 }
 
 export interface ImplContract {
@@ -226,6 +230,7 @@ export interface Evidence {
   role: string | null;
   summary: string | null;
   created_at: string | null;
+  updated_at?: string;
   files_changed: string[];
   commit: string | null;
   verdict: string | null;
@@ -285,6 +290,7 @@ export interface DesignBrief {
   vote_round_ref: string | null;
   rejection_history: RejectionHistoryEntry[];
   created_at: string | null;
+  updated_at?: string;
   approved_at: string | null;
 }
 
@@ -305,6 +311,7 @@ export interface VoteRound {
   quorum_failure_count: number | null;
   proposal_summary: string | null;
   created_at: string | null;
+  updated_at?: string;
 }
 
 export interface PhaseReview {
@@ -316,6 +323,7 @@ export interface PhaseReview {
   risk_notes: string[];
   next_phase: string | null;
   created_at: string | null;
+  updated_at?: string;
 }
 
 export interface GapAssessment {
@@ -328,6 +336,7 @@ export interface GapAssessment {
   unexpected_additions: string[];
   recommended_followups: string[];
   created_at: string | null;
+  updated_at?: string;
 }
 
 export interface AgentMemory {
