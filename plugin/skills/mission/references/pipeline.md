@@ -9,7 +9,7 @@ EVERY task, regardless of dependencies or position in the batch, MUST execute AL
 ## remaining_steps
 
 ```json
-"remaining_steps": ["design", "design_guide", "implementation_contract", "implementation", "self_check", "specialist_review", "testing", "evidence_gate", "closure_packet", "challenger", "final_verdict", "resolve", "retrospective", "memory_extraction"]
+"remaining_steps": ["design", "design_guide", "implementation_contract", "implementation", "self_check", "specialist_review", "testing", "evidence_gate", "closure_packet", "challenger", "final_verdict", "retrospective", "memory_extraction", "resolve"]
 ```
 
 Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
@@ -37,7 +37,8 @@ The TaskContract MUST be written to `.geas/missions/{mission_id}/tasks/{task-id}
   - `task_kind` missing → assign `"implementation"`
   - `gate_profile` missing → assign `"implementation_change"`
   - Log: `{"event": "classification_defaulted", "task_id": "...", "fields_defaulted": [...], "timestamp": "<actual>"}`
-- Update status to `"implementing"`. Log `task_started` event.
+- Log `task_started` event: `Bash("geas event log --type task_started --task {task-id}")`
+- Do NOT transition to `"implementing"` yet — that happens after the Implementation Contract is approved (the guard requires it).
 - **Rubric check**: If the TaskContract is missing `rubric`, insert the default before proceeding:
   ```json
   "rubric": {
@@ -331,32 +332,9 @@ Note: "iterate" is only valid as a Final Verdict outcome. Gate verdicts (evidenc
 
 **If ANY is missing: go back and execute the missing step. Do NOT proceed.** The CLI will reject the transition with an error listing the missing sections.
 
-### Resolve
+### Retrospective [MANDATORY — before Resolve]
 
-#### Lock Release
-
-On task completion (Ship, Cut, or Escalate):
-```bash
-Bash("geas lock release --task {task-id}")
-Bash("geas event log --type locks_released --task {task-id}")
-```
-The CLI removes ALL lock entries where `task_id` matches this task and promotes any waiting locks.
-
-- **Ship**: Transition task to passed and commit:
-  ```bash
-  Bash("geas task transition --id {task-id} --to passed")
-  Bash("geas state checkpoint set --step resolve --agent orchestrator")
-  ```
-  ```bash
-  git add -A && git commit -m "{conventional commit message for task-id}"
-  ```
-  Log: `Bash("geas event log --type task_resolved --task {task-id} --data '{\"commit\":\"{hash}\"}'")` 
-- **Iterate** (Final Verdict only): does NOT deduct retry_budget (iterate is a product judgment, not a gate failure). Track iterate_count — after 3 cumulative iterates, escalate to orchestration_authority. Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include product_authority's feedback in all subsequent ContextPackets. Resume from the rewind_target specified in the final verdict.
-- **Cut**: status -> `"cancelled"`. Write DecisionRecord.
-
-### Retrospective [MANDATORY — Ship only, after Resolve]
-
-**Skip condition:** If the Final Verdict was Cut or Escalate, skip retrospective. Only run when the task has been resolved as Ship (status = `"passed"`).
+**Skip condition:** If the Final Verdict was Cut or Escalate, skip retrospective. Only run when the verdict is `pass`.
 
 Update checkpoint: `Bash("geas state checkpoint set --step retrospective --agent orchestrator")`
 
@@ -416,3 +394,26 @@ Invoke `/geas:memorizing` with the task ID for per-task memory extraction:
 5. Log: `Bash("geas event log --type memory_extraction --task {task-id} --data '{\"candidates\": N}'")`
 
 Update checkpoint: `Bash("geas state checkpoint set --step memory_extraction --agent orchestrator")`
+
+### Resolve [MANDATORY — after Retrospective + Memory Extraction]
+
+#### Lock Release
+
+On task completion (Ship, Cut, or Escalate):
+```bash
+Bash("geas lock release --task {task-id}")
+Bash("geas event log --type locks_released --task {task-id}")
+```
+The CLI removes ALL lock entries where `task_id` matches this task and promotes any waiting locks.
+
+- **Ship**: Transition task to passed and commit (the guard now passes because retrospective exists):
+  ```bash
+  Bash("geas task transition --id {task-id} --to passed")
+  Bash("geas state checkpoint set --step resolve --agent orchestrator")
+  ```
+  ```bash
+  git add -A && git commit -m "{conventional commit message for task-id}"
+  ```
+  Log: `Bash("geas event log --type task_resolved --task {task-id} --data '{\"commit\":\"{hash}\"}'")` 
+- **Iterate** (Final Verdict only): does NOT deduct retry_budget (iterate is a product judgment, not a gate failure). Track iterate_count — after 3 cumulative iterates, escalate to orchestration_authority. Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include product_authority's feedback in all subsequent ContextPackets. Resume from the rewind_target specified in the final verdict.
+- **Cut**: status -> `"cancelled"`. Write DecisionRecord.
