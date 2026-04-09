@@ -200,18 +200,11 @@ An approved contract MUST be amended and re-approved when any of the following o
 
 A scope change is material when any of the following are true:
 
-- surfaces outside the approved `affected_surfaces` are changed
-- new acceptance criteria are added or existing ones are modified
+- paths outside the task's `scope.paths` are changed
+- acceptance criteria are added or modified
 - risk_level increases
 - a new external dependency is introduced
-- an item explicitly listed in `non_goals` enters scope
-
-- touched paths expand materially
-- acceptance criteria change materially
-- structural or user-flow assumptions change
-- an important non-goal becomes in-scope
-- the selected validation plan is no longer adequate
-- risk level changes
+- an item in `non_goals` enters scope
 
 Unrecorded contract drift is non-conformant.
 

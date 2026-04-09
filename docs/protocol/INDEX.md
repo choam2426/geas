@@ -65,7 +65,7 @@ The v3 protocol optimization simplifies by:
 - consolidating per-task artifacts into `record.json` (single file, sections accumulated)
 - introducing role-based evidence (`evidence/{agent}.json`)
 - simplifying memory from 9-state to 2-state (draft/active)
-- merging memory docs 08+09 into doc 07
+- merged former memory docs 08+09 into doc 07 (08 is now Session Recovery, 09 is now Runtime Artifacts)
 - adding mechanical transition guards (6 per-task + 3 phase)
 - unifying conventions and rules into `rules.md`
 - consolidating event logs into `state/events.jsonl`

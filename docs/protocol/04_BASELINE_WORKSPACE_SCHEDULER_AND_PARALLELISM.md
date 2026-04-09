@@ -177,7 +177,7 @@ A project SHOULD define a concurrency budget per risk level:
 
 To consider critical tasks "proven independent," all of the following must hold:
 
-- their `affected_surfaces` do not overlap
+- their `scope.paths` do not overlap
 - no lock conflict exists between them
 - neither task's output is an input to the other
 - Design Authority has confirmed their independence
