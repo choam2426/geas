@@ -33,13 +33,19 @@ Rules:
 
 Question categories:
 1. **Domain profile**: "What type of work is this?" (software development / research / other)
-2. **Scope boundary**: "You mentioned X — does that include Y?" (with options)
-3. **User definition**: "Who primarily uses this?" (with persona options)
-4. **Constraint surfacing**: "Any tech stack or platform preferences?" (with common options)
-5. **Success criteria**: "How will you know this is done? What must work on day one?"
-6. **Anti-scope**: "What should this explicitly NOT do?" (with related-but-excluded options)
-7. **Risk surfacing**: "What could go wrong? Any areas of uncertainty?"
-8. **Affected surfaces**: "What existing areas/files/systems will this touch?"
+2. **Mission mode** (MANDATORY — must always be asked): Present the three mode options with a recommendation based on scope assessment:
+   - **lightweight**: Clear scope, existing patterns apply, low ambiguity. Fastest execution.
+   - **standard**: Moderate scope, some architectural decisions, normal risk. Balanced depth.
+   - **full_depth**: Multiple valid approaches, cross-module impact, or significant risk. Maximum rigor, includes vote round.
+   Recommend one based on what you know so far. Example: "Based on the scope, I recommend **standard** mode. Which mode would you like?"
+   This question must not be skipped or inferred — always ask explicitly.
+3. **Scope boundary**: "You mentioned X — does that include Y?" (with options)
+4. **User definition**: "Who primarily uses this?" (with persona options)
+5. **Constraint surfacing**: "Any tech stack or platform preferences?" (with common options)
+6. **Success criteria**: "How will you know this is done? What must work on day one?"
+7. **Anti-scope**: "What should this explicitly NOT do?" (with related-but-excluded options)
+8. **Risk surfacing**: "What could go wrong? Any areas of uncertainty?"
+9. **Affected surfaces**: "What existing areas/files/systems will this touch?"
 
 If the user says "just build it" at any point — respect that, set `readiness_override: true`, fill best-effort values for unchecked items, and proceed.
 

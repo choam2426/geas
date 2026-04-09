@@ -29,15 +29,22 @@ Skip this step if both `node_modules/` and `dist/main.js` already exist.
 
 ### Phase A: Initialize `.geas/` Runtime Directory
 
-Before anything else, create the runtime directory structure in the project root. Use `mkdir -p` for the base directories that the CLI does not create (CLI commands create their own subdirectories on first write):
+Bootstrap the entire `.geas/` directory structure and initial `run.json` via CLI:
 
 ```bash
-mkdir -p .geas/state .geas/memory/agents .geas/recovery
+geas state init
 ```
 
-Write the initial health check via CLI:
+This single command creates:
+- `.geas/state/` directory with `run.json` (version 1.0, status initialized)
+- `.geas/memory/agents/` directory
+- `.geas/recovery/` directory
+
+If `run.json` already exists, the command is a safe no-op.
+
+Then generate the initial health check via CLI:
 ```bash
-Bash("geas health generate")
+geas health generate
 ```
 The CLI creates `.geas/state/health-check.json` with all 8 signals computed from current state.
 
@@ -45,25 +52,10 @@ Then ensure `.geas/` is gitignored. Check if `.gitignore` exists:
 - If yes: append `.geas/` if not already present
 - If no: create `.gitignore` with `.geas/` entry
 
-Write the initial run state file (use Write tool — BOOTSTRAP EXCEPTION: CLI state commands expect this file to already exist, so initial creation must be direct):
-```json
-{
-  "version": "1.0",
-  "status": "initialized",
-  "mission": null,
-  "phase": null,
-  "current_task_id": null,
-  "completed_tasks": [],
-  "decisions": [],
-  "created_at": "<ISO 8601 now>"
-}
-```
-Write to `.geas/state/run.json`.
-
-After initial creation, all subsequent updates use the CLI:
+After initialization, all state updates use the CLI:
 ```bash
-Bash("geas state update --field status --value in_progress")
-Bash("geas state update --field phase --value specifying")
+geas state update --field status --value in_progress
+geas state update --field phase --value specifying
 ```
 
 The CLI enforces schema validation on the RunState.
@@ -75,7 +67,7 @@ Phase A also includes codebase discovery — scan project structure, detect stac
 1. Scan project root for configuration files (package.json, go.mod, pyproject.toml, Cargo.toml, Makefile, etc.)
 2. Detect the project stack (language, framework, package manager, test runner)
 3. Read existing build/lint/test commands from configuration files
-4. Append detected conventions to `.geas/rules.md` under a `## Code` section (use Write tool — BOOTSTRAP EXCEPTION: rules.md is created during initial setup before any CLI-driven workflow begins):
+4. Pass detected conventions to the `geas memory init-rules --code-section` flag during Phase A-2, or if rules.md was already created, use `geas policy-managing` to update. Conventions to detect:
    - Build commands
    - Lint commands
    - Test commands
@@ -102,18 +94,18 @@ If `.geas/memory/agents/` does not exist or has no old-named files, skip this st
 
 ### Phase A-2: Generate `.geas/rules.md`
 
-Write `.geas/rules.md` (use Write tool — BOOTSTRAP EXCEPTION: rules.md is created during initial setup before any CLI-driven workflow begins) — the shared rules that ALL agents must follow:
+Create `.geas/rules.md` via CLI — the shared rules that ALL agents must follow:
 
-```markdown
-# Agent Rules
+```bash
+geas memory init-rules
+```
 
-## Evidence
-- Write evidence via CLI: `geas evidence add --task {tid} --agent {name} --role {role} --set key=value`
-- Evidence is stored at .geas/missions/{mission_id}/tasks/{task-id}/evidence/{agent}.json
-- created_at is auto-injected by the CLI. No manual timestamp needed.
+This creates `rules.md` with the standard agent rules (evidence CLI usage, scope enforcement). If `rules.md` already exists, the command is a safe no-op.
 
-## Code
-- Respect scope.surfaces from the TaskContract — only modify files within the declared scope
+If codebase discovery (Phase A-1.5) detected project conventions, append them to the Code section by passing the `--code-section` flag:
+
+```bash
+geas memory init-rules --code-section "- Build: npm run build\n- Test: npm test\n- Lint: npm run lint"
 ```
 
 ### Phase B: Report Results

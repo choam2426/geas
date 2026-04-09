@@ -15,7 +15,7 @@ After the evidence gate fails, this loop ensures bugs are actually fixed — not
 
 Read the gate failure details:
 1. **TaskContract** from `.geas/missions/{mission_id}/tasks/{task-id}/contract.json` — for retry_budget and escalation_policy
-2. **Failed EvidenceBundle** from `.geas/missions/{mission_id}/tasks/{task-id}/evidence/quality-specialist.json` — for specific failures
+2. **Failed EvidenceBundle** from `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{reviewer}.json` — for specific failures (e.g., `qa-engineer.json`, `design-authority-review.json`)
 3. **Gate verdict** — which tier failed (mechanical or semantic) and why
 
 ---

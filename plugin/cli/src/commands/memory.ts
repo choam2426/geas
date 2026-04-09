@@ -23,6 +23,52 @@ export function registerMemoryCommands(program: Command): void {
     .command('memory')
     .description('Memory system (rules.md + agent notes)');
 
+  // --- memory init-rules ---
+  cmd
+    .command('init-rules')
+    .description('Bootstrap .geas/rules.md with initial agent rules content')
+    .option('--code-section <text>', 'Additional Code section content to append')
+    .action((opts: { codeSection?: string }) => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const rulesPath = path.resolve(geasDir, 'rules.md');
+
+        // Do not overwrite if rules.md already exists
+        if (fs.existsSync(rulesPath)) {
+          const content = fs.readFileSync(rulesPath, 'utf-8');
+          success({ action: 'skipped', reason: 'rules.md already exists', path: normalizePath(rulesPath) });
+          return;
+        }
+
+        let content = `# Agent Rules
+
+## Evidence
+- Write evidence via CLI: \`geas evidence add --task {tid} --agent {name} --role {role} --set key=value\`
+- Evidence is stored at .geas/missions/{mission_id}/tasks/{task-id}/evidence/{agent}.json
+- created_at is auto-injected by the CLI. No manual timestamp needed.
+
+## Code
+- Respect scope.surfaces from the TaskContract — only modify files within the declared scope
+`;
+
+        if (opts.codeSection) {
+          content += opts.codeSection + '\n';
+        }
+
+        ensureDir(path.dirname(rulesPath));
+        fs.writeFileSync(rulesPath, content, 'utf-8');
+        success({ action: 'created', path: normalizePath(rulesPath) });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'init-rules', nodeErr.message);
+        } else {
+          throw err;
+        }
+      }
+    });
+
   // --- memory agent-note ---
   cmd
     .command('agent-note')

@@ -21,6 +21,54 @@ export function registerStateCommands(program: Command): void {
     .command('state')
     .description('Run state management (run.json, checkpoints)');
 
+  // --- state init ---
+  cmd
+    .command('init')
+    .description('Bootstrap .geas/ directory structure and initial run.json')
+    .action(() => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = path.join(cwd, '.geas');
+
+        // Create directory structure
+        const dirs = [
+          path.join(geasDir, 'state'),
+          path.join(geasDir, 'memory', 'agents'),
+          path.join(geasDir, 'recovery'),
+        ];
+        for (const d of dirs) {
+          ensureDir(d);
+        }
+
+        const filePath = runJsonPath(geasDir);
+
+        // Do not overwrite if run.json already exists
+        if (fs.existsSync(filePath)) {
+          const existing = readJsonFile(filePath);
+          success({ action: 'skipped', reason: 'run.json already exists', data: existing });
+          return;
+        }
+
+        const now = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+        const initialState = {
+          version: '1.0',
+          status: 'initialized',
+          mission: null,
+          phase: null,
+          current_task_id: null,
+          completed_tasks: [],
+          decisions: [],
+          created_at: now,
+        };
+
+        fs.writeFileSync(filePath, JSON.stringify(initialState, null, 2) + '\n', 'utf-8');
+        success({ action: 'created', path: filePath.replace(/\\/g, '/'), data: initialState });
+      } catch (err: unknown) {
+        const e = err as NodeJS.ErrnoException;
+        fileError('.geas/state/run.json', 'init', e.message);
+      }
+    });
+
   // --- state read ---
   cmd
     .command('read')

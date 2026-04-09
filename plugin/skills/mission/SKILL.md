@@ -305,10 +305,12 @@ Read `references/evolving.md` and follow the procedure.
 
 ---
 
-### Session End — Lock Cleanup
+### Session End — State Cleanup and Lock Cleanup
 
 Before session ends (invoked by the Stop hook or run-summary):
 ```bash
+Bash("geas state checkpoint clear")
+Bash("geas state update --field current_task_id --value null")
 Bash("geas lock cleanup --session {current_session_id}")
 ```
-The CLI removes all locks not belonging to the specified session.
+The checkpoint clear ensures no stale checkpoint remains for recovery. Setting `current_task_id` to null signals no task is in progress. The lock cleanup removes all locks not belonging to the specified session.

@@ -39,7 +39,7 @@
     },
     "source": {
       "type": "string",
-      "enum": ["full_intake", "quick_intake", "external"]
+      "enum": ["full_intake", "quick_intake", "external", "existing_project"]
     },
     "domain_profile": {
       "type": "string"
