@@ -10,9 +10,10 @@ use crate::config;
 use std::io::{BufRead, BufReader};
 
 use crate::models::{
-    DebtInfo, DebtItemInfo, DebtRegister, EventEntry, EventsPage, MemoryDetail, MemoryFile,
-    MemorySignalsInfo, MemorySummary, MissionSpec, MissionSpecDetail, MissionSummary,
-    ProjectEntry, ProjectSummary, RunState, SeverityRollup, TaskContract, TaskInfo,
+    AgentMemory, DebtInfo, DebtItemInfo, DebtRegister, DesignBrief, Evidence,
+    EventEntry, EventsPage, GapAssessment, HealthCheck, MissionSpec,
+    MissionSpecDetail, MissionSummary, PhaseReview, ProjectEntry, ProjectSummary,
+    Record, RunState, SeverityRollup, TaskContract, TaskInfo, VoteRound,
 };
 
 // ---------------------------------------------------------------------------
@@ -267,6 +268,7 @@ pub fn get_project_debt(path: String, mission_id: String) -> Result<DebtInfo, St
 
     let total = register.items.len() as u32;
     let by_severity = register.rollup_by_severity.unwrap_or_default();
+    let by_kind = register.rollup_by_kind.unwrap_or_default();
 
     let items: Vec<DebtItemInfo> = register
         .items
@@ -279,12 +281,15 @@ pub fn get_project_debt(path: String, mission_id: String) -> Result<DebtInfo, St
             status: item.status,
             description: item.description,
             introduced_by_task_id: item.introduced_by_task_id,
+            owner_type: item.owner_type,
+            target_phase: item.target_phase,
         })
         .collect();
 
     Ok(DebtInfo {
         total,
         by_severity,
+        by_kind,
         items,
     })
 }
@@ -406,42 +411,26 @@ pub fn get_mission_spec(path: String, mission_id: String) -> Result<MissionSpecD
 // ---------------------------------------------------------------------------
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn get_project_memories(path: String) -> Result<Vec<MemorySummary>, String> {
+pub fn get_project_memories(path: String) -> Result<Vec<AgentMemory>, String> {
     let geas = geas_dir(&path)?;
-    let memory_dir = geas.join("memory");
-
+    let agents_dir = geas.join("memory").join("agents");
+    if !agents_dir.is_dir() {
+        return Ok(vec![]);
+    }
+    let entries = fs::read_dir(&agents_dir)
+        .map_err(|e| format!("Failed to read agents dir: {e}"))?;
     let mut results = Vec::new();
-
-    for source_dir in &["entries", "candidates"] {
-        let dir = memory_dir.join(source_dir);
-        if !dir.is_dir() {
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("Error reading dir entry: {e}"))?;
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("md") {
             continue;
         }
-        collect_memory_summaries(&dir, source_dir, &mut results);
+        let agent_name = path.file_stem().and_then(|n| n.to_str()).unwrap_or("unknown").to_string();
+        let content = fs::read_to_string(&path).unwrap_or_default();
+        results.push(AgentMemory { agent_name, content });
     }
-
     Ok(results)
-}
-
-#[tauri::command(rename_all = "snake_case")]
-pub fn get_memory_detail(path: String, memory_id: String) -> Result<MemoryDetail, String> {
-    if memory_id.is_empty() {
-        return Err("memory_id is required".to_string());
-    }
-    let geas = geas_dir(&path)?;
-    let memory_dir = geas.join("memory");
-
-    for source_dir in &["entries", "candidates"] {
-        let dir = memory_dir.join(source_dir);
-        if !dir.is_dir() {
-            continue;
-        }
-        if let Some(detail) = find_memory_by_id(&dir, source_dir, &memory_id) {
-            return Ok(detail);
-        }
-    }
-
-    Err(format!("Memory not found: {memory_id}"))
 }
 
 // ---------------------------------------------------------------------------
@@ -624,6 +613,105 @@ pub fn get_mission_events(
 }
 
 // ---------------------------------------------------------------------------
+// Artifact reading commands
+// ---------------------------------------------------------------------------
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_task_detail(path: String, mission_id: String, task_id: String) -> Result<serde_json::Value, String> {
+    validate_mission_id(&mission_id)?;
+    let geas = geas_dir(&path)?;
+    let task_dir = geas.join("missions").join(&mission_id).join("tasks").join(&task_id);
+    let contract: Option<TaskContract> = read_json_file(&task_dir.join("contract.json"))?;
+    let record: Option<Record> = read_json_file(&task_dir.join("record.json"))?;
+    let mut evidence_list: Vec<Evidence> = Vec::new();
+    let evidence_dir = task_dir.join("evidence");
+    if evidence_dir.is_dir() {
+        if let Ok(entries) = fs::read_dir(&evidence_dir) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.extension().and_then(|e| e.to_str()) == Some("json") {
+                    if let Ok(Some(ev)) = read_json_file::<Evidence>(&p) {
+                        evidence_list.push(ev);
+                    }
+                }
+            }
+        }
+    }
+    Ok(serde_json::json!({
+        "contract": contract,
+        "record": record,
+        "evidence": evidence_list,
+    }))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_health_check(path: String) -> Result<Option<HealthCheck>, String> {
+    let geas = geas_dir(&path)?;
+    let hc_path = geas.join("state").join("health-check.json");
+    read_json_file(&hc_path)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_design_brief(path: String, mission_id: String) -> Result<Option<DesignBrief>, String> {
+    validate_mission_id(&mission_id)?;
+    let geas = geas_dir(&path)?;
+    let brief_path = geas.join("missions").join(&mission_id).join("design-brief.json");
+    read_json_file(&brief_path)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_vote_rounds(path: String, mission_id: String) -> Result<Vec<VoteRound>, String> {
+    validate_mission_id(&mission_id)?;
+    let geas = geas_dir(&path)?;
+    let decisions_dir = geas.join("missions").join(&mission_id).join("decisions");
+    if !decisions_dir.is_dir() {
+        return Ok(vec![]);
+    }
+    let mut rounds = Vec::new();
+    let entries = fs::read_dir(&decisions_dir)
+        .map_err(|e| format!("Failed to read decisions dir: {e}"))?;
+    for entry in entries.flatten() {
+        let p = entry.path();
+        if p.extension().and_then(|e| e.to_str()) == Some("json") {
+            if let Ok(Some(vr)) = read_json_file::<VoteRound>(&p) {
+                rounds.push(vr);
+            }
+        }
+    }
+    Ok(rounds)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_phase_reviews(path: String, mission_id: String) -> Result<Vec<PhaseReview>, String> {
+    validate_mission_id(&mission_id)?;
+    let geas = geas_dir(&path)?;
+    let reviews_dir = geas.join("missions").join(&mission_id).join("phase-reviews");
+    if !reviews_dir.is_dir() {
+        return Ok(vec![]);
+    }
+    let mut reviews = Vec::new();
+    let entries = fs::read_dir(&reviews_dir)
+        .map_err(|e| format!("Failed to read phase-reviews dir: {e}"))?;
+    for entry in entries.flatten() {
+        let p = entry.path();
+        if p.extension().and_then(|e| e.to_str()) == Some("json") {
+            if let Ok(Some(pr)) = read_json_file::<PhaseReview>(&p) {
+                reviews.push(pr);
+            }
+        }
+    }
+    Ok(reviews)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_gap_assessment(path: String, mission_id: String) -> Result<Option<GapAssessment>, String> {
+    validate_mission_id(&mission_id)?;
+    let geas = geas_dir(&path)?;
+    let gap_path = geas.join("missions").join(&mission_id).join("evolution").join("gap-assessment.json");
+    read_json_file(&gap_path)
+}
+
+// ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
@@ -632,23 +720,20 @@ fn infer_phase(task_total: u32, task_completed: u32, tasks_dir: &Path) -> Result
     if task_total == 0 {
         return Ok(None);
     }
-
     if task_completed == task_total {
         return Ok(Some("complete".to_string()));
     }
-
-    // Check if any task is in an active state
     if tasks_dir.is_dir() {
         let entries = fs::read_dir(tasks_dir)
             .map_err(|e| format!("Failed to read tasks dir: {e}"))?;
-
         for entry in entries {
             let entry = entry.map_err(|e| format!("Error reading dir entry: {e}"))?;
             let path = entry.path();
-            if path.extension().and_then(|e| e.to_str()) != Some("json") {
+            if !path.is_dir() {
                 continue;
             }
-            if let Some(tc) = read_json_file::<TaskContract>(&path)? {
+            let contract_path = path.join("contract.json");
+            if let Some(tc) = read_json_file::<TaskContract>(&contract_path)? {
                 match tc.status.as_deref() {
                     Some("implementing") | Some("reviewed") | Some("integrated") => {
                         return Ok(Some("building".to_string()));
@@ -658,7 +743,6 @@ fn infer_phase(task_total: u32, task_completed: u32, tasks_dir: &Path) -> Result
             }
         }
     }
-
     Ok(None)
 }
 
@@ -667,29 +751,24 @@ fn count_tasks(tasks_dir: &PathBuf) -> Result<(u32, u32), String> {
     if !tasks_dir.is_dir() {
         return Ok((0, 0));
     }
-
     let entries = fs::read_dir(tasks_dir)
         .map_err(|e| format!("Failed to read tasks dir {}: {e}", tasks_dir.display()))?;
-
     let mut total: u32 = 0;
     let mut completed: u32 = 0;
-
     for entry in entries {
         let entry = entry.map_err(|e| format!("Error reading dir entry: {e}"))?;
         let path = entry.path();
-
-        if path.extension().and_then(|e| e.to_str()) != Some("json") {
+        if !path.is_dir() {
             continue;
         }
-
-        if let Some(tc) = read_json_file::<TaskContract>(&path)? {
+        let contract_path = path.join("contract.json");
+        if let Some(tc) = read_json_file::<TaskContract>(&contract_path)? {
             total += 1;
             if tc.status.as_deref() == Some("passed") {
                 completed += 1;
             }
         }
     }
-
     Ok((total, completed))
 }
 
@@ -698,21 +777,17 @@ fn read_task_files(tasks_dir: &PathBuf) -> Result<Vec<TaskInfo>, String> {
     if !tasks_dir.is_dir() {
         return Ok(vec![]);
     }
-
     let entries = fs::read_dir(tasks_dir)
         .map_err(|e| format!("Failed to read tasks dir {}: {e}", tasks_dir.display()))?;
-
     let mut tasks = Vec::new();
-
     for entry in entries {
         let entry = entry.map_err(|e| format!("Error reading dir entry: {e}"))?;
         let path = entry.path();
-
-        if path.extension().and_then(|e| e.to_str()) != Some("json") {
+        if !path.is_dir() {
             continue;
         }
-
-        if let Some(tc) = read_json_file::<TaskContract>(&path)? {
+        let contract_path = path.join("contract.json");
+        if let Some(tc) = read_json_file::<TaskContract>(&contract_path)? {
             tasks.push(TaskInfo {
                 task_id: tc.task_id.unwrap_or_default(),
                 title: tc.title.unwrap_or_default(),
@@ -720,16 +795,12 @@ fn read_task_files(tasks_dir: &PathBuf) -> Result<Vec<TaskInfo>, String> {
                 status: tc.status.unwrap_or_else(|| "unknown".to_string()),
                 risk_level: tc.risk_level,
                 task_kind: tc.task_kind,
-                worker_type: tc
-                    .routing
-                    .as_ref()
-                    .and_then(|r| r.primary_worker_type.clone()),
+                worker_type: tc.routing.as_ref().and_then(|r| r.primary_worker_type.clone()),
                 acceptance_criteria: tc.acceptance_criteria,
                 scope_surfaces: tc.scope.map(|s| s.surfaces).unwrap_or_default(),
             });
         }
     }
-
     Ok(tasks)
 }
 
@@ -741,112 +812,3 @@ fn file_mtime(path: &PathBuf) -> Option<String> {
     Some(datetime.format("%Y-%m-%dT%H:%M:%SZ").to_string())
 }
 
-/// Recursively collect memory summaries from a directory, skipping malformed files.
-fn collect_memory_summaries(dir: &Path, source_dir: &str, results: &mut Vec<MemorySummary>) {
-    let entries = match fs::read_dir(dir) {
-        Ok(e) => e,
-        Err(_) => return,
-    };
-
-    for entry in entries {
-        let entry = match entry {
-            Ok(e) => e,
-            Err(_) => continue,
-        };
-        let path = entry.path();
-
-        if path.is_dir() {
-            collect_memory_summaries(&path, source_dir, results);
-            continue;
-        }
-
-        if path.extension().and_then(|e| e.to_str()) != Some("json") {
-            continue;
-        }
-
-        let mf: MemoryFile = match read_json_file(&path) {
-            Ok(Some(f)) => f,
-            _ => {
-                log::warn!("Skipping malformed memory file: {}", path.display());
-                continue;
-            }
-        };
-
-        let memory_id = match &mf.memory_id {
-            Some(id) if !id.is_empty() => id.clone(),
-            _ => continue,
-        };
-
-        results.push(MemorySummary {
-            memory_id,
-            memory_type: mf.memory_type.unwrap_or_else(|| "unknown".to_string()),
-            state: mf.state.unwrap_or_else(|| "unknown".to_string()),
-            title: mf.title.unwrap_or_default(),
-            summary: mf.summary.unwrap_or_default(),
-            scope: mf.scope.unwrap_or_else(|| "unknown".to_string()),
-            tags: mf.tags.unwrap_or_default(),
-            created_at: mf.meta.as_ref().and_then(|m| m.created_at.clone()),
-            source_dir: source_dir.to_string(),
-        });
-    }
-}
-
-/// Recursively search for a memory file by memory_id and return its detail.
-fn find_memory_by_id(dir: &Path, source_dir: &str, target_id: &str) -> Option<MemoryDetail> {
-    let entries = fs::read_dir(dir).ok()?;
-
-    for entry in entries {
-        let entry = match entry {
-            Ok(e) => e,
-            Err(_) => continue,
-        };
-        let path = entry.path();
-
-        if path.is_dir() {
-            if let Some(detail) = find_memory_by_id(&path, source_dir, target_id) {
-                return Some(detail);
-            }
-            continue;
-        }
-
-        if path.extension().and_then(|e| e.to_str()) != Some("json") {
-            continue;
-        }
-
-        let mf: MemoryFile = match read_json_file(&path) {
-            Ok(Some(f)) => f,
-            _ => continue,
-        };
-
-        if mf.memory_id.as_deref() != Some(target_id) {
-            continue;
-        }
-
-        let signals_info = mf.signals.as_ref().map(|s| MemorySignalsInfo {
-            evidence_count: s.evidence_count.unwrap_or(0),
-            reuse_count: s.reuse_count.unwrap_or(0),
-            confidence: s.confidence.unwrap_or(0.0),
-        });
-
-        return Some(MemoryDetail {
-            memory_id: target_id.to_string(),
-            memory_type: mf.memory_type.unwrap_or_else(|| "unknown".to_string()),
-            state: mf.state.unwrap_or_else(|| "unknown".to_string()),
-            title: mf.title.unwrap_or_default(),
-            summary: mf.summary.unwrap_or_default(),
-            scope: mf.scope.unwrap_or_else(|| "unknown".to_string()),
-            body: mf.body.unwrap_or_default(),
-            tags: mf.tags.unwrap_or_default(),
-            evidence_refs: mf.evidence_refs.unwrap_or_default(),
-            signals: signals_info,
-            review_after: mf.review_after,
-            supersedes: mf.supersedes.unwrap_or_default(),
-            superseded_by: mf.superseded_by,
-            created_at: mf.meta.as_ref().and_then(|m| m.created_at.clone()),
-            updated_at: mf.meta.as_ref().and_then(|m| m.updated_at.clone()),
-            source_dir: source_dir.to_string(),
-        });
-    }
-
-    None
-}
