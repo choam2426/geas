@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 /**
- * E2E Integration Test for Geas CLI
+ * E2E Integration Test for Geas CLI (v4)
  *
  * Exercises a complete mission lifecycle: create mission, update state,
  * log events, acquire/release locks, create tasks, transition status,
  * record evidence, add debt, generate health check, and clear checkpoints.
+ *
+ * v4 changes: record.json, evidence add, tasks/{tid}/contract.json,
+ *   simplified memory (agent-note), packet create.
  *
  * Usage: node plugin/cli/test/integration.js
  */
@@ -28,18 +31,10 @@ function createTempDir() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'geas-integration-'));
   const geas = path.join(tmp, '.geas');
 
+  // v4: simplified directory structure
   const dirs = [
     'state',
-    'state/task-focus',
-    'ledger',
-    'summaries',
-    'memory/_project',
     'memory/agents',
-    'memory/candidates',
-    'memory/entries',
-    'memory/logs',
-    'memory/retro',
-    'memory/incidents',
     'recovery',
   ];
 
@@ -63,22 +58,6 @@ function createTempDir() {
   fs.writeFileSync(
     path.join(geas, 'state', 'run.json'),
     JSON.stringify(runState, null, 2),
-  );
-
-  // Seed empty memory-index.json (meta wrapper matches memory-index.schema.json)
-  const memoryIndex = {
-    meta: {
-      version: '1.0',
-      artifact_type: 'memory_index',
-      artifact_id: 'memory-index',
-      producer_type: 'orchestration_authority',
-      created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-    },
-    entries: [],
-  };
-  fs.writeFileSync(
-    path.join(geas, 'state', 'memory-index.json'),
-    JSON.stringify(memoryIndex, null, 2),
   );
 
   return tmp;
@@ -196,7 +175,7 @@ function defineTests(tmpDir) {
         r.acquired === true && r.lock.task_id === 'task-001',
     },
     {
-      name: 'task create',
+      name: 'task create (v4: tasks/{tid}/contract.json)',
       fn: () => {
         const data = JSON.stringify(TASK_CONTRACT).replace(/"/g, '\\"');
         return runWithCwd(
@@ -204,8 +183,14 @@ function defineTests(tmpDir) {
           tmpDir,
         );
       },
-      validate: (r) =>
-        r.task_id === 'task-001' && r.artifact_type === 'task_contract',
+      validate: (r) => {
+        if (r.task_id !== 'task-001' || r.artifact_type !== 'task_contract') return false;
+        // Verify subdirectories were created
+        const taskDir = path.join(tmpDir, '.geas', 'missions', MISSION_ID, 'tasks', 'task-001');
+        return fs.existsSync(path.join(taskDir, 'contract.json'))
+          && fs.existsSync(path.join(taskDir, 'evidence'))
+          && fs.existsSync(path.join(taskDir, 'packets'));
+      },
     },
     {
       name: 'task transition (drafted -> ready)',
@@ -218,26 +203,19 @@ function defineTests(tmpDir) {
         r.previous_status === 'drafted' && r.status === 'ready',
     },
     {
-      name: 'create implementation contract stub (for ready->implementing guard)',
+      name: 'create implementation contract via record add (for ready->implementing guard)',
       fn: () => {
-        // The ready->implementing guard requires contracts/{taskId}.json with status "approved"
-        const contractDir = path.join(tmpDir, '.geas', 'missions', MISSION_ID, 'contracts');
-        fs.mkdirSync(contractDir, { recursive: true });
-        const contract = {
-          version: '1.0',
-          artifact_type: 'implementation_contract',
-          artifact_id: 'impl-contract-task-001',
-          task_id: 'task-001',
+        // v4: ready->implementing guard requires record.json:implementation_contract section with status "approved"
+        const sectionData = JSON.stringify({
+          planned_actions: ['Implement feature'],
           status: 'approved',
-          created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-        };
-        fs.writeFileSync(
-          path.join(contractDir, 'task-001.json'),
-          JSON.stringify(contract, null, 2),
+        }).replace(/"/g, '\\"');
+        return runWithCwd(
+          `task record add --mission ${MISSION_ID} --task task-001 --section implementation_contract --data "${sectionData}"`,
+          tmpDir,
         );
-        return { created: true, path: path.join(contractDir, 'task-001.json') };
       },
-      validate: (r) => r.created === true,
+      validate: (r) => r.section === 'implementation_contract' && r.action === 'added',
     },
     {
       name: 'task transition (ready -> implementing)',
@@ -250,14 +228,14 @@ function defineTests(tmpDir) {
         r.previous_status === 'ready' && r.status === 'implementing',
     },
     {
-      name: 'evidence record',
+      name: 'evidence add (v4: role-based)',
       fn: () =>
-        run(
-          `evidence record --mission ${MISSION_ID} --task task-001 --agent test-agent --data "{\\"test\\":true}"`,
+        runWithCwd(
+          `evidence add --mission ${MISSION_ID} --task task-001 --agent test-agent --role implementer --set "summary=Test implementation" --set "files_changed[0]=src/test.ts"`,
           tmpDir,
         ),
       validate: (r) =>
-        r.task_id === 'task-001' && r.agent === 'test-agent',
+        r.task_id === 'task-001' && r.agent === 'test-agent' && r.role === 'implementer',
     },
     {
       name: 'debt add',
@@ -318,8 +296,6 @@ function defineTests(tmpDir) {
     {
       name: 'updated_at injected on existing file update',
       fn: () => {
-        // run.json already exists; updating it should inject updated_at
-        // Use a neutral field update so we don't change phase (used by later tests)
         runWithCwd('state update --field status --value active', tmpDir);
         const runJson = JSON.parse(
           fs.readFileSync(
@@ -337,7 +313,6 @@ function defineTests(tmpDir) {
     {
       name: 'JSONL timestamp auto-injected on event log',
       fn: () => {
-        // Log a fresh event and read the last line of the events JSONL
         runWithCwd(
           'event log --type timestamp_test --task task-001',
           tmpDir,
@@ -361,21 +336,12 @@ function defineTests(tmpDir) {
 // Phase 5: --cwd support (directory isolation tests)
 // ---------------------------------------------------------------------------
 
-/**
- * Test that --cwd allows running commands from a directory that does NOT
- * contain .geas/, pointing to a directory that DOES contain .geas/.
- *
- * Also verifies that running WITHOUT --cwd from the separate directory
- * correctly fails (because there is no .geas/ there).
- */
 function defineCwdTests(mainDir) {
-  // Create a separate temp directory with NO .geas/ structure
   const worktreeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'geas-cwd-test-'));
 
   return {
     worktreeDir,
     tests: [
-      // --- Positive tests: --cwd should resolve to mainDir ---
       {
         name: '[cwd] evidence read with --cwd (from worktree)',
         fn: () => {
@@ -425,25 +391,16 @@ function defineCwdTests(mainDir) {
         validate: (r) =>
           r.mission_id === MISSION_ID && r.phase === 'building',
       },
-
-      // --- Negative tests: WITHOUT --cwd should fail from worktree ---
       {
         name: '[cwd] evidence read WITHOUT --cwd fails from worktree',
         fn: () => {
           try {
             execSync(
               `node "${CLI}" evidence read --mission ${MISSION_ID} --task task-001`,
-              {
-                cwd: worktreeDir,
-                encoding: 'utf-8',
-                timeout: 10000,
-                stdio: ['pipe', 'pipe', 'pipe'],
-              },
+              { cwd: worktreeDir, encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
             );
-            // If it did not throw, check if the output is an error response
             return { failed_as_expected: false };
           } catch {
-            // Command failed (non-zero exit) — this is expected
             return { failed_as_expected: true };
           }
         },
@@ -455,12 +412,7 @@ function defineCwdTests(mainDir) {
           try {
             execSync(
               `node "${CLI}" debt list --mission ${MISSION_ID}`,
-              {
-                cwd: worktreeDir,
-                encoding: 'utf-8',
-                timeout: 10000,
-                stdio: ['pipe', 'pipe', 'pipe'],
-              },
+              { cwd: worktreeDir, encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
             );
             return { failed_as_expected: false };
           } catch {
@@ -475,12 +427,7 @@ function defineCwdTests(mainDir) {
           try {
             execSync(
               `node "${CLI}" state read`,
-              {
-                cwd: worktreeDir,
-                encoding: 'utf-8',
-                timeout: 10000,
-                stdio: ['pipe', 'pipe', 'pipe'],
-              },
+              { cwd: worktreeDir, encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
             );
             return { failed_as_expected: false };
           } catch {
@@ -494,65 +441,78 @@ function defineCwdTests(mainDir) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 7: Transition and Phase Guards
+// Phase 7: Transition and Phase Guards (v4: record.json-based)
 // ---------------------------------------------------------------------------
 
-/**
- * Tests for transition guards (artifact-existence checks) and phase guards
- * (gate criteria checks). Each guard has positive and negative test pairs.
- */
 function defineGuardTests(tmpDir) {
-  // Use a separate mission so guard tests don't interfere with Phase 1-5 state
   const GUARD_MISSION = 'guard-test-mission';
+
+  /** Helper: write a task contract.json directly (bypass CLI validation for negative tests). */
+  function writeTaskContract(taskId, overrides) {
+    const base = {
+      version: '1.0',
+      artifact_type: 'task_contract',
+      artifact_id: `task-contract-${taskId}`,
+      producer_type: 'orchestration_authority',
+      created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+      task_id: taskId,
+      title: 'Guard test task',
+      goal: 'Test transition guard',
+      task_kind: 'implementation',
+      risk_level: 'low',
+      gate_profile: 'implementation_change',
+      vote_round_policy: 'never',
+      base_snapshot: 'abc123',
+      acceptance_criteria: ['Test'],
+      eval_commands: ['echo ok'],
+      rubric: { dimensions: [{ name: 'completeness', threshold: 3 }] },
+      retry_budget: 3,
+      scope: { surfaces: ['test/'] },
+      routing: { primary_worker_type: 'software_engineer', required_reviewer_types: ['design_authority'] },
+      status: 'drafted',
+      ...overrides,
+    };
+    const taskDir = path.join(tmpDir, '.geas', 'missions', GUARD_MISSION, 'tasks', taskId);
+    fs.mkdirSync(path.join(taskDir, 'evidence'), { recursive: true });
+    fs.mkdirSync(path.join(taskDir, 'packets'), { recursive: true });
+    fs.writeFileSync(path.join(taskDir, 'contract.json'), JSON.stringify(base, null, 2));
+    return taskDir;
+  }
+
+  /** Helper: write record.json for a task. */
+  function writeRecord(taskId, sections) {
+    const taskDir = path.join(tmpDir, '.geas', 'missions', GUARD_MISSION, 'tasks', taskId);
+    const record = { version: '1.0', task_id: taskId, ...sections };
+    fs.writeFileSync(path.join(taskDir, 'record.json'), JSON.stringify(record, null, 2));
+  }
+
+  /** Helper: write evidence file for a task. */
+  function writeEvidence(taskId, agent, data) {
+    const evidenceDir = path.join(tmpDir, '.geas', 'missions', GUARD_MISSION, 'tasks', taskId, 'evidence');
+    fs.mkdirSync(evidenceDir, { recursive: true });
+    fs.writeFileSync(path.join(evidenceDir, `${agent}.json`), JSON.stringify(data, null, 2));
+  }
 
   return {
     setup: () => {
-      // Create mission via CLI first, then ensure extra subdirectories exist
       runWithCwd(`mission create --id ${GUARD_MISSION}`, tmpDir);
       const missionDir = path.join(tmpDir, '.geas', 'missions', GUARD_MISSION);
-      const dirs = ['tasks', 'contracts', 'evidence', 'phase-reviews', 'evolution'];
-      for (const d of dirs) {
-        fs.mkdirSync(path.join(missionDir, d), { recursive: true });
-      }
+      fs.mkdirSync(path.join(missionDir, 'tasks'), { recursive: true });
+      fs.mkdirSync(path.join(missionDir, 'phase-reviews'), { recursive: true });
+      fs.mkdirSync(path.join(missionDir, 'evolution'), { recursive: true });
     },
     tests: [
-      // ── Transition guard: drafted -> ready (negative) ──
+      // ── drafted -> ready (negative): missing risk_level ──
       {
         name: '[guard] drafted->ready negative: missing risk_level blocks transition',
         fn: () => {
-          // Create a task with missing metadata (no risk_level, no rubric, etc.)
-          const incompleteTask = {
-            version: '1.0',
-            artifact_type: 'task_contract',
-            artifact_id: 'task-contract-guard-neg-01',
-            producer_type: 'orchestration_authority',
-            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-            task_id: 'guard-neg-01',
-            title: 'Incomplete task',
-            goal: 'Missing metadata fields',
-            task_kind: 'implementation',
-            // risk_level intentionally omitted
-            // gate_profile intentionally omitted
-            // vote_round_policy intentionally omitted
-            // base_snapshot intentionally omitted
-            acceptance_criteria: ['Test'],
-            eval_commands: ['echo ok'],
-            // rubric intentionally omitted
-            retry_budget: 3,
-            scope: { surfaces: ['test/'] },
-            routing: {
-              primary_worker_type: 'software_engineer',
-              required_reviewer_types: ['design_authority'],
-            },
-            status: 'drafted',
-          };
-
-          // Write task file directly (bypassing schema validation so we can test the guard)
-          const taskPath = path.join(
-            tmpDir, '.geas', 'missions', GUARD_MISSION, 'tasks', 'guard-neg-01.json',
-          );
-          fs.writeFileSync(taskPath, JSON.stringify(incompleteTask, null, 2));
-
+          writeTaskContract('guard-neg-01', {
+            risk_level: undefined,
+            gate_profile: undefined,
+            vote_round_policy: undefined,
+            base_snapshot: undefined,
+            rubric: undefined,
+          });
           try {
             execSync(
               `node "${CLI}" --cwd "${tmpDir}" task transition --mission ${GUARD_MISSION} --id guard-neg-01 --to ready`,
@@ -561,97 +521,30 @@ function defineGuardTests(tmpDir) {
             return { blocked: false };
           } catch (err) {
             const stderr = err.stderr ? err.stderr.toString() : '';
-            return {
-              blocked: true,
-              exit_code: err.status,
-              has_missing_artifacts: stderr.includes('missing_artifacts'),
-            };
+            return { blocked: true, exit_code: err.status, has_missing_artifacts: stderr.includes('missing_artifacts') };
           }
         },
-        validate: (r) =>
-          r.blocked === true &&
-          r.exit_code === 1 &&
-          r.has_missing_artifacts === true,
+        validate: (r) => r.blocked === true && r.exit_code === 1 && r.has_missing_artifacts === true,
       },
 
-      // ── Transition guard: drafted -> ready (positive) ──
+      // ── drafted -> ready (positive) ──
       {
         name: '[guard] drafted->ready positive: complete task transitions successfully',
         fn: () => {
-          const completeTask = {
-            version: '1.0',
-            artifact_type: 'task_contract',
-            artifact_id: 'task-contract-guard-pos-01',
-            producer_type: 'orchestration_authority',
-            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-            task_id: 'guard-pos-01',
-            title: 'Complete task',
-            goal: 'All metadata present',
-            task_kind: 'implementation',
-            risk_level: 'low',
-            gate_profile: 'implementation_change',
-            vote_round_policy: 'never',
-            base_snapshot: 'abc123',
-            acceptance_criteria: ['Test'],
-            eval_commands: ['echo ok'],
-            rubric: { dimensions: [{ name: 'completeness', threshold: 3 }] },
-            retry_budget: 3,
-            scope: { surfaces: ['test/'] },
-            routing: {
-              primary_worker_type: 'software_engineer',
-              required_reviewer_types: ['design_authority'],
-            },
-            status: 'drafted',
-          };
+          const completeTask = { ...TASK_CONTRACT, task_id: 'guard-pos-01' };
           const data = JSON.stringify(completeTask).replace(/"/g, '\\"');
-          runWithCwd(
-            `task create --mission ${GUARD_MISSION} --data "${data}"`,
-            tmpDir,
-          );
-          return runWithCwd(
-            `task transition --mission ${GUARD_MISSION} --id guard-pos-01 --to ready`,
-            tmpDir,
-          );
+          runWithCwd(`task create --mission ${GUARD_MISSION} --data "${data}"`, tmpDir);
+          return runWithCwd(`task transition --mission ${GUARD_MISSION} --id guard-pos-01 --to ready`, tmpDir);
         },
-        validate: (r) =>
-          r.previous_status === 'drafted' && r.status === 'ready',
+        validate: (r) => r.previous_status === 'drafted' && r.status === 'ready',
       },
 
-      // ── Transition guard: implementing -> reviewed (negative) ──
+      // ── implementing -> reviewed (negative): missing self_check ──
       {
-        name: '[guard] implementing->reviewed negative: missing worker-self-check blocks transition',
+        name: '[guard] implementing->reviewed negative: missing self_check blocks transition',
         fn: () => {
-          // Create a task already in implementing state (write directly)
-          const task = {
-            version: '1.0',
-            artifact_type: 'task_contract',
-            artifact_id: 'task-contract-guard-neg-02',
-            producer_type: 'orchestration_authority',
-            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-            task_id: 'guard-neg-02',
-            title: 'Task without self-check',
-            goal: 'Missing worker-self-check',
-            task_kind: 'implementation',
-            risk_level: 'low',
-            gate_profile: 'implementation_change',
-            vote_round_policy: 'never',
-            base_snapshot: 'abc123',
-            acceptance_criteria: ['Test'],
-            eval_commands: ['echo ok'],
-            rubric: { dimensions: [{ name: 'completeness', threshold: 3 }] },
-            retry_budget: 3,
-            scope: { surfaces: ['test/'] },
-            routing: {
-              primary_worker_type: 'software_engineer',
-              required_reviewer_types: ['design_authority'],
-            },
-            status: 'implementing',
-          };
-          const taskPath = path.join(
-            tmpDir, '.geas', 'missions', GUARD_MISSION, 'tasks', 'guard-neg-02.json',
-          );
-          fs.writeFileSync(taskPath, JSON.stringify(task, null, 2));
-
+          writeTaskContract('guard-neg-02', { status: 'implementing' });
+          // No record.json, no evidence — should block
           try {
             execSync(
               `node "${CLI}" --cwd "${tmpDir}" task transition --mission ${GUARD_MISSION} --id guard-neg-02 --to reviewed`,
@@ -660,54 +553,18 @@ function defineGuardTests(tmpDir) {
             return { blocked: false };
           } catch (err) {
             const stderr = err.stderr ? err.stderr.toString() : '';
-            return {
-              blocked: true,
-              exit_code: err.status,
-              has_missing_artifacts: stderr.includes('missing_artifacts'),
-            };
+            return { blocked: true, exit_code: err.status, has_missing_artifacts: stderr.includes('missing_artifacts') };
           }
         },
-        validate: (r) =>
-          r.blocked === true &&
-          r.exit_code === 1 &&
-          r.has_missing_artifacts === true,
+        validate: (r) => r.blocked === true && r.exit_code === 1 && r.has_missing_artifacts === true,
       },
 
-      // ── Transition guard: verified -> passed (negative) ──
+      // ── verified -> passed (negative): missing closure artifacts ──
       {
         name: '[guard] verified->passed negative: missing closure artifacts blocks transition',
         fn: () => {
-          // Create a task in verified state without closure-packet/final-verdict/retrospective
-          const task = {
-            version: '1.0',
-            artifact_type: 'task_contract',
-            artifact_id: 'task-contract-guard-neg-03',
-            producer_type: 'orchestration_authority',
-            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-            task_id: 'guard-neg-03',
-            title: 'Task without closure artifacts',
-            goal: 'Missing closure-packet, final-verdict, retrospective',
-            task_kind: 'implementation',
-            risk_level: 'low',
-            gate_profile: 'implementation_change',
-            vote_round_policy: 'never',
-            base_snapshot: 'abc123',
-            acceptance_criteria: ['Test'],
-            eval_commands: ['echo ok'],
-            rubric: { dimensions: [{ name: 'completeness', threshold: 3 }] },
-            retry_budget: 3,
-            scope: { surfaces: ['test/'] },
-            routing: {
-              primary_worker_type: 'software_engineer',
-              required_reviewer_types: ['design_authority'],
-            },
-            status: 'verified',
-          };
-          const taskPath = path.join(
-            tmpDir, '.geas', 'missions', GUARD_MISSION, 'tasks', 'guard-neg-03.json',
-          );
-          fs.writeFileSync(taskPath, JSON.stringify(task, null, 2));
-
+          writeTaskContract('guard-neg-03', { status: 'verified' });
+          // No record.json sections — should block
           try {
             execSync(
               `node "${CLI}" --cwd "${tmpDir}" task transition --mission ${GUARD_MISSION} --id guard-neg-03 --to passed`,
@@ -716,120 +573,36 @@ function defineGuardTests(tmpDir) {
             return { blocked: false };
           } catch (err) {
             const stderr = err.stderr ? err.stderr.toString() : '';
-            return {
-              blocked: true,
-              exit_code: err.status,
-              has_missing_artifacts: stderr.includes('missing_artifacts'),
-            };
+            return { blocked: true, exit_code: err.status, has_missing_artifacts: stderr.includes('missing_artifacts') };
           }
         },
-        validate: (r) =>
-          r.blocked === true &&
-          r.exit_code === 1 &&
-          r.has_missing_artifacts === true,
+        validate: (r) => r.blocked === true && r.exit_code === 1 && r.has_missing_artifacts === true,
       },
 
-      // ── Transition guard: verified -> passed (positive) ──
+      // ── verified -> passed (positive): all record.json sections present ──
       {
-        name: '[guard] verified->passed positive: all closure artifacts present allows transition',
+        name: '[guard] verified->passed positive: all record sections allow transition',
         fn: () => {
           const taskId = 'guard-pos-02';
-          const missionDir = path.join(tmpDir, '.geas', 'missions', GUARD_MISSION);
-
-          // Create the task contract in verified state
-          const task = {
-            version: '1.0',
-            artifact_type: 'task_contract',
-            artifact_id: `task-contract-${taskId}`,
-            producer_type: 'orchestration_authority',
-            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-            task_id: taskId,
-            title: 'Task with all closure artifacts',
-            goal: 'Closure artifacts present',
-            task_kind: 'implementation',
-            risk_level: 'low',
-            gate_profile: 'implementation_change',
-            vote_round_policy: 'never',
-            base_snapshot: 'abc123',
-            acceptance_criteria: ['Test'],
-            eval_commands: ['echo ok'],
-            rubric: { dimensions: [{ name: 'completeness', threshold: 3 }] },
-            retry_budget: 3,
-            scope: { surfaces: ['test/'] },
-            routing: {
-              primary_worker_type: 'software_engineer',
-              required_reviewer_types: ['design_authority'],
-            },
-            status: 'verified',
-          };
-          fs.writeFileSync(
-            path.join(missionDir, 'tasks', `${taskId}.json`),
-            JSON.stringify(task, null, 2),
-          );
-
-          // Create the task subdirectory with required closure artifacts
-          const taskDir = path.join(missionDir, 'tasks', taskId);
-          fs.mkdirSync(taskDir, { recursive: true });
-
-          fs.writeFileSync(
-            path.join(taskDir, 'closure-packet.json'),
-            JSON.stringify({ artifact_type: 'closure_packet', task_id: taskId }),
-          );
-          fs.writeFileSync(
-            path.join(taskDir, 'final-verdict.json'),
-            JSON.stringify({ artifact_type: 'final_verdict', task_id: taskId, verdict: 'pass' }),
-          );
-          fs.writeFileSync(
-            path.join(taskDir, 'retrospective.json'),
-            JSON.stringify({ artifact_type: 'retrospective', task_id: taskId }),
-          );
-          // challenge-review.json not required for risk_level "low"
-
+          writeTaskContract(taskId, { status: 'verified' });
+          writeRecord(taskId, {
+            verdict: { verdict: 'pass', rationale: 'All good' },
+            closure: { change_summary: 'Done' },
+            retrospective: { what_went_well: ['Tests pass'], what_broke: [] },
+          });
           return runWithCwd(
             `task transition --mission ${GUARD_MISSION} --id ${taskId} --to passed`,
             tmpDir,
           );
         },
-        validate: (r) =>
-          r.previous_status === 'verified' && r.status === 'passed',
+        validate: (r) => r.previous_status === 'verified' && r.status === 'passed',
       },
 
       // ── Phase guard: building -> polishing (negative) ──
       {
         name: '[guard] building->polishing negative: task in implementing blocks phase transition',
         fn: () => {
-          // Ensure there is a task in "implementing" state
-          const task = {
-            version: '1.0',
-            artifact_type: 'task_contract',
-            artifact_id: 'task-contract-phase-neg-01',
-            producer_type: 'orchestration_authority',
-            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-            task_id: 'phase-neg-01',
-            title: 'Task still implementing',
-            goal: 'Block building->polishing',
-            task_kind: 'implementation',
-            risk_level: 'low',
-            gate_profile: 'implementation_change',
-            vote_round_policy: 'never',
-            base_snapshot: 'abc123',
-            acceptance_criteria: ['Test'],
-            eval_commands: ['echo ok'],
-            rubric: { dimensions: [{ name: 'completeness', threshold: 3 }] },
-            retry_budget: 3,
-            scope: { surfaces: ['test/'] },
-            routing: {
-              primary_worker_type: 'software_engineer',
-              required_reviewer_types: ['design_authority'],
-            },
-            status: 'implementing',
-          };
-          fs.writeFileSync(
-            path.join(tmpDir, '.geas', 'missions', GUARD_MISSION, 'tasks', 'phase-neg-01.json'),
-            JSON.stringify(task, null, 2),
-          );
-
-          // Write a phase review with building -> polishing
+          writeTaskContract('phase-neg-01', { status: 'implementing' });
           const phaseReview = {
             version: '1.0',
             artifact_type: 'phase_review',
@@ -842,7 +615,6 @@ function defineGuardTests(tmpDir) {
             created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
           };
           const data = JSON.stringify(phaseReview).replace(/"/g, '\\"');
-
           try {
             execSync(
               `node "${CLI}" --cwd "${tmpDir}" phase write --mission ${GUARD_MISSION} --data "${data}"`,
@@ -851,25 +623,16 @@ function defineGuardTests(tmpDir) {
             return { blocked: false };
           } catch (err) {
             const stderr = err.stderr ? err.stderr.toString() : '';
-            return {
-              blocked: true,
-              exit_code: err.status,
-              has_unmet_criteria: stderr.includes('unmet_criteria'),
-            };
+            return { blocked: true, exit_code: err.status, has_unmet_criteria: stderr.includes('unmet_criteria') };
           }
         },
-        validate: (r) =>
-          r.blocked === true &&
-          r.exit_code === 1 &&
-          r.has_unmet_criteria === true,
+        validate: (r) => r.blocked === true && r.exit_code === 1 && r.has_unmet_criteria === true,
       },
 
       // ── Phase guard: evolving -> complete (negative) ──
       {
         name: '[guard] evolving->complete negative: schema rejects next_phase "complete"',
         fn: () => {
-          // The phase-review schema does not allow next_phase: "complete",
-          // so this tests that the schema validation catches it before the guard.
           const phaseReview = {
             version: '1.0',
             artifact_type: 'phase_review',
@@ -882,7 +645,6 @@ function defineGuardTests(tmpDir) {
             created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
           };
           const data = JSON.stringify(phaseReview).replace(/"/g, '\\"');
-
           try {
             execSync(
               `node "${CLI}" --cwd "${tmpDir}" phase write --mission ${GUARD_MISSION} --data "${data}"`,
@@ -891,374 +653,283 @@ function defineGuardTests(tmpDir) {
             return { blocked: false };
           } catch (err) {
             const stderr = err.stderr ? err.stderr.toString() : '';
-            return {
-              blocked: true,
-              exit_code: err.status,
-              // Schema validation error or phase guard error - either way it's blocked
-              has_error: stderr.includes('VALIDATION_ERROR') || stderr.includes('unmet_criteria'),
-            };
+            return { blocked: true, exit_code: err.status, has_error: stderr.includes('VALIDATION_ERROR') || stderr.includes('unmet_criteria') };
           }
         },
-        validate: (r) =>
-          r.blocked === true &&
-          r.exit_code === 1 &&
-          r.has_error === true,
+        validate: (r) => r.blocked === true && r.exit_code === 1 && r.has_error === true,
       },
     ],
   };
 }
 
 // ---------------------------------------------------------------------------
-// Phase 8: Memory Commands
+// Phase 8: Record, Evidence, Packet, Memory (v4)
 // ---------------------------------------------------------------------------
 
-/**
- * Tests for memory subcommands: index-update, promote, candidate-write.
- * Covers the full memory lifecycle: create index entries, write candidates,
- * promote through states, and verify cleanup.
- */
-function defineMemoryTests(tmpDir) {
-  const ts = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-  const reviewDate = new Date(Date.now() + 30 * 86400000)
-    .toISOString()
-    .replace(/\.\d{3}Z$/, 'Z');
+function defineV4Tests(tmpDir) {
+  const V4_MISSION = 'v4-test-mission';
 
-  // Valid memory index entry data (memory_type must be from enum in _defs.schema.json)
-  const indexEntry1 = {
-    memory_id: 'mem-001',
-    memory_type: 'project_rule',
-    state: 'candidate',
-    confidence: 0.5,
-    tags: ['test'],
-    review_after: reviewDate,
+  return {
+    setup: () => {
+      runWithCwd(`mission create --id ${V4_MISSION}`, tmpDir);
+      runWithCwd(`state update --field mission_id --value ${V4_MISSION}`, tmpDir);
+
+      // Create a task for record/evidence tests
+      const task = { ...TASK_CONTRACT, task_id: 'v4-task-001' };
+      const data = JSON.stringify(task).replace(/"/g, '\\"');
+      runWithCwd(`task create --mission ${V4_MISSION} --data "${data}"`, tmpDir);
+    },
+    tests: [
+      // ── record add: --set ──
+      {
+        name: '[v4] record add with --set',
+        fn: () =>
+          runWithCwd(
+            `task record add --mission ${V4_MISSION} --task v4-task-001 --section self_check --set confidence=4 --set "summary=All tests pass"`,
+            tmpDir,
+          ),
+        validate: (r) => r.section === 'self_check' && r.action === 'added',
+      },
+
+      // ── record get: specific section ──
+      {
+        name: '[v4] record get section',
+        fn: () =>
+          runWithCwd(
+            `task record get --mission ${V4_MISSION} --task v4-task-001 --section self_check`,
+            tmpDir,
+          ),
+        validate: (r) =>
+          r.section === 'self_check' &&
+          r.data.confidence === 4 &&
+          r.data.summary === 'All tests pass',
+      },
+
+      // ── record add: --data (overwrite) ──
+      {
+        name: '[v4] record add with --data (overwrite existing section)',
+        fn: () => {
+          const sectionData = JSON.stringify({
+            confidence: 5,
+            summary: 'Updated after fix',
+            known_risks: ['None'],
+          }).replace(/"/g, '\\"');
+          return runWithCwd(
+            `task record add --mission ${V4_MISSION} --task v4-task-001 --section self_check --data "${sectionData}"`,
+            tmpDir,
+          );
+        },
+        validate: (r) => r.section === 'self_check' && r.action === 'added',
+      },
+
+      // ── record get: verify overwrite ──
+      {
+        name: '[v4] record get verifies overwrite',
+        fn: () =>
+          runWithCwd(
+            `task record get --mission ${V4_MISSION} --task v4-task-001 --section self_check`,
+            tmpDir,
+          ),
+        validate: (r) =>
+          r.data.confidence === 5 && r.data.summary === 'Updated after fix',
+      },
+
+      // ── record add: gate_result section ──
+      {
+        name: '[v4] record add gate_result section',
+        fn: () => {
+          const data = JSON.stringify({
+            verdict: 'pass',
+            tier_results: { tier_0: { status: 'pass' }, tier_1: { status: 'pass' }, tier_2: { status: 'pass' } },
+          }).replace(/"/g, '\\"');
+          return runWithCwd(
+            `task record add --mission ${V4_MISSION} --task v4-task-001 --section gate_result --data "${data}"`,
+            tmpDir,
+          );
+        },
+        validate: (r) => r.section === 'gate_result',
+      },
+
+      // ── record get: full record ──
+      {
+        name: '[v4] record get full record',
+        fn: () =>
+          runWithCwd(
+            `task record get --mission ${V4_MISSION} --task v4-task-001`,
+            tmpDir,
+          ),
+        validate: (r) =>
+          r.version === '1.0' &&
+          r.task_id === 'v4-task-001' &&
+          r.self_check != null &&
+          r.gate_result != null,
+      },
+
+      // ── record add: invalid section name ──
+      {
+        name: '[v4] record add rejects invalid section name',
+        fn: () => {
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" task record add --mission ${V4_MISSION} --task v4-task-001 --section bad_name --set foo=bar`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { rejected: false };
+          } catch {
+            return { rejected: true };
+          }
+        },
+        validate: (r) => r.rejected === true,
+      },
+
+      // ── evidence add: implementer ──
+      {
+        name: '[v4] evidence add implementer role',
+        fn: () =>
+          runWithCwd(
+            `evidence add --mission ${V4_MISSION} --task v4-task-001 --agent software-engineer --role implementer --set "summary=Implemented feature" --set "files_changed[0]=src/feature.ts"`,
+            tmpDir,
+          ),
+        validate: (r) =>
+          r.agent === 'software-engineer' && r.role === 'implementer',
+      },
+
+      // ── evidence add: reviewer ──
+      {
+        name: '[v4] evidence add reviewer role',
+        fn: () => {
+          const data = JSON.stringify({
+            summary: 'Code looks good',
+            verdict: 'approved',
+            concerns: [],
+          }).replace(/"/g, '\\"');
+          return runWithCwd(
+            `evidence add --mission ${V4_MISSION} --task v4-task-001 --agent design-authority --role reviewer --data "${data}"`,
+            tmpDir,
+          );
+        },
+        validate: (r) =>
+          r.agent === 'design-authority' && r.role === 'reviewer',
+      },
+
+      // ── evidence add: missing required fields for role ──
+      {
+        name: '[v4] evidence add rejects missing role-specific fields',
+        fn: () => {
+          try {
+            execSync(
+              `node "${CLI}" --cwd "${tmpDir}" evidence add --mission ${V4_MISSION} --task v4-task-001 --agent qa-engineer --role tester --set "summary=Tested"`,
+              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+            );
+            return { rejected: false };
+          } catch (err) {
+            const stderr = err.stderr ? err.stderr.toString() : '';
+            return { rejected: true, has_validation: stderr.includes('VALIDATION_ERROR') };
+          }
+        },
+        validate: (r) => r.rejected === true && r.has_validation === true,
+      },
+
+      // ── evidence read ──
+      {
+        name: '[v4] evidence read all agents',
+        fn: () =>
+          runWithCwd(
+            `evidence read --mission ${V4_MISSION} --task v4-task-001`,
+            tmpDir,
+          ),
+        validate: (r) =>
+          r.agents.length === 2 &&
+          r.agents.includes('software-engineer') &&
+          r.agents.includes('design-authority'),
+      },
+
+      // ── packet create ──
+      {
+        name: '[v4] packet create',
+        fn: () =>
+          runWithCwd(
+            `packet create --mission ${V4_MISSION} --task v4-task-001 --agent software-engineer --content "# Task Briefing\n\nImplement the feature."`,
+            tmpDir,
+          ),
+        validate: (r) =>
+          r.agent === 'software-engineer' && r.task_id === 'v4-task-001',
+      },
+
+      // ── packet read ──
+      {
+        name: '[v4] packet read',
+        fn: () =>
+          runWithCwd(
+            `packet read --mission ${V4_MISSION} --task v4-task-001 --agent software-engineer`,
+            tmpDir,
+          ),
+        validate: (r) =>
+          r.content.includes('Task Briefing') && r.agent === 'software-engineer',
+      },
+
+      // ── memory agent-note: create ──
+      {
+        name: '[v4] memory agent-note create',
+        fn: () =>
+          runWithCwd(
+            'memory agent-note --agent software-engineer --add "FTS5 requires try-catch for malformed queries"',
+            tmpDir,
+          ),
+        validate: (r) =>
+          r.agent === 'software-engineer' && r.action === 'appended',
+      },
+
+      // ── memory agent-note: append ──
+      {
+        name: '[v4] memory agent-note append',
+        fn: () =>
+          runWithCwd(
+            'memory agent-note --agent software-engineer --add "Always check subtree depth on category moves"',
+            tmpDir,
+          ),
+        validate: (r) =>
+          r.agent === 'software-engineer' && r.action === 'appended',
+      },
+
+      // ── memory read: agent ──
+      {
+        name: '[v4] memory read agent notes',
+        fn: () =>
+          runWithCwd(
+            'memory read --agent software-engineer',
+            tmpDir,
+          ),
+        validate: (r) =>
+          r.agent === 'software-engineer' &&
+          r.content.includes('FTS5') &&
+          r.content.includes('subtree depth'),
+      },
+
+      // ── memory read: non-existent agent returns null ──
+      {
+        name: '[v4] memory read non-existent agent',
+        fn: () =>
+          runWithCwd(
+            'memory read --agent non-existent-agent',
+            tmpDir,
+          ),
+        validate: (r) =>
+          r.agent === 'non-existent-agent' && r.content === null,
+      },
+
+      // ── mission auto-resolution ──
+      {
+        name: '[v4] task record add auto-resolves mission from run.json',
+        fn: () =>
+          runWithCwd(
+            'task record add --task v4-task-001 --section retrospective --set "what_went_well[0]=Auto-resolution works" --set "what_broke[0]=Nothing"',
+            tmpDir,
+          ),
+        validate: (r) => r.section === 'retrospective' && r.mission_id === V4_MISSION,
+      },
+    ],
   };
-
-  const indexEntry2 = {
-    memory_id: 'mem-002',
-    memory_type: 'failure_lesson',
-    state: 'candidate',
-    confidence: 0.6,
-    tags: ['integration'],
-    review_after: reviewDate,
-  };
-
-  const indexEntry3 = {
-    memory_id: 'mem-003',
-    memory_type: 'decision_precedent',
-    state: 'provisional',
-    confidence: 0.7,
-    tags: ['arch'],
-    review_after: reviewDate,
-  };
-
-  // Valid memory candidate data
-  const candidateData = {
-    meta: {
-      version: '1.0',
-      artifact_type: 'memory_candidate',
-      artifact_id: 'memory-candidate-mem-promo-001',
-      producer_type: 'orchestration_authority',
-      created_at: ts,
-    },
-    memory_id: 'mem-promo-001',
-    memory_type: 'project_rule',
-    state: 'candidate',
-    title: 'Test pattern',
-    summary: 'A pattern discovered during testing',
-    scope: 'project',
-    evidence_refs: ['evidence-001'],
-    signals: {
-      evidence_count: 1,
-      reuse_count: 0,
-      successful_reuses: 0,
-      failed_reuses: 0,
-      contradiction_count: 0,
-      confidence: 0.5,
-    },
-    candidate_reason: 'Observed during integration test',
-    source_artifacts: ['task-contract-001'],
-  };
-
-  /** Helper: run a memory CLI command via --cwd and return parsed JSON. */
-  function memRun(cmd) {
-    return runWithCwd(`memory ${cmd}`, tmpDir);
-  }
-
-  /** Helper: run a memory CLI command, expecting failure (non-zero exit). */
-  function memRunExpectFail(cmd) {
-    try {
-      const fullCmd = `node "${CLI}" --cwd "${tmpDir}" memory ${cmd}`;
-      execSync(fullCmd, {
-        encoding: 'utf-8',
-        timeout: 10000,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-      return { errored: false };
-    } catch (err) {
-      const stderr = err.stderr ? err.stderr.toString() : '';
-      return {
-        errored: true,
-        exit_code: err.status,
-        stderr,
-      };
-    }
-  }
-
-  return [
-    // ── index-update: 7 tests ──
-
-    {
-      name: '[memory] index-update: basic create',
-      fn: () => {
-        const data = JSON.stringify(indexEntry1).replace(/"/g, '\\"');
-        return memRun(`index-update --data "${data}"`);
-      },
-      validate: (r) => r.ok === true && r.action === 'added' && r.memory_id === 'mem-001',
-    },
-
-    {
-      name: '[memory] index-update: add second entry',
-      fn: () => {
-        const data = JSON.stringify(indexEntry2).replace(/"/g, '\\"');
-        const result = memRun(`index-update --data "${data}"`);
-        // Also verify both entries exist by reading the index file
-        const indexPath = path.join(tmpDir, '.geas', 'state', 'memory-index.json');
-        const index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
-        result._entry_count = index.entries.length;
-        return result;
-      },
-      validate: (r) =>
-        r.ok === true &&
-        r.action === 'added' &&
-        r.memory_id === 'mem-002' &&
-        r._entry_count === 2,
-    },
-
-    {
-      name: '[memory] index-update: upsert existing entry',
-      fn: () => {
-        const updated = { ...indexEntry1, confidence: 0.9 };
-        const data = JSON.stringify(updated).replace(/"/g, '\\"');
-        const result = memRun(`index-update --data "${data}"`);
-        // Verify the entry was updated, not added
-        const indexPath = path.join(tmpDir, '.geas', 'state', 'memory-index.json');
-        const index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
-        const entry = index.entries.find((e) => e.memory_id === 'mem-001');
-        result._updated_confidence = entry.confidence;
-        result._entry_count = index.entries.length;
-        return result;
-      },
-      validate: (r) =>
-        r.ok === true &&
-        r.action === 'updated' &&
-        r._updated_confidence === 0.9 &&
-        r._entry_count === 2,
-    },
-
-    {
-      name: '[memory] index-update: missing memory_id errors',
-      fn: () => {
-        // memory_id is required; omitting it triggers fileError (exit code 2)
-        const data = JSON.stringify({ memory_type: 'project_rule', state: 'candidate' }).replace(/"/g, '\\"');
-        return memRunExpectFail(`index-update --data "${data}"`);
-      },
-      validate: (r) => r.errored === true && r.exit_code === 2,
-    },
-
-    {
-      name: '[memory] index-update: invalid JSON errors',
-      fn: () => {
-        // Malformed JSON triggers fileError (exit code 2)
-        return memRunExpectFail('index-update --data "not-valid-json"');
-      },
-      validate: (r) => r.errored === true && r.exit_code === 2,
-    },
-
-    {
-      name: '[memory] index-update: schema validation rejects wrong types',
-      fn: () => {
-        // confidence should be a number, not a string; tags should be array, not string
-        const bad = { memory_id: 'mem-bad', memory_type: 'project_rule', state: 'candidate', confidence: 'high', tags: 'not-array', review_after: reviewDate };
-        const data = JSON.stringify(bad).replace(/"/g, '\\"');
-        const result = memRunExpectFail(`index-update --data "${data}"`);
-        return result;
-      },
-      validate: (r) =>
-        r.errored === true &&
-        r.exit_code === 1 &&
-        r.stderr.includes('VALIDATION_ERROR'),
-    },
-
-    {
-      name: '[memory] index-update: preserve existing entries after adding new',
-      fn: () => {
-        const data = JSON.stringify(indexEntry3).replace(/"/g, '\\"');
-        memRun(`index-update --data "${data}"`);
-        // Read back and verify all 3 entries
-        const indexPath = path.join(tmpDir, '.geas', 'state', 'memory-index.json');
-        const index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
-        const ids = index.entries.map((e) => e.memory_id).sort();
-        return { ids, count: index.entries.length };
-      },
-      validate: (r) =>
-        r.count === 3 &&
-        r.ids[0] === 'mem-001' &&
-        r.ids[1] === 'mem-002' &&
-        r.ids[2] === 'mem-003',
-    },
-
-    // ── promote: 13 tests ──
-
-    {
-      name: '[memory] promote setup: write candidate file',
-      fn: () => {
-        const data = JSON.stringify(candidateData).replace(/"/g, '\\"');
-        return memRun(`candidate-write --data "${data}"`);
-      },
-      validate: (r) => r.ok === true && r.memory_id === 'mem-promo-001',
-    },
-
-    {
-      name: '[memory] promote: candidate to provisional',
-      fn: () => memRun('promote --id mem-promo-001 --to provisional'),
-      validate: (r) =>
-        r.ok === true &&
-        r.memory_id === 'mem-promo-001' &&
-        r.from === 'candidate' &&
-        r.to === 'provisional' &&
-        r.moved_from_candidates === true,
-    },
-
-    {
-      name: '[memory] promote: verify entry file has provisional state',
-      fn: () => {
-        const entryPath = path.join(tmpDir, '.geas', 'memory', 'entries', 'mem-promo-001.json');
-        const data = JSON.parse(fs.readFileSync(entryPath, 'utf-8'));
-        return { state: data.state, has_review_after: typeof data.review_after === 'string' };
-      },
-      validate: (r) => r.state === 'provisional' && r.has_review_after === true,
-    },
-
-    {
-      name: '[memory] promote: provisional to stable',
-      fn: () => memRun('promote --id mem-promo-001 --to stable'),
-      validate: (r) =>
-        r.ok === true &&
-        r.from === 'provisional' &&
-        r.to === 'stable',
-    },
-
-    {
-      name: '[memory] promote: verify entry file has stable state',
-      fn: () => {
-        const entryPath = path.join(tmpDir, '.geas', 'memory', 'entries', 'mem-promo-001.json');
-        const data = JSON.parse(fs.readFileSync(entryPath, 'utf-8'));
-        return { state: data.state };
-      },
-      validate: (r) => r.state === 'stable',
-    },
-
-    {
-      name: '[memory] promote: stable to canonical',
-      fn: () => memRun('promote --id mem-promo-001 --to canonical'),
-      validate: (r) =>
-        r.ok === true &&
-        r.from === 'stable' &&
-        r.to === 'canonical',
-    },
-
-    {
-      name: '[memory] promote: verify entry file has canonical state',
-      fn: () => {
-        const entryPath = path.join(tmpDir, '.geas', 'memory', 'entries', 'mem-promo-001.json');
-        const data = JSON.parse(fs.readFileSync(entryPath, 'utf-8'));
-        return { state: data.state };
-      },
-      validate: (r) => r.state === 'canonical',
-    },
-
-    {
-      name: '[memory] promote: invalid transition candidate to canonical (skip)',
-      fn: () => {
-        // Write a fresh candidate for this test
-        const cand2 = {
-          ...candidateData,
-          memory_id: 'mem-promo-002',
-          meta: { ...candidateData.meta, artifact_id: 'memory-candidate-mem-promo-002' },
-        };
-        const writeData = JSON.stringify(cand2).replace(/"/g, '\\"');
-        memRun(`candidate-write --data "${writeData}"`);
-
-        const result = memRunExpectFail('promote --id mem-promo-002 --to canonical');
-        return result;
-      },
-      validate: (r) =>
-        r.errored === true &&
-        r.exit_code === 2 &&
-        r.stderr.includes('Invalid transition'),
-    },
-
-    {
-      name: '[memory] promote: invalid transition canonical to candidate (backwards)',
-      fn: () => {
-        // mem-promo-001 is currently canonical; canonical cannot go to candidate
-        const result = memRunExpectFail('promote --id mem-promo-001 --to candidate');
-        return result;
-      },
-      validate: (r) =>
-        r.errored === true &&
-        r.exit_code === 2 &&
-        r.stderr.includes('Invalid transition'),
-    },
-
-    {
-      name: '[memory] promote: non-existent id errors',
-      fn: () => {
-        const result = memRunExpectFail('promote --id mem-does-not-exist --to provisional');
-        return result;
-      },
-      validate: (r) =>
-        r.errored === true &&
-        r.exit_code === 2 &&
-        r.stderr.includes('not found'),
-    },
-
-    {
-      name: '[memory] promote: candidate to rejected',
-      fn: () => {
-        // mem-promo-002 is still a candidate (skip-to-canonical failed above)
-        return memRun('promote --id mem-promo-002 --to rejected');
-      },
-      validate: (r) =>
-        r.ok === true &&
-        r.from === 'candidate' &&
-        r.to === 'rejected',
-    },
-
-    {
-      name: '[memory] promote: verify rejected state in entry file',
-      fn: () => {
-        const entryPath = path.join(tmpDir, '.geas', 'memory', 'entries', 'mem-promo-002.json');
-        const data = JSON.parse(fs.readFileSync(entryPath, 'utf-8'));
-        return { state: data.state };
-      },
-      validate: (r) => r.state === 'rejected',
-    },
-
-    {
-      name: '[memory] promote: candidate file deleted after promotion',
-      fn: () => {
-        // After promoting mem-promo-002 from candidate, the candidate file should be gone
-        const candidatePath = path.join(tmpDir, '.geas', 'memory', 'candidates', 'mem-promo-002.json');
-        const entryPath = path.join(tmpDir, '.geas', 'memory', 'entries', 'mem-promo-002.json');
-        return {
-          candidate_exists: fs.existsSync(candidatePath),
-          entry_exists: fs.existsSync(entryPath),
-        };
-      },
-      validate: (r) => r.candidate_exists === false && r.entry_exists === true,
-    },
-  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -1319,7 +990,7 @@ function runBenchmark(tmpDir) {
 // ---------------------------------------------------------------------------
 
 function main() {
-  console.log('=== Geas CLI E2E Integration Test ===\n');
+  console.log('=== Geas CLI E2E Integration Test (v4) ===\n');
 
   // Verify CLI is built
   if (!fs.existsSync(path.resolve(__dirname, '..', 'dist', 'main.js'))) {
@@ -1341,126 +1012,46 @@ function main() {
   let failed = 0;
   const failures = [];
 
-  for (const test of tests) {
-    try {
-      const result = test.fn();
-
-      // All commands must return parseable JSON (already parsed by run())
-      if (result === undefined || result === null) {
-        throw new Error('Command returned null/undefined (not valid JSON)');
+  function runTestList(testList, label) {
+    if (label) console.log(`\n--- ${label} ---\n`);
+    for (const test of testList) {
+      try {
+        const result = test.fn();
+        if (result === undefined || result === null) {
+          throw new Error('Command returned null/undefined (not valid JSON)');
+        }
+        if (test.validate && !test.validate(result)) {
+          throw new Error(`Validation failed. Got: ${JSON.stringify(result).slice(0, 200)}`);
+        }
+        console.log(`  PASS  ${test.name}`);
+        passed++;
+      } catch (err) {
+        const msg = err.stderr ? err.stderr.toString().trim() : err.message;
+        console.log(`  FAIL  ${test.name}: ${msg.slice(0, 200)}`);
+        failed++;
+        failures.push({ name: test.name, error: msg.slice(0, 500) });
       }
-
-      // Run custom validation if provided
-      if (test.validate && !test.validate(result)) {
-        throw new Error(
-          `Validation failed. Got: ${JSON.stringify(result).slice(0, 200)}`,
-        );
-      }
-
-      console.log(`  PASS  ${test.name}`);
-      passed++;
-    } catch (err) {
-      const msg = err.stderr
-        ? err.stderr.toString().trim()
-        : err.message;
-      console.log(`  FAIL  ${test.name}: ${msg.slice(0, 200)}`);
-      failed++;
-      failures.push({ name: test.name, error: msg.slice(0, 500) });
     }
   }
 
-  // Phase 5: --cwd support tests
-  console.log('\n--- Phase 5: --cwd support ---\n');
+  // Phase 1-4: Core lifecycle
+  runTestList(tests);
+
+  // Phase 5: --cwd support
   const cwdTestSuite = defineCwdTests(tmpDir);
-
-  for (const test of cwdTestSuite.tests) {
-    try {
-      const result = test.fn();
-
-      if (result === undefined || result === null) {
-        throw new Error('Command returned null/undefined (not valid JSON)');
-      }
-
-      if (test.validate && !test.validate(result)) {
-        throw new Error(
-          `Validation failed. Got: ${JSON.stringify(result).slice(0, 200)}`,
-        );
-      }
-
-      console.log(`  PASS  ${test.name}`);
-      passed++;
-    } catch (err) {
-      const msg = err.stderr
-        ? err.stderr.toString().trim()
-        : err.message;
-      console.log(`  FAIL  ${test.name}: ${msg.slice(0, 200)}`);
-      failed++;
-      failures.push({ name: test.name, error: msg.slice(0, 500) });
-    }
-  }
+  runTestList(cwdTestSuite.tests, 'Phase 5: --cwd support');
 
   // Phase 7: Transition and Phase Guards
-  console.log('\n--- Phase 7: Transition and Phase Guards ---\n');
   const guardTestSuite = defineGuardTests(tmpDir);
   guardTestSuite.setup();
+  runTestList(guardTestSuite.tests, 'Phase 7: Transition and Phase Guards');
 
-  for (const test of guardTestSuite.tests) {
-    try {
-      const result = test.fn();
+  // Phase 8: v4 features (record, evidence, packet, memory)
+  const v4TestSuite = defineV4Tests(tmpDir);
+  v4TestSuite.setup();
+  runTestList(v4TestSuite.tests, 'Phase 8: v4 Features (record, evidence, packet, memory)');
 
-      if (result === undefined || result === null) {
-        throw new Error('Command returned null/undefined (not valid JSON)');
-      }
-
-      if (test.validate && !test.validate(result)) {
-        throw new Error(
-          `Validation failed. Got: ${JSON.stringify(result).slice(0, 200)}`,
-        );
-      }
-
-      console.log(`  PASS  ${test.name}`);
-      passed++;
-    } catch (err) {
-      const msg = err.stderr
-        ? err.stderr.toString().trim()
-        : err.message;
-      console.log(`  FAIL  ${test.name}: ${msg.slice(0, 200)}`);
-      failed++;
-      failures.push({ name: test.name, error: msg.slice(0, 500) });
-    }
-  }
-
-  // Phase 8: Memory Commands
-  console.log('\n--- Phase 8: Memory Commands ---\n');
-  const memoryTests = defineMemoryTests(tmpDir);
-
-  for (const test of memoryTests) {
-    try {
-      const result = test.fn();
-
-      if (result === undefined || result === null) {
-        throw new Error('Command returned null/undefined (not valid JSON)');
-      }
-
-      if (test.validate && !test.validate(result)) {
-        throw new Error(
-          `Validation failed. Got: ${JSON.stringify(result).slice(0, 200)}`,
-        );
-      }
-
-      console.log(`  PASS  ${test.name}`);
-      passed++;
-    } catch (err) {
-      const msg = err.stderr
-        ? err.stderr.toString().trim()
-        : err.message;
-      console.log(`  FAIL  ${test.name}: ${msg.slice(0, 200)}`);
-      failed++;
-      failures.push({ name: test.name, error: msg.slice(0, 500) });
-    }
-  }
-
-  const totalTests = tests.length + cwdTestSuite.tests.length + guardTestSuite.tests.length + memoryTests.length;
+  const totalTests = tests.length + cwdTestSuite.tests.length + guardTestSuite.tests.length + v4TestSuite.tests.length;
 
   // Run performance benchmark
   const benchOk = runBenchmark(tmpDir);

@@ -1,9 +1,12 @@
 /**
  * Transition guards — artifact-existence checks for task state transitions.
  *
- * Each forward transition in the 7-state task model requires specific artifacts
- * to exist before the transition is allowed. Rewind transitions (gate-fail,
- * iterate) have no artifact requirements.
+ * v4: Guards check record.json sections and tasks/{tid}/evidence/ files
+ * instead of individual artifact files.
+ *
+ * Each forward transition in the 7-state task model requires specific
+ * record.json sections and/or evidence files before the transition is allowed.
+ * Rewind transitions (gate-fail, iterate) have no artifact requirements.
  */
 
 import * as fs from 'fs';
@@ -37,6 +40,73 @@ function isRewind(from: string, to: string): boolean {
   return REWIND_TRANSITIONS.has(`${from}->${to}`);
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────
+
+/** Read record.json for a task. Returns null if not found. */
+function readRecord(
+  geasDir: string, missionId: string, taskId: string,
+): Record<string, unknown> | null {
+  const recordPath = path.resolve(
+    geasDir, 'missions', missionId, 'tasks', taskId, 'record.json',
+  );
+  return readJsonFile<Record<string, unknown>>(recordPath);
+}
+
+/** Check if a record.json section exists and optionally has a specific field value. */
+function hasRecordSection(
+  record: Record<string, unknown> | null,
+  section: string,
+  fieldCheck?: { field: string; value: string },
+): boolean {
+  if (!record) return false;
+  const sec = record[section] as Record<string, unknown> | undefined;
+  if (!sec || typeof sec !== 'object') return false;
+  if (fieldCheck) {
+    return sec[fieldCheck.field] === fieldCheck.value;
+  }
+  return true;
+}
+
+/** List evidence files for a task. Returns filenames. */
+function listEvidenceFiles(
+  geasDir: string, missionId: string, taskId: string,
+): string[] {
+  const evidenceDir = path.resolve(
+    geasDir, 'missions', missionId, 'tasks', taskId, 'evidence',
+  );
+  if (!fs.existsSync(evidenceDir)) return [];
+  try {
+    return fs.readdirSync(evidenceDir).filter(f => f.endsWith('.json'));
+  } catch {
+    return [];
+  }
+}
+
+/** Check if evidence with a specific role exists. */
+function hasEvidenceWithRole(
+  geasDir: string, missionId: string, taskId: string, roles: string[],
+): boolean {
+  const evidenceDir = path.resolve(
+    geasDir, 'missions', missionId, 'tasks', taskId, 'evidence',
+  );
+  if (!fs.existsSync(evidenceDir)) return false;
+
+  try {
+    const files = fs.readdirSync(evidenceDir).filter(f => f.endsWith('.json'));
+    for (const file of files) {
+      const data = readJsonFile<Record<string, unknown>>(
+        path.resolve(evidenceDir, file),
+      );
+      if (data && typeof data.role === 'string' && roles.includes(data.role)) {
+        return true;
+      }
+    }
+  } catch {
+    // directory read failed
+  }
+  return false;
+}
+
 // ── Per-transition guard logic ─────────────────────────────────────────
 
 type GuardFn = (
@@ -45,17 +115,20 @@ type GuardFn = (
   taskId: string,
 ) => GuardResult;
 
+/**
+ * drafted -> ready: contract.json must exist with required fields.
+ */
 function guardDraftedToReady(
   geasDir: string,
   missionId: string,
   taskId: string,
 ): GuardResult {
-  const taskPath = path.resolve(
-    geasDir, 'missions', missionId, 'tasks', `${taskId}.json`,
+  const contractPath = path.resolve(
+    geasDir, 'missions', missionId, 'tasks', taskId, 'contract.json',
   );
-  const task = readJsonFile<Record<string, unknown>>(taskPath);
+  const task = readJsonFile<Record<string, unknown>>(contractPath);
   if (!task) {
-    return { valid: false, missing_artifacts: [`tasks/${taskId}.json`] };
+    return { valid: false, missing_artifacts: [`tasks/${taskId}/contract.json`] };
   }
 
   const required: string[] = [
@@ -69,7 +142,7 @@ function guardDraftedToReady(
   const missing: string[] = [];
   for (const field of required) {
     if (task[field] === undefined || task[field] === null) {
-      missing.push(`task_contract.${field}`);
+      missing.push(`contract.json.${field}`);
     }
   }
 
@@ -80,7 +153,7 @@ function guardDraftedToReady(
     !Array.isArray(rubric.dimensions) ||
     rubric.dimensions.length === 0
   ) {
-    missing.push('task_contract.rubric.dimensions[]');
+    missing.push('contract.json.rubric.dimensions[]');
   }
 
   return missing.length === 0
@@ -88,62 +161,62 @@ function guardDraftedToReady(
     : { valid: false, missing_artifacts: missing };
 }
 
+/**
+ * ready -> implementing: record.json must have implementation_contract
+ * section with status "approved".
+ */
 function guardReadyToImplementing(
   geasDir: string,
   missionId: string,
   taskId: string,
 ): GuardResult {
-  const contractPath = path.resolve(
-    geasDir, 'missions', missionId, 'contracts', `${taskId}.json`,
-  );
-  const contract = readJsonFile<Record<string, unknown>>(contractPath);
+  const record = readRecord(geasDir, missionId, taskId);
 
-  if (!contract) {
+  if (!hasRecordSection(record, 'implementation_contract', { field: 'status', value: 'approved' })) {
+    const sec = record?.[
+      'implementation_contract'
+    ] as Record<string, unknown> | undefined;
+    if (!sec) {
+      return {
+        valid: false,
+        missing_artifacts: ['record.json:implementation_contract section'],
+      };
+    }
     return {
       valid: false,
-      missing_artifacts: [`contracts/${taskId}.json`],
-    };
-  }
-  if (contract.status !== 'approved') {
-    return {
-      valid: false,
-      missing_artifacts: [`contracts/${taskId}.json (status must be "approved", got "${contract.status}")`],
+      missing_artifacts: [
+        `record.json:implementation_contract.status must be "approved" (got "${sec.status}")`,
+      ],
     };
   }
   return { valid: true };
 }
 
+/**
+ * implementing -> reviewed: record.json must have self_check section,
+ * and evidence/ must have at least 1 file with implementer role.
+ */
 function guardImplementingToReviewed(
   geasDir: string,
   missionId: string,
   taskId: string,
 ): GuardResult {
   const missing: string[] = [];
-  const taskDir = path.resolve(
-    geasDir, 'missions', missionId, 'tasks', taskId,
-  );
+  const record = readRecord(geasDir, missionId, taskId);
 
-  // worker-self-check.json
-  const selfCheckPath = path.resolve(taskDir, 'worker-self-check.json');
-  if (!fs.existsSync(selfCheckPath)) {
-    missing.push(`tasks/${taskId}/worker-self-check.json`);
+  // self_check section required
+  if (!hasRecordSection(record, 'self_check')) {
+    missing.push('record.json:self_check section');
   }
 
-  // At least 1 file containing "review" in filename under evidence/{tid}/
-  const evidenceDir = path.resolve(
-    geasDir, 'missions', missionId, 'evidence', taskId,
-  );
-  let hasReview = false;
-  if (fs.existsSync(evidenceDir)) {
-    try {
-      const files = fs.readdirSync(evidenceDir);
-      hasReview = files.some(f => f.toLowerCase().includes('review'));
-    } catch {
-      // directory read failed
+  // At least 1 evidence file with implementer role
+  if (!hasEvidenceWithRole(geasDir, missionId, taskId, ['implementer'])) {
+    const evidenceFiles = listEvidenceFiles(geasDir, missionId, taskId);
+    if (evidenceFiles.length === 0) {
+      missing.push('evidence/ (no files)');
+    } else {
+      missing.push('evidence/ (no file with role=implementer)');
     }
-  }
-  if (!hasReview) {
-    missing.push(`evidence/${taskId}/*review* (at least 1 review file)`);
   }
 
   return missing.length === 0
@@ -151,95 +224,96 @@ function guardImplementingToReviewed(
     : { valid: false, missing_artifacts: missing };
 }
 
+/**
+ * reviewed -> integrated: record.json must have gate_result section
+ * with verdict "pass", and evidence/ must have reviewer or tester role.
+ */
 function guardReviewedToIntegrated(
   geasDir: string,
   missionId: string,
   taskId: string,
 ): GuardResult {
-  const resultPath = path.resolve(
-    geasDir, 'missions', missionId, 'tasks', taskId, 'integration-result.json',
-  );
-  if (!fs.existsSync(resultPath)) {
-    return {
-      valid: false,
-      missing_artifacts: [`tasks/${taskId}/integration-result.json`],
-    };
+  const missing: string[] = [];
+  const record = readRecord(geasDir, missionId, taskId);
+
+  if (!hasRecordSection(record, 'gate_result', { field: 'verdict', value: 'pass' })) {
+    const sec = record?.['gate_result'] as Record<string, unknown> | undefined;
+    if (!sec) {
+      missing.push('record.json:gate_result section');
+    } else {
+      missing.push(
+        `record.json:gate_result.verdict must be "pass" (got "${sec.verdict}")`,
+      );
+    }
   }
-  return { valid: true };
+
+  // reviewer or tester role required
+  if (!hasEvidenceWithRole(geasDir, missionId, taskId, ['reviewer', 'tester'])) {
+    missing.push('evidence/ (no file with role=reviewer or role=tester)');
+  }
+
+  return missing.length === 0
+    ? { valid: true }
+    : { valid: false, missing_artifacts: missing };
 }
 
+/**
+ * integrated -> verified: pass (no requirements).
+ */
 function guardIntegratedToVerified(
-  geasDir: string,
-  missionId: string,
-  taskId: string,
+  _geasDir: string,
+  _missionId: string,
+  _taskId: string,
 ): GuardResult {
-  const gatePath = path.resolve(
-    geasDir, 'missions', missionId, 'tasks', taskId, 'gate-result.json',
-  );
-  const gate = readJsonFile<Record<string, unknown>>(gatePath);
-
-  if (!gate) {
-    return {
-      valid: false,
-      missing_artifacts: [`tasks/${taskId}/gate-result.json`],
-    };
-  }
-  if (gate.verdict !== 'pass') {
-    return {
-      valid: false,
-      missing_artifacts: [`tasks/${taskId}/gate-result.json (verdict must be "pass", got "${gate.verdict}")`],
-    };
-  }
   return { valid: true };
 }
 
+/**
+ * verified -> passed: record.json must have verdict (pass), closure,
+ * retrospective sections. challenge_review required for high/critical risk.
+ */
 function guardVerifiedToPassed(
   geasDir: string,
   missionId: string,
   taskId: string,
 ): GuardResult {
   const missing: string[] = [];
-  const taskDir = path.resolve(
-    geasDir, 'missions', missionId, 'tasks', taskId,
-  );
+  const record = readRecord(geasDir, missionId, taskId);
 
-  // closure-packet.json
-  if (!fs.existsSync(path.resolve(taskDir, 'closure-packet.json'))) {
-    missing.push(`closure-packet.json does not exist for task ${taskId}`);
-  }
-
-  // final-verdict.json with verdict: "pass"
-  const verdictPath = path.resolve(taskDir, 'final-verdict.json');
-  const verdict = readJsonFile<Record<string, unknown>>(verdictPath);
-  if (!verdict) {
-    missing.push(`final-verdict.json does not exist for task ${taskId}`);
-  } else if (verdict.verdict !== 'pass') {
-    missing.push(
-      `final-verdict.json verdict is '${verdict.verdict}', expected 'pass'`,
-    );
-  }
-
-  // retrospective.json
-  if (!fs.existsSync(path.resolve(taskDir, 'retrospective.json'))) {
-    missing.push(`tasks/${taskId}/retrospective.json`);
-  }
-
-  // challenge-review.json — required for high, critical risk
-  const taskContractPath = path.resolve(
-    geasDir, 'missions', missionId, 'tasks', `${taskId}.json`,
-  );
-  const taskContract = readJsonFile<Record<string, unknown>>(taskContractPath);
-  const riskLevel = taskContract?.risk_level as string | undefined;
-  const requiresChallenge = ['high', 'critical'].includes(
-    riskLevel ?? '',
-  );
-
-  if (requiresChallenge) {
-    if (!fs.existsSync(path.resolve(taskDir, 'challenge-review.json'))) {
+  // verdict section with verdict: "pass"
+  if (!hasRecordSection(record, 'verdict', { field: 'verdict', value: 'pass' })) {
+    const sec = record?.['verdict'] as Record<string, unknown> | undefined;
+    if (!sec) {
+      missing.push('record.json:verdict section');
+    } else {
       missing.push(
-        `challenge-review.json is required for ${riskLevel}-risk task ${taskId}`,
+        `record.json:verdict.verdict must be "pass" (got "${sec.verdict}")`,
       );
     }
+  }
+
+  // closure section
+  if (!hasRecordSection(record, 'closure')) {
+    missing.push('record.json:closure section');
+  }
+
+  // retrospective section
+  if (!hasRecordSection(record, 'retrospective')) {
+    missing.push('record.json:retrospective section');
+  }
+
+  // challenge_review — required for high/critical risk
+  const contractPath = path.resolve(
+    geasDir, 'missions', missionId, 'tasks', taskId, 'contract.json',
+  );
+  const contract = readJsonFile<Record<string, unknown>>(contractPath);
+  const riskLevel = contract?.risk_level as string | undefined;
+  const requiresChallenge = ['high', 'critical'].includes(riskLevel ?? '');
+
+  if (requiresChallenge && !hasRecordSection(record, 'challenge_review')) {
+    missing.push(
+      `record.json:challenge_review section (required for ${riskLevel}-risk task)`,
+    );
   }
 
   return missing.length === 0
@@ -263,7 +337,7 @@ const GUARDS: Record<string, GuardFn> = {
 /**
  * Validate that the required artifacts exist for a task state transition.
  *
- * - Forward transitions check for specific artifacts.
+ * - Forward transitions check for specific artifacts (record.json sections + evidence).
  * - Rewind transitions (gate-fail / iterate) pass unconditionally.
  * - Auxiliary transitions (-> blocked/escalated/cancelled) pass unconditionally.
  * - Unknown transitions pass (state validity is checked elsewhere).

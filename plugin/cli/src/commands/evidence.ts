@@ -1,74 +1,124 @@
 /**
- * Evidence command group — record evidence JSON to per-task directories,
- * read evidence for a task/agent.
+ * Evidence command group — role-based evidence file creation and reading.
  *
- * Paths: .geas/missions/{mid}/evidence/{tid}/{agent}.json
+ * v4: Paths moved to tasks/{tid}/evidence/{agent}.json (was evidence/{tid}/{agent}.json).
+ *     Schema validation via evidence.schema.json with role-based required fields.
+ *     `evidence record` replaced by `evidence add`.
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Command } from 'commander';
-import { success, fileError } from '../lib/output';
-import { resolveGeasDir, resolveMissionDir, normalizePath } from '../lib/paths';
+import { success, validationError, fileError } from '../lib/output';
+import { resolveGeasDir, normalizePath } from '../lib/paths';
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
+import { validate } from '../lib/schema';
 import { getCwd } from '../lib/cwd';
+import { readInputData, parseSetFlags } from '../lib/input';
+
+/**
+ * Resolve mission ID from --mission flag or run.json.
+ */
+function resolveMissionId(geasDir: string, missionOpt?: string): string {
+  if (missionOpt) return missionOpt;
+  const runPath = path.resolve(geasDir, 'state', 'run.json');
+  const run = readJsonFile<Record<string, unknown>>(runPath);
+  if (run?.mission_id && typeof run.mission_id === 'string') {
+    return run.mission_id;
+  }
+  const err = new Error('No --mission provided and no mission_id in run.json');
+  (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
+  throw err;
+}
 
 export function registerEvidenceCommands(program: Command): void {
   const cmd = program
     .command('evidence')
-    .description('Evidence directory management and file write');
+    .description('Role-based evidence file management');
 
-  // --- evidence record ---
+  // --- evidence add ---
   cmd
-    .command('record')
-    .description('Write evidence JSON to the evidence directory')
-    .requiredOption('--mission <mid>', 'Mission identifier')
+    .command('add')
+    .description('Create or overwrite a role-based evidence file')
+    .option('--mission <mid>', 'Mission identifier (auto-resolved from run.json)')
     .requiredOption('--task <tid>', 'Task identifier')
     .requiredOption('--agent <name>', 'Agent name (used as filename)')
-    .requiredOption('--data <json>', 'Evidence data as JSON string')
-    .action((opts: { mission: string; task: string; agent: string; data: string }, cmd: Command) => {
+    .requiredOption('--role <role>', 'Agent role (implementer, reviewer, tester, authority)')
+    .option('--data <json>', 'Evidence data as JSON string')
+    .option('--file <path>', 'Read evidence data from JSON file')
+    .option('--set <key=value...>', 'Set individual fields', collectSet, [])
+    .action((opts: {
+      mission?: string;
+      task: string;
+      agent: string;
+      role: string;
+      data?: string;
+      file?: string;
+      set: string[];
+    }) => {
       try {
-        // Parse and validate data
-        let evidenceData: Record<string, unknown>;
-        try {
-          evidenceData = JSON.parse(opts.data) as Record<string, unknown>;
-        } catch {
-          fileError(opts.data, 'parse', 'Invalid JSON in --data');
-          return;
-        }
-
-        if (typeof evidenceData !== 'object' || evidenceData === null || Array.isArray(evidenceData)) {
-          fileError(opts.data, 'parse', '--data must be a JSON object');
-          return;
-        }
-
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
-        const missionDir = resolveMissionDir(geasDir, opts.mission);
+        const missionId = resolveMissionId(geasDir, opts.mission);
 
-        // Sanitize agent name: only allow alphanumeric, dash, underscore
+        // Sanitize agent name
         const agentName = opts.agent.replace(/[^a-zA-Z0-9_-]/g, '');
         if (!agentName) {
           fileError(opts.agent, 'validate', 'Agent name is empty after sanitization');
           return;
         }
 
-        const evidenceDir = path.resolve(missionDir, 'evidence', opts.task);
+        // Build evidence data
+        let evidenceData: Record<string, unknown>;
+
+        if (opts.data || opts.file) {
+          evidenceData = readInputData(opts.data, opts.file) as Record<string, unknown>;
+          if (opts.set.length > 0) {
+            const overrides = parseSetFlags(opts.set);
+            Object.assign(evidenceData, overrides);
+          }
+        } else if (opts.set.length > 0) {
+          evidenceData = parseSetFlags(opts.set);
+        } else {
+          fileError('', 'evidence add', 'No data provided. Use --data, --file, or --set.');
+          return;
+        }
+
+        // Auto-inject common fields from flags
+        evidenceData.version = evidenceData.version || '1.0';
+        evidenceData.agent = evidenceData.agent || agentName;
+        evidenceData.task_id = evidenceData.task_id || opts.task;
+        evidenceData.role = evidenceData.role || opts.role;
+
+        // Validate against evidence schema (includes role-based allOf checks)
+        const result = validate('evidence', evidenceData);
+        if (!result.valid) {
+          validationError('evidence', result.errors || []);
+          return;
+        }
+
+        // v4: evidence lives inside tasks/{tid}/evidence/
+        const missionDir = path.resolve(geasDir, 'missions', missionId);
+        const evidenceDir = path.resolve(missionDir, 'tasks', opts.task, 'evidence');
         ensureDir(evidenceDir);
 
         const filePath = path.resolve(evidenceDir, `${agentName}.json`);
-
         writeJsonFile(filePath, evidenceData, { cwd });
 
         success({
           written: normalizePath(filePath),
-          mission_id: opts.mission,
+          mission_id: missionId,
           task_id: opts.task,
           agent: agentName,
+          role: opts.role,
         });
       } catch (err: unknown) {
         const nodeErr = err as NodeJS.ErrnoException;
-        fileError('', 'evidence record', nodeErr.message || String(err));
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'evidence add', nodeErr.message);
+        } else {
+          throw err;
+        }
       }
     });
 
@@ -76,17 +126,20 @@ export function registerEvidenceCommands(program: Command): void {
   cmd
     .command('read')
     .description('Read evidence for a task (single agent or all)')
-    .requiredOption('--mission <mid>', 'Mission identifier')
+    .option('--mission <mid>', 'Mission identifier (auto-resolved from run.json)')
     .requiredOption('--task <tid>', 'Task identifier')
     .option('--agent <name>', 'Agent name (omit to list all)')
-    .action((opts: { mission: string; task: string; agent?: string }, cmd: Command) => {
+    .action((opts: { mission?: string; task: string; agent?: string }) => {
       try {
-        const geasDir = resolveGeasDir(getCwd(cmd));
-        const missionDir = resolveMissionDir(geasDir, opts.mission);
-        const evidenceDir = path.resolve(missionDir, 'evidence', opts.task);
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        const missionDir = path.resolve(geasDir, 'missions', missionId);
+
+        // v4: evidence inside tasks/{tid}/evidence/
+        const evidenceDir = path.resolve(missionDir, 'tasks', opts.task, 'evidence');
 
         if (opts.agent) {
-          // Read a single agent's evidence
           const agentName = opts.agent.replace(/[^a-zA-Z0-9_-]/g, '');
           if (!agentName) {
             fileError(opts.agent, 'validate', 'Agent name is empty after sanitization');
@@ -101,16 +154,15 @@ export function registerEvidenceCommands(program: Command): void {
           }
 
           success({
-            mission_id: opts.mission,
+            mission_id: missionId,
             task_id: opts.task,
             agent: agentName,
             evidence: data,
           });
         } else {
-          // List all evidence files for the task
           if (!fs.existsSync(evidenceDir)) {
             success({
-              mission_id: opts.mission,
+              mission_id: missionId,
               task_id: opts.task,
               agents: [],
               evidence: {},
@@ -132,7 +184,7 @@ export function registerEvidenceCommands(program: Command): void {
           }
 
           success({
-            mission_id: opts.mission,
+            mission_id: missionId,
             task_id: opts.task,
             agents,
             evidence,
@@ -143,4 +195,9 @@ export function registerEvidenceCommands(program: Command): void {
         fileError('', 'evidence read', nodeErr.message || String(err));
       }
     });
+}
+
+/** Commander variadic option collector for --set. */
+function collectSet(value: string, previous: string[]): string[] {
+  return previous.concat([value]);
 }
