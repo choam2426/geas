@@ -29,7 +29,14 @@ Bash("geas mission create --id {mission_id}")
    ```bash
    Bash("geas mission write-brief --id {mission_id} --data '<design_brief_json>'")
    ```
-   The CLI validates the brief automatically. Set `status: "draft"`.
+   The CLI validates the brief automatically and auto-injects `created_at`. Set `status: "draft"`.
+
+   **Schema field reference** (exact names required by CLI validation):
+   - `risks[]`: items have `description` and `mitigation` (not `risk`)
+   - `alternatives_considered[]`: items have `approach` and `rejected_reason` (not `rejected_because`)
+   - `design_review`: must be an object with `reviewer_type` and `summary` (not null)
+   - `producer_type`: must be `"orchestration-authority"` (kebab-case)
+
 2. Propose a mission mode to the user:
    - **`lightweight`**: Mission has clear scope, existing patterns apply, low ambiguity. Only minimum fields: `chosen_approach`, `non_goals`, `verification_strategy`. **Note: lightweight only simplifies intake and design-brief. The Building pipeline (task-compiler, state transitions, agent spawning, evidence gate) is identical across all modes.**
    - **`standard`**: Mission has moderate scope, some architectural decisions, normal risk. Adds: `architecture_decisions`, `risks`, `preserve_list`.
