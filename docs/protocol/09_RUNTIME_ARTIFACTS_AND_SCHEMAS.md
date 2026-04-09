@@ -172,6 +172,10 @@ Once an artifact represents a completed step, it should be treated as immutable.
 
 History rewriting weakens traceability.
 
+## Overwrite Policy
+
+Sections in `record.json` and evidence files may be overwritten by subsequent writes. This is by design — the pipeline is iterative (verify-fix-loop, revalidation). Semantic correctness after overwrites is enforced by transition guards at state change boundaries, not by file immutability. Guard checks re-read current state on every transition attempt.
+
 ## Recommended Hardening Patterns
 
 The following are RECOMMENDED even if not yet present in every canonical schema. Projects SHOULD implement these through schema extension or companion metadata, not hidden ad hoc fields.

@@ -70,7 +70,7 @@ try {
 } catch {}
 
 const summary = { totals, by_agent: byAgent, timestamp: new Date().toISOString().replace(/\\.\\d{3}Z\$/, 'Z') };
-h.writeJson(path.join(geas, 'ledger', 'token-summary.json'), summary);
+h.writeJson(path.join(geas, 'state', 'token-summary.json'), summary);
 
 const agentCount = Object.keys(byAgent).length;
 h.info('Token summary: input=' + totals.input + ' output=' + totals.output + ' agents=' + agentCount);

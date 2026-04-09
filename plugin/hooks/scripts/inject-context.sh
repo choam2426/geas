@@ -18,6 +18,9 @@ const parts = [];
 
 // Inject rules.md
 const rulesPath = path.join(geas, 'rules.md');
+if (!h.exists(rulesPath)) {
+  process.stderr.write('[geas] Warning: .geas/ exists but rules.md not found. Run /geas:setup to initialize.\n');
+}
 if (h.exists(rulesPath)) {
   const content = fs.readFileSync(rulesPath, 'utf8').trim();
   if (content) {
