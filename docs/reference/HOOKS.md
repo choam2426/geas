@@ -10,7 +10,7 @@ Shared library: `plugin/hooks/scripts/lib/geas-hooks.js`
 
 ## Hook Inventory
 
-13 hooks (12 scripts + 1 shared library) across 6 lifecycle events.
+10 hooks (9 scripts + 1 shared library) across 6 lifecycle events.
 
 | # | Event | Matcher | Script | Purpose |
 |---|-------|---------|--------|---------|
@@ -18,14 +18,11 @@ Shared library: `plugin/hooks/scripts/lib/geas-hooks.js`
 | 2 | SubagentStart | (all) | inject-context.sh | Inject rules and agent memory into sub-agent |
 | 3 | PreToolUse | Write | checkpoint-pre-write.sh | Backup run.json before write (two-phase checkpoint) |
 | 4 | PostToolUse | Write\|Edit | protect-geas-state.sh | Scope guard, timestamp injection, spec freeze warning |
-| 5 | PostToolUse | Write\|Edit | verify-task-status.sh | Domain-agnostic evidence verification for passed tasks |
-| 6 | PostToolUse | Write\|Edit | check-debt.sh | Debt threshold warnings |
-| 7 | PostToolUse | Write\|Edit | lock-conflict-check.sh | Detect conflicting lock targets |
-| 8 | PostToolUse | Write\|Edit | checkpoint-post-write.sh | Cleanup pending checkpoint after write |
-| 9 | PostToolUse | Write\|Edit | packet-stale-check.sh | Warn on stale context packets |
-| 10 | PostToolUse | Bash | integration-lane-check.sh | Warn on merge without integration lock |
-| 11 | Stop | (all) | calculate-cost.sh | Calculate session cost |
-| 12 | PostCompact | (all) | restore-context.sh | Restore state after context compaction |
+| 5 | PostToolUse | Write\|Edit | checkpoint-post-write.sh | Cleanup pending checkpoint after write |
+| 6 | PostToolUse | Write\|Edit | packet-stale-check.sh | Warn on stale context packets |
+| 7 | PostToolUse | Bash | integration-lane-check.sh | Warn on merge without integration lock |
+| 8 | Stop | (all) | calculate-cost.sh | Calculate session cost |
+| 9 | PostCompact | (all) | restore-context.sh | Restore state after context compaction |
 
 ---
 
@@ -54,15 +51,6 @@ Session begins
 │   │   │
 │   │   ├─► PostToolUse (Write|Edit) → protect-geas-state.sh
 │   │   │     Timestamp injection, scope path warning, mission spec freeze guard
-│   │   │
-│   │   ├─► PostToolUse (Write|Edit) → verify-task-status.sh
-│   │   │     Check required_reviewer_types evidence + rubric_scores validation
-│   │   │
-│   │   ├─► PostToolUse (Write|Edit) → check-debt.sh
-│   │   │     Warn when HIGH debt items >= 3
-│   │   │
-│   │   ├─► PostToolUse (Write|Edit) → lock-conflict-check.sh
-│   │   │     Detect overlapping lock targets between tasks
 │   │   │
 │   │   ├─► PostToolUse (Write|Edit) → checkpoint-post-write.sh
 │   │   │     Remove pending checkpoint backup after successful write
@@ -155,7 +143,7 @@ Fires before every `Write` tool call. Implements the first half of a two-phase c
 1. Checks if the write target is `.geas/state/run.json`. All other writes are ignored.
 2. Copies `run.json` to `_checkpoint_pending` as a backup.
 
-Works in tandem with `checkpoint-post-write.sh` (Hook 8).
+Works in tandem with `checkpoint-post-write.sh` (Hook 5).
 
 **Conditions:** Only acts on writes to `.geas/state/run.json`. Skips if `run.json` does not exist yet.
 
@@ -194,79 +182,7 @@ If the written file matches `*/.geas/missions/*/spec.json`, prints:
 
 ---
 
-### Hook 5 — verify-task-status.sh
-
-| Field | Value |
-|---|---|
-| Event | `PostToolUse` |
-| Matcher | `Write\|Edit` |
-| Script | `plugin/hooks/scripts/verify-task-status.sh` |
-| Blocking | No (exits 0 in all cases) |
-| Timeout | 10 s |
-
-Fires after every `Write` or `Edit` to a task file. When a task is marked `"passed"`, verifies all mandatory evidence exists. This hook is **domain-agnostic** — it reads `routing.required_reviewer_types` from the task contract instead of checking hardcoded agent names.
-
-**Evidence checks:**
-
-1. **Required reviewer evidence** — reads `routing.required_reviewer_types` from the task. For each reviewer type, looks for evidence files using kebab-case and underscore naming variants (e.g., `design-authority-review.json`, `design_authority.json`). Warns if not found.
-2. **Product authority verdict** — always required: `product-authority-verdict.json`.
-3. **Challenge review** — required only for `high` or `critical` risk tasks: `challenge-review.json`.
-4. **Retrospective** — always required: `retrospective.json`.
-5. **Rubric scores** — scans all evidence files in the evidence directory. Any file containing `reviewer_type` but missing a non-empty `rubric_scores` field triggers a warning.
-
-**Conditions:**
-- Only activates for writes to `.geas/missions/*/tasks/*.json`.
-- Only checks evidence when the task `status` field equals `"passed"`.
-
----
-
-### Hook 6 — check-debt.sh
-
-| Field | Value |
-|---|---|
-| Event | `PostToolUse` |
-| Matcher | `Write\|Edit` |
-| Script | `plugin/hooks/scripts/check-debt.sh` |
-| Blocking | No (exits 0 in all cases) |
-| Timeout | 10 s |
-
-Fires after every `Write` or `Edit` to the debt ledger.
-
-1. Filters to `.geas/missions/*/evolution/debt-register.json` only.
-2. Counts items where `severity == "HIGH"` and `status == "open"`.
-3. Warns when the count reaches 3 or more:
-   ```
-   [Geas] WARNING: Debt register has <N> open HIGH severity items. Consider addressing before proceeding.
-   ```
-
----
-
-### Hook 7 — lock-conflict-check.sh
-
-| Field | Value |
-|---|---|
-| Event | `PostToolUse` |
-| Matcher | `Write\|Edit` |
-| Script | `plugin/hooks/scripts/lock-conflict-check.sh` |
-| Blocking | No (exits 0 in all cases) |
-| Timeout | 10 s |
-
-Fires after every `Write` or `Edit` tool call. Checks for overlapping lock targets.
-
-1. Reads `.geas/state/locks.json`. Exits silently if absent.
-2. Groups all held locks by `lock_type`.
-3. Detects overlapping targets between locks held by different tasks.
-4. Warns on conflict:
-   ```
-   LOCK CONFLICT DETECTED:
-   edit: TASK-001 vs TASK-002 on ['src/auth.ts']
-   ```
-
-**Conditions:** Only checks locks with `status == "held"`. Compares within the same `lock_type` only.
-
----
-
-### Hook 8 — checkpoint-post-write.sh
+### Hook 5 — checkpoint-post-write.sh
 
 | Field | Value |
 |---|---|
@@ -285,7 +201,7 @@ Works in tandem with `checkpoint-pre-write.sh` (Hook 3).
 
 ---
 
-### Hook 9 — packet-stale-check.sh
+### Hook 6 — packet-stale-check.sh
 
 | Field | Value |
 |---|---|
@@ -308,7 +224,7 @@ Fires after every `Write` or `Edit` to `run.json`.
 
 ---
 
-### Hook 10 — integration-lane-check.sh
+### Hook 7 — integration-lane-check.sh
 
 | Field | Value |
 |---|---|
@@ -329,7 +245,7 @@ Fires after every `Bash` tool call. Enforces the single-flight integration lane 
 
 ---
 
-### Hook 11 — calculate-cost.sh
+### Hook 8 — calculate-cost.sh
 
 | Field | Value |
 |---|---|
@@ -355,7 +271,7 @@ Fires at session end. Parses sub-agent session JSONL files from `~/.claude/proje
 
 ---
 
-### Hook 12 — restore-context.sh
+### Hook 9 — restore-context.sh
 
 | Field | Value |
 |---|---|
@@ -455,15 +371,12 @@ For protocol details on hook failure handling, conformance checking, and metrics
 
 | Path | Used by |
 |---|---|
-| `.geas/state/run.json` | session-init, restore-context, checkpoint-pre-write, checkpoint-post-write, packet-stale-check, verify-task-status |
+| `.geas/state/run.json` | session-init, restore-context, checkpoint-pre-write, checkpoint-post-write, packet-stale-check |
 | `.geas/state/_checkpoint_pending` | checkpoint-pre-write (creates), checkpoint-post-write (removes) |
 | `.geas/memory/agents/*.md` | session-init (count check), inject-context, restore-context |
-| `.geas/state/locks.json` | lock-conflict-check, integration-lane-check |
-| `.geas/missions/<mid>/evolution/debt-register.json` | check-debt |
+| `.geas/state/locks.json` | integration-lane-check |
 | `.geas/rules.md` | session-init (creates), inject-context (reads), restore-context (reads) |
 | `.geas/memory/agents/<name>.md` | inject-context |
-| `.geas/missions/<mid>/tasks/<tid>/contract.json` | protect-geas-state, verify-task-status |
-| `.geas/missions/<mid>/tasks/<tid>/evidence/*.json` | verify-task-status |
-| `.geas/missions/<mid>/tasks/<tid>/record.json` | verify-task-status |
+| `.geas/missions/<mid>/tasks/<tid>/contract.json` | protect-geas-state |
 | `.geas/missions/<mid>/spec.json` | protect-geas-state (freeze guard) |
 | `.geas/state/events.jsonl` | (event logging via CLI) |

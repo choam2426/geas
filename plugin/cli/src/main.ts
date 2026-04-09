@@ -1,7 +1,7 @@
 /**
  * Geas CLI entry point.
  *
- * Creates the commander program, registers all 13 command groups,
+ * Creates the commander program, registers all 15 command groups,
  * sets global options, and exports run() for the index.js bootstrap.
  *
  * This file is pure wiring — no business logic belongs here.
