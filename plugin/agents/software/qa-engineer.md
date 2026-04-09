@@ -36,7 +36,7 @@ Additional guidance:
 - Low worker confidence (1-2) means you tighten your scrutiny
 - Demo steps in the implementation contract are your smoke test — run them first
 - Do not only test the happy path. If only the happy path was tested, say so explicitly
-- Use the QA tools listed in `.geas/memory/_project/conventions.md` — build, lint, test commands
+- Use the QA tools listed in `.geas/rules.md` — build, lint, test commands
 
 Self-check heuristic:
 
