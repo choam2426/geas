@@ -295,7 +295,7 @@ Update checkpoint: `Bash("geas state checkpoint set --step closure_packet --agen
 
 Resolve the challenger agent. Update checkpoint: `Bash("geas state checkpoint set --step challenger --agent challenger")`
 ```
-Agent(agent: "challenger", prompt: "Read the closure from record.json via: geas task record get --task {task-id} --section closure. Read all evidence at .geas/missions/{mission_id}/tasks/{task-id}/evidence/. You MUST raise at least 1 substantive concern — surface a real risk, edge case, or technical debt item. For each concern, state clearly whether it is BLOCKING or non-blocking. Write your challenge review to record.json. Run: geas task record add --task {task-id} --section challenge_review --data '<your-json>'. Required fields: concerns (array of objects with severity and description, OR array of strings prefixed with \"[BLOCKING]\" or \"[non-blocking]\"), blocking (boolean — true if ANY concern is blocking). The CLI validates automatically.")
+Agent(agent: "challenger", prompt: "Read the closure from record.json via: geas task record get --task {task-id} --section closure. Read all evidence at .geas/missions/{mission_id}/tasks/{task-id}/evidence/. Perform your challenge review per your Review Protocols. Write your challenge review to record.json. Run: geas task record add --task {task-id} --section challenge_review --data '<your-json>'. The CLI validates automatically.")
 
 **challenge_review fields:** `concerns[]` (strings or objects with `severity` (blocking|non_blocking) and `description`), `blocking` (boolean), optional `summary`
 ```
@@ -331,7 +331,7 @@ Update checkpoint: `Bash("geas state checkpoint set --step challenger --agent nu
 
 Update checkpoint: `Bash("geas state checkpoint set --step final_verdict --agent product-authority")`
 ```
-Agent(agent: "product-authority", prompt: "Read the closure and challenge_review sections from record.json via: geas task record get --task {task-id}. Read all evidence at .geas/missions/{mission_id}/tasks/{task-id}/evidence/. Decide: pass, iterate, or escalate. Write your verdict to record.json. Run: geas task record add --task {task-id} --section verdict --data '<verdict_json>'. Required fields: verdict (\"pass\" | \"iterate\" | \"escalate\"), rationale (why this verdict). If iterate: include rewind_target (\"ready\" | \"implementing\" | \"reviewed\"). If escalate: include escalation_reason. The CLI validates automatically. Also write evidence. Run: geas evidence add --task {task-id} --agent product-authority-verdict --role authority --set summary='<verdict summary>' --set verdict='pass' --set rationale='<rationale>'")
+Agent(agent: "product-authority", prompt: "Read the closure and challenge_review sections from record.json via: geas task record get --task {task-id}. Read all evidence at .geas/missions/{mission_id}/tasks/{task-id}/evidence/. Issue your final verdict per your Review Protocols. Write your verdict to record.json. Run: geas task record add --task {task-id} --section verdict --data '<verdict_json>'. The CLI validates automatically. Also write evidence. Run: geas evidence add --task {task-id} --agent product-authority-verdict --role authority --set summary='<verdict summary>' --set verdict='pass' --set rationale='<rationale>'")
 ```
 
 **Verdict rules:**

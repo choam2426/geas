@@ -4,7 +4,7 @@
 Select the best agent for the risk_specialist role, using profiles.json as default preference when domain_profile is set.
 Update checkpoint: `Bash("geas state checkpoint set --step security_review --agent {resolved-risk-specialist}")`
 ```
-Agent(agent: "{resolved-risk-specialist}", prompt: "Full risk review of the project. Check for security vulnerabilities, auth flows, input validation, secrets exposure, dependency vulnerabilities. Write findings with severity (CRITICAL/HIGH/MEDIUM/LOW) as evidence. Run: geas evidence add --phase polishing --agent {resolved-risk-specialist} --role reviewer --set summary='<security review summary>' --set verdict='<approved or changes_requested>' --set concerns='[\"finding1\",\"finding2\"]'")
+Agent(agent: "{resolved-risk-specialist}", prompt: "Full risk review of the project per your Security Review protocol. Write findings with severity classification as evidence. Run: geas evidence add --phase polishing --agent {resolved-risk-specialist} --role reviewer --set summary='<security review summary>' --set verdict='<approved or changes_requested>' --set concerns='[\"finding1\",\"finding2\"]'")
 ```
 Verify `.geas/missions/{mission_id}/polishing/evidence/{resolved-risk-specialist}.json` exists.
 

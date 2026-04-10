@@ -44,11 +44,7 @@ Verify that `record.json` now contains the `implementation_contract` section.
 Spawn quality-specialist to review the contract from a quality verification perspective:
 
 ```
-Agent(agent: "quality-specialist", prompt: "Read the implementation_contract section from .geas/missions/{mission_id}/tasks/{task-id}/record.json and .geas/missions/{mission_id}/tasks/{task-id}/contract.json. Review this implementation contract:
-- Are demo_steps sufficient to verify all acceptance criteria?
-- Are there missing edge_cases that should be handled?
-- Are non_goals reasonable — anything critical being excluded?
-- Would you be able to test this based on what's described?
+Agent(agent: "quality-specialist", prompt: "Read the implementation_contract section from .geas/missions/{mission_id}/tasks/{task-id}/record.json and .geas/missions/{mission_id}/tasks/{task-id}/contract.json. Review this implementation contract per your Review Protocols.
 Write your assessment. If acceptable, approve. If not, list specific concerns.")
 ```
 
@@ -57,11 +53,7 @@ Write your assessment. If acceptable, approve. If not, list specific concerns.")
 Spawn design-authority to review the contract from a technical perspective:
 
 ```
-Agent(agent: "design-authority", prompt: "Read the implementation_contract section from .geas/missions/{mission_id}/tasks/{task-id}/record.json, .geas/missions/{mission_id}/tasks/{task-id}/contract.json, and any prior design guide at .geas/missions/{mission_id}/tasks/{task-id}/evidence/design-authority.json. Review this implementation contract:
-- Are planned_actions consistent with the design guide?
-- Are non_goals appropriate — nothing critical being excluded?
-- Are there technical edge_cases the worker missed?
-- Is the approach viable or heading toward a dead end?
+Agent(agent: "design-authority", prompt: "Read the implementation_contract section from .geas/missions/{mission_id}/tasks/{task-id}/record.json, .geas/missions/{mission_id}/tasks/{task-id}/contract.json, and any prior design guide at .geas/missions/{mission_id}/tasks/{task-id}/evidence/design-authority.json. Review this implementation contract per your Review Protocols.
 Write your assessment. If acceptable, approve. If not, list specific concerns.")
 ```
 

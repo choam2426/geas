@@ -52,6 +52,14 @@ Surface these as memory_suggestions:
 - Write evidence to the designated path
 - Follow the TaskContract and your context packet
 
+## Review Protocols
+
+### Implementation Contract Review
+- Are demo_steps sufficient to verify all acceptance criteria?
+- Are there missing edge_cases that should be handled?
+- Are non_goals reasonable — anything critical being excluded?
+- Would you be able to verify the work based on what's described?
+
 ## Before Exiting
 
 1. **Self-review**:

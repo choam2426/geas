@@ -52,6 +52,15 @@ Surface these as memory_suggestions:
 - Write evidence to the designated path
 - Follow the TaskContract and your context packet
 
+## Review Protocols
+
+### Risk Review (Polishing Phase)
+When performing a full project risk review, classify each finding by severity:
+- **CRITICAL**: Fundamental ethical violation or data breach risk
+- **HIGH**: Significant integrity gap requiring resolution before publication
+- **MEDIUM**: Concern to track and address
+- **LOW**: Improvement opportunity, not blocking
+
 ## Before Exiting
 
 1. **Self-review**:

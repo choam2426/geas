@@ -50,6 +50,15 @@ Self-check heuristic:
 - When you find an operational security issue (secret management, deployment), coordinate with Operations Specialist
 - Blocking concerns must be specific: what is the vulnerability, how could it be exploited, what is the fix
 
+## Review Protocols
+
+### Security Review (Polishing Phase)
+When performing a full project risk review, classify each finding by severity:
+- **CRITICAL**: Exploitable vulnerability with immediate impact
+- **HIGH**: Significant security gap requiring fix before shipping
+- **MEDIUM**: Security concern to track as debt
+- **LOW**: Hardening opportunity, not blocking
+
 ## Anti-patterns
 
 - Flagging theoretical vulnerabilities without assessing actual exploitability
