@@ -10,19 +10,20 @@ Geas hook은 Claude Code 런타임이 정해진 lifecycle event마다 자동 실
 
 ## Hook 목록
 
-6개 lifecycle event에 걸쳐 10개 hook (9개 스크립트 + 1개 공유 라이브러리).
+6개 lifecycle event에 걸쳐 11개 hook (10개 스크립트 + 1개 공유 라이브러리).
 
 | # | Event | Matcher | Script | 목적 |
 |---|-------|---------|--------|------|
 | 1 | SessionStart | (all) | session-init.sh | 세션 초기화 + memory review cadence |
 | 2 | SubagentStart | (all) | inject-context.sh | sub-agent에 규칙과 agent memory 주입 |
-| 3 | PreToolUse | Write | checkpoint-pre-write.sh | 쓰기 전 run.json 백업 (2단계 checkpoint) |
-| 4 | PostToolUse | Write\|Edit | protect-geas-state.sh | scope guard, 타임스탬프 주입, spec 동결 경고 |
-| 5 | PostToolUse | Write\|Edit | checkpoint-post-write.sh | 쓰기 후 pending checkpoint 정리 |
-| 6 | PostToolUse | Write\|Edit | packet-stale-check.sh | 오래된 context packet 경고 |
-| 7 | PostToolUse | Bash | integration-lane-check.sh | integration lock 없이 merge 시 경고 |
-| 8 | Stop | (all) | calculate-cost.sh | 토큰 사용량 요약 |
-| 9 | PostCompact | (all) | restore-context.sh | 컨텍스트 압축 후 상태 복원 |
+| 3 | PreToolUse | Write\|Edit | geas-write-block.js | .geas/ 경로에 대한 직접 Write/Edit 차단 |
+| 4 | PreToolUse | Write | checkpoint-pre-write.sh | 쓰기 전 run.json 백업 (2단계 checkpoint) |
+| 5 | PostToolUse | Write\|Edit | protect-geas-state.sh | scope guard, 타임스탬프 주입, spec 동결 경고 |
+| 6 | PostToolUse | Write\|Edit | checkpoint-post-write.sh | 쓰기 후 pending checkpoint 정리 |
+| 7 | PostToolUse | Write\|Edit | packet-stale-check.sh | 오래된 context packet 경고 |
+| 8 | PostToolUse | Bash | integration-lane-check.sh | integration lock 없이 merge 시 경고 |
+| 9 | Stop | (all) | calculate-cost.sh | 토큰 사용량 요약 |
+| 10 | PostCompact | (all) | restore-context.sh | 컨텍스트 압축 후 상태 복원 |
 
 ---
 
@@ -42,6 +43,11 @@ Session begins
 │   ├─► SubagentStart  → inject-context.sh
 │   │     Inject rules.md + policy overrides + agent memory into sub-agent context
 │   │
+│   │   [Before each Write or Edit tool call]
+│   │   │
+│   │   ├─► PreToolUse (Write|Edit) → geas-write-block.js
+│   │   │     .geas/ 경로에 대한 직접 쓰기 차단 (CLI 전용 강제)
+│   │   │
 │   │   [Before each Write tool call to run.json]
 │   │   │
 │   │   ├─► PreToolUse (Write) → checkpoint-pre-write.sh
@@ -129,7 +135,27 @@ sub-agent가 생성될 때마다 실행된다. 프로젝트 규칙과 agent별 m
 
 ---
 
-### Hook 3 — checkpoint-pre-write.sh
+### Hook 3 — geas-write-block.js
+
+| 필드 | 값 |
+|---|---|
+| Event | `PreToolUse` |
+| Matcher | `Write\|Edit` |
+| Script | `plugin/hooks/scripts/geas-write-block.js` |
+| Blocking | 차단 (`.geas/` 쓰기 시 exit 2) |
+| Timeout | 10 s |
+
+모든 `Write` 또는 `Edit` 도구 호출 전에 실행된다. `.geas/` 경로에 대한 직접 파일 수정을 차단하여 CLI 전용 조작 규칙을 강제한다.
+
+1. hook 입력 JSON에서 `file_path`를 추출한다.
+2. 대상 경로에 `.geas/`가 포함되어 있는지 확인한다. 아니면 exit 0 (허용).
+3. `.geas/` 내부이면 `{"decision":"block","reason":"..."}`를 출력하고 exit 2 (차단).
+
+모든 `.geas/` 파일 수정은 타임스탬프 자동 관리와 스키마 검증을 수행하는 `geas` CLI를 통해야 한다.
+
+---
+
+### Hook 4 — checkpoint-pre-write.sh
 
 | 필드 | 값 |
 |---|---|
@@ -144,13 +170,13 @@ sub-agent가 생성될 때마다 실행된다. 프로젝트 규칙과 agent별 m
 1. 쓰기 대상이 `.geas/state/run.json`인지 확인한다. 다른 파일은 무시한다.
 2. `run.json`을 `_checkpoint_pending`으로 복사하여 백업한다.
 
-`checkpoint-post-write.sh` (Hook 5)와 함께 동작한다.
+`checkpoint-post-write.sh` (Hook 6)와 함께 동작한다.
 
 **조건:** `.geas/state/run.json`에 대한 쓰기에만 동작한다. `run.json`이 아직 없으면 건너뛴다.
 
 ---
 
-### Hook 4 — protect-geas-state.sh
+### Hook 5 — protect-geas-state.sh
 
 | 필드 | 값 |
 |---|---|
@@ -183,7 +209,7 @@ sub-agent가 생성될 때마다 실행된다. 프로젝트 규칙과 agent별 m
 
 ---
 
-### Hook 5 — checkpoint-post-write.sh
+### Hook 6 — checkpoint-post-write.sh
 
 | 필드 | 값 |
 |---|---|
@@ -198,11 +224,11 @@ sub-agent가 생성될 때마다 실행된다. 프로젝트 규칙과 agent별 m
 1. 쓰기 대상이 `.geas/state/run.json`인지 확인한다. 다른 파일은 무시한다.
 2. `.geas/state/_checkpoint_pending`이 있으면 제거하여, 쓰기가 성공적으로 완료되었음을 확인한다.
 
-`checkpoint-pre-write.sh` (Hook 3)와 함께 동작한다.
+`checkpoint-pre-write.sh` (Hook 4)와 함께 동작한다.
 
 ---
 
-### Hook 6 — packet-stale-check.sh
+### Hook 7 — packet-stale-check.sh
 
 | 필드 | 값 |
 |---|---|
@@ -225,7 +251,7 @@ sub-agent가 생성될 때마다 실행된다. 프로젝트 규칙과 agent별 m
 
 ---
 
-### Hook 7 — integration-lane-check.sh
+### Hook 8 — integration-lane-check.sh
 
 | 필드 | 값 |
 |---|---|
@@ -246,7 +272,7 @@ sub-agent가 생성될 때마다 실행된다. 프로젝트 규칙과 agent별 m
 
 ---
 
-### Hook 8 — calculate-cost.sh
+### Hook 9 — calculate-cost.sh
 
 | 필드 | 값 |
 |---|---|
@@ -271,7 +297,7 @@ sub-agent가 생성될 때마다 실행된다. 프로젝트 규칙과 agent별 m
 
 ---
 
-### Hook 9 — restore-context.sh
+### Hook 10 — restore-context.sh
 
 | 필드 | 값 |
 |---|---|

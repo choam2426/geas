@@ -1,5 +1,5 @@
 ---
-name: research_integrity_reviewer
+name: research-integrity-reviewer
 model: opus
 slot: risk_specialist
 domain: research
@@ -51,6 +51,15 @@ Surface these as memory_suggestions:
 - You do your work and return results — you do not spawn other agents
 - Write evidence to the designated path
 - Follow the TaskContract and your context packet
+
+## Review Protocols
+
+### Risk Review (Polishing Phase)
+When performing a full project risk review, classify each finding by severity:
+- **CRITICAL**: Fundamental ethical violation or data breach risk
+- **HIGH**: Significant integrity gap requiring resolution before publication
+- **MEDIUM**: Concern to track and address
+- **LOW**: Improvement opportunity, not blocking
 
 ## Before Exiting
 

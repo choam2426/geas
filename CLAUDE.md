@@ -36,7 +36,7 @@ Specifying produces three user-approved artifacts: mission spec (WHAT/WHY), desi
 Evidence Gate (Tier 0 → Tier 1 → Tier 2)
     → Closure Packet assembly
     → Challenger Review (high/critical required)
-    → Final Verdict (product_authority: pass / iterate / escalate)
+    → Final Verdict (product-authority: pass / iterate / escalate)
 ```
 
 Gate verdicts: `pass | fail | block | error`. `iterate` is Final Verdict only.
@@ -46,14 +46,19 @@ Gate verdicts: `pass | fail | block | error`. `iterate` is Final Verdict only.
 ```
 plugin/
 ├── plugin.json              # Claude plugin manifest
-├── skills/                  # 12 core skills
+├── bin/
+│   └── geas                 # Pre-built CLI bundle (single file)
+├── skills/                  # 13 skills (12 core + 1 utility)
 │   ├── mission/             # Geas orchestrator
 │   ├── intake/              # Requirements gathering
-│   └── ...                  # (12 core contract engine skills)
+│   └── ...                  # (12 core contract engine + 1 utility skill)
 └── agents/
     ├── authority/           # 3 spawnable authority agents
     ├── software/            # 5 software domain specialists
     └── research/            # 6 research domain specialists
+
+src/
+└── cli/                     # CLI source (development only)
 
 docs/
 ├── protocol/                # Operating protocol (English, canonical)
@@ -80,6 +85,9 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 - `policy-managing/` — rules.md override management
 - `reporting/` — health signals, status briefing, debt/gap dashboard
 
+### Utility skills
+- `help/` — explains geas usage, available commands, workflows, and multi-agent process
+
 ### Mission references
 - `mission/references/specifying.md` — Specifying phase procedure
 - `mission/references/pipeline.md` — Per-task 14-step pipeline
@@ -98,7 +106,15 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 
 ## Agent Name Rule
 
-Protocol docs (`docs/protocol/`, `docs/ko/protocol/`), core skills, and agent file names all use **agent type names** (e.g., `product-authority`, `design-authority`, `challenger`, `software-engineer`, `platform-engineer`). Character names appear only inside agent file content as personality/identity, never as file names or references.
+Agent type names use **hyphens consistently** across all contexts:
+
+- **File names**: `product-authority.md`, `software-engineer.md`
+- **YAML frontmatter `name` field**: `product-authority`, `software-engineer`
+- **JSON schema enum values**: `product-authority`
+- **Skill text and protocol prose**: `product-authority`, `software-engineer`
+- **The canonical identifier for routing** is the YAML `name` field (hyphens)
+
+Character names appear only inside agent file content as personality/identity, never as file names or references.
 
 ## Runtime Accessibility Rule
 
@@ -113,11 +129,11 @@ Agents CANNOT access `docs/protocol/`, `docs/architecture/`, or any file outside
 - **DO** use CLI commands for all .geas/ writes — CLI generates structure from schemas
 - **DO** define evidence/memory rules in agent.md, not in Agent() prompts
 
-The `docs/protocol/schemas/` directory is the canonical reference for developers and validation tools. The CLI (`plugin/cli/`) is the operational schema enforcement layer.
+The `docs/protocol/schemas/` directory is the canonical reference for developers and validation tools. The CLI (`plugin/bin/geas`, pre-built bundle; source at `src/cli/`) is the operational schema enforcement layer.
 
 ## .geas/ CLI-Only Manipulation Rule
 
-All `.geas/` runtime state files (JSON, JSONL, markdown) must be read and written through the `geas` CLI tool (`plugin/cli/`), not through direct Read/Write/Edit tool calls. The CLI auto-manages timestamps and enforces schema validation. **Zero exceptions for writes.**
+All `.geas/` runtime state files (JSON, JSONL, markdown) must be read and written through the `geas` CLI tool (`plugin/bin/geas`; source at `src/cli/`), not through direct Read/Write/Edit tool calls. The CLI auto-manages timestamps and enforces schema validation. **Zero exceptions for writes.**
 
 Key CLI commands:
 - `geas task record add --section {name}` — add section to record.json (execution record)

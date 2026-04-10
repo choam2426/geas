@@ -7,6 +7,21 @@ description: Memory management — extract learnings from retrospectives, update
 
 Manages project memory through two files: `.geas/rules.md` (project-wide rules) and `.geas/memory/agents/{agent}.md` (agent-specific notes). Orchestrator invokes this skill after retrospective (per-task extraction) and during Evolving (batch review).
 
+## Inputs
+
+- **record.json `retrospective` section** — contains `memory_candidates[]` from per-task retrospective
+- **`.geas/rules.md`** — current project-wide rules (for deduplication)
+- **`.geas/memory/agents/*.md`** — current agent notes (for deduplication)
+- **Task ID** — source task for tracing extracted learnings
+
+## Output
+
+- **Updated `.geas/rules.md`** — new or strengthened project-wide rules (with `[DRAFT]` prefix until promoted)
+- **Updated `.geas/memory/agents/{agent}.md`** — new or strengthened agent-specific notes
+- **Event log entries** — `memory_extracted`, `memory_reviewed`, or `memory_cleanup` events in `events.jsonl`
+
+---
+
 ## When to Use
 
 - **Per-task**: After retrospective completes, extract learnings from `memory_candidates[]` in the retrospective section of record.json
@@ -21,9 +36,9 @@ Manages project memory through two files: `.geas/rules.md` (project-wide rules) 
 ├── rules.md              # Project-wide rules ALL agents follow
 └── memory/
     └── agents/           # Per-agent memory notes
-        ├── software_engineer.md
-        ├── design_authority.md
-        ├── quality_specialist.md
+        ├── software-engineer.md
+        ├── design-authority.md
+        ├── quality-specialist.md
         └── ...
 ```
 
@@ -95,7 +110,7 @@ Before adding a new entry:
 
 ### Per-task (inline)
 
-After extraction, `orchestration_authority` reviews each `[DRAFT]` item:
+After extraction, `orchestration-authority` reviews each `[DRAFT]` item:
 - **Promote**: Remove `[DRAFT]` prefix — the rule is now active
 - **Reject**: Remove the entry entirely
 - **Defer**: Keep as `[DRAFT]` for batch review during Evolving
@@ -135,7 +150,7 @@ When rules in `.geas/rules.md` contradict each other:
 1. Identify the conflicting rules
 2. Determine which has more supporting evidence (more task references)
 3. Keep the stronger rule, remove or revise the weaker one
-4. If unclear, `orchestration_authority` makes the call
+4. If unclear, `orchestration-authority` makes the call
 5. Log the resolution
 
 ## Conflict Resolution Priority

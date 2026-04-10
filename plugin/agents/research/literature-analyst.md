@@ -1,5 +1,5 @@
 ---
-name: literature_analyst
+name: literature-analyst
 model: opus
 slot: implementer
 domain: research

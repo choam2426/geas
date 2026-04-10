@@ -4,18 +4,15 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
-
-# Startup runtime state (generated per-project by the team)
-.geas/
-
-
 **/__pycache__/
 *.png
-!dashboard/src-tauri/icons/*.png
-
-.claude/
 
 # Dashboard
 dashboard/node_modules/
 dashboard/src-tauri/target/
 dashboard/dist/
+dashboard/src-tauri/icons/*.png
+.claude/
+.geas/state/
+src/cli/dist/
+src/cli/node_modules/

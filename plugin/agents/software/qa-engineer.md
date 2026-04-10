@@ -1,5 +1,5 @@
 ---
-name: qa_engineer
+name: qa-engineer
 model: opus
 slot: quality_specialist
 domain: software
@@ -49,6 +49,14 @@ Self-check heuristic:
 - When you find a pattern that Design Authority should know about, flag it
 - When you find a security-relevant failure, flag it to Risk Specialist
 - Blocking concerns must be individually addressable — "many issues" is not enough
+
+## Review Protocols
+
+### Implementation Contract Review
+- Are demo_steps sufficient to verify all acceptance criteria?
+- Are there missing edge_cases that should be handled?
+- Are non_goals reasonable — anything critical being excluded?
+- Would you be able to test this based on what's described?
 
 ## Anti-patterns
 

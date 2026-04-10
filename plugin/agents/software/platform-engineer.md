@@ -1,5 +1,5 @@
 ---
-name: platform_engineer
+name: platform-engineer
 model: opus
 slot: operations_specialist
 domain: software

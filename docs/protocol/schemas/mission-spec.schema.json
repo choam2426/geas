@@ -8,7 +8,6 @@
     "artifact_id",
     "producer_type",
     "mission_id",
-    "created_at",
     "mission",
     "done_when",
     "scope",
@@ -37,9 +36,12 @@
     "created_at": {
       "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
     },
+    "updated_at": {
+      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
+    },
     "source": {
       "type": "string",
-      "enum": ["full_intake", "quick_intake", "external"]
+      "enum": ["full_intake", "quick_intake", "external", "existing_project"]
     },
     "domain_profile": {
       "type": "string"

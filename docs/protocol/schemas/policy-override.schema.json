@@ -24,7 +24,6 @@
           "reason",
           "expires_at",
           "approved_by",
-          "created_at",
           "expired"
         ],
         "properties": {
@@ -54,11 +53,14 @@
           },
           "approved_by": {
             "type": "string",
-            "description": "Agent type who authorized this override (e.g. product_authority)"
+            "description": "Agent type who authorized this override (e.g. product-authority)"
           },
           "created_at": {
             "type": "string",
             "format": "date-time"
+          },
+          "updated_at": {
+            "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
           },
           "expired": {
             "type": "boolean",

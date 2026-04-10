@@ -1,0 +1,15 @@
+{
+  "summary": "Flattened 8 tags to v0.x.y, updated plugin/marketplace versions to 0.5.1, bumped protocol INDEX to v1 (EN+KO), created CHANGELOG.md",
+  "files_changed": [
+    "plugin/plugin.json",
+    ".claude-plugin/marketplace.json",
+    "docs/protocol/INDEX.md",
+    "docs/ko/protocol/INDEX.md",
+    "CHANGELOG.md"
+  ],
+  "version": "1.0",
+  "agent": "software_engineer",
+  "task_id": "task-003",
+  "role": "implementer",
+  "created_at": "2026-04-09T13:09:50Z"
+}

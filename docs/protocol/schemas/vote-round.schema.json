@@ -14,8 +14,7 @@
     "participants",
     "votes",
     "result",
-    "quorum_met",
-    "created_at"
+    "quorum_met"
   ],
   "properties": {
     "version": {
@@ -32,7 +31,7 @@
     },
     "producer_type": {
       "type": "string",
-      "const": "orchestration_authority"
+      "const": "orchestration-authority"
     },
     "round_type": {
       "type": "string",
@@ -53,7 +52,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Agent types participating. proposal_round: >= 2 (proposer + reviewer). readiness_round: >= orchestration_authority + product_authority + 1 specialist."
+      "description": "Agent types participating. proposal_round: >= 2 (proposer + reviewer). readiness_round: >= orchestration-authority + product-authority + 1 specialist."
     },
     "votes": {
       "type": "array",
@@ -100,6 +99,9 @@
     "created_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "updated_at": {
+      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   }
 }

@@ -29,9 +29,18 @@ Bash("geas mission create --id {mission_id}")
    ```bash
    Bash("geas mission write-brief --id {mission_id} --data '<design_brief_json>'")
    ```
-   The CLI validates the brief automatically. Set `status: "draft"`.
+   The CLI validates the brief automatically and auto-injects `created_at`. Set `status: "draft"`.
+
+   **Schema field reference** (exact names required by CLI validation):
+   - `depth`: `"lightweight"`, `"standard"`, or `"full_depth"` (NOT `mode`)
+   - `risks[]`: items have `description` and `mitigation` (not `risk`)
+   - `alternatives_considered[]`: items have `approach` and `rejected_reason` (not `rejected_because`)
+   - `architecture_decisions[]`: items have `decision`, `rationale`, and optional `constraints` (must be string array, not string)
+   - `design_review`: must be object with `reviewer_type: "design-authority"` (const) and `summary` — set both even for initial draft
+   - `producer_type`: must be `"orchestration-authority"` (kebab-case)
+
 2. Propose a mission mode to the user:
-   - **`lightweight`**: Mission has clear scope, existing patterns apply, low ambiguity. Only minimum fields: `chosen_approach`, `non_goals`, `verification_strategy`.
+   - **`lightweight`**: Mission has clear scope, existing patterns apply, low ambiguity. Only minimum fields: `chosen_approach`, `non_goals`, `verification_strategy`. **Note: lightweight only simplifies intake and design-brief. The Building pipeline (task-compiler, state transitions, agent spawning, evidence gate) is identical across all modes.**
    - **`standard`**: Mission has moderate scope, some architectural decisions, normal risk. Adds: `architecture_decisions`, `risks`, `preserve_list`.
    - **`full_depth`**: Mission has multiple valid approaches, cross-module impact, or significant risk. Adds: `alternatives_considered`, `unresolved_assumptions`. Requires vote round.
 3. User confirms or overrides the mission mode.
@@ -39,10 +48,12 @@ Bash("geas mission create --id {mission_id}")
 
 #### 3b. Design Review (always)
 
-Resolve the design-authority slot via profiles.json. Spawn the resolved agent to review and enrich the design-brief:
+**This is NOT a task.** Do not create a task contract or evidence for design review. The review result lives inside the design-brief's `design_review` field.
+
+Select the best agent for the design-authority role, using profiles.json as default preference when domain_profile is set. Spawn the selected agent to review and enrich the design-brief:
 
 ```
-Agent(agent: "{resolved-design-authority}", prompt: "Read the design-brief at .geas/missions/{mission_id}/design-brief.json and the mission spec at .geas/missions/{mission_id}/spec.json. Review the design brief: verify the chosen approach is sound, check for missing risks or concerns, and add any necessary architecture decisions. If the project requires stack-specific rules, add them to .geas/rules.md under a '## Stack Rules' section. Update the design-brief: populate the design_review field with your review summary and any additions you made. Write the updated design-brief via CLI. Run: geas mission write-brief --id {mission_id} --data '<updated_design_brief_json>' with status: 'reviewing'.")
+Agent(agent: "{resolved-design-authority}", prompt: "Read the design-brief at .geas/missions/{mission_id}/design-brief.json and the mission spec at .geas/missions/{mission_id}/spec.json. Review the design brief for soundness, risks, and architecture decisions per your Review Protocols. Update the design-brief: populate the design_review field with your review summary and any additions you made. Write the updated design-brief via CLI. Run: geas mission write-brief --id {mission_id} --data '<updated_design_brief_json>' with status: 'reviewing'. Do NOT write separate evidence — the design_review field in the design-brief IS the review artifact.")
 ```
 
 Verify: Read `.geas/missions/{mission_id}/design-brief.json` and confirm `design_review` is populated.
@@ -56,7 +67,7 @@ Log: `{"event": "step_complete", "step": "design_brief_design_review", "agent": 
 Invoke `/geas:vote-round` as a `proposal_round`:
 - Proposal: `.geas/missions/{mission_id}/design-brief.json`
 - Voters: orchestrator selects based on design-brief content. Minimum quorum: design-authority + 1 specialist (per doc 05 proposal_round rules).
-  - Implementation work → include relevant implementer (resolved via profiles.json)
+  - Implementation work → include the best-fit implementer, using profiles.json as default preference when domain_profile is set
   - High risk → include `challenger`
 - Output: vote-round artifact in `.geas/missions/{mission_id}/decisions/`
 - Record `vote_round_ref` in the design-brief.
@@ -145,7 +156,7 @@ Omit sections marked `[standard+]` for lightweight missions. Omit sections marke
 
 - Input: mission spec (`.geas/missions/{mission_id}/spec.json`) + approved design-brief (`.geas/missions/{mission_id}/design-brief.json`)
 - For each logical unit of work, invoke `/geas:task-compiler`.
-- Each TaskContract MUST include a `rubric` object with a `dimensions` array. Base dimensions: core_interaction(3), feature_completeness(4), output_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
+- Each TaskContract MUST include a `rubric` object with a `dimensions` array. Base dimensions: core_interaction(3), feature_completeness(4), code_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
 - Output: `.geas/missions/{mission_id}/tasks/{task-id}/contract.json`
 - Log each: `{"event": "task_compiled", "task_id": "...", "timestamp": "<actual>"}`
 
@@ -220,6 +231,8 @@ If no dependencies are needed:
 
 ### 7. Close Specifying
 
+**No additional user confirmation needed** — the task list was already approved in step 5. Proceed directly.
+
 **Phase review** — verify gate criteria for specifying -> building.
 
 All conditions must be true:
@@ -239,7 +252,7 @@ The CLI validates the phase review automatically:
   "version": "1.0",
   "artifact_type": "phase_review",
   "artifact_id": "pr-specifying-{mission_id}",
-  "producer_type": "orchestration_authority",
+  "producer_type": "orchestration-authority",
   "mission_phase": "specifying",
   "status": "ready_to_exit",
   "summary": "<specifying outcomes>",

@@ -1,22 +1,22 @@
 {
   "software": {
-    "description": "Software development",
-    "slot_mapping": {
-      "implementer": ["software_engineer"],
-      "quality_specialist": ["qa_engineer"],
-      "risk_specialist": ["security_engineer"],
-      "operations_specialist": ["platform_engineer"],
-      "communication_specialist": ["technical_writer"]
+    "description": "Software development — default agent preferences for implementation-heavy missions",
+    "defaults": {
+      "implementer": ["software-engineer"],
+      "quality_specialist": ["qa-engineer"],
+      "risk_specialist": ["security-engineer"],
+      "operations_specialist": ["platform-engineer"],
+      "communication_specialist": ["technical-writer"]
     }
   },
   "research": {
-    "description": "Research",
-    "slot_mapping": {
-      "implementer": ["literature_analyst", "research_analyst"],
-      "quality_specialist": ["methodology_reviewer"],
-      "risk_specialist": ["research_integrity_reviewer"],
-      "operations_specialist": ["research_engineer"],
-      "communication_specialist": ["research_writer"]
+    "description": "Research — default agent preferences for analysis and synthesis missions",
+    "defaults": {
+      "implementer": ["literature-analyst", "research-analyst"],
+      "quality_specialist": ["methodology-reviewer"],
+      "risk_specialist": ["research-integrity-reviewer"],
+      "operations_specialist": ["research-engineer"],
+      "communication_specialist": ["research-writer"]
     }
   }
 }

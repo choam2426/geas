@@ -11,11 +11,27 @@ After the evidence gate fails, this loop ensures bugs are actually fixed — not
 
 ---
 
+## Inputs
+
+- **TaskContract** — from `.geas/missions/{mission_id}/tasks/{task-id}/contract.json` (for retry_budget and escalation_policy)
+- **Failed EvidenceBundle** — from `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{reviewer}.json` (specific failures)
+- **Gate verdict** — which tier failed (mechanical or semantic) and why
+- **`.geas/state/run.json`** — current iteration count tracking
+
+## Output
+
+- **Gate PASS** — loop exits, pipeline continues to Closure Packet
+- **Updated evidence** — new `{fixer}-fix-{N}.json` per iteration in the evidence directory
+- **DecisionRecord** (on escalation) — written via `geas decision write` when retry budget exhausted
+- **Event log entry** — `escalation` event logged when budget is exhausted
+
+---
+
 ## Entry Point
 
 Read the gate failure details:
 1. **TaskContract** from `.geas/missions/{mission_id}/tasks/{task-id}/contract.json` — for retry_budget and escalation_policy
-2. **Failed EvidenceBundle** from `.geas/missions/{mission_id}/tasks/{task-id}/evidence/quality-specialist.json` — for specific failures
+2. **Failed EvidenceBundle** from `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{reviewer}.json` — for specific failures (e.g., `qa-engineer.json`, `design-authority-review.json`)
 3. **Gate verdict** — which tier failed (mechanical or semantic) and why
 
 ---
@@ -55,10 +71,10 @@ Resolve `project_root` — the absolute path of the main session working directo
 
 Spawn the fixer **with worktree isolation** (implementation agents always use worktree):
 ```
-Agent(agent: "{fixer}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read your ContextPacket at {project_root}/.geas/missions/{mission_id}/tasks/{task-id}/packets/{fixer}-fix-{N}.md. Fix the specific failures listed in your packet. Write your results by running: node {project_root}/plugin/cli/index.js --cwd {project_root} evidence add --task {task-id} --agent {fixer}-fix-{N} --role implementer --set summary=... --set files_changed=...")
+Agent(agent: "{fixer}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read your ContextPacket at {project_root}/.geas/missions/{mission_id}/tasks/{task-id}/packets/{fixer}-fix-{N}.md. Fix the specific failures listed in your packet. Write your results by running: geas evidence add --task {task-id} --agent {fixer}-fix-{N} --role implementer --set summary=... --set files_changed=...")
 ```
 
-After the fixer completes, merge the worktree branch before re-running the evidence gate. If merge conflicts arise, follow the orchestration_authority merge conflict protocol.
+After the fixer completes, merge the worktree branch before re-running the evidence gate. If merge conflicts arise, follow the orchestration-authority merge conflict protocol.
 
 #### Step C — Re-run Evidence Gate
 After the fixer completes:
@@ -88,19 +104,19 @@ Analyze: Is there a fundamental design issue? Is the approach viable?
 Write your analysis as evidence. Run: geas evidence add --task {task-id} --agent design-authority-escalation --role authority --set "summary=<assessment>" --set "verdict=<approved|blocked>" --set "rationale=<reasoning>"
 ```
 
-Then evaluate design_authority's assessment:
-- If design_authority identifies a fixable root cause: apply the fix, re-test one more time.
-- If design_authority says the approach is broken: escalate to product_authority.
+Then evaluate design-authority's assessment:
+- If design-authority identifies a fixable root cause: apply the fix, re-test one more time.
+- If design-authority says the approach is broken: escalate to product-authority.
 
 ### `"product-authority-decision"`
 
 Spawn **product-authority** with full context:
 - TaskContract, all evidence bundles, gate verdicts
-- product_authority decides: scope cut, feature drop, alternative approach, or push through.
+- product-authority decides: scope cut, feature drop, alternative approach, or push through.
 
 ### `"pivot"`
 
-Invoke `/pivot-protocol` with full context.
+Invoke `/geas:vote-round` with full context.
 
 ### Write DecisionRecord
 
@@ -145,8 +161,8 @@ Evidence Gate PASS?
                   NO    -> ... (up to retry_budget)
                            Budget exhausted?
                            -> escalation_policy:
-                              design-authority-review -> design_authority analysis -> fixable? -> one more try
-                              product-authority-decision -> product_authority decides
-                              pivot -> Pivot Protocol
+                              design-authority-review -> design-authority analysis -> fixable? -> one more try
+                              product-authority-decision -> product-authority decides
+                              pivot -> /geas:vote-round
                            -> Write DecisionRecord
 ```

@@ -1,0 +1,80 @@
+{
+  "version": "1.0",
+  "artifact_type": "debt_register",
+  "artifact_id": "debt-register-mission-20260409-wMdPQ77D",
+  "producer_type": "design_authority",
+  "scope": "mission",
+  "items": [
+    {
+      "debt_id": "DEBT-001",
+      "severity": "low",
+      "kind": "risk",
+      "title": "Windows case-insensitive assertContainedIn",
+      "description": "assertContainedIn uses case-sensitive startsWith on Windows. Defense-in-depth gap.",
+      "introduced_by_task_id": "task-001",
+      "owner_type": "security_engineer",
+      "status": "open"
+    },
+    {
+      "debt_id": "DEBT-002",
+      "severity": "normal",
+      "kind": "risk",
+      "title": "Harden context.ts and evidence.ts with validateIdentifier",
+      "description": "Legacy commands use inline regex instead of shared validateIdentifier and lack assertContainedIn.",
+      "introduced_by_task_id": "task-001",
+      "owner_type": "software_engineer",
+      "status": "open"
+    },
+    {
+      "debt_id": "DEBT-003",
+      "severity": "low",
+      "kind": "risk",
+      "title": "Validate state.ts update field names",
+      "description": "state update accepts arbitrary field names without validation.",
+      "introduced_by_task_id": "task-001",
+      "owner_type": "software_engineer",
+      "status": "open"
+    },
+    {
+      "debt_id": "DEBT-004",
+      "severity": "low",
+      "kind": "structural",
+      "title": "Normalize underscore agent refs in skill prose",
+      "description": "40+ underscore agent references remain in plugin/skills/*/SKILL.md prose files",
+      "introduced_by_task_id": "task-002",
+      "owner_type": "software_engineer",
+      "status": "open"
+    },
+    {
+      "debt_id": "DEBT-005",
+      "severity": "normal",
+      "kind": "verification_gap",
+      "title": "Bash tool bypass for .geas/ write-block hook",
+      "description": "geas-write-block.js only intercepts Write/Edit, not Bash. Agents can bypass via shell commands.",
+      "introduced_by_task_id": "task-007",
+      "owner_type": "security_engineer",
+      "status": "open"
+    },
+    {
+      "debt_id": "DEBT-006",
+      "severity": "low",
+      "kind": "structural",
+      "title": "Write-block hook dead code paths",
+      "description": "geas-write-block.js lines 57-58 check for backslash patterns that are already normalized away. Dead code.",
+      "introduced_by_task_id": "polishing",
+      "owner_type": "software_engineer",
+      "status": "open"
+    }
+  ],
+  "rollup_by_severity": {
+    "low": 4,
+    "normal": 2
+  },
+  "rollup_by_kind": {
+    "risk": 3,
+    "structural": 2,
+    "verification_gap": 1
+  },
+  "created_at": "2026-04-09T14:01:11Z",
+  "updated_at": "2026-04-09T14:34:49Z"
+}

@@ -10,8 +10,7 @@
     "producer_type",
     "mission_phase",
     "status",
-    "summary",
-    "created_at"
+    "summary"
   ],
   "properties": {
     "version": {
@@ -28,8 +27,8 @@
     "producer_type": {
       "type": "string",
       "enum": [
-        "orchestration_authority",
-        "product_authority"
+        "orchestration-authority",
+        "product-authority"
       ]
     },
     "mission_phase": {
@@ -91,6 +90,9 @@
     },
     "created_at": {
       "type": "string"
+    },
+    "updated_at": {
+      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   },
   "if": {

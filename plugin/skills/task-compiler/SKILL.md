@@ -99,15 +99,15 @@ Assign a primary worker type and required reviewer types using the agentType enu
 
 | Task Nature | primary_worker_type | required_reviewer_types |
 |-------------|-------------------|------------------------|
-| Frontend UI | `implementer` | `design_authority`, `quality_specialist` |
-| Backend API / Database | `implementer` | `design_authority`, `quality_specialist` |
-| Design spec | `communication_specialist` | `design_authority` |
-| DevOps / deployment | `operations_specialist` | `design_authority`, `risk_specialist` |
-| Documentation | `communication_specialist` | `design_authority` |
-| Full-stack feature | `implementer` (primary) | `design_authority`, `quality_specialist` |
-| Security audit | `risk_specialist` | `design_authority`, `quality_specialist` |
+| Frontend UI | `software-engineer` | `design-authority`, `qa-engineer` |
+| Backend API / Database | `software-engineer` | `design-authority`, `qa-engineer` |
+| Design spec | `technical-writer` | `design-authority` |
+| DevOps / deployment | `platform-engineer` | `design-authority`, `security-engineer` |
+| Documentation | `technical-writer` | `design-authority` |
+| Full-stack feature | `software-engineer` (primary) | `design-authority`, `qa-engineer` |
+| Security audit | `security-engineer` | `design-authority`, `qa-engineer` |
 
-Always include at least one reviewer type. For `high` or `critical` risk_level, add `risk_specialist` to required_reviewer_types if not already present.
+Always include at least one reviewer type. For `high` or `critical` risk_level, add `security-engineer` to required_reviewer_types if not already present.
 
 ### Step 5: Define Scope
 
@@ -194,7 +194,7 @@ Assign quality rubric dimensions based on task type. Every task gets the base di
 | `ux_clarity` | 3 |
 | `visual_coherence` | 3 |
 
-Write the rubric as an object with a `dimensions` array. The orchestration_authority or the user may adjust thresholds for specific tasks.
+Write the rubric as an object with a `dimensions` array. The orchestration-authority or the user may adjust thresholds for specific tasks.
 
 ## Output
 
@@ -209,7 +209,7 @@ Example output:
   "version": "1.0",
   "artifact_type": "task_contract",
   "artifact_id": "task-contract-task-003",
-  "producer_type": "orchestration_authority",
+  "producer_type": "orchestration-authority",
   "created_at": "2026-03-24T10:00:00Z",
   "task_id": "task-003",
   "title": "[Frontend] Login form with email/password",
@@ -238,11 +238,11 @@ Example output:
   },
   "retry_budget": 3,
   "scope": {
-    "paths": ["src/components/auth/", "src/styles/auth/", "tests/components/auth/"]
+    "surfaces": ["src/components/auth/", "src/styles/auth/", "tests/components/auth/"]
   },
   "routing": {
-    "primary_worker_type": "implementer",
-    "required_reviewer_types": ["design_authority", "quality_specialist"]
+    "primary_worker_type": "software-engineer",
+    "required_reviewer_types": ["design-authority", "qa-engineer"]
   },
   "base_snapshot": "a1b2c3d4e5f6...",
   "status": "drafted"

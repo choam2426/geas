@@ -7,12 +7,10 @@
     "version",
     "artifact_type",
     "artifact_id",
-    "producer_type",
     "status",
     "reason",
     "evidence_refs",
-    "applies_to",
-    "created_at"
+    "applies_to"
   ],
   "properties": {
     "version": {
@@ -29,10 +27,10 @@
     "producer_type": {
       "type": "string",
       "enum": [
-        "design_authority",
-        "product_authority",
-        "qa_engineer",
-        "security_engineer"
+        "design-authority",
+        "product-authority",
+        "qa-engineer",
+        "security-engineer"
       ]
     },
     "status": {
@@ -68,22 +66,38 @@
     },
     "created_at": {
       "type": "string"
+    },
+    "updated_at": {
+      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   },
-  "if": {
-    "properties": {
-      "status": { "const": "approved" }
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": { "const": "approved" }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["producer_type", "affected_rule_ids"],
+        "properties": {
+          "affected_rule_ids": { "minItems": 1 }
+        }
+      }
     },
-    "required": ["status"]
-  },
-  "then": {
-    "required": [
-      "affected_rule_ids"
-    ],
-    "properties": {
-      "affected_rule_ids": {
-        "minItems": 1
+    {
+      "if": {
+        "not": {
+          "properties": {
+            "status": { "const": "none" }
+          },
+          "required": ["status"]
+        }
+      },
+      "then": {
+        "required": ["producer_type"]
       }
     }
-  }
+  ]
 }

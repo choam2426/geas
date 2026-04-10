@@ -1,6 +1,6 @@
 # INDEX
 
-**Version**: v3  
+**Version**: v1  
 **Status**: 프로토콜 문서 세트의 기준 읽기 안내
 
 ## 0. 읽는 순서

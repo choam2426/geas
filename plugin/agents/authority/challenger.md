@@ -82,6 +82,10 @@ Surface these as memory_suggestions:
    - Are there concerns I noticed but didn't escalate?
 
 2. **Write challenge_review to record.json** (required — the verified→passed guard checks this):
+
+   ### challenge_review fields
+   Write to record.json with: `concerns[]` (array of objects with `severity` (blocking|non_blocking) and `description`, OR array of strings), `blocking` (boolean — true if ANY concern is blocking), optional `summary`.
+
    ```
    geas task record add --task {task_id} --section challenge_review \
      --data '{"concerns":[{"severity":"blocking|non_blocking","description":"..."}],"blocking":false,"summary":"..."}'

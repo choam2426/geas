@@ -12,6 +12,24 @@ Produces a markdown summary to the conversation and writes `.geas/state/health-c
 
 ---
 
+## Inputs
+
+- **Mission ID** — identifies which mission to report on
+- **`.geas/missions/{mission_id}/evolution/debt-register.json`** — debt data
+- **`.geas/missions/{mission_id}/evolution/gap-assessment-*.json`** — gap assessment data
+- **`.geas/state/events.jsonl`** — event log for health signal computation
+- **`.geas/rules.md`** and **`.geas/memory/agents/*.md`** — for memory_bloat signal
+- **`.geas/missions/{mission_id}/tasks/*/record.json`** — for worker_low_confidence signal
+
+## Output
+
+- **`.geas/state/health-check.json`** — structured health check with all 8 signals (via `geas health generate`)
+- **Markdown summary** — printed to conversation with debt, gaps, health signals, and required actions
+- **`.geas/missions/{mission_id}/phase-reviews/{phase}-briefing.md`** — product authority briefing (at milestones)
+- **`.geas/missions/{mission_id}/phase-reviews/session-{timestamp}.md`** — session end summary
+
+---
+
 ## Section 1: Debt Summary
 
 Read debt data via CLI:
@@ -75,14 +93,14 @@ Calculate all 8 signals from protocol doc 10. For each signal: read the source d
 
 When a signal is triggered, include the mandatory response in the output and take the described action:
 
-1. **memory_bloat** — `orchestration_authority` reviews and trims `rules.md` and agent notes, removing stale or redundant entries.
-2. **review_gap** — `orchestration_authority` activates blocking at the `pre_gate` hook for specialist review omissions starting from the next task.
-3. **gate_quality_issue** — `orchestration_authority` creates a rule candidate for rubric criteria clarification. Adjusts evidence gate thresholds if needed.
-4. **contradiction_accumulation** — `orchestration_authority` edits `rules.md` to resolve contradictions and remove the weaker rule.
+1. **memory_bloat** — `orchestration-authority` reviews and trims `rules.md` and agent notes, removing stale or redundant entries.
+2. **review_gap** — `orchestration-authority` activates blocking at the `pre_gate` hook for specialist review omissions starting from the next task.
+3. **gate_quality_issue** — `orchestration-authority` creates a rule candidate for rubric criteria clarification. Adjusts evidence gate thresholds if needed.
+4. **contradiction_accumulation** — `orchestration-authority` edits `rules.md` to resolve contradictions and remove the weaker rule.
 5. **repeated_failure_class** — automatically add the failure pattern as a rule in `rules.md` and update relevant agent notes.
-6. **debt_stagnation** — `orchestration_authority` creates a debt resolution plan during phase review. Prioritize debt resolution tasks in the next phase scheduling.
-7. **scope_control_weakness** — `orchestration_authority` strengthens the implementation contract approval process. Makes re-approval mandatory on scope changes.
-8. **worker_low_confidence** — `orchestration_authority` reviews task granularity and improves agent memory notes for relevant workers.
+6. **debt_stagnation** — `orchestration-authority` creates a debt resolution plan during phase review. Prioritize debt resolution tasks in the next phase scheduling.
+7. **scope_control_weakness** — `orchestration-authority` strengthens the implementation contract approval process. Makes re-approval mandatory on scope changes.
+8. **worker_low_confidence** — `orchestration-authority` reviews task granularity and improves agent memory notes for relevant workers.
 
 ### Missing source data
 
@@ -124,7 +142,7 @@ Then print a markdown summary to the conversation:
 ...
 
 ### Required Actions
-- debt_stagnation: orchestration_authority creates a debt resolution plan during phase review.
+- debt_stagnation: orchestration-authority creates a debt resolution plan during phase review.
 ...
 ```
 

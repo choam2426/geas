@@ -1,5 +1,5 @@
 ---
-name: technical_writer
+name: technical-writer
 model: opus
 slot: communication_specialist
 domain: software

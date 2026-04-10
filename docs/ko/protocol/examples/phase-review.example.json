@@ -2,7 +2,7 @@
   "version": "1.0",
   "artifact_type": "phase_review",
   "artifact_id": "pr-mvp-to-polishing-001",
-  "producer_type": "orchestration_authority",
+  "producer_type": "orchestration-authority",
   "mission_phase": "building",
   "status": "ready_to_exit",
   "summary": "MVP 빌드 단계 완료. 로그인, 회원가입, 비밀번호 재설정 UI가 구현되었으며 핵심 인증 플로우가 E2E 테스트를 통과함. 비밀번호 재설정 이메일 토큰 플로우는 polishing 단계로 이관.",

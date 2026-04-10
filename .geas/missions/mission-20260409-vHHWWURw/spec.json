@@ -1,0 +1,90 @@
+{
+  "version": "1.0",
+  "artifact_type": "mission_spec",
+  "artifact_id": "mission-20260409-vHHWWURw",
+  "producer_type": "orchestration_authority",
+  "mission_id": "mission-20260409-vHHWWURw",
+  "created_at": "2026-04-09T12:46:33Z",
+  "source": "full_intake",
+  "domain_profile": "software",
+  "mode": "full_depth",
+  "mission": "Legacy cleanup and release redefinition — remove inconsistencies and dead code across the codebase, unify agent naming to underscores, flatten existing tags to v0.x.y, bump protocol to v1, and create CHANGELOG",
+  "done_when": "All legacy remnants removed, naming unified, tags flattened, protocol v1, and CHANGELOG created",
+  "target_user": "geas project maintainers and contributors",
+  "scope": {
+    "in": [
+      "Remove stale references and dead code in skills, agents, and protocol docs",
+      "Unify agent filenames to underscore format (product_authority.md etc.)",
+      "Unify agent names in skill text Agent() calls and protocol prose to underscores",
+      "Fix CLI bugs (evolution.ts missing cwd) and clean dead code",
+      "Remove v3-era no-op functions, stale fallback logic, duplicate functions",
+      "Flatten existing git tags to v0.x.y (v0.2.0->v0.1.0, v1.0.0->v0.2.0, etc.)",
+      "Adjust plugin.json/marketplace.json version to v0.x.x",
+      "Update protocol INDEX version to v1",
+      "Create CHANGELOG.md"
+    ],
+    "out": [
+      "New feature additions",
+      "Plugin v1.0.0 release (separate future mission)",
+      "Protocol content/structure changes (format and naming unification only)",
+      "Korean documentation sync (separate mission)"
+    ]
+  },
+  "acceptance_criteria": [
+    "Agent filenames all use underscore format (product_authority.md)",
+    "All skills/protocol docs use underscore agent names consistently",
+    "verify-fix-loop /pivot-protocol reference corrected to /geas:vote-round",
+    "evidence-gate undefined escalation policy cleaned up",
+    "CLI evolution.ts cwd bug fixed",
+    "CLI v3 no-op functions and stale fallback logic removed",
+    "Existing 8 git tags flattened to v0.x.y",
+    "plugin.json/marketplace.json version is v0.x.x",
+    "Protocol INDEX.md version is v1",
+    "CHANGELOG.md exists with full release history",
+    "npm run typecheck passes",
+    "npm test passes"
+  ],
+  "constraints": [
+    "Schema agent name enum values already use underscores - no change needed",
+    "Preserve existing commit history",
+    "Do not change protocol content/structure - format only"
+  ],
+  "affected_surfaces": [
+    "plugin/agents/**/*.md",
+    "plugin/skills/**/*.md",
+    "plugin/cli/src/**/*.ts",
+    "plugin/plugin.json",
+    ".claude-plugin/marketplace.json",
+    "docs/protocol/**/*.md",
+    "docs/protocol/schemas/*.json",
+    "docs/protocol/examples/*.json",
+    "docs/reference/*.md",
+    "docs/ko/protocol/INDEX.md",
+    "CLAUDE.md",
+    "README.md",
+    "README.ko.md",
+    "CHANGELOG.md"
+  ],
+  "risk_notes": [
+    "Agent filename changes may cause plugin.json registration mismatch",
+    "Tag flattening requires remote force push - affects collaborators",
+    "Naming unification may miss some references"
+  ],
+  "assumptions": [
+    "Remote tags will also be changed (force push required)",
+    "Current main branch is up to date"
+  ],
+  "ambiguities": [],
+  "completeness_checklist": {
+    "mission": true,
+    "domain_profile": true,
+    "mode": true,
+    "done_when": true,
+    "acceptance_criteria": true,
+    "scope_in": true,
+    "scope_out": true,
+    "target_user": true,
+    "constraints": true,
+    "surfaces": true
+  }
+}

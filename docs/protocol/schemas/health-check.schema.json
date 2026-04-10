@@ -10,8 +10,7 @@
     "artifact_id",
     "producer_type",
     "signals",
-    "any_triggered",
-    "created_at"
+    "any_triggered"
   ],
   "properties": {
     "version": {
@@ -28,7 +27,7 @@
     },
     "producer_type": {
       "type": "string",
-      "const": "orchestration_authority"
+      "const": "orchestration-authority"
     },
     "signals": {
       "type": "array",
@@ -92,6 +91,9 @@
     "created_at": {
       "type": "string",
       "format": "date-time"
+    },
+    "updated_at": {
+      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   }
 }

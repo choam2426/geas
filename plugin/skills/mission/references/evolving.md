@@ -12,7 +12,7 @@ Produce a structured gap assessment comparing what was planned vs what was deliv
    - Task exists but partially complete or with caveats -> `partially_delivered`
    - No corresponding task or task cancelled -> `not_delivered`
 5. Check for `scope_out` items that were delivered anyway -> `unexpected_additions` (need traceability note)
-6. Items explicitly dropped by product_authority decision -> `intentional_cuts`
+6. Items explicitly dropped by product-authority decision -> `intentional_cuts`
 7. Assemble the gap assessment JSON and write it via CLI:
    ```bash
    Bash("geas evolution gap-assessment --mission {mission_id} --phase evolving --data '<gap_assessment_json>'")
@@ -39,7 +39,7 @@ Present the prioritized list to the user:
   Proceed with P0 items?
 ```
 
-If no P0 items remain: skip to product_authority Final Briefing.
+If no P0 items remain: skip to product-authority Final Briefing.
 
 ### Rules Update Approval
 
@@ -48,8 +48,18 @@ If no P0 items remain: skip to product_authority Final Briefing.
 3. If no candidates across any task: write rules-update via CLI: `Bash("geas evolution rules-update --mission {mission_id} --data '<rules_update_json>'")`  with `status: "none"`, `reason: "no rule candidates from any task retrospective"`, `evidence_refs: []`, `applies_to: []`. Skip to next step.
 4. For each candidate, check approval conditions:
    - `evidence_refs` >= 2 (same pattern observed in 2+ tasks) AND `contradiction_count` = 0 -> auto-approve
-   - Otherwise -> spawn domain authority for review
-5. Assemble the rules-update JSON and write it via CLI: `Bash("geas evolution rules-update --mission {mission_id} --data '<rules_update_json>'")`  Required fields: `status` (approved/none), `reason`, `evidence_refs`, `applies_to`.
+   - Otherwise -> spawn domain authority for review:
+     ```bash
+     Bash("geas state checkpoint set --step rules_update_review --agent {domain-authority}")
+     ```
+     ```
+     Agent(agent: "{domain-authority}", prompt: "...")
+     ```
+     ```bash
+     Bash("geas state checkpoint clear")
+     ```
+5. Assemble the rules-update JSON and write it via CLI: `Bash("geas evolution rules-update --mission {mission_id} --data '<rules_update_json>'")`  Required fields: `status` (approved/none), `reason`, `evidence_refs`, `applies_to`. **`producer_type`**: omit when `status: "none"` (no producer needed). For approved/proposed/rejected: use the domain authority that made the decision.
+   **Note:** When `status` is `"approved"`, `affected_rule_ids[]` is required (at least 1 item).
 6. If `status: "approved"`: apply changes to `.geas/rules.md`
 7. Log: `Bash("geas event log --type rules_update --data '{\"status\":\"approved|none\"}'")` 
 
@@ -80,10 +90,16 @@ Same mandatory steps, same Closure Packet verification, same checkpoint manageme
 - User requests stop
 
 ### Product-authority Final Briefing [MANDATORY]
+```bash
+Bash("geas state checkpoint set --step product_authority_final --agent product-authority")
 ```
-Agent(agent: "product-authority", prompt: "Final product review. Read the current mission spec at .geas/missions/{mission_id}/spec.json (get mission_id from .geas/state/run.json), .geas/missions/{mission_id}/evolution/gap-assessment-evolving.json, .geas/missions/{mission_id}/evolution/debt-register.json, and all evidence across all phases. Deliver strategic summary: what shipped, what was cut, product health assessment, and recommendations for future work. Write your evidence via CLI. Run: geas evidence add --task evolving --agent product-authority-final --role authority --set summary='<strategic summary>' --set verdict='pass' --set rationale='<final assessment>'. ALSO write a human-readable markdown summary to .geas/missions/{mission_id}/mission-summary.md (use Write tool -- no dedicated CLI command for mission-summary) covering: mission goal, delivered scope, known gaps, debt status, and recommendations.")
 ```
-Verify `.geas/missions/{mission_id}/tasks/evolving/evidence/product-authority-final.json` exists.
+Agent(agent: "product-authority", prompt: "Final product review. Read the current mission spec at .geas/missions/{mission_id}/spec.json (get mission_id from .geas/state/run.json), .geas/missions/{mission_id}/evolution/gap-assessment-evolving.json, .geas/missions/{mission_id}/evolution/debt-register.json, and all evidence across all phases. Deliver your Final Briefing per your Review Protocols. Write your evidence via CLI. Run: geas evidence add --phase evolving --agent product-authority-final --role authority --set summary='<strategic summary>' --set verdict='pass' --set rationale='<final assessment>'. ALSO write a human-readable markdown summary to .geas/missions/{mission_id}/mission-summary.md (use Write tool -- no dedicated CLI command for mission-summary).")
+```
+```bash
+Bash("geas state checkpoint clear")
+```
+Verify `.geas/missions/{mission_id}/evolution/evidence/product-authority-final.json` exists.
 Verify `.geas/missions/{mission_id}/mission-summary.md` exists.
 
 ### Mission Briefing [MANDATORY — orchestrator writes directly]
@@ -228,7 +244,7 @@ Invoke `/geas:reporting` to generate session audit trail.
 
 **If ANY artifact is missing: go back and execute the missing step. Do NOT close without all 5.**
 
-**Debt triage check**: Read debt-register.json. If any item has `severity: "critical"` and `status: "open"`, the exit gate fails. Product_authority must decide: (a) immediate fix as task, (b) accept with mandatory rationale, or (c) defer to next mission. Record decision in a DecisionRecord with `decision_type: "critical_debt_triage"`.
+**Debt triage check**: Read debt-register.json. If any item has `severity: "critical"` and `status: "open"`, the exit gate fails. Product-authority must decide: (a) immediate fix as task, (b) accept with mandatory rationale, or (c) defer to next mission. Record decision in a DecisionRecord with `decision_type: "critical_debt_triage"`.
 
 Write the evolving phase review via CLI:
 ```bash
@@ -240,7 +256,7 @@ The phase review data:
   "version": "1.0",
   "artifact_type": "phase_review",
   "artifact_id": "pr-evolving",
-  "producer_type": "orchestration_authority",
+  "producer_type": "orchestration-authority",
   "mission_phase": "evolving",
   "status": "ready_to_exit",
   "summary": "<evolving outcomes>",
@@ -253,7 +269,11 @@ The phase review data:
 
 Update run state:
 ```bash
-Bash("geas state update --field phase --value complete")
+Bash("geas state checkpoint clear")
+Bash("geas state update --field current_task_id --value null")
 Bash("geas state update --field status --value complete")
+Bash("geas state update --field phase --value complete")
 ```
+The `phase: complete` transition MUST be last — the CLI auto-clears `mission_id`, `mission`, `completed_tasks`, and `current_task_id` when phase is set to `complete`, leaving run.json clean for the next mission.
+
 Log: `Bash("geas event log --type phase_complete --data '{\"phase\":\"complete\"}'")` 

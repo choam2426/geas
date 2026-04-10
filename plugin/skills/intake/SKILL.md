@@ -11,6 +11,14 @@ Before any mission execution, run this gate to freeze the mission specification.
 
 Missions arrive as natural language with hidden assumptions, ambiguous scope, and implicit constraints. This gate surfaces those gaps through collaborative exploration and produces an immutable mission spec file (`.geas/missions/{mission_id}/spec.json`) before the team starts building.
 
+## Inputs
+
+- **Raw mission description** — natural language from the user describing what they want to build
+- **Project context** — existing codebase structure, `.geas/rules.md` conventions (if available)
+- **Domain profile hint** — user's indication of work type (software, research, etc.)
+
+---
+
 ## Process
 
 ### Step 1: Assess Scope
@@ -32,14 +40,20 @@ Rules:
 - Stop when all checklist items are satisfied — no fixed question limit
 
 Question categories:
-1. **Domain profile**: "What type of work is this?" (software development / research / other)
-2. **Scope boundary**: "You mentioned X — does that include Y?" (with options)
-3. **User definition**: "Who primarily uses this?" (with persona options)
-4. **Constraint surfacing**: "Any tech stack or platform preferences?" (with common options)
-5. **Success criteria**: "How will you know this is done? What must work on day one?"
-6. **Anti-scope**: "What should this explicitly NOT do?" (with related-but-excluded options)
-7. **Risk surfacing**: "What could go wrong? Any areas of uncertainty?"
-8. **Affected surfaces**: "What existing areas/files/systems will this touch?"
+1. **Domain profile** (optional hint): "What type of work is this?" (software development / research / mixed / other). Sets default agent preferences but does not restrict agent selection — the orchestrator picks the best agent per task regardless of profile.
+2. **Mission mode** (MANDATORY — must always be asked): Present the three mode options with a recommendation based on scope assessment:
+   - **lightweight**: Clear scope, existing patterns apply, low ambiguity. Fastest execution.
+   - **standard**: Moderate scope, some architectural decisions, normal risk. Balanced depth.
+   - **full_depth**: Multiple valid approaches, cross-module impact, or significant risk. Maximum rigor, includes vote round.
+   Recommend one based on what you know so far. Example: "Based on the scope, I recommend **standard** mode. Which mode would you like?"
+   This question must not be skipped or inferred — always ask explicitly.
+3. **Scope boundary**: "You mentioned X — does that include Y?" (with options)
+4. **User definition**: "Who primarily uses this?" (with persona options)
+5. **Constraint surfacing**: "Any tech stack or platform preferences?" (with common options)
+6. **Success criteria**: "How will you know this is done? What must work on day one?"
+7. **Anti-scope**: "What should this explicitly NOT do?" (with related-but-excluded options)
+8. **Risk surfacing**: "What could go wrong? Any areas of uncertainty?"
+9. **Affected surfaces**: "What existing areas/files/systems will this touch?"
 
 If the user says "just build it" at any point — respect that, set `readiness_override: true`, fill best-effort values for unchecked items, and proceed.
 
@@ -73,7 +87,7 @@ As each section is approved, mark it in the completeness checklist.
 
 Check the completeness checklist — all items must be true:
 - `mission`: approved
-- `domain_profile`: selected
+- `domain_profile`: selected or omitted (optional — sets default agent preferences)
 - `mode`: selected (lightweight / standard / full_depth)
 - `done_when`: approved (one-sentence success definition)
 - `acceptance_criteria`: approved (>= 3 items)
@@ -81,29 +95,27 @@ Check the completeness checklist — all items must be true:
 - `scope_out`: approved (>= 1 item)
 - `target_user`: approved
 - `constraints`: approved
-- `scope.surfaces`: identified
+- `affected_surfaces`: identified
 
-Generate the mission ID in the format `mission-{YYYYMMDD}-{8char}` where:
-- `YYYYMMDD` is the current UTC date
-- `{8char}` is 8 random alphanumeric characters ([a-zA-Z0-9])
-
-Example: `mission-20260407-x7Kq9mPv`
-
-The concrete generation method (shell command, language library, etc.) is determined by the runtime environment — do not hardcode a specific tool. Verify uniqueness by checking that `.geas/missions/{generated_id}/` does not already exist.
-
-Create the mission directory structure (CLI creates all subdirectories automatically):
+Create the mission directory structure. The CLI auto-generates the mission ID and returns it:
 ```bash
-Bash("geas mission create --id {mission_id}")
+Bash("geas mission create")
 ```
+The response includes `mission_id` (e.g., `mission-20260407-x7Kq9mPv`). Use this ID for all subsequent commands.
 
 Write the mission spec via CLI with schema validation:
 ```bash
 Bash("geas mission write-spec --id {mission_id} --data '<spec_json>'")
 ```
-The CLI validates the spec against the schema automatically. Include:
-- `"version": "1.0"`, `"artifact_type": "mission_spec"`, `"artifact_id": "mission-{YYYYMMDD}-{8char}"`
-- `"producer_type": "orchestration_authority"`, `"mission_id": "mission-{YYYYMMDD}-{8char}"`
-- `"created_at"` (actual UTC timestamp)
+The CLI validates the spec against the schema automatically and auto-injects `created_at`. Include:
+- `"version": "1.0"`, `"artifact_type": "mission_spec"`, `"artifact_id": "{mission_id}"`
+- `"producer_type": "orchestration-authority"`, `"mission_id": "{mission_id}"`
+
+**Mission-spec schema fields (exact names required):**
+- `scope`: nested object with `in` (string array) and `out` (string array) — NOT flat `scope_in`/`scope_out`
+- `risk_notes`: string array (not `risks`)
+- `affected_surfaces`: string array, top-level (not inside `scope`)
+- `constraints`, `assumptions`, `ambiguities`: string arrays
 
 Always include the `source` field:
 - `"full_intake"` — complete Socratic exploration with user

@@ -1,0 +1,70 @@
+{
+  "version": "1.0",
+  "artifact_type": "task_contract",
+  "artifact_id": "task-contract-task-002",
+  "producer_type": "orchestration_authority",
+  "created_at": "2026-04-09T13:35:00Z",
+  "task_id": "task-002",
+  "title": "[T4a] Schema enums + agent YAML name to hyphens",
+  "goal": "Change all agentType enum values from underscores to hyphens in both schema copies, update 14 agent YAML name fields, profiles.json, CLI literals, integration tests",
+  "task_kind": "implementation",
+  "risk_level": "high",
+  "gate_profile": "implementation_change",
+  "vote_round_policy": "never",
+  "acceptance_criteria": [
+    "docs/protocol/schemas/_defs.schema.json agentType enum uses hyphens",
+    "plugin/cli/schemas/_defs.schema.json matches after build",
+    "All inline schema enums updated to hyphens",
+    "All 14 agent YAML name fields use hyphens",
+    "profiles.json slot_mapping values use hyphens",
+    "CLI hardcoded agent type literals updated",
+    "Integration test literals updated",
+    "Zero grep hits for underscore agent types in plugin/ and docs/protocol/schemas/",
+    "npm run typecheck passes",
+    "node test/integration.js passes"
+  ],
+  "eval_commands": [
+    "cd plugin/cli && npm run build",
+    "cd plugin/cli && npm run typecheck",
+    "cd plugin/cli && node test/integration.js"
+  ],
+  "rubric": {
+    "dimensions": [
+      {
+        "name": "core_interaction",
+        "threshold": 3
+      },
+      {
+        "name": "feature_completeness",
+        "threshold": 4
+      },
+      {
+        "name": "code_quality",
+        "threshold": 4
+      },
+      {
+        "name": "regression_safety",
+        "threshold": 4
+      }
+    ]
+  },
+  "retry_budget": 2,
+  "scope": {
+    "surfaces": [
+      "docs/protocol/schemas/",
+      "plugin/agents/",
+      "plugin/skills/mission/references/profiles.json",
+      "plugin/cli/src/",
+      "plugin/cli/test/integration.js"
+    ]
+  },
+  "routing": {
+    "primary_worker_type": "software_engineer",
+    "required_reviewer_types": [
+      "qa_engineer"
+    ]
+  },
+  "base_snapshot": "68092964098f9dfabf9df72b9c5b454499d43459",
+  "status": "passed",
+  "updated_at": "2026-04-09T14:15:28Z"
+}

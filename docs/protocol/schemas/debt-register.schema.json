@@ -9,8 +9,7 @@
     "artifact_id",
     "producer_type",
     "scope",
-    "items",
-    "created_at"
+    "items"
   ],
   "properties": {
     "version": {
@@ -27,8 +26,8 @@
     "producer_type": {
       "type": "string",
       "enum": [
-        "design_authority",
-        "product_authority"
+        "design-authority",
+        "product-authority"
       ]
     },
     "scope": {
@@ -135,6 +134,9 @@
     },
     "created_at": {
       "type": "string"
+    },
+    "updated_at": {
+      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   }
 }

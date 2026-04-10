@@ -14,6 +14,22 @@ The orchestrator assigns multiple tasks to run simultaneously. Each task progres
 
 ---
 
+## Inputs
+
+- **Task files** — all tasks in `.geas/missions/{mission_id}/tasks/` with their status, dependencies, and scope surfaces
+- **`.geas/state/run.json`** — current run state including checkpoint and batch tracking
+- **Lock state** — current lock holdings for path, interface, and resource conflicts
+- **Integration branch tip** — for staleness checking against `base_snapshot`
+
+## Output
+
+- **Batch assignment** — list of 2-4 tasks eligible for parallel execution
+- **Lock acquisitions** — path/interface locks acquired per batch task via CLI
+- **Updated checkpoint** — `run.json` updated with `parallel_batch` and `completed_in_batch`
+- **Event log entries** — `task_started`, `task_resolved` events per batch task
+
+---
+
 ## Preconditions
 
 - Worktree isolation must be available (git repo initialized). If unavailable, fall back to sequential execution (batch size 1).
@@ -74,7 +90,7 @@ The orchestrator manages each task's pipeline independently:
 - **Independent progression:** When an agent returns for task A, the orchestrator spawns task A's next step immediately. It does NOT wait for other tasks to reach the same step.
 - **Parallel spawning:** The orchestrator MAY spawn agents for different tasks in the same message (parallel tool calls). Example: `Agent(implementer, "implement task-003")` and `Agent(implementer, "implement task-009")` in one message.
 - **Step groups:** Within a single task, the orchestrator also applies step group rules from the execution pipeline (e.g., spawning design-authority + quality-specialist simultaneously for the same task).
-- **All mandatory steps apply:** Implementation contract, code review, testing, challenger challenge, product_authority verdict, retrospective, and resolve are mandatory for every task in the batch. Do NOT skip any because of parallelism.
+- **All mandatory steps apply:** Implementation contract, code review, testing, challenger challenge, product-authority verdict, retrospective, and resolve are mandatory for every task in the batch. Do NOT skip any because of parallelism.
 
 **Checkpoint during batch:** Before each agent spawn, update `last_updated` in run.json. `agent_in_flight` stays `null` during batches (multiple agents active). The authoritative progress record is the evidence files and task file statuses.
 
@@ -163,4 +179,4 @@ Speculative execution is PROHIBITED for:
 
 ### Deadlock Handling
 
-If two tasks hold mutually conflicting locks, the state transitions to `manual_repair_required`. No automatic resolution is attempted. The orchestration_authority or a human operator must intervene to release a lock or rewind a task.
+If two tasks hold mutually conflicting locks, the state transitions to `manual_repair_required`. No automatic resolution is attempted. The orchestration-authority or a human operator must intervene to release a lock or rewind a task.

@@ -1,0 +1,10 @@
+{
+  "summary": "Mode selection is mandatory in intake (marked MANDATORY, must always be asked). Completeness checklist includes mode:selected. Double approval risk eliminated by explicit section-by-section flow.",
+  "verdict": "approved",
+  "concerns": [],
+  "version": "1.0",
+  "agent": "design-authority-review",
+  "task_id": "task-005",
+  "role": "reviewer",
+  "created_at": "2026-04-09T14:23:15Z"
+}

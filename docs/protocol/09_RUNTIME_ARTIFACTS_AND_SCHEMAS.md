@@ -115,7 +115,7 @@ Every canonical artifact SHOULD expose shared metadata so that validators, recov
 | `artifact_type` | identifies which kind of artifact this is |
 | `version` | schema or artifact version for compatibility checking |
 | creation timestamp | when the artifact was produced |
-| producing role or subsystem | which agent or subsystem created the artifact |
+| producing role or subsystem | the agent whose judgment or expertise produced the artifact's content |
 | relevant ids | `mission_id`, `task_id`, `memory_id`, or other linking identifiers |
 | source or lineage references | pointers to parent artifacts or triggering events, where applicable |
 
@@ -148,7 +148,10 @@ The canonical `.geas/` runtime directory layout:
     design-brief.json                 # design brief
     decisions/                        # vote round results
     phase-reviews/                    # phase transition reviews
+    polishing/                        # polishing phase evidence
+      evidence/{agent}.json
     evolution/                        # gap-assessment, debt-register, rules-update
+      evidence/{agent}.json           # evolving phase evidence
     tasks/{tid}/
       contract.json                   # task contract (definition)
       packets/{agent}.md              # context packets (agent briefings)

@@ -115,7 +115,7 @@ Evolving phase에서 생성되는 artifact로, 팀이 성과를 돌아보고 프
 | `artifact_type` | artifact의 종류 식별 |
 | `version` | 호환성 검사를 위한 스키마 또는 artifact 버전 |
 | 생성 타임스탬프 | artifact 생성 시점 |
-| 생산 역할 또는 하위 시스템 | artifact를 생성한 에이전트 또는 하위 시스템 |
+| 생산 역할 또는 하위 시스템 | artifact 내용을 판단·생산한 에이전트 |
 | 관련 id | `mission_id`, `task_id`, `memory_id` 등 연결 식별자 |
 | 소스 또는 lineage 참조 | 부모 artifact나 트리거 이벤트에 대한 포인터 (해당 시) |
 
@@ -148,7 +148,10 @@ canonical `.geas/` 런타임 디렉터리 레이아웃:
     design-brief.json                 # design brief
     decisions/                        # vote round 결과
     phase-reviews/                    # phase 전이 review
+    polishing/                        # polishing phase evidence
+      evidence/{agent}.json
     evolution/                        # gap-assessment, debt-register, rules-update
+      evidence/{agent}.json           # evolving phase evidence
     tasks/{tid}/
       contract.json                   # task contract (정의)
       packets/{agent}.md              # context packet (에이전트 브리핑)
