@@ -1,0 +1,109 @@
+{
+  "version": "1.0",
+  "task_id": "task-002",
+  "implementation_contract": {
+    "status": "approved",
+    "planned_actions": [
+      "docs/reference/SKILLS.md: Fix setup description, remove Absorption Reference section",
+      "docs/ko/reference/SKILLS.md: Mirror same changes in Korean"
+    ],
+    "non_goals": [
+      "No changes to skill behavior or other docs"
+    ],
+    "edge_cases": [
+      "Setup description must still accurately describe current functionality"
+    ],
+    "demo_steps": [
+      "grep onboard docs/reference/SKILLS.md returns 0",
+      "grep conventions.md docs/reference/SKILLS.md returns 0"
+    ]
+  },
+  "created_at": "2026-04-10T13:04:50Z",
+  "self_check": {
+    "confidence": 5,
+    "known_risks": [],
+    "untested_paths": [],
+    "summary": "Both en and ko SKILLS.md files updated consistently. grep confirms zero deprecated terms."
+  },
+  "updated_at": "2026-04-10T13:10:13Z",
+  "gate_result": {
+    "verdict": "pass",
+    "tier_results": {
+      "tier_0": {
+        "status": "pass",
+        "details": "All evidence artifacts exist"
+      },
+      "tier_1": {
+        "status": "skipped",
+        "details": "No eval commands for artifact_only gate"
+      },
+      "tier_2": {
+        "status": "pass",
+        "details": "All 5 acceptance criteria met"
+      }
+    },
+    "rubric_scores": [
+      {
+        "dimension": "core_interaction",
+        "score": 5,
+        "threshold": 3,
+        "passed": true
+      },
+      {
+        "dimension": "feature_completeness",
+        "score": 5,
+        "threshold": 4,
+        "passed": true
+      },
+      {
+        "dimension": "code_quality",
+        "score": 5,
+        "threshold": 4,
+        "passed": true
+      },
+      {
+        "dimension": "regression_safety",
+        "score": 5,
+        "threshold": 4,
+        "passed": true
+      }
+    ],
+    "blocking_dimensions": []
+  },
+  "closure": {
+    "change_summary": "Removed deprecated terms from both SKILLS.md files: updated setup description (removed conventions.md and onboard refs), removed entire Absorption Reference section. En/ko consistent.",
+    "reviews": [
+      {
+        "reviewer_type": "design-authority",
+        "status": "approved",
+        "summary": "Structural consistency verified, no behavioral impact"
+      }
+    ],
+    "open_risks": [],
+    "debt_items": [
+      "vote-round and reporting descriptions still contain Absorbed the former... pattern in both SKILLS.md files"
+    ]
+  },
+  "verdict": {
+    "verdict": "pass",
+    "rationale": "Low-risk terminology cleanup. Deprecated terms removed from both en/ko SKILLS.md files. En/ko consistency verified. Design-authority approved with no concerns. Grep verification confirms zero residual hits. Debt item (vote-round Absorbed pattern) is out of scope and minor."
+  },
+  "retrospective": {
+    "what_went_well": [
+      "Clean bilateral edits",
+      "en/ko consistency verified"
+    ],
+    "what_broke": [],
+    "what_was_surprising": [
+      "Additional Absorbed the former... patterns in vote-round and reporting descriptions"
+    ],
+    "rule_candidates": [],
+    "memory_candidates": [],
+    "debt_candidates": [
+      "vote-round and reporting descriptions in SKILLS.md still reference absorbed former skills"
+    ],
+    "next_time_guidance": [
+      "When cleaning migration references grep for the pattern not just specific terms"
+    ]
+  }
+}

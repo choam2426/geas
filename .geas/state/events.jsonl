@@ -1,0 +1,15 @@
+{"timestamp":"2026-04-10T12:58:26Z","event_type":"step_complete","data":{"step":"design_brief_design_review","agent":"design-authority"}}
+{"timestamp":"2026-04-10T13:00:07Z","event_type":"task_compiled","task_id":"task-001","data":{"title":"Clean deprecated terms from skill files"}}
+{"timestamp":"2026-04-10T13:00:07Z","event_type":"task_compiled","task_id":"task-002","data":{"title":"Clean deprecated terms from docs SKILLS.md (en+ko)"}}
+{"timestamp":"2026-04-10T13:03:21Z","event_type":"task_list_approved","data":{"mission_id":"mission-20260410-EDfOAr6F","task_count":2}}
+{"timestamp":"2026-04-10T13:03:21Z","event_type":"environment_setup_complete","data":{"mission_id":"mission-20260410-EDfOAr6F","items":[]}}
+{"timestamp":"2026-04-10T13:03:37Z","event_type":"phase_complete","data":{"phase":"specifying"}}
+{"timestamp":"2026-04-10T13:04:24Z","event_type":"task_started","task_id":"task-001"}
+{"timestamp":"2026-04-10T13:04:24Z","event_type":"task_started","task_id":"task-002"}
+{"timestamp":"2026-04-10T13:10:22Z","event_type":"task_resolved","task_id":"task-001","data":{"verdict":"pass"}}
+{"timestamp":"2026-04-10T13:10:23Z","event_type":"task_resolved","task_id":"task-002","data":{"verdict":"pass"}}
+{"timestamp":"2026-04-10T13:11:01Z","event_type":"phase_complete","data":{"phase":"building"}}
+{"timestamp":"2026-04-10T13:11:54Z","event_type":"phase_complete","data":{"phase":"polishing"}}
+{"timestamp":"2026-04-10T13:12:25Z","event_type":"rules_update","data":{"status":"none"}}
+{"timestamp":"2026-04-10T13:12:25Z","event_type":"memory_consolidation","data":{"rules_added":0,"agent_notes_added":1}}
+{"timestamp":"2026-04-10T13:14:20Z","event_type":"phase_complete","data":{"phase":"complete"}}

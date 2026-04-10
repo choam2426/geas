@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "artifact_type": "gap_assessment",
+  "artifact_id": "ga-evolving-mission-20260410-EDfOAr6F",
+  "producer_type": "orchestration-authority",
+  "scope_in_summary": "Remove deprecated terms (seed, onboard, old agent names) from skills and docs",
+  "scope_out_summary": "CHANGELOG unchanged, general English onboarding preserved, run.json references unchanged",
+  "fully_delivered": [
+    "All seed references replaced with mission spec",
+    "All onboard skill-name references removed",
+    "Phase A-1.6 migration section removed",
+    "Absorption Reference tables removed",
+    "specifying.md headers updated",
+    "conventions.md references removed",
+    "en/ko consistency maintained",
+    "Dangling setup input reference cleaned"
+  ],
+  "partially_delivered": [],
+  "not_delivered": [],
+  "intentional_cuts": [],
+  "unexpected_additions": [
+    "Removed dangling input reference in setup SKILL.md"
+  ],
+  "recommended_followups": [
+    "Clean remaining Absorbed the former... pattern from vote-round and reporting descriptions in SKILLS.md (en+ko) — DEBT-001"
+  ],
+  "created_at": "2026-04-10T13:12:14Z"
+}
