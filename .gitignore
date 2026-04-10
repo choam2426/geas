@@ -6,9 +6,13 @@ node_modules/
 Thumbs.db
 **/__pycache__/
 *.png
+
+# Dashboard
+dashboard/node_modules/
+dashboard/src-tauri/target/
+dashboard/dist/
+dashboard/src-tauri/icons/*.png
 .claude/
-
 .geas/state/
-
 src/cli/dist/
 src/cli/node_modules/
