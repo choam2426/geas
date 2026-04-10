@@ -13,8 +13,6 @@ Users should not need to run setup manually unless they are troubleshooting.
 
 - **Project directory** — the repository root where `.geas/` will be initialized
 - **Existing codebase** (optional) — configuration files (package.json, go.mod, etc.) for stack detection
-- **Previous `.geas/memory/agents/`** (optional) — old agent notes requiring migration
-
 ## Output
 
 - **`.geas/` directory** — initialized with `state/`, `memory/agents/`, `recovery/` subdirectories
@@ -70,9 +68,9 @@ geas state update --field phase --value specifying
 
 The CLI enforces schema validation on the RunState.
 
-### Phase A-1.5: Codebase Discovery (Onboarding)
+### Phase A-1.5: Codebase Discovery
 
-Phase A also includes codebase discovery — scan project structure, detect stack, and populate the Code section of `.geas/rules.md`. This absorbs the functionality of the former onboard skill.
+Phase A also includes codebase discovery — scan project structure, detect stack, and populate the Code section of `.geas/rules.md`.
 
 1. Scan project root for configuration files (package.json, go.mod, pyproject.toml, Cargo.toml, Makefile, etc.)
 2. Detect the project stack (language, framework, package manager, test runner)
@@ -85,22 +83,6 @@ Phase A also includes codebase discovery — scan project structure, detect stac
    - Project structure notes
 
 If the project is empty (no source files yet), write a minimal Code section noting that commands will be populated as the project develops.
-
-### Phase A-1.6: Agent Memory Migration
-
-If `.geas/memory/agents/` already exists with files from a previous version, migrate old agent type names:
-
-| old file | action |
-|---|---|
-| `frontend_engineer.md` + `backend_engineer.md` | merge into `software-engineer.md` (concatenate with `---` separator) |
-| `devops_engineer.md` | rename to `platform-engineer.md` |
-| `critical_reviewer.md` | rename to `challenger.md` |
-| `ui_ux_designer.md` | merge relevant content into `software-engineer.md` |
-| `architecture_authority.md` | rename to `design-authority.md` |
-
-Migration is best-effort. Log what was migrated. Do not delete originals until migration is confirmed successful.
-
-If `.geas/memory/agents/` does not exist or has no old-named files, skip this step.
 
 ### Phase A-2: Generate `.geas/rules.md`
 

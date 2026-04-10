@@ -79,7 +79,7 @@ Protocol for parallel task management. Defines batch construction rules, pipelin
 
 ### setup
 
-First-time project initialization. Creates the `.geas/` runtime directory structure, generates `rules.md` with baseline rules, discovers codebase conventions (stack, build commands, architecture), and writes `conventions.md`. Absorbed the former `onboard` skill. Idempotent — safe to call on an existing project.
+First-time project initialization. Creates the `.geas/` runtime directory structure, generates `rules.md` with baseline rules and detected codebase conventions (stack, build commands, architecture). Idempotent — safe to call on an existing project.
 
 **Invocation:** Called by `mission` on first run (when `run.json` does not exist).
 
@@ -134,27 +134,3 @@ mission (orchestrator)
   +-- policy-managing       (on-demand rule overrides)
 ```
 
----
-
-## Absorption Reference
-
-Core skills were consolidated from 27 to 12. The following table documents what was merged and what was deleted, for migration reference.
-
-| Former Skill | Disposition | Notes |
-|-------------|-------------|-------|
-| `orchestrating` | Renamed to `mission` | Orchestrator is now the `mission` skill directly |
-| `onboard` | Absorbed into `setup` | Codebase discovery is part of project initialization |
-| `decision` | Absorbed into `vote-round` | Structured decisions are a voting use case |
-| `pivot-protocol` | Absorbed into `vote-round` | Pivots are a decision type |
-| `briefing` | Absorbed into `reporting` | Status briefings are part of health reporting |
-| `run-summary` | Absorbed into `reporting` | Session summaries are part of health reporting |
-| `verify` | Deleted | Mechanical checks absorbed into evidence-gate Tier 1 |
-| `cleanup` | Deleted | Debt detection handled by evidence-gate and reporting |
-| `coding-conventions` | Deleted | Conventions live in `.geas/rules.md` |
-| `ledger-query` | Deleted | Orchestrator queries the ledger directly |
-| `conformance-checking` | Deleted | Development-time tool, not a runtime skill |
-| `chaos-exercising` | Deleted | Development-time tool, not a runtime skill |
-| `mission` (old wrapper) | Deleted | Former thin shell; orchestrator is now `mission` directly |
-| `context-packet` | Absorbed into `mission` (v4) | Packet creation via CLI `geas packet create`; content composed by orchestrator |
-| `write-prd` | Deleted (v4) | Unused stub — never invoked in pipeline |
-| `write-stories` | Deleted (v4) | Unused stub — never invoked in pipeline |

@@ -79,7 +79,7 @@ Memory 생명주기 관리. `rules.md` 갱신과 agent별 노트(`memory/agents/
 
 ### setup
 
-최초 프로젝트 초기화. `.geas/` 런타임 디렉토리 구조를 생성하고, 기본 규칙이 포함된 `rules.md`를 생성하며, 코드베이스 관례(스택, 빌드 명령, 아키텍처)를 탐색하여 `conventions.md`에 기록한다. 기존 `onboard` skill을 흡수하였다. 멱등 — 기존 프로젝트에서도 안전하게 실행할 수 있다.
+최초 프로젝트 초기화. `.geas/` 런타임 디렉토리 구조를 생성하고, 탐색된 코드베이스 관례(스택, 빌드 명령, 아키텍처)를 포함한 `rules.md`를 생성한다. 멱등 — 기존 프로젝트에서도 안전하게 실행할 수 있다.
 
 **호출:** 최초 실행 시(`run.json`이 없을 때) `mission`이 호출한다.
 
@@ -134,27 +134,3 @@ mission (orchestrator)
   +-- policy-managing       (필요 시 규칙 오버라이드)
 ```
 
----
-
-## 흡수 이력
-
-Core skill이 27개에서 12개로 통합되었다. 아래 표는 무엇이 병합되고 무엇이 삭제되었는지를 기록한다.
-
-| 이전 Skill | 처리 | 비고 |
-|-----------|------|------|
-| `orchestrating` | `mission`으로 개명 | Orchestrator가 `mission` skill 자체가 되었다 |
-| `onboard` | `setup`에 흡수 | 코드베이스 탐색은 프로젝트 초기화의 일부이다 |
-| `decision` | `vote-round`에 흡수 | 구조화된 의사결정은 투표의 한 유형이다 |
-| `pivot-protocol` | `vote-round`에 흡수 | Pivot은 의사결정의 한 유형이다 |
-| `briefing` | `reporting`에 흡수 | 상태 브리핑은 건강 보고의 일부이다 |
-| `run-summary` | `reporting`에 흡수 | 세션 요약은 건강 보고의 일부이다 |
-| `verify` | 삭제 | 기계적 검사는 evidence-gate Tier 1에 흡수되었다 |
-| `cleanup` | 삭제 | 부채 감지는 evidence-gate와 reporting이 처리한다 |
-| `coding-conventions` | 삭제 | 관례는 `.geas/rules.md`에 존재한다 |
-| `ledger-query` | 삭제 | Orchestrator가 ledger를 직접 조회한다 |
-| `conformance-checking` | 삭제 | 개발 시점 도구이며 런타임 skill이 아니다 |
-| `chaos-exercising` | 삭제 | 개발 시점 도구이며 런타임 skill이 아니다 |
-| `mission` (기존 wrapper) | 삭제 | 기존의 얇은 셸이며, orchestrator가 `mission`을 직접 담당한다 |
-| `context-packet` | `mission`에 흡수 (v4) | CLI `geas packet create`로 패킷 생성; 내용은 orchestrator가 구성한다 |
-| `write-prd` | 삭제 (v4) | 미사용 스텁 -- 파이프라인에서 호출된 적 없음 |
-| `write-stories` | 삭제 (v4) | 미사용 스텁 -- 파이프라인에서 호출된 적 없음 |

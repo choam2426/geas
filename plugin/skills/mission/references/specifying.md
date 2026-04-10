@@ -4,13 +4,13 @@ Always runs. Scale adapts to the request.
 
 ## Always Run
 
-### 1. Seed Check
+### 1. Spec Check
 
 - `.geas/missions/{mission_id}/spec.json` should exist from intake (read `mission_id` from `run.json`).
 - If not, invoke `/geas:intake`.
 - If `completeness_checklist` has any false values and no override: ask the user, re-run intake.
 
-### 2. Onboard Check
+### 2. Rules Check
 
 If `.geas/rules.md` is missing, invoke `/geas:setup` to scan the existing project before proceeding.
 

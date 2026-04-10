@@ -68,11 +68,11 @@ When requirements are clear enough, present 2-3 scope/approach options:
   Option B: CLI + REST API — extensible but more complexity
   Option C: TUI with ratatui — richer UX but harder to test
   ```
-- Let the user choose direction before finalizing the seed
+- Let the user choose direction before finalizing the mission spec
 
-### Step 4: Build Seed Section by Section
+### Step 4: Build Mission Spec Section by Section
 
-Present each seed section to the user and get explicit approval before moving on:
+Present each section to the user and get explicit approval before moving on:
 
 1. **Mission**: "Mission: '{refined mission statement}'. Does this capture your intent?"
 2. **Scope IN**: "These features are IN scope: [list]. Correct?"
@@ -83,7 +83,7 @@ Present each seed section to the user and get explicit approval before moving on
 
 As each section is approved, mark it in the completeness checklist.
 
-### Step 5: Verify Completeness and Freeze Seed
+### Step 5: Verify Completeness and Freeze Mission Spec
 
 Check the completeness checklist — all items must be true:
 - `mission`: approved
@@ -184,7 +184,7 @@ Show the user a detailed mission briefing:
 ```
 
 Ask: "Does this capture your intent? Any changes before we start?"
-If confirmed → seed is frozen. Proceed to execution.
+If confirmed → mission spec is frozen. Proceed to execution.
 If changes → update and re-confirm.
 
 ## Lightweight Variant
@@ -195,7 +195,7 @@ For lightweight missions (adding a feature to an existing project):
    - What exactly does this feature do?
    - What existing code does it touch?
    - What should NOT change?
-3. Produce a lighter seed with emphasis on scope_in (the specific feature), scope_out (existing functionality that must not change), and constraints (existing tech stack)
+3. Produce a lighter mission spec with emphasis on scope_in (the specific feature), scope_out (existing functionality that must not change), and constraints (existing tech stack)
 
 ## Output
 
