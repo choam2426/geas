@@ -68,7 +68,7 @@ pub fn start_watching(app_handle: AppHandle, paths: &[String]) -> Mutex<WatcherS
 
     let prev_states_clone = prev_states.clone();
 
-    let mut debouncer = new_debouncer(Duration::from_millis(500), move |res| {
+    let mut debouncer = new_debouncer(Duration::from_millis(200), move |res| {
         handle_debounced_event(&handle, &prev_states_clone, res);
     })
     .expect("Failed to create file watcher");
