@@ -90,7 +90,7 @@ docs/ko/                     # Korean mirror (protocol/ is canonical Korean)
 
 ### Mission references
 - `mission/references/specifying.md` — Specifying phase procedure
-- `mission/references/pipeline.md` — Per-task 14-step pipeline
+- `mission/references/pipeline.md` — Per-task 15-step pipeline
 - `mission/references/building.md` — Building phase management
 - `mission/references/polishing.md` — Polishing phase procedure
 - `mission/references/evolving.md` — Evolving phase procedure

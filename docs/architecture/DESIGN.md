@@ -284,7 +284,7 @@ plugin/
 │   ├── software/              # 5 specialists (software-engineer, qa-engineer, security-engineer, platform-engineer, technical-writer)
 │   └── research/              # 6 specialists (literature-analyst, research-analyst, methodology-reviewer, research-integrity-reviewer, research-engineer, research-writer)
 └── hooks/
-    ├── hooks.json             # 9 lifecycle hooks
+    ├── hooks.json             # 10 lifecycle hooks
     └── scripts/
 ```
 

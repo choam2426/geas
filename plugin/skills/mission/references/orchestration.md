@@ -119,7 +119,7 @@ Threshold warning is handled automatically by the check-debt hook when the CLI w
 
 ### Continuation Rule
 
-Within a SINGLE TASK's pipeline, do NOT end your turn between steps. Run all 14 pipeline steps for one task in a single continuous turn.
+Within a SINGLE TASK's pipeline, do NOT end your turn between steps. Run all 15 pipeline steps for one task in a single continuous turn.
 
 Between tasks, a brief status update is acceptable but do NOT wait for user input unless:
 - You need user input (ambiguous requirement, scope question), OR
@@ -135,7 +135,7 @@ These are recurring mistakes. Read before every mission.
 
 1. **Claude Code TaskCreate ≠ geas TaskContract.** Claude Code's built-in TaskCreate tool creates UI-only progress items. Geas TaskContracts are `.geas/missions/{mission_id}/tasks/{task-id}/contract.json` files created via `/geas:task-compiler`. You MUST use task-compiler — never substitute Claude Code tasks for geas tasks.
 
-2. **Lightweight mode ≠ skip pipeline.** Lightweight simplifies intake and design-brief (fewer questions, fewer fields). The Building pipeline (14 steps per task, state transitions, evidence, gate) is IDENTICAL across all modes. No mode allows skipping state transitions or evidence collection.
+2. **Lightweight mode ≠ skip pipeline.** Lightweight simplifies intake and design-brief (fewer questions, fewer fields). The Building pipeline (15 steps per task, state transitions, evidence, gate) is IDENTICAL across all modes. No mode allows skipping state transitions or evidence collection.
 
 3. **Orchestrate only — never implement.** The orchestrator does NOT write code, even for "simple" fixes. Spawn an implementer agent. The only direct writes the orchestrator does are: git operations, retrospectives, closure packets, and session state.
 

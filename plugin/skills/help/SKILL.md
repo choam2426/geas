@@ -58,7 +58,7 @@ Define WHAT and WHY. This phase produces three user-approved artifacts:
 
 ### 2. Building
 
-Execute the task list. Each task follows a 14-step pipeline:
+Execute the task list. Each task follows a 15-step pipeline:
 
 1. Task transitions through states: `drafted` -> `ready` -> `implementing` -> `reviewed` -> `integrated` -> `verified` -> `passed`
 2. Workers are assigned via slot resolution (domain profiles map abstract roles to concrete agent types)
