@@ -6,6 +6,24 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.0.1] — 2026-04-10
+
+README rewrite, project structure cleanup, versioning fix.
+
+### Changed
+- README (en + ko) rewritten: icon hero, highlight cards, restructured sections, accurate pipeline/hook counts
+- Evidence Gate tier descriptions corrected (Tier 0 Precheck / Tier 1 Mechanical / Tier 2 Contract+Rubric)
+- Vote Round and Gap Assessment added to README feature list
+- Korean README: natural tone, English section titles and technical terms
+- CLAUDE.md simplified: removed migration history, merged redundant rules, removed derivable skill lists
+- Project description updated across plugin.json and marketplace.json
+- `dashboard/` moved to `src/dashboard/` for consistent source layout
+- `marketplace.json` version fields removed (breaks `/plugin update` auto-detection)
+
+### Fixed
+- Pipeline step count: 14 → 15 across all docs (CLAUDE.md, DESIGN.md, orchestration.md, help SKILL.md)
+- Hook count: 9 → 10 across all docs
+
 ## [1.0.0] — 2026-04-10
 
 First stable release. Dashboard, progressive skill loading, domain flexibility, and full test-driven polish.
