@@ -4,7 +4,18 @@ All notable changes to this project are documented in this file.
 
 > **Note**: Tags were restructured in v0.5.1. Previous major versions (v1.x, v2.x) have been flattened to v0.x.y to reflect that the project is pre-1.0.
 
-## [Unreleased]
+## [1.1.0] — 2026-04-11
+
+### Added
+- `geas schema list` — lists all available schema types (15 types)
+- `geas schema template <type> [--role <role>]` — generates fill-in JSON templates from schema definitions; `--role` selects evidence role variants (implementer, reviewer, tester, authority)
+- Validation error hints — `hints` field in VALIDATION_ERROR responses provides correct field names, allowed enum values, and required/optional status
+- Envelope auto-injection — `version`, `artifact_type`, `producer_type`, `artifact_id` are automatically injected by the CLI; agents no longer need to provide these fields
+- 18 regression tests for schema templates, envelope injection, and validation hints
+
+### Changed
+- Skills: inline schema templates removed from skill text, replaced with `geas schema template` CLI calls
+- `task create` enforces `status: "drafted"` regardless of input value
 
 ## [1.0.1] — 2026-04-10
 

@@ -83,6 +83,12 @@ Key CLI commands:
 - `geas task transition --to {state}` — transition with guard validation
 - `geas event log` — append to events.jsonl
 - `geas memory agent-note --agent {name}` — update agent memory
+- `geas schema list` — list all available schema types
+- `geas schema template <type> [--role <role>]` — generate a fill-in JSON template for any schema type
+
+**Schema templates** — Before constructing JSON for any CLI command, use `geas schema template <type>` to get the exact required fields. For evidence, use `--role` to get role-specific fields (e.g., `geas schema template evidence --role reviewer`). Envelope fields (`version`, `artifact_type`, `producer_type`, `artifact_id`) are auto-injected by the CLI — agents do not need to include them.
+
+**Validation error hints** — When a CLI command fails schema validation, the error response includes a `hints` field with the correct field names, allowed enum values, and required/optional field information. Use these hints to fix the JSON and retry.
 
 **Language** — All files in English, except `docs/ko/` and `README.ko.md`.
 
