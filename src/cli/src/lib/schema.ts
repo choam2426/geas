@@ -48,6 +48,14 @@ export function getValidator(schemaName: string): ValidateFunction {
   return validator;
 }
 
+/**
+ * Return the raw schema object for a given schema name.
+ * Returns undefined if the schema is not found.
+ */
+export function getSchemaObject(schemaName: string): unknown | undefined {
+  return SCHEMAS[schemaName];
+}
+
 export function validate(
   schemaName: string,
   data: unknown
