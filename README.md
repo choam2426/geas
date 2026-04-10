@@ -9,11 +9,11 @@
 
 Geas turns a group of AI agents into a governed team. It replaces **"done" with evidence**, **informal review with explicit authority**, and **session amnesia with reusable memory**.
 
-The current implementation runs as a **Claude Code plugin**. It ships with **software** and **research** profiles today, while the contract engine stays domain-agnostic so new profiles can be added without changing the governance model.
+The current implementation runs as a **Claude Code plugin** with an optional **Tauri desktop dashboard**. It ships with **software** and **research** agent profiles, while the contract engine stays domain-agnostic so new profiles can be added without changing the governance model.
 
-> Geas is not a “more agents” project. It is a control system for how agents coordinate, verify, and learn.
+> Geas is not a "more agents" project. It is a control system for how agents coordinate, verify, and learn.
 
-**14 agent types · 12 skills · 9 lifecycle hooks · 16 JSON Schemas**
+**14 agent types · 13 skills · 9 lifecycle hooks · 16 JSON Schemas**
 
 ---
 
@@ -29,45 +29,43 @@ The current implementation runs as a **Claude Code plugin**. It ships with **sof
 
 ---
 
+## What you get
+
+- **Socratic intake** — Geas asks questions one at a time until the mission spec is clear. No ambiguous handoffs.
+- **Task contracts** — Each unit of work gets a machine-readable contract with scope, acceptance criteria, reviewers, and eval commands before anyone writes code.
+- **14-step execution pipeline** — Implementation → self-check → specialist review → evidence gate → challenger review → final verdict. Every step produces traceable artifacts.
+- **Evidence Gate** — Three-tier verification (eval commands, acceptance criteria, rubric scoring). "Trust but verify" is replaced with "don't trust, verify."
+- **Parallel scheduling** — Independent tasks run concurrently with lock-based conflict detection. Dependent tasks are sequenced automatically.
+- **Challenger review** — An adversarial agent that asks "why might this still be wrong?" on high-risk tasks. Must raise at least one substantive concern.
+- **Session recovery** — Checkpoint-based recovery handles interrupted sessions, context compaction, and dirty state. Pick up where you left off.
+- **Memory system** — `rules.md` for cross-agent knowledge, per-agent memory notes for role-specific lessons. The team learns across sessions.
+- **Real-time dashboard** — Tauri desktop app that watches `.geas/` state. Kanban board, timeline, debt tracking, toast notifications.
+
+---
+
 ## Quick Start
 
-The current implementation is a **Claude Code plugin**. Install [Claude Code CLI](https://claude.ai/code), then:
+### Install
 
 ```bash
 /plugin marketplace add choam2426/geas
 /plugin install geas@choam2426-geas
-/geas:mission
 ```
 
-Describe the mission. Geas will gather requirements, compile task contracts, route the right agents, and drive the work through the protocol.
+### Commands
 
----
+| Command | What it does |
+|---|---|
+| `/geas:mission` | Start or resume a mission — the main entry point. Handles everything from requirements to delivery. |
+| `/geas:help` | Show all available commands, the 4-phase workflow, and how the team model works. |
 
-## When Geas is a good fit
+`/geas:mission` is all you need. Describe what you want to build, and Geas takes over: gathering requirements, compiling task contracts, routing agents, verifying evidence, and closing the mission. For trivial tasks (single file fix, obvious bug), it skips the full pipeline automatically.
 
-- Multi-step implementation, refactors, or migrations
-- High-risk work where explicit verification matters
-- Parallel work across implementation, QA, security, operations, and docs
-- Long-running work where traceability and memory matter
-- Structured research or analysis that benefits from separated reviewer roles
+Other commands (`/geas:intake`, `/geas:evidence-gate`, `/geas:scheduling`, etc.) are used internally by the orchestrator. Run `/geas:help` to see the full list.
 
-## When it is probably overkill
+### Dashboard (optional)
 
-- Tiny one-file edits
-- Disposable prototypes
-- Lowest-token tasks where speed matters more than governance
-
-Geas adds process. That means **more steps and more tokens** than direct prompting. It pays off when the cost of being wrong is higher than the cost of coordination.
-
----
-
-## What Geas enforces
-
-- **Contracts before implementation** — Every task gets a machine-readable agreement: scope, acceptance criteria, reviewers, eval commands, risks, and escalation policy.
-- **Independent verification before closure** — The protocol does not trust any agent’s claim of completion.
-- **Adversarial review for risky work** — A Challenger asks, *“Why might this still be wrong?”*
-- **Memory across sessions** — Retrospectives, promoted memories, rules, and debt tracking make the team improve instead of reset.
-- **Slot-based routing** — The contract engine works with abstract slots; domain profiles map those slots to concrete agents at runtime.
+See the [Dashboard](#dashboard) section below.
 
 ---
 
@@ -107,6 +105,40 @@ Contract → Implementation → Self-check → Specialist review
 
 ---
 
+## Dashboard
+
+A Tauri desktop app that reads `.geas/` state in real time. It watches for file changes — no polling, no agent interruption.
+
+![Dashboard Overview](docs/images/dashboard.png)
+
+### Views
+
+**Project overview** — current mission, active agent, phase, task progress, last activity timestamp. Multiple projects in the sidebar.
+
+**Kanban board** — tasks flow through the 7-state lifecycle columns. Click a card for contract details, evidence, and record sections.
+
+![Kanban Board](docs/images/kanvanboard.png)
+
+**Mission detail** — design brief, task list, gap assessment, debt register, mission summary. Everything the protocol produced for one mission.
+
+**Memory browser** — `rules.md` content and per-agent memory notes. See what the team has learned.
+
+**Timeline** — event log visualization. Every state transition, gate result, and agent spawn in chronological order.
+
+**Tech debt panel** — debt items by severity and kind. Filter by status (open / resolved / deferred).
+
+### Notifications
+
+File-system watcher triggers toast notifications when tasks complete, gates pass or fail, or phases change. No need to switch windows to check progress.
+
+![Task Completed](docs/images/toast.png)
+
+### Install
+
+Download the installer for your platform from [Releases](https://github.com/choam2426/geas/releases). Open the app, add a project directory that contains `.geas/`, and the dashboard starts reading state immediately.
+
+---
+
 ## Team model
 
 Geas uses a **slot-based role architecture**. Authority agents govern the process. Specialist agents do the domain work.
@@ -117,31 +149,29 @@ Geas uses a **slot-based role architecture**. Authority agents govern the proces
 | **Software profile** | Software Engineer, QA Engineer, Security Engineer, Platform Engineer, Technical Writer |
 | **Research profile** | Literature Analyst, Research Analyst, Methodology Reviewer, Research Integrity Reviewer, Research Engineer, Research Writer |
 
-A mission declares its domain profile. The Orchestrator resolves abstract slots such as `implementer`, `quality_specialist`, and `risk_specialist` into concrete agent types at runtime.
+Domain profiles set default agent preferences, but the orchestrator can freely pick the best agent per task regardless of profile. A software mission can use research agents for literature review tasks, and vice versa.
 
 ---
 
-## See it in action
+## What Geas enforces
 
-```text
-[Orchestrator]     Specifying: intake complete. 2 tasks compiled.
-[Orchestrator]     Building: starting task-001 (JWT auth API).
-[Design Auth]      Tech guide: bcrypt + JWT, refresh token rotation.
-[Orchestrator]     Implementation contract approved.
-[SW Engineer]      Implementation complete. 4 endpoints. Workspace merged.
-[SW Engineer]      Self-check: confidence 4/5. Token expiry edge case untested.
-[Design Auth]      Review: approved.                                <- parallel
-[QA Engineer]      Testing: 6/6 acceptance criteria passed.         <- parallel
-[Orchestrator]     Evidence Gate: PASS. Closure packet assembled.
-[Challenger]       Challenge: no rate limiting [BLOCKING].
-[Orchestrator]     Vote round: iterate. Re-implementing.
-[SW Engineer]      Rate limiter added. Re-verification passed.
-[Product Auth]     Final Verdict: PASS.
-[Orchestrator]     Committed. Retro: auth APIs need rate limiting — rule proposed.
-[Orchestrator]     Polishing: risk review, docs, debt.
-[Orchestrator]     Evolving: gap assessment, rules update, agent memory update.
-[Orchestrator]     Mission complete. 2/2 tasks passed.
-```
+- **Contracts before implementation** — Every task gets a machine-readable agreement: scope, acceptance criteria, reviewers, eval commands, risks, and escalation policy.
+- **Independent verification before closure** — The protocol does not trust any agent's claim of completion.
+- **Adversarial review for risky work** — A Challenger asks, *"Why might this still be wrong?"*
+- **Memory across sessions** — Retrospectives, rules, and agent memory make the team improve instead of reset.
+- **Slot-based routing** — The contract engine works with abstract slots; domain profiles map those slots to concrete agents at runtime.
+
+---
+
+## When Geas is a good fit
+
+- Multi-step implementation, refactors, or migrations
+- High-risk work where explicit verification matters
+- Parallel work across implementation, QA, security, operations, and docs
+- Long-running work where traceability and memory matter
+- Structured research or analysis that benefits from separated reviewer roles
+
+Geas adds process. That means **more steps and more tokens** than direct prompting. It pays off when the cost of being wrong is higher than the cost of coordination. For trivial tasks, Geas detects the scope and skips the full pipeline automatically.
 
 ---
 
@@ -153,7 +183,7 @@ A mission declares its domain profile. The Orchestrator resolves abstract slots 
 | [Protocol](docs/protocol/) | 12 operational protocol documents |
 | [Schemas](docs/protocol/schemas/) | 16 JSON Schema definitions (draft 2020-12) |
 | [Agents](docs/reference/AGENTS.md) | 14 agent types and the slot-based authority model |
-| [Skills](docs/reference/SKILLS.md) | 12 skills |
+| [Skills](docs/reference/SKILLS.md) | 13 skills (12 core + 1 utility) |
 | [Hooks](docs/reference/HOOKS.md) | 9 lifecycle hooks |
 
 ---
