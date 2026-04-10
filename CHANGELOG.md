@@ -6,6 +6,41 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-04-10
+
+First stable release. Dashboard, progressive skill loading, domain flexibility, and full test-driven polish.
+
+### Added
+- **Tauri desktop dashboard** — real-time kanban board, timeline, memory browser, debt panel, toast notifications (Windows / Linux / macOS)
+- Trivial task bypass — `/geas:mission` skips the full pipeline for obvious small fixes
+- Session handoff suggestion at specifying→building boundary (5+ tasks)
+- Progressive skill loading — SKILL.md reduced to 53-line router, orchestration rules loaded on demand
+- Orchestrator reads its own memory note at startup
+- `geas mission create` auto-generates mission ID when `--id` is omitted
+- `geas evidence add --phase` flag for phase-level evidence (polishing, evolving)
+- `rules.md` template with sub-agent rules: evidence by role, scope enforcement, review standards, knowledge sharing
+- Schema field references in skills for 6 artifact types to prevent field name guessing
+- Agent Review Protocols sections (7 agents) — single source for review checklists
+
+### Fixed
+- `enrichTimestamp` Windows path regex bug
+- `geas task record add` now shallow-merges instead of replacing sections
+- `format: "date-time"` Ajv warning removed
+- `created_at` removed from required in all schemas (CLI auto-injects)
+- Architecture transition table aligned with actual guard conditions
+- `rules-update` producer_type conditional on status
+- Design review clarified as not a task
+- 66 snake_case agent type references converted to kebab-case
+- Intake/design-brief field name mismatches with schemas
+
+### Changed
+- `domain_profile` is now a hint, not a hard constraint — mixed-domain missions supported
+- Phase-level evidence stored in `polishing/evidence/` and `evolution/evidence/`
+- Mission directory: removed `contracts/`, `packets/` (v3 remnants); added `polishing/`
+- Agent-specific review checklists moved from skill prompts to agent.md
+- Protocol 09: `producer_type` semantics clarified
+- README rewritten with dashboard screenshots, feature list, help command
+
 ## [0.8.1] — 2026-04-10
 
 Test session analysis fixes — schema friction, CLI usability, skill guidance.
