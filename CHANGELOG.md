@@ -26,6 +26,12 @@ Test session analysis fixes — schema friction, CLI usability, skill guidance.
 - `rules.md` template: sub-agent focused rules (evidence by role, scope enforcement, review standards)
 - Orchestrator reads its own memory note (`.geas/memory/agents/orchestration-authority.md`) at startup
 - Mission SKILL.md refactored to 53-line router with progressive loading — orchestration rules moved to `references/orchestration.md`, loaded only when full pipeline is needed
+- Session handoff suggestion at specifying→building boundary (5+ tasks)
+- Trivial task bypass — skip full pipeline for obvious small fixes
+- Agent-specific review checklists moved from skill prompts to agent.md `Review Protocols` sections (7 agents, 5 skill files slimmed)
+- Design review clarified as NOT a task — no contract or evidence, result lives in design-brief
+- Knowledge sharing rule added to rules.md template — agents must update rules.md for cross-agent knowledge
+- Design-brief field reference expanded: `depth` (not mode), `constraints` (array), `reviewer_type` (const)
 
 ## [0.8.0] — 2026-04-10
 
