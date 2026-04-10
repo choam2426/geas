@@ -63,6 +63,9 @@ export function registerMemoryCommands(program: Command): void {
 - Use \`verdict: "changes_requested"\` with specific \`concerns\` when issues are found.
 - Use \`verdict: "blocked"\` only for critical issues that prevent shipping.
 
+## Knowledge Sharing
+- If you discover something other agents need to know (stack rules, conventions, constraints), update this file (\`.geas/rules.md\`) directly. Your agent memory note is private to you — rules.md is the only cross-agent channel.
+
 ## Code
 `;
 

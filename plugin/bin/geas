@@ -13351,6 +13351,9 @@ function registerMemoryCommands(program2) {
 - Use \`verdict: "changes_requested"\` with specific \`concerns\` when issues are found.
 - Use \`verdict: "blocked"\` only for critical issues that prevent shipping.
 
+## Knowledge Sharing
+- If you discover something other agents need to know (stack rules, conventions, constraints), update this file (\`.geas/rules.md\`) directly. Your agent memory note is private to you \u2014 rules.md is the only cross-agent channel.
+
 ## Code
 `;
       if (opts.codeSection) {
