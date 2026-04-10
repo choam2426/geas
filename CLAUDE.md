@@ -61,7 +61,8 @@ plugin/
     └── scripts/             # Hook shell/JS scripts
 
 src/
-└── cli/                     # CLI source (development only)
+├── cli/                     # CLI source (development only)
+└── dashboard/               # Tauri desktop dashboard source
 
 docs/
 ├── protocol/                # Operating protocol (English, canonical)

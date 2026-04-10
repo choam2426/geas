@@ -43,7 +43,7 @@ jobs:
           node-version: 20
 
       - name: Install frontend dependencies
-        working-directory: dashboard
+        working-directory: src/dashboard
         run: npm ci
 
       - name: Build and release
@@ -51,7 +51,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: dashboard
+          projectPath: src/dashboard
           tagName: ${{ github.ref_name }}
           releaseName: ${{ github.ref_name }}
           releaseBody: ''

@@ -9,10 +9,10 @@ Thumbs.db
 !docs/images/*.png
 
 # Dashboard
-dashboard/node_modules/
-dashboard/src-tauri/target/
-dashboard/dist/
-dashboard/src-tauri/icons/*.png
+src/dashboard/node_modules/
+src/dashboard/src-tauri/target/
+src/dashboard/dist/
+src/dashboard/src-tauri/icons/*.png
 .claude/
 .geas/state/
 src/cli/dist/
