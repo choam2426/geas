@@ -24,6 +24,7 @@ import { registerDecisionCommands } from './commands/decision';
 import { registerHealthCommands } from './commands/health';
 import { registerEvolutionCommands } from './commands/evolution';
 import { registerPacketCommands } from './commands/packet';
+import { registerSchemaCommands } from './commands/schema';
 
 function getVersion(): string {
   return '0.7.0';
@@ -57,6 +58,7 @@ export function run(): void {
   registerHealthCommands(program);
   registerEvolutionCommands(program);
   registerPacketCommands(program);
+  registerSchemaCommands(program);
 
   program.parse(process.argv);
 }

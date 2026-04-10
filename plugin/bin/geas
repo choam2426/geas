@@ -5964,7 +5964,7 @@ var require_compile = __commonJS({
       }
     }
     exports2.compileSchema = compileSchema;
-    function resolveRef(root, baseId, ref) {
+    function resolveRef2(root, baseId, ref) {
       var _a;
       ref = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, ref);
       const schOrFunc = root.refs[ref];
@@ -5981,7 +5981,7 @@ var require_compile = __commonJS({
         return;
       return root.refs[ref] = inlineOrCompile.call(this, _sch);
     }
-    exports2.resolveRef = resolveRef;
+    exports2.resolveRef = resolveRef2;
     function inlineOrCompile(sch) {
       if ((0, resolve_1.inlineRef)(sch.schema, this.opts.inlineRefs))
         return sch.schema;
@@ -14408,6 +14408,149 @@ function registerPacketCommands(program2) {
   });
 }
 
+// src/lib/schema-template.ts
+var MAX_DEPTH = 10;
+var ISO_PATTERN = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$";
+function listSchemas() {
+  return Object.keys(SCHEMAS).sort();
+}
+function generateTemplate(schemaName, options) {
+  const schema = SCHEMAS[schemaName];
+  if (!schema) {
+    const available = listSchemas();
+    throw new Error(
+      `Unknown schema type '${schemaName}'. Available: ${available.join(", ")}`
+    );
+  }
+  const rootSchema = schema;
+  const requiredSet = resolveRequired(rootSchema, options?.role);
+  const result = generateObject(rootSchema, requiredSet, rootSchema, 0);
+  if (options?.role && "role" in result) {
+    result.role = options.role;
+  }
+  return result;
+}
+function resolveRef(node, rootSchema) {
+  const ref = node.$ref;
+  if (!ref) return node;
+  const extMatch = ref.match(/^_defs\.schema\.json#\/\$defs\/(.+)$/);
+  if (extMatch) {
+    const defName = extMatch[1];
+    const defs = DEFS_SCHEMA.$defs;
+    if (defs && defs[defName]) return defs[defName];
+    return node;
+  }
+  const selfMatch = ref.match(/^#\/\$defs\/(.+)$/);
+  if (selfMatch) {
+    const defName = selfMatch[1];
+    const defs = rootSchema.$defs;
+    if (defs && defs[defName]) return defs[defName];
+    return node;
+  }
+  return node;
+}
+function resolveRequired(schema, role) {
+  const base = schema.required || [];
+  const result = new Set(base);
+  if (!role) return result;
+  const allOf = schema.allOf;
+  if (!allOf) return result;
+  for (const entry of allOf) {
+    const ifClause = entry.if;
+    const thenClause = entry.then;
+    if (!ifClause || !thenClause) continue;
+    const props = ifClause.properties;
+    if (!props?.role) continue;
+    const constVal = props.role.const;
+    if (constVal === role) {
+      const thenRequired = thenClause.required;
+      if (thenRequired) {
+        for (const r of thenRequired) result.add(r);
+      }
+    }
+  }
+  return result;
+}
+function generateValue(node, rootSchema, depth) {
+  if (depth > MAX_DEPTH) return null;
+  const resolved = resolveRef(node, rootSchema);
+  if (resolved.const !== void 0) return resolved.const;
+  if (Array.isArray(resolved.enum) && resolved.enum.length > 0) {
+    return resolved.enum[0];
+  }
+  const type = resolved.type;
+  if (Array.isArray(type)) return null;
+  switch (type) {
+    case "string": {
+      if (resolved.pattern === ISO_PATTERN) return "<iso-utc-timestamp>";
+      return "<string>";
+    }
+    case "integer":
+    case "number": {
+      if (typeof resolved.minimum === "number") return resolved.minimum;
+      return 0;
+    }
+    case "boolean":
+      return false;
+    case "array":
+      return generateArray(resolved, rootSchema, depth);
+    case "object":
+      return generateObjectFromSchema(resolved, rootSchema, depth);
+    default:
+      if (resolved.properties) {
+        return generateObjectFromSchema(resolved, rootSchema, depth);
+      }
+      return null;
+  }
+}
+function generateArray(schema, rootSchema, depth) {
+  const minItems = schema.minItems || 0;
+  if (minItems < 1) return [];
+  const items = schema.items;
+  if (!items) return [null];
+  if (Array.isArray(items.oneOf) && items.oneOf.length > 0) {
+    const firstVariant = items.oneOf[0];
+    return [generateValue(firstVariant, rootSchema, depth + 1)];
+  }
+  return [generateValue(items, rootSchema, depth + 1)];
+}
+function generateObjectFromSchema(schema, rootSchema, depth) {
+  const required = new Set(schema.required || []);
+  return generateObject(schema, required, rootSchema, depth);
+}
+function generateObject(schema, requiredFields, rootSchema, depth) {
+  if (depth > MAX_DEPTH) return {};
+  const properties = schema.properties;
+  if (!properties) return {};
+  const result = {};
+  for (const key of Object.keys(properties)) {
+    if (!requiredFields.has(key)) continue;
+    result[key] = generateValue(properties[key], rootSchema, depth + 1);
+  }
+  return result;
+}
+
+// src/commands/schema.ts
+function registerSchemaCommands(program2) {
+  const schema = program2.command("schema").description("Schema inspection utilities");
+  schema.command("list").description("List all available schema types").action(() => {
+    success(listSchemas());
+  });
+  schema.command("template <type>").description("Generate a fill-in JSON template for a schema type").option("--role <role>", "Role variant (for evidence schema)").action((type, opts) => {
+    try {
+      const template = generateTemplate(type, { role: opts.role });
+      success(template);
+    } catch (err) {
+      const msg = {
+        error: err.message,
+        code: "SCHEMA_ERROR"
+      };
+      process.stderr.write(JSON.stringify(msg) + "\n");
+      process.exit(1);
+    }
+  });
+}
+
 // src/main.ts
 function getVersion() {
   return "0.7.0";
@@ -14432,6 +14575,7 @@ function run() {
   registerHealthCommands(program2);
   registerEvolutionCommands(program2);
   registerPacketCommands(program2);
+  registerSchemaCommands(program2);
   program2.parse(process.argv);
 }
 
