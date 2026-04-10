@@ -6,6 +6,7 @@ node_modules/
 Thumbs.db
 **/__pycache__/
 *.png
+!docs/images/*.png
 
 # Dashboard
 dashboard/node_modules/
