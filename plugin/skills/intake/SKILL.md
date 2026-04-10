@@ -107,9 +107,7 @@ Write the mission spec via CLI with schema validation:
 ```bash
 Bash("geas mission write-spec --id {mission_id} --data '<spec_json>'")
 ```
-The CLI validates the spec against the schema automatically and auto-injects `created_at`. Include:
-- `"version": "1.0"`, `"artifact_type": "mission_spec"`, `"artifact_id": "{mission_id}"`
-- `"producer_type": "orchestration-authority"`, `"mission_id": "{mission_id}"`
+The CLI validates the spec against the schema automatically. Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `created_at`) are auto-injected by the CLI — agents do not need to provide them. Run `geas schema template mission-spec` for the full template with all required content fields.
 
 **Mission-spec schema fields (exact names required):**
 - `scope`: nested object with `in` (string array) and `out` (string array) — NOT flat `scope_in`/`scope_out`

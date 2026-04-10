@@ -246,13 +246,9 @@ Write the phase review via CLI with schema validation:
 ```bash
 Bash("geas phase write --mission {mission_id} --data '<phase_review_json>'")
 ```
-The CLI validates the phase review automatically:
+The CLI validates the phase review automatically. Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`) are auto-injected by the CLI — agents only need to provide the content fields below.
 ```json
 {
-  "version": "1.0",
-  "artifact_type": "phase_review",
-  "artifact_id": "pr-specifying-{mission_id}",
-  "producer_type": "orchestration-authority",
   "mission_phase": "specifying",
   "status": "ready_to_exit",
   "summary": "<specifying outcomes>",

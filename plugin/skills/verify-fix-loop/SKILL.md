@@ -125,9 +125,10 @@ For any escalation, write a DecisionRecord via CLI:
 Bash("geas decision write --mission {mission_id} --data '<decision_record_json>'")
 ```
 The data must conform to the decision record schema:
+Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `created_at`) are auto-injected by the CLI — agents only need to provide the content fields below.
+
 ```json
 {
-  "version": "1.0",
   "id": "dec-003",
   "title": "Escalation: {task-title} failed {retry_budget} fix attempts",
   "context": "Evidence gate failed repeatedly. Tier failures: ...",
@@ -137,8 +138,7 @@ The data must conform to the decision record schema:
   "trade_offs": "...",
   "decided_by": "design-authority|product-authority",
   "participants": ["quality-specialist", "implementer", "design-authority"],
-  "related_task_id": "{task-id}",
-  "created_at": "..."
+  "related_task_id": "{task-id}"
 }
 ```
 

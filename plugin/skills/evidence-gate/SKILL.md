@@ -224,13 +224,10 @@ Write gate result to record.json via CLI:
 Bash("geas task record add --task {task-id} --section gate_result --file <gate_result_json_file>")
 ```
 
+Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `created_at`) are auto-injected by the CLI — agents only need to provide the content fields below.
+
 ```json
 {
-  "version": "1.0",
-  "artifact_type": "gate_result",
-  "artifact_id": "gate-{task-id}-{timestamp}",
-  "producer_type": "quality_specialist",
-  "created_at": "<auto-injected by CLI>",
   "task_id": "{task-id}",
   "gate_profile": "implementation_change",
   "verdict": "pass",

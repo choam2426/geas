@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "bundle": "node esbuild.config.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test dist/test/schema-template.test.js dist/test/envelope.test.js dist/test/validation-hints.test.js"
   },
   "dependencies": {
     "ajv": "^8.17.1",

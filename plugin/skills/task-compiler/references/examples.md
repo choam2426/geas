@@ -2,6 +2,8 @@
 
 These examples show how the task-compiler classifies and structures TaskContracts for different scenarios.
 
+> **Note:** Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `created_at`) are auto-injected by the CLI. The examples below show only the content fields that agents need to provide.
+
 ---
 
 ## Example 1: Simple Implementation Task (Low Risk)
@@ -18,10 +20,6 @@ These examples show how the task-compiler classifies and structures TaskContract
 
 ```json
 {
-  "version": "1.0",
-  "artifact_type": "task_contract",
-  "artifact_id": "task-contract-task-001",
-  "producer_type": "orchestration-authority",
   "task_id": "task-001",
   "title": "[Backend] Health check endpoint",
   "goal": "Create GET /api/health endpoint that returns 200 with server status, uptime, and version",
@@ -79,10 +77,6 @@ These examples show how the task-compiler classifies and structures TaskContract
 
 ```json
 {
-  "version": "1.0",
-  "artifact_type": "task_contract",
-  "artifact_id": "task-contract-task-005",
-  "producer_type": "orchestration-authority",
   "task_id": "task-005",
   "title": "[Backend] Role-based access control (RBAC)",
   "goal": "Implement RBAC middleware with admin/editor/viewer roles, apply to all existing API endpoints, and add role management endpoints",

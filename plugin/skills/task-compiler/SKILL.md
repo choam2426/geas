@@ -203,14 +203,11 @@ Write the TaskContract via CLI (the CLI creates the tasks directory automaticall
 Bash("geas task create --mission {mission_id} --data '<task_contract_json>'")
 ```
 
-Example output:
+Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `created_at`) are auto-injected by the CLI — agents only need to provide the content fields below. Run `geas schema template task-contract` for the full template.
+
+Example output (content fields only — envelope is auto-injected):
 ```json
 {
-  "version": "1.0",
-  "artifact_type": "task_contract",
-  "artifact_id": "task-contract-task-003",
-  "producer_type": "orchestration-authority",
-  "created_at": "2026-03-24T10:00:00Z",
   "task_id": "task-003",
   "title": "[Frontend] Login form with email/password",
   "goal": "Create a login form component that submits to POST /api/auth/login and handles success/error states",

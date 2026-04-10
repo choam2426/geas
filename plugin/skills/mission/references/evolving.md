@@ -251,12 +251,9 @@ Write the evolving phase review via CLI:
 Bash("geas phase write --mission {mission_id} --data '<phase_review_json>'")
 ```
 The phase review data:
+Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `created_at`) are auto-injected by the CLI — agents only need to provide the content fields below.
 ```json
 {
-  "version": "1.0",
-  "artifact_type": "phase_review",
-  "artifact_id": "pr-evolving",
-  "producer_type": "orchestration-authority",
   "mission_phase": "evolving",
   "status": "ready_to_exit",
   "summary": "<evolving outcomes>",
