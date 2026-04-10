@@ -1,16 +1,11 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import { ArrowLeft, Ban, AlertTriangle, XCircle, Pause, ClipboardList } from "lucide-react";
 import type { TaskInfo, DebtInfo } from "../types";
 import TaskCard from "./TaskCard";
 import TaskDetailModal from "./TaskDetailModal";
 import DebtPanel from "./DebtPanel";
-
-/** Normalize a path for cross-platform comparison */
-function normalizePath(p: string): string {
-  return p.replace(/^\\\\\?\\/, '').replace(/\\/g, '/').replace(/\/$/, '');
-}
+import { useProjectRefresh } from "../contexts/ProjectRefreshContext";
 
 const COLUMNS = [
   { key: "drafted", label: "Drafted", color: "#656d76" },
@@ -117,28 +112,25 @@ export default function KanbanBoard({
     return () => { cancelled = true; };
   }, [projectPath, missionId]);
 
-  // Auto-refresh: subscribe to file watcher events
+  // Auto-refresh: react to centralized project-changed events
+  const refreshKey = useProjectRefresh(projectPath);
   useEffect(() => {
-    const unlisten = listen<{ path: string }>("geas://project-changed", (event) => {
-      if (normalizePath(event.payload.path) !== normalizePath(projectPath)) return;
-      if (!missionId) return;
-      setTimeout(async () => {
-        try {
-          const [taskResult, debtResult] = await Promise.all([
-            invoke<TaskInfo[]>("get_project_tasks", { path: projectPath, mission_id: missionId }),
-            invoke<DebtInfo>("get_project_debt", { path: projectPath, mission_id: missionId }).catch(
-              (): DebtInfo => ({ total: 0, by_severity: { low: 0, normal: 0, high: 0, critical: 0 }, by_kind: { output_quality: 0, verification_gap: 0, structural: 0, risk: 0, process: 0, documentation: 0, operations: 0 }, items: [] })
-            ),
-          ]);
-          setTasks(taskResult);
-          setDebt(debtResult);
-        } catch {
-          // Ignore refresh errors — keep existing data visible
-        }
-      }, 300);
-    });
-    return () => { unlisten.then(fn => fn()); };
-  }, [projectPath, missionId]);
+    if (refreshKey === 0 || !missionId) return;
+    (async () => {
+      try {
+        const [taskResult, debtResult] = await Promise.all([
+          invoke<TaskInfo[]>("get_project_tasks", { path: projectPath, mission_id: missionId }),
+          invoke<DebtInfo>("get_project_debt", { path: projectPath, mission_id: missionId }).catch(
+            (): DebtInfo => ({ total: 0, by_severity: { low: 0, normal: 0, high: 0, critical: 0 }, by_kind: { output_quality: 0, verification_gap: 0, structural: 0, risk: 0, process: 0, documentation: 0, operations: 0 }, items: [] })
+          ),
+        ]);
+        setTasks(taskResult);
+        setDebt(debtResult);
+      } catch {
+        // Ignore refresh errors — keep existing data visible
+      }
+    })();
+  }, [refreshKey, projectPath, missionId]);
 
   const tasksByStatus = new Map<string, TaskInfo[]>();
   for (const col of COLUMNS) tasksByStatus.set(col.key, []);

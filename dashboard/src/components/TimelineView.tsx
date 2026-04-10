@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import { ArrowLeft, Clock, ChevronLeft, ChevronRight, Code2, Palette, TestTube, Shield, Package, Settings } from "lucide-react";
+import { useProjectRefresh } from "../contexts/ProjectRefreshContext";
 import type { EventsPage, EventEntry } from "../types";
 
 interface TimelineViewProps {
@@ -89,17 +89,14 @@ export default function TimelineView({ projectPath, missionId, onBack }: Timelin
     setPage(0);
   }, [fetchEvents]);
 
-  // Auto-refresh when project files change (ledger is now watched)
+  // Auto-refresh: react to centralized project-changed events
   const pageRef = useRef(page);
   pageRef.current = page;
+  const refreshKey = useProjectRefresh(projectPath);
   useEffect(() => {
-    const unlisten = listen<{ path: string }>("geas://project-changed", (event) => {
-      if (event.payload.path === projectPath) {
-        fetchEvents(pageRef.current);
-      }
-    });
-    return () => { unlisten.then(fn => fn()); };
-  }, [projectPath, fetchEvents]);
+    if (refreshKey === 0) return;
+    fetchEvents(pageRef.current);
+  }, [refreshKey, fetchEvents]);
 
   const totalPages = data ? Math.ceil(data.total_count / PAGE_SIZE) : 0;
 

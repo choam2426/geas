@@ -15,6 +15,7 @@ import EmptyState from "./components/EmptyState";
 import ErrorState from "./components/ErrorState";
 import AddProjectDialog from "./components/AddProjectDialog";
 import { ToastProvider, useToast } from "./contexts/ToastContext";
+import { ProjectRefreshProvider, useProjectRefresh } from "./contexts/ProjectRefreshContext";
 import { useNavigationHistory } from "./hooks/useNavigationHistory";
 import type { ToastVariant } from "./components/Toast";
 
@@ -101,23 +102,26 @@ function AppInner() {
     loadProjects();
   }, [loadProjects]);
 
-  // Auto-refresh: subscribe to file watcher events
+  const selectedPath = nav.current.selectedPath;
+  const view = nav.current.view;
+  const selectedMissionId = nav.current.selectedMissionId;
+  const selected = projects.find((p) => p.path === selectedPath) ?? null;
+
+  // Auto-refresh: react to centralized project-changed events
+  const refreshKey = useProjectRefresh(selectedPath ?? "");
   useEffect(() => {
-    const unlisten = listen<{ path: string }>("geas://project-changed", async (event) => {
-      const changedPath = normalizePath(event.payload.path);
-      setTimeout(async () => {
-        try {
-          const matching = projectsRef.current.find(p => normalizePath(p.path) === changedPath);
-          if (!matching) return;
-          const summary = await invoke<ProjectSummary>("get_project_summary", { path: matching.path });
-          setProjects(prev => prev.map(p => normalizePath(p.path) === changedPath ? summary : p));
-        } catch {
-          // Ignore errors from individual project refresh
-        }
-      }, 300);
-    });
-    return () => { unlisten.then(fn => fn()); };
-  }, []);
+    if (!selectedPath || refreshKey === 0) return;
+    (async () => {
+      try {
+        const matching = projectsRef.current.find(p => normalizePath(p.path) === normalizePath(selectedPath));
+        if (!matching) return;
+        const summary = await invoke<ProjectSummary>("get_project_summary", { path: matching.path });
+        setProjects(prev => prev.map(p => normalizePath(p.path) === normalizePath(selectedPath) ? summary : p));
+      } catch {
+        // Ignore errors from individual project refresh
+      }
+    })();
+  }, [refreshKey, selectedPath]);
 
   // Toast notifications from backend event classification
   const { addToast } = useToast();
@@ -158,11 +162,6 @@ function AppInner() {
       nav.reset({ view: "dashboard", selectedPath: null, selectedMissionId: null });
     }
   }
-
-  const selectedPath = nav.current.selectedPath;
-  const view = nav.current.view;
-  const selectedMissionId = nav.current.selectedMissionId;
-  const selected = projects.find((p) => p.path === selectedPath) ?? null;
 
   return (
     <div className="flex h-screen bg-bg-primary text-text-primary font-sans overflow-hidden">
@@ -384,7 +383,9 @@ function AppInner() {
 function App() {
   return (
     <ToastProvider>
-      <AppInner />
+      <ProjectRefreshProvider>
+        <AppInner />
+      </ProjectRefreshProvider>
     </ToastProvider>
   );
 }

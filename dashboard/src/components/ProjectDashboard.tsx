@@ -1,16 +1,11 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import type { MissionSummary, ProjectSummary, HealthCheck } from "../types";
 import { AlertTriangle, Archive, Brain, BookOpen, Clock, FileText } from "lucide-react";
 import PhaseBadge from "./PhaseBadge";
 import ProgressBar from "./ProgressBar";
 import { formatDate } from "../utils/dates";
-
-/** Normalize a path for cross-platform comparison */
-function normalizePath(p: string): string {
-  return p.replace(/^\\\\\?\\/, '').replace(/\\/g, '/').replace(/\/$/, '');
-}
+import { useProjectRefresh } from "../contexts/ProjectRefreshContext";
 
 interface ProjectDashboardProps {
   projectPath: string;
@@ -94,27 +89,25 @@ export default function ProjectDashboard({
     };
   }, [projectPath]);
 
-  // Auto-refresh: subscribe to file watcher events
+  // Auto-refresh: react to centralized project-changed events
+  const refreshKey = useProjectRefresh(projectPath);
   useEffect(() => {
-    const unlisten = listen<{ path: string }>("geas://project-changed", (event) => {
-      if (normalizePath(event.payload.path) !== normalizePath(projectPath)) return;
-      setTimeout(async () => {
-        try {
-          const [missionResult, summaryResult, healthResult] = await Promise.all([
-            invoke<MissionSummary[]>("get_mission_history", { path: projectPath }),
-            invoke<ProjectSummary>("get_project_summary", { path: projectPath }).catch(() => null),
-            invoke<HealthCheck | null>("get_health_check", { path: projectPath }).catch(() => null),
-          ]);
-          setMissions(missionResult);
-          setSummary(summaryResult);
-          setHealthCheck(healthResult);
-        } catch {
-          // Ignore refresh errors — keep existing data visible
-        }
-      }, 300);
-    });
-    return () => { unlisten.then(fn => fn()); };
-  }, [projectPath]);
+    if (refreshKey === 0) return;
+    (async () => {
+      try {
+        const [missionResult, summaryResult, healthResult] = await Promise.all([
+          invoke<MissionSummary[]>("get_mission_history", { path: projectPath }),
+          invoke<ProjectSummary>("get_project_summary", { path: projectPath }).catch(() => null),
+          invoke<HealthCheck | null>("get_health_check", { path: projectPath }).catch(() => null),
+        ]);
+        setMissions(missionResult);
+        setSummary(summaryResult);
+        setHealthCheck(healthResult);
+      } catch {
+        // Ignore refresh errors — keep existing data visible
+      }
+    })();
+  }, [refreshKey, projectPath]);
 
   const activeMission = missions.find((m) => m.is_active) ?? null;
 

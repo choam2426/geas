@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import { ArrowLeft, Brain } from "lucide-react";
+import { useProjectRefresh } from "../contexts/ProjectRefreshContext";
 import type { AgentMemory } from "../types";
 
 interface MemoryBrowserProps {
@@ -33,12 +33,12 @@ export default function MemoryBrowser({ projectPath, onBack }: MemoryBrowserProp
 
   useEffect(() => { loadMemories(); }, [loadMemories]);
 
+  // Auto-refresh: react to centralized project-changed events
+  const refreshKey = useProjectRefresh(projectPath);
   useEffect(() => {
-    const unlisten = listen<{ path: string }>("geas://project-changed", (event) => {
-      if (event.payload.path === projectPath) loadMemories();
-    });
-    return () => { unlisten.then(fn => fn()); };
-  }, [projectPath, loadMemories]);
+    if (refreshKey === 0) return;
+    loadMemories();
+  }, [refreshKey, loadMemories]);
 
   const selected = memories.find(m => m.agent_name === selectedAgent);
 

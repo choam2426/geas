@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 import {
   ArrowLeft,
   FileText,
@@ -23,6 +22,7 @@ import {
 } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useProjectRefresh } from "../contexts/ProjectRefreshContext";
 import type {
   MissionSpecDetail,
   DesignBrief,
@@ -30,14 +30,6 @@ import type {
   PhaseReview,
   GapAssessment,
 } from "../types";
-
-/** Normalize a path for cross-platform comparison */
-function normalizePath(p: string): string {
-  return p
-    .replace(/^\\\\\?\\/, "")
-    .replace(/\\/g, "/")
-    .replace(/\/$/, "");
-}
 
 interface MissionDetailViewProps {
   projectPath: string;
@@ -127,24 +119,12 @@ export default function MissionDetailView({
     };
   }, [fetchSpec]);
 
-  // Auto-refresh on project changes
+  // Auto-refresh: react to centralized project-changed events
+  const refreshKey = useProjectRefresh(projectPath);
   useEffect(() => {
-    const unlisten = listen<{ path: string }>(
-      "geas://project-changed",
-      (event) => {
-        if (
-          normalizePath(event.payload.path) !== normalizePath(projectPath)
-        )
-          return;
-        setTimeout(() => {
-          fetchSpec();
-        }, 300);
-      }
-    );
-    return () => {
-      unlisten.then((fn) => fn());
-    };
-  }, [projectPath, fetchSpec]);
+    if (refreshKey === 0) return;
+    fetchSpec();
+  }, [refreshKey, fetchSpec]);
 
   // Loading skeleton
   if (loading) {
