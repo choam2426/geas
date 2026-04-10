@@ -20,9 +20,6 @@ jobs:
             runner: ubuntu-22.04
           - platform: macos-arm64
             runner: macos-latest
-          - platform: macos-x86_64
-            runner: macos-latest
-            rust_target: x86_64-apple-darwin
 
     runs-on: ${{ matrix.runner }}
 
