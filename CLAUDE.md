@@ -52,10 +52,13 @@ plugin/
 │   ├── mission/             # Geas orchestrator
 │   ├── intake/              # Requirements gathering
 │   └── ...                  # (12 core contract engine + 1 utility skill)
-└── agents/
-    ├── authority/           # 3 spawnable authority agents
-    ├── software/            # 5 software domain specialists
-    └── research/            # 6 research domain specialists
+├── agents/
+│   ├── authority/           # 3 spawnable authority agents
+│   ├── software/            # 5 software domain specialists
+│   └── research/            # 6 research domain specialists
+└── hooks/
+    ├── hooks.json           # 10 lifecycle hooks
+    └── scripts/             # Hook shell/JS scripts
 
 src/
 └── cli/                     # CLI source (development only)
@@ -165,37 +168,14 @@ All files must be written in English, except `docs/ko/` and `README.ko.md`.
 - Protocol reference: `docs/protocol/` (English canonical), `docs/ko/protocol/` (Korean canonical)
 - Versioning: `plugin/plugin.json` and `.claude-plugin/marketplace.json` must always have the same `version` and `description`. Update both when bumping version.
 
-## Protocol Migration
-
-v3 → v4 migration is in progress. v3 and domain-agnostic restructure are complete.
-
-### v4 optimization (in progress)
-
-- record.json: per-task artifacts consolidated from 9 files to 1 (sections accumulated via CLI)
-- Role-based evidence: `evidence/{agent}.json` with implementer/reviewer/tester/authority roles
-- Memory simplified: 9-state → 2-state (draft/active), 6 schemas → 1, 7 directories → 2
-- Protocol docs: 14 → 12 (memory docs 08+09 merged into 07)
-- Transition guards: 6 per-task + 3 phase guards (mechanical enforcement)
-- CLI-only writes: zero exceptions, CLI generates artifact structure from schemas
-- Agent self-management: evidence + memory rules in agent.md, not per-prompt
-- Deleted: context-packet skill, write-prd, write-stories, agent-telemetry.sh, memory-promotion-gate.sh, memory-superseded-warning.sh
-- Unified: conventions.md + rules.md → rules.md, costs.jsonl + events.jsonl → events.jsonl
-
-### v3 migration (complete)
-
-6 phases delivered: 7-state task model, gate/verdict separation, structured retrospective, 9-state memory lifecycle, recovery protocol, conformance checking.
-
-### Domain-agnostic restructure (complete)
-
-Agents split into authority/ (3) + software/ (5) + research/ (6), skills consolidated to flat structure. Slot-based agent routing via domain profiles.
-
-### Working with skills
+## When editing skills or agents
 
 1. **Read the protocol doc first** — before touching any skill, read the relevant protocol document in `docs/protocol/`.
 2. **Read the skill second** — understand what it currently does vs what the protocol requires.
 3. **Protocol schemas are the contract** — `docs/protocol/schemas/` defines the exact artifact shapes. Skills must produce artifacts that validate against these schemas.
-4. **Update `mission/references/`** when changing pipeline behavior.
-5. **Run conformance checks** after significant changes to verify enforcement mechanisms still work.
+4. **Keep skills focused** — one skill, one responsibility.
+5. **Update `mission/references/`** when changing pipeline behavior.
+6. **Test changes** by running a fresh integration test in a separate project directory.
 
 ### Protocol quick reference
 
@@ -213,11 +193,3 @@ Agents split into authority/ (3) + software/ (5) + research/ (6), skills consoli
 | Runtime artifacts, schemas, directory structure | `protocol/09` |
 | Enforcement, transition guards, metrics | `protocol/10` |
 | Evolution, debt, gap loop | `protocol/11` |
-
-## When editing skills or agents
-
-- Read the existing file first — understand the current behavior before changing it
-- Keep skills focused — one skill, one responsibility
-- Update `mission/references/` when changing pipeline behavior
-- Align with protocol — check `docs/protocol/` for the target behavior
-- Test changes by running a fresh integration test in a separate project directory
