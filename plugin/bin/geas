@@ -12029,6 +12029,49 @@ function coerceValue(raw) {
   return raw;
 }
 
+// src/lib/envelope.ts
+var ENVELOPE_REGISTRY = {
+  task_contract: {
+    version: "1.0",
+    artifact_type: "task_contract",
+    producer_type: "orchestration-authority",
+    artifact_id_fn: (data) => `tc-${data.task_id || "unknown"}`
+  },
+  mission_spec: {
+    version: "1.0",
+    artifact_type: "mission_spec",
+    producer_type: "orchestration-authority",
+    artifact_id_fn: (_data, context) => `spec-${context.mission_id || "unknown"}`
+  },
+  design_brief: {
+    version: "1.0",
+    artifact_type: "design_brief",
+    producer_type: "orchestration-authority",
+    artifact_id_fn: (_data, context) => `brief-${context.mission_id || "unknown"}`
+  },
+  phase_review: {
+    version: "1.0",
+    artifact_type: "phase_review",
+    producer_type: "orchestration-authority",
+    artifact_id_fn: (data) => {
+      const phase = data.mission_phase || "unknown";
+      const ts = (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z").replace(/:/g, "-");
+      return `phase-${phase}-${ts}`;
+    }
+  }
+};
+function injectEnvelope(artifactType, data, context) {
+  const entry = ENVELOPE_REGISTRY[artifactType];
+  if (!entry) return data;
+  if (data.version === void 0) data.version = entry.version;
+  if (data.artifact_type === void 0) data.artifact_type = entry.artifact_type;
+  if (data.producer_type === void 0) data.producer_type = entry.producer_type;
+  if (data.artifact_id === void 0) {
+    data.artifact_id = entry.artifact_id_fn(data, context || {});
+  }
+  return data;
+}
+
 // src/commands/mission.ts
 function generateMissionId() {
   const now = /* @__PURE__ */ new Date();
@@ -12111,6 +12154,7 @@ function registerMissionCommands(program2) {
         return;
       }
       const data = readInputData(opts.data, void 0);
+      injectEnvelope("mission_spec", data, { mission_id: opts.id });
       const result = validate("mission-spec", data);
       if (!result.valid) {
         validationError("mission-spec", result.errors);
@@ -12147,6 +12191,7 @@ function registerMissionCommands(program2) {
         return;
       }
       const data = readInputData(opts.data, void 0);
+      injectEnvelope("design_brief", data, { mission_id: opts.id });
       const result = validate("design-brief", data);
       if (!result.valid) {
         validationError("design-brief", result.errors);
@@ -12556,6 +12601,10 @@ function registerTaskCommands(program2) {
       validateIdentifier(missionId, "mission ID");
       const missionDir = resolveMissionDir(geasDir2, missionId);
       const data = readInputData(opts.data, opts.file);
+      injectEnvelope("task_contract", data);
+      if (!data.status || data.status !== "drafted") {
+        data.status = "drafted";
+      }
       const result = validate("task-contract", data);
       if (!result.valid) {
         validationError("task-contract", result.errors);
@@ -13776,6 +13825,7 @@ function registerPhaseCommands(program2) {
       const geasDir2 = resolveGeasDir(cwd);
       validateIdentifier(opts.mission, "mission ID");
       const missionDir = resolveMissionDir(geasDir2, opts.mission);
+      injectEnvelope("phase_review", data, { mission_id: opts.mission });
       const result = validate("phase-review", data);
       if (!result.valid) {
         validationError("phase-review", result.errors || []);

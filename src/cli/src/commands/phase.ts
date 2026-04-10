@@ -12,6 +12,7 @@ import { validate } from '../lib/schema';
 import { validatePhaseTransition } from '../lib/phase-guards';
 import { success, validationError, fileError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
+import { injectEnvelope } from '../lib/envelope';
 
 export function registerPhaseCommands(program: Command): void {
   const cmd = program
@@ -31,6 +32,9 @@ export function registerPhaseCommands(program: Command): void {
         const geasDir = resolveGeasDir(cwd);
         validateIdentifier(opts.mission, 'mission ID');
         const missionDir = resolveMissionDir(geasDir, opts.mission);
+
+        // Inject envelope fields (version, artifact_type, producer_type, artifact_id)
+        injectEnvelope('phase_review', data, { mission_id: opts.mission });
 
         // Validate against phase-review schema
         const result = validate('phase-review', data);

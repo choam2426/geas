@@ -13,6 +13,7 @@ import { validate } from '../lib/schema';
 import { success, validationError, fileError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
 import { readInputData } from '../lib/input';
+import { injectEnvelope } from '../lib/envelope';
 
 /** Generate a mission ID in the format mission-{YYYYMMDD}-{8alphanumeric}. */
 function generateMissionId(): string {
@@ -122,7 +123,10 @@ export function registerMissionCommands(program: Command): void {
           return;
         }
 
-        const data = readInputData(opts.data, undefined);
+        const data = readInputData(opts.data, undefined) as Record<string, unknown>;
+
+        // Inject envelope fields (version, artifact_type, producer_type, artifact_id)
+        injectEnvelope('mission_spec', data, { mission_id: opts.id });
 
         // Validate against mission-spec schema
         const result = validate('mission-spec', data);
@@ -171,7 +175,10 @@ export function registerMissionCommands(program: Command): void {
           return;
         }
 
-        const data = readInputData(opts.data, undefined);
+        const data = readInputData(opts.data, undefined) as Record<string, unknown>;
+
+        // Inject envelope fields (version, artifact_type, producer_type, artifact_id)
+        injectEnvelope('design_brief', data, { mission_id: opts.id });
 
         // Validate against design-brief schema
         const result = validate('design-brief', data);

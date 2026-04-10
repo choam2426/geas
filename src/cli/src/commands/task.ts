@@ -17,6 +17,7 @@ import { success, validationError, fileError } from '../lib/output';
 import { validateTransition } from '../lib/transition-guards';
 import { getCwd } from '../lib/cwd';
 import { readInputData, parseSetFlags } from '../lib/input';
+import { injectEnvelope } from '../lib/envelope';
 
 // ── State transition validation ─────────────────────────────────────
 
@@ -103,6 +104,14 @@ export function registerTaskCommands(program: Command): void {
         const missionDir = resolveMissionDir(geasDir, missionId);
 
         const data = readInputData(opts.data, opts.file) as Record<string, unknown>;
+
+        // Inject envelope fields (version, artifact_type, producer_type, artifact_id)
+        injectEnvelope('task_contract', data);
+
+        // Enforce status=drafted for new task contracts
+        if (!data.status || data.status !== 'drafted') {
+          data.status = 'drafted';
+        }
 
         // Validate against task-contract schema
         const result = validate('task-contract', data);
