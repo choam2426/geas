@@ -124,14 +124,14 @@ drafted → ready → implementing → reviewed → integrated → verified → 
 
 Task별 산출물은 단일 `record.json` 파일에 섹션 단위로 누적되며, specialist 리뷰 산출물은 `evidence/` 디렉토리에 별도 저장된다.
 
-| 전이 | Record 섹션 / 산출물 | 증명하는 것 |
+| 전이 | 가드 조건 | 증명하는 것 |
 |---|---|---|
-| drafted → ready | record.json의 `contract` 섹션 | 범위, 기준, 라우팅이 정의됨 |
-| ready → implementing | `implementation_contract` 섹션 | 작업자와 리뷰어가 계획에 합의함 |
-| implementing → reviewed | `self_check` 섹션 + `evidence/` 리뷰 | 작업이 완료되고 평가됨 |
-| reviewed → integrated | `integration` 섹션 | 변경 사항이 baseline에 병합됨 |
-| integrated → verified | `gate` 섹션 (pass) | Evidence gate가 품질을 확인함 |
-| verified → passed | `closure` + `verdict` 섹션 | Decision Maker가 결과를 수락함 |
+| drafted → ready | `contract.json` 필수 필드 (task_kind, risk_level, gate_profile, vote_round_policy, base_snapshot, rubric) | 범위, 기준, 라우팅이 정의됨 |
+| ready → implementing | `record.json:implementation_contract.status == "approved"` | 작업자와 리뷰어가 계획에 합의함 |
+| implementing → reviewed | `record.json:self_check` + `evidence/`에 implementer role | 작업이 완료되고 자기 평가됨 |
+| reviewed → integrated | `record.json:gate_result.verdict == "pass"` + `evidence/`에 reviewer/tester role | Evidence gate가 품질을 확인함 |
+| integrated → verified | (없음 — 오케스트레이터의 merge가 관문) | 변경 사항이 baseline에 병합됨 |
+| verified → passed | `verdict.verdict == "pass"` + `gate_result` + `closure` (리뷰 1건 이상) + `retrospective` + `challenge_review` (high/critical) | Decision Maker 수락, 전체 기록 완성 |
 
 > 전체 상태 머신, 되감기 규칙, 재시도 예산: `protocol/03_TASK_MODEL_AND_LIFECYCLE.md`.
 

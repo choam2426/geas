@@ -124,14 +124,14 @@ No transition happens without evidence. This is the core enforcement mechanism �
 
 Per-task artifacts are consolidated into a single `record.json` file with sections accumulated as the task progresses, plus an `evidence/` directory for specialist review artifacts.
 
-| Transition | Record section / artifact | What it proves |
+| Transition | Guard condition | What it proves |
 |---|---|---|
-| drafted → ready | `contract` section in record.json | Scope, criteria, and routing are defined |
-| ready → implementing | `implementation_contract` section | Worker and reviewers agree on the plan |
-| implementing → reviewed | `self_check` section + `evidence/` reviews | Work is done and assessed |
-| reviewed → integrated | `integration` section | Change merged into baseline |
-| integrated → verified | `gate` section (pass) | Evidence gate confirms quality |
-| verified → passed | `closure` + `verdict` sections | Decision Maker accepts the result |
+| drafted → ready | `contract.json` with required fields (task_kind, risk_level, gate_profile, vote_round_policy, base_snapshot, rubric) | Scope, criteria, and routing are defined |
+| ready → implementing | `record.json:implementation_contract.status == "approved"` | Worker and reviewers agree on the plan |
+| implementing → reviewed | `record.json:self_check` + `evidence/` with implementer role | Work is done and self-assessed |
+| reviewed → integrated | `record.json:gate_result.verdict == "pass"` + `evidence/` with reviewer/tester role | Evidence gate confirms quality |
+| integrated → verified | (none — orchestrator merge is the gate) | Change merged into baseline |
+| verified → passed | `verdict.verdict == "pass"` + `gate_result` + `closure` (≥1 review) + `retrospective` + `challenge_review` (high/critical) | Decision Maker accepts, full record complete |
 
 > Full state machine, rewind rules, and retry budgets: `protocol/03_TASK_MODEL_AND_LIFECYCLE.md`.
 
