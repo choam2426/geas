@@ -11649,6 +11649,20 @@ function fileError(filePath, operation, cause) {
   process.stderr.write(JSON.stringify(msg) + "\n");
   process.exit(2);
 }
+function noStdinError(operation, cause) {
+  const msg = {
+    error: `No JSON on stdin for '${operation}': ${cause}`,
+    code: "NO_STDIN",
+    operation,
+    examples: [
+      `heredoc: geas <cmd> <<'JSON'\\n{"key":"value"}\\nJSON`,
+      `pipe:    echo '{"key":"value"}' | geas <cmd>`,
+      "redir:   geas <cmd> < payload.json"
+    ]
+  };
+  process.stderr.write(JSON.stringify(msg) + "\n");
+  process.exit(2);
+}
 function warn(message) {
   process.stderr.write(`[Geas] WARNING: ${message}
 `);
@@ -11954,40 +11968,82 @@ var crypto = __toESM(require("crypto"));
 
 // src/lib/input.ts
 var fs5 = __toESM(require("fs"));
-function readInputData(dataArg, fileArg) {
+var NO_STDIN = "NO_STDIN";
+var NO_STDIN_EXAMPLES = [
+  `heredoc:      geas <cmd> <<'JSON'
+                {"key": "value"}
+                JSON`,
+  `pipe:         echo '{"key":"value"}' | geas <cmd>`,
+  "redirection:  geas <cmd> < payload.json"
+];
+function noStdinError2(reason) {
+  const lines = [
+    `No JSON on stdin: ${reason}`,
+    "Write commands require JSON piped via stdin. Examples:",
+    ...NO_STDIN_EXAMPLES.map((e) => `  ${e}`)
+  ];
+  const err = new Error(lines.join("\n"));
+  err.code = NO_STDIN;
+  return err;
+}
+function computeJsonLineHint(raw, err) {
+  const msg = err.message;
+  const posMatch = /position\s+(\d+)/.exec(msg);
+  if (!posMatch) {
+    return msg;
+  }
+  const pos = parseInt(posMatch[1], 10);
+  if (!Number.isFinite(pos) || pos < 0) {
+    return msg;
+  }
+  let line = 1;
+  let col = 1;
+  const scanEnd = Math.min(pos, raw.length);
+  for (let i = 0; i < scanEnd; i++) {
+    if (raw.charCodeAt(i) === 10) {
+      line++;
+      col = 1;
+    } else {
+      col++;
+    }
+  }
+  return `${msg} (line ${line}, column ${col})`;
+}
+function readInputData() {
+  if (process.stdin.isTTY === true) {
+    throw noStdinError2("stdin is an interactive terminal (TTY)");
+  }
   let raw;
-  if (fileArg) {
-    try {
-      raw = fs5.readFileSync(fileArg, "utf-8").trim();
-    } catch (err) {
-      const nodeErr = err;
-      const e = new Error(`Cannot read file: ${fileArg} (${nodeErr.code || "unknown"})`);
-      e.code = "FILE_ERROR";
-      throw e;
+  try {
+    raw = fs5.readFileSync(0, "utf-8");
+  } catch (err) {
+    const nodeErr = err;
+    const code = nodeErr.code;
+    const errno = nodeErr.errno;
+    if (code === "EAGAIN" || code === "EOF" || code === "ENOENT" || errno === -4095) {
+      throw noStdinError2("stdin is empty or unavailable");
     }
+    throw noStdinError2(`failed to read stdin (${code || "unknown"})`);
   }
-  if (!raw && dataArg) {
-    raw = dataArg;
+  if (raw.charCodeAt(0) === 65279) {
+    raw = raw.slice(1);
   }
-  if (!raw) {
-    try {
-      if (!process.stdin.isTTY) {
-        raw = fs5.readFileSync(0, "utf-8").trim();
-      }
-    } catch {
-    }
-  }
-  if (!raw) {
-    const err = new Error("No data provided. Use --data <json>, --file <path>, or pipe JSON to stdin.");
-    err.code = "FILE_ERROR";
-    throw err;
+  raw = raw.trim();
+  if (raw.length === 0) {
+    throw noStdinError2("stdin was empty (0 bytes after trim)");
   }
   try {
     return JSON.parse(raw);
   } catch (e) {
+    if (e instanceof SyntaxError) {
+      const hint = computeJsonLineHint(raw, e);
+      const err2 = new Error(`Invalid JSON on stdin: ${hint}`);
+      err2.code = "INVALID_JSON";
+      throw err2;
+    }
     const msg = e instanceof Error ? e.message : String(e);
-    const err = new Error(`Invalid JSON: ${msg}`);
-    err.code = "FILE_ERROR";
+    const err = new Error(`Invalid JSON on stdin: ${msg}`);
+    err.code = "INVALID_JSON";
     throw err;
   }
 }
@@ -12139,7 +12195,7 @@ function registerMissionCommands(program2) {
       }
     }
   });
-  cmd.command("write-spec").description("Write spec.json with schema validation").requiredOption("--id <mission-id>", "Mission identifier").option("--data <json>", "JSON data (or pipe via stdin)").action((opts) => {
+  cmd.command("write-spec").description("Write spec.json with schema validation (JSON via stdin)").requiredOption("--id <mission-id>", "Mission identifier").action((opts) => {
     try {
       validateIdentifier(opts.id, "mission ID");
       const cwd = getCwd(cmd);
@@ -12153,7 +12209,7 @@ function registerMissionCommands(program2) {
         );
         return;
       }
-      const data = readInputData(opts.data, void 0);
+      const data = readInputData();
       injectEnvelope("mission_spec", data, { mission_id: opts.id });
       const result = validate("mission-spec", data);
       if (!result.valid) {
@@ -12169,14 +12225,18 @@ function registerMissionCommands(program2) {
       });
     } catch (err) {
       const nodeErr = err;
-      if (nodeErr.code === "FILE_ERROR") {
+      if (nodeErr.code === "NO_STDIN") {
+        noStdinError("mission write", nodeErr.message);
+      } else if (nodeErr.code === "INVALID_JSON") {
+        fileError("", "parse", nodeErr.message);
+      } else if (nodeErr.code === "FILE_ERROR") {
         fileError("", "write", nodeErr.message);
       } else {
         throw err;
       }
     }
   });
-  cmd.command("write-brief").description("Write design-brief.json with schema validation").requiredOption("--id <mission-id>", "Mission identifier").option("--data <json>", "JSON data (or pipe via stdin)").action((opts) => {
+  cmd.command("write-brief").description("Write design-brief.json with schema validation (JSON via stdin)").requiredOption("--id <mission-id>", "Mission identifier").action((opts) => {
     try {
       validateIdentifier(opts.id, "mission ID");
       const cwd = getCwd(cmd);
@@ -12190,7 +12250,7 @@ function registerMissionCommands(program2) {
         );
         return;
       }
-      const data = readInputData(opts.data, void 0);
+      const data = readInputData();
       injectEnvelope("design_brief", data, { mission_id: opts.id });
       const result = validate("design-brief", data);
       if (!result.valid) {
@@ -12206,7 +12266,11 @@ function registerMissionCommands(program2) {
       });
     } catch (err) {
       const nodeErr = err;
-      if (nodeErr.code === "FILE_ERROR") {
+      if (nodeErr.code === "NO_STDIN") {
+        noStdinError("mission write", nodeErr.message);
+      } else if (nodeErr.code === "INVALID_JSON") {
+        fileError("", "parse", nodeErr.message);
+      } else if (nodeErr.code === "FILE_ERROR") {
         fileError("", "write", nodeErr.message);
       } else {
         throw err;
@@ -12593,14 +12657,14 @@ function resolveMissionId(geasDir2, missionOpt) {
 }
 function registerTaskCommands(program2) {
   const cmd = program2.command("task").description("Task CRUD (contracts, status transitions, execution record)");
-  cmd.command("create").description("Create a task contract with schema validation").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").option("--data <json>", "JSON data (or pipe via stdin)").option("--file <path>", "Read JSON data from file").action((opts) => {
+  cmd.command("create").description("Create a task contract with schema validation (JSON via stdin)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").action((opts) => {
     try {
       const cwd = getCwd(cmd);
       const geasDir2 = resolveGeasDir(cwd);
       const missionId = resolveMissionId(geasDir2, opts.mission);
       validateIdentifier(missionId, "mission ID");
       const missionDir = resolveMissionDir(geasDir2, missionId);
-      const data = readInputData(opts.data, opts.file);
+      const data = readInputData();
       injectEnvelope("task_contract", data);
       if (!data.status || data.status !== "drafted") {
         data.status = "drafted";
@@ -12638,7 +12702,11 @@ function registerTaskCommands(program2) {
       });
     } catch (err) {
       const nodeErr = err;
-      if (nodeErr.code === "FILE_ERROR") {
+      if (nodeErr.code === "NO_STDIN") {
+        noStdinError("task create", nodeErr.message);
+      } else if (nodeErr.code === "INVALID_JSON") {
+        fileError("", "parse", nodeErr.message);
+      } else if (nodeErr.code === "FILE_ERROR") {
         fileError("", "create", nodeErr.message);
       } else {
         throw err;
@@ -12792,7 +12860,7 @@ function registerTaskCommands(program2) {
     }
   });
   const record = cmd.command("record").description("Task execution record (record.json) management");
-  record.command("add").description("Add or overwrite a section in record.json").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--task <task-id>", "Task identifier").requiredOption("--section <name>", `Section name (${VALID_SECTIONS.join(", ")})`).option("--data <json>", "Section data as JSON string").option("--file <path>", "Read section data from JSON file").option("--set <key=value...>", "Set individual fields", collectSet, []).action((opts) => {
+  record.command("add").description("Add or overwrite a section in record.json (JSON via stdin and/or --set)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--task <task-id>", "Task identifier").requiredOption("--section <name>", `Section name (${VALID_SECTIONS.join(", ")})`).option("--set <key=value...>", "Set individual fields", collectSet, []).action((opts) => {
     try {
       const cwd = getCwd(cmd);
       const geasDir2 = resolveGeasDir(cwd);
@@ -12810,16 +12878,32 @@ function registerTaskCommands(program2) {
         return;
       }
       let sectionData;
-      if (opts.data || opts.file) {
-        sectionData = readInputData(opts.data, opts.file);
-        if (opts.set.length > 0) {
-          const overrides = parseSetFlags(opts.set);
-          Object.assign(sectionData, overrides);
+      try {
+        sectionData = readInputData();
+      } catch (readErr) {
+        const rnErr = readErr;
+        if (rnErr.code === "NO_STDIN") {
+          sectionData = void 0;
+        } else if (rnErr.code === "INVALID_JSON") {
+          fileError("", "parse", rnErr.message);
+          return;
+        } else {
+          throw readErr;
         }
-      } else if (opts.set.length > 0) {
-        sectionData = parseSetFlags(opts.set);
-      } else {
-        fileError("", "record add", "No data provided. Use --data, --file, or --set.");
+      }
+      if (opts.set.length > 0) {
+        const overrides = parseSetFlags(opts.set);
+        if (sectionData) {
+          Object.assign(sectionData, overrides);
+        } else {
+          sectionData = overrides;
+        }
+      }
+      if (!sectionData) {
+        noStdinError(
+          "task record add",
+          "No data provided. Pipe JSON to stdin, or use --set <key=value>."
+        );
         return;
       }
       const recordPath = path7.resolve(taskDir, "record.json");
@@ -12915,7 +12999,7 @@ function resolveMissionId2(geasDir2, missionOpt) {
 var SAFE_AGENT_RE = /^[a-zA-Z0-9_-]+$/;
 function registerEvidenceCommands(program2) {
   const cmd = program2.command("evidence").description("Role-based evidence file management");
-  cmd.command("add").description("Create or overwrite a role-based evidence file").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").option("--task <tid>", "Task identifier (use --phase for phase-level evidence)").option("--phase <phase>", "Phase name for mission-level evidence (polishing, evolving)").requiredOption("--agent <name>", "Agent name (used as filename)").requiredOption("--role <role>", "Agent role (implementer, reviewer, tester, authority)").option("--data <json>", "Evidence data as JSON string").option("--file <path>", "Read evidence data from JSON file").option("--set <key=value...>", "Set individual fields", collectSet2, []).action((opts) => {
+  cmd.command("add").description("Create or overwrite a role-based evidence file (JSON via stdin and/or --set)").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").option("--task <tid>", "Task identifier (use --phase for phase-level evidence)").option("--phase <phase>", "Phase name for mission-level evidence (polishing, evolving)").requiredOption("--agent <name>", "Agent name (used as filename)").requiredOption("--role <role>", "Agent role (implementer, reviewer, tester, authority)").option("--set <key=value...>", "Set individual fields", collectSet2, []).action((opts) => {
     try {
       const cwd = getCwd(cmd);
       const geasDir2 = resolveGeasDir(cwd);
@@ -12936,16 +13020,32 @@ function registerEvidenceCommands(program2) {
       }
       const agentName = opts.agent;
       let evidenceData;
-      if (opts.data || opts.file) {
-        evidenceData = readInputData(opts.data, opts.file);
-        if (opts.set.length > 0) {
-          const overrides = parseSetFlags(opts.set);
-          Object.assign(evidenceData, overrides);
+      try {
+        evidenceData = readInputData();
+      } catch (readErr) {
+        const rnErr = readErr;
+        if (rnErr.code === "NO_STDIN") {
+          evidenceData = void 0;
+        } else if (rnErr.code === "INVALID_JSON") {
+          fileError("", "parse", rnErr.message);
+          return;
+        } else {
+          throw readErr;
         }
-      } else if (opts.set.length > 0) {
-        evidenceData = parseSetFlags(opts.set);
-      } else {
-        fileError("", "evidence add", "No data provided. Use --data, --file, or --set.");
+      }
+      if (opts.set.length > 0) {
+        const overrides = parseSetFlags(opts.set);
+        if (evidenceData) {
+          Object.assign(evidenceData, overrides);
+        } else {
+          evidenceData = overrides;
+        }
+      }
+      if (!evidenceData) {
+        noStdinError(
+          "evidence add",
+          "No data provided. Pipe JSON to stdin, or use --set <key=value>."
+        );
         return;
       }
       evidenceData.version = "1.0";
@@ -13625,14 +13725,14 @@ function registerContextCommands(program2) {
 var path14 = __toESM(require("path"));
 function registerRecoveryCommands(program2) {
   const cmd = program2.command("recovery").description("Recovery packet and session management");
-  cmd.command("write").description("Write a recovery packet").requiredOption("--data <json>", "JSON recovery packet object").action((opts, cmd2) => {
+  cmd.command("write").description("Write a recovery packet (JSON via stdin)").action((_opts, cmd2) => {
     try {
-      const data = JSON.parse(opts.data);
+      const data = readInputData();
       const cwd = getCwd(cmd2);
       const geasDir2 = resolveGeasDir(cwd);
       const recoveryId = data.recovery_id;
       if (!recoveryId) {
-        fileError("recovery/", "write", "recovery_id is required in --data");
+        fileError("recovery/", "write", "recovery_id is required in stdin JSON");
         return;
       }
       validateIdentifier(recoveryId, "recovery_id");
@@ -13650,7 +13750,16 @@ function registerRecoveryCommands(program2) {
         path: filePath
       });
     } catch (err) {
-      const msg = err instanceof SyntaxError ? "Invalid JSON in --data" : err.message;
+      const nodeErr = err;
+      if (nodeErr.code === "NO_STDIN") {
+        noStdinError("recovery write", nodeErr.message);
+        return;
+      }
+      if (nodeErr.code === "INVALID_JSON") {
+        fileError("recovery/", "parse", nodeErr.message);
+        return;
+      }
+      const msg = err instanceof SyntaxError ? "Invalid JSON on stdin" : err.message;
       fileError("recovery/", "write", msg);
     }
   });
@@ -13818,9 +13927,9 @@ var transitionGuards = {
 // src/commands/phase.ts
 function registerPhaseCommands(program2) {
   const cmd = program2.command("phase").description("Phase review read/write");
-  cmd.command("write").description("Write a phase review").requiredOption("--mission <mid>", "Mission ID").requiredOption("--data <json>", "JSON phase review object").action((opts, cmd2) => {
+  cmd.command("write").description("Write a phase review (JSON via stdin)").requiredOption("--mission <mid>", "Mission ID").action((opts, cmd2) => {
     try {
-      const data = JSON.parse(opts.data);
+      const data = readInputData();
       const cwd = getCwd(cmd2);
       const geasDir2 = resolveGeasDir(cwd);
       validateIdentifier(opts.mission, "mission ID");
@@ -13874,7 +13983,16 @@ function registerPhaseCommands(program2) {
         path: filePath
       });
     } catch (err) {
-      const msg = err instanceof SyntaxError ? "Invalid JSON in --data" : err.message;
+      const nodeErr = err;
+      if (nodeErr.code === "NO_STDIN") {
+        noStdinError("phase write", nodeErr.message);
+        return;
+      }
+      if (nodeErr.code === "INVALID_JSON") {
+        fileError("phase-reviews/", "parse", nodeErr.message);
+        return;
+      }
+      const msg = err instanceof SyntaxError ? "Invalid JSON on stdin" : err.message;
       fileError("phase-reviews/", "write", msg);
     }
   });
@@ -13924,17 +14042,25 @@ var fs14 = __toESM(require("fs"));
 var path17 = __toESM(require("path"));
 function registerDecisionCommands(program2) {
   const cmd = program2.command("decision").description("Decision record read/write");
-  cmd.command("write").description("Write a decision record").requiredOption("--mission <mid>", "Mission identifier").requiredOption("--data <json>", "Decision record data as JSON string").action((opts, cmd2) => {
+  cmd.command("write").description("Write a decision record (JSON via stdin)").requiredOption("--mission <mid>", "Mission identifier").action((opts, cmd2) => {
     try {
       let decisionData;
       try {
-        decisionData = JSON.parse(opts.data);
-      } catch {
-        fileError(opts.data, "parse", "Invalid JSON in --data");
-        return;
+        decisionData = readInputData();
+      } catch (readErr) {
+        const rnErr = readErr;
+        if (rnErr.code === "NO_STDIN") {
+          noStdinError("decision write", rnErr.message);
+          return;
+        }
+        if (rnErr.code === "INVALID_JSON") {
+          fileError("", "parse", rnErr.message);
+          return;
+        }
+        throw readErr;
       }
       if (typeof decisionData !== "object" || decisionData === null || Array.isArray(decisionData)) {
-        fileError(opts.data, "parse", "--data must be a JSON object");
+        fileError("", "parse", "stdin JSON must be an object");
         return;
       }
       const cwd = getCwd(cmd2);
@@ -14370,9 +14496,9 @@ var path19 = __toESM(require("path"));
 var VALID_PHASES = ["specifying", "building", "polishing", "evolving"];
 function registerEvolutionCommands(program2) {
   const cmd = program2.command("evolution").description("Evolution phase artifacts (gap-assessment, rules-update)");
-  cmd.command("gap-assessment").description("Write a gap assessment for a mission phase").requiredOption("--mission <mid>", "Mission identifier").requiredOption("--phase <phase>", "Mission phase (e.g. building, polishing, evolving)").option("--data <json>", "JSON data (or pipe via stdin)").action((opts, actionCmd) => {
+  cmd.command("gap-assessment").description("Write a gap assessment for a mission phase (JSON via stdin)").requiredOption("--mission <mid>", "Mission identifier").requiredOption("--phase <phase>", "Mission phase (e.g. building, polishing, evolving)").action((opts, actionCmd) => {
     try {
-      const data = readInputData(opts.data, void 0);
+      const data = readInputData();
       const cwd = getCwd(actionCmd);
       const geasDir2 = resolveGeasDir(cwd);
       validateIdentifier(opts.mission, "mission");
@@ -14399,17 +14525,21 @@ function registerEvolutionCommands(program2) {
       });
     } catch (err) {
       const nodeErr = err;
-      if (nodeErr.code === "FILE_ERROR") {
+      if (nodeErr.code === "NO_STDIN") {
+        noStdinError("gap-assessment", nodeErr.message);
+      } else if (nodeErr.code === "INVALID_JSON") {
+        fileError("", "parse", nodeErr.message);
+      } else if (nodeErr.code === "FILE_ERROR") {
         fileError("", "gap-assessment", nodeErr.message);
       } else {
-        const msg = err instanceof SyntaxError ? "Invalid JSON in --data" : err.message;
+        const msg = err instanceof SyntaxError ? "Invalid JSON on stdin" : err.message;
         fileError("", "gap-assessment", msg);
       }
     }
   });
-  cmd.command("rules-update").description("Write a rules update artifact for a mission").requiredOption("--mission <mid>", "Mission identifier").option("--data <json>", "JSON data (or pipe via stdin)").option("--file <path>", "Read data from JSON file").action((opts, actionCmd) => {
+  cmd.command("rules-update").description("Write a rules update artifact for a mission (JSON via stdin)").requiredOption("--mission <mid>", "Mission identifier").action((opts, actionCmd) => {
     try {
-      const data = readInputData(opts.data, opts.file);
+      const data = readInputData();
       const cwd = getCwd(actionCmd);
       const geasDir2 = resolveGeasDir(cwd);
       validateIdentifier(opts.mission, "mission");
@@ -14431,10 +14561,14 @@ function registerEvolutionCommands(program2) {
       });
     } catch (err) {
       const nodeErr = err;
-      if (nodeErr.code === "FILE_ERROR") {
+      if (nodeErr.code === "NO_STDIN") {
+        noStdinError("rules-update", nodeErr.message);
+      } else if (nodeErr.code === "INVALID_JSON") {
+        fileError("", "parse", nodeErr.message);
+      } else if (nodeErr.code === "FILE_ERROR") {
         fileError("", "rules-update", nodeErr.message);
       } else {
-        const msg = err instanceof SyntaxError ? "Invalid JSON in --data" : err.message;
+        const msg = err instanceof SyntaxError ? "Invalid JSON on stdin" : err.message;
         fileError("", "rules-update", msg);
       }
     }
