@@ -13,7 +13,7 @@ import type { Command } from 'commander';
 import { resolveGeasDir, resolveMissionDir, normalizePath, validateIdentifier } from '../lib/paths';
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
-import { success, validationError, fileError } from '../lib/output';
+import { success, validationError, fileError, noStdinError } from '../lib/output';
 import { validateTransition } from '../lib/transition-guards';
 import { getCwd } from '../lib/cwd';
 import { readInputData, parseSetFlags } from '../lib/input';
@@ -88,14 +88,12 @@ export function registerTaskCommands(program: Command): void {
     .command('task')
     .description('Task CRUD (contracts, status transitions, execution record)');
 
-  // ── geas task create --mission <mid> --data <json> ────────────────
+  // ── geas task create --mission <mid> (JSON via stdin) ─────────────
   cmd
     .command('create')
-    .description('Create a task contract with schema validation')
+    .description('Create a task contract with schema validation (JSON via stdin)')
     .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
-    .option('--data <json>', 'JSON data (or pipe via stdin)')
-    .option('--file <path>', 'Read JSON data from file')
-    .action((opts: { mission?: string; data?: string; file?: string }) => {
+    .action((opts: { mission?: string }) => {
       try {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
@@ -103,7 +101,7 @@ export function registerTaskCommands(program: Command): void {
         validateIdentifier(missionId, 'mission ID');
         const missionDir = resolveMissionDir(geasDir, missionId);
 
-        const data = readInputData(opts.data, opts.file) as Record<string, unknown>;
+        const data = readInputData() as Record<string, unknown>;
 
         // Inject envelope fields (version, artifact_type, producer_type, artifact_id)
         injectEnvelope('task_contract', data);
@@ -155,7 +153,11 @@ export function registerTaskCommands(program: Command): void {
         });
       } catch (err: unknown) {
         const nodeErr = err as NodeJS.ErrnoException;
-        if (nodeErr.code === 'FILE_ERROR') {
+        if (nodeErr.code === 'NO_STDIN') {
+          noStdinError('task create', nodeErr.message);
+        } else if (nodeErr.code === 'INVALID_JSON') {
+          fileError('', 'parse', nodeErr.message);
+        } else if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'create', nodeErr.message);
         } else {
           throw err;
@@ -355,19 +357,15 @@ export function registerTaskCommands(program: Command): void {
 
   record
     .command('add')
-    .description('Add or overwrite a section in record.json')
+    .description('Add or overwrite a section in record.json (JSON via stdin and/or --set)')
     .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
     .requiredOption('--task <task-id>', 'Task identifier')
     .requiredOption('--section <name>', `Section name (${VALID_SECTIONS.join(', ')})`)
-    .option('--data <json>', 'Section data as JSON string')
-    .option('--file <path>', 'Read section data from JSON file')
     .option('--set <key=value...>', 'Set individual fields', collectSet, [])
     .action((opts: {
       mission?: string;
       task: string;
       section: string;
-      data?: string;
-      file?: string;
       set: string[];
     }) => {
       try {
@@ -390,20 +388,41 @@ export function registerTaskCommands(program: Command): void {
           return;
         }
 
-        // Build section data from --data/--file or --set
-        let sectionData: Record<string, unknown>;
+        // Build section data: stdin JSON forms the base, --set overlays on top.
+        // Shallow merge semantics (Object.assign) match parseSetFlags, which
+        // produces only top-level / bracketed-array keys.
+        let sectionData: Record<string, unknown> | undefined;
 
-        if (opts.data || opts.file) {
-          sectionData = readInputData(opts.data, opts.file) as Record<string, unknown>;
-          // Merge --set overrides on top
-          if (opts.set.length > 0) {
-            const overrides = parseSetFlags(opts.set);
-            Object.assign(sectionData, overrides);
+        try {
+          sectionData = readInputData() as Record<string, unknown>;
+        } catch (readErr: unknown) {
+          const rnErr = readErr as NodeJS.ErrnoException;
+          if (rnErr.code === 'NO_STDIN') {
+            // Empty stdin is OK if --set provides data; fall through.
+            sectionData = undefined;
+          } else if (rnErr.code === 'INVALID_JSON') {
+            fileError('', 'parse', rnErr.message);
+            return;
+          } else {
+            throw readErr;
           }
-        } else if (opts.set.length > 0) {
-          sectionData = parseSetFlags(opts.set);
-        } else {
-          fileError('', 'record add', 'No data provided. Use --data, --file, or --set.');
+        }
+
+        if (opts.set.length > 0) {
+          const overrides = parseSetFlags(opts.set);
+          if (sectionData) {
+            // stdin-base + --set overlay: shallow merge, --set wins per key.
+            Object.assign(sectionData, overrides);
+          } else {
+            sectionData = overrides;
+          }
+        }
+
+        if (!sectionData) {
+          noStdinError(
+            'task record add',
+            'No data provided. Pipe JSON to stdin, or use --set <key=value>.',
+          );
           return;
         }
 

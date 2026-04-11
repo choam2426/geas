@@ -10,7 +10,7 @@ import type { Command } from 'commander';
 import { resolveGeasDir, normalizePath, validateIdentifier } from '../lib/paths';
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
-import { success, validationError, fileError } from '../lib/output';
+import { success, validationError, fileError, noStdinError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
 import { readInputData } from '../lib/input';
 import { injectEnvelope } from '../lib/envelope';
@@ -101,13 +101,12 @@ export function registerMissionCommands(program: Command): void {
       }
     });
 
-  // ── geas mission write-spec --id <mission-id> --data <json> ───────
+  // ── geas mission write-spec --id <mission-id> (JSON via stdin) ────
   cmd
     .command('write-spec')
-    .description('Write spec.json with schema validation')
+    .description('Write spec.json with schema validation (JSON via stdin)')
     .requiredOption('--id <mission-id>', 'Mission identifier')
-    .option('--data <json>', 'JSON data (or pipe via stdin)')
-    .action((opts: { id: string; data?: string }) => {
+    .action((opts: { id: string }) => {
       try {
         validateIdentifier(opts.id, 'mission ID');
         const cwd = getCwd(cmd);
@@ -123,7 +122,7 @@ export function registerMissionCommands(program: Command): void {
           return;
         }
 
-        const data = readInputData(opts.data, undefined) as Record<string, unknown>;
+        const data = readInputData() as Record<string, unknown>;
 
         // Inject envelope fields (version, artifact_type, producer_type, artifact_id)
         injectEnvelope('mission_spec', data, { mission_id: opts.id });
@@ -145,7 +144,11 @@ export function registerMissionCommands(program: Command): void {
         });
       } catch (err: unknown) {
         const nodeErr = err as NodeJS.ErrnoException;
-        if (nodeErr.code === 'FILE_ERROR') {
+        if (nodeErr.code === 'NO_STDIN') {
+          noStdinError('mission write', nodeErr.message);
+        } else if (nodeErr.code === 'INVALID_JSON') {
+          fileError('', 'parse', nodeErr.message);
+        } else if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'write', nodeErr.message);
         } else {
           throw err;
@@ -153,13 +156,12 @@ export function registerMissionCommands(program: Command): void {
       }
     });
 
-  // ── geas mission write-brief --id <mission-id> --data <json> ──────
+  // ── geas mission write-brief --id <mission-id> (JSON via stdin) ───
   cmd
     .command('write-brief')
-    .description('Write design-brief.json with schema validation')
+    .description('Write design-brief.json with schema validation (JSON via stdin)')
     .requiredOption('--id <mission-id>', 'Mission identifier')
-    .option('--data <json>', 'JSON data (or pipe via stdin)')
-    .action((opts: { id: string; data?: string }) => {
+    .action((opts: { id: string }) => {
       try {
         validateIdentifier(opts.id, 'mission ID');
         const cwd = getCwd(cmd);
@@ -175,7 +177,7 @@ export function registerMissionCommands(program: Command): void {
           return;
         }
 
-        const data = readInputData(opts.data, undefined) as Record<string, unknown>;
+        const data = readInputData() as Record<string, unknown>;
 
         // Inject envelope fields (version, artifact_type, producer_type, artifact_id)
         injectEnvelope('design_brief', data, { mission_id: opts.id });
@@ -197,7 +199,11 @@ export function registerMissionCommands(program: Command): void {
         });
       } catch (err: unknown) {
         const nodeErr = err as NodeJS.ErrnoException;
-        if (nodeErr.code === 'FILE_ERROR') {
+        if (nodeErr.code === 'NO_STDIN') {
+          noStdinError('mission write', nodeErr.message);
+        } else if (nodeErr.code === 'INVALID_JSON') {
+          fileError('', 'parse', nodeErr.message);
+        } else if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'write', nodeErr.message);
         } else {
           throw err;

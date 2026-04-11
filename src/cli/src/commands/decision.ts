@@ -10,10 +10,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Command } from 'commander';
-import { success, fileError } from '../lib/output';
+import { success, fileError, noStdinError } from '../lib/output';
 import { resolveGeasDir, resolveMissionDir, normalizePath, validateIdentifier, assertContainedIn } from '../lib/paths';
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { getCwd } from '../lib/cwd';
+import { readInputData } from '../lib/input';
 
 export function registerDecisionCommands(program: Command): void {
   const cmd = program
@@ -23,22 +24,29 @@ export function registerDecisionCommands(program: Command): void {
   // --- decision write ---
   cmd
     .command('write')
-    .description('Write a decision record')
+    .description('Write a decision record (JSON via stdin)')
     .requiredOption('--mission <mid>', 'Mission identifier')
-    .requiredOption('--data <json>', 'Decision record data as JSON string')
-    .action((opts: { mission: string; data: string }, cmd: Command) => {
+    .action((opts: { mission: string }, cmd: Command) => {
       try {
-        // Parse data
+        // Read JSON from stdin
         let decisionData: Record<string, unknown>;
         try {
-          decisionData = JSON.parse(opts.data) as Record<string, unknown>;
-        } catch {
-          fileError(opts.data, 'parse', 'Invalid JSON in --data');
-          return;
+          decisionData = readInputData() as Record<string, unknown>;
+        } catch (readErr: unknown) {
+          const rnErr = readErr as NodeJS.ErrnoException;
+          if (rnErr.code === 'NO_STDIN') {
+            noStdinError('decision write', rnErr.message);
+            return;
+          }
+          if (rnErr.code === 'INVALID_JSON') {
+            fileError('', 'parse', rnErr.message);
+            return;
+          }
+          throw readErr;
         }
 
         if (typeof decisionData !== 'object' || decisionData === null || Array.isArray(decisionData)) {
-          fileError(opts.data, 'parse', '--data must be a JSON object');
+          fileError('', 'parse', 'stdin JSON must be an object');
           return;
         }
 

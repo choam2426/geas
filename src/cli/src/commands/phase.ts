@@ -10,9 +10,10 @@ import { writeJsonFile, readJsonFile } from '../lib/fs-atomic';
 import { resolveGeasDir, resolveMissionDir, validateIdentifier } from '../lib/paths';
 import { validate } from '../lib/schema';
 import { validatePhaseTransition } from '../lib/phase-guards';
-import { success, validationError, fileError } from '../lib/output';
+import { success, validationError, fileError, noStdinError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
 import { injectEnvelope } from '../lib/envelope';
+import { readInputData } from '../lib/input';
 
 export function registerPhaseCommands(program: Command): void {
   const cmd = program
@@ -22,12 +23,11 @@ export function registerPhaseCommands(program: Command): void {
   // --- write ---
   cmd
     .command('write')
-    .description('Write a phase review')
+    .description('Write a phase review (JSON via stdin)')
     .requiredOption('--mission <mid>', 'Mission ID')
-    .requiredOption('--data <json>', 'JSON phase review object')
-    .action((opts: { mission: string; data: string }, cmd: Command) => {
+    .action((opts: { mission: string }, cmd: Command) => {
       try {
-        const data = JSON.parse(opts.data) as Record<string, unknown>;
+        const data = readInputData() as Record<string, unknown>;
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
         validateIdentifier(opts.mission, 'mission ID');
@@ -93,8 +93,17 @@ export function registerPhaseCommands(program: Command): void {
           path: filePath,
         });
       } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'NO_STDIN') {
+          noStdinError('phase write', nodeErr.message);
+          return;
+        }
+        if (nodeErr.code === 'INVALID_JSON') {
+          fileError('phase-reviews/', 'parse', nodeErr.message);
+          return;
+        }
         const msg = err instanceof SyntaxError
-          ? 'Invalid JSON in --data'
+          ? 'Invalid JSON on stdin'
           : (err as Error).message;
         fileError('phase-reviews/', 'write', msg);
       }

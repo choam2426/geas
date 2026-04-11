@@ -208,6 +208,28 @@ export function fileError(
 }
 
 /**
+ * Write a NO_STDIN error (no JSON on stdin) to stderr and exit 2.
+ *
+ * Emits a structured JSON object plus a list of example invocations showing
+ * how to pipe JSON via heredoc, pipe, or redirection. Used by write-path
+ * commands when readInputData() throws with `.code === 'NO_STDIN'`.
+ */
+export function noStdinError(operation: string, cause: string): void {
+  const msg = {
+    error: `No JSON on stdin for '${operation}': ${cause}`,
+    code: 'NO_STDIN',
+    operation,
+    examples: [
+      "heredoc: geas <cmd> <<'JSON'\\n{\"key\":\"value\"}\\nJSON",
+      'pipe:    echo \'{"key":"value"}\' | geas <cmd>',
+      'redir:   geas <cmd> < payload.json',
+    ],
+  };
+  process.stderr.write(JSON.stringify(msg) + '\n');
+  process.exit(2);
+}
+
+/**
  * Write a warning to stderr. Does NOT exit.
  * Matches hook warning format: [Geas] WARNING: <message>
  */

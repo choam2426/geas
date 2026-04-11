@@ -83,6 +83,32 @@ function runWithCwd(cmd, cwd) {
   return run(`--cwd "${cwd}" ${cmd}`, cwd);
 }
 
+/**
+ * Run a CLI command and pipe a JSON payload via stdin.
+ *
+ * After the stdin-only refactor (task-001), all write-path commands accept
+ * their structured data exclusively through piped stdin — not --data/--file.
+ * Returns parsed stdout JSON. Throws on non-zero exit.
+ */
+function runWithStdin(cmd, cwd, payload) {
+  const fullCmd = `node "${CLI}" ${cmd}`;
+  const stdout = execSync(fullCmd, {
+    cwd,
+    encoding: 'utf-8',
+    timeout: 10000,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    input: typeof payload === 'string' ? payload : JSON.stringify(payload),
+  });
+  return JSON.parse(stdout.trim());
+}
+
+/**
+ * Same as runWithStdin, but prepends --cwd for commands that need the flag.
+ */
+function runWithCwdStdin(cmd, cwd, payload) {
+  return runWithStdin(`--cwd "${cwd}" ${cmd}`, cwd, payload);
+}
+
 // ---------------------------------------------------------------------------
 // Minimal task contract JSON that passes schema validation
 // ---------------------------------------------------------------------------
@@ -177,10 +203,10 @@ function defineTests(tmpDir) {
     {
       name: 'task create (v4: tasks/{tid}/contract.json)',
       fn: () => {
-        const data = JSON.stringify(TASK_CONTRACT).replace(/"/g, '\\"');
-        return runWithCwd(
-          `task create --mission ${MISSION_ID} --data "${data}"`,
+        return runWithCwdStdin(
+          `task create --mission ${MISSION_ID}`,
           tmpDir,
+          TASK_CONTRACT,
         );
       },
       validate: (r) => {
@@ -206,14 +232,14 @@ function defineTests(tmpDir) {
       name: 'create implementation contract via record add (for ready->implementing guard)',
       fn: () => {
         // v4: ready->implementing guard requires record.json:implementation_contract section with status "approved"
-        const sectionData = JSON.stringify({
-          planned_actions: ['Implement feature'],
-          non_goals: ['Out-of-scope refactoring'],
-          status: 'approved',
-        }).replace(/"/g, '\\"');
-        return runWithCwd(
-          `task record add --mission ${MISSION_ID} --task task-001 --section implementation_contract --data "${sectionData}"`,
+        return runWithCwdStdin(
+          `task record add --mission ${MISSION_ID} --task task-001 --section implementation_contract`,
           tmpDir,
+          {
+            planned_actions: ['Implement feature'],
+            non_goals: ['Out-of-scope refactoring'],
+            status: 'approved',
+          },
         );
       },
       validate: (r) => r.section === 'implementation_contract' && r.action === 'added',
@@ -533,8 +559,7 @@ function defineGuardTests(tmpDir) {
         name: '[guard] drafted->ready positive: complete task transitions successfully',
         fn: () => {
           const completeTask = { ...TASK_CONTRACT, task_id: 'guard-pos-01' };
-          const data = JSON.stringify(completeTask).replace(/"/g, '\\"');
-          runWithCwd(`task create --mission ${GUARD_MISSION} --data "${data}"`, tmpDir);
+          runWithCwdStdin(`task create --mission ${GUARD_MISSION}`, tmpDir, completeTask);
           return runWithCwd(`task transition --mission ${GUARD_MISSION} --id guard-pos-01 --to ready`, tmpDir);
         },
         validate: (r) => r.previous_status === 'drafted' && r.status === 'ready',
@@ -618,11 +643,15 @@ function defineGuardTests(tmpDir) {
             next_phase: 'polishing',
             created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
           };
-          const data = JSON.stringify(phaseReview).replace(/"/g, '\\"');
           try {
             execSync(
-              `node "${CLI}" --cwd "${tmpDir}" phase write --mission ${GUARD_MISSION} --data "${data}"`,
-              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+              `node "${CLI}" --cwd "${tmpDir}" phase write --mission ${GUARD_MISSION}`,
+              {
+                encoding: 'utf-8',
+                timeout: 10000,
+                stdio: ['pipe', 'pipe', 'pipe'],
+                input: JSON.stringify(phaseReview),
+              },
             );
             return { blocked: false };
           } catch (err) {
@@ -648,11 +677,15 @@ function defineGuardTests(tmpDir) {
             next_phase: 'complete',
             created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
           };
-          const data = JSON.stringify(phaseReview).replace(/"/g, '\\"');
           try {
             execSync(
-              `node "${CLI}" --cwd "${tmpDir}" phase write --mission ${GUARD_MISSION} --data "${data}"`,
-              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+              `node "${CLI}" --cwd "${tmpDir}" phase write --mission ${GUARD_MISSION}`,
+              {
+                encoding: 'utf-8',
+                timeout: 10000,
+                stdio: ['pipe', 'pipe', 'pipe'],
+                input: JSON.stringify(phaseReview),
+              },
             );
             return { blocked: false };
           } catch (err) {
@@ -681,11 +714,16 @@ function defineGuardTests(tmpDir) {
             next_phase: 'complete',
             summary: 'Invalid skip attempt',
             created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-          }).replace(/"/g, '\\"');
+          });
           try {
             execSync(
-              `node "${CLI}" --cwd "${tmpDir}" phase write --mission ${GUARD_MISSION} --data "${phaseReview}"`,
-              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+              `node "${CLI}" --cwd "${tmpDir}" phase write --mission ${GUARD_MISSION}`,
+              {
+                encoding: 'utf-8',
+                timeout: 10000,
+                stdio: ['pipe', 'pipe', 'pipe'],
+                input: phaseReview,
+              },
             );
             return { rejected: false };
           } catch {
@@ -712,8 +750,7 @@ function defineV4Tests(tmpDir) {
 
       // Create a task for record/evidence tests
       const task = { ...TASK_CONTRACT, task_id: 'v4-task-001' };
-      const data = JSON.stringify(task).replace(/"/g, '\\"');
-      runWithCwd(`task create --mission ${V4_MISSION} --data "${data}"`, tmpDir);
+      runWithCwdStdin(`task create --mission ${V4_MISSION}`, tmpDir, task);
     },
     tests: [
       // ── record add: --set ──
@@ -741,19 +778,19 @@ function defineV4Tests(tmpDir) {
           r.data.summary === 'All tests pass',
       },
 
-      // ── record add: --data (overwrite) ──
+      // ── record add: stdin JSON (overwrite) ──
       {
-        name: '[v4] record add with --data (overwrite existing section)',
+        name: '[v4] record add with stdin JSON (overwrite existing section)',
         fn: () => {
-          const sectionData = JSON.stringify({
-            confidence: 5,
-            summary: 'Updated after fix',
-            known_risks: ['None'],
-            untested_paths: ['Edge case handling'],
-          }).replace(/"/g, '\\"');
-          return runWithCwd(
-            `task record add --mission ${V4_MISSION} --task v4-task-001 --section self_check --data "${sectionData}"`,
+          return runWithCwdStdin(
+            `task record add --mission ${V4_MISSION} --task v4-task-001 --section self_check`,
             tmpDir,
+            {
+              confidence: 5,
+              summary: 'Updated after fix',
+              known_risks: ['None'],
+              untested_paths: ['Edge case handling'],
+            },
           );
         },
         validate: (r) => r.section === 'self_check' && r.action === 'added',
@@ -775,13 +812,13 @@ function defineV4Tests(tmpDir) {
       {
         name: '[v4] record add gate_result section',
         fn: () => {
-          const data = JSON.stringify({
-            verdict: 'pass',
-            tier_results: { tier_0: { status: 'pass' }, tier_1: { status: 'pass' }, tier_2: { status: 'pass' } },
-          }).replace(/"/g, '\\"');
-          return runWithCwd(
-            `task record add --mission ${V4_MISSION} --task v4-task-001 --section gate_result --data "${data}"`,
+          return runWithCwdStdin(
+            `task record add --mission ${V4_MISSION} --task v4-task-001 --section gate_result`,
             tmpDir,
+            {
+              verdict: 'pass',
+              tier_results: { tier_0: { status: 'pass' }, tier_1: { status: 'pass' }, tier_2: { status: 'pass' } },
+            },
           );
         },
         validate: (r) => r.section === 'gate_result',
@@ -833,16 +870,16 @@ function defineV4Tests(tmpDir) {
 
       // ── evidence add: reviewer ──
       {
-        name: '[v4] evidence add reviewer role',
+        name: '[v4] evidence add reviewer role (stdin JSON)',
         fn: () => {
-          const data = JSON.stringify({
-            summary: 'Code looks good',
-            verdict: 'approved',
-            concerns: [],
-          }).replace(/"/g, '\\"');
-          return runWithCwd(
-            `evidence add --mission ${V4_MISSION} --task v4-task-001 --agent design-authority --role reviewer --data "${data}"`,
+          return runWithCwdStdin(
+            `evidence add --mission ${V4_MISSION} --task v4-task-001 --agent design-authority --role reviewer`,
             tmpDir,
+            {
+              summary: 'Code looks good',
+              verdict: 'approved',
+              concerns: [],
+            },
           );
         },
         validate: (r) =>
@@ -1023,11 +1060,16 @@ function defineV4Tests(tmpDir) {
             status: 'ready_to_exit',
             summary: 'Missing next_phase',
             created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-          }).replace(/"/g, '\\"');
+          });
           try {
             execSync(
-              `node "${CLI}" --cwd "${tmpDir}" phase write --mission ${V4_MISSION} --data "${phaseReview}"`,
-              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+              `node "${CLI}" --cwd "${tmpDir}" phase write --mission ${V4_MISSION}`,
+              {
+                encoding: 'utf-8',
+                timeout: 10000,
+                stdio: ['pipe', 'pipe', 'pipe'],
+                input: phaseReview,
+              },
             );
             return { rejected: false };
           } catch {
@@ -1043,7 +1085,7 @@ function defineV4Tests(tmpDir) {
         fn: () => {
           // Use ready_to_enter (no next_phase) to avoid triggering the phase
           // transition guard, which requires all tasks to be passed/cancelled.
-          const phaseReview = JSON.stringify({
+          const phaseReview = {
             version: '1.0',
             artifact_type: 'phase_review',
             artifact_id: 'pr-building-001',
@@ -1052,10 +1094,11 @@ function defineV4Tests(tmpDir) {
             status: 'ready_to_enter',
             summary: 'Building phase entered',
             created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-          }).replace(/"/g, '\\"');
-          return runWithCwd(
-            `phase write --mission ${V4_MISSION} --data "${phaseReview}"`,
+          };
+          return runWithCwdStdin(
+            `phase write --mission ${V4_MISSION}`,
             tmpDir,
+            phaseReview,
           );
         },
         validate: (r) => r.ok === true && r.phase === 'building',
@@ -1092,20 +1135,20 @@ function defineV4Tests(tmpDir) {
       {
         name: '[v4] evolution rules-update writes artifact',
         fn: () => {
-          const data = JSON.stringify({
-            version: '1.0',
-            artifact_type: 'rules_update',
-            artifact_id: 'ru-001',
-            producer_type: 'design-authority',
-            status: 'none',
-            reason: 'No rules changes needed',
-            evidence_refs: [],
-            applies_to: [],
-            created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-          }).replace(/"/g, '\\"');
-          return runWithCwd(
-            `evolution rules-update --mission ${V4_MISSION} --data "${data}"`,
+          return runWithCwdStdin(
+            `evolution rules-update --mission ${V4_MISSION}`,
             tmpDir,
+            {
+              version: '1.0',
+              artifact_type: 'rules_update',
+              artifact_id: 'ru-001',
+              producer_type: 'design-authority',
+              status: 'none',
+              reason: 'No rules changes needed',
+              evidence_refs: [],
+              applies_to: [],
+              created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+            },
           );
         },
         validate: (r) => r.artifact_type === 'rules_update',
@@ -1144,10 +1187,15 @@ function defineV4Tests(tmpDir) {
               acceptance_criteria: ['x'], eval_commands: [], rubric: { dimensions: [{ name: 'core_interaction', threshold: 3 }] },
               retry_budget: 3, scope: { surfaces: ['src/'] }, routing: { primary_worker_type: 'software-engineer', required_reviewer_types: ['design-authority'] },
               base_snapshot: 'abc123', status: 'drafted'
-            }).replace(/"/g, '\\"');
+            });
             execSync(
-              `node "${CLI}" --cwd "${tmpDir}" task create --mission "../escape" --data "${data}"`,
-              { encoding: 'utf-8', timeout: 10000, stdio: ['pipe', 'pipe', 'pipe'] },
+              `node "${CLI}" --cwd "${tmpDir}" task create --mission "../escape"`,
+              {
+                encoding: 'utf-8',
+                timeout: 10000,
+                stdio: ['pipe', 'pipe', 'pipe'],
+                input: data,
+              },
             );
             return { rejected: false };
           } catch {

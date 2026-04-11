@@ -8,7 +8,7 @@ import type { Command } from 'commander';
 import { writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { resolveGeasDir, resolveMissionDir, normalizePath, validateIdentifier, assertContainedIn } from '../lib/paths';
 import { validate } from '../lib/schema';
-import { success, validationError, fileError } from '../lib/output';
+import { success, validationError, fileError, noStdinError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
 import { readInputData } from '../lib/input';
 
@@ -22,13 +22,12 @@ export function registerEvolutionCommands(program: Command): void {
   // --- gap-assessment ---
   cmd
     .command('gap-assessment')
-    .description('Write a gap assessment for a mission phase')
+    .description('Write a gap assessment for a mission phase (JSON via stdin)')
     .requiredOption('--mission <mid>', 'Mission identifier')
     .requiredOption('--phase <phase>', 'Mission phase (e.g. building, polishing, evolving)')
-    .option('--data <json>', 'JSON data (or pipe via stdin)')
-    .action((opts: { mission: string; phase: string; data?: string }, actionCmd: Command) => {
+    .action((opts: { mission: string; phase: string }, actionCmd: Command) => {
       try {
-        const data = readInputData(opts.data, undefined) as Record<string, unknown>;
+        const data = readInputData() as Record<string, unknown>;
         const cwd = getCwd(actionCmd);
         const geasDir = resolveGeasDir(cwd);
         validateIdentifier(opts.mission, 'mission');
@@ -60,11 +59,15 @@ export function registerEvolutionCommands(program: Command): void {
         });
       } catch (err: unknown) {
         const nodeErr = err as NodeJS.ErrnoException;
-        if (nodeErr.code === 'FILE_ERROR') {
+        if (nodeErr.code === 'NO_STDIN') {
+          noStdinError('gap-assessment', nodeErr.message);
+        } else if (nodeErr.code === 'INVALID_JSON') {
+          fileError('', 'parse', nodeErr.message);
+        } else if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'gap-assessment', nodeErr.message);
         } else {
           const msg = err instanceof SyntaxError
-            ? 'Invalid JSON in --data'
+            ? 'Invalid JSON on stdin'
             : (err as Error).message;
           fileError('', 'gap-assessment', msg);
         }
@@ -74,13 +77,11 @@ export function registerEvolutionCommands(program: Command): void {
   // --- rules-update ---
   cmd
     .command('rules-update')
-    .description('Write a rules update artifact for a mission')
+    .description('Write a rules update artifact for a mission (JSON via stdin)')
     .requiredOption('--mission <mid>', 'Mission identifier')
-    .option('--data <json>', 'JSON data (or pipe via stdin)')
-    .option('--file <path>', 'Read data from JSON file')
-    .action((opts: { mission: string; data?: string; file?: string }, actionCmd: Command) => {
+    .action((opts: { mission: string }, actionCmd: Command) => {
       try {
-        const data = readInputData(opts.data, opts.file) as Record<string, unknown>;
+        const data = readInputData() as Record<string, unknown>;
         const cwd = getCwd(actionCmd);
         const geasDir = resolveGeasDir(cwd);
         validateIdentifier(opts.mission, 'mission');
@@ -105,11 +106,15 @@ export function registerEvolutionCommands(program: Command): void {
         });
       } catch (err: unknown) {
         const nodeErr = err as NodeJS.ErrnoException;
-        if (nodeErr.code === 'FILE_ERROR') {
+        if (nodeErr.code === 'NO_STDIN') {
+          noStdinError('rules-update', nodeErr.message);
+        } else if (nodeErr.code === 'INVALID_JSON') {
+          fileError('', 'parse', nodeErr.message);
+        } else if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'rules-update', nodeErr.message);
         } else {
           const msg = err instanceof SyntaxError
-            ? 'Invalid JSON in --data'
+            ? 'Invalid JSON on stdin'
             : (err as Error).message;
           fileError('', 'rules-update', msg);
         }

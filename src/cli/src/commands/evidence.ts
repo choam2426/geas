@@ -9,7 +9,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Command } from 'commander';
-import { success, validationError, fileError } from '../lib/output';
+import { success, validationError, fileError, noStdinError } from '../lib/output';
 import { resolveGeasDir, normalizePath, validateIdentifier } from '../lib/paths';
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
@@ -42,14 +42,12 @@ export function registerEvidenceCommands(program: Command): void {
   // --- evidence add ---
   cmd
     .command('add')
-    .description('Create or overwrite a role-based evidence file')
+    .description('Create or overwrite a role-based evidence file (JSON via stdin and/or --set)')
     .option('--mission <mid>', 'Mission identifier (auto-resolved from run.json)')
     .option('--task <tid>', 'Task identifier (use --phase for phase-level evidence)')
     .option('--phase <phase>', 'Phase name for mission-level evidence (polishing, evolving)')
     .requiredOption('--agent <name>', 'Agent name (used as filename)')
     .requiredOption('--role <role>', 'Agent role (implementer, reviewer, tester, authority)')
-    .option('--data <json>', 'Evidence data as JSON string')
-    .option('--file <path>', 'Read evidence data from JSON file')
     .option('--set <key=value...>', 'Set individual fields', collectSet, [])
     .action((opts: {
       mission?: string;
@@ -57,8 +55,6 @@ export function registerEvidenceCommands(program: Command): void {
       phase?: string;
       agent: string;
       role: string;
-      data?: string;
-      file?: string;
       set: string[];
     }) => {
       try {
@@ -85,19 +81,41 @@ export function registerEvidenceCommands(program: Command): void {
         }
         const agentName = opts.agent;
 
-        // Build evidence data
-        let evidenceData: Record<string, unknown>;
+        // Build evidence data: stdin JSON forms the base, --set overlays on top.
+        // Shallow merge semantics (Object.assign) match parseSetFlags, which
+        // produces only top-level / bracketed-array keys.
+        let evidenceData: Record<string, unknown> | undefined;
 
-        if (opts.data || opts.file) {
-          evidenceData = readInputData(opts.data, opts.file) as Record<string, unknown>;
-          if (opts.set.length > 0) {
-            const overrides = parseSetFlags(opts.set);
-            Object.assign(evidenceData, overrides);
+        try {
+          evidenceData = readInputData() as Record<string, unknown>;
+        } catch (readErr: unknown) {
+          const rnErr = readErr as NodeJS.ErrnoException;
+          if (rnErr.code === 'NO_STDIN') {
+            // Empty stdin is OK if --set provides data; fall through.
+            evidenceData = undefined;
+          } else if (rnErr.code === 'INVALID_JSON') {
+            fileError('', 'parse', rnErr.message);
+            return;
+          } else {
+            throw readErr;
           }
-        } else if (opts.set.length > 0) {
-          evidenceData = parseSetFlags(opts.set);
-        } else {
-          fileError('', 'evidence add', 'No data provided. Use --data, --file, or --set.');
+        }
+
+        if (opts.set.length > 0) {
+          const overrides = parseSetFlags(opts.set);
+          if (evidenceData) {
+            // stdin-base + --set overlay: shallow merge, --set wins per key.
+            Object.assign(evidenceData, overrides);
+          } else {
+            evidenceData = overrides;
+          }
+        }
+
+        if (!evidenceData) {
+          noStdinError(
+            'evidence add',
+            'No data provided. Pipe JSON to stdin, or use --set <key=value>.',
+          );
           return;
         }
 
