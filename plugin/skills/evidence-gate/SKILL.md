@@ -221,7 +221,7 @@ If the gate verdict is `error`:
 
 Write gate result to record.json via CLI:
 ```bash
-Bash("geas task record add --task {task-id} --section gate_result --file <gate_result_json_file>")
+Bash("geas task record add --task {task-id} --section gate_result < <gate_result_json_file>")
 ```
 
 Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `created_at`) are auto-injected by the CLI — agents only need to provide the content fields below.
@@ -274,7 +274,7 @@ Bash("geas event log --type gate_result --task {task-id} --data '{\"result\":\"p
      - `"product-authority-decision"`: spawn the `product-authority` for a strategic decision (continue/cut/pivot)
      - `"pivot"`: invoke `/geas:vote-round`
    - Update TaskContract status: `Bash("geas task transition --mission {mission_id} --id {task-id} --to escalated")`
-   - Write a DecisionRecord via CLI: `Bash("geas decision write --mission {mission_id} --data '<decision_json>'")`
+   - Write a DecisionRecord via CLI: `Bash("geas decision write --mission {mission_id} <<'EOF'\n<decision_json>\nEOF")`
 
 ## On Block
 
@@ -291,7 +291,7 @@ When the gate results in an escalation or significant decision, write a Decision
 
 Write the DecisionRecord via CLI (the CLI creates the decisions directory automatically):
 ```bash
-Bash("geas decision write --mission {mission_id} --data '<decision_record_json>'")
+Bash("geas decision write --mission {mission_id} <<'EOF'\n<decision_record_json>\nEOF")
 ```
 The CLI enforces schema validation on the decision record.
 

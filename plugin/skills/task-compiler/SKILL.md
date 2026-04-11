@@ -200,7 +200,7 @@ Write the rubric as an object with a `dimensions` array. The orchestration-autho
 
 Write the TaskContract via CLI (the CLI creates the tasks directory automatically and enforces schema validation):
 ```bash
-Bash("geas task create --mission {mission_id} --data '<task_contract_json>'")
+Bash("geas task create --mission {mission_id} <<'EOF'\n<task_contract_json>\nEOF")
 ```
 
 Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `created_at`) are auto-injected by the CLI — agents only need to provide the content fields below. Run `geas schema template task-contract` for the full template.

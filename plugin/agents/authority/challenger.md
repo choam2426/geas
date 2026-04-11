@@ -87,8 +87,9 @@ Surface these as memory_suggestions:
    Write to record.json with: `concerns[]` (array of objects with `severity` (blocking|non_blocking) and `description`, OR array of strings), `blocking` (boolean — true if ANY concern is blocking), optional `summary`.
 
    ```
-   geas task record add --task {task_id} --section challenge_review \
-     --data '{"concerns":[{"severity":"blocking|non_blocking","description":"..."}],"blocking":false,"summary":"..."}'
+   geas task record add --task {task_id} --section challenge_review <<'EOF'
+   {"concerns":[{"severity":"blocking|non_blocking","description":"..."}],"blocking":false,"summary":"..."}
+   EOF
    ```
 
 3. **Write evidence** (required — include self-review findings):

@@ -172,7 +172,7 @@ Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{worker}.json` exis
 The worker self-check runs in the same worktree as the implementation step (worktree is still alive — merge happens later at Integration). Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule").
 Update checkpoint: `Bash("geas state checkpoint set --step self_check --agent {worker}")`
 ```
-Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Implementation for {task-id} is complete. Before handing off to review, write your self-check to record.json. Run: geas task record add --task {task-id} --section self_check --data '<your-json>'. Required fields: confidence (integer 1-5), known_risks (string[]), untested_paths (string[]), summary (string). The CLI validates against the record schema automatically.")
+Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Implementation for {task-id} is complete. Before handing off to review, write your self-check to record.json. Run: geas task record add --task {task-id} --section self_check <<'EOF' (followed by the self-check JSON body and a closing EOF line). Required fields: confidence (integer 1-5), known_risks (string[]), untested_paths (string[]), summary (string). The CLI validates against the record schema automatically.")
 ```
 Verify record.json has `self_check` section: `Bash("geas task record get --task {task-id} --section self_check")`. Do NOT proceed to Specialist Review without this section.
 
@@ -203,7 +203,7 @@ Do NOT update status to `"reviewed"` until both steps finish.
 Run eval_commands from TaskContract. Check acceptance criteria against all evidence at `.geas/missions/{mission_id}/tasks/{task-id}/evidence/`.
 Write gate result to record.json:
 ```bash
-Bash("geas task record add --task {task-id} --section gate_result --data '<gate_result_json>'")
+Bash("geas task record add --task {task-id} --section gate_result <<'EOF'\n<gate_result_json>\nEOF")
 ```
 The gate_result section must include: `verdict` (pass/fail/block/error), `tier_results`, `rubric_scores`, `blocking_dimensions`. The CLI validates automatically.
 
@@ -275,7 +275,7 @@ orchestration-authority (Orchestrator) assembles the closure packet by reading a
 
 **Write** the closure section to record.json via CLI:
 ```bash
-Bash("geas task record add --task {task-id} --section closure --data '<closure_json>'")
+Bash("geas task record add --task {task-id} --section closure <<'EOF'\n<closure_json>\nEOF")
 ```
 The closure section must include: `change_summary` (required), `reviews` (array with reviewer_type/status/summary), `open_risks`, `debt_items`. The CLI validates against the record schema automatically.
 
@@ -295,7 +295,7 @@ Update checkpoint: `Bash("geas state checkpoint set --step closure_packet --agen
 
 Resolve the challenger agent. Update checkpoint: `Bash("geas state checkpoint set --step challenger --agent challenger")`
 ```
-Agent(agent: "challenger", prompt: "Read the closure from record.json via: geas task record get --task {task-id} --section closure. Read all evidence at .geas/missions/{mission_id}/tasks/{task-id}/evidence/. Perform your challenge review per your Review Protocols. Write your challenge review to record.json. Run: geas task record add --task {task-id} --section challenge_review --data '<your-json>'. The CLI validates automatically.")
+Agent(agent: "challenger", prompt: "Read the closure from record.json via: geas task record get --task {task-id} --section closure. Read all evidence at .geas/missions/{mission_id}/tasks/{task-id}/evidence/. Perform your challenge review per your Review Protocols. Write your challenge review to record.json. Run: geas task record add --task {task-id} --section challenge_review <<'EOF' (followed by the challenge-review JSON body and a closing EOF line). The CLI validates automatically.")
 
 **challenge_review fields:** `concerns[]` (strings or objects with `severity` (blocking|non_blocking) and `description`), `blocking` (boolean), optional `summary`
 ```
@@ -331,7 +331,7 @@ Update checkpoint: `Bash("geas state checkpoint set --step challenger --agent nu
 
 Update checkpoint: `Bash("geas state checkpoint set --step final_verdict --agent product-authority")`
 ```
-Agent(agent: "product-authority", prompt: "Read the closure and challenge_review sections from record.json via: geas task record get --task {task-id}. Read all evidence at .geas/missions/{mission_id}/tasks/{task-id}/evidence/. Issue your final verdict per your Review Protocols. Write your verdict to record.json. Run: geas task record add --task {task-id} --section verdict --data '<verdict_json>'. The CLI validates automatically. Also write evidence. Run: geas evidence add --task {task-id} --agent product-authority-verdict --role authority --set summary='<verdict summary>' --set verdict='pass' --set rationale='<rationale>'")
+Agent(agent: "product-authority", prompt: "Read the closure and challenge_review sections from record.json via: geas task record get --task {task-id}. Read all evidence at .geas/missions/{mission_id}/tasks/{task-id}/evidence/. Issue your final verdict per your Review Protocols. Write your verdict to record.json. Run: geas task record add --task {task-id} --section verdict <<'EOF' (followed by the verdict JSON body and a closing EOF line). The CLI validates automatically. Also write evidence. Run: geas evidence add --task {task-id} --agent product-authority-verdict --role authority --set summary='<verdict summary>' --set verdict='pass' --set rationale='<rationale>'")
 ```
 
 **Verdict rules:**
@@ -361,7 +361,7 @@ Update checkpoint: `Bash("geas state checkpoint set --step retrospective --agent
 Orchestrator reads all evidence at `.geas/missions/{mission_id}/tasks/{task-id}/evidence/` and the closure section from record.json. Then writes the retrospective section to record.json via CLI:
 
 ```bash
-Bash("geas task record add --task {task-id} --section retrospective --data '<retrospective_json>'")
+Bash("geas task record add --task {task-id} --section retrospective <<'EOF'\n<retrospective_json>\nEOF")
 ```
 The retrospective section must include: `what_went_well` (required), `what_broke` (required), `what_was_surprising`, `rule_candidates` (proposed changes to rules.md -- DO NOT modify rules.md directly), `memory_candidates`, `debt_candidates`, `next_time_guidance`. The CLI validates against the record schema automatically.
 

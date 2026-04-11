@@ -172,7 +172,7 @@ When `run.json` exists with `status: "in_progress"`, classify the recovery:
    - Inconsistent state (conflicting artifacts) → `manual_repair_required`
 3. Write recovery packet via CLI:
    ```bash
-   Bash("geas recovery write --data '<recovery_packet_json>'")
+   Bash("geas recovery write <<'EOF'\n<recovery_packet_json>\nEOF")
    ```
    **Recovery-packet schema fields:**
    - `recovery_id`: unique string (e.g., `"recovery-{mission_id}-001"`)

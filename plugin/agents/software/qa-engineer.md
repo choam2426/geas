@@ -96,7 +96,7 @@ Surface these as memory_suggestions:
    geas evidence add --task {task_id} --agent qa-engineer --role tester \
      --set "summary=<test results, informed by self-review>" \
      --set "verdict=<pass|changes_requested>" \
-     --set "criteria_results=<use --file for complex results>"
+     --set "criteria_results=<for complex results, pipe a JSON body via stdin heredoc instead of --set>"
    ```
 
 3. **Update your memory** (only if self-review found a reusable lesson):

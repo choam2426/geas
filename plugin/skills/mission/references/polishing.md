@@ -54,11 +54,11 @@ Results are recorded in `.geas/missions/{mission_id}/evolution/debt-register.jso
 
 Write the gap assessment via CLI:
 ```bash
-Bash("geas evolution gap-assessment --mission {mission_id} --phase polishing --data '<gap_assessment_json>'")
+Bash("geas evolution gap-assessment --mission {mission_id} --phase polishing <<'EOF'\n<gap_assessment_json>\nEOF")
 ```
 Write the phase review via CLI:
 ```bash
-Bash("geas phase write --mission {mission_id} --data '<phase_review_json>'")
+Bash("geas phase write --mission {mission_id} <<'EOF'\n<phase_review_json>\nEOF")
 ```
 where phase review has `mission_phase: "polishing"`, `next_phase: "evolving"`.
 

@@ -27,7 +27,7 @@ Bash("geas mission create --id {mission_id}")
 
 1. Write an initial design-brief draft via CLI with schema validation:
    ```bash
-   Bash("geas mission write-brief --id {mission_id} --data '<design_brief_json>'")
+   Bash("geas mission write-brief --id {mission_id} <<'EOF'\n<design_brief_json>\nEOF")
    ```
    The CLI validates the brief automatically and auto-injects `created_at`. Set `status: "draft"`.
 
@@ -53,7 +53,7 @@ Bash("geas mission create --id {mission_id}")
 Select the best agent for the design-authority role, using profiles.json as default preference when domain_profile is set. Spawn the selected agent to review and enrich the design-brief:
 
 ```
-Agent(agent: "{resolved-design-authority}", prompt: "Read the design-brief at .geas/missions/{mission_id}/design-brief.json and the mission spec at .geas/missions/{mission_id}/spec.json. Review the design brief for soundness, risks, and architecture decisions per your Review Protocols. Update the design-brief: populate the design_review field with your review summary and any additions you made. Write the updated design-brief via CLI. Run: geas mission write-brief --id {mission_id} --data '<updated_design_brief_json>' with status: 'reviewing'. Do NOT write separate evidence — the design_review field in the design-brief IS the review artifact.")
+Agent(agent: "{resolved-design-authority}", prompt: "Read the design-brief at .geas/missions/{mission_id}/design-brief.json and the mission spec at .geas/missions/{mission_id}/spec.json. Review the design brief for soundness, risks, and architecture decisions per your Review Protocols. Update the design-brief: populate the design_review field with your review summary and any additions you made. Write the updated design-brief via CLI. Run: geas mission write-brief --id {mission_id} <<'EOF' (followed by the updated design-brief JSON and a closing EOF line) with status: 'reviewing'. Do NOT write separate evidence — the design_review field in the design-brief IS the review artifact.")
 ```
 
 Verify: Read `.geas/missions/{mission_id}/design-brief.json` and confirm `design_review` is populated.
@@ -244,7 +244,7 @@ All conditions must be true:
 
 Write the phase review via CLI with schema validation:
 ```bash
-Bash("geas phase write --mission {mission_id} --data '<phase_review_json>'")
+Bash("geas phase write --mission {mission_id} <<'EOF'\n<phase_review_json>\nEOF")
 ```
 The CLI validates the phase review automatically. Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`) are auto-injected by the CLI — agents only need to provide the content fields below.
 ```json

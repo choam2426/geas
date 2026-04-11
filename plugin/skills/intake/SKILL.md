@@ -105,7 +105,7 @@ The response includes `mission_id` (e.g., `mission-20260407-x7Kq9mPv`). Use this
 
 Write the mission spec via CLI with schema validation:
 ```bash
-Bash("geas mission write-spec --id {mission_id} --data '<spec_json>'")
+Bash("geas mission write-spec --id {mission_id} <<'EOF'\n<spec_json>\nEOF")
 ```
 The CLI validates the spec against the schema automatically. Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `created_at`) are auto-injected by the CLI — agents do not need to provide them. Run `geas schema template mission-spec` for the full template with all required content fields.
 

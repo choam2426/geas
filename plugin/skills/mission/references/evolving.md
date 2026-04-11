@@ -15,7 +15,7 @@ Produce a structured gap assessment comparing what was planned vs what was deliv
 6. Items explicitly dropped by product-authority decision -> `intentional_cuts`
 7. Assemble the gap assessment JSON and write it via CLI:
    ```bash
-   Bash("geas evolution gap-assessment --mission {mission_id} --phase evolving --data '<gap_assessment_json>'")
+   Bash("geas evolution gap-assessment --mission {mission_id} --phase evolving <<'EOF'\n<gap_assessment_json>\nEOF")
    ```
    The CLI validates the data automatically. Required fields: `scope_in_summary`, `fully_delivered`, `partially_delivered`, `not_delivered`, `intentional_cuts`, `recommended_followups`.
 
@@ -45,7 +45,7 @@ If no P0 items remain: skip to product-authority Final Briefing.
 
 1. Read all per-task retrospectives from record.json: for each task directory in `.geas/missions/{mission_id}/tasks/`, read `record.json` and extract the `retrospective` section
 2. Collect all `rule_candidates[]` across tasks
-3. If no candidates across any task: write rules-update via CLI: `Bash("geas evolution rules-update --mission {mission_id} --data '<rules_update_json>'")`  with `status: "none"`, `reason: "no rule candidates from any task retrospective"`, `evidence_refs: []`, `applies_to: []`. Skip to next step.
+3. If no candidates across any task: write rules-update via CLI: `Bash("geas evolution rules-update --mission {mission_id} <<'EOF'\n<rules_update_json>\nEOF")`  with `status: "none"`, `reason: "no rule candidates from any task retrospective"`, `evidence_refs: []`, `applies_to: []`. Skip to next step.
 4. For each candidate, check approval conditions:
    - `evidence_refs` >= 2 (same pattern observed in 2+ tasks) AND `contradiction_count` = 0 -> auto-approve
    - Otherwise -> spawn domain authority for review:
@@ -58,7 +58,7 @@ If no P0 items remain: skip to product-authority Final Briefing.
      ```bash
      Bash("geas state checkpoint clear")
      ```
-5. Assemble the rules-update JSON and write it via CLI: `Bash("geas evolution rules-update --mission {mission_id} --data '<rules_update_json>'")`  Required fields: `status` (approved/none), `reason`, `evidence_refs`, `applies_to`. **`producer_type`**: omit when `status: "none"` (no producer needed). For approved/proposed/rejected: use the domain authority that made the decision.
+5. Assemble the rules-update JSON and write it via CLI: `Bash("geas evolution rules-update --mission {mission_id} <<'EOF'\n<rules_update_json>\nEOF")`  Required fields: `status` (approved/none), `reason`, `evidence_refs`, `applies_to`. **`producer_type`**: omit when `status: "none"` (no producer needed). For approved/proposed/rejected: use the domain authority that made the decision.
    **Note:** When `status` is `"approved"`, `affected_rule_ids[]` is required (at least 1 item).
 6. If `status: "approved"`: apply changes to `.geas/rules.md`
 7. Log: `Bash("geas event log --type rules_update --data '{\"status\":\"approved|none\"}'")` 
@@ -248,7 +248,7 @@ Invoke `/geas:reporting` to generate session audit trail.
 
 Write the evolving phase review via CLI:
 ```bash
-Bash("geas phase write --mission {mission_id} --data '<phase_review_json>'")
+Bash("geas phase write --mission {mission_id} <<'EOF'\n<phase_review_json>\nEOF")
 ```
 The phase review data:
 Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `created_at`) are auto-injected by the CLI — agents only need to provide the content fields below.

@@ -122,7 +122,7 @@ Invoke `/geas:vote-round` with full context.
 
 For any escalation, write a DecisionRecord via CLI:
 ```bash
-Bash("geas decision write --mission {mission_id} --data '<decision_record_json>'")
+Bash("geas decision write --mission {mission_id} <<'EOF'\n<decision_record_json>\nEOF")
 ```
 The data must conform to the decision record schema:
 Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `created_at`) are auto-injected by the CLI — agents only need to provide the content fields below.
