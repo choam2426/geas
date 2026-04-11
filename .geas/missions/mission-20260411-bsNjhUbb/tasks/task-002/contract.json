@@ -1,0 +1,68 @@
+{
+  "task_id": "task-002",
+  "title": "[Docs] Skills/Agents의 --data/--file 사용처 stdin 패턴으로 전수 치환",
+  "goal": "plugin/skills/** 와 plugin/agents/** 의 --data/--file JSON 입력 예시를 heredoc stdin 또는 리다이렉션 형태로 치환하되, 비-JSON 값 플래그(event log --data, context write --data, packet create --file)는 그대로 보존한다.",
+  "task_kind": "documentation",
+  "risk_level": "low",
+  "gate_profile": "artifact_only",
+  "vote_round_policy": "never",
+  "acceptance_criteria": [
+    "plugin/skills/mission/references/*.md 4개 파일(orchestration, specifying, building, polishing, evolving, pipeline — 실제 5~6개)의 --data/--file JSON 사용처가 heredoc 또는 < 리다이렉션으로 치환된다.",
+    "plugin/skills/의 7개 SKILL.md(vote-round, verify-fix-loop, task-compiler, evidence-gate, intake, implementation-contract, memorizing)의 --data/--file JSON 사용처가 stdin 패턴으로 치환된다.",
+    "plugin/agents/ 하위의 2개 agent 파일(authority/challenger.md, software/qa-engineer.md)의 --data/--file JSON 사용처가 stdin 패턴으로 치환된다.",
+    "치환 후 예시의 JSON 내용과 의미는 동일하게 유지된다 — 설명문과 명령 형태만 바뀐다.",
+    "event log --data, context write --data, packet create --file 등 비-JSON 값 플래그에 대한 기존 예시는 변경되지 않는다.",
+    "스킬 문서의 heredoc 예시는 single-quoted(<<'EOF')를 사용해 셸 변수 확장을 차단한다.",
+    "치환 후 plugin/skills/ 와 plugin/agents/ 전수 grep으로 JSON 입력 의도의 --data/--file 사용처가 0건임을 task-003에서 검증 가능한 상태가 된다."
+  ],
+  "eval_commands": [],
+  "rubric": {
+    "dimensions": [
+      {
+        "name": "core_interaction",
+        "threshold": 3
+      },
+      {
+        "name": "feature_completeness",
+        "threshold": 4
+      },
+      {
+        "name": "code_quality",
+        "threshold": 3
+      },
+      {
+        "name": "regression_safety",
+        "threshold": 4
+      }
+    ]
+  },
+  "retry_budget": 3,
+  "scope": {
+    "surfaces": [
+      "plugin/skills/mission/references/",
+      "plugin/skills/vote-round/SKILL.md",
+      "plugin/skills/verify-fix-loop/SKILL.md",
+      "plugin/skills/task-compiler/SKILL.md",
+      "plugin/skills/evidence-gate/SKILL.md",
+      "plugin/skills/intake/SKILL.md",
+      "plugin/skills/implementation-contract/SKILL.md",
+      "plugin/skills/memorizing/SKILL.md",
+      "plugin/agents/authority/challenger.md",
+      "plugin/agents/software/qa-engineer.md"
+    ]
+  },
+  "routing": {
+    "primary_worker_type": "technical-writer",
+    "required_reviewer_types": [
+      "design-authority"
+    ]
+  },
+  "base_snapshot": "7f766555fd8c20cb22b2bcbf16e9a891e045ac64",
+  "status": "passed",
+  "version": "1.0",
+  "artifact_type": "task_contract",
+  "producer_type": "orchestration-authority",
+  "artifact_id": "tc-task-002",
+  "created_at": "2026-04-11T02:42:28Z",
+  "updated_at": "2026-04-11T12:26:44Z"
+}

@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "artifact_type": "phase_review",
+  "artifact_id": "pr-specifying-mission-20260410-cDNzgUKo",
+  "producer_type": "orchestration-authority",
+  "mission_phase": "specifying",
+  "status": "ready_to_exit",
+  "summary": "Mission spec frozen, design brief approved (with vote round: unanimous agree, 6 concerns incorporated), 4 tasks compiled and user-approved. Environment setup complete (existing project).",
+  "gate_criteria_met": [
+    "mission spec frozen",
+    "design-brief approved",
+    "tasks compiled",
+    "task list approved",
+    "environment setup completed"
+  ],
+  "gate_criteria_unmet": [],
+  "risk_notes": [
+    "task-003 status=drafted 강제 기준 추가됨 (프로토콜 위반 재발 방지)"
+  ],
+  "next_phase": "building",
+  "created_at": "2026-04-10T14:00:25Z"
+}

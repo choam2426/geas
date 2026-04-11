@@ -1,0 +1,140 @@
+{
+  "version": "1.0",
+  "task_id": "task-004",
+  "implementation_contract": {
+    "planned_actions": [
+      "[SKILL-1] intake/SKILL.md: Remove lines 111-114 that instruct agents to manually include version/artifact_type/artifact_id/producer_type. Add a note that envelope fields are auto-injected by CLI. Keep the schema field reference section (lines 114-118) since those are content fields agents must know.",
+      "[SKILL-2] task-compiler/SKILL.md: Update the Output section example (lines 207-251) to remove envelope fields (version, artifact_type, artifact_id, producer_type, created_at) from the example JSON. Add a note: Run geas schema template task_contract for the full template. Keep content fields (task_id, title, goal, etc).",
+      "[SKILL-3] task-compiler/references/examples.md: Update all 2 example TaskContract JSON blocks to remove envelope fields. Keep content fields. Add note that envelope fields are auto-injected by CLI.",
+      "[SKILL-4] evidence-gate/SKILL.md: Update the gate_result template in Output section (lines 222-257) to remove envelope fields from the example. Add reference to geas schema template gate_result.",
+      "[SKILL-5] verify-fix-loop/SKILL.md: Update the DecisionRecord template (lines 126-143) to remove envelope fields. Add reference to geas schema template decision_record.",
+      "[SKILL-6] mission/references/specifying.md: Update phase_review template (lines 247-270) to remove envelope fields (version, artifact_type, artifact_id, producer_type). Add reference to geas schema template phase_review.",
+      "[SKILL-7] mission/references/evolving.md: Update phase_review template (lines 250-268) to remove envelope fields. Add reference to geas schema template phase_review.",
+      "[TEST-1] Create src/cli/test/schema-template.test.js: Test that geas schema template generates valid templates for all schema types (task_contract, gate_result, decision_record, phase_review, mission_spec, design_brief, evidence). Verify each template contains required content fields but NOT envelope fields (those are auto-injected).",
+      "[TEST-2] Create src/cli/test/envelope-injection.test.js: Test envelope auto-injection behavior: (a) CLI auto-injects version/artifact_type/producer_type when missing, (b) no-clobber — existing values are preserved, (c) status defaults to drafted when not provided.",
+      "[TEST-3] Create src/cli/test/validation-hints.test.js: Test validation error messages for common failure patterns from previous sessions: (a) required field missing produces hint naming the field, (b) invalid enum value produces hint listing valid values, (c) additionalProperties violation produces hint naming the unexpected field.",
+      "[TEST-4] Add npm test script to package.json pointing to the test runner (node --test or a simple runner that executes all test/*.test.js files)."
+    ],
+    "edge_cases": [
+      "Skill files that reference envelope fields in prose explanations (not just templates) — update prose too, not just JSON blocks",
+      "Examples that show CLI commands with inline JSON containing envelope fields — update those command examples",
+      "Decision record template in verify-fix-loop has created_at which is also auto-injected — remove it from the template",
+      "Phase review templates appear in both specifying.md and evolving.md with slightly different content — update both consistently",
+      "Test for schema template must handle case where a schema type does not exist — expect clear error",
+      "Envelope no-clobber test must verify that user-provided version value is preserved even if it differs from default",
+      "Test validation hints for nested required fields (e.g., scope.surfaces inside task_contract)"
+    ],
+    "non_goals": [
+      "Do NOT remove content field documentation from skills — only envelope fields",
+      "Do NOT restructure skill files beyond the specific inline schema changes",
+      "Do NOT modify the CLI source code — only write tests against existing CLI behavior",
+      "Do NOT add new CLI commands or modify existing command behavior",
+      "Do NOT touch skills outside the 7 identified files",
+      "Do NOT modify protocol docs or JSON schemas"
+    ],
+    "demo_steps": [
+      "AC1: For each of the 7 skill files, show that envelope fields (version, artifact_type, artifact_id, producer_type) are no longer listed as agent-provided requirements, and a geas schema template reference exists",
+      "AC2: Run the test suite (cd src/cli && npm run build && npm test) and show tests covering: wrong field name gives hint, invalid enum value gives valid options, missing required field names the field",
+      "AC3: Run cd src/cli && npm run build && npm test and verify all tests pass with exit code 0",
+      "AC4: Verify that existing CLI command examples in skills (e.g., geas task create, geas mission write-spec) still work correctly by checking test output for envelope auto-injection tests"
+    ],
+    "status": "approved",
+    "approved_by": [
+      "qa-engineer",
+      "design-authority"
+    ]
+  },
+  "created_at": "2026-04-10T14:49:15Z",
+  "updated_at": "2026-04-10T14:59:37Z",
+  "self_check": {
+    "confidence": 5,
+    "known_risks": [
+      "Skill file changes reference geas schema template command which must be available at runtime (it is - task-001 implemented it)"
+    ],
+    "untested_paths": [
+      "Edge cases in skill prose where envelope fields are mentioned in running text vs JSON blocks"
+    ],
+    "summary": "7 skill files updated, 3 test files created (18 tests), build and all tests pass. Skills now reference CLI auto-injection and schema template command."
+  },
+  "gate_result": {
+    "verdict": "pass",
+    "tier_results": {
+      "tier_0": {
+        "status": "pass",
+        "details": "Build+bundle+18 tests pass"
+      },
+      "tier_1": {
+        "status": "pass",
+        "details": "All 4 ACs verified"
+      },
+      "tier_2": {
+        "status": "pass",
+        "details": "DA and QA approved"
+      }
+    },
+    "rubric_scores": [
+      {
+        "dimension": "feature_completeness",
+        "score": 5,
+        "threshold": 4,
+        "passed": true
+      },
+      {
+        "dimension": "code_quality",
+        "score": 5,
+        "threshold": 4,
+        "passed": true
+      },
+      {
+        "dimension": "regression_safety",
+        "score": 5,
+        "threshold": 4,
+        "passed": true
+      }
+    ],
+    "blocking_dimensions": []
+  },
+  "closure": {
+    "change_summary": "Updated 7 skill files to remove inline envelope field instructions, replacing with CLI auto-injection notes and geas schema template references. Created 3 test files with 18 regression tests covering schema template generation, envelope injection, and validation error hints. All tests pass.",
+    "reviews": [
+      {
+        "reviewer_type": "design-authority",
+        "status": "approved",
+        "summary": "Clean separation, envelope fields properly removed, tests comprehensive"
+      },
+      {
+        "reviewer_type": "qa-engineer",
+        "status": "approved",
+        "summary": "18 tests pass, build+bundle work, CLI commands compatible, no inline schemas remain"
+      }
+    ],
+    "open_risks": [],
+    "debt_items": []
+  },
+  "verdict": {
+    "verdict": "pass",
+    "rationale": "All 4 ACs verified across full evidence chain. 7 skill files cleaned of inline envelope fields with CLI auto-injection references added. 18 regression tests pass covering schema templates, envelope injection, and validation hints. DA approved structural separation, QA confirmed build+bundle+tests. No blocking concerns, no open risks, no debt. Scope matches contract exactly with no creep."
+  },
+  "retrospective": {
+    "what_went_well": [
+      "18 regression tests provide safety net for all 3 new features",
+      "Skill cleanup was straightforward - clear pattern of envelope field removal",
+      "Tests use node:test built-in runner, no extra dependencies",
+      "All 4 tasks completed in sequence with clean handoffs"
+    ],
+    "what_broke": [
+      "Nothing broke"
+    ],
+    "what_was_surprising": [
+      "Test files needed to be in src/test/ rather than test/ for TypeScript compilation to work correctly with the existing tsconfig"
+    ],
+    "rule_candidates": [
+      "Tests should be placed in src/cli/src/test/ for proper TypeScript compilation"
+    ],
+    "memory_candidates": [],
+    "debt_candidates": [],
+    "next_time_guidance": [
+      "When creating test files for TypeScript CLI projects, check tsconfig.json include paths first"
+    ]
+  }
+}

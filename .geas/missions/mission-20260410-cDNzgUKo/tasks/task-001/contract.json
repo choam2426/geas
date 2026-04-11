@@ -1,0 +1,61 @@
+{
+  "version": "1.0",
+  "artifact_type": "task_contract",
+  "artifact_id": "tc-task-001",
+  "producer_type": "orchestration-authority",
+  "task_id": "task-001",
+  "title": "geas schema 명령 그룹 구현 (template, list)",
+  "goal": "geas schema template <type> 명령으로 모든 스키마 타입에 대한 fill-in JSON 템플릿을 생성하고, geas schema list로 사용 가능한 스키마 목록을 출력하는 명령 그룹을 구현한다.",
+  "task_kind": "implementation",
+  "risk_level": "normal",
+  "status": "passed",
+  "gate_profile": "implementation_change",
+  "vote_round_policy": "never",
+  "acceptance_criteria": [
+    "geas schema list가 모든 16개 스키마 타입 이름을 JSON 배열로 출력한다",
+    "geas schema template <type>이 각 스키마에 대해 required 필드가 채워진 유효한 JSON 템플릿을 출력한다",
+    "$ref 참조(_defs.schema.json의 agentType, isoUtcTimestamp)가 실제 타입/enum 값으로 치환된다",
+    "record.schema.json의 자기참조 $defs/tierResult가 정상 처리된다",
+    "evidence.schema.json의 조건부 스키마는 --role 파라미터로 해당 variant 템플릿을 생성한다",
+    "존재하지 않는 스키마 타입 요청 시 사용 가능한 타입 목록과 함께 에러를 반환한다"
+  ],
+  "eval_commands": [
+    "cd src/cli && npm run build",
+    "node plugin/bin/geas schema list",
+    "node plugin/bin/geas schema template task-contract"
+  ],
+  "retry_budget": 2,
+  "base_snapshot": "HEAD",
+  "scope": {
+    "surfaces": [
+      "src/cli/src/commands/schema.ts",
+      "src/cli/src/main.ts",
+      "src/cli/src/lib/schema.ts"
+    ]
+  },
+  "routing": {
+    "primary_worker_type": "software-engineer",
+    "required_reviewer_types": [
+      "qa-engineer"
+    ]
+  },
+  "dependencies": [],
+  "rubric": {
+    "dimensions": [
+      {
+        "name": "feature_completeness",
+        "threshold": 4
+      },
+      {
+        "name": "code_quality",
+        "threshold": 4
+      },
+      {
+        "name": "regression_safety",
+        "threshold": 4
+      }
+    ]
+  },
+  "created_at": "2026-04-10T13:55:36Z",
+  "updated_at": "2026-04-10T14:22:49Z"
+}

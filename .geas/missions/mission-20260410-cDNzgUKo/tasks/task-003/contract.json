@@ -1,0 +1,64 @@
+{
+  "version": "1.0",
+  "artifact_type": "task_contract",
+  "artifact_id": "tc-task-003",
+  "producer_type": "orchestration-authority",
+  "task_id": "task-003",
+  "title": "envelope 필드 자동 주입",
+  "goal": "task create, mission write-spec, mission write-brief, phase write 등 주요 CLI 명령에서 version, artifact_type, producer_type 등 const 필드와 artifact_id를 자동 생성하여, 에이전트가 반복적 메타데이터를 전달하지 않아도 되게 한다. task create 시 status를 drafted로 강제한다.",
+  "task_kind": "implementation",
+  "risk_level": "high",
+  "status": "passed",
+  "gate_profile": "implementation_change",
+  "vote_round_policy": "never",
+  "acceptance_criteria": [
+    "task create에서 version, artifact_type, producer_type가 자동 주입되어 에이전트가 생략 가능하다",
+    "mission write-spec/write-brief에서 동일하게 자동 주입된다",
+    "phase write에서 동일하게 자동 주입된다",
+    "에이전트가 명시적으로 전달한 값은 유지된다 (하위 호환)",
+    "evidence 명령의 기존 force-overwrite 패턴은 변경되지 않는다 (trust boundary 유지)",
+    "artifact_id는 명령별 규칙으로 자동 생성된다 (예: tc-{task_id}, spec-{mission_id})",
+    "created_at은 enrichTimestamp()가 단독 소유하며 envelope에서 주입하지 않는다",
+    "geas task create에서 status 필드가 없거나 drafted 외의 값이면 drafted로 강제 설정한다"
+  ],
+  "eval_commands": [
+    "cd src/cli && npm run build"
+  ],
+  "retry_budget": 2,
+  "base_snapshot": "HEAD",
+  "scope": {
+    "surfaces": [
+      "src/cli/src/commands/task.ts",
+      "src/cli/src/commands/mission.ts",
+      "src/cli/src/commands/phase.ts",
+      "src/cli/src/lib/schema.ts"
+    ]
+  },
+  "routing": {
+    "primary_worker_type": "software-engineer",
+    "required_reviewer_types": [
+      "qa-engineer"
+    ]
+  },
+  "dependencies": [
+    "task-001"
+  ],
+  "rubric": {
+    "dimensions": [
+      {
+        "name": "feature_completeness",
+        "threshold": 4
+      },
+      {
+        "name": "code_quality",
+        "threshold": 4
+      },
+      {
+        "name": "regression_safety",
+        "threshold": 4
+      }
+    ]
+  },
+  "created_at": "2026-04-10T13:59:46Z",
+  "updated_at": "2026-04-10T14:46:37Z"
+}

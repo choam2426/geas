@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "artifact_type": "gap_assessment",
+  "artifact_id": "gap-evolving",
+  "producer_type": "orchestration-authority",
+  "scope_in_summary": "5 work streams: schema template commands, error message hints, envelope auto-injection, output format unification, skill inline schema cleanup",
+  "scope_out_summary": "Schema file changes, interactive TUI, new inline templates in skills",
+  "fully_delivered": [
+    "geas schema template/list commands — all 15 schema types supported with $ref resolution",
+    "Validation error hints — required fields, enum values, additionalProperties in hints field",
+    "Envelope auto-injection for task create, mission write-spec/write-brief, phase write",
+    "Skill inline schema cleanup — 7 files updated with CLI template references",
+    "18 regression tests covering all 3 features"
+  ],
+  "partially_delivered": [],
+  "not_delivered": [
+    "48-failure-pattern specific test list — no documented list of specific failures existed, covered by generic regression tests instead"
+  ],
+  "intentional_cuts": [
+    "warn() output format change — deferred per design-brief vote round decision"
+  ],
+  "unexpected_additions": [
+    "getSchemaObject() export in schema.ts for hint extraction"
+  ],
+  "recommended_followups": [
+    "DEBT-001: Extend ENVELOPE_REGISTRY to remaining artifact types",
+    "DEBT-002: Share SchemaNode type between schema-template.ts and output.ts",
+    "DEBT-003: Use output.ts utilities in schema command error handling"
+  ],
+  "created_at": "2026-04-10T15:07:59Z"
+}

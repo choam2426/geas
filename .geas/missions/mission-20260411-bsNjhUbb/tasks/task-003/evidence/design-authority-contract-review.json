@@ -1,0 +1,12 @@
+{
+  "summary": "Contract is structurally sound. Non-goals correctly preserve CLI source (task-001) and skill/agent docs (task-002). Bundle grep on CJS JS output is more precise than native strings. Edge cases cover bundled-JS-not-binary, heredoc single-quote quoting, mtime sanity, trailing-space grep to dodge --data-source false positives, and spawnSync signal check to distinguish self-exit from timeout-kill.",
+  "verdict": "approved",
+  "concerns": [
+    "Step 8 TTY simulation inherits parent stdin which under a test runner is typically a pipe, not a TTY — may not exercise the real hang path. Document as best-effort."
+  ],
+  "version": "1.0",
+  "agent": "design-authority-contract-review",
+  "task_id": "task-003",
+  "role": "reviewer",
+  "created_at": "2026-04-11T12:29:26Z"
+}

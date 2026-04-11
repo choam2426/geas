@@ -1,0 +1,10 @@
+{
+  "summary": "Structural review of task-004 (skill cleanup + regression tests). SKILLS: Envelope fields correctly removed from all JSON examples in intake/SKILL.md, task-compiler/SKILL.md, and task-compiler/references/examples.md. Each skill now documents envelope auto-injection with a one-liner and points agents to geas schema template for the full template. No stale envelope fields remain in any skill JSON blocks. TESTS: Three new test files cover the key boundaries: (1) schema-template.test.ts validates template generation for all 15 schemas, required field presence, conditional role-based fields, ref resolution, and error messages with available types; (2) envelope.test.ts validates auto-injection, no-clobber semantics, per-type artifact_id generation, and graceful handling of unknown types; (3) validation-hints.test.ts validates that AJV errors carry structured hint data (missingProperty, allowedValues, additionalProperty) for the CLI error formatter. All 18 tests pass. BOUNDARIES: envelope.ts is cleanly separated from schema.ts (no imports between them). schema-template.ts imports only schemas-embedded, not Ajv. The separation between envelope injection, template generation, and validation is clean and each module can be modified independently.",
+  "verdict": "approved",
+  "concerns": [],
+  "version": "1.0",
+  "agent": "design-authority",
+  "task_id": "task-004",
+  "role": "reviewer",
+  "created_at": "2026-04-10T14:57:31Z"
+}

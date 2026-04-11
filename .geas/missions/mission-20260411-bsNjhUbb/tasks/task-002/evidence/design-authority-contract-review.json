@@ -1,0 +1,14 @@
+{
+  "summary": "Contract for task-002 approved. Scope enumeration is exhaustive (20 actionable hits across 13 files with per-file line numbers). Heredoc vs here-string rules are correctly differentiated (single-line <<<, multiline <<EOF with single-quoted delimiter, fallback for apostrophes). Bash(...) wrapper and fenced-code indentation edge cases are explicitly handled. Non-JSON value flags (event log --data, context write --data, packet create --file/--content) are preserved in every step with matching grep whitelists in demo_steps. qa-engineer.md line 99 is correctly scoped as prose accuracy, not a command rewrite.",
+  "verdict": "approved",
+  "concerns": [
+    "Step 11 redirection example `< <gate_result_json_file>` reads ambiguously; worker should ensure rendered markdown distinguishes the `<` operator from the `<placeholder>` token, or prefer heredoc form for the file-input case.",
+    "AC6 single-quoted heredoc guard (`<<EOF` grep) covers newly added heredocs only; worker should double-check no pre-existing unquoted heredoc in target files is mistakenly counted as new.",
+    "No structural blockers. Contract is safe to execute."
+  ],
+  "version": "1.0",
+  "agent": "design-authority-contract-review",
+  "task_id": "task-002",
+  "role": "reviewer",
+  "created_at": "2026-04-11T12:18:13Z"
+}

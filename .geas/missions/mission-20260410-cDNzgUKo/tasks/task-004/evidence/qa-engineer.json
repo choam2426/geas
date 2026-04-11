@@ -1,0 +1,27 @@
+{
+  "summary": "All 4 criteria verified: (1) build passes cleanly, (2) all 18 tests pass (4 suites, 0 failures), (3) bundle succeeds and schema list/template commands work correctly post-bundle, (4) no inline envelope fields (version 1.0, artifact_type) remain in any skill files. Negative path note: artifact_type grep in examples.md only appears in explanatory text about CLI auto-injection, not as an actual inline schema.",
+  "verdict": "pass",
+  "criteria_results": [
+    {
+      "criterion": "inline schemas removed from skills",
+      "passed": true
+    },
+    {
+      "criterion": "regression tests pass",
+      "passed": true
+    },
+    {
+      "criterion": "build passes",
+      "passed": true
+    },
+    {
+      "criterion": "CLI commands compatible",
+      "passed": true
+    }
+  ],
+  "version": "1.0",
+  "agent": "qa-engineer",
+  "task_id": "task-004",
+  "role": "tester",
+  "created_at": "2026-04-10T14:57:30Z"
+}

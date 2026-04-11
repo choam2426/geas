@@ -1,0 +1,13 @@
+{
+  "summary": "Implemented geas schema command group with two subcommands (list, template). Created schema-template.ts with recursive schema walking, ref resolution (external _defs and self-refs), required-only field inclusion, conditional schema merge for evidence roles, and depth guard. Created commands/schema.ts with list and template subcommands. Modified main.ts to register the new command group. All 7 verification tests pass: list returns 15 sorted schema names, template generates correct fill-in JSON for task-contract/evidence/record, role-specific conditional fields merge correctly for all 4 evidence roles, and unknown schema types return structured errors.",
+  "files_changed": [
+    "src/cli/src/lib/schema-template.ts",
+    "src/cli/src/commands/schema.ts",
+    "src/cli/src/main.ts"
+  ],
+  "version": "1.0",
+  "agent": "software-engineer",
+  "task_id": "task-001",
+  "role": "implementer",
+  "created_at": "2026-04-10T14:14:37Z"
+}

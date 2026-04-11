@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "agent": "technical-writer",
+  "role": "implementer",
+  "summary": "User-facing docs sweep for stdin-only CLI refactor: README.md/README.ko.md contain zero geas CLI examples; docs/reference/ has no --data/--file references (only unrelated hook-stdin mention in HOOKS.md); CLAUDE.md Key CLI commands list shows bare command forms without input-delivery flags, already coherent with stdin-only rule; CHANGELOG.md intentionally skipped per mission spec scope.out (Evolving phase handles version bump). No edits required — user-facing docs are coherent with the stdin-only CLI.",
+  "files_changed": [],
+  "verdict": "approved",
+  "task_id": "polishing",
+  "created_at": "2026-04-11T12:39:13Z"
+}

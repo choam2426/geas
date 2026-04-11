@@ -1,0 +1,59 @@
+{
+  "summary": "All 12 acceptance criteria verified pass. Build succeeds (tsc), 31/31 unit tests green including 11 new readInputData cases (isTTY=true guard, non-TTY parse, 0-byte empty, invalid JSON line hint, isTTY=undefined, Windows EAGAIN/EOF/UV_EOF, BOM, whitespace). Static inspection confirms readInputData() 0-arg stdin-only in input.ts:95; 10 target commands (mission/task/evidence/decision/phase/recovery/evolution) have no --data/--file flags; event.ts --data, context.ts --data, packet.ts --file/--content preserved; NO_STDIN helper noStdinError in output.ts:217; evidence add + task record add wrap readInputData in try/catch allowing empty-stdin+--set fallback with INVALID_JSON passthrough; integration.js migrated to stdin pipe (only remaining --data is intentional path-traversal test on context write, a preserved flag). Note: plugin/bin/geas bundle itself stale — out of scope, handled by task-003.",
+  "verdict": "pass",
+  "criteria_results": [
+    {
+      "criterion": "AC1 readInputData 0-arg stdin-only",
+      "passed": true
+    },
+    {
+      "criterion": "AC2 isTTY=true guard throws NO_STDIN",
+      "passed": true
+    },
+    {
+      "criterion": "AC3 isTTY=undefined/false reads normally",
+      "passed": true
+    },
+    {
+      "criterion": "AC4 0-byte stdin + Windows EAGAIN/EOF",
+      "passed": true
+    },
+    {
+      "criterion": "AC5 invalid JSON with line info",
+      "passed": true
+    },
+    {
+      "criterion": "AC6 NO_STDIN helper in output.ts",
+      "passed": true
+    },
+    {
+      "criterion": "AC7 10 write commands --data/--file removed",
+      "passed": true
+    },
+    {
+      "criterion": "AC8 evidence/record add empty-stdin+--set fallback",
+      "passed": true
+    },
+    {
+      "criterion": "AC9 event/context/packet value flags preserved",
+      "passed": true
+    },
+    {
+      "criterion": "AC10 input.test.ts 6 required cases covered",
+      "passed": true
+    },
+    {
+      "criterion": "AC11 integration.js --data/--file migrated to stdin",
+      "passed": true
+    },
+    {
+      "criterion": "AC12 npm run build + npm test pass",
+      "passed": true
+    }
+  ],
+  "version": "1.0",
+  "agent": "qa-engineer",
+  "task_id": "task-001",
+  "role": "tester",
+  "created_at": "2026-04-11T12:08:37Z"
+}

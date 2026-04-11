@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "artifact_type": "debt_register",
+  "artifact_id": "debt-register-mission-20260410-cDNzgUKo",
+  "producer_type": "design-authority",
+  "scope": "mission",
+  "items": [
+    {
+      "debt_id": "DEBT-001",
+      "severity": "low",
+      "kind": "structural",
+      "title": "Extend envelope registry to remaining artifact types",
+      "description": "ENVELOPE_REGISTRY covers 4 of ~8 artifact types. debt, health, gap-assessment, rules-update, recovery-packet commands hardcode envelope values inline.",
+      "introduced_by_task_id": "task-003",
+      "owner_type": "orchestration-authority",
+      "status": "open"
+    },
+    {
+      "debt_id": "DEBT-002",
+      "severity": "low",
+      "kind": "structural",
+      "title": "Duplicated SchemaNode interface across schema-template.ts and output.ts",
+      "description": "SchemaNode is defined independently in schema-template.ts (bare index signature) and output.ts (typed fields). Should be a shared type to prevent drift.",
+      "introduced_by_task_id": "task-004",
+      "owner_type": "software-engineer",
+      "status": "open"
+    },
+    {
+      "debt_id": "DEBT-003",
+      "severity": "low",
+      "kind": "structural",
+      "title": "schema command uses inline stderr/exit instead of output.ts utilities",
+      "description": "commands/schema.ts writes directly to process.stderr and calls process.exit(1), violating the output.ts contract that says no command should write directly. Should use a generic error helper from output.ts.",
+      "introduced_by_task_id": "task-004",
+      "owner_type": "software-engineer",
+      "status": "open"
+    }
+  ],
+  "rollup_by_severity": {
+    "low": 3
+  },
+  "rollup_by_kind": {
+    "structural": 3
+  },
+  "created_at": "2026-04-10T14:45:03Z",
+  "updated_at": "2026-04-10T15:06:42Z"
+}

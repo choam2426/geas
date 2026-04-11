@@ -1,0 +1,59 @@
+{
+  "version": "1.0",
+  "artifact_type": "mission_spec",
+  "artifact_id": "mission-20260410-cDNzgUKo",
+  "producer_type": "orchestration-authority",
+  "mission_id": "mission-20260410-cDNzgUKo",
+  "source": "full_intake",
+  "mission": "geas CLI를 AI 에이전트 전용 DX에 최적화한다. schema template 명령 추가, 에러 메시지 개선, envelope 자동 생성, 출력 포맷 통일, 스킬 인라인 스키마 정리를 통해 반복적 CLI 호출 실패를 방지한다.",
+  "done_when": "에이전트가 geas CLI 호출 시 스키마 구조를 추측하지 않고 정확한 JSON을 구성할 수 있으며, 실패 시에도 에러 메시지만으로 즉시 수정 가능하다.",
+  "domain_profile": "software",
+  "mode": "full_depth",
+  "target_user": "AI 에이전트 (오케스트레이터 + 전문가 에이전트)",
+  "scope": {
+    "in": [
+      "schema template 명령 — geas schema template <type>으로 정확한 JSON 템플릿 출력",
+      "에러 메시지 개선 — 검증 실패 시 올바른 필드명, 허용 enum 값, 필수/선택 여부 안내",
+      "envelope 자동 생성 — version, artifact_type, artifact_id, producer_type, created_at 등 CLI가 자동 주입",
+      "출력 포맷 통일 — 모든 CLI 출력을 JSON 형식으로 통일, ok/error 패턴",
+      "스킬 인라인 스키마 정리 — 스킬에서 인라인 스키마 제거, CLI template 호출로 대체"
+    ],
+    "out": [
+      "스키마 자체 변경 (docs/protocol/schemas/ 내용 수정 안 함)",
+      "스킬에 템플릿 인라인하는 방식",
+      "schema template/에러 개선 외의 새 CLI 명령어 추가",
+      "대화형/사람용 TUI/프롬프트"
+    ]
+  },
+  "acceptance_criteria": [
+    "geas schema template <type>이 모든 스키마 타입에 대해 정확한 fill-in JSON 템플릿을 출력한다",
+    "검증 실패 시 에러 메시지에 올바른 필드명, 허용 enum 값, 필수/선택 여부가 포함된다",
+    "envelope 필드(version, artifact_type, artifact_id, producer_type, created_at)가 CLI에 의해 자동 생성되어 에이전트가 전달할 필요가 없다",
+    "모든 CLI 출력이 일관된 JSON 형식이며 ok/error 패턴을 따른다",
+    "스킬에 인라인된 스키마 템플릿이 제거되고 CLI template 명령 호출로 대체된다",
+    "이전 세션에서 발생한 48건의 실패 패턴이 새 CLI로 재현되지 않음을 테스트로 검증한다"
+  ],
+  "constraints": [
+    "CLI 소스는 src/cli/에서 수정, 빌드 후 plugin/bin/geas로 번들링",
+    "기존 스키마 파일(docs/protocol/schemas/) 무변경",
+    "기존 CLI 명령어 인터페이스 하위 호환성 유지",
+    "코드/파일은 영어로 작성"
+  ],
+  "assumptions": [
+    "모든 스키마가 docs/protocol/schemas/에 JSON Schema로 존재한다",
+    "CLI가 빌드 시 스키마 파일을 번들에 포함할 수 있다"
+  ],
+  "ambiguities": [
+    "All ambiguities resolved during intake"
+  ],
+  "affected_surfaces": [
+    "src/cli/ (CLI 소스)",
+    "plugin/bin/geas (빌드 결과)",
+    "plugin/skills/ (인라인 스키마 제거)"
+  ],
+  "risk_notes": [
+    "envelope 자동 생성 시 기존 명시적 입력과의 충돌 처리 필요",
+    "스킬에서 인라인 스키마 제거 시 다른 컨텍스트에서 참조하는 곳이 있을 수 있음"
+  ],
+  "created_at": "2026-04-10T13:39:54Z"
+}

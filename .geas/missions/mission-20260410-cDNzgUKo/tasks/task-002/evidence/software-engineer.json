@@ -1,0 +1,13 @@
+{
+  "summary": "Added extractHints() to output.ts and getSchemaObject() to schema.ts. validationError() now includes hints field with required_fields list, enum allowed_values, additionalProperties allowed_properties, and missing field type/description. All 5 ACs verified.",
+  "files_changed": [
+    "src/cli/src/lib/output.ts",
+    "src/cli/src/lib/schema.ts"
+  ],
+  "version": "1.0",
+  "agent": "software-engineer",
+  "task_id": "task-002",
+  "role": "implementer",
+  "updated_at": "2026-04-10T14:27:39Z",
+  "created_at": "2026-04-10T14:27:39Z"
+}

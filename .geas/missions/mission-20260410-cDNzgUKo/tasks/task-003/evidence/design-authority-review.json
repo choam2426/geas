@@ -1,0 +1,12 @@
+{
+  "summary": "Structural review of envelope auto-injection: all 6 verification points pass. Shared helper in lib/envelope.ts with registry-based config. Injection correctly placed BEFORE validate() in all 4 commands (task create, mission write-spec, mission write-brief, phase write). No-clobber semantics correct (undefined check). Evidence command untouched (trust boundary preserved). created_at/updated_at not touched. status=drafted enforced at command level in task.ts, not in envelope. Minor deviation: function returns data instead of void per design guide, but functionally harmless.",
+  "verdict": "approved",
+  "concerns": [
+    "Return type deviation from design guide (void vs Record) - non-blocking"
+  ],
+  "version": "1.0",
+  "agent": "design-authority-review",
+  "task_id": "task-003",
+  "role": "reviewer",
+  "created_at": "2026-04-10T14:41:41Z"
+}

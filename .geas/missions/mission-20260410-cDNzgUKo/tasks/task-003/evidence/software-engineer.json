@@ -1,0 +1,15 @@
+{
+  "summary": "Created envelope.ts with ENVELOPE_REGISTRY (4 artifact types), injectEnvelope() with no-clobber semantics. Modified task.ts (create), mission.ts (write-spec, write-brief), phase.ts (write) to inject envelope before validation. status=drafted enforcement in task create. Evidence excluded (trust boundary). Build+bundle pass. Test verified all fields auto-injected.",
+  "files_changed": [
+    "src/cli/src/lib/envelope.ts",
+    "src/cli/src/commands/task.ts",
+    "src/cli/src/commands/mission.ts",
+    "src/cli/src/commands/phase.ts"
+  ],
+  "version": "1.0",
+  "agent": "software-engineer",
+  "task_id": "task-003",
+  "role": "implementer",
+  "updated_at": "2026-04-10T14:40:39Z",
+  "created_at": "2026-04-10T14:40:39Z"
+}

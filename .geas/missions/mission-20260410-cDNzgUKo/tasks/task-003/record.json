@@ -1,0 +1,167 @@
+{
+  "version": "1.0",
+  "task_id": "task-003",
+  "implementation_contract": {
+    "planned_actions": [
+      "1. Create src/cli/src/lib/envelope.ts: Define ENVELOPE_REGISTRY mapping artifact types to their const fields (version, artifact_type, producer_type) and artifact_id generation functions. Export injectEnvelope(artifactType, data, context) that sets undefined fields only (no-clobber).",
+      "2. Modify src/cli/src/commands/task.ts create action: Call injectEnvelope(\"task_contract\", data, {task_id}) BEFORE validate() so injected const fields pass schema validation. Add status=drafted enforcement at command level (separate from envelope): if data.status is missing or not \"drafted\", force it to \"drafted\".",
+      "3. Modify src/cli/src/commands/mission.ts write-spec action: Call injectEnvelope(\"mission_spec\", data, {mission_id}) BEFORE validate(). artifact_id rule: spec-{mission_id}.",
+      "4. Modify src/cli/src/commands/mission.ts write-brief action: Call injectEnvelope(\"design_brief\", data, {mission_id}) BEFORE validate(). artifact_id rule: brief-{mission_id}.",
+      "5. Modify src/cli/src/commands/phase.ts write action: Call injectEnvelope(\"phase_review\", data, {mission_phase, timestamp}) BEFORE validate(). artifact_id rule: phase-{mission_phase}-{timestamp}.",
+      "6. Do NOT modify evidence commands — trust boundary preserved.",
+      "7. Never inject created_at or updated_at — enrichTimestamp() owns those exclusively.",
+      "8. Build and bundle: cd src/cli && npm run build && npm run bundle"
+    ],
+    "edge_cases": [
+      "Agent explicitly passes version/artifact_type/producer_type — no-clobber must preserve their values",
+      "Agent passes status=ready on task create — must be overwritten to drafted (status enforcement is NOT no-clobber)",
+      "Agent passes artifact_id explicitly — no-clobber preserves it",
+      "phase write timestamp generation for artifact_id must match the timestamp used in the filename",
+      "Data with no task_id/mission_id context — injectEnvelope should handle missing context gracefully without crashing",
+      "Empty or null fields vs undefined — only inject when strictly undefined, not when null or empty string"
+    ],
+    "non_goals": [
+      "Modifying evidence add command or its force-overwrite pattern",
+      "Injecting created_at or updated_at (enrichTimestamp owns these)",
+      "Changing schema definitions — envelope values must already be valid per existing schemas",
+      "Adding envelope injection to read/list/transition commands",
+      "Refactoring existing validation or post-write-checks logic"
+    ],
+    "demo_steps": [
+      "AC1: Run geas task create with data missing version/artifact_type/producer_type — verify contract.json contains version=1.0, artifact_type=task_contract, producer_type=orchestration-authority, artifact_id=tc-{task_id}",
+      "AC2: Run geas mission write-spec with data missing envelope fields — verify spec.json contains version=1.0, artifact_type=mission_spec, artifact_id=spec-{mission_id}. Repeat for write-brief with artifact_type=design_brief, artifact_id=brief-{mission_id}",
+      "AC3: Run geas phase write with data missing envelope fields — verify phase review JSON contains version=1.0, artifact_type=phase_review, artifact_id=phase-{mission_phase}-{timestamp}",
+      "AC4: Run geas task create with explicit version=2.0 and artifact_type=custom — verify those values are preserved (no-clobber)",
+      "AC5: Run geas evidence add — verify no envelope injection occurs, existing behavior unchanged",
+      "AC6: Run geas task create with data containing artifact_id=my-custom-id — verify my-custom-id is preserved. Run without artifact_id — verify tc-{task_id} is generated",
+      "AC7: Verify enrichTimestamp still manages created_at exclusively — no created_at in envelope registry",
+      "AC8: Run geas task create with status=ready — verify output contract has status=drafted. Run with status omitted — verify status=drafted. Run with status=drafted — verify status=drafted"
+    ],
+    "status": "approved",
+    "approved_by": [
+      "qa-engineer",
+      "design-authority"
+    ]
+  },
+  "created_at": "2026-04-10T14:36:04Z",
+  "updated_at": "2026-04-10T14:46:26Z",
+  "self_check": {
+    "confidence": 5,
+    "known_risks": [
+      "phase_review artifact_id includes timestamp which varies per call - not idempotent",
+      "No-clobber means wrong explicit values pass through to schema validation, which is the intended behavior"
+    ],
+    "untested_paths": [
+      "mission write-spec with explicit envelope fields (no-clobber verify)",
+      "phase write with all fields explicitly provided"
+    ],
+    "summary": "All 8 ACs met. Build and bundle pass. Manual test verified task create auto-injects version, artifact_type, producer_type, artifact_id, status=drafted. enrichTimestamp owns created_at. Evidence command unchanged."
+  },
+  "gate_result": {
+    "verdict": "pass",
+    "tier_results": {
+      "tier_0": {
+        "status": "pass",
+        "details": "Build+bundle succeeds"
+      },
+      "tier_1": {
+        "status": "pass",
+        "details": "All 8 ACs verified"
+      },
+      "tier_2": {
+        "status": "pass",
+        "details": "DA and QA approved"
+      }
+    },
+    "rubric_scores": [
+      {
+        "dimension": "feature_completeness",
+        "score": 5,
+        "threshold": 4,
+        "passed": true
+      },
+      {
+        "dimension": "code_quality",
+        "score": 5,
+        "threshold": 4,
+        "passed": true
+      },
+      {
+        "dimension": "regression_safety",
+        "score": 4,
+        "threshold": 4,
+        "passed": true
+      }
+    ],
+    "blocking_dimensions": []
+  },
+  "closure": {
+    "change_summary": "Created envelope.ts with ENVELOPE_REGISTRY for 4 artifact types. Modified task create, mission write-spec/write-brief, phase write to auto-inject version, artifact_type, producer_type, artifact_id before validation. status=drafted enforcement in task create. No-clobber semantics. Evidence excluded (trust boundary). enrichTimestamp owns timestamps.",
+    "reviews": [
+      {
+        "reviewer_type": "design-authority",
+        "status": "approved",
+        "summary": "Registry pattern correct, injection before validation, evidence excluded"
+      },
+      {
+        "reviewer_type": "qa-engineer",
+        "status": "approved",
+        "summary": "Auto-injection, no-clobber, status enforcement all verified"
+      }
+    ],
+    "open_risks": [],
+    "debt_items": []
+  },
+  "challenge_review": {
+    "concerns": [
+      {
+        "severity": "non_blocking",
+        "description": "No-clobber semantics silently accept incorrect agent-supplied values. If an agent explicitly sends version=2.0 or artifact_type=wrong_type, no-clobber preserves these wrong values. Schema validation with const constraints WILL catch version and artifact_type (const: 1.0, const: task_contract), but producer_type is validated against agentType enum which includes all agent types -- so a worker agent could supply producer_type=qa-engineer instead of orchestration-authority and it would pass both no-clobber AND schema validation. This is a data integrity gap: the producer_type field becomes untrustworthy for audit purposes. Consider either force-overwriting producer_type like evidence does, or adding const constraints in schemas for producer_type where the correct value is known."
+      },
+      {
+        "severity": "non_blocking",
+        "description": "Registry covers only 4 of ~8 artifact types with envelope fields. debt-register, health-check, gap-assessment, rules-update, and recovery-packet all have envelope fields (version, artifact_type, artifact_id, producer_type) but are NOT in ENVELOPE_REGISTRY. These commands hardcode their envelope values inline (e.g., debt.ts:57-58, health.ts:374-375). This creates two divergent patterns for the same concern, increasing drift risk. The task contract scope was limited to 4 commands, so this is within scope -- but it is technical debt that should be tracked."
+      },
+      {
+        "severity": "non_blocking",
+        "description": "phase_review artifact_id includes a timestamp generated at injection time (new Date()) rather than using a deterministic value. If envelope injection were ever retried or if the artifact were regenerated, the artifact_id would change. All other artifact types use deterministic IDs (tc-{task_id}, spec-{mission_id}, brief-{mission_id}). The inconsistency means phase_review artifacts cannot be reliably correlated by ID across regeneration scenarios."
+      },
+      {
+        "severity": "non_blocking",
+        "description": "Status enforcement condition (line 112: if (!data.status || data.status !== drafted)) is logically redundant -- the falsy check is subsumed by the inequality check. More importantly, when an agent explicitly sends status=ready, the enforcement silently overwrites it without logging or warning. This is intentional per the contract, but silent correction of explicit agent input masks potential misunderstandings about the task lifecycle. A log message would aid debugging."
+      }
+    ],
+    "blocking": false,
+    "summary": "Implementation is structurally sound. The registry pattern is clean, injection-before-validation ordering is correct, and the evidence trust boundary is properly maintained. Four non-blocking concerns identified: (1) producer_type no-clobber gap where wrong values can pass schema validation, (2) incomplete registry coverage creating two divergent envelope patterns, (3) non-deterministic artifact_id for phase_review, (4) silent status override without logging. None are blocking because schema const constraints catch the highest-risk fields (version, artifact_type), and the scope was explicitly limited to 4 commands. Recommend tracking concern #2 as technical debt."
+  },
+  "verdict": {
+    "verdict": "pass",
+    "rationale": "All 8 ACs verified across gate tiers. Design authority approved both design and implementation review. QA independently confirmed auto-injection, no-clobber, and status enforcement. Challenger raised 4 non-blocking concerns -- producer_type gap, incomplete registry, non-deterministic phase ID, silent status override -- none of which represent correctness failures. DEBT-001 tracked for registry coverage. The feature solves the stated problem: agents no longer need to manually supply envelope fields, reducing errors and simplifying orchestration. Scope is faithful to contract with no creep. Backward compatibility preserved."
+  },
+  "retrospective": {
+    "what_went_well": [
+      "Registry pattern keeps envelope logic centralized",
+      "Injection-before-validation ordering is clean and correct",
+      "Challenger found real concerns that were properly scoped as non-blocking",
+      "Trust boundary for evidence preserved"
+    ],
+    "what_broke": [
+      "Nothing broke during implementation"
+    ],
+    "what_was_surprising": [
+      "producer_type validation gap - enum allows any agent type, not just the correct one. Schema const would be needed to fix this."
+    ],
+    "rule_candidates": [
+      "When adding envelope auto-injection for new artifact types, add to ENVELOPE_REGISTRY in envelope.ts, not inline in command files"
+    ],
+    "memory_candidates": [
+      "envelope.ts ENVELOPE_REGISTRY is the single source for envelope defaults - 4 types covered, debt tracked for remaining"
+    ],
+    "debt_candidates": [
+      "DEBT-001 already tracked"
+    ],
+    "next_time_guidance": [
+      "For high-risk tasks touching multiple files, challenger review catches real issues - always run it"
+    ]
+  }
+}

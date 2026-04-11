@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "artifact_type": "gap_assessment",
+  "artifact_id": "gap-building",
+  "producer_type": "orchestration-authority",
+  "scope_in_summary": "5 work streams: schema command group, error hints, envelope auto-injection, output unification, skill cleanup",
+  "scope_out_summary": "Schema files unchanged, no interactive mode, no new inline templates",
+  "fully_delivered": [
+    "geas schema list/template commands",
+    "validation error hints (required, enum, additionalProperties)",
+    "envelope auto-injection for 4 artifact types",
+    "skill inline schema cleanup",
+    "18 regression tests"
+  ],
+  "partially_delivered": [],
+  "not_delivered": [
+    "48-failure-pattern specific test list (unresolved assumption - no documented list exists)"
+  ],
+  "intentional_cuts": [
+    "warn() output format change (deferred per vote round)"
+  ],
+  "unexpected_additions": [
+    "getSchemaObject() export in schema.ts for hint extraction"
+  ],
+  "recommended_followups": [
+    "DEBT-001: Extend ENVELOPE_REGISTRY to remaining artifact types"
+  ],
+  "created_at": "2026-04-10T15:00:41Z"
+}

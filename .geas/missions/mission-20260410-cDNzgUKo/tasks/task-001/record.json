@@ -1,0 +1,151 @@
+{
+  "version": "1.0",
+  "task_id": "task-001",
+  "implementation_contract": {
+    "planned_actions": [
+      "1. Create src/cli/src/lib/schema-template.ts with generateTemplate() and listSchemas() exports. generateTemplate resolves $ref inline (external via DEFS_SCHEMA, self via rootSchema.$defs), recurses with depth guard (max 10), emits required-only fields with placeholder values per design guide format.",
+      "2. Create src/cli/src/commands/schema.ts with registerSchemaCommands(program). Two subcommands: schema list (outputs sorted JSON array of schema names), schema template <type> (outputs generated template JSON, accepts --role for evidence conditional schemas).",
+      "3. Wire into src/cli/src/main.ts: add import and registerSchemaCommands(program) call.",
+      "4. Handle evidence.schema.json conditional schemas: when --role provided, iterate allOf entries, match if.properties.role.const to --role value, union then.required with top-level required, generate merged template.",
+      "5. Handle record.schema.json self-referencing $defs/tierResult: detect #/$defs/X pattern, resolve from rootSchema.$defs[X].",
+      "6. Handle edge cases: oneOf -> first variant, additionalProperties with type -> {}, type array -> null, enum -> first value, const -> const value.",
+      "7. Build and verify all eval commands pass."
+    ],
+    "edge_cases": [
+      "oneOf items (record challenge_review.concerns) - pick first variant",
+      "Self-referencing $defs in record.schema.json (tierResult)",
+      "type array like [string, null] - produce null",
+      "additionalProperties with schema type - produce empty {}",
+      "evidence --role with invalid role value - error with available roles",
+      "Schema with minItems >= 1 array - generate one item",
+      "Nested required-only filtering at every depth level",
+      "Depth guard at 10 to prevent infinite recursion"
+    ],
+    "non_goals": [
+      "Modifying existing schema.ts (Ajv validation) - template logic is separate concern",
+      "Adding schema validation to the template output",
+      "Supporting arbitrary custom schemas not in SCHEMAS registry",
+      "Modifying any existing command groups",
+      "Adding tests (not in scope surfaces)"
+    ],
+    "demo_steps": [
+      "Build succeeds: cd src/cli && npm run build",
+      "geas schema list outputs JSON array of all schema type names (15 entries from SCHEMAS)",
+      "geas schema template task-contract outputs valid JSON with all required fields filled with placeholders",
+      "geas schema template evidence outputs base evidence template (version, agent, task_id, role, summary)",
+      "geas schema template evidence --role implementer outputs evidence template with files_changed included",
+      "geas schema template evidence --role reviewer outputs evidence template with verdict and concerns included",
+      "geas schema template record outputs record template - tier_results with self-ref tierResult resolved",
+      "$ref to _defs.schema.json resolved: producer_type shows first agentType enum value, created_at shows iso-utc-timestamp placeholder",
+      "geas schema template nonexistent-type produces error with available types list",
+      "geas schema template evidence --role invalid produces error with available roles"
+    ],
+    "status": "approved",
+    "approved_by": [
+      "qa-engineer",
+      "design-authority"
+    ]
+  },
+  "created_at": "2026-04-10T14:09:25Z",
+  "updated_at": "2026-04-10T14:22:03Z",
+  "self_check": {
+    "confidence": 4,
+    "known_risks": [
+      "eval_commands in task contract use tsc build only, not esbuild bundle - plugin/bin/geas may need separate bundle step",
+      "record template only shows version and task_id since other sections are optional - could be surprising to users"
+    ],
+    "untested_paths": [
+      "Schema types with deeply nested $ref chains beyond 2 levels",
+      "Schema with both oneOf and $ref in same node"
+    ],
+    "summary": "Implementation covers all 6 acceptance criteria. Build passes (tsc), all 9 test scenarios verified manually. $ref resolution handles external (_defs), self-ref ($defs/tierResult), and conditional (allOf/if/then) patterns correctly. Depth guard at 10 prevents infinite recursion. Code is clean, follows existing patterns, no Ajv dependency."
+  },
+  "gate_result": {
+    "verdict": "pass",
+    "tier_results": {
+      "tier_0": {
+        "status": "pass",
+        "details": "Build succeeds (tsc + esbuild bundle)"
+      },
+      "tier_1": {
+        "status": "pass",
+        "details": "All eval_commands pass, all acceptance criteria met after bug fix"
+      },
+      "tier_2": {
+        "status": "pass",
+        "details": "Design authority approved, QA found bug which was fixed and re-verified"
+      }
+    },
+    "rubric_scores": [
+      {
+        "dimension": "feature_completeness",
+        "score": 5,
+        "threshold": 4,
+        "passed": true
+      },
+      {
+        "dimension": "code_quality",
+        "score": 5,
+        "threshold": 4,
+        "passed": true
+      },
+      {
+        "dimension": "regression_safety",
+        "score": 4,
+        "threshold": 4,
+        "passed": true
+      }
+    ],
+    "blocking_dimensions": []
+  },
+  "closure": {
+    "change_summary": "Added geas schema command group with two subcommands: schema list (outputs sorted JSON array of 15 schema type names) and schema template <type> (generates fill-in JSON template with required-only fields, $ref resolution, conditional schema support via --role). Created schema-template.ts with recursive schema walker, commands/schema.ts for commander registration, updated main.ts. Bug found during QA (role value not reflecting --role flag) was fixed.",
+    "reviews": [
+      {
+        "reviewer_type": "design-authority",
+        "status": "approved",
+        "summary": "All 6 design guide criteria verified: separate module, no Ajv, recursive resolution, required-only, correct placeholders, conditional merge"
+      },
+      {
+        "reviewer_type": "qa-engineer",
+        "status": "approved",
+        "summary": "Found role value bug, fixed. All acceptance criteria pass after fix."
+      }
+    ],
+    "open_risks": [
+      "eval_commands use tsc only, bundle step (npm run bundle) needed separately"
+    ],
+    "debt_items": []
+  },
+  "verdict": {
+    "verdict": "pass",
+    "rationale": "All 6 acceptance criteria verified passing. QA-found bug (role value not reflecting --role flag) was fixed and re-verified. Design authority approved both contract and implementation. Additive feature with no regression risk. Clean scope: 3 files added, no unrelated changes. Worker confidence 4/5. Challenger review appropriately skipped for normal-risk additive work."
+  },
+  "retrospective": {
+    "what_went_well": [
+      "Design guide was detailed and accurate - implementation followed it closely",
+      "QA caught a real bug (role value not reflecting --role) that would have been user-facing",
+      "Separate schema-template.ts module kept concerns clean",
+      "All acceptance criteria verified with concrete manual tests"
+    ],
+    "what_broke": [
+      "Role field in template not reflecting --role parameter - the enum-first-value logic was correct for general case but missed the special case where the role option should override",
+      "QA initially reported changes_requested - required a fix cycle"
+    ],
+    "what_was_surprising": [
+      "tsc build does not update plugin/bin/geas - bundle step is separate (npm run bundle). eval_commands in task contract only had tsc, not bundle"
+    ],
+    "rule_candidates": [
+      "eval_commands should include both build and bundle steps: cd src/cli && npm run build && npm run bundle"
+    ],
+    "memory_candidates": [
+      "schema-template.ts is the template generation module, separate from schema.ts (Ajv validation)",
+      "When generating templates with role/variant selection, the selected variant value must override the enum default in the output"
+    ],
+    "debt_candidates": [],
+    "next_time_guidance": [
+      "Always include npm run bundle after npm run build in eval_commands for CLI tasks",
+      "When adding --option flags that select a variant, ensure the option value is reflected in the template output, not just the conditional field merging"
+    ]
+  }
+}

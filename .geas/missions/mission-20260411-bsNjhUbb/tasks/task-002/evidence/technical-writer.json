@@ -1,0 +1,56 @@
+{
+  "summary": "Converted 20 JSON-input CLI invocations in plugin skills and agent docs from --data/--file forms to stdin heredoc/here-string/redirection forms. Preserved all allowed exceptions (geas event log --data, geas packet create --file/--content). Challenger multiline block and qa-engineer prose hint also updated.",
+  "files_changed": [
+    "plugin/skills/mission/references/specifying.md",
+    "plugin/skills/mission/references/polishing.md",
+    "plugin/skills/mission/references/pipeline.md",
+    "plugin/skills/mission/references/orchestration.md",
+    "plugin/skills/mission/references/building.md",
+    "plugin/skills/mission/references/evolving.md",
+    "plugin/skills/verify-fix-loop/SKILL.md",
+    "plugin/skills/task-compiler/SKILL.md",
+    "plugin/skills/evidence-gate/SKILL.md",
+    "plugin/skills/intake/SKILL.md",
+    "plugin/skills/implementation-contract/SKILL.md",
+    "plugin/agents/authority/challenger.md",
+    "plugin/agents/software/qa-engineer.md"
+  ],
+  "verdict": "pass",
+  "edit_count": 20,
+  "grep_result_after": "After edits: grep -rnE 'geas [a-z-]+ .*--data ' plugin/skills/ plugin/agents/ returns 23 lines, ALL matching the allowed exception geas event log --data. grep -rnE 'geas [a-z-]+ .*--file ' plugin/skills/ plugin/agents/ returns 0 lines. Unquoted heredoc check returns 0 — every introduced heredoc uses <<'EOF'.",
+  "criteria_results": [
+    {
+      "criterion": "AC1 mission/references --data/--file JSON converted",
+      "passed": true
+    },
+    {
+      "criterion": "AC2 SKILL.md files converted",
+      "passed": true
+    },
+    {
+      "criterion": "AC3 agent files converted",
+      "passed": true
+    },
+    {
+      "criterion": "AC4 JSON semantics preserved",
+      "passed": true
+    },
+    {
+      "criterion": "AC5 value-flag exceptions untouched",
+      "passed": true
+    },
+    {
+      "criterion": "AC6 single-quoted heredoc delimiter",
+      "passed": true
+    },
+    {
+      "criterion": "AC7 zero non-exception matches",
+      "passed": true
+    }
+  ],
+  "version": "1.0",
+  "agent": "technical-writer",
+  "task_id": "task-002",
+  "role": "implementer",
+  "created_at": "2026-04-11T12:22:57Z"
+}

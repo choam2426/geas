@@ -1,0 +1,79 @@
+{
+  "task_id": "task-001",
+  "title": "[CLI] stdin-only 리팩터: input.ts + 8개 write command + 테스트",
+  "goal": "geas CLI write 계열 명령의 JSON 입력 경로를 stdin 단일화하여 --data/--file 플래그를 제거하되, 비-JSON 값 플래그(event/context/packet)와 --set 단독 경로(evidence add, task record add)는 보존한다. TTY 가드와 Windows 예외 처리를 포함한다.",
+  "task_kind": "implementation",
+  "risk_level": "normal",
+  "gate_profile": "implementation_change",
+  "vote_round_policy": "never",
+  "acceptance_criteria": [
+    "src/cli/src/lib/input.ts의 readInputData()가 0-arg 시그니처로 축소되고 stdin만 읽는다 — --data/--file 파라미터는 존재하지 않는다.",
+    "process.stdin.isTTY === true 상태로 호출하면 readInputData()가 NO_STDIN 에러 코드와 함께 heredoc/pipe/redirection 예시를 stderr에 출력하고 즉시 throw한다 (무한 대기 금지).",
+    "process.stdin.isTTY === undefined 또는 false 상태에서는 TTY 가드가 발동하지 않고 정상적으로 stdin을 읽는다 (Claude Code Bash/CI 오발 없음).",
+    "0바이트 stdin이 파이프되면 빈 문자열이 아니라 명확한 empty-stdin 에러로 throw한다. Windows에서 fs.readFileSync(0)이 EAGAIN/EOF를 던져도 동일하게 처리된다.",
+    "잘못된 JSON이 들어오면 파싱 에러에 라인 정보가 포함되어 throw한다.",
+    "src/cli/src/lib/output.ts에 NO_STDIN 전용 헬퍼(또는 fileError에 code 파라미터)가 존재한다.",
+    "다음 command에서 --data/--file 옵션 정의가 제거되고 readInputData() 호출부가 업데이트된다: mission write-spec, mission write-brief, task create, task record add, evidence add, decision record, phase write, recovery write, evolution rules-update, evolution proposal.",
+    "evidence add와 task record add는 readInputData()를 try/catch로 감싸 빈 stdin + --set 단독 경로를 허용한다 — stdin에 JSON이 있으면 stdin 먼저, --set이 덮어쓴다. 빈 stdin + --set도 없으면 에러.",
+    "event.ts --data, context.ts(write) --data, packet.ts(create) --file/--content 플래그는 변경 없이 보존된다 (비-JSON 값 플래그).",
+    "input.ts의 유닛 테스트가 다음 케이스를 명시 검증한다: isTTY=true 가드(Object.defineProperty 목), 비-TTY stdin JSON 파싱 성공, 0바이트 stdin empty 에러, 잘못된 JSON 라인 힌트, isTTY=undefined 오발 없음, Windows readFileSync(0) EAGAIN/EOF 경로.",
+    "src/cli/test/integration.js의 --file/--data 사용처(약 17건)가 stdin pipe 형태(execSync의 input 옵션)로 재작성된다.",
+    "cd src/cli && npm run build 가 성공하고 cd src/cli && npm test 가 통과한다 (새 테스트 포함)."
+  ],
+  "eval_commands": [
+    "cd src/cli && npm run build",
+    "cd src/cli && npm test"
+  ],
+  "rubric": {
+    "dimensions": [
+      {
+        "name": "core_interaction",
+        "threshold": 4
+      },
+      {
+        "name": "feature_completeness",
+        "threshold": 4
+      },
+      {
+        "name": "code_quality",
+        "threshold": 4
+      },
+      {
+        "name": "regression_safety",
+        "threshold": 5
+      }
+    ]
+  },
+  "retry_budget": 3,
+  "scope": {
+    "surfaces": [
+      "src/cli/src/lib/input.ts",
+      "src/cli/src/lib/output.ts",
+      "src/cli/src/commands/mission.ts",
+      "src/cli/src/commands/task.ts",
+      "src/cli/src/commands/evidence.ts",
+      "src/cli/src/commands/decision.ts",
+      "src/cli/src/commands/phase.ts",
+      "src/cli/src/commands/recovery.ts",
+      "src/cli/src/commands/evolution.ts",
+      "src/cli/test/integration.js",
+      "src/cli/src/lib/input.test.ts",
+      "src/cli/test/"
+    ]
+  },
+  "routing": {
+    "primary_worker_type": "software-engineer",
+    "required_reviewer_types": [
+      "design-authority",
+      "qa-engineer"
+    ]
+  },
+  "base_snapshot": "7f766555fd8c20cb22b2bcbf16e9a891e045ac64",
+  "status": "passed",
+  "version": "1.0",
+  "artifact_type": "task_contract",
+  "producer_type": "orchestration-authority",
+  "artifact_id": "tc-task-001",
+  "created_at": "2026-04-11T02:41:45Z",
+  "updated_at": "2026-04-11T12:12:27Z"
+}

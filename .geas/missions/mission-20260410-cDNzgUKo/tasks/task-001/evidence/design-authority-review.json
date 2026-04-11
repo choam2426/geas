@@ -1,0 +1,10 @@
+{
+  "summary": "Implementation reviewed against all 6 design guide criteria. Module placement is clean (schema-template.ts in lib/, no Ajv imports, single dependency on schemas-embedded). Ref resolution is correct: external refs resolve from DEFS_SCHEMA, self refs from rootSchema, transitive refs handled through recursive generation calls. Required-only filtering applied at every nesting level. Placeholder format matches spec. Conditional schema merge for --role correctly walks allOf if/then structure, verified against evidence.schema.json. Code quality is solid with reasonable defensive defaults for edge cases.",
+  "verdict": "approved",
+  "concerns": [],
+  "version": "1.0",
+  "agent": "design-authority-review",
+  "task_id": "task-001",
+  "role": "reviewer",
+  "created_at": "2026-04-10T14:17:40Z"
+}

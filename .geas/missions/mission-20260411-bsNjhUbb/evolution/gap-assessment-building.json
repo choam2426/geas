@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "artifact_type": "gap_assessment",
+  "artifact_id": "gap-building-20260411",
+  "producer_type": "orchestration-authority",
+  "scope_in_summary": "stdin 단일 입력 리팩터: CLI write 커맨드 stdin-only, 플러그인 skills/agents 문서 sweep, 번들 재생성 및 검증",
+  "scope_out_summary": "한국어 번역 문서 동기화, 프로토콜 스키마 변경, real-Windows 쉘 live smoke, POSIX 쉘 live smoke",
+  "fully_delivered": [
+    "task-001: readInputData() 0-arg 축소, TTY 가드, 10개 write 서브커맨드 --data/--file 제거, 11개 input.test 케이스",
+    "task-002: 13개 skill/agent 문서에서 20개 JSON 입력 예시 stdin 패턴 치환",
+    "task-003: plugin/bin/geas 리번들, 전수 grep 검증, 3-form stdin 스모크, TTY 시뮬레이션"
+  ],
+  "partially_delivered": [],
+  "not_delivered": [],
+  "intentional_cuts": [
+    "Real-Windows shell live smoke (cmd.exe/PowerShell/Git Bash/ConPTY) deferred to DEBT-001",
+    "POSIX shebang execution smoke deferred to DEBT-002"
+  ],
+  "unexpected_additions": [
+    "task-001에서 'evolution proposal' 서브커맨드가 존재하지 않음을 발견하여 gap-assessment + rules-update로 remap"
+  ],
+  "recommended_followups": [
+    "DEBT-001 해소 미션: Windows shell matrix smoke",
+    "DEBT-002 해소 미션: macOS/Linux shebang 실행 smoke in CI",
+    "Contract 컴파일 단계에서 CLI 서브커맨드 존재 여부 grep-verify 추가"
+  ],
+  "created_at": "2026-04-11T12:37:02Z"
+}

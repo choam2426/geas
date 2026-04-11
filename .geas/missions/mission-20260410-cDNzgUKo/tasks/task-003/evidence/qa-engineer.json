@@ -1,0 +1,23 @@
+{
+  "summary": "All 3 acceptance criteria verified independently. (1) Auto-injection: version, artifact_type, producer_type, artifact_id, status=drafted all injected when omitted. (2) No-clobber: explicit artifact_id=custom-id preserved verbatim. (3) Status enforcement: input status=ready was forced to drafted. No negative-path failures observed.",
+  "verdict": "pass",
+  "criteria_results": [
+    {
+      "criterion": "auto-injection without envelope fields",
+      "passed": true
+    },
+    {
+      "criterion": "no-clobber preserves explicit values",
+      "passed": true
+    },
+    {
+      "criterion": "status=drafted enforcement",
+      "passed": true
+    }
+  ],
+  "version": "1.0",
+  "agent": "qa-engineer",
+  "task_id": "task-003",
+  "role": "tester",
+  "created_at": "2026-04-10T14:41:42Z"
+}

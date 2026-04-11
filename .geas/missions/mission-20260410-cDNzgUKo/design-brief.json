@@ -1,0 +1,116 @@
+{
+  "version": "1.0",
+  "artifact_type": "design_brief",
+  "artifact_id": "design-brief-mission-20260410-cDNzgUKo",
+  "producer_type": "orchestration-authority",
+  "mission_id": "mission-20260410-cDNzgUKo",
+  "depth": "full_depth",
+  "status": "approved",
+  "chosen_approach": "CLI 자체를 AI 에이전트의 스키마 지식 소스로 활용. 1) geas schema 명령 그룹 신설하여 template/list 서브커맨드 제공 — 스키마에서 자동으로 fill-in 템플릿 생성. 2) validationError() 함수에 스키마 기반 힌트(필수 필드, enum 값, 구조) 추가. 3) task create/mission write-spec/write-brief 등에 envelope 필드 자동 주입 — 에이전트가 version/artifact_type/producer_type 등 반복 메타데이터를 매번 전달할 필요 없음. 4) 출력 포맷을 ok/error 패턴으로 통일. 5) 스킬에서 인라인 스키마 제거.",
+  "non_goals": [
+    "JSON Schema 파일(docs/protocol/schemas/) 자체를 변경",
+    "CLI에 대화형/인터랙티브 모드 추가",
+    "스킬에 새로운 인라인 템플릿 추가",
+    "CLI를 사람 사용자 대상으로 최적화",
+    "warn() 출력 포맷 변경 (연기 — vote round 결과)"
+  ],
+  "verification_strategy": "1) geas schema template 명령이 모든 16개 스키마 타입에 대해 유효한 JSON 템플릿을 출력하는지 검증. 2) 이전 세션에서 발생한 주요 실패 패턴(잘못된 필드명, enum 값, 누락 필드)을 재현하여 개선된 에러 메시지가 올바른 정보를 제공하는지 확인. 3) envelope 자동 주입 후 기존 명시적 입력과 충돌 없이 작동하는지 테스트. 4) 빌드 후 plugin/bin/geas에서 모든 변경사항이 정상 동작.",
+  "alternatives_considered": [
+    {
+      "approach": "스킬 텍스트에 정확한 JSON 템플릿을 인라인",
+      "rejected_reason": "스킬이 비대해지고, 스키마 변경 시 스킬도 매번 수정해야 함. Single source of truth 위반."
+    },
+    {
+      "approach": "에이전트 메모리에만 템플릿 저장",
+      "rejected_reason": "세션 간 전파가 보장되지 않고, 스키마 변경 시 메모리가 stale 해짐. 근본 해결이 아님."
+    },
+    {
+      "approach": "스키마 검증 완화 (additionalProperties 허용 등)",
+      "rejected_reason": "데이터 무결성을 훼손. 잘못된 필드가 무시되면 디버깅이 더 어려워짐."
+    }
+  ],
+  "architecture_decisions": [
+    {
+      "decision": "geas schema 명령 그룹 신설 (template, list 서브커맨드)",
+      "rationale": "기존 15개 명령 그룹과 동일한 패턴. schema.ts의 SCHEMAS 레지스트리에서 직접 템플릿 생성 가능.",
+      "constraints": [
+        "schemas-embedded.ts의 빌드타임 인라인 방식 유지"
+      ]
+    },
+    {
+      "decision": "envelope 자동 주입은 명령별 action 함수에서 처리",
+      "rationale": "각 명령이 어떤 스키마를 사용하는지 알고 있으므로, 스키마의 const 필드를 감지하여 자동 주입. 에이전트가 명시적으로 전달한 값이 있으면 그것을 우선.",
+      "constraints": [
+        "기존 입력이 envelope을 포함해도 에러 없이 작동해야 함(하위 호환)",
+        "created_at은 이미 enrichTimestamp()에서 자동 주입 중 — 이중 주입 방지 필요",
+        "artifact_id는 const가 아닌 자유 형식 필드이므로 명령별 생성 로직 필요"
+      ]
+    },
+    {
+      "decision": "에러 메시지에 스키마 구조 힌트 포함",
+      "rationale": "현재 Ajv 에러는 path/keyword만 제공하여 에이전트가 올바른 형태를 추론하기 어려움. 스키마에서 required, enum, properties를 추출하여 에러에 포함.",
+      "constraints": [
+        "에러 출력 크기가 과도해지지 않도록 핵심 정보만 포함"
+      ]
+    },
+    {
+      "decision": "envelope 자동 주입의 trust boundary 구분",
+      "rationale": "evidence.ts는 보안상 CLI 값을 강제. task/mission은 에이전트 값 우선. 명령별 trust level 구분.",
+      "constraints": [
+        "evidence.ts의 기존 force-overwrite 패턴 유지"
+      ]
+    },
+    {
+      "decision": "조건부 스키마(if/then)는 role 파라미터로 variant 선택",
+      "rationale": "evidence.schema.json의 4 role variant를 --role로 선택, 해당 variant 필수 필드만 포함.",
+      "constraints": [
+        "role 없이 호출 시 base required 필드만 포함"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "description": "envelope 자동 주입 시 에이전트가 명시적으로 전달한 값과 충돌",
+      "mitigation": "에이전트가 전달한 값이 있으면 유지, 없으면만 자동 주입 (merge-with-priority)"
+    },
+    {
+      "description": "warn() 포맷 변경 시 hook 시스템과의 호환성",
+      "mitigation": "warn()은 현재 포맷 유지하되, 구조화된 JSON warning을 별도 함수로 추가"
+    },
+    {
+      "description": "schema template 생성 시 $ref 해석 필요",
+      "mitigation": "_defs.schema.json의 $ref를 해석하여 실제 타입/enum 값으로 치환. 현재 $ref는 2가지 패턴만 존재 (isoUtcTimestamp, agentType + 자기참조 tierResult) — 범위가 한정적"
+    },
+    {
+      "description": "evidence.schema.json의 allOf/if/then 조건부 스키마가 template 생성을 복잡하게 함",
+      "mitigation": "template에서 조건부 필드는 role별로 주석 또는 placeholder로 표시. 기본 required 필드만 포함하고, 조건부 필드는 별도 섹션으로 안내"
+    }
+  ],
+  "preserve_list": [
+    "기존 CLI 명령어 인터페이스 (모든 기존 호출이 동일하게 작동)",
+    "docs/protocol/schemas/ 파일 내용",
+    "hook 시스템의 [Geas] WARNING 포맷 (geas-hooks.js의 warn()은 변경 불가)",
+    "schemas-embedded.ts의 빌드타임 인라인 방식",
+    "enrichTimestamp()의 created_at/updated_at 자동 주입 동작"
+  ],
+  "unresolved_assumptions": [
+    "JSON Schema의 $ref 해석이 template 생성 시 모든 케이스를 커버하는지 검증 필요 — 현재 2+1 패턴으로 범위 한정적이나 edge case 존재 가능",
+    "acceptance criteria의 48건 실패 패턴 목록이 구체적으로 문서화되어 있는지 확인 필요 — 없으면 검증 불가"
+  ],
+  "design_review": {
+    "reviewer_type": "design-authority",
+    "summary": "Approach is structurally sound. The 5 work streams (schema command group, error hints, envelope auto-injection, output unification, skill cleanup) have clean boundaries and correct dependency direction. Key structural findings: (1) Envelope auto-injection via const field detection is viable but artifact_id is NOT a const field and needs per-command generation logic — the brief was ambiguous here. (2) $ref resolution is a bounded problem: only 2 external defs (isoUtcTimestamp, agentType) and 1 self-ref (tierResult) exist. Not open-ended. (3) warn() risk is real but contained: CLI warn() and hook warn() are separate code paths in separate codebases. (4) evidence.schema.json uses allOf/if/then conditional schemas that template generation must handle — this was missing from the risk analysis. (5) created_at is already auto-injected by enrichTimestamp() in post-write-checks.ts — envelope injection must not double-inject. (6) The 48-failure-patterns acceptance criterion needs a concrete, reproducible test list or it cannot be verified. Status: approved with additions noted.",
+    "additions": [
+      "Added risk: conditional schemas (allOf/if/then in evidence.schema.json) complicate template generation",
+      "Added constraint on envelope decision: artifact_id needs per-command generation logic, not schema const detection",
+      "Added constraint on envelope decision: created_at already auto-injected by enrichTimestamp() — deduplication required",
+      "Added to preserve_list: enrichTimestamp() behavior must not be disrupted",
+      "Clarified warn() risk: CLI output.warn() and hook geas-hooks.js warn() are independent code paths",
+      "Added unresolved assumption: 48-failure-patterns list must be documented for verifiable acceptance criteria"
+    ]
+  },
+  "created_at": "2026-04-10T13:41:56Z",
+  "updated_at": "2026-04-10T13:55:14Z",
+  "approved_at": "2026-04-10T13:55:14Z",
+  "vote_round_ref": ".geas/missions/mission-20260410-cDNzgUKo/decisions/"
+}

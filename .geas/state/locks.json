@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "locks": [
+    {
+      "lock_type": "path",
+      "task_id": "task-002",
+      "session_id": "session-20260411",
+      "targets": [
+        "plugin/skills/",
+        "plugin/agents/"
+      ],
+      "status": "held",
+      "acquired_at": "2026-04-11T11:47:20Z"
+    }
+  ],
+  "created_at": "2026-04-10T14:12:00Z",
+  "updated_at": "2026-04-11T12:44:52Z"
+}

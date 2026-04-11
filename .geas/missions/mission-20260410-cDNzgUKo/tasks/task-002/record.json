@@ -1,0 +1,134 @@
+{
+  "version": "1.0",
+  "task_id": "task-002",
+  "implementation_contract": {
+    "planned_actions": [
+      "Add extractHints() function to output.ts that inspects Ajv errors and the source schema to produce contextual hints",
+      "Modify validationError() to accept optional schema object parameter and include hints field in output",
+      "Handle 4 Ajv error keywords: required (show field type+description), enum (show allowed values), additionalProperties (show allowed property names), and include top-level required fields list",
+      "Export getSchemaObject() from schema.ts so output.ts can access raw schema for hint extraction",
+      "Keep hints as an additive field - existing error structure unchanged"
+    ],
+    "edge_cases": [
+      "Schema has $ref references to _defs - must resolve or note limitation",
+      "Nested object schemas with their own required/enum fields",
+      "Empty or missing properties in schema definition",
+      "Ajv error with no matching schema context"
+    ],
+    "non_goals": [
+      "Changing Ajv configuration or error format",
+      "Adding new validation rules",
+      "Modifying any other CLI commands",
+      "Supporting deeply nested $ref resolution across files"
+    ],
+    "demo_steps": [
+      "AC1: Submit data missing required fields to a schema - verify hints.required_fields lists all required fields",
+      "AC2: Submit data with invalid enum value - verify hints shows allowed_values for that field",
+      "AC3: Submit data with extra properties to additionalProperties:false schema - verify hints shows allowed_properties",
+      "AC4: Submit data missing a required field - verify hints shows that field type and description",
+      "AC5: Verify output still contains error, code, schema, details fields plus new hints field"
+    ],
+    "status": "approved",
+    "approved_by": [
+      "qa-engineer",
+      "design-authority"
+    ]
+  },
+  "created_at": "2026-04-10T14:24:49Z",
+  "updated_at": "2026-04-10T14:31:47Z",
+  "self_check": {
+    "confidence": 4,
+    "known_risks": [
+      "$ref properties (e.g. producer_type -> agentType) have no field_type in hints because raw schema contains $ref not resolved type - Ajv still provides allowedValues for enum cases",
+      "navigateSchema only handles direct properties and array items, not deeply nested $ref chains"
+    ],
+    "untested_paths": [
+      "Validation error on deeply nested objects (3+ levels deep)",
+      "Schema with allOf containing required fields"
+    ],
+    "summary": "All 5 ACs verified manually. Backward-compatible change - existing error structure preserved, hints added as new field. No caller changes needed."
+  },
+  "gate_result": {
+    "verdict": "pass",
+    "tier_results": {
+      "tier_0": {
+        "status": "pass",
+        "details": "Build succeeds (tsc + esbuild)"
+      },
+      "tier_1": {
+        "status": "pass",
+        "details": "All 5 ACs verified: required fields, enum hints, additionalProperties, field type, backward compat"
+      },
+      "tier_2": {
+        "status": "pass",
+        "details": "Design authority and QA both approved"
+      }
+    },
+    "rubric_scores": [
+      {
+        "dimension": "feature_completeness",
+        "score": 5,
+        "threshold": 4,
+        "passed": true
+      },
+      {
+        "dimension": "code_quality",
+        "score": 5,
+        "threshold": 4,
+        "passed": true
+      },
+      {
+        "dimension": "regression_safety",
+        "score": 5,
+        "threshold": 4,
+        "passed": true
+      }
+    ],
+    "blocking_dimensions": []
+  },
+  "closure": {
+    "change_summary": "Enhanced validationError() in output.ts to include schema-derived hints: required_fields list, enum allowed_values, additionalProperties allowed_properties, and missing field type/description. Added getSchemaObject() to schema.ts. Purely additive change - no caller modifications needed.",
+    "reviews": [
+      {
+        "reviewer_type": "design-authority",
+        "status": "approved",
+        "summary": "Clean backward-compatible change, proper edge case handling"
+      },
+      {
+        "reviewer_type": "qa-engineer",
+        "status": "approved",
+        "summary": "All 5 ACs pass. $ref limitation documented as non-goal."
+      }
+    ],
+    "open_risks": [
+      "$ref properties lack field_type in hints - acknowledged limitation"
+    ],
+    "debt_items": []
+  },
+  "verdict": {
+    "verdict": "pass",
+    "rationale": "All 5 ACs verified by QA. Design authority approved structural quality. Purely additive change with zero caller impact. The $ref limitation is documented, scoped as non-goal, and degrades gracefully. Solves the real user problem: validation errors now include actionable hints for required fields, enum values, allowed properties, and field types."
+  },
+  "retrospective": {
+    "what_went_well": [
+      "Implementation was clean and backward-compatible",
+      "extractHints is a pure function with defensive handling",
+      "No caller changes needed - purely additive",
+      "Both reviewers approved without changes"
+    ],
+    "what_broke": [
+      "Worker agent implemented code during contract drafting step - should only have written the contract"
+    ],
+    "what_was_surprising": [
+      "Ajv params.allowedValues already provides enum values for $ref-resolved fields, so the $ref limitation is less impactful than expected"
+    ],
+    "rule_candidates": [],
+    "memory_candidates": [
+      "getSchemaObject() in schema.ts provides raw schema access without Ajv coupling"
+    ],
+    "debt_candidates": [],
+    "next_time_guidance": [
+      "When spawning worker for implementation contract, explicitly state DO NOT implement code, only write the contract"
+    ]
+  }
+}
