@@ -15,7 +15,7 @@ import EmptyState from "./components/EmptyState";
 import ErrorState from "./components/ErrorState";
 import AddProjectDialog from "./components/AddProjectDialog";
 import { ToastProvider, useToast } from "./contexts/ToastContext";
-import { ProjectRefreshProvider, useProjectRefresh } from "./contexts/ProjectRefreshContext";
+import { ProjectRefreshProvider } from "./contexts/ProjectRefreshContext";
 import { useNavigationHistory } from "./hooks/useNavigationHistory";
 import type { ToastVariant } from "./components/Toast";
 
@@ -107,21 +107,27 @@ function AppInner() {
   const selectedMissionId = nav.current.selectedMissionId;
   const selected = projects.find((p) => p.path === selectedPath) ?? null;
 
-  // Auto-refresh: react to centralized project-changed events
-  const refreshKey = useProjectRefresh(selectedPath ?? "");
+  // Auto-refresh: subscribe directly to project-changed events so the sidebar
+  // updates any project that changes, not just the selected one. We avoid
+  // routing through useProjectRefresh here because the sidebar needs to react
+  // to *all* projects, and staging through selectedPath meant background
+  // projects' phase never refreshed.
   useEffect(() => {
-    if (!selectedPath || refreshKey === 0) return;
-    (async () => {
-      try {
-        const matching = projectsRef.current.find(p => normalizePath(p.path) === normalizePath(selectedPath));
-        if (!matching) return;
-        const summary = await invoke<ProjectSummary>("get_project_summary", { path: matching.path });
-        setProjects(prev => prev.map(p => normalizePath(p.path) === normalizePath(selectedPath) ? summary : p));
-      } catch {
-        // Ignore errors from individual project refresh
-      }
-    })();
-  }, [refreshKey, selectedPath]);
+    const unlisten = listen<{ path: string }>("geas://project-changed", (event) => {
+      const eventNorm = normalizePath(event.payload.path);
+      const matching = projectsRef.current.find(p => normalizePath(p.path) === eventNorm);
+      if (!matching) return;
+      (async () => {
+        try {
+          const summary = await invoke<ProjectSummary>("get_project_summary", { path: matching.path });
+          setProjects(prev => prev.map(p => normalizePath(p.path) === eventNorm ? summary : p));
+        } catch {
+          // Ignore errors from individual project refresh
+        }
+      })();
+    });
+    return () => { unlisten.then(fn => fn()); };
+  }, []);
 
   // Toast notifications from backend event classification
   const { addToast } = useToast();

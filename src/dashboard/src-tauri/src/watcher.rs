@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use notify_debouncer_mini::notify::RecursiveMode;
@@ -32,9 +32,13 @@ pub struct ToastEvent {
 }
 
 /// Holds the debounced watcher and the set of currently watched project roots.
+/// `watched_roots` is shared with the debouncer callback so event paths can be
+/// resolved back to the exact registered root form (important on Windows where
+/// notify may return event paths without the `\\?\` extended-length prefix,
+/// causing a mismatch with the canonical paths returned from `list_projects`).
 pub struct WatcherState {
     debouncer: Debouncer<notify_debouncer_mini::notify::RecommendedWatcher>,
-    watched_roots: HashSet<PathBuf>,
+    watched_roots: Arc<Mutex<HashSet<PathBuf>>>,
 }
 
 /// Subdirectories inside .geas/ that we monitor for changes.
@@ -50,8 +54,12 @@ pub fn start_watching(app_handle: AppHandle, paths: &[String]) -> Mutex<WatcherS
     let handle = app_handle.clone();
 
     // Store previous RunState per project root for toast classification.
-    let prev_states: std::sync::Arc<Mutex<HashMap<PathBuf, RunState>>> =
-        std::sync::Arc::new(Mutex::new(HashMap::new()));
+    let prev_states: Arc<Mutex<HashMap<PathBuf, RunState>>> =
+        Arc::new(Mutex::new(HashMap::new()));
+
+    // Shared set of registered roots. The debouncer callback uses it to map
+    // event paths back to their registered form.
+    let watched_roots: Arc<Mutex<HashSet<PathBuf>>> = Arc::new(Mutex::new(HashSet::new()));
 
     // Seed prev_states with current run.json for each project so that
     // the first file-change event can produce a meaningful delta.
@@ -67,18 +75,20 @@ pub fn start_watching(app_handle: AppHandle, paths: &[String]) -> Mutex<WatcherS
     }
 
     let prev_states_clone = prev_states.clone();
+    let watched_roots_clone = watched_roots.clone();
 
     let mut debouncer = new_debouncer(Duration::from_millis(200), move |res| {
-        handle_debounced_event(&handle, &prev_states_clone, res);
+        handle_debounced_event(&handle, &prev_states_clone, &watched_roots_clone, res);
     })
     .expect("Failed to create file watcher");
 
-    let mut watched_roots = HashSet::new();
-
-    for project_path in paths {
-        let root = PathBuf::from(project_path);
-        watch_project(&mut debouncer, &root);
-        watched_roots.insert(root);
+    {
+        let mut roots = watched_roots.lock().expect("Failed to lock watched_roots");
+        for project_path in paths {
+            let root = PathBuf::from(project_path);
+            watch_project(&mut debouncer, &root);
+            roots.insert(root);
+        }
     }
 
     Mutex::new(WatcherState {
@@ -90,17 +100,19 @@ pub fn start_watching(app_handle: AppHandle, paths: &[String]) -> Mutex<WatcherS
 /// Register a new project path with the watcher.
 pub fn register_path(state: &mut WatcherState, path: &str) {
     let root = PathBuf::from(path);
-    if state.watched_roots.contains(&root) {
+    let mut roots = state.watched_roots.lock().expect("Failed to lock watched_roots");
+    if roots.contains(&root) {
         return;
     }
     watch_project(&mut state.debouncer, &root);
-    state.watched_roots.insert(root);
+    roots.insert(root);
 }
 
 /// Unregister a project path from the watcher.
 pub fn unregister_path(state: &mut WatcherState, path: &str) {
     let root = PathBuf::from(path);
-    if !state.watched_roots.remove(&root) {
+    let mut roots = state.watched_roots.lock().expect("Failed to lock watched_roots");
+    if !roots.remove(&root) {
         return;
     }
     unwatch_project(&mut state.debouncer, &root);
@@ -156,30 +168,38 @@ fn unwatch_project(
 fn handle_debounced_event(
     app_handle: &AppHandle,
     prev_states: &Mutex<HashMap<PathBuf, RunState>>,
+    watched_roots: &Mutex<HashSet<PathBuf>>,
     result: notify_debouncer_mini::DebounceEventResult,
 ) {
     match result {
         Ok(events) => {
+            // Snapshot registered roots for resolution.
+            let roots_snapshot: Vec<PathBuf> = match watched_roots.lock() {
+                Ok(guard) => guard.iter().cloned().collect(),
+                Err(_) => return,
+            };
+
             // Collect unique project roots that were affected.
             let mut notified_roots: HashSet<PathBuf> = HashSet::new();
             // Track which project roots had run.json changes
             let mut run_json_roots: HashSet<PathBuf> = HashSet::new();
 
             for event in &events {
+                let Some(root) = resolve_registered_root(&event.path, &roots_snapshot) else {
+                    continue;
+                };
+
                 // Check if the changed path is a run.json file
                 if event.path.file_name().map(|n| n == "run.json").unwrap_or(false) {
-                    if let Some(root) = resolve_project_root(&event.path) {
-                        run_json_roots.insert(root.clone());
-                    }
+                    run_json_roots.insert(root.clone());
                 }
-                if let Some(root) = resolve_project_root(&event.path) {
-                    if notified_roots.insert(root.clone()) {
-                        let payload = ProjectChangedPayload {
-                            path: normalize_path(&root),
-                        };
-                        if let Err(e) = app_handle.emit(PROJECT_CHANGED_EVENT, &payload) {
-                            log::warn!("Failed to emit {PROJECT_CHANGED_EVENT}: {e}");
-                        }
+
+                if notified_roots.insert(root.clone()) {
+                    let payload = ProjectChangedPayload {
+                        path: normalize_path(&root),
+                    };
+                    if let Err(e) = app_handle.emit(PROJECT_CHANGED_EVENT, &payload) {
+                        log::warn!("Failed to emit {PROJECT_CHANGED_EVENT}: {e}");
                     }
                 }
             }
@@ -289,8 +309,27 @@ fn normalize_path(p: &Path) -> String {
     s.replace('\\', "/")
 }
 
+/// Resolve a changed path to one of the registered project roots by
+/// normalized prefix match. Returns the exact `PathBuf` stored in
+/// `watched_roots` so the emitted event path matches the form of the path
+/// registered with `add_project` (and thus the string the frontend holds).
+fn resolve_registered_root(changed_path: &Path, roots: &[PathBuf]) -> Option<PathBuf> {
+    let changed_norm = normalize_path(changed_path);
+    for root in roots {
+        let geas_norm = normalize_path(&root.join(".geas"));
+        // Require a directory boundary so "/foo/bar" does not match "/foo/barbaz".
+        if changed_norm == geas_norm
+            || changed_norm.starts_with(&format!("{}/", geas_norm))
+        {
+            return Some(root.clone());
+        }
+    }
+    None
+}
+
 /// Walk up from a changed path to find the project root.
 /// The project root is the parent of the `.geas` directory.
+#[cfg(test)]
 fn resolve_project_root(changed_path: &Path) -> Option<PathBuf> {
     let mut current = changed_path;
     loop {
@@ -361,5 +400,42 @@ mod tests {
     fn normalize_path_unix_noop() {
         let p = PathBuf::from("/home/user/project");
         assert_eq!(normalize_path(&p), "/home/user/project");
+    }
+
+    #[test]
+    fn resolve_registered_root_matches_windows_prefixed_root_from_bare_event() {
+        // Registered via add_project (canonicalized, extended-length prefix).
+        let roots = vec![PathBuf::from(r"\\?\A:\geas")];
+        // notify returns the event path WITHOUT the `\\?\` prefix on Windows.
+        let event = PathBuf::from(r"A:\geas\.geas\state\run.json");
+        assert_eq!(
+            resolve_registered_root(&event, &roots),
+            Some(PathBuf::from(r"\\?\A:\geas"))
+        );
+    }
+
+    #[test]
+    fn resolve_registered_root_matches_unix() {
+        let roots = vec![PathBuf::from("/home/user/project")];
+        let event = PathBuf::from("/home/user/project/.geas/missions/m1/tasks/t1.json");
+        assert_eq!(
+            resolve_registered_root(&event, &roots),
+            Some(PathBuf::from("/home/user/project"))
+        );
+    }
+
+    #[test]
+    fn resolve_registered_root_rejects_sibling_with_common_prefix() {
+        // /foo/bar must not match an event under /foo/barbaz.
+        let roots = vec![PathBuf::from("/home/user/proj")];
+        let event = PathBuf::from("/home/user/proj-other/.geas/state/run.json");
+        assert_eq!(resolve_registered_root(&event, &roots), None);
+    }
+
+    #[test]
+    fn resolve_registered_root_returns_none_for_unrelated_path() {
+        let roots = vec![PathBuf::from("/home/user/project")];
+        let event = PathBuf::from("/tmp/elsewhere/file.txt");
+        assert_eq!(resolve_registered_root(&event, &roots), None);
     }
 }
