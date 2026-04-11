@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 > **Note**: Tags were restructured in v0.5.1. Previous major versions (v1.x, v2.x) have been flattened to v0.x.y to reflect that the project is pre-1.0.
 
+## [1.2.0] — 2026-04-11
+
+### Changed
+- CLI write commands now accept JSON only via stdin. `--data` and `--file` options are removed from `mission write-spec`/`write-brief`, `task create`/`record add`, `evidence add`, `decision write`, `phase write`, `recovery write`, and `evolution gap-assessment`/`rules-update`. Preserved as non-JSON value flags: `event log --data`, `context write --data`, `packet create --file`/`--content`.
+- `readInputData()` is now 0-arg and reads stdin exclusively. It refuses to block on a real TTY (`isTTY === true`), emits NO_STDIN errors with heredoc/pipe/redirection examples, normalizes Windows `fs.readFileSync(0)` EAGAIN/EOF/UV_EOF, strips UTF-8 BOM, and returns line-hinted JSON parse errors.
+- `evidence add` and `task record add` retain the `--set` fallback: empty stdin is accepted when `--set` flags are present.
+- Plugin skills and agent docs (13 files, 20 sites) updated to use stdin heredoc/here-string examples.
+- `plugin/bin/geas` bundle regenerated.
+
+### Added
+- 11 new `input.test.ts` cases covering TTY trichotomy, 0-byte stdin, invalid-JSON line hint (primary + fallback), Windows EAGAIN/EOF/UV_EOF, and BOM handling.
+
 ## [1.1.0] — 2026-04-11
 
 ### Added
