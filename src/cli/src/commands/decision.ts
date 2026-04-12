@@ -15,6 +15,7 @@ import { resolveGeasDir, resolveMissionDir, normalizePath, validateIdentifier, a
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { getCwd } from '../lib/cwd';
 import { readInputData } from '../lib/input';
+import { dryRunGuard, dryRunParseError } from '../lib/dry-run';
 
 export function registerDecisionCommands(program: Command): void {
   const cmd = program
@@ -26,7 +27,8 @@ export function registerDecisionCommands(program: Command): void {
     .command('write')
     .description('Write a decision record (JSON via stdin)')
     .requiredOption('--mission <mid>', 'Mission identifier')
-    .action((opts: { mission: string }, cmd: Command) => {
+    .option('--dry-run', 'Validate input without writing files')
+    .action((opts: { mission: string; dryRun?: boolean }, cmd: Command) => {
       try {
         // Read JSON from stdin
         let decisionData: Record<string, unknown>;
@@ -39,6 +41,7 @@ export function registerDecisionCommands(program: Command): void {
             return;
           }
           if (rnErr.code === 'INVALID_JSON') {
+            if (opts.dryRun) { dryRunParseError(rnErr.message); return; }
             fileError('', 'parse', rnErr.message);
             return;
           }
@@ -46,7 +49,14 @@ export function registerDecisionCommands(program: Command): void {
         }
 
         if (typeof decisionData !== 'object' || decisionData === null || Array.isArray(decisionData)) {
+          if (opts.dryRun) { dryRunParseError('stdin JSON must be an object'); return; }
           fileError('', 'parse', 'stdin JSON must be an object');
+          return;
+        }
+
+        // --dry-run: JSON parse check only (no schema for decisions)
+        if (opts.dryRun) {
+          dryRunGuard(true, decisionData, null);
           return;
         }
 

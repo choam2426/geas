@@ -13,6 +13,7 @@ import { validate } from '../lib/schema';
 import { success, validationError, fileError, noStdinError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
 import { readInputData } from '../lib/input';
+import { dryRunGuard, dryRunParseError } from '../lib/dry-run';
 
 export function registerRecoveryCommands(program: Command): void {
   const cmd = program
@@ -23,7 +24,8 @@ export function registerRecoveryCommands(program: Command): void {
   cmd
     .command('write')
     .description('Write a recovery packet (JSON via stdin)')
-    .action((_opts: unknown, cmd: Command) => {
+    .option('--dry-run', 'Validate input without writing files')
+    .action((_opts: { dryRun?: boolean }, cmd: Command) => {
       try {
         const data = readInputData() as Record<string, unknown>;
         const cwd = getCwd(cmd);
@@ -35,6 +37,12 @@ export function registerRecoveryCommands(program: Command): void {
           return;
         }
         validateIdentifier(recoveryId, 'recovery_id');
+
+        // --dry-run: validate and exit without writing
+        if (_opts.dryRun) {
+          dryRunGuard(true, data, 'recovery-packet');
+          return;
+        }
 
         // Validate against recovery-packet schema
         const result = validate('recovery-packet', data);
@@ -59,6 +67,7 @@ export function registerRecoveryCommands(program: Command): void {
           return;
         }
         if (nodeErr.code === 'INVALID_JSON') {
+          if (_opts.dryRun) { dryRunParseError(nodeErr.message); return; }
           fileError('recovery/', 'parse', nodeErr.message);
           return;
         }

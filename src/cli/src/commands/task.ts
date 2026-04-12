@@ -18,6 +18,7 @@ import { validateTransition } from '../lib/transition-guards';
 import { getCwd } from '../lib/cwd';
 import { readInputData, parseSetFlags, deepMergeSetOverrides } from '../lib/input';
 import { injectEnvelope } from '../lib/envelope';
+import { dryRunGuard, dryRunParseError } from '../lib/dry-run';
 
 // ── State transition validation ─────────────────────────────────────
 
@@ -93,7 +94,8 @@ export function registerTaskCommands(program: Command): void {
     .command('create')
     .description('Create a task contract with schema validation (JSON via stdin)')
     .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
-    .action((opts: { mission?: string }) => {
+    .option('--dry-run', 'Validate input without writing files')
+    .action((opts: { mission?: string; dryRun?: boolean }) => {
       try {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
@@ -109,6 +111,12 @@ export function registerTaskCommands(program: Command): void {
         // Enforce status=drafted for new task contracts
         if (!data.status || data.status !== 'drafted') {
           data.status = 'drafted';
+        }
+
+        // --dry-run: validate and exit without writing
+        if (opts.dryRun) {
+          dryRunGuard(true, data, 'task-contract');
+          return;
         }
 
         // Validate against task-contract schema
@@ -156,6 +164,7 @@ export function registerTaskCommands(program: Command): void {
         if (nodeErr.code === 'NO_STDIN') {
           noStdinError('task create', nodeErr.message);
         } else if (nodeErr.code === 'INVALID_JSON') {
+          if (opts.dryRun) { dryRunParseError(nodeErr.message); return; }
           fileError('', 'parse', nodeErr.message);
         } else if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'create', nodeErr.message);
@@ -362,11 +371,13 @@ export function registerTaskCommands(program: Command): void {
     .requiredOption('--task <task-id>', 'Task identifier')
     .requiredOption('--section <name>', `Section name (${VALID_SECTIONS.join(', ')})`)
     .option('--set <key=value...>', 'Set individual fields', collectSet, [])
+    .option('--dry-run', 'Validate input without writing files')
     .action((opts: {
       mission?: string;
       task: string;
       section: string;
       set: string[];
+      dryRun?: boolean;
     }) => {
       try {
         const cwd = getCwd(cmd);
@@ -401,6 +412,7 @@ export function registerTaskCommands(program: Command): void {
             // Empty stdin is OK if --set provides data; fall through.
             sectionData = undefined;
           } else if (rnErr.code === 'INVALID_JSON') {
+            if (opts.dryRun) { dryRunParseError(rnErr.message); return; }
             fileError('', 'parse', rnErr.message);
             return;
           } else {
@@ -440,6 +452,12 @@ export function registerTaskCommands(program: Command): void {
           record[opts.section] = { ...existing as Record<string, unknown>, ...sectionData };
         } else {
           record[opts.section] = sectionData;
+        }
+
+        // --dry-run: validate and exit without writing
+        if (opts.dryRun) {
+          dryRunGuard(true, record, 'record');
+          return;
         }
 
         // Validate entire record against schema

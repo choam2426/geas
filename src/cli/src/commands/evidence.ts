@@ -15,6 +15,7 @@ import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
 import { getCwd } from '../lib/cwd';
 import { readInputData, parseSetFlags, deepMergeSetOverrides } from '../lib/input';
+import { dryRunGuard, dryRunParseError } from '../lib/dry-run';
 
 /**
  * Resolve mission ID from --mission flag or run.json.
@@ -49,6 +50,7 @@ export function registerEvidenceCommands(program: Command): void {
     .requiredOption('--agent <name>', 'Agent name (used as filename)')
     .requiredOption('--role <role>', 'Agent role (implementer, reviewer, tester, authority)')
     .option('--set <key=value...>', 'Set individual fields', collectSet, [])
+    .option('--dry-run', 'Validate input without writing files')
     .action((opts: {
       mission?: string;
       task?: string;
@@ -56,6 +58,7 @@ export function registerEvidenceCommands(program: Command): void {
       agent: string;
       role: string;
       set: string[];
+      dryRun?: boolean;
     }) => {
       try {
         const cwd = getCwd(cmd);
@@ -94,6 +97,7 @@ export function registerEvidenceCommands(program: Command): void {
             // Empty stdin is OK if --set provides data; fall through.
             evidenceData = undefined;
           } else if (rnErr.code === 'INVALID_JSON') {
+            if (opts.dryRun) { dryRunParseError(rnErr.message); return; }
             fileError('', 'parse', rnErr.message);
             return;
           } else {
@@ -125,6 +129,12 @@ export function registerEvidenceCommands(program: Command): void {
         evidenceData.agent = agentName;
         evidenceData.task_id = opts.task || opts.phase!;
         evidenceData.role = opts.role;
+
+        // --dry-run: validate and exit without writing
+        if (opts.dryRun) {
+          dryRunGuard(true, evidenceData, 'evidence');
+          return;
+        }
 
         // Validate against evidence schema (includes role-based allOf checks)
         const result = validate('evidence', evidenceData);

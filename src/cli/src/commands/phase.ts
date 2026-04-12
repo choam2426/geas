@@ -14,6 +14,7 @@ import { success, validationError, fileError, noStdinError } from '../lib/output
 import { getCwd } from '../lib/cwd';
 import { injectEnvelope } from '../lib/envelope';
 import { readInputData } from '../lib/input';
+import { dryRunGuard, dryRunParseError } from '../lib/dry-run';
 
 export function registerPhaseCommands(program: Command): void {
   const cmd = program
@@ -25,7 +26,8 @@ export function registerPhaseCommands(program: Command): void {
     .command('write')
     .description('Write a phase review (JSON via stdin)')
     .requiredOption('--mission <mid>', 'Mission ID')
-    .action((opts: { mission: string }, cmd: Command) => {
+    .option('--dry-run', 'Validate input without writing files')
+    .action((opts: { mission: string; dryRun?: boolean }, cmd: Command) => {
       try {
         const data = readInputData() as Record<string, unknown>;
         const cwd = getCwd(cmd);
@@ -76,6 +78,12 @@ export function registerPhaseCommands(program: Command): void {
           }
         }
 
+        // --dry-run: validate and exit without writing
+        if (opts.dryRun) {
+          dryRunGuard(true, data, 'phase-review');
+          return;
+        }
+
         // Build filename from phase + status + timestamp
         const phase = (data.mission_phase as string) || 'unknown';
         const status = (data.status as string) || 'unknown';
@@ -99,6 +107,7 @@ export function registerPhaseCommands(program: Command): void {
           return;
         }
         if (nodeErr.code === 'INVALID_JSON') {
+          if (opts.dryRun) { dryRunParseError(nodeErr.message); return; }
           fileError('phase-reviews/', 'parse', nodeErr.message);
           return;
         }

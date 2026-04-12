@@ -14,6 +14,7 @@ import { success, validationError, fileError, noStdinError } from '../lib/output
 import { getCwd } from '../lib/cwd';
 import { readInputData } from '../lib/input';
 import { injectEnvelope } from '../lib/envelope';
+import { dryRunGuard, dryRunParseError } from '../lib/dry-run';
 
 /** Generate a mission ID in the format mission-{YYYYMMDD}-{8alphanumeric}. */
 function generateMissionId(): string {
@@ -106,7 +107,8 @@ export function registerMissionCommands(program: Command): void {
     .command('write-spec')
     .description('Write spec.json with schema validation (JSON via stdin)')
     .requiredOption('--id <mission-id>', 'Mission identifier')
-    .action((opts: { id: string }) => {
+    .option('--dry-run', 'Validate input without writing files')
+    .action((opts: { id: string; dryRun?: boolean }) => {
       try {
         validateIdentifier(opts.id, 'mission ID');
         const cwd = getCwd(cmd);
@@ -126,6 +128,12 @@ export function registerMissionCommands(program: Command): void {
 
         // Inject envelope fields (version, artifact_type, producer_type, artifact_id)
         injectEnvelope('mission_spec', data, { mission_id: opts.id });
+
+        // --dry-run: validate and exit without writing
+        if (opts.dryRun) {
+          dryRunGuard(true, data, 'mission-spec');
+          return;
+        }
 
         // Validate against mission-spec schema
         const result = validate('mission-spec', data);
@@ -147,6 +155,7 @@ export function registerMissionCommands(program: Command): void {
         if (nodeErr.code === 'NO_STDIN') {
           noStdinError('mission write', nodeErr.message);
         } else if (nodeErr.code === 'INVALID_JSON') {
+          if (opts.dryRun) { dryRunParseError(nodeErr.message); return; }
           fileError('', 'parse', nodeErr.message);
         } else if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'write', nodeErr.message);
@@ -161,7 +170,8 @@ export function registerMissionCommands(program: Command): void {
     .command('write-brief')
     .description('Write design-brief.json with schema validation (JSON via stdin)')
     .requiredOption('--id <mission-id>', 'Mission identifier')
-    .action((opts: { id: string }) => {
+    .option('--dry-run', 'Validate input without writing files')
+    .action((opts: { id: string; dryRun?: boolean }) => {
       try {
         validateIdentifier(opts.id, 'mission ID');
         const cwd = getCwd(cmd);
@@ -181,6 +191,12 @@ export function registerMissionCommands(program: Command): void {
 
         // Inject envelope fields (version, artifact_type, producer_type, artifact_id)
         injectEnvelope('design_brief', data, { mission_id: opts.id });
+
+        // --dry-run: validate and exit without writing
+        if (opts.dryRun) {
+          dryRunGuard(true, data, 'design-brief');
+          return;
+        }
 
         // Validate against design-brief schema
         const result = validate('design-brief', data);
@@ -202,6 +218,7 @@ export function registerMissionCommands(program: Command): void {
         if (nodeErr.code === 'NO_STDIN') {
           noStdinError('mission write', nodeErr.message);
         } else if (nodeErr.code === 'INVALID_JSON') {
+          if (opts.dryRun) { dryRunParseError(nodeErr.message); return; }
           fileError('', 'parse', nodeErr.message);
         } else if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'write', nodeErr.message);

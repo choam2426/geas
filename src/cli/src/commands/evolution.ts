@@ -11,6 +11,7 @@ import { validate } from '../lib/schema';
 import { success, validationError, fileError, noStdinError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
 import { readInputData } from '../lib/input';
+import { dryRunGuard, dryRunParseError } from '../lib/dry-run';
 
 const VALID_PHASES = ['specifying', 'building', 'polishing', 'evolving'];
 
@@ -25,7 +26,8 @@ export function registerEvolutionCommands(program: Command): void {
     .description('Write a gap assessment for a mission phase (JSON via stdin)')
     .requiredOption('--mission <mid>', 'Mission identifier')
     .requiredOption('--phase <phase>', 'Mission phase (e.g. building, polishing, evolving)')
-    .action((opts: { mission: string; phase: string }, actionCmd: Command) => {
+    .option('--dry-run', 'Validate input without writing files')
+    .action((opts: { mission: string; phase: string; dryRun?: boolean }, actionCmd: Command) => {
       try {
         const data = readInputData() as Record<string, unknown>;
         const cwd = getCwd(actionCmd);
@@ -38,6 +40,12 @@ export function registerEvolutionCommands(program: Command): void {
         }
 
         const missionDir = resolveMissionDir(geasDir, opts.mission);
+
+        // --dry-run: validate and exit without writing
+        if (opts.dryRun) {
+          dryRunGuard(true, data, 'gap-assessment');
+          return;
+        }
 
         const result = validate('gap-assessment', data);
         if (!result.valid) {
@@ -62,6 +70,7 @@ export function registerEvolutionCommands(program: Command): void {
         if (nodeErr.code === 'NO_STDIN') {
           noStdinError('gap-assessment', nodeErr.message);
         } else if (nodeErr.code === 'INVALID_JSON') {
+          if (opts.dryRun) { dryRunParseError(nodeErr.message); return; }
           fileError('', 'parse', nodeErr.message);
         } else if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'gap-assessment', nodeErr.message);
@@ -79,13 +88,20 @@ export function registerEvolutionCommands(program: Command): void {
     .command('rules-update')
     .description('Write a rules update artifact for a mission (JSON via stdin)')
     .requiredOption('--mission <mid>', 'Mission identifier')
-    .action((opts: { mission: string }, actionCmd: Command) => {
+    .option('--dry-run', 'Validate input without writing files')
+    .action((opts: { mission: string; dryRun?: boolean }, actionCmd: Command) => {
       try {
         const data = readInputData() as Record<string, unknown>;
         const cwd = getCwd(actionCmd);
         const geasDir = resolveGeasDir(cwd);
         validateIdentifier(opts.mission, 'mission');
         const missionDir = resolveMissionDir(geasDir, opts.mission);
+
+        // --dry-run: validate and exit without writing
+        if (opts.dryRun) {
+          dryRunGuard(true, data, 'rules-update');
+          return;
+        }
 
         const result = validate('rules-update', data);
         if (!result.valid) {
@@ -109,6 +125,7 @@ export function registerEvolutionCommands(program: Command): void {
         if (nodeErr.code === 'NO_STDIN') {
           noStdinError('rules-update', nodeErr.message);
         } else if (nodeErr.code === 'INVALID_JSON') {
+          if (opts.dryRun) { dryRunParseError(nodeErr.message); return; }
           fileError('', 'parse', nodeErr.message);
         } else if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'rules-update', nodeErr.message);

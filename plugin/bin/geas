@@ -12193,6 +12193,50 @@ function injectEnvelope(artifactType, data, context) {
   return data;
 }
 
+// src/lib/dry-run.ts
+function dryRunGuard(dryRun, data, schemaName) {
+  if (!dryRun) return;
+  if (schemaName === null) {
+    const result = {
+      dry_run: true,
+      valid: true,
+      schema: null,
+      note: "no schema validation for this command"
+    };
+    process.stdout.write(JSON.stringify(result) + "\n");
+    process.exit(0);
+    return;
+  }
+  const validation = validate(schemaName, data);
+  if (validation.valid) {
+    const result = {
+      dry_run: true,
+      valid: true,
+      schema: schemaName
+    };
+    process.stdout.write(JSON.stringify(result) + "\n");
+    process.exit(0);
+  } else {
+    const result = {
+      dry_run: true,
+      valid: false,
+      schema: schemaName,
+      errors: validation.errors || []
+    };
+    process.stdout.write(JSON.stringify(result) + "\n");
+    process.exit(1);
+  }
+}
+function dryRunParseError(errorMessage) {
+  const result = {
+    dry_run: true,
+    valid: false,
+    error: errorMessage
+  };
+  process.stdout.write(JSON.stringify(result) + "\n");
+  process.exit(1);
+}
+
 // src/commands/mission.ts
 function generateMissionId() {
   const now = /* @__PURE__ */ new Date();
@@ -12260,7 +12304,7 @@ function registerMissionCommands(program2) {
       }
     }
   });
-  cmd.command("write-spec").description("Write spec.json with schema validation (JSON via stdin)").requiredOption("--id <mission-id>", "Mission identifier").action((opts) => {
+  cmd.command("write-spec").description("Write spec.json with schema validation (JSON via stdin)").requiredOption("--id <mission-id>", "Mission identifier").option("--dry-run", "Validate input without writing files").action((opts) => {
     try {
       validateIdentifier(opts.id, "mission ID");
       const cwd = getCwd(cmd);
@@ -12276,6 +12320,10 @@ function registerMissionCommands(program2) {
       }
       const data = readInputData();
       injectEnvelope("mission_spec", data, { mission_id: opts.id });
+      if (opts.dryRun) {
+        dryRunGuard(true, data, "mission-spec");
+        return;
+      }
       const result = validate("mission-spec", data);
       if (!result.valid) {
         validationError("mission-spec", result.errors);
@@ -12293,6 +12341,10 @@ function registerMissionCommands(program2) {
       if (nodeErr.code === "NO_STDIN") {
         noStdinError("mission write", nodeErr.message);
       } else if (nodeErr.code === "INVALID_JSON") {
+        if (opts.dryRun) {
+          dryRunParseError(nodeErr.message);
+          return;
+        }
         fileError("", "parse", nodeErr.message);
       } else if (nodeErr.code === "FILE_ERROR") {
         fileError("", "write", nodeErr.message);
@@ -12301,7 +12353,7 @@ function registerMissionCommands(program2) {
       }
     }
   });
-  cmd.command("write-brief").description("Write design-brief.json with schema validation (JSON via stdin)").requiredOption("--id <mission-id>", "Mission identifier").action((opts) => {
+  cmd.command("write-brief").description("Write design-brief.json with schema validation (JSON via stdin)").requiredOption("--id <mission-id>", "Mission identifier").option("--dry-run", "Validate input without writing files").action((opts) => {
     try {
       validateIdentifier(opts.id, "mission ID");
       const cwd = getCwd(cmd);
@@ -12317,6 +12369,10 @@ function registerMissionCommands(program2) {
       }
       const data = readInputData();
       injectEnvelope("design_brief", data, { mission_id: opts.id });
+      if (opts.dryRun) {
+        dryRunGuard(true, data, "design-brief");
+        return;
+      }
       const result = validate("design-brief", data);
       if (!result.valid) {
         validationError("design-brief", result.errors);
@@ -12334,6 +12390,10 @@ function registerMissionCommands(program2) {
       if (nodeErr.code === "NO_STDIN") {
         noStdinError("mission write", nodeErr.message);
       } else if (nodeErr.code === "INVALID_JSON") {
+        if (opts.dryRun) {
+          dryRunParseError(nodeErr.message);
+          return;
+        }
         fileError("", "parse", nodeErr.message);
       } else if (nodeErr.code === "FILE_ERROR") {
         fileError("", "write", nodeErr.message);
@@ -12722,7 +12782,7 @@ function resolveMissionId(geasDir2, missionOpt) {
 }
 function registerTaskCommands(program2) {
   const cmd = program2.command("task").description("Task CRUD (contracts, status transitions, execution record)");
-  cmd.command("create").description("Create a task contract with schema validation (JSON via stdin)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").action((opts) => {
+  cmd.command("create").description("Create a task contract with schema validation (JSON via stdin)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").option("--dry-run", "Validate input without writing files").action((opts) => {
     try {
       const cwd = getCwd(cmd);
       const geasDir2 = resolveGeasDir(cwd);
@@ -12733,6 +12793,10 @@ function registerTaskCommands(program2) {
       injectEnvelope("task_contract", data);
       if (!data.status || data.status !== "drafted") {
         data.status = "drafted";
+      }
+      if (opts.dryRun) {
+        dryRunGuard(true, data, "task-contract");
+        return;
       }
       const result = validate("task-contract", data);
       if (!result.valid) {
@@ -12770,6 +12834,10 @@ function registerTaskCommands(program2) {
       if (nodeErr.code === "NO_STDIN") {
         noStdinError("task create", nodeErr.message);
       } else if (nodeErr.code === "INVALID_JSON") {
+        if (opts.dryRun) {
+          dryRunParseError(nodeErr.message);
+          return;
+        }
         fileError("", "parse", nodeErr.message);
       } else if (nodeErr.code === "FILE_ERROR") {
         fileError("", "create", nodeErr.message);
@@ -12925,7 +12993,7 @@ function registerTaskCommands(program2) {
     }
   });
   const record = cmd.command("record").description("Task execution record (record.json) management");
-  record.command("add").description("Add or overwrite a section in record.json (JSON via stdin and/or --set)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--task <task-id>", "Task identifier").requiredOption("--section <name>", `Section name (${VALID_SECTIONS.join(", ")})`).option("--set <key=value...>", "Set individual fields", collectSet, []).action((opts) => {
+  record.command("add").description("Add or overwrite a section in record.json (JSON via stdin and/or --set)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--task <task-id>", "Task identifier").requiredOption("--section <name>", `Section name (${VALID_SECTIONS.join(", ")})`).option("--set <key=value...>", "Set individual fields", collectSet, []).option("--dry-run", "Validate input without writing files").action((opts) => {
     try {
       const cwd = getCwd(cmd);
       const geasDir2 = resolveGeasDir(cwd);
@@ -12950,6 +13018,10 @@ function registerTaskCommands(program2) {
         if (rnErr.code === "NO_STDIN") {
           sectionData = void 0;
         } else if (rnErr.code === "INVALID_JSON") {
+          if (opts.dryRun) {
+            dryRunParseError(rnErr.message);
+            return;
+          }
           fileError("", "parse", rnErr.message);
           return;
         } else {
@@ -12981,6 +13053,10 @@ function registerTaskCommands(program2) {
         record2[opts.section] = { ...existing, ...sectionData };
       } else {
         record2[opts.section] = sectionData;
+      }
+      if (opts.dryRun) {
+        dryRunGuard(true, record2, "record");
+        return;
       }
       const result = validate("record", record2);
       if (!result.valid) {
@@ -13064,7 +13140,7 @@ function resolveMissionId2(geasDir2, missionOpt) {
 var SAFE_AGENT_RE = /^[a-zA-Z0-9_-]+$/;
 function registerEvidenceCommands(program2) {
   const cmd = program2.command("evidence").description("Role-based evidence file management");
-  cmd.command("add").description("Create or overwrite a role-based evidence file (JSON via stdin and/or --set)").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").option("--task <tid>", "Task identifier (use --phase for phase-level evidence)").option("--phase <phase>", "Phase name for mission-level evidence (polishing, evolving)").requiredOption("--agent <name>", "Agent name (used as filename)").requiredOption("--role <role>", "Agent role (implementer, reviewer, tester, authority)").option("--set <key=value...>", "Set individual fields", collectSet2, []).action((opts) => {
+  cmd.command("add").description("Create or overwrite a role-based evidence file (JSON via stdin and/or --set)").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").option("--task <tid>", "Task identifier (use --phase for phase-level evidence)").option("--phase <phase>", "Phase name for mission-level evidence (polishing, evolving)").requiredOption("--agent <name>", "Agent name (used as filename)").requiredOption("--role <role>", "Agent role (implementer, reviewer, tester, authority)").option("--set <key=value...>", "Set individual fields", collectSet2, []).option("--dry-run", "Validate input without writing files").action((opts) => {
     try {
       const cwd = getCwd(cmd);
       const geasDir2 = resolveGeasDir(cwd);
@@ -13092,6 +13168,10 @@ function registerEvidenceCommands(program2) {
         if (rnErr.code === "NO_STDIN") {
           evidenceData = void 0;
         } else if (rnErr.code === "INVALID_JSON") {
+          if (opts.dryRun) {
+            dryRunParseError(rnErr.message);
+            return;
+          }
           fileError("", "parse", rnErr.message);
           return;
         } else {
@@ -13117,6 +13197,10 @@ function registerEvidenceCommands(program2) {
       evidenceData.agent = agentName;
       evidenceData.task_id = opts.task || opts.phase;
       evidenceData.role = opts.role;
+      if (opts.dryRun) {
+        dryRunGuard(true, evidenceData, "evidence");
+        return;
+      }
       const result = validate("evidence", evidenceData);
       if (!result.valid) {
         validationError("evidence", result.errors || []);
@@ -13790,7 +13874,7 @@ function registerContextCommands(program2) {
 var path14 = __toESM(require("path"));
 function registerRecoveryCommands(program2) {
   const cmd = program2.command("recovery").description("Recovery packet and session management");
-  cmd.command("write").description("Write a recovery packet (JSON via stdin)").action((_opts, cmd2) => {
+  cmd.command("write").description("Write a recovery packet (JSON via stdin)").option("--dry-run", "Validate input without writing files").action((_opts, cmd2) => {
     try {
       const data = readInputData();
       const cwd = getCwd(cmd2);
@@ -13801,6 +13885,10 @@ function registerRecoveryCommands(program2) {
         return;
       }
       validateIdentifier(recoveryId, "recovery_id");
+      if (_opts.dryRun) {
+        dryRunGuard(true, data, "recovery-packet");
+        return;
+      }
       const result = validate("recovery-packet", data);
       if (!result.valid) {
         validationError("recovery-packet", result.errors || []);
@@ -13821,6 +13909,10 @@ function registerRecoveryCommands(program2) {
         return;
       }
       if (nodeErr.code === "INVALID_JSON") {
+        if (_opts.dryRun) {
+          dryRunParseError(nodeErr.message);
+          return;
+        }
         fileError("recovery/", "parse", nodeErr.message);
         return;
       }
@@ -13992,7 +14084,7 @@ var transitionGuards = {
 // src/commands/phase.ts
 function registerPhaseCommands(program2) {
   const cmd = program2.command("phase").description("Phase review read/write");
-  cmd.command("write").description("Write a phase review (JSON via stdin)").requiredOption("--mission <mid>", "Mission ID").action((opts, cmd2) => {
+  cmd.command("write").description("Write a phase review (JSON via stdin)").requiredOption("--mission <mid>", "Mission ID").option("--dry-run", "Validate input without writing files").action((opts, cmd2) => {
     try {
       const data = readInputData();
       const cwd = getCwd(cmd2);
@@ -14034,6 +14126,10 @@ function registerPhaseCommands(program2) {
           return;
         }
       }
+      if (opts.dryRun) {
+        dryRunGuard(true, data, "phase-review");
+        return;
+      }
       const phase = data.mission_phase || "unknown";
       const status = data.status || "unknown";
       const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z").replace(/:/g, "-");
@@ -14054,6 +14150,10 @@ function registerPhaseCommands(program2) {
         return;
       }
       if (nodeErr.code === "INVALID_JSON") {
+        if (opts.dryRun) {
+          dryRunParseError(nodeErr.message);
+          return;
+        }
         fileError("phase-reviews/", "parse", nodeErr.message);
         return;
       }
@@ -14107,7 +14207,7 @@ var fs14 = __toESM(require("fs"));
 var path17 = __toESM(require("path"));
 function registerDecisionCommands(program2) {
   const cmd = program2.command("decision").description("Decision record read/write");
-  cmd.command("write").description("Write a decision record (JSON via stdin)").requiredOption("--mission <mid>", "Mission identifier").action((opts, cmd2) => {
+  cmd.command("write").description("Write a decision record (JSON via stdin)").requiredOption("--mission <mid>", "Mission identifier").option("--dry-run", "Validate input without writing files").action((opts, cmd2) => {
     try {
       let decisionData;
       try {
@@ -14119,13 +14219,25 @@ function registerDecisionCommands(program2) {
           return;
         }
         if (rnErr.code === "INVALID_JSON") {
+          if (opts.dryRun) {
+            dryRunParseError(rnErr.message);
+            return;
+          }
           fileError("", "parse", rnErr.message);
           return;
         }
         throw readErr;
       }
       if (typeof decisionData !== "object" || decisionData === null || Array.isArray(decisionData)) {
+        if (opts.dryRun) {
+          dryRunParseError("stdin JSON must be an object");
+          return;
+        }
         fileError("", "parse", "stdin JSON must be an object");
+        return;
+      }
+      if (opts.dryRun) {
+        dryRunGuard(true, decisionData, null);
         return;
       }
       const cwd = getCwd(cmd2);
@@ -14561,7 +14673,7 @@ var path19 = __toESM(require("path"));
 var VALID_PHASES = ["specifying", "building", "polishing", "evolving"];
 function registerEvolutionCommands(program2) {
   const cmd = program2.command("evolution").description("Evolution phase artifacts (gap-assessment, rules-update)");
-  cmd.command("gap-assessment").description("Write a gap assessment for a mission phase (JSON via stdin)").requiredOption("--mission <mid>", "Mission identifier").requiredOption("--phase <phase>", "Mission phase (e.g. building, polishing, evolving)").action((opts, actionCmd) => {
+  cmd.command("gap-assessment").description("Write a gap assessment for a mission phase (JSON via stdin)").requiredOption("--mission <mid>", "Mission identifier").requiredOption("--phase <phase>", "Mission phase (e.g. building, polishing, evolving)").option("--dry-run", "Validate input without writing files").action((opts, actionCmd) => {
     try {
       const data = readInputData();
       const cwd = getCwd(actionCmd);
@@ -14572,6 +14684,10 @@ function registerEvolutionCommands(program2) {
         return;
       }
       const missionDir = resolveMissionDir(geasDir2, opts.mission);
+      if (opts.dryRun) {
+        dryRunGuard(true, data, "gap-assessment");
+        return;
+      }
       const result = validate("gap-assessment", data);
       if (!result.valid) {
         validationError("gap-assessment", result.errors || []);
@@ -14593,6 +14709,10 @@ function registerEvolutionCommands(program2) {
       if (nodeErr.code === "NO_STDIN") {
         noStdinError("gap-assessment", nodeErr.message);
       } else if (nodeErr.code === "INVALID_JSON") {
+        if (opts.dryRun) {
+          dryRunParseError(nodeErr.message);
+          return;
+        }
         fileError("", "parse", nodeErr.message);
       } else if (nodeErr.code === "FILE_ERROR") {
         fileError("", "gap-assessment", nodeErr.message);
@@ -14602,13 +14722,17 @@ function registerEvolutionCommands(program2) {
       }
     }
   });
-  cmd.command("rules-update").description("Write a rules update artifact for a mission (JSON via stdin)").requiredOption("--mission <mid>", "Mission identifier").action((opts, actionCmd) => {
+  cmd.command("rules-update").description("Write a rules update artifact for a mission (JSON via stdin)").requiredOption("--mission <mid>", "Mission identifier").option("--dry-run", "Validate input without writing files").action((opts, actionCmd) => {
     try {
       const data = readInputData();
       const cwd = getCwd(actionCmd);
       const geasDir2 = resolveGeasDir(cwd);
       validateIdentifier(opts.mission, "mission");
       const missionDir = resolveMissionDir(geasDir2, opts.mission);
+      if (opts.dryRun) {
+        dryRunGuard(true, data, "rules-update");
+        return;
+      }
       const result = validate("rules-update", data);
       if (!result.valid) {
         validationError("rules-update", result.errors || []);
@@ -14629,6 +14753,10 @@ function registerEvolutionCommands(program2) {
       if (nodeErr.code === "NO_STDIN") {
         noStdinError("rules-update", nodeErr.message);
       } else if (nodeErr.code === "INVALID_JSON") {
+        if (opts.dryRun) {
+          dryRunParseError(nodeErr.message);
+          return;
+        }
         fileError("", "parse", nodeErr.message);
       } else if (nodeErr.code === "FILE_ERROR") {
         fileError("", "rules-update", nodeErr.message);
