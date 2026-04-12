@@ -14746,6 +14746,25 @@ var ISO_PATTERN = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$";
 function listSchemas() {
   return Object.keys(SCHEMAS).sort();
 }
+var ENVELOPE_FIELDS = /* @__PURE__ */ new Set([
+  "version",
+  "artifact_type",
+  "producer_type",
+  "artifact_id",
+  "created_at",
+  "updated_at"
+]);
+var CLI_FLAG_FIELDS = /* @__PURE__ */ new Set([
+  "agent",
+  "task_id",
+  "role"
+]);
+function listRecordSections() {
+  const schema = SCHEMAS["record"];
+  if (!schema?.properties) return [];
+  const props = schema.properties;
+  return Object.keys(props).filter((k) => !ENVELOPE_FIELDS.has(k) && !CLI_FLAG_FIELDS.has(k)).sort();
+}
 function generateTemplate(schemaName, options) {
   const schema = SCHEMAS[schemaName];
   if (!schema) {
@@ -14754,11 +14773,37 @@ function generateTemplate(schemaName, options) {
       `Unknown schema type '${schemaName}'. Available: ${available.join(", ")}`
     );
   }
+  if (options?.section) {
+    if (schemaName !== "record") {
+      throw new Error(
+        `--section is only valid for 'record' schema, not '${schemaName}'`
+      );
+    }
+    const props = schema.properties;
+    const sectionSchema = props?.[options.section];
+    if (!sectionSchema) {
+      const validSections = listRecordSections();
+      throw new Error(
+        `Unknown record section '${options.section}'. Valid sections: ${validSections.join(", ")}`
+      );
+    }
+    const resolved = resolveRef(sectionSchema, schema);
+    if (resolved.type === "object" || resolved.properties) {
+      const sectionRequired = new Set(resolved.required || []);
+      return generateObject(resolved, sectionRequired, schema, 0);
+    }
+    return {};
+  }
   const rootSchema = schema;
   const requiredSet = resolveRequired(rootSchema, options?.role);
   const result = generateObject(rootSchema, requiredSet, rootSchema, 0);
   if (options?.role && "role" in result) {
     result.role = options.role;
+  }
+  const shouldStrip = options?.stripEnvelope !== false;
+  if (shouldStrip) {
+    for (const field of ENVELOPE_FIELDS) delete result[field];
+    for (const field of CLI_FLAG_FIELDS) delete result[field];
   }
   return result;
 }
@@ -14868,10 +14913,21 @@ function registerSchemaCommands(program2) {
   schema.command("list").description("List all available schema types").action(() => {
     success(listSchemas());
   });
-  schema.command("template <type>").description("Generate a fill-in JSON template for a schema type").option("--role <role>", "Role variant (for evidence schema)").action((type, opts) => {
+  schema.command("template <type>").description("Generate a fill-in JSON template for a schema type").option("--role <role>", "Role variant (for evidence schema)").option("--strip-envelope", "Remove auto-injected envelope/CLI fields (default: true)").option("--no-strip-envelope", "Keep auto-injected envelope/CLI fields").option("--section <name>", "Extract a record section sub-schema").option("--pretty", "Pretty-print JSON output (default: false)").action((type, opts) => {
     try {
-      const template = generateTemplate(type, { role: opts.role });
-      success(template);
+      const templateOpts = {
+        role: opts.role,
+        stripEnvelope: opts.stripEnvelope,
+        section: opts.section,
+        pretty: opts.pretty
+      };
+      const template = generateTemplate(type, templateOpts);
+      if (opts.pretty) {
+        process.stdout.write(JSON.stringify(template, null, 2) + "\n");
+        process.exit(0);
+      } else {
+        success(template);
+      }
     } catch (err) {
       const msg = {
         error: err.message,
@@ -14880,6 +14936,9 @@ function registerSchemaCommands(program2) {
       process.stderr.write(JSON.stringify(msg) + "\n");
       process.exit(1);
     }
+  });
+  schema.command("sections").description("List valid record section names").action(() => {
+    success(listRecordSections());
   });
 }
 

@@ -25,9 +25,46 @@ export function listSchemas(): string[] {
  *
  * For evidence schema, pass options.role to merge conditional requirements.
  */
+/**
+ * Fields auto-injected by the CLI envelope or timestamp logic.
+ * Stripped by default when generating pipe-ready templates.
+ */
+const ENVELOPE_FIELDS = new Set([
+  'version', 'artifact_type', 'producer_type', 'artifact_id',
+  'created_at', 'updated_at',
+]);
+
+/**
+ * Fields that are force-set from CLI flags (not from stdin JSON).
+ * Stripped by default so pipe templates don't include them.
+ */
+const CLI_FLAG_FIELDS = new Set([
+  'agent', 'task_id', 'role',
+]);
+
+export interface TemplateOptions {
+  role?: string;
+  stripEnvelope?: boolean;
+  section?: string;
+  pretty?: boolean;
+}
+
+/**
+ * List valid record section names by inspecting the record schema properties.
+ * Sections are top-level properties that are objects (not envelope fields).
+ */
+export function listRecordSections(): string[] {
+  const schema = SCHEMAS['record'] as SchemaNode | undefined;
+  if (!schema?.properties) return [];
+  const props = schema.properties as Record<string, SchemaNode>;
+  return Object.keys(props)
+    .filter(k => !ENVELOPE_FIELDS.has(k) && !CLI_FLAG_FIELDS.has(k))
+    .sort();
+}
+
 export function generateTemplate(
   schemaName: string,
-  options?: { role?: string },
+  options?: TemplateOptions,
 ): object {
   const schema = SCHEMAS[schemaName] as SchemaNode | undefined;
   if (!schema) {
@@ -35,6 +72,30 @@ export function generateTemplate(
     throw new Error(
       `Unknown schema type '${schemaName}'. Available: ${available.join(', ')}`,
     );
+  }
+
+  // --section: extract a sub-schema from record
+  if (options?.section) {
+    if (schemaName !== 'record') {
+      throw new Error(
+        `--section is only valid for 'record' schema, not '${schemaName}'`,
+      );
+    }
+    const props = schema.properties as Record<string, SchemaNode> | undefined;
+    const sectionSchema = props?.[options.section];
+    if (!sectionSchema) {
+      const validSections = listRecordSections();
+      throw new Error(
+        `Unknown record section '${options.section}'. Valid sections: ${validSections.join(', ')}`,
+      );
+    }
+    // Generate template for just this section sub-schema
+    const resolved = resolveRef(sectionSchema, schema);
+    if (resolved.type === 'object' || resolved.properties) {
+      const sectionRequired = new Set<string>((resolved.required as string[]) || []);
+      return generateObject(resolved, sectionRequired, schema, 0);
+    }
+    return {};
   }
 
   const rootSchema = schema;
@@ -45,6 +106,13 @@ export function generateTemplate(
   // Override role field with the provided --role value
   if (options?.role && 'role' in result) {
     result.role = options.role;
+  }
+
+  // Strip envelope + CLI-flag fields by default (opt out with stripEnvelope=false)
+  const shouldStrip = options?.stripEnvelope !== false;
+  if (shouldStrip) {
+    for (const field of ENVELOPE_FIELDS) delete result[field];
+    for (const field of CLI_FLAG_FIELDS) delete result[field];
   }
 
   return result;
