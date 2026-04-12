@@ -16,7 +16,7 @@ import { validate } from '../lib/schema';
 import { success, validationError, fileError, noStdinError } from '../lib/output';
 import { validateTransition } from '../lib/transition-guards';
 import { getCwd } from '../lib/cwd';
-import { readInputData, parseSetFlags } from '../lib/input';
+import { readInputData, parseSetFlags, deepMergeSetOverrides } from '../lib/input';
 import { injectEnvelope } from '../lib/envelope';
 
 // ── State transition validation ─────────────────────────────────────
@@ -411,8 +411,9 @@ export function registerTaskCommands(program: Command): void {
         if (opts.set.length > 0) {
           const overrides = parseSetFlags(opts.set);
           if (sectionData) {
-            // stdin-base + --set overlay: shallow merge, --set wins per key.
-            Object.assign(sectionData, overrides);
+            // stdin-base + --set overlay: deep merge so nested dot-path fields
+            // don't clobber sibling keys in the base object.
+            deepMergeSetOverrides(sectionData, overrides);
           } else {
             sectionData = overrides;
           }

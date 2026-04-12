@@ -150,18 +150,135 @@ export function readInputData(): unknown {
 // Block prototype pollution keys
 const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
+/** Maximum allowed depth for dot-path --set keys. */
+const MAX_SET_DEPTH = 10;
+
 /**
- * Parse --set flags into a flat key-value object.
- * Supports simple keys and array notation:
+ * A single segment of a dot-path key.
+ * - `type: 'key'`   → bare object key, e.g. `foo`
+ * - `type: 'index'` → array bracket, e.g. `foo[2]` → name='foo', idx=2
+ */
+type Segment =
+  | { type: 'key'; name: string }
+  | { type: 'index'; name: string; idx: number };
+
+/**
+ * Split a dot-path key string into typed segments.
+ *
+ * Examples:
+ *   'a.b.c'       → [{key,'a'},{key,'b'},{key,'c'}]
+ *   'a.b[0].c'    → [{key,'a'},{index,'b',0},{key,'c'}]
+ *   'items[2]'    → [{index,'items',2}]
+ *
+ * Rejects empty segments (leading/trailing/consecutive dots).
+ * Rejects depth > MAX_SET_DEPTH.
+ * Returns null if any segment name is in DANGEROUS_KEYS (silent skip).
+ */
+function parseSegments(key: string): Segment[] | null {
+  const parts = key.split('.');
+
+  if (parts.length > MAX_SET_DEPTH) {
+    throw new Error(
+      `--set key "${key}" exceeds maximum depth of ${MAX_SET_DEPTH} segments`,
+    );
+  }
+
+  const segments: Segment[] = [];
+
+  for (const part of parts) {
+    if (part === '') {
+      throw new Error(
+        `--set key "${key}" contains an empty segment (leading, trailing, or consecutive dots)`,
+      );
+    }
+
+    // Check for bracket notation: name[digits]
+    const bracketMatch = part.match(/^(.+?)\[(\d+)\]$/);
+    if (bracketMatch) {
+      const name = bracketMatch[1];
+      if (DANGEROUS_KEYS.has(name)) return null;
+      const idx = parseInt(bracketMatch[2], 10);
+      segments.push({ type: 'index', name, idx });
+    } else {
+      if (DANGEROUS_KEYS.has(part)) return null;
+      segments.push({ type: 'key', name: part });
+    }
+  }
+
+  return segments;
+}
+
+/**
+ * Walk/create a nested object/array tree along `segments` and assign `value`
+ * at the leaf.
+ */
+function setNestedValue(
+  root: Record<string, unknown>,
+  segments: Segment[],
+  value: unknown,
+): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let current: any = root;
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const isLast = i === segments.length - 1;
+
+    if (seg.type === 'index') {
+      // Ensure parent[seg.name] is an array
+      if (!Array.isArray(current[seg.name])) {
+        current[seg.name] = [];
+      }
+      if (isLast) {
+        (current[seg.name] as unknown[])[seg.idx] = value;
+      } else {
+        // Need to descend into the array element
+        const arr = current[seg.name] as unknown[];
+        const next = segments[i + 1];
+        if (arr[seg.idx] == null || typeof arr[seg.idx] !== 'object') {
+          // Create the right container type for the next segment
+          arr[seg.idx] =
+            next.type === 'index'
+              ? {}
+              : {};
+        }
+        current = arr[seg.idx];
+        // Skip to the next segment — we've already descended into the array element
+        // The for-loop will advance i, so the next iteration handles the segment after this one
+      }
+    } else {
+      // type === 'key'
+      if (isLast) {
+        current[seg.name] = value;
+      } else {
+        // Need to descend; ensure an object container exists
+        const next = segments[i + 1];
+        if (current[seg.name] == null || typeof current[seg.name] !== 'object' || Array.isArray(current[seg.name])) {
+          current[seg.name] =
+            next.type === 'index'
+              ? {}
+              : {};
+        }
+        current = current[seg.name];
+      }
+    }
+  }
+}
+
+/**
+ * Parse --set flags into a (possibly nested) key-value object.
+ * Supports simple keys, array notation, and dot-path nesting:
  *   --set confidence=4
  *   --set "summary=Build passed"
  *   --set "known_risks[0]=FTS5 issue"
+ *   --set "self_check.confidence=4"
+ *   --set "a.b[0].c=value"
  *
  * @param setArgs - Array of "key=value" strings
  * @returns Object with parsed values (numbers auto-detected)
  */
 export function parseSetFlags(setArgs: string[]): Record<string, unknown> {
-  const result: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+  const result: Record<string, unknown> = {} as Record<string, unknown>;
 
   for (const arg of setArgs) {
     const eqIdx = arg.indexOf('=');
@@ -170,27 +287,53 @@ export function parseSetFlags(setArgs: string[]): Record<string, unknown> {
     const key = arg.substring(0, eqIdx).trim();
     const rawValue = arg.substring(eqIdx + 1);
 
-    if (DANGEROUS_KEYS.has(key)) continue;
-
     // Auto-detect types
     const value = coerceValue(rawValue);
 
-    // Handle array notation: key[0] = val
-    const arrMatch = key.match(/^(.+?)\[(\d+)\]$/);
-    if (arrMatch) {
-      const arrKey = arrMatch[1];
-      if (DANGEROUS_KEYS.has(arrKey)) continue;
-      const idx = parseInt(arrMatch[2], 10);
-      if (!Array.isArray(result[arrKey])) {
-        result[arrKey] = [];
-      }
-      (result[arrKey] as unknown[])[idx] = value;
-    } else {
-      result[key] = value;
-    }
+    // Parse dot-path segments; null means a dangerous key was found (skip silently)
+    const segments = parseSegments(key);
+    if (segments === null) continue;
+
+    setNestedValue(result, segments, value);
   }
 
   return result;
+}
+
+/**
+ * Deep-merge `overrides` into `base`, returning the mutated `base`.
+ *
+ * - Plain objects are recursively merged (override keys win).
+ * - Arrays and non-object values in overrides overwrite base entirely.
+ * - This replaces Object.assign for --set merging so that nested dot-path
+ *   fields don't clobber sibling keys in the base object.
+ */
+export function deepMergeSetOverrides(
+  base: Record<string, unknown>,
+  overrides: Record<string, unknown>,
+): Record<string, unknown> {
+  for (const key of Object.keys(overrides)) {
+    const ov = overrides[key];
+    const bv = base[key];
+
+    if (
+      ov != null &&
+      typeof ov === 'object' &&
+      !Array.isArray(ov) &&
+      bv != null &&
+      typeof bv === 'object' &&
+      !Array.isArray(bv)
+    ) {
+      // Both sides are plain objects — recurse
+      deepMergeSetOverrides(
+        bv as Record<string, unknown>,
+        ov as Record<string, unknown>,
+      );
+    } else {
+      base[key] = ov;
+    }
+  }
+  return base;
 }
 
 /** Auto-coerce string values to appropriate types. */

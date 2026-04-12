@@ -12048,29 +12048,94 @@ function readInputData() {
   }
 }
 var DANGEROUS_KEYS = /* @__PURE__ */ new Set(["__proto__", "constructor", "prototype"]);
+var MAX_SET_DEPTH = 10;
+function parseSegments(key) {
+  const parts = key.split(".");
+  if (parts.length > MAX_SET_DEPTH) {
+    throw new Error(
+      `--set key "${key}" exceeds maximum depth of ${MAX_SET_DEPTH} segments`
+    );
+  }
+  const segments = [];
+  for (const part of parts) {
+    if (part === "") {
+      throw new Error(
+        `--set key "${key}" contains an empty segment (leading, trailing, or consecutive dots)`
+      );
+    }
+    const bracketMatch = part.match(/^(.+?)\[(\d+)\]$/);
+    if (bracketMatch) {
+      const name = bracketMatch[1];
+      if (DANGEROUS_KEYS.has(name)) return null;
+      const idx = parseInt(bracketMatch[2], 10);
+      segments.push({ type: "index", name, idx });
+    } else {
+      if (DANGEROUS_KEYS.has(part)) return null;
+      segments.push({ type: "key", name: part });
+    }
+  }
+  return segments;
+}
+function setNestedValue(root, segments, value) {
+  let current = root;
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const isLast = i === segments.length - 1;
+    if (seg.type === "index") {
+      if (!Array.isArray(current[seg.name])) {
+        current[seg.name] = [];
+      }
+      if (isLast) {
+        current[seg.name][seg.idx] = value;
+      } else {
+        const arr = current[seg.name];
+        const next = segments[i + 1];
+        if (arr[seg.idx] == null || typeof arr[seg.idx] !== "object") {
+          arr[seg.idx] = next.type === "index" ? {} : {};
+        }
+        current = arr[seg.idx];
+      }
+    } else {
+      if (isLast) {
+        current[seg.name] = value;
+      } else {
+        const next = segments[i + 1];
+        if (current[seg.name] == null || typeof current[seg.name] !== "object" || Array.isArray(current[seg.name])) {
+          current[seg.name] = next.type === "index" ? {} : {};
+        }
+        current = current[seg.name];
+      }
+    }
+  }
+}
 function parseSetFlags(setArgs) {
-  const result = /* @__PURE__ */ Object.create(null);
+  const result = {};
   for (const arg of setArgs) {
     const eqIdx = arg.indexOf("=");
     if (eqIdx === -1) continue;
     const key = arg.substring(0, eqIdx).trim();
     const rawValue = arg.substring(eqIdx + 1);
-    if (DANGEROUS_KEYS.has(key)) continue;
     const value = coerceValue(rawValue);
-    const arrMatch = key.match(/^(.+?)\[(\d+)\]$/);
-    if (arrMatch) {
-      const arrKey = arrMatch[1];
-      if (DANGEROUS_KEYS.has(arrKey)) continue;
-      const idx = parseInt(arrMatch[2], 10);
-      if (!Array.isArray(result[arrKey])) {
-        result[arrKey] = [];
-      }
-      result[arrKey][idx] = value;
-    } else {
-      result[key] = value;
-    }
+    const segments = parseSegments(key);
+    if (segments === null) continue;
+    setNestedValue(result, segments, value);
   }
   return result;
+}
+function deepMergeSetOverrides(base, overrides) {
+  for (const key of Object.keys(overrides)) {
+    const ov = overrides[key];
+    const bv = base[key];
+    if (ov != null && typeof ov === "object" && !Array.isArray(ov) && bv != null && typeof bv === "object" && !Array.isArray(bv)) {
+      deepMergeSetOverrides(
+        bv,
+        ov
+      );
+    } else {
+      base[key] = ov;
+    }
+  }
+  return base;
 }
 function coerceValue(raw) {
   if (raw === "true") return true;
@@ -12894,7 +12959,7 @@ function registerTaskCommands(program2) {
       if (opts.set.length > 0) {
         const overrides = parseSetFlags(opts.set);
         if (sectionData) {
-          Object.assign(sectionData, overrides);
+          deepMergeSetOverrides(sectionData, overrides);
         } else {
           sectionData = overrides;
         }
@@ -13036,7 +13101,7 @@ function registerEvidenceCommands(program2) {
       if (opts.set.length > 0) {
         const overrides = parseSetFlags(opts.set);
         if (evidenceData) {
-          Object.assign(evidenceData, overrides);
+          deepMergeSetOverrides(evidenceData, overrides);
         } else {
           evidenceData = overrides;
         }

@@ -14,7 +14,7 @@ import { resolveGeasDir, normalizePath, validateIdentifier } from '../lib/paths'
 import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
 import { getCwd } from '../lib/cwd';
-import { readInputData, parseSetFlags } from '../lib/input';
+import { readInputData, parseSetFlags, deepMergeSetOverrides } from '../lib/input';
 
 /**
  * Resolve mission ID from --mission flag or run.json.
@@ -104,8 +104,9 @@ export function registerEvidenceCommands(program: Command): void {
         if (opts.set.length > 0) {
           const overrides = parseSetFlags(opts.set);
           if (evidenceData) {
-            // stdin-base + --set overlay: shallow merge, --set wins per key.
-            Object.assign(evidenceData, overrides);
+            // stdin-base + --set overlay: deep merge so nested dot-path fields
+            // don't clobber sibling keys in the base object.
+            deepMergeSetOverrides(evidenceData, overrides);
           } else {
             evidenceData = overrides;
           }

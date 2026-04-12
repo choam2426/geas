@@ -234,3 +234,161 @@ describe('parseSetFlags (regression smoke)', () => {
     assert.ok(!Object.prototype.hasOwnProperty.call(result, 'prototype'));
   });
 });
+
+describe('parseSetFlags (dot-path nesting)', () => {
+  it('2-level nesting: a.b=v', async () => {
+    const { parseSetFlags } = await import('../lib/input');
+    const result = parseSetFlags(['a.b=hello']);
+    assert.deepEqual(result, { a: { b: 'hello' } });
+  });
+
+  it('3-level nesting: a.b.c=v', async () => {
+    const { parseSetFlags } = await import('../lib/input');
+    const result = parseSetFlags(['a.b.c=42']);
+    assert.deepEqual(result, { a: { b: { c: 42 } } });
+  });
+
+  it('mixed dot-bracket: a.b[0].c=v', async () => {
+    const { parseSetFlags } = await import('../lib/input');
+    const result = parseSetFlags(['a.b[0].c=val']);
+    // a.b is an array, b[0] is an object with key c
+    const a = result.a as Record<string, unknown>;
+    const b = a.b as unknown[];
+    assert.ok(Array.isArray(b));
+    const elem = b[0] as Record<string, unknown>;
+    assert.equal(elem.c, 'val');
+  });
+
+  it('prototype pollution at nested segments: a.__proto__.b=v is skipped', async () => {
+    const { parseSetFlags } = await import('../lib/input');
+    const result = parseSetFlags(['a.__proto__.b=polluted', 'safe=yes']);
+    assert.equal(result.safe, 'yes');
+    // The entire key should be skipped
+    assert.ok(!Object.prototype.hasOwnProperty.call(result, 'a'));
+  });
+
+  it('prototype pollution: a.constructor=v is skipped', async () => {
+    const { parseSetFlags } = await import('../lib/input');
+    const result = parseSetFlags(['a.constructor=bad']);
+    assert.ok(!Object.prototype.hasOwnProperty.call(result, 'a'));
+  });
+
+  it('empty segment rejection: a..b=v throws', async () => {
+    const { parseSetFlags } = await import('../lib/input');
+    assert.throws(
+      () => parseSetFlags(['a..b=val']),
+      /empty segment/i,
+    );
+  });
+
+  it('empty segment rejection: leading dot .a=v throws', async () => {
+    const { parseSetFlags } = await import('../lib/input');
+    assert.throws(
+      () => parseSetFlags(['.a=val']),
+      /empty segment/i,
+    );
+  });
+
+  it('empty segment rejection: trailing dot a.=v throws', async () => {
+    const { parseSetFlags } = await import('../lib/input');
+    assert.throws(
+      () => parseSetFlags(['a.=val']),
+      /empty segment/i,
+    );
+  });
+
+  it('max depth rejection: 11 segments throws', async () => {
+    const { parseSetFlags } = await import('../lib/input');
+    const key = 'a.b.c.d.e.f.g.h.i.j.k=val'; // 11 segments
+    assert.throws(
+      () => parseSetFlags([key]),
+      /maximum depth/i,
+    );
+  });
+
+  it('exactly 10 segments succeeds (boundary)', async () => {
+    const { parseSetFlags } = await import('../lib/input');
+    const key = 'a.b.c.d.e.f.g.h.i.j=val'; // 10 segments
+    const result = parseSetFlags([key]);
+    // Verify we can reach the leaf
+    let cur: any = result;
+    for (const seg of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']) {
+      cur = cur[seg];
+      assert.ok(cur != null, `segment ${seg} should exist`);
+    }
+    assert.equal(cur.j, 'val');
+  });
+
+  it('backward-compat: flat keys still work', async () => {
+    const { parseSetFlags } = await import('../lib/input');
+    const result = parseSetFlags(['summary=hello', 'confidence=4']);
+    assert.equal(result.summary, 'hello');
+    assert.equal(result.confidence, 4);
+  });
+
+  it('backward-compat: bracket arrays still work', async () => {
+    const { parseSetFlags } = await import('../lib/input');
+    const result = parseSetFlags(['files[0]=a.ts', 'files[1]=b.ts']);
+    assert.deepEqual(result.files, ['a.ts', 'b.ts']);
+  });
+
+  it('multiple nested keys merge correctly', async () => {
+    const { parseSetFlags } = await import('../lib/input');
+    const result = parseSetFlags([
+      'self_check.confidence=4',
+      'self_check.known_risks[0]=none',
+      'summary=done',
+    ]);
+    const sc = result.self_check as Record<string, unknown>;
+    assert.equal(sc.confidence, 4);
+    assert.deepEqual(sc.known_risks, ['none']);
+    assert.equal(result.summary, 'done');
+  });
+
+  it('sparse arrays: a[2]=v creates sparse array', async () => {
+    const { parseSetFlags } = await import('../lib/input');
+    const result = parseSetFlags(['a[2]=val']);
+    const arr = result.a as unknown[];
+    assert.ok(Array.isArray(arr));
+    assert.equal(arr.length, 3);
+    assert.equal(arr[2], 'val');
+  });
+});
+
+describe('deepMergeSetOverrides', () => {
+  it('merges nested objects without clobbering siblings', async () => {
+    const { deepMergeSetOverrides } = await import('../lib/input');
+    const base = { a: { x: 1, y: 2 }, b: 'keep' };
+    const overrides = { a: { z: 3 } };
+    const result = deepMergeSetOverrides(
+      base as Record<string, unknown>,
+      overrides as Record<string, unknown>,
+    );
+    assert.deepEqual(result, { a: { x: 1, y: 2, z: 3 }, b: 'keep' });
+  });
+
+  it('overrides scalars win over base scalars', async () => {
+    const { deepMergeSetOverrides } = await import('../lib/input');
+    const base = { a: 1, b: 'old' };
+    const overrides = { a: 2, b: 'new' };
+    const result = deepMergeSetOverrides(base as any, overrides as any);
+    assert.equal(result.a, 2);
+    assert.equal(result.b, 'new');
+  });
+
+  it('arrays in overrides replace arrays in base', async () => {
+    const { deepMergeSetOverrides } = await import('../lib/input');
+    const base = { items: [1, 2, 3] };
+    const overrides = { items: [4, 5] };
+    const result = deepMergeSetOverrides(base as any, overrides as any);
+    assert.deepEqual(result.items, [4, 5]);
+  });
+
+  it('override object replaces base scalar', async () => {
+    const { deepMergeSetOverrides } = await import('../lib/input');
+    const base = { a: 'was string' };
+    const overrides = { a: { nested: true } };
+    const result = deepMergeSetOverrides(base as any, overrides as any);
+    assert.deepEqual(result.a, { nested: true });
+  });
+});
