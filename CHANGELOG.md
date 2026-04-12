@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file.
 
 > **Note**: Tags were restructured in v0.5.1. Previous major versions (v1.x, v2.x) have been flattened to v0.x.y to reflect that the project is pre-1.0.
 
+## [1.3.0] — 2026-04-12
+
+### Added
+- **Dot-path `--set` for nested fields** — `--set a.b.c=value` creates nested objects; `--set a.b[0].c=value` supports mixed dot-bracket paths. Max depth 10, prototype pollution blocked at all segments.
+- **`deepMergeSetOverrides` utility** — exported from `input.ts`, replaces `Object.assign` in `evidence add` and `task record add` callers to preserve sibling fields during nested `--set` overlay.
+- **Schema template pipe workflow** — `geas schema template` output pipes directly to write commands. New flags: `--strip-envelope` (default: true), `--section <name>` for record sub-schemas, `--pretty` for human-readable output. New subcommand: `geas schema sections`.
+- **`--dry-run` validation mode** — all 10 stdin-based write commands accept `--dry-run` to validate payloads without writing files. Structured JSON output with exit code 0 (valid) / 1 (invalid).
+- **Contract amendment mechanism** — pipeline.md documents 5 material change conditions, DA re-approval flow, and amendment recording via `implementation_contract.amendments[]` array.
+- 19 new tests for dot-path nesting (14), deep merge (4), dry-run (5); total 68 tests.
+
+### Changed
+- Pipeline.md workspace operations abstracted to domain-neutral language. Git-specific commands moved to blockquote implementation notes. Added Workspace Implementation Notes section mapping abstract operations to Doc 04 lifecycle phases.
+- Implementation-contract SKILL.md: added Amendment Flow section with 4-step process and Rule 6.
+- `plugin/bin/geas` bundle regenerated.
+
 ## [1.2.0] — 2026-04-11
 
 ### Changed
