@@ -14,9 +14,11 @@ EVERY task, regardless of dependencies or position in the batch, MUST execute AL
 
 Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
 
-## CLI Usage for Worktree Agents
+## CLI Usage for Workspace Agents
 
-Worktree-isolated agents can use `geas` commands directly. The CLI auto-detects the `.geas/` directory via `git rev-parse --show-toplevel`, so `--cwd` is not needed even in worktrees.
+Workspace-isolated agents can use `geas` commands directly. The CLI auto-detects the `.geas/` directory by traversing the workspace root, so `--cwd` is not needed even in isolated workspaces.
+
+> **Software domain (git):** The CLI uses `git rev-parse --show-toplevel` to locate the project root in git worktrees.
 
 ## Task File Precondition
 The TaskContract MUST be written to `.geas/missions/{mission_id}/tasks/{task-id}/contract.json` before the pipeline starts. Do NOT enter the pipeline without a task file on disk. This is required for closure validation and session recovery.
@@ -53,11 +55,13 @@ The TaskContract MUST be written to `.geas/missions/{mission_id}/tasks/{task-id}
 Before transitioning to `"implementing"`, check for staleness:
 
 1. Read `base_snapshot` from the TaskContract
-2. Get current integration branch tip: `git rev-parse HEAD`
+2. Get current integration baseline tip
 3. If `base_snapshot == tip`: no staleness, proceed
 4. If `base_snapshot != tip`: run revalidation:
-   a. Compute changed files: `git diff {base_snapshot}..{tip} --name-only`
+   a. Compute changed surfaces between `base_snapshot` and current tip
    b. Compare against the task's `scope.surfaces`
+
+> **Software domain (git):** Step 2: `git rev-parse HEAD`. Step 4a: `git diff {base_snapshot}..{tip} --name-only`.
    c. **No overlap** -> classification = `clean_sync`. Update `base_snapshot` to current tip in the TaskContract. Proceed.
    d. **Overlap, auto-resolvable** -> classification = `review_sync`. Update `base_snapshot`, proceed. Flag for specialist re-review after implementation.
    e. **Overlap, not auto-resolvable** -> classification = `replan_required`. Do NOT proceed. Rewind task to `"ready"`. Update implementation contract.
@@ -159,20 +163,20 @@ Transition to implementing (guard checks implementation_contract.status === "app
 Bash("geas task transition --id {task-id} --to implementing")
 ```
 
-### Implementation [MANDATORY — worktree isolated]
+### Implementation [MANDATORY — workspace isolated]
 Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {worker} --content '...'")`. Then:
-Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule").
+Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Workspace state access rule").
 Update checkpoint: `Bash("geas state checkpoint set --step implementation --agent {worker}")`
 ```
-Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read {project_root}/.geas/missions/{mission_id}/tasks/{task-id}/packets/{worker}.md. Implement the feature. Write your evidence by running: geas evidence add --task {task-id} --agent {worker} --role implementer --set summary='<implementation summary>' --set files_changed='[\"file1\",\"file2\"]'")
+Agent(agent: "{worker}", isolation: "workspace", prompt: "IMPORTANT: You are running in an isolated workspace. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Read {project_root}/.geas/missions/{mission_id}/tasks/{task-id}/packets/{worker}.md. Implement the feature. Write your evidence by running: geas evidence add --task {task-id} --agent {worker} --role implementer --set summary='<implementation summary>' --set files_changed='[\"file1\",\"file2\"]'")
 ```
 Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{worker}.json` exists.
 
 ### Worker Self-Check [MANDATORY]
-The worker self-check runs in the same worktree as the implementation step (worktree is still alive — merge happens later at Integration). Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule").
+The worker self-check runs in the same workspace as the implementation step (workspace is still alive — reconciliation happens later at Integration). Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Workspace state access rule").
 Update checkpoint: `Bash("geas state checkpoint set --step self_check --agent {worker}")`
 ```
-Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are running in a worktree. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Implementation for {task-id} is complete. Before handing off to review, write your self-check to record.json. Run: geas task record add --task {task-id} --section self_check <<'EOF' (followed by the self-check JSON body and a closing EOF line). Required fields: confidence (integer 1-5), known_risks (string[]), untested_paths (string[]), summary (string). The CLI validates against the record schema automatically.")
+Agent(agent: "{worker}", isolation: "workspace", prompt: "IMPORTANT: You are running in an isolated workspace. The .geas/ directory is NOT available via relative paths. Use the absolute paths below for ALL .geas/ access. Implementation for {task-id} is complete. Before handing off to review, write your self-check to record.json. Run: geas task record add --task {task-id} --section self_check <<'EOF' (followed by the self-check JSON body and a closing EOF line). Required fields: confidence (integer 1-5), known_risks (string[]), untested_paths (string[]), summary (string). The CLI validates against the record schema automatically.")
 ```
 Verify record.json has `self_check` section: `Bash("geas task record get --task {task-id} --section self_check")`. Do NOT proceed to Specialist Review without this section.
 
@@ -215,46 +219,50 @@ On gate pass, proceed to Integration.
 
 ### Integration [MANDATORY — after gate pass]
 
-Merge the worktree into the integration baseline. The worktree has been alive since the Implementation step.
+Reconcile the workspace into the integration baseline. The workspace has been alive since the Implementation step.
 
 #### Pre-Integration Staleness Check
 
-Before merging the worktree:
+Before reconciling the workspace:
 
-1. Re-check: compare `base_snapshot` with current `tip(integration_branch)` using `git diff {base_snapshot}..HEAD --name-only`
+1. Re-check: compare `base_snapshot` with current integration baseline tip. Compute changed surfaces.
 2. Compare against `scope.surfaces`
 3. Classify:
-   - `clean_sync` -> fast-forward merge or trivial rebase, proceed
-   - `review_sync` -> merge, then specialist re-review required for changed areas
+   - `clean_sync` -> clean reconciliation, proceed
+   - `review_sync` -> reconcile, then specialist re-review required for changed areas
    - `replan_required` -> rewind task to `"ready"`, update implementation contract
    - `blocking_conflict` -> task -> `"blocked"`
 4. If revalidation was needed, log event: `Bash("geas event log --type revalidation --task {task-id} --data '{\"classification\":\"...\",\"action_taken\":\"...\"}'")` 
 
+> **Software domain (git):** Step 1: `git diff {base_snapshot}..HEAD --name-only`. Step 3 clean_sync: fast-forward merge or trivial rebase.
+
 #### Integration Lock
 
-Before merging the worktree to the integration branch:
+Before reconciling the workspace to the integration baseline:
 
 1. Acquire integration lock via CLI:
    ```bash
    Bash("geas lock acquire --task {task-id} --type integration --targets integration_branch --session {session-id}")
    ```
 2. If the CLI returns `acquired: false` with conflicts: **wait**. The CLI automatically creates a waiting entry.
-3. Merge the worktree branch
-4. **Release the integration lock immediately** after merge:
+3. Reconcile the workspace branch into the integration baseline
+4. **Release the integration lock immediately** after reconciliation:
    ```bash
    Bash("geas lock release --task {task-id}")
    ```
 
-This ensures integration is single-flight — only one task merges at a time.
+This ensures integration is single-flight — only one task reconciles at a time.
 
-#### Transition and Worktree Cleanup
+> **Software domain (git):** Step 3: `git merge` or `git rebase` from the worktree branch. After integration: `git worktree remove` to clean up.
 
-After successful merge:
+#### Transition and Workspace Cleanup
+
+After successful reconciliation:
 1. Transition to `"integrated"` (guard checks gate_result.verdict === "pass"):
    ```bash
    Bash("geas task transition --id {task-id} --to integrated")
    ```
-2. Clean up the worktree — it is no longer needed after merge.
+2. Clean up the workspace — it is no longer needed after reconciliation.
 3. Transition to `"verified"`:
    ```bash
    Bash("geas task transition --id {task-id} --to verified")
@@ -269,7 +277,7 @@ orchestration-authority (Orchestrator) assembles the closure packet by reading a
 - Self-Check: record.json `self_check` section (`Bash("geas task record get --task {task-id} --section self_check")`)
 - Gate Result: record.json `gate_result` section (`Bash("geas task record get --task {task-id} --section gate_result")`)
 - Specialist Reviews: `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-design-authority}-review.json`, `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-quality-specialist}.json`
-- Integration Result: from worktree merge (commit hash, conflict status)
+- Integration Result: workspace reconciliation result (snapshot reference, conflict status)
 
 **If ANY required artifact is missing: go back and execute the missing step. Do NOT proceed.**
 
@@ -426,14 +434,46 @@ Bash("geas event log --type locks_released --task {task-id}")
 ```
 The CLI removes ALL lock entries where `task_id` matches this task and promotes any waiting locks.
 
-- **Ship**: Transition task to passed and commit (the guard now passes because retrospective exists):
+- **Ship**: Transition task to passed and create integration snapshot (the guard now passes because retrospective exists):
   ```bash
   Bash("geas task transition --id {task-id} --to passed")
   Bash("geas state checkpoint set --step resolve --agent orchestrator")
   ```
-  ```bash
-  git add -A && git commit -m "{conventional commit message for task-id}"
-  ```
-  Log: `Bash("geas event log --type task_resolved --task {task-id} --data '{\"commit\":\"{hash}\"}'")` 
+  Create integration snapshot capturing the resolved state.
+  Log: `Bash("geas event log --type task_resolved --task {task-id} --data '{\"snapshot\":\"{reference}\"}'")` 
+
+  > **Software domain (git):** `git add -A && git commit -m "{conventional commit message for task-id}"`. The snapshot reference is the commit hash.
 - **Iterate** (Final Verdict only): does NOT deduct retry_budget (iterate is a product judgment, not a gate failure). Track iterate_count — after 3 cumulative iterates, escalate to orchestration-authority. Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include product-authority's feedback in all subsequent ContextPackets. Resume from the rewind_target specified in the final verdict.
 - **Cancel**: status -> `"cancelled"`. Transition via `Bash("geas task transition --mission {mission_id} --id {task-id} --to cancelled")`. Write DecisionRecord.
+
+---
+
+## Workspace Implementation Notes
+
+The abstract workspace operations in this pipeline map to domain-specific implementations. The workspace lifecycle follows 6 phases (per Protocol Doc 04):
+
+| Phase | Abstract Operation | Description |
+|-------|-------------------|-------------|
+| **Prepare** | Create isolated workspace | Set up an isolated environment for the task |
+| **Execute** | Implementation + Self-Check | Worker performs changes in the isolated workspace |
+| **Review-Ready** | Specialist Review + Testing | Workspace is stable; reviewers examine artifacts |
+| **Reconcile** | Pre-Integration Staleness Check | Detect and classify drift against integration baseline |
+| **Integrate** | Reconcile workspace into baseline | Merge changes back with single-flight locking |
+| **Close/Archive** | Workspace Cleanup | Remove the isolated workspace after successful integration |
+
+> **Software domain (git worktree) mapping:**
+>
+> | Abstract | Git Implementation |
+> |----------|-------------------|
+> | Create isolated workspace | `git worktree add .claude/worktrees/{agent-id} -b {branch}` |
+> | Get integration baseline tip | `git rev-parse HEAD` |
+> | Compute changed surfaces | `git diff {base}..{tip} --name-only` |
+> | Clean reconciliation | `git merge --ff-only` or `git rebase` |
+> | Create integration snapshot | `git add -A && git commit -m "{message}"` |
+> | Workspace Cleanup | `git worktree remove .claude/worktrees/{agent-id}` |
+
+**Isolation rules** (from Doc 04):
+1. Each task workspace is isolated — changes do not affect the integration baseline until reconciliation
+2. The `.geas/` directory is shared (lives at the project root) — workspace agents access it via absolute paths
+3. Only one task may reconcile at a time (integration lock ensures single-flight)
+4. Workspaces persist through review — cleanup happens only after successful integration
