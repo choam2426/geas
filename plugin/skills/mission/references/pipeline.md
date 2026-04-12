@@ -159,6 +159,40 @@ Transition to implementing (guard checks implementation_contract.status === "app
 Bash("geas task transition --id {task-id} --to implementing")
 ```
 
+### Contract Amendment Detection [during implementing state only]
+
+After the implementation contract is approved and work begins, the worker MUST monitor for **material changes** — changes that invalidate the approved contract. A material change is any of the following 5 conditions:
+
+1. **Paths outside `scope.surfaces` changed** — implementation touches files not listed in the contract
+2. **Acceptance criteria added or modified** — new requirements emerge or existing ones shift
+3. **`risk_level` increases** — discovered complexity raises the risk profile
+4. **New external dependency introduced** — a library, service, or API not in the original plan
+5. **`non_goals` item enters scope** — something explicitly excluded now needs to be included
+
+When a material change is detected, the worker MUST NOT continue implementation without amendment:
+
+1. **Worker flags the change** — identifies which condition(s) triggered and drafts an amendment
+2. **Worker records the amendment** — writes to the `implementation_contract` section's `amendments` array:
+   ```bash
+   Bash("geas task record add --task {task-id} --section implementation_contract --set amendments='[{\"rationale\":\"...\",\"changed_fields\":[\"...\"],\"scope_delta\":\"...\",\"approved_by\":\"design-authority\"}]'")
+   ```
+3. **Design-authority re-approves** — DA reviews the amendment for scope/design impact and approves or requests revision
+4. **Implementation resumes** — only after DA approval
+
+Amendment record shape:
+- `rationale`: why the amendment is needed
+- `changed_fields`: which contract fields changed
+- `scope_delta`: what expanded or narrowed
+- `approved_by`: who approved the amendment
+
+**Rules:**
+- Amendments are only valid during the `"implementing"` state
+- Each amendment appends to the `amendments` array (does not overwrite prior amendments)
+- Unrecorded contract drift is non-conformant — if a material change is discovered after the fact, it must be retroactively amended
+- When in doubt, the worker SHOULD flag for DA review rather than self-adjudicating materiality
+- Scope deltas from amendments feed into debt-register or gap-assessment (or both) during retrospective
+- After amendment approval, all ContextPackets for subsequent steps must reflect the amended contract
+
 ### Implementation [MANDATORY — worktree isolated]
 Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {worker} --content '...'")`. Then:
 Resolve `project_root` — the absolute path of the main session working directory (see mission/SKILL.md "Worktree state access rule").
