@@ -54,6 +54,8 @@ Geas separates concerns into four layers. The key insight: **only the contract e
 └───────────────────────────┘
 ```
 
+> For a visual diagram of agent interactions within this architecture, see [DIAGRAMS.md — Agent Interactions](../ko/DIAGRAMS.md#4-에이전트-상호작용).
+
 | Layer | Why it exists | Replaceable? |
 |---|---|---|
 | **Collaboration Surface** | Decouples the human experience from the agent workflow. A team using a dashboard and a team using a CLI both get the same governance guarantees. | Yes |
@@ -91,6 +93,8 @@ Specifying ──→ Building ──→ Polishing ──→ Evolving ──→ C
  gate 1        gate 2        gate 3        gate 4
 ```
 
+> For a visual diagram of the mission lifecycle and phase gates, see [DIAGRAMS.md — Mission Lifecycle](../ko/DIAGRAMS.md#1-미션-라이프사이클).
+
 | Phase | Purpose | Exit condition |
 |---|---|---|
 | **Specifying** | Define WHAT and WHY. Produce mission spec, design brief, and task list. Architecture review required. | User-approved spec + design brief + compiled tasks |
@@ -117,6 +121,8 @@ drafted → ready → implementing → reviewed → integrated → verified → 
 ```
 
 Auxiliary states: `blocked`, `escalated`, `cancelled`
+
+> For the full state machine diagram including rewind paths and auxiliary states, see [DIAGRAMS.md — Task State Machine](../ko/DIAGRAMS.md#2-태스크-상태머신).
 
 ### Required Artifacts per Transition
 
@@ -164,6 +170,8 @@ Implementation complete
         ▼
      Resolved
 ```
+
+> For a detailed flow diagram including gate profiles and vote round handling, see [DIAGRAMS.md — Evidence Gate Flow](../ko/DIAGRAMS.md#3-에비던스-게이트-플로우).
 
 ### Gate Tiers
 
@@ -266,7 +274,9 @@ This is not a best-effort recovery — it is a protocol guarantee. The anti-forg
 ```
 plugin/
 ├── plugin.json                # Manifest
-├── skills/                    # 12 skills (flat)
+├── bin/
+│   └── geas                   # Pre-built CLI bundle (single file)
+├── skills/                    # 13 skills (12 core + 1 utility)
 │   ├── mission/               # Orchestrator: 4-phase pipeline, slot resolution
 │   ├── intake/                # Requirements gathering
 │   ├── task-compiler/         # Mission spec → TaskContracts
@@ -277,16 +287,19 @@ plugin/
 │   ├── memorizing/            # Memory lifecycle
 │   ├── scheduling/            # Parallel task scheduling
 │   ├── setup/                 # Project init + codebase discovery
-│   ├── policy-managing/
-│   └── reporting/             # Health signals, briefing, summaries
+│   ├── policy-managing/       # Rules override management
+│   ├── reporting/             # Health signals, briefing, summaries
+│   └── help/                  # Usage guide (utility, not core engine)
 ├── agents/
 │   ├── authority/             # 3 spawnable (product-authority, design-authority, challenger)
 │   ├── software/              # 5 specialists (software-engineer, qa-engineer, security-engineer, platform-engineer, technical-writer)
 │   └── research/              # 6 specialists (literature-analyst, research-analyst, methodology-reviewer, research-integrity-reviewer, research-engineer, research-writer)
 └── hooks/
-    ├── hooks.json             # 10 lifecycle hooks
-    └── scripts/
+    ├── hooks.json             # 10 lifecycle hooks across 7 event types
+    └── scripts/               # Hook implementation scripts
 ```
+
+> For a visual diagram of the complete per-task pipeline execution, see [DIAGRAMS.md — Pipeline Execution Flow](../ko/DIAGRAMS.md#5-파이프라인-실행-흐름).
 
 Agent details: `reference/AGENTS.md`. Skill details: `reference/SKILLS.md`. Hook details: `reference/HOOKS.md`.
 
@@ -301,6 +314,7 @@ Agent details: `reference/AGENTS.md`. Skill details: `reference/SKILLS.md`. Hook
 ├── state/
 │   ├── run.json                    # Mission state, checkpoint, remaining_steps
 │   ├── locks.json                  # Lock manifest for parallelism
+│   ├── session-latest.md           # Latest session summary
 │   └── events.jsonl                # Append-only audit trail
 ├── missions/{mission_id}/
 │   ├── spec.json                   # Mission spec (frozen after intake)
@@ -353,3 +367,5 @@ The protocol documents in `docs/protocol/` are canonical for all protocol-level 
 | Artifacts, schemas | `09_RUNTIME_ARTIFACTS_AND_SCHEMAS` |
 | Enforcement, metrics | `10_ENFORCEMENT_CONFORMANCE_AND_METRICS` |
 | Evolution, debt, gap loop | `11_EVOLUTION_DEBT_AND_GAP_LOOP` |
+
+> For visual diagrams of all major protocol flows, see [DIAGRAMS.md](../ko/DIAGRAMS.md).
