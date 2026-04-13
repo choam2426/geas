@@ -136,8 +136,8 @@ Any `known_risk` with no handling status -> Tier 2 fails.
 Read the `rubric` array from the TaskContract. For each dimension:
 
 1. Identify the evaluator's evidence:
-   - `design-authority` review evidence -> `code_quality` score
-   - `quality_specialist` evidence -> `core_interaction`, `feature_completeness`, `regression_safety` scores
+   - `design-authority` review evidence -> `output_quality` score
+   - `quality_specialist` evidence -> `core_interaction`, `output_completeness`, `regression_safety` scores
    - `quality_specialist` or `communication_specialist` evidence -> `ux_clarity`, `visual_coherence` scores (UI-sensitive tasks)
 2. Read the evaluator's `rubric_scores` from their review
 3. Compare each score against the dimension's `threshold`
@@ -147,8 +147,8 @@ Read the `rubric` array from the TaskContract. For each dimension:
 | dimension | evaluator | default threshold |
 |---|---|---:|
 | `core_interaction` | `quality_specialist` | 3 |
-| `feature_completeness` | `quality_specialist` | 4 |
-| `code_quality` | `design-authority` | 4 |
+| `output_completeness` | `quality_specialist` | 4 |
+| `output_quality` | `design-authority` | 4 |
 | `regression_safety` | `quality_specialist` | 4 |
 
 UI-sensitive tasks add:
@@ -162,13 +162,13 @@ UI-sensitive tasks add:
 
 Read `confidence` from record.json `self_check` section. If `confidence` <= 2, add +1 to **every** rubric dimension threshold.
 
-Example: if confidence is 2, thresholds become: `core_interaction` 3->4, `feature_completeness` 4->5, `code_quality` 4->5, `regression_safety` 4->5.
+Example: if confidence is 2, thresholds become: `core_interaction` 3->4, `output_completeness` 4->5, `output_quality` 4->5, `regression_safety` 4->5.
 
 #### Stub Check
 
 If `possible_stubs[]` from the record.json `self_check` section is non-empty:
 1. Verify those locations are not left as stubs
-2. If confirmed stubs exist: `feature_completeness` is capped at a maximum of 2
+2. If confirmed stubs exist: `output_completeness` is capped at a maximum of 2
 3. If confirmed stub count exceeds the stub cap: gate immediately returns `block`
 
 Default stub cap by `risk_level`:
@@ -187,9 +187,9 @@ Record rubric results:
 {
   "rubric_scores": [
     { "dimension": "core_interaction", "score": 4, "threshold": 3, "passed": true },
-    { "dimension": "code_quality", "score": 3, "threshold": 4, "passed": false }
+    { "dimension": "output_quality", "score": 3, "threshold": 4, "passed": false }
   ],
-  "blocking_dimensions": ["code_quality"]
+  "blocking_dimensions": ["output_quality"]
 }
 ```
 
@@ -238,8 +238,8 @@ Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `cr
   },
   "rubric_scores": [
     { "dimension": "core_interaction", "score": 4, "threshold": 3, "passed": true },
-    { "dimension": "feature_completeness", "score": 4, "threshold": 4, "passed": true },
-    { "dimension": "code_quality", "score": 4, "threshold": 4, "passed": true },
+    { "dimension": "output_completeness", "score": 4, "threshold": 4, "passed": true },
+    { "dimension": "output_quality", "score": 4, "threshold": 4, "passed": true },
     { "dimension": "regression_safety", "score": 5, "threshold": 4, "passed": true }
   ],
   "blocking_dimensions": [],

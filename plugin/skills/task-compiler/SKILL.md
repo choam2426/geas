@@ -183,8 +183,8 @@ Assign quality rubric dimensions based on task type. Every task gets the base di
 | Dimension | Default Threshold |
 |-----------|-------------------|
 | `core_interaction` | 3 |
-| `feature_completeness` | 4 |
-| `code_quality` | 4 |
+| `output_completeness` | 4 |
+| `output_quality` | 4 |
 | `regression_safety` | 4 |
 
 **Additional dimensions (when `primary_worker_type` is `implementer` with UI focus or `communication_specialist`, or task has UI component):**
@@ -226,8 +226,8 @@ Example output (content fields only — envelope is auto-injected):
   "rubric": {
     "dimensions": [
       { "name": "core_interaction", "threshold": 3 },
-      { "name": "feature_completeness", "threshold": 4 },
-      { "name": "code_quality", "threshold": 4 },
+      { "name": "output_completeness", "threshold": 4 },
+      { "name": "output_quality", "threshold": 4 },
       { "name": "regression_safety", "threshold": 4 },
       { "name": "ux_clarity", "threshold": 3 },
       { "name": "visual_coherence", "threshold": 3 }
