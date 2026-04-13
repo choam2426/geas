@@ -42,8 +42,8 @@ The TaskContract MUST be written to `.geas/missions/{mission_id}/tasks/{task-id}
   "rubric": {
     "dimensions": [
       { "name": "core_interaction", "threshold": 3 },
-      { "name": "feature_completeness", "threshold": 4 },
-      { "name": "code_quality", "threshold": 4 },
+      { "name": "output_completeness", "threshold": 4 },
+      { "name": "output_quality", "threshold": 4 },
       { "name": "regression_safety", "threshold": 4 }
     ]
   }

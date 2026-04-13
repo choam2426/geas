@@ -156,7 +156,7 @@ Omit sections marked `[standard+]` for lightweight missions. Omit sections marke
 
 - Input: mission spec (`.geas/missions/{mission_id}/spec.json`) + approved design-brief (`.geas/missions/{mission_id}/design-brief.json`)
 - For each logical unit of work, invoke `/geas:task-compiler`.
-- Each TaskContract MUST include a `rubric` object with a `dimensions` array. Base dimensions: core_interaction(3), feature_completeness(4), code_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
+- Each TaskContract MUST include a `rubric` object with a `dimensions` array. Base dimensions: core_interaction(3), output_completeness(4), output_quality(4), regression_safety(4). Add ux_clarity(3), visual_coherence(3) for frontend tasks.
 - Output: `.geas/missions/{mission_id}/tasks/{task-id}/contract.json`
 - Log each: `{"event": "task_compiled", "task_id": "...", "timestamp": "<actual>"}`
 
