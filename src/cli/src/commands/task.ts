@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Command } from 'commander';
 import { resolveGeasDir, resolveMissionDir, normalizePath, validateIdentifier } from '../lib/paths';
-import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
+import { readJsonFile, writeJsonFile, ensureDir, appendJsonlFile } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError, noStdinError } from '../lib/output';
 import { validateTransition } from '../lib/transition-guards';
@@ -19,6 +19,7 @@ import { getCwd } from '../lib/cwd';
 import { readInputData, parseSetFlags, deepMergeSetOverrides } from '../lib/input';
 import { injectEnvelope } from '../lib/envelope';
 import { dryRunGuard, dryRunParseError } from '../lib/dry-run';
+import { appendAgentNote } from './memory';
 
 // ── Primary chain for advance command ──────────────────────────────
 const PRIMARY_CHAIN = ['drafted', 'ready', 'implementing', 'reviewed', 'integrated', 'verified', 'passed'] as const;
@@ -640,6 +641,117 @@ export function registerTaskCommands(program: Command): void {
         const nodeErr = err as NodeJS.ErrnoException;
         if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'record get', nodeErr.message);
+        } else {
+          throw err;
+        }
+      }
+    });
+  // ── geas task harvest-memory ────────────────────────────────────────
+  cmd
+    .command('harvest-memory')
+    .description('Batch-extract memory_suggestions from task evidence and write agent notes')
+    .requiredOption('--id <task-id>', 'Task identifier')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .action((opts: { id: string; mission?: string }) => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(opts.id, 'task ID');
+        const missionDir = resolveMissionDir(geasDir, missionId);
+
+        const evidenceDir = path.resolve(missionDir, 'tasks', opts.id, 'evidence');
+
+        // If no evidence directory, output success with 0
+        if (!fs.existsSync(evidenceDir)) {
+          success({ harvested: 0, agents: {} });
+          return;
+        }
+
+        // Read all .json files in evidence dir
+        const entries = fs.readdirSync(evidenceDir, { withFileTypes: true });
+        const jsonFiles = entries
+          .filter(e => e.isFile() && e.name.endsWith('.json'))
+          .map(e => e.name);
+
+        // Collect suggestions grouped by agent
+        const suggestionsByAgent: Record<string, string[]> = {};
+
+        for (const fileName of jsonFiles) {
+          const filePath = path.resolve(evidenceDir, fileName);
+          let data: Record<string, unknown>;
+          try {
+            const raw = fs.readFileSync(filePath, 'utf-8');
+            data = JSON.parse(raw);
+          } catch {
+            // Warn and skip invalid JSON
+            process.stderr.write(
+              JSON.stringify({ warning: `Skipping invalid JSON: ${fileName}` }) + '\n'
+            );
+            continue;
+          }
+
+          // Check for memory_suggestions field
+          const suggestions = data.memory_suggestions;
+          if (!suggestions || !Array.isArray(suggestions) || suggestions.length === 0) {
+            continue;
+          }
+
+          // Determine agent name: use agent field, fallback to filename without extension
+          const agent = (typeof data.agent === 'string' && data.agent)
+            ? data.agent
+            : fileName.replace(/\.json$/, '');
+
+          if (!suggestionsByAgent[agent]) {
+            suggestionsByAgent[agent] = [];
+          }
+
+          for (const suggestion of suggestions) {
+            if (typeof suggestion === 'string' && suggestion.trim()) {
+              suggestionsByAgent[agent].push(suggestion.trim());
+            }
+          }
+        }
+
+        // Deduplicate within collected suggestions per agent,
+        // then write via appendAgentNote (which also deduplicates against existing file)
+        const agentCounts: Record<string, number> = {};
+        let totalHarvested = 0;
+
+        for (const [agent, suggestions] of Object.entries(suggestionsByAgent)) {
+          // Deduplicate within batch
+          const unique = [...new Set(suggestions)];
+          let written = 0;
+
+          for (const suggestion of unique) {
+            const wasWritten = appendAgentNote(geasDir, agent, suggestion, cwd);
+            if (wasWritten) {
+              written++;
+            }
+          }
+
+          if (written > 0) {
+            agentCounts[agent] = written;
+            totalHarvested += written;
+          }
+        }
+
+        // Log a single batch event
+        const eventsPath = path.resolve(geasDir, 'state', 'events.jsonl');
+        const eventEntry: Record<string, unknown> = {
+          timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+          event_type: 'memory_extraction',
+          task_id: opts.id,
+          data: { harvested: totalHarvested, agents: agentCounts },
+        };
+        appendJsonlFile(eventsPath, eventEntry);
+
+        success({ harvested: totalHarvested, agents: agentCounts });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'harvest-memory', nodeErr.message);
         } else {
           throw err;
         }

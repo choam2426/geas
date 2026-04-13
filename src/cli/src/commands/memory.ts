@@ -18,6 +18,46 @@ import { ensureDir } from '../lib/fs-atomic';
 import { writeCheckpointPending } from '../lib/post-write-checks';
 import { getCwd } from '../lib/cwd';
 
+/**
+ * Append a note to an agent's memory file (.geas/memory/agents/{agent}.md).
+ * Exported so other commands (e.g., harvest-memory) can reuse the write logic.
+ *
+ * @returns true if the note was written, false if it was a duplicate
+ */
+export function appendAgentNote(geasDir: string, agent: string, text: string, cwd?: string): boolean {
+  const agentsDir = path.resolve(geasDir, 'memory', 'agents');
+  ensureDir(agentsDir);
+
+  const filePath = path.resolve(agentsDir, `${agent}.md`);
+  assertContainedIn(filePath, geasDir);
+
+  // Read existing content to check for duplicates
+  let content: string;
+  if (fs.existsSync(filePath)) {
+    content = fs.readFileSync(filePath, 'utf-8');
+    // Check for exact duplicate line
+    const noteLine = `- ${text}`;
+    const existingLines = content.split('\n').map(l => l.trimEnd());
+    if (existingLines.includes(noteLine)) {
+      return false; // duplicate
+    }
+    // Checkpoint pending
+    if (cwd) writeCheckpointPending(filePath, cwd);
+    content = content.trimEnd() + '\n' + noteLine + '\n';
+  } else {
+    // Checkpoint pending
+    if (cwd) writeCheckpointPending(filePath, cwd);
+    const header = agent
+      .split('-')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+    content = `# ${header} Memory\n\n- ${text}\n`;
+  }
+
+  fs.writeFileSync(filePath, content, 'utf-8');
+  return true;
+}
+
 export function registerMemoryCommands(program: Command): void {
   const cmd = program
     .command('memory')
@@ -101,33 +141,9 @@ export function registerMemoryCommands(program: Command): void {
         validateIdentifier(opts.agent, 'agent');
         const agentName = opts.agent;
 
-        const agentsDir = path.resolve(geasDir, 'memory', 'agents');
-        ensureDir(agentsDir);
+        appendAgentNote(geasDir, agentName, opts.add, cwd);
 
-        const filePath = path.resolve(agentsDir, `${agentName}.md`);
-        assertContainedIn(filePath, geasDir);
-
-        // Checkpoint pending
-        writeCheckpointPending(filePath, cwd);
-
-        // Append to existing file or create with header
-        let content: string;
-        if (fs.existsSync(filePath)) {
-          content = fs.readFileSync(filePath, 'utf-8');
-          // Append the note as a bullet point
-          const note = `- ${opts.add}\n`;
-          content = content.trimEnd() + '\n' + note;
-        } else {
-          // Create new file with header
-          const header = agentName
-            .split('-')
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' ');
-          content = `# ${header} Memory\n\n- ${opts.add}\n`;
-        }
-
-        fs.writeFileSync(filePath, content, 'utf-8');
-
+        const filePath = path.resolve(geasDir, 'memory', 'agents', `${agentName}.md`);
         success({
           written: normalizePath(filePath),
           agent: agentName,
