@@ -7,24 +7,34 @@
       "type": "string",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
     },
-    "agentType": {
+    "authoritySlot": {
       "type": "string",
       "enum": [
         "orchestration-authority",
         "product-authority",
         "design-authority",
-        "challenger",
-        "software-engineer",
-        "qa-engineer",
-        "security-engineer",
-        "platform-engineer",
-        "technical-writer",
-        "literature-analyst",
-        "research-analyst",
-        "methodology-reviewer",
-        "research-integrity-reviewer",
-        "research-engineer",
-        "research-writer"
+        "challenger"
+      ]
+    },
+    "specialistSlot": {
+      "type": "string",
+      "enum": [
+        "implementer",
+        "quality",
+        "risk",
+        "operations",
+        "communication"
+      ]
+    },
+    "agentTypeId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+    },
+    "anySlot": {
+      "anyOf": [
+        { "$ref": "_defs.schema.json#/$defs/authoritySlot" },
+        { "$ref": "_defs.schema.json#/$defs/specialistSlot" }
       ]
     }
   }
