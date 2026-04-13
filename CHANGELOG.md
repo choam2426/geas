@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 > **Note**: Tags were restructured in v0.5.1. Previous major versions (v1.x, v2.x) have been flattened to v0.x.y to reflect that the project is pre-1.0.
 
+## [1.4.1] — 2026-04-13
+
+### Fixed
+- **Tester verdict enum** — corrected from `pass|iterate|escalate` to `pass|fail|block|error` in evidence-gate (IMPL-020).
+- **IC field labels** — `edge_cases`, `state_transitions`, `demo_steps` marked as recommended, not required (IMPL-026).
+- **Pipeline.md cosmetic fixes** — worktree terminology, lock order justification, iterate verdict fields, challenger substantive challenge, baseline unknown classification, reviewer optional fields (IMPL-027~032).
+- **remaining_steps cleanup** — removed `post_integration_verification` from pipeline remaining_steps and task_kind skip table.
+
 ## [1.4.0] — 2026-04-13
 
 ### Added
