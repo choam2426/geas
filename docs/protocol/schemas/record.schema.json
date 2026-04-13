@@ -13,7 +13,7 @@
     "implementation_contract": {
       "type": "object",
       "properties": {
-        "worker": { "$ref": "_defs.schema.json#/$defs/agentType" },
+        "worker": { "type": "string", "minLength": 1 },
         "planned_actions": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
         "edge_cases": { "type": "array", "items": { "type": "string" } },
         "non_goals": { "type": "array", "items": { "type": "string" } },

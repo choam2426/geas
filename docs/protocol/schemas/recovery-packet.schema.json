@@ -13,7 +13,7 @@
     "version": { "type": "string", "const": "1.0" },
     "artifact_type": { "type": "string", "const": "recovery_packet" },
     "artifact_id": { "type": "string" },
-    "producer_type": { "$ref": "_defs.schema.json#/$defs/agentType" },
+    "producer_type": { "$ref": "_defs.schema.json#/$defs/agentTypeId" },
     "created_at": { "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp" },
     "updated_at": { "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp" },
     "recovery_id": { "type": "string", "minLength": 1 },

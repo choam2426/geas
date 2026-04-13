@@ -27,7 +27,7 @@
       "minLength": 1
     },
     "producer_type": {
-      "$ref": "_defs.schema.json#/$defs/agentType"
+      "$ref": "_defs.schema.json#/$defs/agentTypeId"
     },
     "mission_id": {
       "type": "string",

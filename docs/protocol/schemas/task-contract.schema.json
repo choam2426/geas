@@ -37,7 +37,7 @@
       "type": "string"
     },
     "producer_type": {
-      "$ref": "_defs.schema.json#/$defs/agentType"
+      "$ref": "_defs.schema.json#/$defs/agentTypeId"
     },
     "created_at": {
       "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
@@ -132,18 +132,28 @@
     "routing": {
       "type": "object",
       "properties": {
+        "primary_worker_slot": {
+          "$ref": "_defs.schema.json#/$defs/specialistSlot"
+        },
         "primary_worker_type": {
-          "$ref": "_defs.schema.json#/$defs/agentType"
+          "$ref": "_defs.schema.json#/$defs/agentTypeId"
+        },
+        "required_reviewer_slots": {
+          "type": "array",
+          "items": {
+            "$ref": "_defs.schema.json#/$defs/anySlot"
+          },
+          "minItems": 1
         },
         "required_reviewer_types": {
           "type": "array",
           "items": {
-            "$ref": "_defs.schema.json#/$defs/agentType"
+            "$ref": "_defs.schema.json#/$defs/agentTypeId"
           },
           "minItems": 1
         }
       },
-      "required": ["primary_worker_type", "required_reviewer_types"],
+      "required": ["primary_worker_slot", "required_reviewer_slots"],
       "additionalProperties": false
     },
     "base_snapshot": {
