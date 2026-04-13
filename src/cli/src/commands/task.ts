@@ -53,6 +53,29 @@ function isValidTransition(from: string, to: string): boolean {
   return allowed.includes(to);
 }
 
+// ── Step → Artifact mapping for check-artifacts ───────────────────────
+
+interface ArtifactSpec {
+  type: 'record-section' | 'evidence-file';
+  section?: string;
+  role?: string;
+  label: string;
+}
+
+const STEP_ARTIFACT_MAP: Record<string, ArtifactSpec[]> = {
+  implementation_contract: [{ type: 'record-section', section: 'implementation_contract', label: 'record.json:implementation_contract' }],
+  implementation: [{ type: 'evidence-file', role: 'implementer', label: 'evidence/{implementer}.json' }],
+  self_check: [{ type: 'record-section', section: 'self_check', label: 'record.json:self_check' }],
+  specialist_review: [{ type: 'evidence-file', role: 'reviewer', label: 'evidence/{reviewer}.json' }],
+  testing: [{ type: 'evidence-file', role: 'tester', label: 'evidence/{tester}.json' }],
+  gate_result: [{ type: 'record-section', section: 'gate_result', label: 'record.json:gate_result' }],
+  closure: [{ type: 'record-section', section: 'closure', label: 'record.json:closure' }],
+  challenge_review: [{ type: 'record-section', section: 'challenge_review', label: 'record.json:challenge_review' }],
+  verdict: [{ type: 'record-section', section: 'verdict', label: 'record.json:verdict' }],
+  retrospective: [{ type: 'record-section', section: 'retrospective', label: 'record.json:retrospective' }],
+};
+const VALID_STEPS = Object.keys(STEP_ARTIFACT_MAP);
+
 // ── Valid record.json section names ─────────────────────────────────
 
 const VALID_SECTIONS = [
@@ -922,6 +945,124 @@ export function registerTaskCommands(program: Command): void {
         const nodeErr = err as NodeJS.ErrnoException;
         if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'harvest-memory', nodeErr.message);
+        } else {
+          throw err;
+        }
+      }
+    });
+
+  // ── geas task check-artifacts ──────────────────────────────────────
+  cmd
+    .command('check-artifacts')
+    .description('Check whether required artifacts exist and validate for a pipeline step')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .requiredOption('--id <task-id>', 'Task identifier')
+    .requiredOption('--step <step>', `Pipeline step (${VALID_STEPS.join(', ')})`)
+    .action((opts: { mission?: string; id: string; step: string }) => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(opts.id, 'task ID');
+        const missionDir = resolveMissionDir(geasDir, missionId);
+
+        // Validate step name
+        if (!VALID_STEPS.includes(opts.step)) {
+          const msg = {
+            error: `Invalid step '${opts.step}'. Valid steps: ${VALID_STEPS.join(', ')}`,
+            code: 'VALIDATION_ERROR' as const,
+          };
+          process.stderr.write(JSON.stringify(msg) + '\n');
+          process.exit(1);
+          return;
+        }
+
+        const taskDir = path.resolve(missionDir, 'tasks', opts.id);
+        if (!fs.existsSync(taskDir)) {
+          fileError(normalizePath(taskDir), 'check-artifacts', `Task directory not found: ${opts.id}`);
+          return;
+        }
+
+        const specs = STEP_ARTIFACT_MAP[opts.step];
+        const expected: string[] = specs.map(s => s.label);
+        const found: string[] = [];
+        const missing: string[] = [];
+        const schemaResults: Array<{ artifact: string; valid: boolean; errors?: unknown[] }> = [];
+
+        for (const spec of specs) {
+          if (spec.type === 'record-section') {
+            const recordPath = path.resolve(taskDir, 'record.json');
+            const record = readJsonFile<Record<string, unknown>>(recordPath);
+
+            if (!record || record[spec.section!] === undefined) {
+              missing.push(spec.label);
+              schemaResults.push({ artifact: spec.label, valid: false, errors: [{ message: 'Section not found in record.json' }] });
+            } else {
+              found.push(spec.label);
+              // Validate entire record against record schema
+              const result = validate('record', record);
+              schemaResults.push({
+                artifact: spec.label,
+                valid: result.valid,
+                ...(result.errors ? { errors: result.errors } : {}),
+              });
+            }
+          } else if (spec.type === 'evidence-file') {
+            const evidenceDir = path.resolve(taskDir, 'evidence');
+            let matched = false;
+
+            if (fs.existsSync(evidenceDir)) {
+              const entries = fs.readdirSync(evidenceDir, { withFileTypes: true });
+              const jsonFiles = entries.filter(e => e.isFile() && e.name.endsWith('.json'));
+
+              for (const file of jsonFiles) {
+                const filePath = path.resolve(evidenceDir, file.name);
+                let data: Record<string, unknown>;
+                try {
+                  const raw = fs.readFileSync(filePath, 'utf-8');
+                  data = JSON.parse(raw);
+                } catch {
+                  continue;
+                }
+
+                if (data.role === spec.role) {
+                  matched = true;
+                  found.push(spec.label);
+                  // Validate against evidence schema
+                  const result = validate('evidence', data);
+                  schemaResults.push({
+                    artifact: spec.label,
+                    valid: result.valid,
+                    ...(result.errors ? { errors: result.errors } : {}),
+                  });
+                  break;
+                }
+              }
+            }
+
+            if (!matched) {
+              missing.push(spec.label);
+              schemaResults.push({ artifact: spec.label, valid: false, errors: [{ message: `No evidence file with role '${spec.role}' found` }] });
+            }
+          }
+        }
+
+        const status = missing.length === 0 && schemaResults.every(r => r.valid) ? 'pass' : 'fail';
+
+        success({
+          task_id: opts.id,
+          step: opts.step,
+          status,
+          expected,
+          found,
+          missing,
+          schema_results: schemaResults,
+        });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'check-artifacts', nodeErr.message);
         } else {
           throw err;
         }

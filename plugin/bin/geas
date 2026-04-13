@@ -12895,6 +12895,19 @@ function isValidTransition(from, to) {
   if (!allowed) return false;
   return allowed.includes(to);
 }
+var STEP_ARTIFACT_MAP = {
+  implementation_contract: [{ type: "record-section", section: "implementation_contract", label: "record.json:implementation_contract" }],
+  implementation: [{ type: "evidence-file", role: "implementer", label: "evidence/{implementer}.json" }],
+  self_check: [{ type: "record-section", section: "self_check", label: "record.json:self_check" }],
+  specialist_review: [{ type: "evidence-file", role: "reviewer", label: "evidence/{reviewer}.json" }],
+  testing: [{ type: "evidence-file", role: "tester", label: "evidence/{tester}.json" }],
+  gate_result: [{ type: "record-section", section: "gate_result", label: "record.json:gate_result" }],
+  closure: [{ type: "record-section", section: "closure", label: "record.json:closure" }],
+  challenge_review: [{ type: "record-section", section: "challenge_review", label: "record.json:challenge_review" }],
+  verdict: [{ type: "record-section", section: "verdict", label: "record.json:verdict" }],
+  retrospective: [{ type: "record-section", section: "retrospective", label: "record.json:retrospective" }]
+};
+var VALID_STEPS = Object.keys(STEP_ARTIFACT_MAP);
 var VALID_SECTIONS = [
   "implementation_contract",
   "self_check",
@@ -13553,6 +13566,102 @@ function registerTaskCommands(program2) {
       const nodeErr = err;
       if (nodeErr.code === "FILE_ERROR") {
         fileError("", "harvest-memory", nodeErr.message);
+      } else {
+        throw err;
+      }
+    }
+  });
+  cmd.command("check-artifacts").description("Check whether required artifacts exist and validate for a pipeline step").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--id <task-id>", "Task identifier").requiredOption("--step <step>", `Pipeline step (${VALID_STEPS.join(", ")})`).action((opts) => {
+    try {
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
+      const missionId = resolveMissionId(geasDir2, opts.mission);
+      validateIdentifier(missionId, "mission ID");
+      validateIdentifier(opts.id, "task ID");
+      const missionDir = resolveMissionDir(geasDir2, missionId);
+      if (!VALID_STEPS.includes(opts.step)) {
+        const msg = {
+          error: `Invalid step '${opts.step}'. Valid steps: ${VALID_STEPS.join(", ")}`,
+          code: "VALIDATION_ERROR"
+        };
+        process.stderr.write(JSON.stringify(msg) + "\n");
+        process.exit(1);
+        return;
+      }
+      const taskDir = path8.resolve(missionDir, "tasks", opts.id);
+      if (!fs9.existsSync(taskDir)) {
+        fileError(normalizePath(taskDir), "check-artifacts", `Task directory not found: ${opts.id}`);
+        return;
+      }
+      const specs = STEP_ARTIFACT_MAP[opts.step];
+      const expected = specs.map((s) => s.label);
+      const found = [];
+      const missing = [];
+      const schemaResults = [];
+      for (const spec of specs) {
+        if (spec.type === "record-section") {
+          const recordPath = path8.resolve(taskDir, "record.json");
+          const record2 = readJsonFile(recordPath);
+          if (!record2 || record2[spec.section] === void 0) {
+            missing.push(spec.label);
+            schemaResults.push({ artifact: spec.label, valid: false, errors: [{ message: "Section not found in record.json" }] });
+          } else {
+            found.push(spec.label);
+            const result = validate("record", record2);
+            schemaResults.push({
+              artifact: spec.label,
+              valid: result.valid,
+              ...result.errors ? { errors: result.errors } : {}
+            });
+          }
+        } else if (spec.type === "evidence-file") {
+          const evidenceDir = path8.resolve(taskDir, "evidence");
+          let matched = false;
+          if (fs9.existsSync(evidenceDir)) {
+            const entries = fs9.readdirSync(evidenceDir, { withFileTypes: true });
+            const jsonFiles = entries.filter((e) => e.isFile() && e.name.endsWith(".json"));
+            for (const file of jsonFiles) {
+              const filePath = path8.resolve(evidenceDir, file.name);
+              let data;
+              try {
+                const raw = fs9.readFileSync(filePath, "utf-8");
+                data = JSON.parse(raw);
+              } catch {
+                continue;
+              }
+              if (data.role === spec.role) {
+                matched = true;
+                found.push(spec.label);
+                const result = validate("evidence", data);
+                schemaResults.push({
+                  artifact: spec.label,
+                  valid: result.valid,
+                  ...result.errors ? { errors: result.errors } : {}
+                });
+                break;
+              }
+            }
+          }
+          if (!matched) {
+            missing.push(spec.label);
+            schemaResults.push({ artifact: spec.label, valid: false, errors: [{ message: `No evidence file with role '${spec.role}' found` }] });
+          }
+        }
+      }
+      const status = missing.length === 0 && schemaResults.every((r) => r.valid) ? "pass" : "fail";
+      success({
+        task_id: opts.id,
+        step: opts.step,
+        status,
+        expected,
+        found,
+        missing,
+        schema_results: schemaResults
+      });
+    } catch (err) {
+      const nodeErr = err;
+      if (nodeErr.code === "FILE_ERROR") {
+        fileError("", "check-artifacts", nodeErr.message);
       } else {
         throw err;
       }
