@@ -12740,6 +12740,8 @@ function validateTransition(geasDir2, missionId, taskId, fromStatus, toStatus) {
 }
 
 // src/commands/task.ts
+var PRIMARY_CHAIN = ["drafted", "ready", "implementing", "reviewed", "integrated", "verified", "passed"];
+var AUXILIARY_STATES = ["blocked", "escalated", "cancelled"];
 var VALID_TRANSITIONS = {
   drafted: ["ready", "blocked", "escalated", "cancelled"],
   ready: ["implementing", "blocked", "escalated", "cancelled"],
@@ -12922,6 +12924,94 @@ function registerTaskCommands(program2) {
       const nodeErr = err;
       if (nodeErr.code === "FILE_ERROR") {
         fileError("", "transition", nodeErr.message);
+      } else {
+        throw err;
+      }
+    }
+  });
+  cmd.command("advance").description("Advance a task to the next primary-chain state (with guard pre-check)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--id <task-id>", "Task identifier").action((opts) => {
+    try {
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
+      const missionId = resolveMissionId(geasDir2, opts.mission);
+      validateIdentifier(missionId, "mission ID");
+      validateIdentifier(opts.id, "task ID");
+      const missionDir = resolveMissionDir(geasDir2, missionId);
+      const contractPath = path7.resolve(missionDir, "tasks", opts.id, "contract.json");
+      const task = readJsonFile(contractPath);
+      if (!task) {
+        fileError(
+          normalizePath(contractPath),
+          "advance",
+          `Task contract not found: ${normalizePath(contractPath)}`
+        );
+        return;
+      }
+      const currentStatus = task.status;
+      if (AUXILIARY_STATES.includes(currentStatus)) {
+        const msg = {
+          error: `Cannot advance: task is in auxiliary state '${currentStatus}'. Advance only operates on primary chain states.`,
+          code: "STATE_ERROR",
+          current_status: currentStatus
+        };
+        process.stderr.write(JSON.stringify(msg) + "\n");
+        process.exit(1);
+        return;
+      }
+      if (currentStatus === "passed") {
+        const msg = {
+          error: `Cannot advance: task has reached terminal state 'passed'.`,
+          code: "STATE_ERROR",
+          current_status: currentStatus
+        };
+        process.stderr.write(JSON.stringify(msg) + "\n");
+        process.exit(1);
+        return;
+      }
+      const currentIndex = PRIMARY_CHAIN.indexOf(currentStatus);
+      if (currentIndex === -1) {
+        const msg = {
+          error: `Cannot advance: unknown status '${currentStatus}' is not in the primary chain.`,
+          code: "STATE_ERROR",
+          current_status: currentStatus
+        };
+        process.stderr.write(JSON.stringify(msg) + "\n");
+        process.exit(1);
+        return;
+      }
+      const nextStatus = PRIMARY_CHAIN[currentIndex + 1];
+      const guard = validateTransition(
+        geasDir2,
+        missionId,
+        opts.id,
+        currentStatus,
+        nextStatus
+      );
+      if (!guard.valid) {
+        const msg = {
+          error: `Missing required artifacts for transition '${currentStatus}' -> '${nextStatus}'`,
+          code: "GUARD_ERROR",
+          current_status: currentStatus,
+          target_status: nextStatus,
+          missing_artifacts: guard.missing_artifacts
+        };
+        process.stderr.write(JSON.stringify(msg) + "\n");
+        process.exit(1);
+        return;
+      }
+      task.status = nextStatus;
+      writeJsonFile(contractPath, task, { cwd });
+      success({
+        task_id: opts.id,
+        mission_id: missionId,
+        previous_status: currentStatus,
+        status: nextStatus,
+        path: normalizePath(contractPath)
+      });
+    } catch (err) {
+      const nodeErr = err;
+      if (nodeErr.code === "FILE_ERROR") {
+        fileError("", "advance", nodeErr.message);
       } else {
         throw err;
       }
@@ -13307,10 +13397,15 @@ function collectSet2(value, previous) {
 var path9 = __toESM(require("path"));
 function registerEventCommands(program2) {
   const cmd = program2.command("event").description("Event ledger append and query (JSONL)");
-  cmd.command("log").description("Append an event to events.jsonl").requiredOption("--type <type>", "Event type (e.g., step_complete, task_start)").option("--task <id>", "Associated task ID").option("--agent <agent>", "Agent that produced the event").option("--data <json>", "Additional data as JSON string").option("--message <text>", "Human-readable message").action(
+  cmd.command("log").description("Append an event to events.jsonl").requiredOption("--type <type>", "Event type (e.g., step_complete, task_start)").option("--task <id>", "Associated task ID").option("--agent <agent>", "Agent that produced the event").option("--data <json>", "Additional data as JSON string").option("--message <text>", "Human-readable message").option("--update-checkpoint", "Also update run.json checkpoint (only for step_complete)").action(
     (opts) => {
       try {
-        const geas = resolveGeasDir(getCwd(cmd));
+        if (opts.updateCheckpoint && !opts.agent) {
+          fileError(".geas/state/run.json", "checkpoint", "--update-checkpoint requires --agent");
+          return;
+        }
+        const cwd = getCwd(cmd);
+        const geas = resolveGeasDir(cwd);
         const eventsPath = path9.join(geas, "state", "events.jsonl");
         const entry = {
           timestamp: (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z"),
@@ -13325,15 +13420,47 @@ function registerEventCommands(program2) {
         if (opts.message) {
           entry.message = opts.message;
         }
+        let parsedData = void 0;
         if (opts.data) {
           try {
-            entry.data = JSON.parse(opts.data);
+            parsedData = JSON.parse(opts.data);
           } catch {
-            entry.data = opts.data;
+            parsedData = opts.data;
           }
+          entry.data = parsedData;
         }
         appendJsonlFile(eventsPath, entry);
         success({ appended: true, event: entry });
+        if (opts.updateCheckpoint && opts.type === "step_complete") {
+          try {
+            const runPath = path9.join(geas, "state", "run.json");
+            const runData = readJsonFile(runPath);
+            if (runData === null) {
+              fileError(".geas/state/run.json", "read", "run.json not found (event was logged successfully)");
+              return;
+            }
+            let stepName = opts.type;
+            if (parsedData && typeof parsedData === "object" && !Array.isArray(parsedData)) {
+              const dataObj = parsedData;
+              if (typeof dataObj.step === "string") {
+                stepName = dataObj.step;
+              }
+            }
+            const existing = runData.checkpoint || {};
+            const now = (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
+            runData.checkpoint = {
+              ...existing,
+              pipeline_step: stepName,
+              agent_in_flight: opts.agent,
+              last_updated: now,
+              checkpoint_phase: "committed"
+            };
+            atomicWriteJsonFile(runPath, runData, { cwd });
+          } catch (cpErr) {
+            const ce = cpErr;
+            fileError(".geas/state/run.json", "checkpoint update", ce.message);
+          }
+        }
       } catch (err) {
         const e = err;
         fileError(".geas/state/events.jsonl", "append", e.message);

@@ -20,6 +20,11 @@ import { readInputData, parseSetFlags, deepMergeSetOverrides } from '../lib/inpu
 import { injectEnvelope } from '../lib/envelope';
 import { dryRunGuard, dryRunParseError } from '../lib/dry-run';
 
+// ── Primary chain for advance command ──────────────────────────────
+const PRIMARY_CHAIN = ['drafted', 'ready', 'implementing', 'reviewed', 'integrated', 'verified', 'passed'] as const;
+
+const AUXILIARY_STATES = ['blocked', 'escalated', 'cancelled'] as const;
+
 // ── State transition validation ─────────────────────────────────────
 
 /**
@@ -265,6 +270,112 @@ export function registerTaskCommands(program: Command): void {
         const nodeErr = err as NodeJS.ErrnoException;
         if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'transition', nodeErr.message);
+        } else {
+          throw err;
+        }
+      }
+    });
+
+  // ── geas task advance --id <tid> ──────────────────────────────────
+  cmd
+    .command('advance')
+    .description('Advance a task to the next primary-chain state (with guard pre-check)')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .requiredOption('--id <task-id>', 'Task identifier')
+    .action((opts: { mission?: string; id: string }) => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(opts.id, 'task ID');
+        const missionDir = resolveMissionDir(geasDir, missionId);
+
+        const contractPath = path.resolve(missionDir, 'tasks', opts.id, 'contract.json');
+        const task = readJsonFile<Record<string, unknown>>(contractPath);
+
+        if (!task) {
+          fileError(
+            normalizePath(contractPath),
+            'advance',
+            `Task contract not found: ${normalizePath(contractPath)}`
+          );
+          return;
+        }
+
+        const currentStatus = task.status as string;
+
+        // Reject auxiliary states
+        if ((AUXILIARY_STATES as readonly string[]).includes(currentStatus)) {
+          const msg = {
+            error: `Cannot advance: task is in auxiliary state '${currentStatus}'. Advance only operates on primary chain states.`,
+            code: 'STATE_ERROR' as const,
+            current_status: currentStatus,
+          };
+          process.stderr.write(JSON.stringify(msg) + '\n');
+          process.exit(1);
+          return;
+        }
+
+        // Reject terminal state
+        if (currentStatus === 'passed') {
+          const msg = {
+            error: `Cannot advance: task has reached terminal state 'passed'.`,
+            code: 'STATE_ERROR' as const,
+            current_status: currentStatus,
+          };
+          process.stderr.write(JSON.stringify(msg) + '\n');
+          process.exit(1);
+          return;
+        }
+
+        // Find current index in primary chain
+        const currentIndex = (PRIMARY_CHAIN as readonly string[]).indexOf(currentStatus);
+        if (currentIndex === -1) {
+          const msg = {
+            error: `Cannot advance: unknown status '${currentStatus}' is not in the primary chain.`,
+            code: 'STATE_ERROR' as const,
+            current_status: currentStatus,
+          };
+          process.stderr.write(JSON.stringify(msg) + '\n');
+          process.exit(1);
+          return;
+        }
+
+        const nextStatus = PRIMARY_CHAIN[currentIndex + 1];
+
+        // Guard pre-check
+        const guard = validateTransition(
+          geasDir, missionId, opts.id, currentStatus, nextStatus,
+        );
+        if (!guard.valid) {
+          const msg = {
+            error: `Missing required artifacts for transition '${currentStatus}' -> '${nextStatus}'`,
+            code: 'GUARD_ERROR' as const,
+            current_status: currentStatus,
+            target_status: nextStatus,
+            missing_artifacts: guard.missing_artifacts,
+          };
+          process.stderr.write(JSON.stringify(msg) + '\n');
+          process.exit(1);
+          return;
+        }
+
+        // Apply the transition
+        task.status = nextStatus;
+        writeJsonFile(contractPath, task, { cwd });
+
+        success({
+          task_id: opts.id,
+          mission_id: missionId,
+          previous_status: currentStatus,
+          status: nextStatus,
+          path: normalizePath(contractPath),
+        });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'advance', nodeErr.message);
         } else {
           throw err;
         }
