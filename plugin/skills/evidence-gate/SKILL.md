@@ -124,7 +124,7 @@ Compare files changed against the task's `scope.surfaces`:
 
 ### Part C: Known Risk Handling
 
-Verify that each item in the implementation contract's `known_risks` has been handled:
+The primary source of known risks is `self_check.known_risks` from record.json, supplemented by the implementation contract's `edge_cases`. Verify that each item has been handled:
 - **Mitigated**: evidence shows the risk was addressed
 - **Accepted with rationale**: explicit rationale recorded for accepting the risk
 - **Deferred to debt**: recorded in the debt register
@@ -194,6 +194,21 @@ Record rubric results:
 ```
 
 **All rubric dimensions must meet their threshold** for Tier 2 to pass. The `blocking_dimensions` list tells the verify-fix-loop exactly what to target.
+
+### Self-Check Consumption Paths
+
+The `self_check` section from record.json is consumed at 6 points in the pipeline:
+
+| # | Path | Consumer | self_check field | Action |
+|---|------|----------|-----------------|--------|
+| 1 | Review focus | Specialist reviewers | `known_risks`, `untested_paths` | Prioritize review of flagged areas |
+| 2 | QA verification plan | Quality specialist | `untested_paths` | Focus testing on declared untested paths |
+| 3 | Stub verification | Evidence Gate (Tier 2) | `possible_stubs` | Cap `output_completeness` if stubs confirmed |
+| 4 | Threshold tightening | Evidence Gate (Tier 2) | `confidence` | Add +1 to all thresholds if confidence <= 2 |
+| 5 | Debt extraction | Retrospective | `untested_paths`, `known_risks` | Feed to `debt_candidates` |
+| 6 | Memory extraction | Memory extraction step | `known_risks`, `untested_paths` | Feed to agent `memory_candidates` |
+
+Ignoring the self_check while still collecting it is non-conformant review theater (Doc 05).
 
 ---
 

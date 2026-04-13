@@ -177,7 +177,7 @@ Agent(agent: "{worker}", isolation: "worktree", prompt: "IMPORTANT: You are runn
 Verify record.json has `self_check` section: `Bash("geas task record get --task {task-id} --section self_check")`. Do NOT proceed to Specialist Review without this section.
 
 ### Specialist Review (design-authority) [MANDATORY]
-Select the appropriate agent for this role. Use profiles.json defaults if the mission has a domain_profile, but choose the best-fit agent based on the task's needs. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-design-authority}-review --content '...'")`. Then:
+Select the appropriate agent for this role. Use profiles.json defaults if the mission has a domain_profile, but choose the best-fit agent based on the task's needs. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-design-authority}-review --content '...'")`. Include the worker's `self_check` section (`known_risks`, `untested_paths`, `confidence`) in the context packet so reviewers can focus on flagged areas. Then:
 Update checkpoint: `Bash("geas state checkpoint set --step specialist_review --agent {resolved-design-authority}")`
 ```
 Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-design-authority}-review.md. Review implementation. Write your review as evidence. Run: geas evidence add --task {task-id} --agent {resolved-design-authority}-review --role reviewer --set summary='<review summary>' --set verdict='approved' --set concerns='[]'")
@@ -186,7 +186,7 @@ Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-design-au
 Update checkpoint: `Bash("geas state checkpoint set --step specialist_review --agent null")`
 
 ### Testing (quality-specialist) [MANDATORY]
-Select the appropriate agent for this role. Use profiles.json defaults if the mission has a domain_profile, but choose the best-fit agent based on the task's needs. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-quality-specialist} --content '...'")`. Then:
+Select the appropriate agent for this role. Use profiles.json defaults if the mission has a domain_profile, but choose the best-fit agent based on the task's needs. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-quality-specialist} --content '...'")`. Include the worker's `self_check` section in the context packet. QA should prioritize testing `untested_paths` and verifying `known_risks` are addressed. Then:
 Update checkpoint: `Bash("geas state checkpoint set --step testing --agent {resolved-quality-specialist}")`
 ```
 Agent(agent: "{resolved-quality-specialist}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-quality-specialist}.md. Test the implementation. Write your test results as evidence. Run: geas evidence add --task {task-id} --agent {resolved-quality-specialist} --role tester --set summary='<test summary>' --set verdict='pass' --set criteria_results='[{\"criterion\":\"...\",\"passed\":true}]'")
@@ -281,6 +281,8 @@ The closure section must include: `change_summary` (required), `reviews` (array 
 
 **closure fields:** `change_summary`, `reviews[]` (items: `reviewer_type`, `status` (approved|changes_requested|blocked), optional `summary`), `open_risks[]`, `debt_items[]`
 
+**Self-check routing:** Include any unresolved items from `self_check.known_risks` in `closure.open_risks`. If a known risk was mitigated (confirmed by reviewer or QA evidence), omit it. If unresolved or unverified, carry it forward.
+
 **Verify** record.json has `closure` section: `Bash("geas task record get --task {task-id} --section closure")`. Confirm all required fields are populated before proceeding.
 
 Update checkpoint: `Bash("geas state checkpoint set --step closure_packet --agent orchestrator")`
@@ -365,6 +367,8 @@ Bash("geas task record add --task {task-id} --section retrospective <<'EOF'\n<re
 ```
 The retrospective section must include: `what_went_well` (required), `what_broke` (required), `what_was_surprising`, `rule_candidates` (proposed changes to rules.md -- DO NOT modify rules.md directly), `memory_candidates`, `debt_candidates`, `next_time_guidance`. The CLI validates against the record schema automatically.
 
+**Self-check routing:** Include `self_check.untested_paths` as `debt_candidates` if they remain untested after QA. Compare against the quality-specialist's `criteria_results` — any path still untested is a debt item, not a forgotten task.
+
 Verify record.json has `retrospective` section: `Bash("geas task record get --task {task-id} --section retrospective")`.
 
 #### Agent Memory Update
@@ -374,7 +378,7 @@ After the retrospective, harvest `memory_suggestions` from the task's artifacts 
 Collect `memory_suggestions` from:
 - All specialist reviews at `.geas/missions/{mission_id}/tasks/{task-id}/evidence/`
 - Challenge review from record.json `challenge_review` section (if exists)
-- Self-check from record.json `self_check` section
+- Self-check from record.json `self_check` section — include `self_check.known_risks` and `self_check.untested_paths` as memory candidates for the worker's agent type. These capture implementation-time insights that should inform future work by the same agent type.
 
 Agent type mapping:
 - For specialist reviews: read from the evidence file's `agent` or `role` field
