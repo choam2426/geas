@@ -403,15 +403,25 @@ Agent(agent: "product-authority", prompt: "Read the closure and challenge_review
 Note: "iterate" is only valid as a Final Verdict outcome. Gate verdicts (evidence-gate) are pass/fail/block/error.
 
 ### Pre-Resolve Check (Mechanical Artifact Gate)
-**Before marking any task as "passed", verify ALL required record.json sections exist.** This is a mechanical gate enforced at the `verified -> passed` transition. The CLI `geas task transition --to passed` command validates these sections exist in record.json before allowing the transition.
+**Before marking any task as "passed", verify ALL forbidden pass conditions are clear.** This is a mechanical gate enforced at the `verified -> passed` transition. The CLI `geas task transition --to passed` command validates these conditions before allowing the transition.
 
-**Required record.json sections (verified -> passed):**
-- `closure` section exists (assembled in Closure Packet Assembly)
+**Forbidden pass conditions (all must be clear):**
+
+| # | Condition | Check | Rejection message |
+|---|-----------|-------|-------------------|
+| 1 | Closure packet incomplete | `closure` section exists in record.json | "Missing closure section — assemble closure packet first" |
+| 2 | Evidence Gate did not pass | `gate_result` section exists with `verdict: "pass"` | "Evidence Gate verdict is not 'pass' — resolve gate issues first" |
+| 3 | Required review missing | Evidence files exist for all types in `routing.required_reviewer_types` | "Missing required reviewer evidence — complete specialist reviews" |
+| 4 | Active unresolved blocker | `challenge_review.blocking` is false, or challenger was skipped (low risk), or blocking concerns were resolved via vote round | "Unresolved blocking concern — resolve via vote round or fix" |
+| 5 | Task state not verified | Task status is `verified` | "Task state is not 'verified' — complete integration and verification first" |
+| 6 | Stale or mismatched evidence | Evidence timestamps are newer than last revalidation AND evidence base_snapshot matches current integration tip | "Evidence is stale or produced against wrong base — re-run affected steps" |
+
+**Additional required sections:**
 - `challenge_review` section exists OR challenger was explicitly skipped (low risk)
-- `verdict` section exists with `verdict: "pass"`
+- `verdict` section exists with `verdict: "pass"` (Final Verdict, distinct from Evidence Gate)
 - `retrospective` section exists
 
-**If ANY is missing: go back and execute the missing step. Do NOT proceed.** The CLI will reject the transition with an error listing the missing sections.
+**If ANY is missing or condition violated: go back and execute the missing step. Do NOT proceed.** The CLI will reject the transition with an error listing the missing sections or violated conditions.
 
 ### Retrospective [MANDATORY — before Resolve]
 
