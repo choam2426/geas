@@ -12329,8 +12329,8 @@ function registerMissionCommands(program2) {
 }
 
 // src/commands/task.ts
-var fs8 = __toESM(require("fs"));
-var path7 = __toESM(require("path"));
+var fs9 = __toESM(require("fs"));
+var path8 = __toESM(require("path"));
 
 // src/lib/transition-guards.ts
 var fs7 = __toESM(require("fs"));
@@ -12614,6 +12614,142 @@ function validateTransition(geasDir2, missionId, taskId, fromStatus, toStatus) {
   return guard(geasDir2, missionId, taskId);
 }
 
+// src/commands/memory.ts
+var fs8 = __toESM(require("fs"));
+var path7 = __toESM(require("path"));
+function appendAgentNote(geasDir2, agent, text, cwd) {
+  const agentsDir = path7.resolve(geasDir2, "memory", "agents");
+  ensureDir(agentsDir);
+  const filePath = path7.resolve(agentsDir, `${agent}.md`);
+  assertContainedIn(filePath, geasDir2);
+  let content;
+  if (fs8.existsSync(filePath)) {
+    content = fs8.readFileSync(filePath, "utf-8");
+    const noteLine = `- ${text}`;
+    const existingLines = content.split("\n").map((l) => l.trimEnd());
+    if (existingLines.includes(noteLine)) {
+      return false;
+    }
+    if (cwd) writeCheckpointPending(filePath, cwd);
+    content = content.trimEnd() + "\n" + noteLine + "\n";
+  } else {
+    if (cwd) writeCheckpointPending(filePath, cwd);
+    const header = agent.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    content = `# ${header} Memory
+
+- ${text}
+`;
+  }
+  fs8.writeFileSync(filePath, content, "utf-8");
+  return true;
+}
+function registerMemoryCommands(program2) {
+  const cmd = program2.command("memory").description("Memory system (rules.md + agent notes)");
+  cmd.command("init-rules").description("Bootstrap .geas/rules.md with initial agent rules content").option("--code-section <text>", "Additional Code section content to append").action((opts) => {
+    try {
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
+      const rulesPath = path7.resolve(geasDir2, "rules.md");
+      if (fs8.existsSync(rulesPath)) {
+        const content2 = fs8.readFileSync(rulesPath, "utf-8");
+        success({ action: "skipped", reason: "rules.md already exists", path: normalizePath(rulesPath) });
+        return;
+      }
+      let content = `# Project Rules
+
+## Evidence
+- Write evidence via CLI: \`geas evidence add --task {tid} --agent {name} --role {role} --set key=value\`
+- Required fields by role:
+  - implementer: \`summary\`, \`files_changed\` (array of changed file paths)
+  - reviewer: \`summary\`, \`verdict\` (approved/changes_requested/blocked), \`concerns\` (array)
+  - tester: \`summary\`, \`verdict\`, \`criteria_results\` (array of {criterion, passed, details?})
+  - authority: \`summary\`, \`verdict\`, \`rationale\`
+- Optional for all roles: \`rubric_scores\` (array of {dimension, score (1-5), rationale?})
+- Timestamps are auto-injected by the CLI. Never generate them manually.
+
+## Scope
+- Only modify files listed in \`scope.surfaces\` from the TaskContract.
+- Out-of-scope changes require implementation contract amendment.
+- Read the TaskContract before starting work to understand acceptance criteria and scope.
+
+## Reviews
+- Reviewers must provide concrete, actionable feedback \u2014 not vague observations.
+- Use \`verdict: "changes_requested"\` with specific \`concerns\` when issues are found.
+- Use \`verdict: "blocked"\` only for critical issues that prevent shipping.
+
+## Knowledge Sharing
+- If you discover something other agents need to know (stack rules, conventions, constraints), update this file (\`.geas/rules.md\`) directly. Your agent memory note is private to you \u2014 rules.md is the only cross-agent channel.
+
+## Code
+`;
+      if (opts.codeSection) {
+        content += opts.codeSection + "\n";
+      }
+      ensureDir(path7.dirname(rulesPath));
+      fs8.writeFileSync(rulesPath, content, "utf-8");
+      success({ action: "created", path: normalizePath(rulesPath) });
+    } catch (err) {
+      const nodeErr = err;
+      if (nodeErr.code === "FILE_ERROR") {
+        fileError("", "init-rules", nodeErr.message);
+      } else {
+        throw err;
+      }
+    }
+  });
+  cmd.command("agent-note").description("Append a note to an agent's memory file (memory/agents/{agent}.md)").requiredOption("--agent <name>", "Agent type name (e.g., software-engineer)").requiredOption("--add <text>", "Note text to append").action((opts) => {
+    try {
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
+      validateIdentifier(opts.agent, "agent");
+      const agentName = opts.agent;
+      appendAgentNote(geasDir2, agentName, opts.add, cwd);
+      const filePath = path7.resolve(geasDir2, "memory", "agents", `${agentName}.md`);
+      success({
+        written: normalizePath(filePath),
+        agent: agentName,
+        action: "appended"
+      });
+    } catch (err) {
+      const nodeErr = err;
+      if (nodeErr.code === "FILE_ERROR") {
+        fileError("", "agent-note", nodeErr.message);
+      } else {
+        throw err;
+      }
+    }
+  });
+  cmd.command("read").description("Read an agent's memory notes or rules.md").option("--agent <name>", "Agent name (omit to read rules.md)").action((opts) => {
+    try {
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
+      if (opts.agent) {
+        validateIdentifier(opts.agent, "agent");
+        const agentName = opts.agent;
+        const filePath = path7.resolve(geasDir2, "memory", "agents", `${agentName}.md`);
+        assertContainedIn(filePath, geasDir2);
+        if (!fs8.existsSync(filePath)) {
+          success({ agent: agentName, content: null, message: "No memory notes found" });
+          return;
+        }
+        const content = fs8.readFileSync(filePath, "utf-8");
+        success({ agent: agentName, content });
+      } else {
+        const rulesPath = path7.resolve(geasDir2, "rules.md");
+        if (!fs8.existsSync(rulesPath)) {
+          success({ type: "rules", content: null, message: "rules.md not found" });
+          return;
+        }
+        const content = fs8.readFileSync(rulesPath, "utf-8");
+        success({ type: "rules", content });
+      }
+    } catch (err) {
+      const nodeErr = err;
+      fileError("", "memory read", nodeErr.message || String(err));
+    }
+  });
+}
+
 // src/commands/task.ts
 var VALID_TRANSITIONS = {
   drafted: ["ready", "blocked", "escalated", "cancelled"],
@@ -12646,7 +12782,7 @@ function isValidSection(s) {
 }
 function resolveMissionId(geasDir2, missionOpt) {
   if (missionOpt) return missionOpt;
-  const runPath = path7.resolve(geasDir2, "state", "run.json");
+  const runPath = path8.resolve(geasDir2, "state", "run.json");
   const run2 = readJsonFile(runPath);
   if (run2?.mission_id && typeof run2.mission_id === "string") {
     return run2.mission_id;
@@ -12680,10 +12816,10 @@ function registerTaskCommands(program2) {
         return;
       }
       validateIdentifier(taskId, "task ID");
-      const taskDir = path7.resolve(missionDir, "tasks", taskId);
+      const taskDir = path8.resolve(missionDir, "tasks", taskId);
       ensureDir(taskDir);
-      const contractPath = path7.resolve(taskDir, "contract.json");
-      if (fs8.existsSync(contractPath)) {
+      const contractPath = path8.resolve(taskDir, "contract.json");
+      if (fs9.existsSync(contractPath)) {
         fileError(
           normalizePath(contractPath),
           "create",
@@ -12691,8 +12827,8 @@ function registerTaskCommands(program2) {
         );
         return;
       }
-      ensureDir(path7.resolve(taskDir, "evidence"));
-      ensureDir(path7.resolve(taskDir, "packets"));
+      ensureDir(path8.resolve(taskDir, "evidence"));
+      ensureDir(path8.resolve(taskDir, "packets"));
       writeJsonFile(contractPath, data, { cwd });
       success({
         written: normalizePath(contractPath),
@@ -12721,7 +12857,7 @@ function registerTaskCommands(program2) {
       validateIdentifier(missionId, "mission ID");
       validateIdentifier(opts.id, "task ID");
       const missionDir = resolveMissionDir(geasDir2, missionId);
-      const contractPath = path7.resolve(missionDir, "tasks", opts.id, "contract.json");
+      const contractPath = path8.resolve(missionDir, "tasks", opts.id, "contract.json");
       const task = readJsonFile(contractPath);
       if (!task) {
         fileError(
@@ -12802,7 +12938,7 @@ function registerTaskCommands(program2) {
       validateIdentifier(missionId, "mission ID");
       validateIdentifier(opts.id, "task ID");
       const missionDir = resolveMissionDir(geasDir2, missionId);
-      const contractPath = path7.resolve(missionDir, "tasks", opts.id, "contract.json");
+      const contractPath = path8.resolve(missionDir, "tasks", opts.id, "contract.json");
       const task = readJsonFile(contractPath);
       if (!task) {
         fileError(
@@ -12829,16 +12965,16 @@ function registerTaskCommands(program2) {
       const missionId = resolveMissionId(geasDir2, opts.mission);
       validateIdentifier(missionId, "mission ID");
       const missionDir = resolveMissionDir(geasDir2, missionId);
-      const tasksDir = path7.resolve(missionDir, "tasks");
-      if (!fs8.existsSync(tasksDir)) {
+      const tasksDir = path8.resolve(missionDir, "tasks");
+      if (!fs9.existsSync(tasksDir)) {
         success([]);
         return;
       }
-      const entries = fs8.readdirSync(tasksDir, { withFileTypes: true });
+      const entries = fs9.readdirSync(tasksDir, { withFileTypes: true });
       const tasks = [];
       for (const entry of entries) {
         if (!entry.isDirectory()) continue;
-        const contractPath = path7.resolve(tasksDir, entry.name, "contract.json");
+        const contractPath = path8.resolve(tasksDir, entry.name, "contract.json");
         const task = readJsonFile(contractPath);
         if (task && task.task_id) {
           tasks.push({
@@ -12872,8 +13008,8 @@ function registerTaskCommands(program2) {
         fileError("", "record add", `Invalid section: '${opts.section}'. Valid: ${VALID_SECTIONS.join(", ")}`);
         return;
       }
-      const taskDir = path7.resolve(missionDir, "tasks", opts.task);
-      if (!fs8.existsSync(taskDir)) {
+      const taskDir = path8.resolve(missionDir, "tasks", opts.task);
+      if (!fs9.existsSync(taskDir)) {
         fileError(normalizePath(taskDir), "record add", `Task directory not found: ${opts.task}`);
         return;
       }
@@ -12906,7 +13042,7 @@ function registerTaskCommands(program2) {
         );
         return;
       }
-      const recordPath = path7.resolve(taskDir, "record.json");
+      const recordPath = path8.resolve(taskDir, "record.json");
       let record2 = readJsonFile(recordPath);
       if (!record2) {
         record2 = { version: "1.0", task_id: opts.task };
@@ -12947,8 +13083,8 @@ function registerTaskCommands(program2) {
       validateIdentifier(missionId, "mission ID");
       validateIdentifier(opts.task, "task ID");
       const missionDir = resolveMissionDir(geasDir2, missionId);
-      const taskDir = path7.resolve(missionDir, "tasks", opts.task);
-      const recordPath = path7.resolve(taskDir, "record.json");
+      const taskDir = path8.resolve(missionDir, "tasks", opts.task);
+      const recordPath = path8.resolve(taskDir, "record.json");
       const record2 = readJsonFile(recordPath);
       if (!record2) {
         fileError(normalizePath(recordPath), "record get", "record.json not found");
@@ -12977,17 +13113,93 @@ function registerTaskCommands(program2) {
       }
     }
   });
+  cmd.command("harvest-memory").description("Batch-extract memory_suggestions from task evidence and write agent notes").requiredOption("--id <task-id>", "Task identifier").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").action((opts) => {
+    try {
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
+      const missionId = resolveMissionId(geasDir2, opts.mission);
+      validateIdentifier(missionId, "mission ID");
+      validateIdentifier(opts.id, "task ID");
+      const missionDir = resolveMissionDir(geasDir2, missionId);
+      const evidenceDir = path8.resolve(missionDir, "tasks", opts.id, "evidence");
+      if (!fs9.existsSync(evidenceDir)) {
+        success({ harvested: 0, agents: {} });
+        return;
+      }
+      const entries = fs9.readdirSync(evidenceDir, { withFileTypes: true });
+      const jsonFiles = entries.filter((e) => e.isFile() && e.name.endsWith(".json")).map((e) => e.name);
+      const suggestionsByAgent = {};
+      for (const fileName of jsonFiles) {
+        const filePath = path8.resolve(evidenceDir, fileName);
+        let data;
+        try {
+          const raw = fs9.readFileSync(filePath, "utf-8");
+          data = JSON.parse(raw);
+        } catch {
+          process.stderr.write(
+            JSON.stringify({ warning: `Skipping invalid JSON: ${fileName}` }) + "\n"
+          );
+          continue;
+        }
+        const suggestions = data.memory_suggestions;
+        if (!suggestions || !Array.isArray(suggestions) || suggestions.length === 0) {
+          continue;
+        }
+        const agent = typeof data.agent === "string" && data.agent ? data.agent : fileName.replace(/\.json$/, "");
+        if (!suggestionsByAgent[agent]) {
+          suggestionsByAgent[agent] = [];
+        }
+        for (const suggestion of suggestions) {
+          if (typeof suggestion === "string" && suggestion.trim()) {
+            suggestionsByAgent[agent].push(suggestion.trim());
+          }
+        }
+      }
+      const agentCounts = {};
+      let totalHarvested = 0;
+      for (const [agent, suggestions] of Object.entries(suggestionsByAgent)) {
+        const unique = [...new Set(suggestions)];
+        let written = 0;
+        for (const suggestion of unique) {
+          const wasWritten = appendAgentNote(geasDir2, agent, suggestion, cwd);
+          if (wasWritten) {
+            written++;
+          }
+        }
+        if (written > 0) {
+          agentCounts[agent] = written;
+          totalHarvested += written;
+        }
+      }
+      const eventsPath = path8.resolve(geasDir2, "state", "events.jsonl");
+      const eventEntry = {
+        timestamp: (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z"),
+        event_type: "memory_extraction",
+        task_id: opts.id,
+        data: { harvested: totalHarvested, agents: agentCounts }
+      };
+      appendJsonlFile(eventsPath, eventEntry);
+      success({ harvested: totalHarvested, agents: agentCounts });
+    } catch (err) {
+      const nodeErr = err;
+      if (nodeErr.code === "FILE_ERROR") {
+        fileError("", "harvest-memory", nodeErr.message);
+      } else {
+        throw err;
+      }
+    }
+  });
 }
 function collectSet(value, previous) {
   return previous.concat([value]);
 }
 
 // src/commands/evidence.ts
-var fs9 = __toESM(require("fs"));
-var path8 = __toESM(require("path"));
+var fs10 = __toESM(require("fs"));
+var path9 = __toESM(require("path"));
 function resolveMissionId2(geasDir2, missionOpt) {
   if (missionOpt) return missionOpt;
-  const runPath = path8.resolve(geasDir2, "state", "run.json");
+  const runPath = path9.resolve(geasDir2, "state", "run.json");
   const run2 = readJsonFile(runPath);
   if (run2?.mission_id && typeof run2.mission_id === "string") {
     return run2.mission_id;
@@ -13057,21 +13269,21 @@ function registerEvidenceCommands(program2) {
         validationError("evidence", result.errors || []);
         return;
       }
-      const missionDir = path8.resolve(geasDir2, "missions", missionId);
+      const missionDir = path9.resolve(geasDir2, "missions", missionId);
       let evidenceDir;
       if (opts.phase) {
         const phaseDir = opts.phase === "evolving" ? "evolution" : opts.phase;
-        evidenceDir = path8.resolve(missionDir, phaseDir, "evidence");
+        evidenceDir = path9.resolve(missionDir, phaseDir, "evidence");
       } else {
-        evidenceDir = path8.resolve(missionDir, "tasks", opts.task, "evidence");
-        const contractPath = path8.resolve(missionDir, "tasks", opts.task, "contract.json");
-        if (!fs9.existsSync(contractPath)) {
+        evidenceDir = path9.resolve(missionDir, "tasks", opts.task, "evidence");
+        const contractPath = path9.resolve(missionDir, "tasks", opts.task, "contract.json");
+        if (!fs10.existsSync(contractPath)) {
           fileError(`tasks/${opts.task}/contract.json`, "validate", "Task does not exist. Cannot create evidence for non-existent task.");
           return;
         }
       }
       ensureDir(evidenceDir);
-      const filePath = path8.resolve(evidenceDir, `${agentName}.json`);
+      const filePath = path9.resolve(evidenceDir, `${agentName}.json`);
       writeJsonFile(filePath, evidenceData, { cwd });
       success({
         written: normalizePath(filePath),
@@ -13096,15 +13308,15 @@ function registerEvidenceCommands(program2) {
       const missionId = resolveMissionId2(geasDir2, opts.mission);
       validateIdentifier(missionId, "mission ID");
       validateIdentifier(opts.task, "task ID");
-      const missionDir = path8.resolve(geasDir2, "missions", missionId);
-      const evidenceDir = path8.resolve(missionDir, "tasks", opts.task, "evidence");
+      const missionDir = path9.resolve(geasDir2, "missions", missionId);
+      const evidenceDir = path9.resolve(missionDir, "tasks", opts.task, "evidence");
       if (opts.agent) {
         if (!SAFE_AGENT_RE.test(opts.agent)) {
           fileError(opts.agent, "validate", `Invalid agent name: "${opts.agent}". Only alphanumeric, underscore, and hyphen are allowed.`);
           return;
         }
         const agentName = opts.agent;
-        const filePath = path8.resolve(evidenceDir, `${agentName}.json`);
+        const filePath = path9.resolve(evidenceDir, `${agentName}.json`);
         const data = readJsonFile(filePath);
         if (data === null) {
           fileError(normalizePath(filePath), "read", "Evidence file not found");
@@ -13117,7 +13329,7 @@ function registerEvidenceCommands(program2) {
           evidence: data
         });
       } else {
-        if (!fs9.existsSync(evidenceDir)) {
+        if (!fs10.existsSync(evidenceDir)) {
           success({
             mission_id: missionId,
             task_id: opts.task,
@@ -13126,13 +13338,13 @@ function registerEvidenceCommands(program2) {
           });
           return;
         }
-        const files = fs9.readdirSync(evidenceDir).filter((f) => f.endsWith(".json"));
+        const files = fs10.readdirSync(evidenceDir).filter((f) => f.endsWith(".json"));
         const evidence = {};
         const agents = [];
         for (const file of files) {
           const agentKey = file.replace(/\.json$/, "");
           agents.push(agentKey);
-          const data = readJsonFile(path8.resolve(evidenceDir, file));
+          const data = readJsonFile(path9.resolve(evidenceDir, file));
           if (data !== null) {
             evidence[agentKey] = data;
           }
@@ -13155,14 +13367,14 @@ function collectSet2(value, previous) {
 }
 
 // src/commands/event.ts
-var path9 = __toESM(require("path"));
+var path10 = __toESM(require("path"));
 function registerEventCommands(program2) {
   const cmd = program2.command("event").description("Event ledger append and query (JSONL)");
   cmd.command("log").description("Append an event to events.jsonl").requiredOption("--type <type>", "Event type (e.g., step_complete, task_start)").option("--task <id>", "Associated task ID").option("--agent <agent>", "Agent that produced the event").option("--data <json>", "Additional data as JSON string").option("--message <text>", "Human-readable message").action(
     (opts) => {
       try {
         const geas = resolveGeasDir(getCwd(cmd));
-        const eventsPath = path9.join(geas, "state", "events.jsonl");
+        const eventsPath = path10.join(geas, "state", "events.jsonl");
         const entry = {
           timestamp: (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z"),
           event_type: opts.type
@@ -13194,9 +13406,9 @@ function registerEventCommands(program2) {
 }
 
 // src/commands/lock.ts
-var path10 = __toESM(require("path"));
+var path11 = __toESM(require("path"));
 function locksJsonPath(geasDir2) {
-  return path10.join(geasDir2, "state", "locks.json");
+  return path11.join(geasDir2, "state", "locks.json");
 }
 function readLocks(geasDir2) {
   const filePath = locksJsonPath(geasDir2);
@@ -13356,12 +13568,12 @@ function registerLockCommands(program2) {
 }
 
 // src/commands/debt.ts
-var path11 = __toESM(require("path"));
+var path12 = __toESM(require("path"));
 var VALID_SEVERITIES = ["low", "normal", "high", "critical"];
 var VALID_KINDS = ["output_quality", "verification_gap", "structural", "risk", "process", "documentation", "operations"];
 var FILTERABLE_STATUSES = ["open", "resolved", "accepted", "scheduled", "dropped"];
 function debtRegisterPath(missionDir) {
-  return path11.resolve(missionDir, "evolution", "debt-register.json");
+  return path12.resolve(missionDir, "evolution", "debt-register.json");
 }
 function createEmptyRegister(missionId) {
   return {
@@ -13419,7 +13631,7 @@ function registerDebtCommands(program2) {
       const missionDir = resolveMissionDir(geasDir2, opts.mission);
       const regPath = debtRegisterPath(missionDir);
       assertContainedIn(regPath, missionDir);
-      ensureDir(path11.dirname(regPath));
+      ensureDir(path12.dirname(regPath));
       let register = readJsonFile(regPath);
       if (!register) {
         register = createEmptyRegister(opts.mission);
@@ -13542,133 +13754,6 @@ function registerDebtCommands(program2) {
     } catch (err) {
       const nodeErr = err;
       fileError("", "debt list", nodeErr.message || String(err));
-    }
-  });
-}
-
-// src/commands/memory.ts
-var fs10 = __toESM(require("fs"));
-var path12 = __toESM(require("path"));
-function registerMemoryCommands(program2) {
-  const cmd = program2.command("memory").description("Memory system (rules.md + agent notes)");
-  cmd.command("init-rules").description("Bootstrap .geas/rules.md with initial agent rules content").option("--code-section <text>", "Additional Code section content to append").action((opts) => {
-    try {
-      const cwd = getCwd(cmd);
-      const geasDir2 = resolveGeasDir(cwd);
-      const rulesPath = path12.resolve(geasDir2, "rules.md");
-      if (fs10.existsSync(rulesPath)) {
-        const content2 = fs10.readFileSync(rulesPath, "utf-8");
-        success({ action: "skipped", reason: "rules.md already exists", path: normalizePath(rulesPath) });
-        return;
-      }
-      let content = `# Project Rules
-
-## Evidence
-- Write evidence via CLI: \`geas evidence add --task {tid} --agent {name} --role {role} --set key=value\`
-- Required fields by role:
-  - implementer: \`summary\`, \`files_changed\` (array of changed file paths)
-  - reviewer: \`summary\`, \`verdict\` (approved/changes_requested/blocked), \`concerns\` (array)
-  - tester: \`summary\`, \`verdict\`, \`criteria_results\` (array of {criterion, passed, details?})
-  - authority: \`summary\`, \`verdict\`, \`rationale\`
-- Optional for all roles: \`rubric_scores\` (array of {dimension, score (1-5), rationale?})
-- Timestamps are auto-injected by the CLI. Never generate them manually.
-
-## Scope
-- Only modify files listed in \`scope.surfaces\` from the TaskContract.
-- Out-of-scope changes require implementation contract amendment.
-- Read the TaskContract before starting work to understand acceptance criteria and scope.
-
-## Reviews
-- Reviewers must provide concrete, actionable feedback \u2014 not vague observations.
-- Use \`verdict: "changes_requested"\` with specific \`concerns\` when issues are found.
-- Use \`verdict: "blocked"\` only for critical issues that prevent shipping.
-
-## Knowledge Sharing
-- If you discover something other agents need to know (stack rules, conventions, constraints), update this file (\`.geas/rules.md\`) directly. Your agent memory note is private to you \u2014 rules.md is the only cross-agent channel.
-
-## Code
-`;
-      if (opts.codeSection) {
-        content += opts.codeSection + "\n";
-      }
-      ensureDir(path12.dirname(rulesPath));
-      fs10.writeFileSync(rulesPath, content, "utf-8");
-      success({ action: "created", path: normalizePath(rulesPath) });
-    } catch (err) {
-      const nodeErr = err;
-      if (nodeErr.code === "FILE_ERROR") {
-        fileError("", "init-rules", nodeErr.message);
-      } else {
-        throw err;
-      }
-    }
-  });
-  cmd.command("agent-note").description("Append a note to an agent's memory file (memory/agents/{agent}.md)").requiredOption("--agent <name>", "Agent type name (e.g., software-engineer)").requiredOption("--add <text>", "Note text to append").action((opts) => {
-    try {
-      const cwd = getCwd(cmd);
-      const geasDir2 = resolveGeasDir(cwd);
-      validateIdentifier(opts.agent, "agent");
-      const agentName = opts.agent;
-      const agentsDir = path12.resolve(geasDir2, "memory", "agents");
-      ensureDir(agentsDir);
-      const filePath = path12.resolve(agentsDir, `${agentName}.md`);
-      assertContainedIn(filePath, geasDir2);
-      writeCheckpointPending(filePath, cwd);
-      let content;
-      if (fs10.existsSync(filePath)) {
-        content = fs10.readFileSync(filePath, "utf-8");
-        const note = `- ${opts.add}
-`;
-        content = content.trimEnd() + "\n" + note;
-      } else {
-        const header = agentName.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-        content = `# ${header} Memory
-
-- ${opts.add}
-`;
-      }
-      fs10.writeFileSync(filePath, content, "utf-8");
-      success({
-        written: normalizePath(filePath),
-        agent: agentName,
-        action: "appended"
-      });
-    } catch (err) {
-      const nodeErr = err;
-      if (nodeErr.code === "FILE_ERROR") {
-        fileError("", "agent-note", nodeErr.message);
-      } else {
-        throw err;
-      }
-    }
-  });
-  cmd.command("read").description("Read an agent's memory notes or rules.md").option("--agent <name>", "Agent name (omit to read rules.md)").action((opts) => {
-    try {
-      const cwd = getCwd(cmd);
-      const geasDir2 = resolveGeasDir(cwd);
-      if (opts.agent) {
-        validateIdentifier(opts.agent, "agent");
-        const agentName = opts.agent;
-        const filePath = path12.resolve(geasDir2, "memory", "agents", `${agentName}.md`);
-        assertContainedIn(filePath, geasDir2);
-        if (!fs10.existsSync(filePath)) {
-          success({ agent: agentName, content: null, message: "No memory notes found" });
-          return;
-        }
-        const content = fs10.readFileSync(filePath, "utf-8");
-        success({ agent: agentName, content });
-      } else {
-        const rulesPath = path12.resolve(geasDir2, "rules.md");
-        if (!fs10.existsSync(rulesPath)) {
-          success({ type: "rules", content: null, message: "rules.md not found" });
-          return;
-        }
-        const content = fs10.readFileSync(rulesPath, "utf-8");
-        success({ type: "rules", content });
-      }
-    } catch (err) {
-      const nodeErr = err;
-      fileError("", "memory read", nodeErr.message || String(err));
     }
   });
 }
