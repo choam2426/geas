@@ -113,6 +113,30 @@ Before entering `"implementing"`, acquire locks in order (per doc 04):
 
 The CLI writes locks.json atomically. If any acquisition fails (conflict), release locks already acquired: `Bash("geas lock release --task {task-id}")`
 
+### Workspace Health Check
+
+Before entering `"implementing"`, verify the workspace is usable:
+
+1. **Check workspace existence**: Confirm the isolated workspace can be created or already exists.
+2. **Check for corruption markers**: Verify no incomplete prior operations left the workspace in a damaged state:
+   - Uncommitted partial changes from a crashed session
+   - Merge conflict markers in tracked files
+   - Lock files from interrupted operations (e.g., `.git/index.lock`)
+3. **Classify**:
+   - **healthy**: workspace is clean and ready. Proceed to implementation.
+   - **damaged**: workspace has corruption markers or is otherwise unusable.
+
+**On damaged workspace**:
+- **Option 1 — Recreate**: Destroy and recreate the workspace from the current integration baseline. Use when no valuable in-progress work exists.
+- **Option 2 — Manual fix**: Resolve the specific issue (remove stale lock files, resolve merge conflicts). Use when partial work is worth preserving.
+- **Option 3 — Escalate**: Set task status to `"blocked"` with reason `workspace_damaged`. Use when damage is unrecoverable or unclear.
+
+**Do NOT proceed to implementation with a damaged workspace.**
+
+Log event on damage detection: `Bash("geas event log --type workspace_damage_detected --task {task-id} --data '{\"classification\":\"damaged\",\"recovery_action\":\"...\"}'")` 
+
+> **Software domain (git):** Check 1: `git worktree list` confirms worktree exists. Check 2a: `git status --porcelain` in worktree detects uncommitted changes. Check 2b: `git diff --check` detects conflict markers. Check 2c: test for `.git/index.lock` existence.
+
 ## Step Groups
 
 Within a single task's pipeline, these steps may run in parallel:

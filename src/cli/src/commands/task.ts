@@ -1185,7 +1185,9 @@ export function registerTaskCommands(program: Command): void {
           if (ev.role === 'reviewer' || ev.role === 'tester' || ev.role === 'authority') {
             reviews.push({
               reviewer_type: ev.role as string,
-              status: ev.verdict === 'pass' ? 'approved' : String(ev.verdict || 'unknown'),
+              status: ev.verdict === 'pass' || ev.verdict === 'approved' ? 'approved'
+                : ev.verdict === 'blocked' ? 'blocked'
+                : 'changes_requested',
               summary: typeof ev.summary === 'string' ? ev.summary : '',
             });
           }
