@@ -56,8 +56,14 @@ When the orchestrator reaches a point where new tasks could start (Phase 2 entry
 
 After filtering, the batch contains only tasks that can safely run in parallel.
 
-5. If 0-1 eligible: this protocol does not apply. The orchestrator runs the single task through the normal pipeline.
-6. If 2+ eligible: form a batch.
+5. **Risk-level concurrency filter**: For each remaining candidate:
+   - Read `risk_level` from its task contract
+   - If `risk_level` is `critical`: verify ALL four independence conditions from `building.md` Risk-Level Gating against every other task in the candidate batch. If any condition fails, remove the critical task from this batch (it runs solo next cycle).
+   - If `risk_level` is `high`: keep in batch (challenger review is enforced at the gate step, not at scheduling)
+   - If `risk_level` is `normal` or `low`, or absent: no additional filtering
+
+6. If 0-1 eligible: this protocol does not apply. The orchestrator runs the single task through the normal pipeline.
+7. If 2+ eligible: form a batch.
    - **Max batch size: 4.** If more eligible, take the first 4 by task ID order. Remainder waits for next batch.
    - Reason: worktree concurrency + context window limits.
 
@@ -143,6 +149,7 @@ All of the following must be satisfied for two tasks to run in parallel (per doc
 3. No shared mutable resource contention (`.geas/state/run.json`, `.geas/rules.md`, project-wide config)
 4. Both are independent tasks within the building phase
 5. Both are non-speculative
+6. Risk-level concurrency gate passed (critical tasks require explicit independence proof per `building.md` Risk-Level Gating)
 
 ### Unsafe Parallel Combinations (always rejected)
 

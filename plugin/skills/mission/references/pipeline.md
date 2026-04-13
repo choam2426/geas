@@ -66,7 +66,28 @@ Before transitioning to `"implementing"`, check for staleness:
    f. **Preconditions invalidated** -> classification = `blocking_conflict`. Set task status to `"blocked"`.
    g. Log event: `Bash("geas event log --type revalidation --task {task-id} --data '{\"classification\":\"...\",\"action_taken\":\"...\"}'")` 
 
-> **Software domain (git):** Step 2: `git rev-parse HEAD`. Step 4a: `git diff {base_snapshot}..{tip} --name-only`.
+5. **Semantic Drift Analysis** (after file-overlap classification):
+   a. **Identify adjacent files**: For each surface in `scope.surfaces`, determine adjacent files:
+      - **Same directory**: files in the same directory as the surface
+      - **Import relationship**: files that import or are imported by the surface
+      - **Shared interface**: files that share a data model, API contract, or interface with the surface
+      - Adjacency depth is strictly 1 (direct neighbors only — do not traverse transitive adjacency)
+   b. **Compute adjacent changed files**: From the diff between `base_snapshot` and current tip, identify files that are NOT in `scope.surfaces` but ARE adjacent to a scope surface.
+   c. **Classify content-level impact**: For each adjacent changed file:
+      - **Cosmetic change** (formatting, comments, whitespace): classification = `no_semantic_conflict`
+      - **Semantic change** (logic, signatures, data structures, exports): classification = `semantic_conflict`
+      - When multiple adjacent files changed with mixed impact: use worst-case classification (`semantic_conflict` takes precedence)
+   d. **Skip condition**: If `scope.surfaces` is empty or contains only non-file artifacts: skip adjacency analysis with result `no_adjacency_applicable`
+   e. **Composition with file-overlap classification**:
+      - `clean_sync` + `semantic_conflict` → upgrade to `review_sync` (flag for specialist re-review)
+      - `review_sync` + `semantic_conflict` → remains `review_sync` (already flagged)
+      - `replan_required` or `blocking_conflict` → takes precedence over any adjacency result
+   f. **Revalidation on semantic_conflict**: When `semantic_conflict` upgrades classification:
+      - Re-read affected scope surfaces to confirm acceptance criteria still hold
+      - If acceptance criteria invalidated → escalate to `blocking_conflict`
+   g. Log event: include `semantic_drift` field in the revalidation event data: `--data '{..."semantic_drift":"{classification}"}'`
+
+> **Software domain (git):** Step 2: `git rev-parse HEAD`. Step 4a: `git diff {base_snapshot}..{tip} --name-only`. Step 5b: filter diff output to same-directory or import-chain neighbors of scope surfaces. Step 5c: `git diff {base_snapshot}..{tip} -- {adjacent_file}` — check if changes are whitespace/comment-only vs. logic changes.
 
 Only proceed to `"implementing"` if classification is `clean_sync` or `review_sync`.
 
@@ -266,7 +287,8 @@ Before reconciling the workspace:
    - `review_sync` -> reconcile, then specialist re-review required for changed areas
    - `replan_required` -> rewind task to `"ready"`, update implementation contract
    - `blocking_conflict` -> task -> `"blocked"`
-4. If revalidation was needed, log event: `Bash("geas event log --type revalidation --task {task-id} --data '{\"classification\":\"...\",\"action_taken\":\"...\"}'")` 
+4. **Semantic drift analysis**: Apply the same adjacency analysis described in Baseline Check steps 5a-5g. Compose results with the file-overlap classification using the same composition rules (5e).
+5. If revalidation was needed, log event: `Bash("geas event log --type revalidation --task {task-id} --data '{\"classification\":\"...\",\"action_taken\":\"...\",\"semantic_drift\":\"...\"}'")` 
 
 > **Software domain (git):** Step 1: `git diff {base_snapshot}..HEAD --name-only`. Step 3 clean_sync: fast-forward merge or trivial rebase.
 

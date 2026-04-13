@@ -7,6 +7,27 @@ Before starting the first task, and after each task or batch resolves:
 - If 2+ eligible: you MUST invoke `/geas:scheduling`. Do NOT run them sequentially when parallel execution is possible.
 - If 0-1 eligible: run the single task through `references/pipeline.md`.
 
+### Risk-Level Gating
+
+Before dispatching tasks to scheduling or single-task pipeline, check each eligible task's `risk_level` from its task contract:
+
+| Risk Level | Concurrency Rule |
+|-----------|-----------------|
+| **critical** | One-at-a-time unless ALL four independence conditions are proven (see below) |
+| **high** | Parallel allowed; mandatory challenger review at gate |
+| **normal** | Existing scheduling rules apply |
+| **low** | Existing scheduling rules apply |
+
+**Critical task independence conditions** (all four required, per Doc 04):
+1. No `scope.surfaces` overlap with any concurrent task
+2. No lock conflict (path, interface, or resource)
+3. Neither task's output is an input to the other
+4. Design Authority has explicitly confirmed independence
+
+If independence cannot be proven, exclude the critical task from the batch and run it solo in the next cycle. If two critical tasks are both eligible, each runs solo in separate cycles.
+
+If a task contract has no `risk_level` field, treat it as `normal` (no regression to existing behavior).
+
 For each task, read `references/pipeline.md` and execute the full per-task pipeline.
 
 ## Close Building
