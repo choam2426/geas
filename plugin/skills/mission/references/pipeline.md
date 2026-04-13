@@ -9,7 +9,7 @@ EVERY task, regardless of dependencies or position in the batch, MUST execute AL
 ## remaining_steps
 
 ```json
-"remaining_steps": ["design", "design_guide", "implementation_contract", "implementation", "self_check", "specialist_review", "testing", "evidence_gate", "integration", "closure_packet", "challenger", "final_verdict", "retrospective", "memory_extraction", "resolve"]
+"remaining_steps": ["design", "design_guide", "implementation_contract", "implementation", "self_check", "specialist_review", "testing", "evidence_gate", "integration", "post_integration_verification", "closure_packet", "challenger", "final_verdict", "retrospective", "memory_extraction", "resolve"]
 ```
 
 Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
@@ -247,7 +247,7 @@ Before merging the worktree to the integration branch:
 
 This ensures integration is single-flight — only one task merges at a time.
 
-#### Transition and Worktree Cleanup
+#### Transition to Integrated and Worktree Cleanup
 
 After successful merge:
 1. Transition to `"integrated"` (guard checks gate_result.verdict === "pass"):
@@ -255,9 +255,28 @@ After successful merge:
    Bash("geas task transition --id {task-id} --to integrated")
    ```
 2. Clean up the worktree — it is no longer needed after merge.
-3. Transition to `"verified"`:
+
+### Post-Integration Verification [MANDATORY — after integration]
+
+A lightweight re-check to confirm that the evidence gate result still holds after integration. This is NOT a full Tier 0-1-2 gate re-run.
+
+1. **Re-verify gate result**: Read record.json `gate_result` section and confirm `verdict` is still `"pass"`:
+   ```bash
+   Bash("geas task record get --task {task-id} --section gate_result")
+   ```
+2. **Verify integration success**: Confirm reconciliation completed without conflicts or regressions (staleness check outcome was `clean_sync`, or `review_sync` was handled).
+3. **Review-sync re-review check**: If the pre-integration staleness check classified the task as `review_sync`, verify that specialist re-review evidence exists at `.geas/missions/{mission_id}/tasks/{task-id}/evidence/`. Do NOT transition to verified until re-review evidence is confirmed.
+4. **Transition to verified**: Only after all checks pass:
    ```bash
    Bash("geas task transition --id {task-id} --to verified")
+   ```
+5. **Log step completion**:
+   ```bash
+   Bash("geas event log --type step_complete --task {task-id} --agent orchestrator --data '{\"step\":\"post_integration_verification\"}'")
+   ```
+6. **Update checkpoint**:
+   ```bash
+   Bash("geas state checkpoint set --step post_integration_verification --agent orchestrator")
    ```
 
 ### Closure Packet Assembly [MANDATORY — after gate pass]
