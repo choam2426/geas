@@ -13344,6 +13344,144 @@ function registerTaskCommands(program2) {
       }
     }
   });
+  cmd.command("resolve").description("Resolve a task: transition + event log + lock release (atomic bundle)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--id <task-id>", "Task identifier").requiredOption("--verdict <verdict>", "Resolution verdict (pass, cancel, escalate)").action((opts) => {
+    try {
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
+      const missionId = resolveMissionId(geasDir2, opts.mission);
+      validateIdentifier(missionId, "mission ID");
+      validateIdentifier(opts.id, "task ID");
+      const missionDir = resolveMissionDir(geasDir2, missionId);
+      const verdictMap = {
+        pass: "passed",
+        cancel: "cancelled",
+        escalate: "escalated"
+      };
+      const targetStatus = verdictMap[opts.verdict];
+      if (!targetStatus) {
+        const msg = {
+          error: `Invalid verdict '${opts.verdict}'. Must be one of: pass, cancel, escalate`,
+          code: "VALIDATION_ERROR"
+        };
+        process.stderr.write(JSON.stringify(msg) + "\n");
+        process.exit(1);
+        return;
+      }
+      const contractPath = path8.resolve(missionDir, "tasks", opts.id, "contract.json");
+      const task = readJsonFile(contractPath);
+      if (!task) {
+        fileError(
+          normalizePath(contractPath),
+          "resolve",
+          `Task contract not found: ${normalizePath(contractPath)}`
+        );
+        return;
+      }
+      const previousStatus = task.status;
+      if (previousStatus === targetStatus) {
+        success({
+          task_id: opts.id,
+          verdict: opts.verdict,
+          previous_status: previousStatus,
+          status: targetStatus,
+          idempotent: true,
+          locks_released: 0,
+          event_logged: false
+        });
+        return;
+      }
+      if (!isValidTransition(previousStatus, targetStatus)) {
+        const allowed = VALID_TRANSITIONS[previousStatus] || [];
+        const msg = {
+          error: `Invalid transition: '${previousStatus}' -> '${targetStatus}'`,
+          code: "STATE_ERROR",
+          current_status: previousStatus,
+          target_status: targetStatus,
+          allowed_transitions: allowed
+        };
+        process.stderr.write(JSON.stringify(msg) + "\n");
+        process.exit(1);
+        return;
+      }
+      if (opts.verdict === "pass") {
+        const guard = validateTransition(
+          geasDir2,
+          missionId,
+          opts.id,
+          previousStatus,
+          targetStatus
+        );
+        if (!guard.valid) {
+          const msg = {
+            error: `Missing required artifacts for transition '${previousStatus}' -> '${targetStatus}'`,
+            code: "GUARD_ERROR",
+            current_status: previousStatus,
+            target_status: targetStatus,
+            missing_artifacts: guard.missing_artifacts
+          };
+          process.stderr.write(JSON.stringify(msg) + "\n");
+          process.exit(1);
+          return;
+        }
+      }
+      task.status = targetStatus;
+      writeJsonFile(contractPath, task, { cwd });
+      const now = (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
+      const eventsPath = path8.resolve(geasDir2, "state", "events.jsonl");
+      const eventEntry = {
+        timestamp: now,
+        event_type: "task_resolved",
+        task_id: opts.id,
+        data: {
+          verdict: opts.verdict,
+          previous_status: previousStatus,
+          status: targetStatus,
+          mission_id: missionId
+        }
+      };
+      appendJsonlFile(eventsPath, eventEntry);
+      const locksPath = path8.resolve(geasDir2, "state", "locks.json");
+      const locksData = readJsonFile(locksPath);
+      let locksReleased = 0;
+      if (locksData && locksData.locks) {
+        const before = locksData.locks.length;
+        locksData.locks = locksData.locks.filter(
+          (l) => l.task_id !== opts.id
+        );
+        locksReleased = before - locksData.locks.length;
+        for (const lock of locksData.locks) {
+          if (lock.status === "waiting") {
+            const hasConflict = locksData.locks.some(
+              (other) => other.status === "held" && other.task_id !== lock.task_id && other.lock_type === lock.lock_type && other.targets.some((t) => lock.targets.includes(t))
+            );
+            if (!hasConflict) {
+              lock.status = "held";
+              lock.acquired_at = now;
+              delete lock.wait_start;
+            }
+          }
+        }
+        if (locksReleased > 0) {
+          atomicWriteJsonFile(locksPath, locksData, { cwd });
+        }
+      }
+      success({
+        task_id: opts.id,
+        verdict: opts.verdict,
+        previous_status: previousStatus,
+        status: targetStatus,
+        locks_released: locksReleased,
+        event_logged: true
+      });
+    } catch (err) {
+      const nodeErr = err;
+      if (nodeErr.code === "FILE_ERROR") {
+        fileError("", "resolve", nodeErr.message);
+      } else {
+        throw err;
+      }
+    }
+  });
   cmd.command("harvest-memory").description("Batch-extract memory_suggestions from task evidence and write agent notes").requiredOption("--id <task-id>", "Task identifier").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").action((opts) => {
     try {
       const cwd = getCwd(cmd);

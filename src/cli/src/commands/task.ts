@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { Command } from 'commander';
 import { resolveGeasDir, resolveMissionDir, normalizePath, validateIdentifier } from '../lib/paths';
-import { readJsonFile, writeJsonFile, ensureDir, appendJsonlFile } from '../lib/fs-atomic';
+import { readJsonFile, writeJsonFile, atomicWriteJsonFile, ensureDir, appendJsonlFile } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError, noStdinError } from '../lib/output';
 import { validateTransition } from '../lib/transition-guards';
@@ -646,6 +646,176 @@ export function registerTaskCommands(program: Command): void {
         }
       }
     });
+  // ── geas task resolve ─────────────────────────────────────────────
+  cmd
+    .command('resolve')
+    .description('Resolve a task: transition + event log + lock release (atomic bundle)')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .requiredOption('--id <task-id>', 'Task identifier')
+    .requiredOption('--verdict <verdict>', 'Resolution verdict (pass, cancel, escalate)')
+    .action((opts: { mission?: string; id: string; verdict: string }) => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(opts.id, 'task ID');
+        const missionDir = resolveMissionDir(geasDir, missionId);
+
+        // Map verdict to target state
+        const verdictMap: Record<string, string> = {
+          pass: 'passed',
+          cancel: 'cancelled',
+          escalate: 'escalated',
+        };
+        const targetStatus = verdictMap[opts.verdict];
+        if (!targetStatus) {
+          const msg = {
+            error: `Invalid verdict '${opts.verdict}'. Must be one of: pass, cancel, escalate`,
+            code: 'VALIDATION_ERROR' as const,
+          };
+          process.stderr.write(JSON.stringify(msg) + '\n');
+          process.exit(1);
+          return;
+        }
+
+        // Read task contract
+        const contractPath = path.resolve(missionDir, 'tasks', opts.id, 'contract.json');
+        const task = readJsonFile<Record<string, unknown>>(contractPath);
+        if (!task) {
+          fileError(
+            normalizePath(contractPath),
+            'resolve',
+            `Task contract not found: ${normalizePath(contractPath)}`
+          );
+          return;
+        }
+
+        const previousStatus = task.status as string;
+
+        // Idempotent: already in target state
+        if (previousStatus === targetStatus) {
+          success({
+            task_id: opts.id,
+            verdict: opts.verdict,
+            previous_status: previousStatus,
+            status: targetStatus,
+            idempotent: true,
+            locks_released: 0,
+            event_logged: false,
+          });
+          return;
+        }
+
+        // Validate transition is allowed
+        if (!isValidTransition(previousStatus, targetStatus)) {
+          const allowed = VALID_TRANSITIONS[previousStatus] || [];
+          const msg = {
+            error: `Invalid transition: '${previousStatus}' -> '${targetStatus}'`,
+            code: 'STATE_ERROR' as const,
+            current_status: previousStatus,
+            target_status: targetStatus,
+            allowed_transitions: allowed,
+          };
+          process.stderr.write(JSON.stringify(msg) + '\n');
+          process.exit(1);
+          return;
+        }
+
+        // For verdict=pass, run artifact guard (cancel/escalate skip guards)
+        if (opts.verdict === 'pass') {
+          const guard = validateTransition(
+            geasDir, missionId, opts.id, previousStatus, targetStatus,
+          );
+          if (!guard.valid) {
+            const msg = {
+              error: `Missing required artifacts for transition '${previousStatus}' -> '${targetStatus}'`,
+              code: 'GUARD_ERROR' as const,
+              current_status: previousStatus,
+              target_status: targetStatus,
+              missing_artifacts: guard.missing_artifacts,
+            };
+            process.stderr.write(JSON.stringify(msg) + '\n');
+            process.exit(1);
+            return;
+          }
+        }
+
+        // === All validation passed — forward-only writes below ===
+
+        // Step 1: Transition task
+        task.status = targetStatus;
+        writeJsonFile(contractPath, task, { cwd });
+
+        // Step 2: Log task_resolved event
+        const now = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+        const eventsPath = path.resolve(geasDir, 'state', 'events.jsonl');
+        const eventEntry: Record<string, unknown> = {
+          timestamp: now,
+          event_type: 'task_resolved',
+          task_id: opts.id,
+          data: {
+            verdict: opts.verdict,
+            previous_status: previousStatus,
+            status: targetStatus,
+            mission_id: missionId,
+          },
+        };
+        appendJsonlFile(eventsPath, eventEntry);
+
+        // Step 3: Release locks for this task
+        const locksPath = path.resolve(geasDir, 'state', 'locks.json');
+        const locksData = readJsonFile<{ version: string; locks: Array<{ lock_type: string; task_id: string; session_id: string; targets: string[]; status: string; acquired_at: string; wait_start?: string }> }>(locksPath);
+        let locksReleased = 0;
+
+        if (locksData && locksData.locks) {
+          const before = locksData.locks.length;
+          locksData.locks = locksData.locks.filter(
+            (l) => l.task_id !== opts.id
+          );
+          locksReleased = before - locksData.locks.length;
+
+          // Promote waiting locks that no longer conflict
+          for (const lock of locksData.locks) {
+            if (lock.status === 'waiting') {
+              const hasConflict = locksData.locks.some(
+                (other) =>
+                  other.status === 'held' &&
+                  other.task_id !== lock.task_id &&
+                  other.lock_type === lock.lock_type &&
+                  other.targets.some((t) => lock.targets.includes(t))
+              );
+              if (!hasConflict) {
+                lock.status = 'held';
+                lock.acquired_at = now;
+                delete lock.wait_start;
+              }
+            }
+          }
+
+          if (locksReleased > 0) {
+            atomicWriteJsonFile(locksPath, locksData, { cwd });
+          }
+        }
+
+        success({
+          task_id: opts.id,
+          verdict: opts.verdict,
+          previous_status: previousStatus,
+          status: targetStatus,
+          locks_released: locksReleased,
+          event_logged: true,
+        });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'resolve', nodeErr.message);
+        } else {
+          throw err;
+        }
+      }
+    });
+
   // ── geas task harvest-memory ────────────────────────────────────────
   cmd
     .command('harvest-memory')
