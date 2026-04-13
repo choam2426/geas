@@ -13937,6 +13937,174 @@ function registerTaskCommands(program2) {
       }
     }
   });
+  cmd.command("retrospective-draft").description("Generate a structured retrospective JSON from evidence and record sections").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--id <task-id>", "Task identifier").action((opts) => {
+    try {
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
+      const missionId = resolveMissionId(geasDir2, opts.mission);
+      validateIdentifier(missionId, "mission ID");
+      validateIdentifier(opts.id, "task ID");
+      const missionDir = resolveMissionDir(geasDir2, missionId);
+      const taskDir = path8.resolve(missionDir, "tasks", opts.id);
+      if (!fs9.existsSync(taskDir)) {
+        fileError(normalizePath(taskDir), "retrospective-draft", `Task directory not found: ${opts.id}`);
+        return;
+      }
+      const evidenceDir = path8.resolve(taskDir, "evidence");
+      const evidenceFiles = [];
+      if (fs9.existsSync(evidenceDir)) {
+        const entries = fs9.readdirSync(evidenceDir, { withFileTypes: true });
+        const jsonFiles = entries.filter((e) => e.isFile() && e.name.endsWith(".json"));
+        for (const file of jsonFiles) {
+          const filePath = path8.resolve(evidenceDir, file.name);
+          try {
+            const raw = fs9.readFileSync(filePath, "utf-8");
+            evidenceFiles.push(JSON.parse(raw));
+          } catch {
+            process.stderr.write(
+              JSON.stringify({ warning: `Skipping invalid JSON: ${file.name}` }) + "\n"
+            );
+            continue;
+          }
+        }
+      }
+      const recordPath = path8.resolve(taskDir, "record.json");
+      const recordData = readJsonFile(recordPath);
+      const selfCheck = recordData?.self_check;
+      const gateResult = recordData?.gate_result;
+      const closure = recordData?.closure;
+      const challengeReview = recordData?.challenge_review;
+      const verdict = recordData?.verdict;
+      const contractPath = path8.resolve(taskDir, "contract.json");
+      const contract = readJsonFile(contractPath);
+      const taskStatus = contract?.status;
+      const whatWentWell = [];
+      for (const ev of evidenceFiles) {
+        if ((ev.verdict === "pass" || ev.verdict === "approved") && typeof ev.summary === "string") {
+          whatWentWell.push(`[${ev.role || "unknown"}] ${ev.summary}`);
+        }
+      }
+      const whatBroke = [];
+      for (const ev of evidenceFiles) {
+        if (ev.verdict && ev.verdict !== "pass" && ev.verdict !== "approved") {
+          const label = `[${ev.role || "unknown"}] verdict=${ev.verdict}`;
+          const detail = typeof ev.summary === "string" ? `: ${ev.summary}` : "";
+          whatBroke.push(label + detail);
+        }
+        if (Array.isArray(ev.concerns)) {
+          for (const c of ev.concerns) {
+            if (typeof c === "string") {
+              whatBroke.push(`[${ev.role || "unknown"} concern] ${c}`);
+            }
+          }
+        }
+      }
+      if (selfCheck && Array.isArray(selfCheck.known_risks)) {
+        for (const risk of selfCheck.known_risks) {
+          if (typeof risk === "string") {
+            whatBroke.push(`[self_check known_risk] ${risk}`);
+          }
+        }
+      }
+      const whatWasSurprising = [];
+      if (challengeReview) {
+        if (Array.isArray(challengeReview.concerns)) {
+          for (const c of challengeReview.concerns) {
+            if (typeof c === "string") {
+              whatWasSurprising.push(c);
+            }
+          }
+        }
+        if (typeof challengeReview.rationale === "string") {
+          whatWasSurprising.push(`[challenge rationale] ${challengeReview.rationale}`);
+        }
+      }
+      const ruleCandidates = [];
+      const memoryCandidates = [];
+      for (const ev of evidenceFiles) {
+        if (Array.isArray(ev.memory_suggestions)) {
+          for (const ms of ev.memory_suggestions) {
+            if (typeof ms === "string") {
+              memoryCandidates.push(ms);
+            }
+          }
+        }
+      }
+      const debtCandidates = [];
+      for (const ev of evidenceFiles) {
+        if (Array.isArray(ev.tech_debt)) {
+          for (const td of ev.tech_debt) {
+            if (typeof td === "string") {
+              debtCandidates.push(td);
+            }
+          }
+        }
+      }
+      const nextTimeGuidance = [];
+      if (selfCheck && Array.isArray(selfCheck.untested_paths)) {
+        for (const up of selfCheck.untested_paths) {
+          if (typeof up === "string") {
+            nextTimeGuidance.push(up);
+          }
+        }
+      }
+      let cancellationContext;
+      if (taskStatus === "cancelled") {
+        const packetsDir = path8.resolve(taskDir, "packets");
+        if (fs9.existsSync(packetsDir)) {
+          const packetEntries = fs9.readdirSync(packetsDir, { withFileTypes: true });
+          const packetJsonFiles = packetEntries.filter((e) => e.isFile() && e.name.endsWith(".json"));
+          for (const file of packetJsonFiles) {
+            const filePath = path8.resolve(packetsDir, file.name);
+            try {
+              const raw = fs9.readFileSync(filePath, "utf-8");
+              const packet = JSON.parse(raw);
+              if (packet.artifact_type === "decision_record" || packet.type === "decision_record" || packet.decision_type === "cancellation") {
+                cancellationContext = {
+                  source: file.name,
+                  reason: packet.reason || packet.rationale || packet.summary || "No reason provided",
+                  decided_by: packet.decided_by || packet.agent || "unknown"
+                };
+                break;
+              }
+            } catch {
+              continue;
+            }
+          }
+        }
+        if (!cancellationContext && verdict) {
+          cancellationContext = {
+            source: "record.json:verdict",
+            reason: verdict.rationale || verdict.reason || verdict.summary || "Cancelled (no detailed reason found)",
+            decided_by: verdict.decided_by || verdict.agent || "unknown"
+          };
+        }
+      }
+      const retrospective = {
+        task_id: opts.id,
+        mission_id: missionId,
+        task_status: taskStatus || "unknown",
+        what_went_well: whatWentWell,
+        what_broke: whatBroke,
+        what_was_surprising: whatWasSurprising,
+        rule_candidates: ruleCandidates,
+        memory_candidates: memoryCandidates,
+        debt_candidates: debtCandidates,
+        next_time_guidance: nextTimeGuidance
+      };
+      if (cancellationContext) {
+        retrospective.cancellation_context = cancellationContext;
+      }
+      success(retrospective);
+    } catch (err) {
+      const nodeErr = err;
+      if (nodeErr.code === "FILE_ERROR") {
+        fileError("", "retrospective-draft", nodeErr.message);
+      } else {
+        throw err;
+      }
+    }
+  });
 }
 function collectSet(value, previous) {
   return previous.concat([value]);

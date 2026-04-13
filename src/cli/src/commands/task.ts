@@ -1427,6 +1427,225 @@ export function registerTaskCommands(program: Command): void {
         }
       }
     });
+
+  // ── geas task retrospective-draft ────────────────────────────────────
+  cmd
+    .command('retrospective-draft')
+    .description('Generate a structured retrospective JSON from evidence and record sections')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .requiredOption('--id <task-id>', 'Task identifier')
+    .action((opts: { mission?: string; id: string }) => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(opts.id, 'task ID');
+        const missionDir = resolveMissionDir(geasDir, missionId);
+
+        const taskDir = path.resolve(missionDir, 'tasks', opts.id);
+        if (!fs.existsSync(taskDir)) {
+          fileError(normalizePath(taskDir), 'retrospective-draft', `Task directory not found: ${opts.id}`);
+          return;
+        }
+
+        // Read all evidence/*.json files
+        const evidenceDir = path.resolve(taskDir, 'evidence');
+        const evidenceFiles: Array<Record<string, unknown>> = [];
+
+        if (fs.existsSync(evidenceDir)) {
+          const entries = fs.readdirSync(evidenceDir, { withFileTypes: true });
+          const jsonFiles = entries.filter(e => e.isFile() && e.name.endsWith('.json'));
+
+          for (const file of jsonFiles) {
+            const filePath = path.resolve(evidenceDir, file.name);
+            try {
+              const raw = fs.readFileSync(filePath, 'utf-8');
+              evidenceFiles.push(JSON.parse(raw));
+            } catch {
+              // Skip malformed JSON (same pattern as closure-assemble)
+              process.stderr.write(
+                JSON.stringify({ warning: `Skipping invalid JSON: ${file.name}` }) + '\n'
+              );
+              continue;
+            }
+          }
+        }
+
+        // Read record.json
+        const recordPath = path.resolve(taskDir, 'record.json');
+        const recordData = readJsonFile<Record<string, unknown>>(recordPath);
+
+        // Extract record sections (all optional — task may not have all)
+        const selfCheck = recordData?.self_check as Record<string, unknown> | undefined;
+        const gateResult = recordData?.gate_result as Record<string, unknown> | undefined;
+        const closure = recordData?.closure as Record<string, unknown> | undefined;
+        const challengeReview = recordData?.challenge_review as Record<string, unknown> | undefined;
+        const verdict = recordData?.verdict as Record<string, unknown> | undefined;
+
+        // Read contract for status (needed for cancelled check)
+        const contractPath = path.resolve(taskDir, 'contract.json');
+        const contract = readJsonFile<Record<string, unknown>>(contractPath);
+        const taskStatus = contract?.status as string | undefined;
+
+        // ── what_went_well: evidence summaries with pass/approved verdict ──
+        const whatWentWell: string[] = [];
+        for (const ev of evidenceFiles) {
+          if (
+            (ev.verdict === 'pass' || ev.verdict === 'approved') &&
+            typeof ev.summary === 'string'
+          ) {
+            whatWentWell.push(`[${ev.role || 'unknown'}] ${ev.summary}`);
+          }
+        }
+
+        // ── what_broke: evidence with concerns or non-pass verdict + self_check known_risks ──
+        const whatBroke: string[] = [];
+        for (const ev of evidenceFiles) {
+          if (ev.verdict && ev.verdict !== 'pass' && ev.verdict !== 'approved') {
+            const label = `[${ev.role || 'unknown'}] verdict=${ev.verdict}`;
+            const detail = typeof ev.summary === 'string' ? `: ${ev.summary}` : '';
+            whatBroke.push(label + detail);
+          }
+          if (Array.isArray(ev.concerns)) {
+            for (const c of ev.concerns) {
+              if (typeof c === 'string') {
+                whatBroke.push(`[${ev.role || 'unknown'} concern] ${c}`);
+              }
+            }
+          }
+        }
+        if (selfCheck && Array.isArray(selfCheck.known_risks)) {
+          for (const risk of selfCheck.known_risks) {
+            if (typeof risk === 'string') {
+              whatBroke.push(`[self_check known_risk] ${risk}`);
+            }
+          }
+        }
+
+        // ── what_was_surprising: from challenge_review concerns ──
+        const whatWasSurprising: string[] = [];
+        if (challengeReview) {
+          if (Array.isArray(challengeReview.concerns)) {
+            for (const c of challengeReview.concerns) {
+              if (typeof c === 'string') {
+                whatWasSurprising.push(c);
+              }
+            }
+          }
+          if (typeof challengeReview.rationale === 'string') {
+            whatWasSurprising.push(`[challenge rationale] ${challengeReview.rationale}`);
+          }
+        }
+
+        // ── rule_candidates: empty (orchestrator fills) ──
+        const ruleCandidates: string[] = [];
+
+        // ── memory_candidates: from evidence memory_suggestions fields ──
+        const memoryCandidates: string[] = [];
+        for (const ev of evidenceFiles) {
+          if (Array.isArray(ev.memory_suggestions)) {
+            for (const ms of ev.memory_suggestions) {
+              if (typeof ms === 'string') {
+                memoryCandidates.push(ms);
+              }
+            }
+          }
+        }
+
+        // ── debt_candidates: from evidence tech_debt fields ──
+        const debtCandidates: string[] = [];
+        for (const ev of evidenceFiles) {
+          if (Array.isArray(ev.tech_debt)) {
+            for (const td of ev.tech_debt) {
+              if (typeof td === 'string') {
+                debtCandidates.push(td);
+              }
+            }
+          }
+        }
+
+        // ── next_time_guidance: from self_check untested_paths ──
+        const nextTimeGuidance: string[] = [];
+        if (selfCheck && Array.isArray(selfCheck.untested_paths)) {
+          for (const up of selfCheck.untested_paths) {
+            if (typeof up === 'string') {
+              nextTimeGuidance.push(up);
+            }
+          }
+        }
+
+        // ── For cancelled tasks: include cancellation context ──
+        let cancellationContext: Record<string, unknown> | undefined;
+        if (taskStatus === 'cancelled') {
+          // Check for DecisionRecord in packets/
+          const packetsDir = path.resolve(taskDir, 'packets');
+          if (fs.existsSync(packetsDir)) {
+            const packetEntries = fs.readdirSync(packetsDir, { withFileTypes: true });
+            const packetJsonFiles = packetEntries.filter(e => e.isFile() && e.name.endsWith('.json'));
+
+            for (const file of packetJsonFiles) {
+              const filePath = path.resolve(packetsDir, file.name);
+              try {
+                const raw = fs.readFileSync(filePath, 'utf-8');
+                const packet = JSON.parse(raw) as Record<string, unknown>;
+                // Look for a decision record related to cancellation
+                if (
+                  packet.artifact_type === 'decision_record' ||
+                  packet.type === 'decision_record' ||
+                  packet.decision_type === 'cancellation'
+                ) {
+                  cancellationContext = {
+                    source: file.name,
+                    reason: packet.reason || packet.rationale || packet.summary || 'No reason provided',
+                    decided_by: packet.decided_by || packet.agent || 'unknown',
+                  };
+                  break;
+                }
+              } catch {
+                continue;
+              }
+            }
+          }
+
+          // Fallback: use verdict section if it mentions cancellation
+          if (!cancellationContext && verdict) {
+            cancellationContext = {
+              source: 'record.json:verdict',
+              reason: verdict.rationale || verdict.reason || verdict.summary || 'Cancelled (no detailed reason found)',
+              decided_by: verdict.decided_by || verdict.agent || 'unknown',
+            };
+          }
+        }
+
+        // ── Assemble retrospective JSON ──
+        const retrospective: Record<string, unknown> = {
+          task_id: opts.id,
+          mission_id: missionId,
+          task_status: taskStatus || 'unknown',
+          what_went_well: whatWentWell,
+          what_broke: whatBroke,
+          what_was_surprising: whatWasSurprising,
+          rule_candidates: ruleCandidates,
+          memory_candidates: memoryCandidates,
+          debt_candidates: debtCandidates,
+          next_time_guidance: nextTimeGuidance,
+        };
+
+        if (cancellationContext) {
+          retrospective.cancellation_context = cancellationContext;
+        }
+
+        success(retrospective);
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'retrospective-draft', nodeErr.message);
+        } else {
+          throw err;
+        }
+      }
+    });
 }
 
 /** Commander variadic option collector for --set. */
