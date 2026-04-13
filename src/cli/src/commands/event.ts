@@ -71,9 +71,10 @@ export function registerEventCommands(program: Command): void {
           }
 
           appendJsonlFile(eventsPath, entry);
-          success({ appended: true, event: entry });
 
           // Update checkpoint in run.json when --update-checkpoint is used with step_complete
+          // Must run BEFORE success() which calls process.exit(0)
+          let checkpointUpdated = false;
           if (opts.updateCheckpoint && opts.type === 'step_complete') {
             try {
               const runPath = path.join(geas, 'state', 'run.json');
@@ -104,11 +105,14 @@ export function registerEventCommands(program: Command): void {
               };
 
               atomicWriteJsonFile(runPath, runData, { cwd });
+              checkpointUpdated = true;
             } catch (cpErr: unknown) {
               const ce = cpErr as NodeJS.ErrnoException;
               fileError('.geas/state/run.json', 'checkpoint update', ce.message);
             }
           }
+
+          success({ appended: true, event: entry, checkpoint_updated: checkpointUpdated });
         } catch (err: unknown) {
           const e = err as NodeJS.ErrnoException;
           fileError('.geas/state/events.jsonl', 'append', e.message);

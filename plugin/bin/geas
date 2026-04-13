@@ -13430,7 +13430,7 @@ function registerEventCommands(program2) {
           entry.data = parsedData;
         }
         appendJsonlFile(eventsPath, entry);
-        success({ appended: true, event: entry });
+        let checkpointUpdated = false;
         if (opts.updateCheckpoint && opts.type === "step_complete") {
           try {
             const runPath = path9.join(geas, "state", "run.json");
@@ -13456,11 +13456,13 @@ function registerEventCommands(program2) {
               checkpoint_phase: "committed"
             };
             atomicWriteJsonFile(runPath, runData, { cwd });
+            checkpointUpdated = true;
           } catch (cpErr) {
             const ce = cpErr;
             fileError(".geas/state/run.json", "checkpoint update", ce.message);
           }
         }
+        success({ appended: true, event: entry, checkpoint_updated: checkpointUpdated });
       } catch (err) {
         const e = err;
         fileError(".geas/state/events.jsonl", "append", e.message);
