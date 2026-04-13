@@ -4,59 +4,45 @@ All notable changes to this project are documented in this file.
 
 > **Note**: Tags were restructured in v0.5.1. Previous major versions (v1.x, v2.x) have been flattened to v0.x.y to reflect that the project is pre-1.0.
 
-## [1.4.1] — 2026-04-13
-
-### Fixed
-- **Tester verdict enum** — corrected from `pass|iterate|escalate` to `pass|fail|block|error` in evidence-gate (IMPL-020).
-- **IC field labels** — `edge_cases`, `state_transitions`, `demo_steps` marked as recommended, not required (IMPL-026).
-- **Pipeline.md cosmetic fixes** — worktree terminology, lock order justification, iterate verdict fields, challenger substantive challenge, baseline unknown classification, reviewer optional fields (IMPL-027~032).
-- **remaining_steps cleanup** — removed `post_integration_verification` from pipeline remaining_steps and task_kind skip table.
-
-## [1.4.0] — 2026-04-13
+## [1.3.0] — 2026-04-13
 
 ### Added
-- **`geas task check-artifacts`** — verify pipeline step artifacts exist with schema validation (IMPL-015).
-- **`geas task closure-assemble`** — assemble closure packets from evidence with 6 forbidden pass condition pre-checks (IMPL-022).
-- **`geas task revalidate`** — automate baseline staleness checks with freshness classification and semantic drift adjacency analysis (IMPL-023).
-- **`geas task retrospective-draft`** — auto-draft retrospectives from evidence and record sections (IMPL-025).
-- **Semantic drift analysis** in pipeline.md staleness checks — adjacency-based content impact classification (IMPL-016).
-- **Workspace health check** before implementation in pipeline.md (IMPL-017).
-- **task_kind skip rules table** — systematic pipeline step skip logic for all 7 task_kind enums (IMPL-018).
-- **Risk-level concurrency gating** in building.md and scheduling — critical tasks require 4 Doc 04 independence conditions (IMPL-019).
-- **Cancellation record enrichment** — Doc 03's 4 required items in pipeline.md cancel path (IMPL-021).
-
-## [1.3.1] — 2026-04-13
-
-### Added
+- **`geas task check-artifacts`** — verify pipeline step artifacts exist with schema validation.
+- **`geas task closure-assemble`** — assemble closure packets from evidence with 6 forbidden pass condition pre-checks.
+- **`geas task revalidate`** — automate baseline staleness checks with freshness classification and semantic drift adjacency analysis.
+- **`geas task retrospective-draft`** — auto-draft retrospectives from evidence and record sections.
 - **`geas task advance`** — primary chain state transitions with guard pre-check, replacing multi-step manual `task transition` calls.
 - **`geas task harvest-memory`** — batch-extracts `memory_suggestions` from task evidence files, deduplicates per-agent, and writes agent notes via shared `appendAgentNote` helper.
 - **`geas task resolve`** — atomic task resolution bundle (transition + event log + lock release) with forward-only writes and idempotent behavior.
-- **`--update-checkpoint` flag** on `geas event log` for step_complete events.
-- **Self-check consumption paths table** in evidence-gate documenting all 6 Doc 05 routing paths.
-- **Forbidden pass conditions** — pre-resolve check now enforces all 6 conditions from Protocol Doc 05.
-
-### Changed
-- Rubric dimension names aligned to protocol: `feature_completeness` → `output_completeness`, `code_quality` → `output_quality` across all skill files.
-- Evidence gate `artifact_only` profile: Tier 1 conditionally runs when `eval_commands` exist (previously unconditionally skipped). New `narrowed` status distinct from `skipped`.
-- Gate sequence corrected: `reviewed → integrated` and `integrated → verified` are now separate transitions.
-- Pipeline self-check data routed to reviewer context packets, QA plans, closure open_risks, and debt tracking.
-- `appendAgentNote` extracted as shared helper from `memory.ts` for reuse by `harvest-memory`.
-- `plugin/bin/geas` bundle regenerated.
-
-## [1.3.0] — 2026-04-12
-
-### Added
 - **Dot-path `--set` for nested fields** — `--set a.b.c=value` creates nested objects; `--set a.b[0].c=value` supports mixed dot-bracket paths. Max depth 10, prototype pollution blocked at all segments.
 - **`deepMergeSetOverrides` utility** — exported from `input.ts`, replaces `Object.assign` in `evidence add` and `task record add` callers to preserve sibling fields during nested `--set` overlay.
 - **Schema template pipe workflow** — `geas schema template` output pipes directly to write commands. New flags: `--strip-envelope` (default: true), `--section <name>` for record sub-schemas, `--pretty` for human-readable output. New subcommand: `geas schema sections`.
 - **`--dry-run` validation mode** — all 10 stdin-based write commands accept `--dry-run` to validate payloads without writing files. Structured JSON output with exit code 0 (valid) / 1 (invalid).
+- **`--update-checkpoint` flag** on `geas event log` for step_complete events.
 - **Contract amendment mechanism** — pipeline.md documents 5 material change conditions, DA re-approval flow, and amendment recording via `implementation_contract.amendments[]` array.
+- **Semantic drift analysis** in pipeline.md staleness checks — adjacency-based content impact classification.
+- **Workspace health check** before implementation in pipeline.md.
+- **task_kind skip rules table** — systematic pipeline step skip logic for all 7 task_kind enums.
+- **Risk-level concurrency gating** in building.md and scheduling — critical tasks require 4 Doc 04 independence conditions.
+- **Cancellation record enrichment** — Doc 03's 4 required items in pipeline.md cancel path.
+- **Self-check consumption paths table** in evidence-gate documenting all 6 Doc 05 routing paths.
+- **Forbidden pass conditions** — pre-resolve check now enforces all 6 conditions from Protocol Doc 05.
 - 19 new tests for dot-path nesting (14), deep merge (4), dry-run (5); total 68 tests.
 
 ### Changed
-- Pipeline.md workspace operations abstracted to domain-neutral language. Git-specific commands moved to blockquote implementation notes. Added Workspace Implementation Notes section mapping abstract operations to Doc 04 lifecycle phases.
-- Implementation-contract SKILL.md: added Amendment Flow section with 4-step process and Rule 6.
+- Pipeline.md workspace operations abstracted to domain-neutral language. Git-specific commands moved to blockquote implementation notes.
+- Rubric dimension names aligned to protocol: `feature_completeness` → `output_completeness`, `code_quality` → `output_quality` across all skill files.
+- Evidence gate `artifact_only` profile: Tier 1 conditionally runs when `eval_commands` exist (previously unconditionally skipped).
+- Gate sequence corrected: `reviewed → integrated` and `integrated → verified` are now separate transitions.
+- Pipeline self-check data routed to reviewer context packets, QA plans, closure open_risks, and debt tracking.
+- `appendAgentNote` extracted as shared helper from `memory.ts` for reuse by `harvest-memory`.
+- Implementation-contract SKILL.md: added Amendment Flow section with 4-step process and Rule 6; field labels clarified (required vs recommended).
 - `plugin/bin/geas` bundle regenerated.
+
+### Fixed
+- **Tester verdict enum** — corrected from `pass|iterate|escalate` to `pass|fail|block|error` in evidence-gate.
+- **Pipeline.md cosmetic fixes** — worktree terminology, lock order justification, iterate verdict fields, challenger substantive challenge, baseline unknown classification, reviewer optional fields.
+- **remaining_steps cleanup** — removed `post_integration_verification` from pipeline remaining_steps and task_kind skip table.
 
 ## [1.2.0] — 2026-04-11
 
