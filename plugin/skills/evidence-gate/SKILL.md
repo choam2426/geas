@@ -30,7 +30,7 @@ Objective verification of whether a worker's output meets the TaskContract requi
 | gate_profile | Tier 0 | Tier 1 | Tier 2 | Description |
 |---|---|---|---|---|
 | `implementation_change` | Run | Run | Run | Standard task involving implementation changes |
-| `artifact_only` | Run | Skip | Run (rubric only, no build/test) | Tasks without code changes such as documentation or design |
+| `artifact_only` | Run | Conditional (run if eval_commands exist) | Run (rubric only, no build/test) | Tasks without code changes such as documentation or design |
 | `closure_ready` | Run | Skip | Simplified (completeness check only) | Final cleanup tasks such as release or config |
 
 ---
@@ -72,7 +72,12 @@ Verify that all prerequisites are in place before running expensive checks.
 
 Run the eval commands from the TaskContract and check results.
 
-**Skip conditions**: Skip for `artifact_only` and `closure_ready` profiles. Record as `{"status": "skipped", "details": "Profile does not require mechanical verification"}`.
+**Skip and narrowing conditions**:
+- `closure_ready` profile: **skip** unconditionally. Record as `{"status": "skipped", "details": "closure_ready profile — Tier 1 skipped"}`.
+- `artifact_only` profile with `eval_commands` present: **run** Tier 1 normally (proceed to Procedure below).
+- `artifact_only` profile with no `eval_commands`: **narrow** (do not run). Record as `{"status": "narrowed", "details": "artifact_only profile with no eval_commands — Tier 1 narrowed"}`.
+
+> **"narrowed" vs "skipped"**: "skipped" means the profile never runs this tier by design. "narrowed" means the profile can run this tier, but the current task lacks the inputs needed (e.g., no eval_commands), so the tier is conditionally omitted.
 
 ### Procedure
 
