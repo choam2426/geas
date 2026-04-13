@@ -4,6 +4,24 @@ All notable changes to this project are documented in this file.
 
 > **Note**: Tags were restructured in v0.5.1. Previous major versions (v1.x, v2.x) have been flattened to v0.x.y to reflect that the project is pre-1.0.
 
+## [1.3.1] — 2026-04-13
+
+### Added
+- **`geas task advance`** — primary chain state transitions with guard pre-check, replacing multi-step manual `task transition` calls.
+- **`geas task harvest-memory`** — batch-extracts `memory_suggestions` from task evidence files, deduplicates per-agent, and writes agent notes via shared `appendAgentNote` helper.
+- **`geas task resolve`** — atomic task resolution bundle (transition + event log + lock release) with forward-only writes and idempotent behavior.
+- **`--update-checkpoint` flag** on `geas event log` for step_complete events.
+- **Self-check consumption paths table** in evidence-gate documenting all 6 Doc 05 routing paths.
+- **Forbidden pass conditions** — pre-resolve check now enforces all 6 conditions from Protocol Doc 05.
+
+### Changed
+- Rubric dimension names aligned to protocol: `feature_completeness` → `output_completeness`, `code_quality` → `output_quality` across all skill files.
+- Evidence gate `artifact_only` profile: Tier 1 conditionally runs when `eval_commands` exist (previously unconditionally skipped). New `narrowed` status distinct from `skipped`.
+- Gate sequence corrected: `reviewed → integrated` and `integrated → verified` are now separate transitions.
+- Pipeline self-check data routed to reviewer context packets, QA plans, closure open_risks, and debt tracking.
+- `appendAgentNote` extracted as shared helper from `memory.ts` for reuse by `harvest-memory`.
+- `plugin/bin/geas` bundle regenerated.
+
 ## [1.3.0] — 2026-04-12
 
 ### Added
