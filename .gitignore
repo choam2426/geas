@@ -16,3 +16,4 @@ src/dashboard/src-tauri/icons/*.png
 .claude/
 src/cli/dist/
 src/cli/node_modules/
+.geas/
