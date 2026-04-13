@@ -13667,6 +13667,139 @@ function registerTaskCommands(program2) {
       }
     }
   });
+  cmd.command("closure-assemble").description("Assemble a closure packet with forbidden-pass pre-checks").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--id <task-id>", "Task identifier").option("--write", "Write closure section to record.json instead of stdout").action((opts) => {
+    try {
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
+      const missionId = resolveMissionId(geasDir2, opts.mission);
+      validateIdentifier(missionId, "mission ID");
+      validateIdentifier(opts.id, "task ID");
+      const missionDir = resolveMissionDir(geasDir2, missionId);
+      const taskDir = path8.resolve(missionDir, "tasks", opts.id);
+      if (!fs9.existsSync(taskDir)) {
+        fileError(normalizePath(taskDir), "closure-assemble", `Task directory not found: ${opts.id}`);
+        return;
+      }
+      const recordPath = path8.resolve(taskDir, "record.json");
+      const recordData = readJsonFile(recordPath);
+      if (!recordData) {
+        fileError(normalizePath(recordPath), "closure-assemble", "record.json not found");
+        return;
+      }
+      const evidenceDir = path8.resolve(taskDir, "evidence");
+      const evidenceFiles = [];
+      if (fs9.existsSync(evidenceDir)) {
+        const entries = fs9.readdirSync(evidenceDir, { withFileTypes: true });
+        const jsonFiles = entries.filter((e) => e.isFile() && e.name.endsWith(".json"));
+        for (const file of jsonFiles) {
+          const filePath = path8.resolve(evidenceDir, file.name);
+          try {
+            const raw = fs9.readFileSync(filePath, "utf-8");
+            evidenceFiles.push(JSON.parse(raw));
+          } catch {
+            process.stderr.write(
+              JSON.stringify({ warning: `Skipping invalid JSON: ${file.name}` }) + "\n"
+            );
+            continue;
+          }
+        }
+      }
+      const violations = [];
+      if (recordData.self_check === void 0) {
+        violations.push("Missing self_check section in record.json");
+      }
+      if (recordData.gate_result === void 0) {
+        violations.push("Missing gate_result section in record.json");
+      }
+      for (const ev of evidenceFiles) {
+        if (ev.role === "reviewer" && ev.verdict === "blocked") {
+          violations.push(`Reviewer evidence has verdict=blocked (agent: ${ev.agent || "unknown"})`);
+        }
+      }
+      for (const ev of evidenceFiles) {
+        if (ev.role === "tester" && ev.verdict === "fail") {
+          violations.push(`Tester evidence has verdict=fail (agent: ${ev.agent || "unknown"})`);
+        }
+      }
+      const challengeReview = recordData.challenge_review;
+      if (challengeReview && challengeReview.blocking === true) {
+        violations.push("Challenge review has blocking=true");
+      }
+      const verdict = recordData.verdict;
+      if (!verdict) {
+        violations.push("Missing verdict section in record.json");
+      } else if (verdict.verdict !== "pass") {
+        violations.push(`Verdict is '${verdict.verdict}', expected 'pass'`);
+      }
+      if (violations.length > 0) {
+        success({ status: "blocked", violations });
+        return;
+      }
+      let changeSummary = "";
+      for (const ev of evidenceFiles) {
+        if (ev.role === "implementer" && typeof ev.summary === "string") {
+          changeSummary = ev.summary;
+          break;
+        }
+      }
+      const reviews = [];
+      for (const ev of evidenceFiles) {
+        if (ev.role === "reviewer" || ev.role === "tester" || ev.role === "authority") {
+          reviews.push({
+            reviewer_type: ev.role,
+            status: ev.verdict === "pass" ? "approved" : String(ev.verdict || "unknown"),
+            summary: typeof ev.summary === "string" ? ev.summary : ""
+          });
+        }
+      }
+      const selfCheck = recordData.self_check;
+      let openRisks = [];
+      if (selfCheck && Array.isArray(selfCheck.known_risks)) {
+        openRisks = selfCheck.known_risks.filter((r) => typeof r === "string");
+      }
+      const closure = {
+        change_summary: changeSummary,
+        reviews,
+        open_risks: openRisks,
+        debt_items: []
+      };
+      if (opts.write) {
+        const existing = recordData.closure;
+        if (existing && typeof existing === "object" && !Array.isArray(existing)) {
+          recordData.closure = { ...existing, ...closure };
+        } else {
+          recordData.closure = closure;
+        }
+        const result = validate("record", recordData);
+        if (!result.valid) {
+          validationError("record", result.errors);
+          return;
+        }
+        writeJsonFile(recordPath, recordData, { cwd });
+        success({
+          written: normalizePath(recordPath),
+          task_id: opts.id,
+          mission_id: missionId,
+          section: "closure",
+          action: "assembled"
+        });
+      } else {
+        success({
+          task_id: opts.id,
+          mission_id: missionId,
+          status: "assembled",
+          closure
+        });
+      }
+    } catch (err) {
+      const nodeErr = err;
+      if (nodeErr.code === "FILE_ERROR") {
+        fileError("", "closure-assemble", nodeErr.message);
+      } else {
+        throw err;
+      }
+    }
+  });
 }
 function collectSet(value, previous) {
   return previous.concat([value]);

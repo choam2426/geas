@@ -1068,6 +1068,186 @@ export function registerTaskCommands(program: Command): void {
         }
       }
     });
+
+  // ── geas task closure-assemble ──────────────────────────────────────
+  cmd
+    .command('closure-assemble')
+    .description('Assemble a closure packet with forbidden-pass pre-checks')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .requiredOption('--id <task-id>', 'Task identifier')
+    .option('--write', 'Write closure section to record.json instead of stdout')
+    .action((opts: { mission?: string; id: string; write?: boolean }) => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(opts.id, 'task ID');
+        const missionDir = resolveMissionDir(geasDir, missionId);
+
+        const taskDir = path.resolve(missionDir, 'tasks', opts.id);
+        if (!fs.existsSync(taskDir)) {
+          fileError(normalizePath(taskDir), 'closure-assemble', `Task directory not found: ${opts.id}`);
+          return;
+        }
+
+        // Read record.json
+        const recordPath = path.resolve(taskDir, 'record.json');
+        const recordData = readJsonFile<Record<string, unknown>>(recordPath);
+        if (!recordData) {
+          fileError(normalizePath(recordPath), 'closure-assemble', 'record.json not found');
+          return;
+        }
+
+        // Read evidence files
+        const evidenceDir = path.resolve(taskDir, 'evidence');
+        const evidenceFiles: Array<Record<string, unknown>> = [];
+
+        if (fs.existsSync(evidenceDir)) {
+          const entries = fs.readdirSync(evidenceDir, { withFileTypes: true });
+          const jsonFiles = entries.filter(e => e.isFile() && e.name.endsWith('.json'));
+
+          for (const file of jsonFiles) {
+            const filePath = path.resolve(evidenceDir, file.name);
+            try {
+              const raw = fs.readFileSync(filePath, 'utf-8');
+              evidenceFiles.push(JSON.parse(raw));
+            } catch {
+              // Skip malformed JSON (same as check-artifacts)
+              process.stderr.write(
+                JSON.stringify({ warning: `Skipping invalid JSON: ${file.name}` }) + '\n'
+              );
+              continue;
+            }
+          }
+        }
+
+        // ── 6 forbidden pass condition pre-checks ──────────────────
+        const violations: string[] = [];
+
+        // 1. Missing self_check section
+        if (recordData.self_check === undefined) {
+          violations.push('Missing self_check section in record.json');
+        }
+
+        // 2. Missing gate_result section
+        if (recordData.gate_result === undefined) {
+          violations.push('Missing gate_result section in record.json');
+        }
+
+        // 3. Any reviewer evidence with verdict="blocked"
+        for (const ev of evidenceFiles) {
+          if (ev.role === 'reviewer' && ev.verdict === 'blocked') {
+            violations.push(`Reviewer evidence has verdict=blocked (agent: ${ev.agent || 'unknown'})`);
+          }
+        }
+
+        // 4. Any tester evidence with verdict="fail"
+        for (const ev of evidenceFiles) {
+          if (ev.role === 'tester' && ev.verdict === 'fail') {
+            violations.push(`Tester evidence has verdict=fail (agent: ${ev.agent || 'unknown'})`);
+          }
+        }
+
+        // 5. Challenge review with blocking=true
+        const challengeReview = recordData.challenge_review as Record<string, unknown> | undefined;
+        if (challengeReview && challengeReview.blocking === true) {
+          violations.push('Challenge review has blocking=true');
+        }
+
+        // 6. Missing verdict section or verdict != "pass"
+        const verdict = recordData.verdict as Record<string, unknown> | undefined;
+        if (!verdict) {
+          violations.push('Missing verdict section in record.json');
+        } else if (verdict.verdict !== 'pass') {
+          violations.push(`Verdict is '${verdict.verdict}', expected 'pass'`);
+        }
+
+        // If any forbidden condition met, output blocked status and exit
+        if (violations.length > 0) {
+          success({ status: 'blocked', violations });
+          return;
+        }
+
+        // ── Assemble closure JSON ──────────────────────────────────
+        // change_summary: from implementer evidence summary
+        let changeSummary = '';
+        for (const ev of evidenceFiles) {
+          if (ev.role === 'implementer' && typeof ev.summary === 'string') {
+            changeSummary = ev.summary;
+            break;
+          }
+        }
+
+        // reviews[]: from all reviewer/tester/authority evidence
+        const reviews: Array<{ reviewer_type: string; status: string; summary: string }> = [];
+        for (const ev of evidenceFiles) {
+          if (ev.role === 'reviewer' || ev.role === 'tester' || ev.role === 'authority') {
+            reviews.push({
+              reviewer_type: ev.role as string,
+              status: ev.verdict === 'pass' ? 'approved' : String(ev.verdict || 'unknown'),
+              summary: typeof ev.summary === 'string' ? ev.summary : '',
+            });
+          }
+        }
+
+        // open_risks[]: from self_check known_risks
+        const selfCheck = recordData.self_check as Record<string, unknown> | undefined;
+        let openRisks: string[] = [];
+        if (selfCheck && Array.isArray(selfCheck.known_risks)) {
+          openRisks = selfCheck.known_risks.filter((r: unknown) => typeof r === 'string') as string[];
+        }
+
+        // debt_items[]: empty array (debt tracked separately)
+        const closure = {
+          change_summary: changeSummary,
+          reviews,
+          open_risks: openRisks,
+          debt_items: [] as string[],
+        };
+
+        // --write: write to record.json closure section
+        if (opts.write) {
+          const existing = recordData.closure;
+          if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+            recordData.closure = { ...existing as Record<string, unknown>, ...closure };
+          } else {
+            recordData.closure = closure;
+          }
+
+          const result = validate('record', recordData);
+          if (!result.valid) {
+            validationError('record', result.errors!);
+            return;
+          }
+
+          writeJsonFile(recordPath, recordData, { cwd });
+
+          success({
+            written: normalizePath(recordPath),
+            task_id: opts.id,
+            mission_id: missionId,
+            section: 'closure',
+            action: 'assembled',
+          });
+        } else {
+          // Default: output to stdout
+          success({
+            task_id: opts.id,
+            mission_id: missionId,
+            status: 'assembled',
+            closure,
+          });
+        }
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'closure-assemble', nodeErr.message);
+        } else {
+          throw err;
+        }
+      }
+    });
 }
 
 /** Commander variadic option collector for --set. */
