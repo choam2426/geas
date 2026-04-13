@@ -9,6 +9,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
 import type { Command } from 'commander';
 import { resolveGeasDir, resolveMissionDir, normalizePath, validateIdentifier } from '../lib/paths';
 import { readJsonFile, writeJsonFile, atomicWriteJsonFile, ensureDir, appendJsonlFile } from '../lib/fs-atomic';
@@ -1245,6 +1246,182 @@ export function registerTaskCommands(program: Command): void {
         const nodeErr = err as NodeJS.ErrnoException;
         if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'closure-assemble', nodeErr.message);
+        } else {
+          throw err;
+        }
+      }
+    });
+
+  // ── geas task revalidate ──────────────────────────────────────────
+  cmd
+    .command('revalidate')
+    .description('Check task freshness against current HEAD and classify drift')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .requiredOption('--id <task-id>', 'Task identifier')
+    .action((opts: { mission?: string; id: string }) => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(opts.id, 'task ID');
+        const missionDir = resolveMissionDir(geasDir, missionId);
+
+        // Read task contract
+        const contractPath = path.resolve(missionDir, 'tasks', opts.id, 'contract.json');
+        const task = readJsonFile<Record<string, unknown>>(contractPath);
+        if (!task) {
+          fileError(
+            normalizePath(contractPath),
+            'revalidate',
+            `Task contract not found: ${normalizePath(contractPath)}`
+          );
+          return;
+        }
+
+        // Extract base_snapshot and scope.surfaces from contract
+        const baseSnapshot = task.base_snapshot as string | undefined;
+        const scope = task.scope as Record<string, unknown> | undefined;
+        const surfaces: string[] = (scope && Array.isArray(scope.surfaces))
+          ? scope.surfaces.filter((s: unknown) => typeof s === 'string') as string[]
+          : [];
+
+        if (!baseSnapshot) {
+          const msg = {
+            error: 'Task contract has no base_snapshot field',
+            code: 'VALIDATION_ERROR' as const,
+            task_id: opts.id,
+          };
+          process.stderr.write(JSON.stringify(msg) + '\n');
+          process.exit(1);
+          return;
+        }
+
+        // Get current HEAD
+        let currentHead: string;
+        try {
+          currentHead = execSync('git rev-parse HEAD', { cwd, encoding: 'utf-8' }).trim();
+        } catch {
+          const msg = {
+            error: 'Failed to get current HEAD. Is this a git repository?',
+            code: 'GIT_ERROR' as const,
+            task_id: opts.id,
+          };
+          process.stderr.write(JSON.stringify(msg) + '\n');
+          process.exit(1);
+          return;
+        }
+
+        const currentShort = currentHead.substring(0, baseSnapshot.length);
+
+        // If base_snapshot matches HEAD short hash: fresh, no revalidation needed
+        if (baseSnapshot === currentShort || baseSnapshot === currentHead) {
+          success({
+            task_id: opts.id,
+            classification: 'fresh',
+            action: 'none',
+            base_snapshot: baseSnapshot,
+            current_head: currentShort,
+          });
+          return;
+        }
+
+        // Get changed files between base_snapshot and HEAD
+        let changedFiles: string[] = [];
+        try {
+          const diffOutput = execSync(
+            `git diff ${baseSnapshot}..HEAD --name-only`,
+            { cwd, encoding: 'utf-8' }
+          ).trim();
+          changedFiles = diffOutput ? diffOutput.split('\n').filter(f => f.length > 0) : [];
+        } catch {
+          const msg = {
+            error: `Failed to compute diff between ${baseSnapshot} and HEAD. Snapshot may be invalid.`,
+            code: 'GIT_ERROR' as const,
+            task_id: opts.id,
+            base_snapshot: baseSnapshot,
+          };
+          process.stderr.write(JSON.stringify(msg) + '\n');
+          process.exit(1);
+          return;
+        }
+
+        // Check overlap: changed files that start with any scope surface path
+        const overlappingFiles = changedFiles.filter(f =>
+          surfaces.some(s => f === s || f.startsWith(s.endsWith('/') ? s : s + '/') || s === f)
+        );
+
+        // Check semantic drift: adjacent files (same directory as scope surfaces) that changed
+        const surfaceDirs = new Set<string>();
+        for (const s of surfaces) {
+          // If surface looks like a directory, use it directly; otherwise use its parent
+          if (s.endsWith('/')) {
+            surfaceDirs.add(s.replace(/\/$/, ''));
+          } else {
+            const dir = path.posix.dirname(s);
+            if (dir !== '.') surfaceDirs.add(dir);
+          }
+        }
+
+        const adjacentChanged = changedFiles.filter(f => {
+          // Not already in overlapping
+          if (overlappingFiles.includes(f)) return false;
+          const fileDir = path.posix.dirname(f);
+          return [...surfaceDirs].some(sd => fileDir === sd || fileDir.startsWith(sd + '/'));
+        });
+
+        // Classify
+        let classification: string;
+        let actionTaken: string;
+        const hasOverlap = overlappingFiles.length > 0;
+        const hasDrift = adjacentChanged.length > 0;
+
+        if (!hasOverlap && !hasDrift) {
+          // No overlap and no semantic drift → clean_sync
+          classification = 'clean_sync';
+          actionTaken = 'base_snapshot_updated';
+        } else if (!hasOverlap && hasDrift) {
+          // No overlap but semantic drift → review_sync
+          classification = 'review_sync';
+          actionTaken = 'base_snapshot_updated_with_flag';
+        } else if (hasOverlap) {
+          // Check if overlap is auto-resolvable (heuristic: only non-surface-core files)
+          // Simple heuristic: if overlapping files are few relative to surfaces, treat as review_sync
+          const overlapRatio = overlappingFiles.length / Math.max(surfaces.length, 1);
+          if (overlapRatio <= 0.5) {
+            classification = 'review_sync';
+            actionTaken = 'base_snapshot_updated';
+          } else {
+            classification = 'replan_required';
+            actionTaken = 'none';
+          }
+        } else {
+          classification = 'clean_sync';
+          actionTaken = 'base_snapshot_updated';
+        }
+
+        // For clean_sync/review_sync: update base_snapshot in contract
+        const newSnapshot = currentHead.substring(0, baseSnapshot.length);
+        if (classification === 'clean_sync' || classification === 'review_sync') {
+          task.base_snapshot = newSnapshot;
+          writeJsonFile(contractPath, task, { cwd });
+        }
+
+        success({
+          task_id: opts.id,
+          classification,
+          changed_files: changedFiles,
+          overlapping_files: overlappingFiles,
+          adjacent_changed: adjacentChanged,
+          action_taken: actionTaken,
+          base_snapshot: classification === 'clean_sync' || classification === 'review_sync'
+            ? newSnapshot
+            : baseSnapshot,
+        });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'revalidate', nodeErr.message);
         } else {
           throw err;
         }
