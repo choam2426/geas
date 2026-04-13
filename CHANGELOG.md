@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 
 > **Note**: Tags were restructured in v0.5.1. Previous major versions (v1.x, v2.x) have been flattened to v0.x.y to reflect that the project is pre-1.0.
 
+## [1.3.1] — 2026-04-13
+
+### Security
+- **Command injection fix in `revalidate`** — `base_snapshot` validated as hex commit hash (`/^[0-9a-f]{4,40}$/i`), `execSync` replaced with `execFileSync` to prevent shell interpretation of untrusted input.
+
 ## [1.3.0] — 2026-04-13
 
 ### Added

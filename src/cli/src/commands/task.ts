@@ -9,7 +9,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import type { Command } from 'commander';
 import { resolveGeasDir, resolveMissionDir, normalizePath, validateIdentifier } from '../lib/paths';
 import { readJsonFile, writeJsonFile, atomicWriteJsonFile, ensureDir, appendJsonlFile } from '../lib/fs-atomic';
@@ -1297,10 +1297,22 @@ export function registerTaskCommands(program: Command): void {
           return;
         }
 
+        // Validate base_snapshot is a hex commit hash (prevent command injection)
+        if (!/^[0-9a-f]{4,40}$/i.test(baseSnapshot)) {
+          const msg = {
+            error: `Invalid base_snapshot: must be a hex commit hash (4-40 chars), got "${baseSnapshot}"`,
+            code: 'VALIDATION_ERROR' as const,
+            task_id: opts.id,
+          };
+          process.stderr.write(JSON.stringify(msg) + '\n');
+          process.exit(1);
+          return;
+        }
+
         // Get current HEAD
         let currentHead: string;
         try {
-          currentHead = execSync('git rev-parse HEAD', { cwd, encoding: 'utf-8' }).trim();
+          currentHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd, encoding: 'utf-8' }).trim();
         } catch {
           const msg = {
             error: 'Failed to get current HEAD. Is this a git repository?',
@@ -1329,8 +1341,8 @@ export function registerTaskCommands(program: Command): void {
         // Get changed files between base_snapshot and HEAD
         let changedFiles: string[] = [];
         try {
-          const diffOutput = execSync(
-            `git diff ${baseSnapshot}..HEAD --name-only`,
+          const diffOutput = execFileSync(
+            'git', ['diff', `${baseSnapshot}..HEAD`, '--name-only'],
             { cwd, encoding: 'utf-8' }
           ).trim();
           changedFiles = diffOutput ? diffOutput.split('\n').filter(f => f.length > 0) : [];

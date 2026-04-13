@@ -13832,9 +13832,19 @@ function registerTaskCommands(program2) {
         process.exit(1);
         return;
       }
+      if (!/^[0-9a-f]{4,40}$/i.test(baseSnapshot)) {
+        const msg = {
+          error: `Invalid base_snapshot: must be a hex commit hash (4-40 chars), got "${baseSnapshot}"`,
+          code: "VALIDATION_ERROR",
+          task_id: opts.id
+        };
+        process.stderr.write(JSON.stringify(msg) + "\n");
+        process.exit(1);
+        return;
+      }
       let currentHead;
       try {
-        currentHead = (0, import_child_process2.execSync)("git rev-parse HEAD", { cwd, encoding: "utf-8" }).trim();
+        currentHead = (0, import_child_process2.execFileSync)("git", ["rev-parse", "HEAD"], { cwd, encoding: "utf-8" }).trim();
       } catch {
         const msg = {
           error: "Failed to get current HEAD. Is this a git repository?",
@@ -13858,8 +13868,9 @@ function registerTaskCommands(program2) {
       }
       let changedFiles = [];
       try {
-        const diffOutput = (0, import_child_process2.execSync)(
-          `git diff ${baseSnapshot}..HEAD --name-only`,
+        const diffOutput = (0, import_child_process2.execFileSync)(
+          "git",
+          ["diff", `${baseSnapshot}..HEAD`, "--name-only"],
           { cwd, encoding: "utf-8" }
         ).trim();
         changedFiles = diffOutput ? diffOutput.split("\n").filter((f) => f.length > 0) : [];
