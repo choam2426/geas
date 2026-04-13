@@ -14,6 +14,25 @@ EVERY task, regardless of dependencies or position in the batch, MUST execute AL
 
 Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
 
+### task_kind Skip Rules
+
+When initializing `remaining_steps` for a task, apply the following skip rules based on the task's `task_kind`. Remove skipped steps from the array before starting the pipeline.
+
+| task_kind | Skip | Keep (mandatory) |
+|-----------|------|-----------------|
+| **implementation** | `design` (if no UI), `design_guide` (if single module + existing pattern) | All others |
+| **analysis** | `design`, `design_guide`, `implementation` (worktree), `integration`, `post_integration_verification` | implementation_contract, self_check, specialist_review, testing, evidence_gate, closure_packet, challenger, final_verdict, retrospective, memory_extraction, resolve |
+| **documentation** | `design`, `design_guide`, `implementation` (worktree isolation not needed — direct edit), `integration`, `post_integration_verification` | implementation_contract, self_check, specialist_review, testing, evidence_gate, closure_packet, challenger, final_verdict, retrospective, memory_extraction, resolve |
+| **design** | `implementation` (worktree), `integration`, `post_integration_verification` | design, design_guide, implementation_contract, self_check, specialist_review, testing, evidence_gate, closure_packet, challenger, final_verdict, retrospective, memory_extraction, resolve |
+| **testing** | `design`, `design_guide` | implementation_contract, implementation, self_check, specialist_review, testing, evidence_gate, integration, closure_packet, challenger, final_verdict, retrospective, memory_extraction, resolve |
+| **research** | `design`, `design_guide`, `implementation` (worktree), `integration`, `post_integration_verification` | implementation_contract, self_check, specialist_review, testing, evidence_gate, closure_packet, challenger, final_verdict, retrospective, memory_extraction, resolve |
+| **infrastructure** | `design` (if no UI) | All others (infrastructure changes require full pipeline including integration) |
+
+**Rules:**
+- `implementation_contract`, `self_check`, `specialist_review`, `testing`, `evidence_gate`, `closure_packet`, `final_verdict`, `retrospective`, `memory_extraction`, and `resolve` are **never skippable** regardless of task_kind.
+- `challenger` skip follows `risk_level`, not `task_kind` (see pipeline Challenger Review section).
+- If `task_kind` is missing or unrecognized, default to `implementation` (no extra skips).
+
 ## CLI Usage for Workspace Agents
 
 Workspace-isolated agents can use `geas` commands directly. The CLI auto-detects the `.geas/` directory by traversing the workspace root, so `--cwd` is not needed even in isolated workspaces.
