@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 > **Note**: Tags were restructured in v0.5.1. Previous major versions (v1.x, v2.x) have been flattened to v0.x.y to reflect that the project is pre-1.0.
 
+## [1.4.0] — 2026-04-13
+
+### Added
+- **`geas task check-artifacts`** — verify pipeline step artifacts exist with schema validation (IMPL-015).
+- **`geas task closure-assemble`** — assemble closure packets from evidence with 6 forbidden pass condition pre-checks (IMPL-022).
+- **`geas task revalidate`** — automate baseline staleness checks with freshness classification and semantic drift adjacency analysis (IMPL-023).
+- **`geas task retrospective-draft`** — auto-draft retrospectives from evidence and record sections (IMPL-025).
+- **Semantic drift analysis** in pipeline.md staleness checks — adjacency-based content impact classification (IMPL-016).
+- **Workspace health check** before implementation in pipeline.md (IMPL-017).
+- **task_kind skip rules table** — systematic pipeline step skip logic for all 7 task_kind enums (IMPL-018).
+- **Risk-level concurrency gating** in building.md and scheduling — critical tasks require 4 Doc 04 independence conditions (IMPL-019).
+- **Cancellation record enrichment** — Doc 03's 4 required items in pipeline.md cancel path (IMPL-021).
+
 ## [1.3.1] — 2026-04-13
 
 ### Added
