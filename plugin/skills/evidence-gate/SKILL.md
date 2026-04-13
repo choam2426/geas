@@ -20,7 +20,7 @@ Objective verification of whether a worker's output meets the TaskContract requi
 - All roles: `version`, `agent`, `task_id`, `role`, `summary`
 - `implementer`: + `files_changed[]`, optional `commit`
 - `reviewer`: + `verdict` (approved|changes_requested|blocked), `concerns[]`
-- `tester`: + `verdict` (pass|iterate|escalate), `criteria_results[]` (items: `criterion`, `passed`, optional `details`)
+- `tester`: + `verdict` (pass|fail|block|error), `criteria_results[]` (items: `criterion`, `passed`, optional `details`)
 - `authority`: + `verdict`, `rationale`
 - Optional for all: `rubric_scores[]` (items: `dimension`, `score` (1-5), optional `rationale`)
 5. **Gate profile** — determines which tiers to run (see below)

@@ -9,7 +9,7 @@ EVERY task, regardless of dependencies or position in the batch, MUST execute AL
 ## remaining_steps
 
 ```json
-"remaining_steps": ["design", "design_guide", "implementation_contract", "implementation", "self_check", "specialist_review", "testing", "evidence_gate", "integration", "post_integration_verification", "closure_packet", "challenger", "final_verdict", "retrospective", "memory_extraction", "resolve"]
+"remaining_steps": ["design", "design_guide", "implementation_contract", "implementation", "self_check", "specialist_review", "testing", "evidence_gate", "integration", "closure_packet", "challenger", "final_verdict", "retrospective", "memory_extraction", "resolve"]
 ```
 
 Remove steps that will be skipped (e.g., remove "design" if no UI). After completing each step, remove it from the front of the array and update run.json.
@@ -21,11 +21,11 @@ When initializing `remaining_steps` for a task, apply the following skip rules b
 | task_kind | Skip | Keep (mandatory) |
 |-----------|------|-----------------|
 | **implementation** | `design` (if no UI), `design_guide` (if single module + existing pattern) | All others |
-| **analysis** | `design`, `design_guide`, `implementation` (worktree), `integration`, `post_integration_verification` | implementation_contract, self_check, specialist_review, testing, evidence_gate, closure_packet, challenger, final_verdict, retrospective, memory_extraction, resolve |
-| **documentation** | `design`, `design_guide`, `implementation` (worktree isolation not needed — direct edit), `integration`, `post_integration_verification` | implementation_contract, self_check, specialist_review, testing, evidence_gate, closure_packet, challenger, final_verdict, retrospective, memory_extraction, resolve |
-| **design** | `implementation` (worktree), `integration`, `post_integration_verification` | design, design_guide, implementation_contract, self_check, specialist_review, testing, evidence_gate, closure_packet, challenger, final_verdict, retrospective, memory_extraction, resolve |
+| **analysis** | `design`, `design_guide`, `implementation` (worktree), `integration` | implementation_contract, self_check, specialist_review, testing, evidence_gate, closure_packet, challenger, final_verdict, retrospective, memory_extraction, resolve |
+| **documentation** | `design`, `design_guide`, `implementation` (worktree isolation not needed — direct edit), `integration` | implementation_contract, self_check, specialist_review, testing, evidence_gate, closure_packet, challenger, final_verdict, retrospective, memory_extraction, resolve |
+| **design** | `implementation` (worktree), `integration` | design, design_guide, implementation_contract, self_check, specialist_review, testing, evidence_gate, closure_packet, challenger, final_verdict, retrospective, memory_extraction, resolve |
 | **testing** | `design`, `design_guide` | implementation_contract, implementation, self_check, specialist_review, testing, evidence_gate, integration, closure_packet, challenger, final_verdict, retrospective, memory_extraction, resolve |
-| **research** | `design`, `design_guide`, `implementation` (worktree), `integration`, `post_integration_verification` | implementation_contract, self_check, specialist_review, testing, evidence_gate, closure_packet, challenger, final_verdict, retrospective, memory_extraction, resolve |
+| **research** | `design`, `design_guide`, `implementation` (worktree), `integration` | implementation_contract, self_check, specialist_review, testing, evidence_gate, closure_packet, challenger, final_verdict, retrospective, memory_extraction, resolve |
 | **infrastructure** | `design` (if no UI) | All others (infrastructure changes require full pipeline including integration) |
 
 **Rules:**
@@ -33,9 +33,9 @@ When initializing `remaining_steps` for a task, apply the following skip rules b
 - `challenger` skip follows `risk_level`, not `task_kind` (see pipeline Challenger Review section).
 - If `task_kind` is missing or unrecognized, default to `implementation` (no extra skips).
 
-## CLI Usage for Workspace Agents
+## CLI Usage for Worktree Agents
 
-Workspace-isolated agents can use `geas` commands directly. The CLI auto-detects the `.geas/` directory by traversing the workspace root, so `--cwd` is not needed even in isolated workspaces.
+Worktree-isolated agents MUST be able to use `geas` commands directly. The CLI auto-detects the `.geas/` directory by traversing upward from the current working directory to find the project root. This means `--cwd` is not required — the CLI MUST resolve the correct `.geas/` directory regardless of where it is invoked within the project tree.
 
 > **Software domain (git):** The CLI uses `git rev-parse --show-toplevel` to locate the project root in git worktrees.
 
@@ -83,7 +83,8 @@ Before transitioning to `"implementing"`, check for staleness:
    d. **Overlap, auto-resolvable** -> classification = `review_sync`. Update `base_snapshot`, proceed. Flag for specialist re-review after implementation.
    e. **Overlap, not auto-resolvable** -> classification = `replan_required`. Do NOT proceed. Rewind task to `"ready"`. Update implementation contract.
    f. **Preconditions invalidated** -> classification = `blocking_conflict`. Set task status to `"blocked"`.
-   g. Log event: `Bash("geas event log --type revalidation --task {task-id} --data '{\"classification\":\"...\",\"action_taken\":\"...\"}'")` 
+   g. **Unable to determine freshness** (e.g., base_snapshot not found, integration baseline unavailable, or ambiguous state) -> classification = `unknown`. Set task status to `"blocked"`. Do NOT proceed — the orchestrator must investigate and resolve.
+   h. Log event: `Bash("geas event log --type revalidation --task {task-id} --data '{\"classification\":\"...\",\"action_taken\":\"...\"}'")` 
 
 5. **Semantic Drift Analysis** (after file-overlap classification):
    a. **Identify adjacent files**: For each surface in `scope.surfaces`, determine adjacent files:
@@ -112,7 +113,7 @@ Only proceed to `"implementing"` if classification is `clean_sync` or `review_sy
 
 ### Lock Acquisition
 
-Before entering `"implementing"`, acquire locks in order (per doc 04):
+Before entering `"implementing"`, acquire locks in the following order (per doc 04). The order is path → interface → resource because path locks are the most granular and least contended, while resource locks are the most coarse and most likely to cause waits. Acquiring in this order minimizes hold time on shared resources:
 
 1. **`path` locks**: Acquire via CLI which handles conflict detection automatically:
    ```bash
@@ -282,7 +283,7 @@ Verify record.json has `self_check` section: `Bash("geas task record get --task 
 Select the appropriate agent for this role. Use profiles.json defaults if the mission has a domain_profile, but choose the best-fit agent based on the task's needs. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-design-authority}-review --content '...'")`. Include the worker's `self_check` section (`known_risks`, `untested_paths`, `confidence`) in the context packet so reviewers can focus on flagged areas. Then:
 Update checkpoint: `Bash("geas state checkpoint set --step specialist_review --agent {resolved-design-authority}")`
 ```
-Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-design-authority}-review.md. Review implementation. Write your review as evidence. Run: geas evidence add --task {task-id} --agent {resolved-design-authority}-review --role reviewer --set summary='<review summary>' --set verdict='approved' --set concerns='[]'")
+Agent(agent: "{resolved-design-authority}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-design-authority}-review.md. Review implementation. Write your review as evidence. Run: geas evidence add --task {task-id} --agent {resolved-design-authority}-review --role reviewer --set summary='<review summary>' --set verdict='approved' --set concerns='[]'. Optional but recommended: include --set rubric_scores='[{\"dimension\":\"output_quality\",\"score\":N}]' and --set evidence_refs='[\"file_or_artifact\"]' for traceability.")
 ```
 Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-design-authority}-review.json` exists.
 Update checkpoint: `Bash("geas state checkpoint set --step specialist_review --agent null")`
@@ -291,7 +292,7 @@ Update checkpoint: `Bash("geas state checkpoint set --step specialist_review --a
 Select the appropriate agent for this role. Use profiles.json defaults if the mission has a domain_profile, but choose the best-fit agent based on the task's needs. Compose the context packet inline and write via CLI: `Bash("geas packet create --task {task-id} --agent {resolved-quality-specialist} --content '...'")`. Include the worker's `self_check` section in the context packet. QA should prioritize testing `untested_paths` and verifying `known_risks` are addressed. Then:
 Update checkpoint: `Bash("geas state checkpoint set --step testing --agent {resolved-quality-specialist}")`
 ```
-Agent(agent: "{resolved-quality-specialist}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-quality-specialist}.md. Test the implementation. Write your test results as evidence. Run: geas evidence add --task {task-id} --agent {resolved-quality-specialist} --role tester --set summary='<test summary>' --set verdict='pass' --set criteria_results='[{\"criterion\":\"...\",\"passed\":true}]'")
+Agent(agent: "{resolved-quality-specialist}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{resolved-quality-specialist}.md. Test the implementation. Write your test results as evidence. Run: geas evidence add --task {task-id} --agent {resolved-quality-specialist} --role tester --set summary='<test summary>' --set verdict='pass' --set criteria_results='[{\"criterion\":\"...\",\"passed\":true}]'. Optional but recommended: include --set rubric_scores='[{\"dimension\":\"regression_safety\",\"score\":N}]' and --set evidence_refs='[\"test_output_or_artifact\"]' for traceability.")
 ```
 Verify `.geas/missions/{mission_id}/tasks/{task-id}/evidence/{resolved-quality-specialist}.json` exists.
 Update checkpoint: `Bash("geas state checkpoint set --step testing --agent null")`
@@ -423,7 +424,7 @@ Update checkpoint: `Bash("geas state checkpoint set --step closure_packet --agen
 
 Resolve the challenger agent. Update checkpoint: `Bash("geas state checkpoint set --step challenger --agent challenger")`
 ```
-Agent(agent: "challenger", prompt: "Read the closure from record.json via: geas task record get --task {task-id} --section closure. Read all evidence at .geas/missions/{mission_id}/tasks/{task-id}/evidence/. Perform your challenge review per your Review Protocols. Write your challenge review to record.json. Run: geas task record add --task {task-id} --section challenge_review <<'EOF' (followed by the challenge-review JSON body and a closing EOF line). The CLI validates automatically.")
+Agent(agent: "challenger", prompt: "Read the closure from record.json via: geas task record get --task {task-id} --section closure. Read all evidence at .geas/missions/{mission_id}/tasks/{task-id}/evidence/. Perform your challenge review per your Review Protocols. You MUST raise at least one substantive challenge — a genuine concern about correctness, completeness, or risk that the team may have overlooked. Rubber-stamp approvals are not acceptable. Write your challenge review to record.json. Run: geas task record add --task {task-id} --section challenge_review <<'EOF' (followed by the challenge-review JSON body and a closing EOF line). The CLI validates automatically.")
 
 **challenge_review fields:** `concerns[]` (strings or objects with `severity` (blocking|non_blocking) and `description`), `blocking` (boolean), optional `summary`
 ```
@@ -464,7 +465,7 @@ Agent(agent: "product-authority", prompt: "Read the closure and challenge_review
 
 **Verdict rules:**
 - `pass` -> task proceeds to Resolve (status `"passed"`)
-- `iterate` -> specify `rewind_target` (ready/implementing/reviewed). Does NOT consume `retry_budget`. After 3 cumulative iterates for the same task -> `escalated`.
+- `iterate` -> specify all 3 required fields: `rewind_target` (ready/implementing/reviewed), `rejection_reason` (why pass was not granted), `new_expectations` (what must change before the next verdict). Does NOT consume `retry_budget`. After 3 cumulative iterates for the same task -> `escalated`.
 - `escalate` -> requires higher-level decision-making. Include `escalation_reason`.
 
 Note: "iterate" is only valid as a Final Verdict outcome. Gate verdicts (evidence-gate) are pass/fail/block/error.

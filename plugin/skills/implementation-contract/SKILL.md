@@ -29,11 +29,11 @@ Spawn the assigned worker to read their ContextPacket and write a contract:
 
 ```
 Agent(agent: "{worker}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{worker}.md and .geas/missions/{mission_id}/tasks/{task-id}/contract.json. Before implementing, write your implementation contract via CLI. Run: geas task record add --task {task-id} --section implementation_contract --set planned_actions=... (or pipe a JSON body via stdin: `geas task record add --task {task-id} --section implementation_contract <<'EOF'\n<contract_json>\nEOF`, or redirect from a file: `< path/to/contract.json`). Required fields:
-- planned_actions: concrete steps you will take
-- edge_cases: edge cases you plan to handle
-- state_transitions: state changes your implementation introduces (if any)
-- non_goals: what you explicitly will NOT do
-- demo_steps: step-by-step procedure to verify your work is complete
+- planned_actions: concrete steps you will take (required)
+- non_goals: what you explicitly will NOT do (required)
+- edge_cases: edge cases you plan to handle (recommended)
+- state_transitions: state changes your implementation introduces (recommended)
+- demo_steps: step-by-step procedure to verify your work is complete (recommended)
 Set status to 'draft'.")
 ```
 
