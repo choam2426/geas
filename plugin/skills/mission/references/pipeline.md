@@ -576,7 +576,25 @@ The CLI removes ALL lock entries where `task_id` matches this task and promotes 
 
   > **Software domain (git):** `git add -A && git commit -m "{conventional commit message for task-id}"`. The snapshot reference is the commit hash.
 - **Iterate** (Final Verdict only): does NOT deduct retry_budget (iterate is a product judgment, not a gate failure). Track iterate_count — after 3 cumulative iterates, escalate to orchestration-authority. Repopulate remaining_steps with the full pipeline (same skip conditions as original). Include product-authority's feedback in all subsequent ContextPackets. Resume from the rewind_target specified in the final verdict.
-- **Cancel**: status -> `"cancelled"`. Transition via `Bash("geas task transition --mission {mission_id} --id {task-id} --to cancelled")`. Write DecisionRecord.
+- **Cancel**: status -> `"cancelled"`. The cancellation record must include all 4 items required by Doc 03:
+
+  1. **Cancellation reason**: Why the task was cancelled. Record in the DecisionRecord's `rationale` field.
+  2. **Partial artifact inventory**: List all artifacts produced before cancellation:
+     - Check record.json for any sections written (implementation_contract, self_check, gate_result, etc.)
+     - Check `evidence/` directory for any evidence files
+     - Record the inventory in the DecisionRecord's `context` field as `partial_artifacts: [...]`
+  3. **Debt and memory emission**: Before cancelling:
+     - Extract any `tech_debt` items from existing evidence files → emit via `geas debt add`
+     - Extract any `memory_suggestions` from existing evidence files → emit via `geas task harvest-memory --id {task-id}`
+     - These must be emitted BEFORE the cancellation transition
+  4. **Replacement path**: Document whether the cancelled work will be replaced, deferred, or abandoned. Record in DecisionRecord's `context` field as `replacement_path: "replaced_by_task-XXX" | "deferred" | "abandoned"`.
+
+  After recording all 4 items:
+  ```bash
+  Bash("geas task transition --id {task-id} --to cancelled")
+  Bash("geas event log --type task_resolved --task {task-id} --data '{\"verdict\":\"cancel\",\"reason\":\"...\",\"replacement_path\":\"...\"}'")
+  ```
+  Write DecisionRecord via CLI.
 
 ---
 
