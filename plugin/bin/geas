@@ -9820,24 +9820,34 @@ var defs_schema_default = {
       type: "string",
       pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
     },
-    agentType: {
+    authoritySlot: {
       type: "string",
       enum: [
         "orchestration-authority",
         "product-authority",
         "design-authority",
-        "challenger",
-        "software-engineer",
-        "qa-engineer",
-        "security-engineer",
-        "platform-engineer",
-        "technical-writer",
-        "literature-analyst",
-        "research-analyst",
-        "methodology-reviewer",
-        "research-integrity-reviewer",
-        "research-engineer",
-        "research-writer"
+        "challenger"
+      ]
+    },
+    specialistSlot: {
+      type: "string",
+      enum: [
+        "implementer",
+        "quality",
+        "risk",
+        "operations",
+        "communication"
+      ]
+    },
+    agentTypeId: {
+      type: "string",
+      minLength: 1,
+      pattern: "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+    },
+    anySlot: {
+      anyOf: [
+        { $ref: "_defs.schema.json#/$defs/authoritySlot" },
+        { $ref: "_defs.schema.json#/$defs/specialistSlot" }
       ]
     }
   }
@@ -9850,32 +9860,10 @@ var debt_register_schema_default = {
   type: "object",
   additionalProperties: false,
   required: [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "scope",
     "items"
   ],
   properties: {
-    version: {
-      type: "string",
-      const: "1.0"
-    },
-    artifact_type: {
-      type: "string",
-      const: "debt_register"
-    },
-    artifact_id: {
-      type: "string"
-    },
-    producer_type: {
-      type: "string",
-      enum: [
-        "design-authority",
-        "product-authority"
-      ]
-    },
     scope: {
       type: "string",
       enum: [
@@ -9958,23 +9946,56 @@ var debt_register_schema_default = {
     rollup_by_severity: {
       type: "object",
       properties: {
-        low: { type: "integer", minimum: 0 },
-        normal: { type: "integer", minimum: 0 },
-        high: { type: "integer", minimum: 0 },
-        critical: { type: "integer", minimum: 0 }
+        low: {
+          type: "integer",
+          minimum: 0
+        },
+        normal: {
+          type: "integer",
+          minimum: 0
+        },
+        high: {
+          type: "integer",
+          minimum: 0
+        },
+        critical: {
+          type: "integer",
+          minimum: 0
+        }
       },
       additionalProperties: false
     },
     rollup_by_kind: {
       type: "object",
       properties: {
-        output_quality: { type: "integer", minimum: 0 },
-        verification_gap: { type: "integer", minimum: 0 },
-        structural: { type: "integer", minimum: 0 },
-        risk: { type: "integer", minimum: 0 },
-        process: { type: "integer", minimum: 0 },
-        documentation: { type: "integer", minimum: 0 },
-        operations: { type: "integer", minimum: 0 }
+        output_quality: {
+          type: "integer",
+          minimum: 0
+        },
+        verification_gap: {
+          type: "integer",
+          minimum: 0
+        },
+        structural: {
+          type: "integer",
+          minimum: 0
+        },
+        risk: {
+          type: "integer",
+          minimum: 0
+        },
+        process: {
+          type: "integer",
+          minimum: 0
+        },
+        documentation: {
+          type: "integer",
+          minimum: 0
+        },
+        operations: {
+          type: "integer",
+          minimum: 0
+        }
       },
       additionalProperties: false
     },
@@ -9994,10 +10015,6 @@ var design_brief_schema_default = {
   type: "object",
   additionalProperties: false,
   required: [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "mission_id",
     "depth",
     "status",
@@ -10006,23 +10023,6 @@ var design_brief_schema_default = {
     "verification_strategy"
   ],
   properties: {
-    version: {
-      type: "string",
-      const: "1.0"
-    },
-    artifact_type: {
-      type: "string",
-      const: "design_brief"
-    },
-    artifact_id: {
-      type: "string",
-      description: "e.g., design-brief-mission-20260407-x7Kq9mPv"
-    },
-    producer_type: {
-      type: "string",
-      const: "orchestration-authority",
-      description: "Always orchestration-authority for design briefs"
-    },
     mission_id: {
       type: "string",
       pattern: "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$",
@@ -10030,11 +10030,19 @@ var design_brief_schema_default = {
     },
     depth: {
       type: "string",
-      enum: ["lightweight", "standard", "full_depth"]
+      enum: [
+        "lightweight",
+        "standard",
+        "full_depth"
+      ]
     },
     status: {
       type: "string",
-      enum: ["draft", "reviewing", "approved"]
+      enum: [
+        "draft",
+        "reviewing",
+        "approved"
+      ]
     },
     chosen_approach: {
       type: "string",
@@ -10043,7 +10051,9 @@ var design_brief_schema_default = {
     },
     non_goals: {
       type: "array",
-      items: { type: "string" },
+      items: {
+        type: "string"
+      },
       minItems: 1,
       description: "What this mission explicitly will not do"
     },
@@ -10056,11 +10066,18 @@ var design_brief_schema_default = {
       type: "array",
       items: {
         type: "object",
-        required: ["approach", "rejected_reason"],
+        required: [
+          "approach",
+          "rejected_reason"
+        ],
         additionalProperties: false,
         properties: {
-          approach: { type: "string" },
-          rejected_reason: { type: "string" }
+          approach: {
+            type: "string"
+          },
+          rejected_reason: {
+            type: "string"
+          }
         }
       },
       description: "full_depth only. Other approaches and why they were rejected."
@@ -10069,14 +10086,23 @@ var design_brief_schema_default = {
       type: "array",
       items: {
         type: "object",
-        required: ["decision", "rationale"],
+        required: [
+          "decision",
+          "rationale"
+        ],
         additionalProperties: false,
         properties: {
-          decision: { type: "string" },
-          rationale: { type: "string" },
+          decision: {
+            type: "string"
+          },
+          rationale: {
+            type: "string"
+          },
           constraints: {
             type: "array",
-            items: { type: "string" }
+            items: {
+              type: "string"
+            }
           }
         }
       },
@@ -10086,28 +10112,42 @@ var design_brief_schema_default = {
       type: "array",
       items: {
         type: "object",
-        required: ["description", "mitigation"],
+        required: [
+          "description",
+          "mitigation"
+        ],
         additionalProperties: false,
         properties: {
-          description: { type: "string" },
-          mitigation: { type: "string" }
+          description: {
+            type: "string"
+          },
+          mitigation: {
+            type: "string"
+          }
         }
       },
       description: "standard and full_depth. Identified risks with mitigation plans."
     },
     preserve_list: {
       type: "array",
-      items: { type: "string" },
+      items: {
+        type: "string"
+      },
       description: "standard and full_depth. Existing behavior/files that must not change."
     },
     unresolved_assumptions: {
       type: "array",
-      items: { type: "string" },
+      items: {
+        type: "string"
+      },
       description: "full_depth only. Assumptions not yet validated."
     },
     design_review: {
       type: "object",
-      required: ["reviewer_type", "summary"],
+      required: [
+        "reviewer_type",
+        "summary"
+      ],
       additionalProperties: false,
       properties: {
         reviewer_type: {
@@ -10120,25 +10160,40 @@ var design_brief_schema_default = {
         },
         additions: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string"
+          },
           description: "Items added or modified by the reviewer"
         }
       }
     },
     vote_round_ref: {
-      type: ["string", "null"],
+      type: [
+        "string",
+        "null"
+      ],
       description: "Path to vote round artifact, or null if no vote"
     },
     rejection_history: {
       type: "array",
       items: {
         type: "object",
-        required: ["reason", "revision_summary", "rejected_at"],
+        required: [
+          "reason",
+          "revision_summary",
+          "rejected_at"
+        ],
         additionalProperties: false,
         properties: {
-          reason: { type: "string" },
-          revision_summary: { type: "string" },
-          rejected_at: { type: "string" }
+          reason: {
+            type: "string"
+          },
+          revision_summary: {
+            type: "string"
+          },
+          rejected_at: {
+            type: "string"
+          }
         }
       },
       description: "Record of user rejections and subsequent revisions"
@@ -10151,7 +10206,10 @@ var design_brief_schema_default = {
       $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     },
     approved_at: {
-      type: ["string", "null"],
+      type: [
+        "string",
+        "null"
+      ],
       description: "ISO 8601 timestamp when user approved, or null"
     }
   }
@@ -10165,29 +10223,85 @@ var evidence_schema_default = {
   description: "Evidence file produced by an agent. Role-based required fields ensure each agent type provides appropriate detail.",
   type: "object",
   properties: {
-    version: { const: "1.0" },
-    agent: { type: "string", minLength: 1 },
-    task_id: { type: "string", minLength: 1 },
-    role: { type: "string", enum: ["implementer", "reviewer", "tester", "authority"] },
-    summary: { type: "string", minLength: 1 },
-    created_at: { $ref: "_defs.schema.json#/$defs/isoUtcTimestamp" },
-    updated_at: { $ref: "_defs.schema.json#/$defs/isoUtcTimestamp" },
-    files_changed: { type: "array", items: { type: "string" } },
-    commit: { type: "string" },
-    verdict: { type: "string", enum: ["approved", "changes_requested", "blocked", "pass", "iterate", "escalate"] },
-    concerns: { type: "array", items: { type: "string" } },
-    blocking: { type: "boolean" },
-    rationale: { type: "string", minLength: 1 },
+    agent: {
+      type: "string",
+      minLength: 1
+    },
+    task_id: {
+      type: "string",
+      minLength: 1
+    },
+    role: {
+      type: "string",
+      enum: [
+        "implementer",
+        "reviewer",
+        "tester",
+        "authority"
+      ]
+    },
+    summary: {
+      type: "string",
+      minLength: 1
+    },
+    created_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
+    },
+    updated_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
+    },
+    artifact_refs: {
+      type: "array",
+      items: {
+        type: "string"
+      }
+    },
+    revision_ref: {
+      type: "string"
+    },
+    verdict: {
+      type: "string",
+      enum: [
+        "approved",
+        "changes_requested",
+        "blocked",
+        "pass",
+        "iterate",
+        "escalate"
+      ]
+    },
+    concerns: {
+      type: "array",
+      items: {
+        type: "string"
+      }
+    },
+    blocking: {
+      type: "boolean"
+    },
+    rationale: {
+      type: "string",
+      minLength: 1
+    },
     criteria_results: {
       type: "array",
       items: {
         type: "object",
         properties: {
-          criterion: { type: "string" },
-          passed: { type: "boolean" },
-          details: { type: "string" }
+          criterion: {
+            type: "string"
+          },
+          passed: {
+            type: "boolean"
+          },
+          details: {
+            type: "string"
+          }
         },
-        required: ["criterion", "passed"]
+        required: [
+          "criterion",
+          "passed"
+        ]
       }
     },
     rubric_scores: {
@@ -10195,32 +10309,91 @@ var evidence_schema_default = {
       items: {
         type: "object",
         properties: {
-          dimension: { type: "string" },
-          score: { type: "number", minimum: 1, maximum: 5 },
-          rationale: { type: "string" }
+          dimension: {
+            type: "string"
+          },
+          score: {
+            type: "number",
+            minimum: 1,
+            maximum: 5
+          },
+          rationale: {
+            type: "string"
+          }
         },
-        required: ["dimension", "score"]
+        required: [
+          "dimension",
+          "score"
+        ]
       }
     }
   },
-  required: ["version", "agent", "task_id", "role", "summary"],
+  required: [
+    "agent",
+    "task_id",
+    "role",
+    "summary"
+  ],
   additionalProperties: true,
   allOf: [
     {
-      if: { properties: { role: { const: "implementer" } } },
-      then: { required: ["files_changed"] }
+      if: {
+        properties: {
+          role: {
+            const: "implementer"
+          }
+        }
+      },
+      then: {
+        required: [
+          "artifact_refs"
+        ]
+      }
     },
     {
-      if: { properties: { role: { const: "reviewer" } } },
-      then: { required: ["verdict", "concerns"] }
+      if: {
+        properties: {
+          role: {
+            const: "reviewer"
+          }
+        }
+      },
+      then: {
+        required: [
+          "verdict",
+          "concerns"
+        ]
+      }
     },
     {
-      if: { properties: { role: { const: "tester" } } },
-      then: { required: ["verdict", "criteria_results"] }
+      if: {
+        properties: {
+          role: {
+            const: "tester"
+          }
+        }
+      },
+      then: {
+        required: [
+          "verdict",
+          "criteria_results"
+        ]
+      }
     },
     {
-      if: { properties: { role: { const: "authority" } } },
-      then: { required: ["verdict", "rationale"] }
+      if: {
+        properties: {
+          role: {
+            const: "authority"
+          }
+        }
+      },
+      then: {
+        required: [
+          "verdict",
+          "rationale"
+        ]
+      }
     }
   ]
 };
@@ -10232,10 +10405,6 @@ var gap_assessment_schema_default = {
   type: "object",
   additionalProperties: false,
   required: [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "scope_in_summary",
     "scope_out_summary",
     "fully_delivered",
@@ -10246,24 +10415,6 @@ var gap_assessment_schema_default = {
     "recommended_followups"
   ],
   properties: {
-    version: {
-      type: "string",
-      const: "1.0"
-    },
-    artifact_type: {
-      type: "string",
-      const: "gap_assessment"
-    },
-    artifact_id: {
-      type: "string"
-    },
-    producer_type: {
-      type: "string",
-      enum: [
-        "product-authority",
-        "orchestration-authority"
-      ]
-    },
     scope_in_summary: {
       type: "string",
       minLength: 1
@@ -10325,30 +10476,10 @@ var health_check_schema_default = {
   type: "object",
   additionalProperties: false,
   required: [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "signals",
     "any_triggered"
   ],
   properties: {
-    version: {
-      type: "string",
-      const: "1.0"
-    },
-    artifact_type: {
-      type: "string",
-      const: "health_check"
-    },
-    artifact_id: {
-      type: "string",
-      minLength: 1
-    },
-    producer_type: {
-      type: "string",
-      const: "orchestration-authority"
-    },
     signals: {
       type: "array",
       minItems: 8,
@@ -10356,7 +10487,12 @@ var health_check_schema_default = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["name", "value", "threshold", "triggered"],
+        required: [
+          "name",
+          "value",
+          "threshold",
+          "triggered"
+        ],
         properties: {
           name: {
             type: "string",
@@ -10424,33 +10560,59 @@ var lock_manifest_schema_default = {
   title: "LockManifest",
   type: "object",
   additionalProperties: false,
-  required: ["version", "locks"],
+  required: [
+    "locks"
+  ],
   properties: {
-    version: { type: "string", const: "1.0" },
     locks: {
       type: "array",
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["lock_type", "task_id", "session_id", "targets", "status", "acquired_at"],
+        required: [
+          "lock_type",
+          "task_id",
+          "session_id",
+          "targets",
+          "status",
+          "acquired_at"
+        ],
         properties: {
           lock_type: {
             type: "string",
-            enum: ["path", "interface", "resource", "integration"]
+            enum: [
+              "path",
+              "interface",
+              "resource",
+              "integration"
+            ]
           },
-          task_id: { type: "string" },
-          session_id: { type: "string" },
+          task_id: {
+            type: "string"
+          },
+          session_id: {
+            type: "string"
+          },
           targets: {
             type: "array",
-            items: { type: "string" },
+            items: {
+              type: "string"
+            },
             minItems: 1
           },
           status: {
             type: "string",
-            enum: ["held", "waiting"]
+            enum: [
+              "held",
+              "waiting"
+            ]
           },
-          acquired_at: { $ref: "_defs.schema.json#/$defs/isoUtcTimestamp" },
-          wait_start: { $ref: "_defs.schema.json#/$defs/isoUtcTimestamp" }
+          acquired_at: {
+            $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
+          },
+          wait_start: {
+            $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
+          }
         }
       }
     }
@@ -10463,10 +10625,6 @@ var mission_spec_schema_default = {
   title: "MissionSpec",
   type: "object",
   required: [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "mission_id",
     "mission",
     "done_when",
@@ -10474,21 +10632,6 @@ var mission_spec_schema_default = {
     "acceptance_criteria"
   ],
   properties: {
-    version: {
-      type: "string",
-      const: "1.0"
-    },
-    artifact_type: {
-      type: "string",
-      const: "mission_spec"
-    },
-    artifact_id: {
-      type: "string",
-      minLength: 1
-    },
-    producer_type: {
-      $ref: "_defs.schema.json#/$defs/agentType"
-    },
     mission_id: {
       type: "string",
       pattern: "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$"
@@ -10501,14 +10644,23 @@ var mission_spec_schema_default = {
     },
     source: {
       type: "string",
-      enum: ["full_intake", "quick_intake", "external", "existing_project"]
+      enum: [
+        "full_intake",
+        "quick_intake",
+        "external",
+        "existing_project"
+      ]
     },
     domain_profile: {
       type: "string"
     },
     mode: {
       type: "string",
-      enum: ["lightweight", "standard", "full_depth"]
+      enum: [
+        "lightweight",
+        "standard",
+        "full_depth"
+      ]
     },
     mission: {
       type: "string",
@@ -10523,48 +10675,70 @@ var mission_spec_schema_default = {
     },
     scope: {
       type: "object",
-      required: ["in", "out"],
+      required: [
+        "in",
+        "out"
+      ],
       properties: {
         in: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string"
+          },
           minItems: 1
         },
         out: {
           type: "array",
-          items: { type: "string" }
+          items: {
+            type: "string"
+          }
         }
       },
       additionalProperties: false
     },
     acceptance_criteria: {
       type: "array",
-      items: { type: "string", minLength: 1 },
+      items: {
+        type: "string",
+        minLength: 1
+      },
       minItems: 1
     },
     constraints: {
       type: "array",
-      items: { type: "string" }
+      items: {
+        type: "string"
+      }
     },
     affected_surfaces: {
       type: "array",
-      items: { type: "string" }
+      items: {
+        type: "string"
+      }
     },
     risk_notes: {
       type: "array",
-      items: { type: "string" }
+      items: {
+        type: "string"
+      }
     },
     assumptions: {
       type: "array",
-      items: { type: "string" }
+      items: {
+        type: "string"
+      }
     },
     ambiguities: {
       type: "array",
-      items: { type: "string" }
+      items: {
+        type: "string"
+      }
     },
     completeness_checklist: {
       type: "object",
-      additionalProperties: { type: "boolean" }
+      additionalProperties: {
+        type: "boolean"
+      }
     }
   },
   additionalProperties: false
@@ -10577,33 +10751,11 @@ var phase_review_schema_default = {
   type: "object",
   additionalProperties: false,
   required: [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "mission_phase",
     "status",
     "summary"
   ],
   properties: {
-    version: {
-      type: "string",
-      const: "1.0"
-    },
-    artifact_type: {
-      type: "string",
-      const: "phase_review"
-    },
-    artifact_id: {
-      type: "string"
-    },
-    producer_type: {
-      type: "string",
-      enum: [
-        "orchestration-authority",
-        "product-authority"
-      ]
-    },
     mission_phase: {
       type: "string",
       enum: [
@@ -10670,12 +10822,18 @@ var phase_review_schema_default = {
   },
   if: {
     properties: {
-      status: { const: "ready_to_exit" }
+      status: {
+        const: "ready_to_exit"
+      }
     },
-    required: ["status"]
+    required: [
+      "status"
+    ]
   },
   then: {
-    required: ["next_phase"]
+    required: [
+      "next_phase"
+    ]
   }
 };
 
@@ -10687,14 +10845,9 @@ var policy_override_schema_default = {
   type: "object",
   additionalProperties: false,
   required: [
-    "version",
     "overrides"
   ],
   properties: {
-    version: {
-      type: "string",
-      const: "1.0"
-    },
     overrides: {
       type: "array",
       items: {
@@ -10716,7 +10869,10 @@ var policy_override_schema_default = {
           },
           action: {
             type: "string",
-            enum: ["disable", "modify"],
+            enum: [
+              "disable",
+              "modify"
+            ],
             description: "disable = rule is skipped at runtime; modify = rule behavior is changed"
           },
           modification: {
@@ -10762,44 +10918,122 @@ var record_schema_default = {
   description: "Single file accumulating all pipeline step outputs for a task. Sections are added incrementally as the pipeline progresses.",
   type: "object",
   properties: {
-    version: { const: "1.0" },
-    task_id: { type: "string", minLength: 1 },
-    created_at: { $ref: "_defs.schema.json#/$defs/isoUtcTimestamp" },
-    updated_at: { $ref: "_defs.schema.json#/$defs/isoUtcTimestamp" },
+    task_id: {
+      type: "string",
+      minLength: 1
+    },
+    created_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
+    },
+    updated_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
+    },
     implementation_contract: {
       type: "object",
       properties: {
-        worker: { $ref: "_defs.schema.json#/$defs/agentType" },
-        planned_actions: { type: "array", items: { type: "string" }, minItems: 1 },
-        edge_cases: { type: "array", items: { type: "string" } },
-        non_goals: { type: "array", items: { type: "string" } },
-        demo_steps: { type: "array", items: { type: "string" } },
-        status: { type: "string", enum: ["draft", "in_review", "approved", "revision_requested"] }
+        worker: {
+          type: "string",
+          minLength: 1
+        },
+        planned_actions: {
+          type: "array",
+          items: {
+            type: "string"
+          },
+          minItems: 1
+        },
+        edge_cases: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        non_goals: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        demo_steps: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        status: {
+          type: "string",
+          enum: [
+            "draft",
+            "in_review",
+            "approved",
+            "revision_requested"
+          ]
+        }
       },
-      required: ["planned_actions", "non_goals", "status"],
+      required: [
+        "planned_actions",
+        "non_goals",
+        "status"
+      ],
       additionalProperties: true
     },
     self_check: {
       type: "object",
       properties: {
-        confidence: { type: "integer", minimum: 1, maximum: 5 },
-        known_risks: { type: "array", items: { type: "string" } },
-        untested_paths: { type: "array", items: { type: "string" } },
-        summary: { type: "string", minLength: 1 }
+        confidence: {
+          type: "integer",
+          minimum: 1,
+          maximum: 5
+        },
+        known_risks: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        unverified_cases: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        summary: {
+          type: "string",
+          minLength: 1
+        }
       },
-      required: ["confidence", "summary", "known_risks", "untested_paths"],
+      required: [
+        "confidence",
+        "summary",
+        "known_risks",
+        "unverified_cases"
+      ],
       additionalProperties: true
     },
     gate_result: {
       type: "object",
       properties: {
-        verdict: { type: "string", enum: ["pass", "fail", "block", "error"] },
+        verdict: {
+          type: "string",
+          enum: [
+            "pass",
+            "fail",
+            "block",
+            "error"
+          ]
+        },
         tier_results: {
           type: "object",
           properties: {
-            tier_0: { $ref: "#/$defs/tierResult" },
-            tier_1: { $ref: "#/$defs/tierResult" },
-            tier_2: { $ref: "#/$defs/tierResult" }
+            tier_0: {
+              $ref: "#/$defs/tierResult"
+            },
+            tier_1: {
+              $ref: "#/$defs/tierResult"
+            },
+            tier_2: {
+              $ref: "#/$defs/tierResult"
+            }
           }
         },
         rubric_scores: {
@@ -10807,17 +11041,40 @@ var record_schema_default = {
           items: {
             type: "object",
             properties: {
-              dimension: { type: "string" },
-              score: { type: "number", minimum: 1, maximum: 5 },
-              threshold: { type: "number", minimum: 1, maximum: 5 },
-              passed: { type: "boolean" }
+              dimension: {
+                type: "string"
+              },
+              score: {
+                type: "number",
+                minimum: 1,
+                maximum: 5
+              },
+              threshold: {
+                type: "number",
+                minimum: 1,
+                maximum: 5
+              },
+              passed: {
+                type: "boolean"
+              }
             },
-            required: ["dimension", "score", "passed"]
+            required: [
+              "dimension",
+              "score",
+              "passed"
+            ]
           }
         },
-        blocking_dimensions: { type: "array", items: { type: "string" } }
+        blocking_dimensions: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        }
       },
-      required: ["verdict"],
+      required: [
+        "verdict"
+      ],
       additionalProperties: true
     },
     challenge_review: {
@@ -10827,82 +11084,210 @@ var record_schema_default = {
           type: "array",
           items: {
             oneOf: [
-              { type: "string" },
+              {
+                type: "string"
+              },
               {
                 type: "object",
                 properties: {
-                  severity: { type: "string", enum: ["blocking", "non_blocking"] },
-                  description: { type: "string", minLength: 1 }
+                  severity: {
+                    type: "string",
+                    enum: [
+                      "blocking",
+                      "non_blocking"
+                    ]
+                  },
+                  description: {
+                    type: "string",
+                    minLength: 1
+                  }
                 },
-                required: ["severity", "description"]
+                required: [
+                  "severity",
+                  "description"
+                ]
               }
             ]
           }
         },
-        blocking: { type: "boolean" },
-        summary: { type: "string" }
+        blocking: {
+          type: "boolean"
+        },
+        summary: {
+          type: "string"
+        }
       },
-      required: ["concerns", "blocking"],
+      required: [
+        "concerns",
+        "blocking"
+      ],
       additionalProperties: true
     },
     verdict: {
       type: "object",
       properties: {
-        verdict: { type: "string", enum: ["pass", "iterate", "escalate"] },
-        rationale: { type: "string", minLength: 1 },
-        rewind_target: { type: "string", enum: ["ready", "implementing", "reviewed"] }
+        verdict: {
+          type: "string",
+          enum: [
+            "pass",
+            "iterate",
+            "escalate"
+          ]
+        },
+        rationale: {
+          type: "string",
+          minLength: 1
+        },
+        rewind_target: {
+          type: "string",
+          enum: [
+            "ready",
+            "implementing",
+            "reviewed"
+          ]
+        }
       },
-      required: ["verdict", "rationale"],
+      required: [
+        "verdict",
+        "rationale"
+      ],
       additionalProperties: true
     },
     closure: {
       type: "object",
       properties: {
-        task_summary: { type: "string" },
-        change_summary: { type: "string", minLength: 1 },
+        task_summary: {
+          type: "string"
+        },
+        change_summary: {
+          type: "string",
+          minLength: 1
+        },
         reviews: {
           type: "array",
           items: {
             type: "object",
             properties: {
-              reviewer_type: { type: "string" },
-              status: { type: "string", enum: ["approved", "changes_requested", "blocked"] },
-              summary: { type: "string" }
+              reviewer_type: {
+                type: "string"
+              },
+              status: {
+                type: "string",
+                enum: [
+                  "approved",
+                  "changes_requested",
+                  "blocked"
+                ]
+              },
+              summary: {
+                type: "string"
+              }
             },
-            required: ["reviewer_type", "status"]
+            required: [
+              "reviewer_type",
+              "status"
+            ]
           }
         },
-        open_risks: { type: "array", items: { type: "string" } },
-        debt_items: { type: "array", items: { type: "string" } }
+        open_risks: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        debt_items: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        }
       },
-      required: ["change_summary", "reviews", "open_risks", "debt_items"],
+      required: [
+        "change_summary",
+        "reviews",
+        "open_risks",
+        "debt_items"
+      ],
       additionalProperties: true
     },
     retrospective: {
       type: "object",
       properties: {
-        what_went_well: { type: "array", items: { type: "string" } },
-        what_broke: { type: "array", items: { type: "string" } },
-        what_was_surprising: { type: "array", items: { type: "string" } },
-        rule_candidates: { type: "array", items: { type: "string" } },
-        memory_candidates: { type: "array", items: { type: "string" } },
-        debt_candidates: { type: "array", items: { type: "string" } },
-        next_time_guidance: { type: "array", items: { type: "string" } }
+        what_went_well: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        what_broke: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        what_was_surprising: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        rule_candidates: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        memory_candidates: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        debt_candidates: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        },
+        next_time_guidance: {
+          type: "array",
+          items: {
+            type: "string"
+          }
+        }
       },
-      required: ["what_went_well", "what_broke"],
+      required: [
+        "what_went_well",
+        "what_broke"
+      ],
       additionalProperties: true
     }
   },
-  required: ["version", "task_id"],
+  required: [
+    "task_id"
+  ],
   additionalProperties: false,
   $defs: {
     tierResult: {
       type: "object",
       properties: {
-        status: { type: "string", enum: ["pass", "fail", "block", "error", "skipped"] },
-        details: { type: "string" }
+        status: {
+          type: "string",
+          enum: [
+            "pass",
+            "fail",
+            "block",
+            "error",
+            "skipped"
+          ]
+        },
+        details: {
+          type: "string"
+        }
       },
-      required: ["status"]
+      required: [
+        "status"
+      ]
     }
   }
 };
@@ -10914,10 +11299,6 @@ var recovery_packet_schema_default = {
   type: "object",
   additionalProperties: false,
   required: [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "recovery_id",
     "recovery_class",
     "focus_task_id",
@@ -10927,13 +11308,16 @@ var recovery_packet_schema_default = {
     "artifacts_missing"
   ],
   properties: {
-    version: { type: "string", const: "1.0" },
-    artifact_type: { type: "string", const: "recovery_packet" },
-    artifact_id: { type: "string" },
-    producer_type: { $ref: "_defs.schema.json#/$defs/agentType" },
-    created_at: { $ref: "_defs.schema.json#/$defs/isoUtcTimestamp" },
-    updated_at: { $ref: "_defs.schema.json#/$defs/isoUtcTimestamp" },
-    recovery_id: { type: "string", minLength: 1 },
+    created_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
+    },
+    updated_at: {
+      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
+    },
+    recovery_id: {
+      type: "string",
+      minLength: 1
+    },
     recovery_class: {
       type: "string",
       enum: [
@@ -10944,22 +11328,44 @@ var recovery_packet_schema_default = {
         "manual_repair_required"
       ]
     },
-    focus_task_id: { type: ["string", "null"] },
-    detected_problem: { type: "string", minLength: 1 },
-    recommended_action: { type: "string", minLength: 1 },
+    focus_task_id: {
+      type: [
+        "string",
+        "null"
+      ]
+    },
+    detected_problem: {
+      type: "string",
+      minLength: 1
+    },
+    recommended_action: {
+      type: "string",
+      minLength: 1
+    },
     artifacts_found: {
       type: "array",
-      items: { type: "string" }
+      items: {
+        type: "string"
+      }
     },
     artifacts_missing: {
       type: "array",
-      items: { type: "string" }
+      items: {
+        type: "string"
+      }
     },
     rewind_target: {
       type: "string",
-      enum: ["ready", "implementing", "reviewed", "integrated"]
+      enum: [
+        "ready",
+        "implementing",
+        "reviewed",
+        "integrated"
+      ]
     },
-    resolution: { type: "string" }
+    resolution: {
+      type: "string"
+    }
   }
 };
 
@@ -10970,26 +11376,12 @@ var rules_update_schema_default = {
   type: "object",
   additionalProperties: false,
   required: [
-    "version",
-    "artifact_type",
-    "artifact_id",
     "status",
     "reason",
     "evidence_refs",
     "applies_to"
   ],
   properties: {
-    version: {
-      type: "string",
-      const: "1.0"
-    },
-    artifact_type: {
-      type: "string",
-      const: "rules_update"
-    },
-    artifact_id: {
-      type: "string"
-    },
     producer_type: {
       type: "string",
       enum: [
@@ -11041,14 +11433,23 @@ var rules_update_schema_default = {
     {
       if: {
         properties: {
-          status: { const: "approved" }
+          status: {
+            const: "approved"
+          }
         },
-        required: ["status"]
+        required: [
+          "status"
+        ]
       },
       then: {
-        required: ["producer_type", "affected_rule_ids"],
+        required: [
+          "producer_type",
+          "affected_rule_ids"
+        ],
         properties: {
-          affected_rule_ids: { minItems: 1 }
+          affected_rule_ids: {
+            minItems: 1
+          }
         }
       }
     },
@@ -11056,13 +11457,19 @@ var rules_update_schema_default = {
       if: {
         not: {
           properties: {
-            status: { const: "none" }
+            status: {
+              const: "none"
+            }
           },
-          required: ["status"]
+          required: [
+            "status"
+          ]
         }
       },
       then: {
-        required: ["producer_type"]
+        required: [
+          "producer_type"
+        ]
       }
     }
   ]
@@ -11075,52 +11482,83 @@ var run_state_schema_default = {
   description: "Session state and checkpoint for the Geas orchestrator. Written by orchestration-authority, read by restore-context hook for session recovery.",
   type: "object",
   additionalProperties: false,
-  required: ["version", "status"],
+  required: [
+    "status"
+  ],
   properties: {
-    version: {
-      type: "string",
-      const: "1.0"
-    },
     status: {
       type: "string",
-      enum: ["initialized", "in_progress", "complete"],
+      enum: [
+        "initialized",
+        "in_progress",
+        "complete"
+      ],
       description: "Overall session status"
     },
     mission_id: {
-      type: ["string", "null"],
+      type: [
+        "string",
+        "null"
+      ],
       pattern: "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$",
       description: "Mission ID (e.g., 'mission-20260407-x7Kq9mPv') \u2014 used to locate spec and artifact files"
     },
     mission: {
-      type: ["string", "null"],
+      type: [
+        "string",
+        "null"
+      ],
       description: "Human-readable mission statement from current mission spec"
     },
     phase: {
-      type: ["string", "null"],
-      enum: ["specifying", "building", "polishing", "evolving", "complete", null],
+      type: [
+        "string",
+        "null"
+      ],
+      enum: [
+        "specifying",
+        "building",
+        "polishing",
+        "evolving",
+        "complete",
+        null
+      ],
       description: "Current phase within the mission"
     },
     current_task_id: {
-      type: ["string", "null"],
+      type: [
+        "string",
+        "null"
+      ],
       description: "ID of the task currently being executed"
     },
     completed_tasks: {
       type: "array",
-      items: { type: "string" },
+      items: {
+        type: "string"
+      },
       description: "IDs of tasks that have been resolved"
     },
     decisions: {
       type: "array",
-      items: { type: "string" },
+      items: {
+        type: "string"
+      },
       description: "IDs of DecisionRecords created during the session"
     },
     session_latest_path: {
-      type: ["string", "null"],
+      type: [
+        "string",
+        "null"
+      ],
       default: ".geas/state/session-latest.md",
       description: "Path to human-readable session summary for post-compact recovery"
     },
     recovery_class: {
-      type: ["string", "null"],
+      type: [
+        "string",
+        "null"
+      ],
       enum: [
         "post_compact_resume",
         "warm_session_resume",
@@ -11133,7 +11571,11 @@ var run_state_schema_default = {
     },
     scheduler_state: {
       type: "string",
-      enum: ["active", "idle", "paused"],
+      enum: [
+        "active",
+        "idle",
+        "paused"
+      ],
       default: "active",
       description: "Scheduler execution state (from doc 04)"
     },
@@ -11142,16 +11584,24 @@ var run_state_schema_default = {
       additionalProperties: false,
       properties: {
         pipeline_step: {
-          type: ["string", "null"],
+          type: [
+            "string",
+            "null"
+          ],
           description: "Current pipeline step name (e.g., 'specialist_review', 'evidence_gate')"
         },
         agent_in_flight: {
-          type: ["string", "null"],
+          type: [
+            "string",
+            "null"
+          ],
           description: "Agent currently spawned and executing"
         },
         pending_evidence: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string"
+          },
           description: "Evidence files expected from the current agent"
         },
         retry_count: {
@@ -11160,19 +11610,28 @@ var run_state_schema_default = {
           description: "Number of verify-fix iterations used for the current task"
         },
         parallel_batch: {
-          type: ["array", "null"],
-          items: { type: "string" },
+          type: [
+            "array",
+            "null"
+          ],
+          items: {
+            type: "string"
+          },
           description: "Task IDs being executed in the current parallel batch. Null when running sequentially."
         },
         completed_in_batch: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string"
+          },
           default: [],
           description: "Task IDs resolved within the current parallel batch."
         },
         remaining_steps: {
           type: "array",
-          items: { type: "string" },
+          items: {
+            type: "string"
+          },
           description: "Ordered list of pipeline steps still to complete. Pop from front after each step."
         },
         last_updated: {
@@ -11182,7 +11641,10 @@ var run_state_schema_default = {
         },
         checkpoint_phase: {
           type: "string",
-          enum: ["pending", "committed"],
+          enum: [
+            "pending",
+            "committed"
+          ],
           default: "committed",
           description: "Two-phase checkpoint state. 'pending' during write, 'committed' after."
         }
@@ -11206,10 +11668,6 @@ var task_contract_schema_default = {
   type: "object",
   additionalProperties: false,
   required: [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "task_id",
     "title",
     "goal",
@@ -11227,20 +11685,6 @@ var task_contract_schema_default = {
     "status"
   ],
   properties: {
-    version: {
-      type: "string",
-      const: "1.0"
-    },
-    artifact_type: {
-      type: "string",
-      const: "task_contract"
-    },
-    artifact_id: {
-      type: "string"
-    },
-    producer_type: {
-      $ref: "_defs.schema.json#/$defs/agentType"
-    },
     created_at: {
       $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     },
@@ -11259,19 +11703,40 @@ var task_contract_schema_default = {
     },
     task_kind: {
       type: "string",
-      enum: ["implementation", "documentation", "configuration", "design", "review", "analysis", "delivery"]
+      enum: [
+        "implementation",
+        "documentation",
+        "configuration",
+        "design",
+        "review",
+        "analysis",
+        "delivery"
+      ]
     },
     risk_level: {
       type: "string",
-      enum: ["low", "normal", "high", "critical"]
+      enum: [
+        "low",
+        "normal",
+        "high",
+        "critical"
+      ]
     },
     gate_profile: {
       type: "string",
-      enum: ["implementation_change", "artifact_only", "closure_ready"]
+      enum: [
+        "implementation_change",
+        "artifact_only",
+        "closure_ready"
+      ]
     },
     vote_round_policy: {
       type: "string",
-      enum: ["never", "auto", "always"]
+      enum: [
+        "never",
+        "auto",
+        "always"
+      ]
     },
     acceptance_criteria: {
       type: "array",
@@ -11295,7 +11760,10 @@ var task_contract_schema_default = {
           items: {
             type: "object",
             additionalProperties: false,
-            required: ["name", "threshold"],
+            required: [
+              "name",
+              "threshold"
+            ],
             properties: {
               name: {
                 type: "string",
@@ -11311,7 +11779,9 @@ var task_contract_schema_default = {
           minItems: 1
         }
       },
-      required: ["dimensions"],
+      required: [
+        "dimensions"
+      ],
       additionalProperties: false
     },
     retry_budget: {
@@ -11328,24 +11798,39 @@ var task_contract_schema_default = {
           }
         }
       },
-      required: ["surfaces"],
+      required: [
+        "surfaces"
+      ],
       additionalProperties: false
     },
     routing: {
       type: "object",
       properties: {
+        primary_worker_slot: {
+          $ref: "_defs.schema.json#/$defs/specialistSlot"
+        },
         primary_worker_type: {
-          $ref: "_defs.schema.json#/$defs/agentType"
+          $ref: "_defs.schema.json#/$defs/agentTypeId"
+        },
+        required_reviewer_slots: {
+          type: "array",
+          items: {
+            $ref: "_defs.schema.json#/$defs/anySlot"
+          },
+          minItems: 1
         },
         required_reviewer_types: {
           type: "array",
           items: {
-            $ref: "_defs.schema.json#/$defs/agentType"
+            $ref: "_defs.schema.json#/$defs/agentTypeId"
           },
           minItems: 1
         }
       },
-      required: ["primary_worker_type", "required_reviewer_types"],
+      required: [
+        "primary_worker_slot",
+        "required_reviewer_slots"
+      ],
       additionalProperties: false
     },
     base_snapshot: {
@@ -11384,10 +11869,6 @@ var vote_round_schema_default = {
   type: "object",
   additionalProperties: false,
   required: [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "round_type",
     "task_id",
     "participants",
@@ -11396,25 +11877,12 @@ var vote_round_schema_default = {
     "quorum_met"
   ],
   properties: {
-    version: {
-      type: "string",
-      const: "1.0"
-    },
-    artifact_type: {
-      type: "string",
-      const: "vote_round"
-    },
-    artifact_id: {
-      type: "string",
-      minLength: 1
-    },
-    producer_type: {
-      type: "string",
-      const: "orchestration-authority"
-    },
     round_type: {
       type: "string",
-      enum: ["proposal_round", "readiness_round"]
+      enum: [
+        "proposal_round",
+        "readiness_round"
+      ]
     },
     task_id: {
       type: "string",
@@ -11439,7 +11907,11 @@ var vote_round_schema_default = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["voter", "vote", "rationale"],
+        required: [
+          "voter",
+          "vote",
+          "rationale"
+        ],
         properties: {
           voter: {
             type: "string",
@@ -11447,7 +11919,13 @@ var vote_round_schema_default = {
           },
           vote: {
             type: "string",
-            enum: ["agree", "disagree", "ship", "iterate", "escalate"],
+            enum: [
+              "agree",
+              "disagree",
+              "ship",
+              "iterate",
+              "escalate"
+            ],
             description: "proposal_round: agree|disagree. readiness_round: ship|iterate|escalate."
           },
           rationale: {
@@ -11456,7 +11934,11 @@ var vote_round_schema_default = {
           },
           severity: {
             type: "string",
-            enum: ["minor", "major", "critical"],
+            enum: [
+              "minor",
+              "major",
+              "critical"
+            ],
             description: "Required when vote is disagree, iterate, or escalate"
           }
         }
@@ -11464,7 +11946,14 @@ var vote_round_schema_default = {
     },
     result: {
       type: "string",
-      enum: ["agree", "disagree", "ship", "iterate", "escalate", "inconclusive"],
+      enum: [
+        "agree",
+        "disagree",
+        "ship",
+        "iterate",
+        "escalate",
+        "inconclusive"
+      ],
       description: "Outcome. 'inconclusive' if quorum was not met."
     },
     quorum_met: {
@@ -12261,10 +12750,15 @@ var MISSION_SUBDIRS = [
 ];
 function registerMissionCommands(program2) {
   const cmd = program2.command("mission").description("Mission CRUD (spec, design-brief, directory)");
-  cmd.command("create").description("Create a mission directory with full subdirectory structure. Auto-generates ID if --id is omitted.").option("--id <mission-id>", "Mission identifier (auto-generated if omitted)").action((opts) => {
+  cmd.command("create [title]").description("Create a mission directory (and spec.json when TITLE + --done-when given). Auto-generates ID if --id is omitted.").option("--id <mission-id>", "Mission identifier (auto-generated if omitted)").option("--done-when <description>", "Done-when description (requires TITLE; writes spec.json)").option("--set <key=value...>", "Set additional spec fields", collectSet, []).option("--dry-run", "Validate input without writing files").action((title, opts) => {
     try {
-      const geasDir2 = resolveGeasDir(getCwd(cmd));
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
       const missionsDir = path5.resolve(geasDir2, "missions");
+      if (opts.doneWhen && !title) {
+        fileError("", "create", "--done-when requires a TITLE positional argument.");
+        return;
+      }
       let missionId;
       if (opts.id) {
         validateIdentifier(opts.id, "mission ID");
@@ -12286,15 +12780,50 @@ function registerMissionCommands(program2) {
         fileError(normalized, "create", `Mission directory already exists: ${normalized}`);
         return;
       }
+      if (opts.dryRun) {
+        const dryData = { mission_id: missionId };
+        if (title && opts.doneWhen) {
+          dryData.mission = title;
+          dryData.done_when = opts.doneWhen;
+        }
+        dryRunGuard(true, dryData, "mission-create");
+        return;
+      }
       ensureDir(missionDir);
       for (const sub of MISSION_SUBDIRS) {
         ensureDir(path5.resolve(missionDir, sub));
       }
-      success({
-        created: normalized,
-        mission_id: missionId,
-        subdirectories: MISSION_SUBDIRS
-      });
+      if (title && opts.doneWhen) {
+        const specData = {
+          mission_id: missionId,
+          mission: title,
+          done_when: opts.doneWhen
+        };
+        if (opts.set.length > 0) {
+          const overrides = parseSetFlags(opts.set);
+          deepMergeSetOverrides(specData, overrides);
+        }
+        injectEnvelope("mission_spec", specData, { mission_id: missionId });
+        const result = validate("mission-spec", specData);
+        if (!result.valid) {
+          validationError("mission-spec", result.errors);
+          return;
+        }
+        const specPath = path5.resolve(missionDir, "spec.json");
+        writeJsonFile(specPath, specData, { cwd });
+        success({
+          created: normalized,
+          mission_id: missionId,
+          subdirectories: MISSION_SUBDIRS,
+          spec_written: normalizePath(specPath)
+        });
+      } else {
+        success({
+          created: normalized,
+          mission_id: missionId,
+          subdirectories: MISSION_SUBDIRS
+        });
+      }
     } catch (err) {
       const nodeErr = err;
       if (nodeErr.code === "FILE_ERROR") {
@@ -12451,6 +12980,9 @@ function registerMissionCommands(program2) {
       }
     }
   });
+}
+function collectSet(value, previous) {
+  return previous.concat([value]);
 }
 
 // src/commands/task.ts
@@ -13233,7 +13765,7 @@ function registerTaskCommands(program2) {
     }
   });
   const record = cmd.command("record").description("Task execution record (record.json) management");
-  record.command("add").description("Add or overwrite a section in record.json (JSON via stdin and/or --set)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--task <task-id>", "Task identifier").requiredOption("--section <name>", `Section name (${VALID_SECTIONS.join(", ")})`).option("--set <key=value...>", "Set individual fields", collectSet, []).option("--dry-run", "Validate input without writing files").action((opts) => {
+  record.command("add").description("Add or overwrite a section in record.json (JSON via stdin and/or --set)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--task <task-id>", "Task identifier").requiredOption("--section <name>", `Section name (${VALID_SECTIONS.join(", ")})`).option("--set <key=value...>", "Set individual fields", collectSet2, []).option("--dry-run", "Validate input without writing files").action((opts) => {
     try {
       const cwd = getCwd(cmd);
       const geasDir2 = resolveGeasDir(cwd);
@@ -13315,6 +13847,131 @@ function registerTaskCommands(program2) {
       const nodeErr = err;
       if (nodeErr.code === "FILE_ERROR") {
         fileError("", "record add", nodeErr.message);
+      } else {
+        throw err;
+      }
+    }
+  });
+  record.command("self-check <task> <summary>").description("Write self_check section: geas task record self-check TASK SUMMARY --confidence N").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--confidence <n>", "Confidence level (1-5)").option("--set <key=value...>", "Set additional fields", collectSet2, []).option("--dry-run", "Validate input without writing files").action((task, summary, opts) => {
+    try {
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
+      const missionId = resolveMissionId(geasDir2, opts.mission);
+      validateIdentifier(missionId, "mission ID");
+      validateIdentifier(task, "task ID");
+      const missionDir = resolveMissionDir(geasDir2, missionId);
+      const confidence = parseInt(opts.confidence, 10);
+      if (isNaN(confidence) || confidence < 1 || confidence > 5) {
+        validationError("self_check", ["--confidence must be an integer between 1 and 5"]);
+        return;
+      }
+      const taskDir = path8.resolve(missionDir, "tasks", task);
+      if (!fs9.existsSync(taskDir)) {
+        fileError(normalizePath(taskDir), "record self-check", `Task directory not found: ${task}`);
+        return;
+      }
+      let sectionData = {
+        summary,
+        confidence
+      };
+      if (opts.set.length > 0) {
+        const overrides = parseSetFlags(opts.set);
+        deepMergeSetOverrides(sectionData, overrides);
+      }
+      const recordPath = path8.resolve(taskDir, "record.json");
+      let recordData = readJsonFile(recordPath);
+      if (!recordData) {
+        recordData = { version: "1.0", task_id: task };
+      }
+      const existing = recordData.self_check;
+      if (existing && typeof existing === "object" && !Array.isArray(existing)) {
+        recordData.self_check = { ...existing, ...sectionData };
+      } else {
+        recordData.self_check = sectionData;
+      }
+      if (opts.dryRun) {
+        dryRunGuard(true, recordData, "record");
+        return;
+      }
+      const result = validate("record", recordData);
+      if (!result.valid) {
+        validationError("record", result.errors);
+        return;
+      }
+      writeJsonFile(recordPath, recordData, { cwd });
+      success({
+        written: normalizePath(recordPath),
+        task_id: task,
+        mission_id: missionId,
+        section: "self_check",
+        action: "added"
+      });
+    } catch (err) {
+      const nodeErr = err;
+      if (nodeErr.code === "FILE_ERROR") {
+        fileError("", "record self-check", nodeErr.message);
+      } else {
+        throw err;
+      }
+    }
+  });
+  record.command("gate <task> <verdict>").description("Write gate_result section: geas task record gate TASK VERDICT (pass|fail|block|error)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").option("--set <key=value...>", "Set additional fields", collectSet2, []).option("--dry-run", "Validate input without writing files").action((task, verdict, opts) => {
+    try {
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
+      const missionId = resolveMissionId(geasDir2, opts.mission);
+      validateIdentifier(missionId, "mission ID");
+      validateIdentifier(task, "task ID");
+      const missionDir = resolveMissionDir(geasDir2, missionId);
+      const validVerdicts = ["pass", "fail", "block", "error"];
+      if (!validVerdicts.includes(verdict)) {
+        validationError("gate_result", [`Invalid verdict '${verdict}'. Must be one of: ${validVerdicts.join(", ")}`]);
+        return;
+      }
+      const taskDir = path8.resolve(missionDir, "tasks", task);
+      if (!fs9.existsSync(taskDir)) {
+        fileError(normalizePath(taskDir), "record gate", `Task directory not found: ${task}`);
+        return;
+      }
+      let sectionData = {
+        verdict
+      };
+      if (opts.set.length > 0) {
+        const overrides = parseSetFlags(opts.set);
+        deepMergeSetOverrides(sectionData, overrides);
+      }
+      const recordPath = path8.resolve(taskDir, "record.json");
+      let recordData = readJsonFile(recordPath);
+      if (!recordData) {
+        recordData = { version: "1.0", task_id: task };
+      }
+      const existing = recordData.gate_result;
+      if (existing && typeof existing === "object" && !Array.isArray(existing)) {
+        recordData.gate_result = { ...existing, ...sectionData };
+      } else {
+        recordData.gate_result = sectionData;
+      }
+      if (opts.dryRun) {
+        dryRunGuard(true, recordData, "record");
+        return;
+      }
+      const result = validate("record", recordData);
+      if (!result.valid) {
+        validationError("record", result.errors);
+        return;
+      }
+      writeJsonFile(recordPath, recordData, { cwd });
+      success({
+        written: normalizePath(recordPath),
+        task_id: task,
+        mission_id: missionId,
+        section: "gate_result",
+        action: "added"
+      });
+    } catch (err) {
+      const nodeErr = err;
+      if (nodeErr.code === "FILE_ERROR") {
+        fileError("", "record gate", nodeErr.message);
       } else {
         throw err;
       }
@@ -14117,7 +14774,7 @@ function registerTaskCommands(program2) {
     }
   });
 }
-function collectSet(value, previous) {
+function collectSet2(value, previous) {
   return previous.concat([value]);
 }
 
@@ -14136,105 +14793,142 @@ function resolveMissionId2(geasDir2, missionOpt) {
   throw err;
 }
 var SAFE_AGENT_RE = /^[a-zA-Z0-9_-]+$/;
-function registerEvidenceCommands(program2) {
-  const cmd = program2.command("evidence").description("Role-based evidence file management");
-  cmd.command("add").description("Create or overwrite a role-based evidence file (JSON via stdin and/or --set)").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").option("--task <tid>", "Task identifier (use --phase for phase-level evidence)").option("--phase <phase>", "Phase name for mission-level evidence (polishing, evolving)").requiredOption("--agent <name>", "Agent name (used as filename)").requiredOption("--role <role>", "Agent role (implementer, reviewer, tester, authority)").option("--set <key=value...>", "Set individual fields", collectSet2, []).option("--dry-run", "Validate input without writing files").action((opts) => {
+function evidenceWriteHandler(parentCmd, opts) {
+  try {
+    const cwd = getCwd(parentCmd);
+    const geasDir2 = resolveGeasDir(cwd);
+    const missionId = resolveMissionId2(geasDir2, opts.mission);
+    validateIdentifier(missionId, "mission ID");
+    if (!opts.task && !opts.phase) {
+      fileError("", "evidence add", "Either --task or --phase is required.");
+      return;
+    }
+    if (opts.task && opts.phase) {
+      fileError("", "evidence add", "Use --task or --phase, not both.");
+      return;
+    }
+    if (!opts.role) {
+      fileError("", "evidence add", "Role is required.");
+      return;
+    }
+    if (!opts.agent) {
+      fileError("", "evidence add", "Agent name is required.");
+      return;
+    }
+    if (opts.task) validateIdentifier(opts.task, "task ID");
+    if (!SAFE_AGENT_RE.test(opts.agent)) {
+      fileError(opts.agent, "validate", `Invalid agent name: "${opts.agent}". Only alphanumeric, underscore, and hyphen are allowed.`);
+      return;
+    }
+    const agentName = opts.agent;
+    let evidenceData;
     try {
-      const cwd = getCwd(cmd);
-      const geasDir2 = resolveGeasDir(cwd);
-      const missionId = resolveMissionId2(geasDir2, opts.mission);
-      validateIdentifier(missionId, "mission ID");
-      if (!opts.task && !opts.phase) {
-        fileError("", "evidence add", "Either --task or --phase is required.");
-        return;
-      }
-      if (opts.task && opts.phase) {
-        fileError("", "evidence add", "Use --task or --phase, not both.");
-        return;
-      }
-      if (opts.task) validateIdentifier(opts.task, "task ID");
-      if (!SAFE_AGENT_RE.test(opts.agent)) {
-        fileError(opts.agent, "validate", `Invalid agent name: "${opts.agent}". Only alphanumeric, underscore, and hyphen are allowed.`);
-        return;
-      }
-      const agentName = opts.agent;
-      let evidenceData;
-      try {
-        evidenceData = readInputData();
-      } catch (readErr) {
-        const rnErr = readErr;
-        if (rnErr.code === "NO_STDIN") {
-          evidenceData = void 0;
-        } else if (rnErr.code === "INVALID_JSON") {
-          if (opts.dryRun) {
-            dryRunParseError(rnErr.message);
-            return;
-          }
-          fileError("", "parse", rnErr.message);
-          return;
-        } else {
-          throw readErr;
-        }
-      }
-      if (opts.set.length > 0) {
-        const overrides = parseSetFlags(opts.set);
-        if (evidenceData) {
-          deepMergeSetOverrides(evidenceData, overrides);
-        } else {
-          evidenceData = overrides;
-        }
-      }
-      if (!evidenceData) {
-        noStdinError(
-          "evidence add",
-          "No data provided. Pipe JSON to stdin, or use --set <key=value>."
-        );
-        return;
-      }
-      evidenceData.version = "1.0";
-      evidenceData.agent = agentName;
-      evidenceData.task_id = opts.task || opts.phase;
-      evidenceData.role = opts.role;
-      if (opts.dryRun) {
-        dryRunGuard(true, evidenceData, "evidence");
-        return;
-      }
-      const result = validate("evidence", evidenceData);
-      if (!result.valid) {
-        validationError("evidence", result.errors || []);
-        return;
-      }
-      const missionDir = path9.resolve(geasDir2, "missions", missionId);
-      let evidenceDir;
-      if (opts.phase) {
-        const phaseDir = opts.phase === "evolving" ? "evolution" : opts.phase;
-        evidenceDir = path9.resolve(missionDir, phaseDir, "evidence");
-      } else {
-        evidenceDir = path9.resolve(missionDir, "tasks", opts.task, "evidence");
-        const contractPath = path9.resolve(missionDir, "tasks", opts.task, "contract.json");
-        if (!fs10.existsSync(contractPath)) {
-          fileError(`tasks/${opts.task}/contract.json`, "validate", "Task does not exist. Cannot create evidence for non-existent task.");
+      evidenceData = readInputData();
+    } catch (readErr) {
+      const rnErr = readErr;
+      if (rnErr.code === "NO_STDIN") {
+        evidenceData = void 0;
+      } else if (rnErr.code === "INVALID_JSON") {
+        if (opts.dryRun) {
+          dryRunParseError(rnErr.message);
           return;
         }
-      }
-      ensureDir(evidenceDir);
-      const filePath = path9.resolve(evidenceDir, `${agentName}.json`);
-      writeJsonFile(filePath, evidenceData, { cwd });
-      success({
-        written: normalizePath(filePath),
-        mission_id: missionId,
-        ...opts.task ? { task_id: opts.task } : { phase: opts.phase },
-        agent: agentName,
-        role: opts.role
-      });
-    } catch (err) {
-      const nodeErr = err;
-      if (nodeErr.code === "FILE_ERROR") {
-        fileError("", "evidence add", nodeErr.message);
+        fileError("", "parse", rnErr.message);
+        return;
       } else {
-        throw err;
+        throw readErr;
       }
     }
+    if (opts.set.length > 0) {
+      const overrides = parseSetFlags(opts.set);
+      if (evidenceData) {
+        deepMergeSetOverrides(evidenceData, overrides);
+      } else {
+        evidenceData = overrides;
+      }
+    }
+    if (opts.positionalSummary) {
+      if (!evidenceData) evidenceData = {};
+      if (evidenceData.summary === void 0) {
+        evidenceData.summary = opts.positionalSummary;
+      }
+    }
+    if (!evidenceData) {
+      noStdinError(
+        "evidence add",
+        "No data provided. Pipe JSON to stdin, use --set <key=value>, or use positional args."
+      );
+      return;
+    }
+    evidenceData.version = "1.0";
+    evidenceData.agent = agentName;
+    evidenceData.task_id = opts.task || opts.phase;
+    evidenceData.role = opts.role;
+    if (opts.dryRun) {
+      dryRunGuard(true, evidenceData, "evidence");
+      return;
+    }
+    const result = validate("evidence", evidenceData);
+    if (!result.valid) {
+      validationError("evidence", result.errors || []);
+      return;
+    }
+    const missionDir = path9.resolve(geasDir2, "missions", missionId);
+    let evidenceDir;
+    if (opts.phase) {
+      const phaseDir = opts.phase === "evolving" ? "evolution" : opts.phase;
+      evidenceDir = path9.resolve(missionDir, phaseDir, "evidence");
+    } else {
+      evidenceDir = path9.resolve(missionDir, "tasks", opts.task, "evidence");
+      const contractPath = path9.resolve(missionDir, "tasks", opts.task, "contract.json");
+      if (!fs10.existsSync(contractPath)) {
+        fileError(`tasks/${opts.task}/contract.json`, "validate", "Task does not exist. Cannot create evidence for non-existent task.");
+        return;
+      }
+    }
+    ensureDir(evidenceDir);
+    const filePath = path9.resolve(evidenceDir, `${agentName}.json`);
+    writeJsonFile(filePath, evidenceData, { cwd });
+    success({
+      written: normalizePath(filePath),
+      mission_id: missionId,
+      ...opts.task ? { task_id: opts.task } : { phase: opts.phase },
+      agent: agentName,
+      role: opts.role
+    });
+  } catch (err) {
+    const nodeErr = err;
+    if (nodeErr.code === "FILE_ERROR") {
+      fileError("", "evidence add", nodeErr.message);
+    } else {
+      throw err;
+    }
+  }
+}
+function registerEvidenceCommands(program2) {
+  const cmd = program2.command("evidence").description("Role-based evidence file management");
+  cmd.command("submit [task] [role] [summary]").description("Create evidence file with positional args: geas evidence submit TASK ROLE SUMMARY").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").option("--agent <name>", "Agent name (defaults to role value)").option("--phase <phase>", "Phase name for mission-level evidence (polishing, evolving)").option("--set <key=value...>", "Set individual fields", collectSet3, []).option("--dry-run", "Validate input without writing files").action((task, role, summary, opts) => {
+    evidenceWriteHandler(cmd, {
+      mission: opts.mission,
+      task,
+      phase: opts.phase,
+      agent: opts.agent || role,
+      role,
+      set: opts.set,
+      dryRun: opts.dryRun,
+      positionalSummary: summary
+    });
+  });
+  cmd.command("add").description("Create or overwrite a role-based evidence file (JSON via stdin and/or --set)").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").option("--task <tid>", "Task identifier (use --phase for phase-level evidence)").option("--phase <phase>", "Phase name for mission-level evidence (polishing, evolving)").requiredOption("--agent <name>", "Agent name (used as filename)").requiredOption("--role <role>", "Agent role (implementer, reviewer, tester, authority)").option("--set <key=value...>", "Set individual fields", collectSet3, []).option("--dry-run", "Validate input without writing files").action((opts) => {
+    evidenceWriteHandler(cmd, {
+      mission: opts.mission,
+      task: opts.task,
+      phase: opts.phase,
+      agent: opts.agent,
+      role: opts.role,
+      set: opts.set,
+      dryRun: opts.dryRun
+    });
   });
   cmd.command("read").description("Read evidence for a task (single agent or all)").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").requiredOption("--task <tid>", "Task identifier").option("--agent <name>", "Agent name (omit to list all)").action((opts) => {
     try {
@@ -14297,7 +14991,7 @@ function registerEvidenceCommands(program2) {
     }
   });
 }
-function collectSet2(value, previous) {
+function collectSet3(value, previous) {
   return previous.concat([value]);
 }
 
@@ -14994,9 +15688,49 @@ var transitionGuards = {
 // src/commands/phase.ts
 function registerPhaseCommands(program2) {
   const cmd = program2.command("phase").description("Phase review read/write");
-  cmd.command("write").description("Write a phase review (JSON via stdin)").requiredOption("--mission <mid>", "Mission ID").option("--dry-run", "Validate input without writing files").action((opts, cmd2) => {
+  cmd.command("write [phase] [status]").description("Write a phase review (positional: PHASE STATUS, or JSON via stdin)").requiredOption("--mission <mid>", "Mission ID").option("--summary <text>", "Phase review summary").option("--set <key=value...>", "Set additional fields", collectSet4, []).option("--dry-run", "Validate input without writing files").action((phase, status, opts, cmd2) => {
     try {
-      const data = readInputData();
+      let data;
+      let stdinData;
+      try {
+        stdinData = readInputData();
+      } catch (readErr) {
+        const rnErr = readErr;
+        if (rnErr.code === "NO_STDIN") {
+          stdinData = void 0;
+        } else if (rnErr.code === "INVALID_JSON") {
+          if (opts.dryRun) {
+            dryRunParseError(rnErr.message);
+            return;
+          }
+          fileError("phase-reviews/", "parse", rnErr.message);
+          return;
+        } else {
+          throw readErr;
+        }
+      }
+      if (stdinData) {
+        data = stdinData;
+        if (opts.set.length > 0) {
+          const overrides = parseSetFlags(opts.set);
+          deepMergeSetOverrides(data, overrides);
+        }
+      } else if (phase && status) {
+        data = {
+          mission_phase: phase,
+          status
+        };
+        if (opts.summary) {
+          data.summary = opts.summary;
+        }
+        if (opts.set.length > 0) {
+          const overrides = parseSetFlags(opts.set);
+          deepMergeSetOverrides(data, overrides);
+        }
+      } else {
+        noStdinError("phase write", "No data provided. Pipe JSON to stdin, or use positional args: geas phase write PHASE STATUS --summary TEXT");
+        return;
+      }
       const cwd = getCwd(cmd2);
       const geasDir2 = resolveGeasDir(cwd);
       validateIdentifier(opts.mission, "mission ID");
@@ -15040,33 +15774,20 @@ function registerPhaseCommands(program2) {
         dryRunGuard(true, data, "phase-review");
         return;
       }
-      const phase = data.mission_phase || "unknown";
-      const status = data.status || "unknown";
+      const phaseVal = data.mission_phase || "unknown";
+      const statusVal = data.status || "unknown";
       const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z").replace(/:/g, "-");
-      const filename = `${phase}_${status}_${timestamp}.json`;
+      const filename = `${phaseVal}_${statusVal}_${timestamp}.json`;
       const filePath = path16.resolve(missionDir, "phase-reviews", filename);
       writeJsonFile(filePath, data, { cwd });
       success({
         ok: true,
         mission_id: opts.mission,
-        phase,
-        status,
+        phase: phaseVal,
+        status: statusVal,
         path: filePath
       });
     } catch (err) {
-      const nodeErr = err;
-      if (nodeErr.code === "NO_STDIN") {
-        noStdinError("phase write", nodeErr.message);
-        return;
-      }
-      if (nodeErr.code === "INVALID_JSON") {
-        if (opts.dryRun) {
-          dryRunParseError(nodeErr.message);
-          return;
-        }
-        fileError("phase-reviews/", "parse", nodeErr.message);
-        return;
-      }
       const msg = err instanceof SyntaxError ? "Invalid JSON on stdin" : err.message;
       fileError("phase-reviews/", "write", msg);
     }
@@ -15110,6 +15831,9 @@ function registerPhaseCommands(program2) {
       }
     }
   });
+}
+function collectSet4(value, previous) {
+  return previous.concat([value]);
 }
 
 // src/commands/decision.ts

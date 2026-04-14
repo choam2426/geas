@@ -622,6 +622,191 @@ export function registerTaskCommands(program: Command): void {
       }
     });
 
+  // ── geas task record self-check TASK SUMMARY --confidence N ────────
+  record
+    .command('self-check <task> <summary>')
+    .description('Write self_check section: geas task record self-check TASK SUMMARY --confidence N')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .requiredOption('--confidence <n>', 'Confidence level (1-5)')
+    .option('--set <key=value...>', 'Set additional fields', collectSet, [])
+    .option('--dry-run', 'Validate input without writing files')
+    .action((task: string, summary: string, opts: {
+      mission?: string;
+      confidence: string;
+      set: string[];
+      dryRun?: boolean;
+    }) => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(task, 'task ID');
+        const missionDir = resolveMissionDir(geasDir, missionId);
+
+        // Validate confidence range
+        const confidence = parseInt(opts.confidence, 10);
+        if (isNaN(confidence) || confidence < 1 || confidence > 5) {
+          validationError('self_check', ['--confidence must be an integer between 1 and 5']);
+          return;
+        }
+
+        const taskDir = path.resolve(missionDir, 'tasks', task);
+        if (!fs.existsSync(taskDir)) {
+          fileError(normalizePath(taskDir), 'record self-check', `Task directory not found: ${task}`);
+          return;
+        }
+
+        // Build self_check section data
+        let sectionData: Record<string, unknown> = {
+          summary,
+          confidence,
+        };
+
+        // Apply --set overrides
+        if (opts.set.length > 0) {
+          const overrides = parseSetFlags(opts.set);
+          deepMergeSetOverrides(sectionData, overrides);
+        }
+
+        // Read existing record or create new
+        const recordPath = path.resolve(taskDir, 'record.json');
+        let recordData = readJsonFile<Record<string, unknown>>(recordPath);
+        if (!recordData) {
+          recordData = { version: '1.0', task_id: task };
+        }
+
+        // Merge into existing section
+        const existing = recordData.self_check;
+        if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+          recordData.self_check = { ...existing as Record<string, unknown>, ...sectionData };
+        } else {
+          recordData.self_check = sectionData;
+        }
+
+        // --dry-run: validate and exit without writing
+        if (opts.dryRun) {
+          dryRunGuard(true, recordData, 'record');
+          return;
+        }
+
+        // Validate entire record against schema
+        const result = validate('record', recordData);
+        if (!result.valid) {
+          validationError('record', result.errors!);
+          return;
+        }
+
+        writeJsonFile(recordPath, recordData, { cwd });
+
+        success({
+          written: normalizePath(recordPath),
+          task_id: task,
+          mission_id: missionId,
+          section: 'self_check',
+          action: 'added',
+        });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'record self-check', nodeErr.message);
+        } else {
+          throw err;
+        }
+      }
+    });
+
+  // ── geas task record gate TASK VERDICT ───────────────────────────
+  record
+    .command('gate <task> <verdict>')
+    .description('Write gate_result section: geas task record gate TASK VERDICT (pass|fail|block|error)')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .option('--set <key=value...>', 'Set additional fields', collectSet, [])
+    .option('--dry-run', 'Validate input without writing files')
+    .action((task: string, verdict: string, opts: {
+      mission?: string;
+      set: string[];
+      dryRun?: boolean;
+    }) => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(task, 'task ID');
+        const missionDir = resolveMissionDir(geasDir, missionId);
+
+        // Validate verdict value
+        const validVerdicts = ['pass', 'fail', 'block', 'error'];
+        if (!validVerdicts.includes(verdict)) {
+          validationError('gate_result', [`Invalid verdict '${verdict}'. Must be one of: ${validVerdicts.join(', ')}`]);
+          return;
+        }
+
+        const taskDir = path.resolve(missionDir, 'tasks', task);
+        if (!fs.existsSync(taskDir)) {
+          fileError(normalizePath(taskDir), 'record gate', `Task directory not found: ${task}`);
+          return;
+        }
+
+        // Build gate_result section data
+        let sectionData: Record<string, unknown> = {
+          verdict,
+        };
+
+        // Apply --set overrides
+        if (opts.set.length > 0) {
+          const overrides = parseSetFlags(opts.set);
+          deepMergeSetOverrides(sectionData, overrides);
+        }
+
+        // Read existing record or create new
+        const recordPath = path.resolve(taskDir, 'record.json');
+        let recordData = readJsonFile<Record<string, unknown>>(recordPath);
+        if (!recordData) {
+          recordData = { version: '1.0', task_id: task };
+        }
+
+        // Merge into existing section
+        const existing = recordData.gate_result;
+        if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+          recordData.gate_result = { ...existing as Record<string, unknown>, ...sectionData };
+        } else {
+          recordData.gate_result = sectionData;
+        }
+
+        // --dry-run: validate and exit without writing
+        if (opts.dryRun) {
+          dryRunGuard(true, recordData, 'record');
+          return;
+        }
+
+        // Validate entire record against schema
+        const result = validate('record', recordData);
+        if (!result.valid) {
+          validationError('record', result.errors!);
+          return;
+        }
+
+        writeJsonFile(recordPath, recordData, { cwd });
+
+        success({
+          written: normalizePath(recordPath),
+          task_id: task,
+          mission_id: missionId,
+          section: 'gate_result',
+          action: 'added',
+        });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'record gate', nodeErr.message);
+        } else {
+          throw err;
+        }
+      }
+    });
+
   // ── geas task record get ──────────────────────────────────────────
   record
     .command('get')
