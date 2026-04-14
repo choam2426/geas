@@ -36,11 +36,13 @@ interface HintEntry {
   allowed_properties?: string[];
   field_type?: string;
   field_description?: string;
+  suggested_fix?: string;
 }
 
 interface Hints {
   required_fields: string[];
   errors: HintEntry[];
+  next_command: string;
 }
 
 /**
@@ -92,8 +94,14 @@ function extractHints(
 
   const hintEntries: HintEntry[] = [];
 
+  // Compute next_command: always points to schema template
+  let nextCommand = `geas schema template ${schemaName}`;
+  if (schemaName === 'evidence') {
+    nextCommand += ' --role <role>';
+  }
+
   if (!rawSchema) {
-    return { required_fields: [], errors: hintEntries };
+    return { required_fields: [], errors: hintEntries, next_command: nextCommand };
   }
 
   for (const err of errors) {
@@ -110,7 +118,6 @@ function extractHints(
       case 'enum': {
         // Find the schema node for this path to get allowed values
         const node = navigateSchema(rawSchema, e.instancePath);
-        // For properties at the current path, the enum is on the property itself
         // Ajv params.allowedValues contains the enum values
         const allowedValues = e.params?.allowedValues;
         if (Array.isArray(allowedValues)) {
@@ -118,15 +125,22 @@ function extractHints(
         } else if (node?.enum) {
           entry.allowed_values = node.enum;
         }
+        const allowed = entry.allowed_values;
+        const actual = e.params?.allowedValues !== undefined
+          ? String((e as unknown as { data?: unknown }).data ?? '')
+          : '';
+        entry.suggested_fix = `Use one of: [${(allowed ?? []).join(', ')}].${actual ? ` You provided: "${actual}".` : ''}`;
         break;
       }
 
       case 'additionalProperties': {
         // Navigate to the object that has additionalProperties: false
         const containerNode = navigateSchema(rawSchema, e.instancePath);
+        const additionalProp = e.params?.additionalProperty as string | undefined;
         if (containerNode?.properties) {
           entry.allowed_properties = Object.keys(containerNode.properties);
         }
+        entry.suggested_fix = `Remove unknown property "${additionalProp ?? '?'}". Allowed properties: [${(entry.allowed_properties ?? []).join(', ')}].`;
         break;
       }
 
@@ -144,13 +158,29 @@ function extractHints(
               entry.field_description = propSchema.description;
             }
           }
+          const typeHint = entry.field_type ? ` (${entry.field_type}${entry.field_description ? ': ' + entry.field_description : ''})` : '';
+          entry.suggested_fix = `Add missing field "${missingProp}"${typeHint}.`;
         }
         break;
       }
 
-      // Other keywords: include base entry with path and message
-      default:
+      case 'type': {
+        const expected = e.params?.type as string | undefined;
+        const actual = e.params?.nullable ? 'null' : typeof (e as unknown as { data?: unknown }).data;
+        entry.suggested_fix = `Expected ${expected ?? 'unknown'}, got ${actual ?? 'unknown'}.`;
         break;
+      }
+
+      case 'minLength': {
+        entry.suggested_fix = 'Value must not be empty.';
+        break;
+      }
+
+      default: {
+        const path = e.instancePath || '/';
+        entry.suggested_fix = `${path}: ${e.message ?? 'validation failed'}`;
+        break;
+      }
     }
 
     hintEntries.push(entry);
@@ -159,6 +189,7 @@ function extractHints(
   return {
     required_fields: topRequired,
     errors: hintEntries,
+    next_command: nextCommand,
   };
 }
 

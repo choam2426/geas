@@ -336,6 +336,58 @@ export function deepMergeSetOverrides(
   return base;
 }
 
+/**
+ * Field alias map: field_name -> { alias: canonical_value }.
+ * Used to normalize common shorthand values before schema validation.
+ */
+export const FIELD_ALIASES: Record<string, Record<string, string>> = {
+  risk_level: {
+    medium: 'normal',
+  },
+  task_kind: {
+    doc: 'documentation',
+    docs: 'documentation',
+  },
+  role: {
+    qa: 'qa-engineer',
+    dev: 'software-engineer',
+    sw: 'software-engineer',
+    writer: 'technical-writer',
+    ops: 'operations-specialist',
+  },
+  producer_type: {
+    orchestrator: 'orchestration-authority',
+    product: 'product-authority',
+    design: 'design-authority',
+  },
+};
+
+/**
+ * Normalize aliased field values in a data object.
+ *
+ * For each key in `aliasMap`, if `data[key]` is a string matching an alias,
+ * it is replaced with the canonical value. Non-string values and unrecognized
+ * strings are left unchanged (schema validation catches invalid values).
+ *
+ * @param data - The data object to normalize (mutated in place).
+ * @param aliasMap - Alias mapping (defaults to FIELD_ALIASES).
+ * @returns The mutated data object.
+ */
+export function normalizeAliases(
+  data: Record<string, unknown>,
+  aliasMap: Record<string, Record<string, string>> = FIELD_ALIASES,
+): Record<string, unknown> {
+  for (const field of Object.keys(aliasMap)) {
+    const value = data[field];
+    if (typeof value !== 'string') continue;
+    const canonical = aliasMap[field][value];
+    if (canonical !== undefined) {
+      data[field] = canonical;
+    }
+  }
+  return data;
+}
+
 /** Auto-coerce string values to appropriate types. */
 function coerceValue(raw: string): unknown {
   // Boolean
