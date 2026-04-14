@@ -12,7 +12,7 @@ import { readJsonFile, writeJsonFile, ensureDir } from '../lib/fs-atomic';
 import { validate } from '../lib/schema';
 import { success, validationError, fileError, noStdinError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
-import { readInputData } from '../lib/input';
+import { readInputData, parseSetFlags, deepMergeSetOverrides } from '../lib/input';
 import { injectEnvelope } from '../lib/envelope';
 import { dryRunGuard, dryRunParseError } from '../lib/dry-run';
 
@@ -46,15 +46,25 @@ export function registerMissionCommands(program: Command): void {
     .command('mission')
     .description('Mission CRUD (spec, design-brief, directory)');
 
-  // ── geas mission create [--id <mission-id>] ───────────────────────
+  // ── geas mission create [TITLE] [--id <mission-id>] [--done-when DESC] ─
   cmd
-    .command('create')
-    .description('Create a mission directory with full subdirectory structure. Auto-generates ID if --id is omitted.')
+    .command('create [title]')
+    .description('Create a mission directory (and spec.json when TITLE + --done-when given). Auto-generates ID if --id is omitted.')
     .option('--id <mission-id>', 'Mission identifier (auto-generated if omitted)')
-    .action((opts: { id?: string }) => {
+    .option('--done-when <description>', 'Done-when description (requires TITLE; writes spec.json)')
+    .option('--set <key=value...>', 'Set additional spec fields', collectSet, [])
+    .option('--dry-run', 'Validate input without writing files')
+    .action((title: string | undefined, opts: { id?: string; doneWhen?: string; set: string[]; dryRun?: boolean }) => {
       try {
-        const geasDir = resolveGeasDir(getCwd(cmd));
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
         const missionsDir = path.resolve(geasDir, 'missions');
+
+        // Validate: --done-when requires TITLE
+        if (opts.doneWhen && !title) {
+          fileError('', 'create', '--done-when requires a TITLE positional argument.');
+          return;
+        }
 
         let missionId: string;
         if (opts.id) {
@@ -81,17 +91,63 @@ export function registerMissionCommands(program: Command): void {
           return;
         }
 
+        // --dry-run: validate and exit without writing
+        if (opts.dryRun) {
+          const dryData: Record<string, unknown> = { mission_id: missionId };
+          if (title && opts.doneWhen) {
+            dryData.mission = title;
+            dryData.done_when = opts.doneWhen;
+          }
+          dryRunGuard(true, dryData, 'mission-create');
+          return;
+        }
+
         // Create the mission root and all subdirectories
         ensureDir(missionDir);
         for (const sub of MISSION_SUBDIRS) {
           ensureDir(path.resolve(missionDir, sub));
         }
 
-        success({
-          created: normalized,
-          mission_id: missionId,
-          subdirectories: MISSION_SUBDIRS,
-        });
+        // If TITLE and --done-when provided, also write spec.json
+        if (title && opts.doneWhen) {
+          const specData: Record<string, unknown> = {
+            mission_id: missionId,
+            mission: title,
+            done_when: opts.doneWhen,
+          };
+
+          // Apply --set overrides
+          if (opts.set.length > 0) {
+            const overrides = parseSetFlags(opts.set);
+            deepMergeSetOverrides(specData, overrides);
+          }
+
+          // Inject envelope fields
+          injectEnvelope('mission_spec', specData, { mission_id: missionId });
+
+          // Validate against mission-spec schema
+          const result = validate('mission-spec', specData);
+          if (!result.valid) {
+            validationError('mission-spec', result.errors!);
+            return;
+          }
+
+          const specPath = path.resolve(missionDir, 'spec.json');
+          writeJsonFile(specPath, specData, { cwd });
+
+          success({
+            created: normalized,
+            mission_id: missionId,
+            subdirectories: MISSION_SUBDIRS,
+            spec_written: normalizePath(specPath),
+          });
+        } else {
+          success({
+            created: normalized,
+            mission_id: missionId,
+            subdirectories: MISSION_SUBDIRS,
+          });
+        }
       } catch (err: unknown) {
         const nodeErr = err as NodeJS.ErrnoException;
         if (nodeErr.code === 'FILE_ERROR') {
@@ -290,4 +346,9 @@ export function registerMissionCommands(program: Command): void {
         }
       }
     });
+}
+
+/** Commander variadic option collector for --set. */
+function collectSet(value: string, previous: string[]): string[] {
+  return previous.concat([value]);
 }

@@ -13,7 +13,7 @@ import { validatePhaseTransition } from '../lib/phase-guards';
 import { success, validationError, fileError, noStdinError } from '../lib/output';
 import { getCwd } from '../lib/cwd';
 import { injectEnvelope } from '../lib/envelope';
-import { readInputData } from '../lib/input';
+import { readInputData, parseSetFlags, deepMergeSetOverrides } from '../lib/input';
 import { dryRunGuard, dryRunParseError } from '../lib/dry-run';
 
 export function registerPhaseCommands(program: Command): void {
@@ -21,15 +21,61 @@ export function registerPhaseCommands(program: Command): void {
     .command('phase')
     .description('Phase review read/write');
 
-  // --- write ---
+  // --- write [PHASE] [STATUS] ---
   cmd
-    .command('write')
-    .description('Write a phase review (JSON via stdin)')
+    .command('write [phase] [status]')
+    .description('Write a phase review (positional: PHASE STATUS, or JSON via stdin)')
     .requiredOption('--mission <mid>', 'Mission ID')
+    .option('--summary <text>', 'Phase review summary')
+    .option('--set <key=value...>', 'Set additional fields', collectSet, [])
     .option('--dry-run', 'Validate input without writing files')
-    .action((opts: { mission: string; dryRun?: boolean }, cmd: Command) => {
+    .action((phase: string | undefined, status: string | undefined, opts: { mission: string; summary?: string; set: string[]; dryRun?: boolean }, cmd: Command) => {
       try {
-        const data = readInputData() as Record<string, unknown>;
+        let data: Record<string, unknown>;
+
+        // Try stdin first; if no stdin and positional args provided, build from args
+        let stdinData: Record<string, unknown> | undefined;
+        try {
+          stdinData = readInputData() as Record<string, unknown>;
+        } catch (readErr: unknown) {
+          const rnErr = readErr as NodeJS.ErrnoException;
+          if (rnErr.code === 'NO_STDIN') {
+            stdinData = undefined;
+          } else if (rnErr.code === 'INVALID_JSON') {
+            if (opts.dryRun) { dryRunParseError(rnErr.message); return; }
+            fileError('phase-reviews/', 'parse', rnErr.message);
+            return;
+          } else {
+            throw readErr;
+          }
+        }
+
+        if (stdinData) {
+          data = stdinData;
+          // Apply --set overrides on top of stdin
+          if (opts.set.length > 0) {
+            const overrides = parseSetFlags(opts.set);
+            deepMergeSetOverrides(data, overrides);
+          }
+        } else if (phase && status) {
+          // Build from positional args
+          data = {
+            mission_phase: phase,
+            status: status,
+          };
+          if (opts.summary) {
+            data.summary = opts.summary;
+          }
+          // Apply --set overrides
+          if (opts.set.length > 0) {
+            const overrides = parseSetFlags(opts.set);
+            deepMergeSetOverrides(data, overrides);
+          }
+        } else {
+          noStdinError('phase write', 'No data provided. Pipe JSON to stdin, or use positional args: geas phase write PHASE STATUS --summary TEXT');
+          return;
+        }
+
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
         validateIdentifier(opts.mission, 'mission ID');
@@ -85,10 +131,10 @@ export function registerPhaseCommands(program: Command): void {
         }
 
         // Build filename from phase + status + timestamp
-        const phase = (data.mission_phase as string) || 'unknown';
-        const status = (data.status as string) || 'unknown';
+        const phaseVal = (data.mission_phase as string) || 'unknown';
+        const statusVal = (data.status as string) || 'unknown';
         const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z').replace(/:/g, '-');
-        const filename = `${phase}_${status}_${timestamp}.json`;
+        const filename = `${phaseVal}_${statusVal}_${timestamp}.json`;
 
         const filePath = path.resolve(missionDir, 'phase-reviews', filename);
         writeJsonFile(filePath, data, { cwd });
@@ -96,21 +142,11 @@ export function registerPhaseCommands(program: Command): void {
         success({
           ok: true,
           mission_id: opts.mission,
-          phase,
-          status,
+          phase: phaseVal,
+          status: statusVal,
           path: filePath,
         });
       } catch (err: unknown) {
-        const nodeErr = err as NodeJS.ErrnoException;
-        if (nodeErr.code === 'NO_STDIN') {
-          noStdinError('phase write', nodeErr.message);
-          return;
-        }
-        if (nodeErr.code === 'INVALID_JSON') {
-          if (opts.dryRun) { dryRunParseError(nodeErr.message); return; }
-          fileError('phase-reviews/', 'parse', nodeErr.message);
-          return;
-        }
         const msg = err instanceof SyntaxError
           ? 'Invalid JSON on stdin'
           : (err as Error).message;
@@ -172,4 +208,9 @@ export function registerPhaseCommands(program: Command): void {
         }
       }
     });
+}
+
+/** Commander variadic option collector for --set. */
+function collectSet(value: string, previous: string[]): string[] {
+  return previous.concat([value]);
 }

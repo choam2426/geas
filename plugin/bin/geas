@@ -12624,10 +12624,15 @@ var MISSION_SUBDIRS = [
 ];
 function registerMissionCommands(program2) {
   const cmd = program2.command("mission").description("Mission CRUD (spec, design-brief, directory)");
-  cmd.command("create").description("Create a mission directory with full subdirectory structure. Auto-generates ID if --id is omitted.").option("--id <mission-id>", "Mission identifier (auto-generated if omitted)").action((opts) => {
+  cmd.command("create [title]").description("Create a mission directory (and spec.json when TITLE + --done-when given). Auto-generates ID if --id is omitted.").option("--id <mission-id>", "Mission identifier (auto-generated if omitted)").option("--done-when <description>", "Done-when description (requires TITLE; writes spec.json)").option("--set <key=value...>", "Set additional spec fields", collectSet, []).option("--dry-run", "Validate input without writing files").action((title, opts) => {
     try {
-      const geasDir2 = resolveGeasDir(getCwd(cmd));
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
       const missionsDir = path5.resolve(geasDir2, "missions");
+      if (opts.doneWhen && !title) {
+        fileError("", "create", "--done-when requires a TITLE positional argument.");
+        return;
+      }
       let missionId;
       if (opts.id) {
         validateIdentifier(opts.id, "mission ID");
@@ -12649,15 +12654,50 @@ function registerMissionCommands(program2) {
         fileError(normalized, "create", `Mission directory already exists: ${normalized}`);
         return;
       }
+      if (opts.dryRun) {
+        const dryData = { mission_id: missionId };
+        if (title && opts.doneWhen) {
+          dryData.mission = title;
+          dryData.done_when = opts.doneWhen;
+        }
+        dryRunGuard(true, dryData, "mission-create");
+        return;
+      }
       ensureDir(missionDir);
       for (const sub of MISSION_SUBDIRS) {
         ensureDir(path5.resolve(missionDir, sub));
       }
-      success({
-        created: normalized,
-        mission_id: missionId,
-        subdirectories: MISSION_SUBDIRS
-      });
+      if (title && opts.doneWhen) {
+        const specData = {
+          mission_id: missionId,
+          mission: title,
+          done_when: opts.doneWhen
+        };
+        if (opts.set.length > 0) {
+          const overrides = parseSetFlags(opts.set);
+          deepMergeSetOverrides(specData, overrides);
+        }
+        injectEnvelope("mission_spec", specData, { mission_id: missionId });
+        const result = validate("mission-spec", specData);
+        if (!result.valid) {
+          validationError("mission-spec", result.errors);
+          return;
+        }
+        const specPath = path5.resolve(missionDir, "spec.json");
+        writeJsonFile(specPath, specData, { cwd });
+        success({
+          created: normalized,
+          mission_id: missionId,
+          subdirectories: MISSION_SUBDIRS,
+          spec_written: normalizePath(specPath)
+        });
+      } else {
+        success({
+          created: normalized,
+          mission_id: missionId,
+          subdirectories: MISSION_SUBDIRS
+        });
+      }
     } catch (err) {
       const nodeErr = err;
       if (nodeErr.code === "FILE_ERROR") {
@@ -12814,6 +12854,9 @@ function registerMissionCommands(program2) {
       }
     }
   });
+}
+function collectSet(value, previous) {
+  return previous.concat([value]);
 }
 
 // src/commands/task.ts
@@ -13787,7 +13830,7 @@ function registerTaskCommands(program2) {
     }
   });
   const record = cmd.command("record").description("Task execution record (record.json) management");
-  record.command("add").description("Add or overwrite a section in record.json (JSON via stdin and/or --set)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--task <task-id>", "Task identifier").requiredOption("--section <name>", `Section name (${VALID_SECTIONS.join(", ")})`).option("--set <key=value...>", "Set individual fields", collectSet, []).option("--dry-run", "Validate input without writing files").action((opts) => {
+  record.command("add").description("Add or overwrite a section in record.json (JSON via stdin and/or --set)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--task <task-id>", "Task identifier").requiredOption("--section <name>", `Section name (${VALID_SECTIONS.join(", ")})`).option("--set <key=value...>", "Set individual fields", collectSet2, []).option("--dry-run", "Validate input without writing files").action((opts) => {
     try {
       const cwd = getCwd(cmd);
       const geasDir2 = resolveGeasDir(cwd);
@@ -13869,6 +13912,131 @@ function registerTaskCommands(program2) {
       const nodeErr = err;
       if (nodeErr.code === "FILE_ERROR") {
         fileError("", "record add", nodeErr.message);
+      } else {
+        throw err;
+      }
+    }
+  });
+  record.command("self-check <task> <summary>").description("Write self_check section: geas task record self-check TASK SUMMARY --confidence N").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").requiredOption("--confidence <n>", "Confidence level (1-5)").option("--set <key=value...>", "Set additional fields", collectSet2, []).option("--dry-run", "Validate input without writing files").action((task, summary, opts) => {
+    try {
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
+      const missionId = resolveMissionId(geasDir2, opts.mission);
+      validateIdentifier(missionId, "mission ID");
+      validateIdentifier(task, "task ID");
+      const missionDir = resolveMissionDir(geasDir2, missionId);
+      const confidence = parseInt(opts.confidence, 10);
+      if (isNaN(confidence) || confidence < 1 || confidence > 5) {
+        validationError("self_check", ["--confidence must be an integer between 1 and 5"]);
+        return;
+      }
+      const taskDir = path8.resolve(missionDir, "tasks", task);
+      if (!fs9.existsSync(taskDir)) {
+        fileError(normalizePath(taskDir), "record self-check", `Task directory not found: ${task}`);
+        return;
+      }
+      let sectionData = {
+        summary,
+        confidence
+      };
+      if (opts.set.length > 0) {
+        const overrides = parseSetFlags(opts.set);
+        deepMergeSetOverrides(sectionData, overrides);
+      }
+      const recordPath = path8.resolve(taskDir, "record.json");
+      let recordData = readJsonFile(recordPath);
+      if (!recordData) {
+        recordData = { version: "1.0", task_id: task };
+      }
+      const existing = recordData.self_check;
+      if (existing && typeof existing === "object" && !Array.isArray(existing)) {
+        recordData.self_check = { ...existing, ...sectionData };
+      } else {
+        recordData.self_check = sectionData;
+      }
+      if (opts.dryRun) {
+        dryRunGuard(true, recordData, "record");
+        return;
+      }
+      const result = validate("record", recordData);
+      if (!result.valid) {
+        validationError("record", result.errors);
+        return;
+      }
+      writeJsonFile(recordPath, recordData, { cwd });
+      success({
+        written: normalizePath(recordPath),
+        task_id: task,
+        mission_id: missionId,
+        section: "self_check",
+        action: "added"
+      });
+    } catch (err) {
+      const nodeErr = err;
+      if (nodeErr.code === "FILE_ERROR") {
+        fileError("", "record self-check", nodeErr.message);
+      } else {
+        throw err;
+      }
+    }
+  });
+  record.command("gate <task> <verdict>").description("Write gate_result section: geas task record gate TASK VERDICT (pass|fail|block|error)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").option("--set <key=value...>", "Set additional fields", collectSet2, []).option("--dry-run", "Validate input without writing files").action((task, verdict, opts) => {
+    try {
+      const cwd = getCwd(cmd);
+      const geasDir2 = resolveGeasDir(cwd);
+      const missionId = resolveMissionId(geasDir2, opts.mission);
+      validateIdentifier(missionId, "mission ID");
+      validateIdentifier(task, "task ID");
+      const missionDir = resolveMissionDir(geasDir2, missionId);
+      const validVerdicts = ["pass", "fail", "block", "error"];
+      if (!validVerdicts.includes(verdict)) {
+        validationError("gate_result", [`Invalid verdict '${verdict}'. Must be one of: ${validVerdicts.join(", ")}`]);
+        return;
+      }
+      const taskDir = path8.resolve(missionDir, "tasks", task);
+      if (!fs9.existsSync(taskDir)) {
+        fileError(normalizePath(taskDir), "record gate", `Task directory not found: ${task}`);
+        return;
+      }
+      let sectionData = {
+        verdict
+      };
+      if (opts.set.length > 0) {
+        const overrides = parseSetFlags(opts.set);
+        deepMergeSetOverrides(sectionData, overrides);
+      }
+      const recordPath = path8.resolve(taskDir, "record.json");
+      let recordData = readJsonFile(recordPath);
+      if (!recordData) {
+        recordData = { version: "1.0", task_id: task };
+      }
+      const existing = recordData.gate_result;
+      if (existing && typeof existing === "object" && !Array.isArray(existing)) {
+        recordData.gate_result = { ...existing, ...sectionData };
+      } else {
+        recordData.gate_result = sectionData;
+      }
+      if (opts.dryRun) {
+        dryRunGuard(true, recordData, "record");
+        return;
+      }
+      const result = validate("record", recordData);
+      if (!result.valid) {
+        validationError("record", result.errors);
+        return;
+      }
+      writeJsonFile(recordPath, recordData, { cwd });
+      success({
+        written: normalizePath(recordPath),
+        task_id: task,
+        mission_id: missionId,
+        section: "gate_result",
+        action: "added"
+      });
+    } catch (err) {
+      const nodeErr = err;
+      if (nodeErr.code === "FILE_ERROR") {
+        fileError("", "record gate", nodeErr.message);
       } else {
         throw err;
       }
@@ -14671,7 +14839,7 @@ function registerTaskCommands(program2) {
     }
   });
 }
-function collectSet(value, previous) {
+function collectSet2(value, previous) {
   return previous.concat([value]);
 }
 
@@ -14690,105 +14858,142 @@ function resolveMissionId2(geasDir2, missionOpt) {
   throw err;
 }
 var SAFE_AGENT_RE = /^[a-zA-Z0-9_-]+$/;
-function registerEvidenceCommands(program2) {
-  const cmd = program2.command("evidence").description("Role-based evidence file management");
-  cmd.command("add").description("Create or overwrite a role-based evidence file (JSON via stdin and/or --set)").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").option("--task <tid>", "Task identifier (use --phase for phase-level evidence)").option("--phase <phase>", "Phase name for mission-level evidence (polishing, evolving)").requiredOption("--agent <name>", "Agent name (used as filename)").requiredOption("--role <role>", "Agent role (implementer, reviewer, tester, authority)").option("--set <key=value...>", "Set individual fields", collectSet2, []).option("--dry-run", "Validate input without writing files").action((opts) => {
+function evidenceWriteHandler(parentCmd, opts) {
+  try {
+    const cwd = getCwd(parentCmd);
+    const geasDir2 = resolveGeasDir(cwd);
+    const missionId = resolveMissionId2(geasDir2, opts.mission);
+    validateIdentifier(missionId, "mission ID");
+    if (!opts.task && !opts.phase) {
+      fileError("", "evidence add", "Either --task or --phase is required.");
+      return;
+    }
+    if (opts.task && opts.phase) {
+      fileError("", "evidence add", "Use --task or --phase, not both.");
+      return;
+    }
+    if (!opts.role) {
+      fileError("", "evidence add", "Role is required.");
+      return;
+    }
+    if (!opts.agent) {
+      fileError("", "evidence add", "Agent name is required.");
+      return;
+    }
+    if (opts.task) validateIdentifier(opts.task, "task ID");
+    if (!SAFE_AGENT_RE.test(opts.agent)) {
+      fileError(opts.agent, "validate", `Invalid agent name: "${opts.agent}". Only alphanumeric, underscore, and hyphen are allowed.`);
+      return;
+    }
+    const agentName = opts.agent;
+    let evidenceData;
     try {
-      const cwd = getCwd(cmd);
-      const geasDir2 = resolveGeasDir(cwd);
-      const missionId = resolveMissionId2(geasDir2, opts.mission);
-      validateIdentifier(missionId, "mission ID");
-      if (!opts.task && !opts.phase) {
-        fileError("", "evidence add", "Either --task or --phase is required.");
-        return;
-      }
-      if (opts.task && opts.phase) {
-        fileError("", "evidence add", "Use --task or --phase, not both.");
-        return;
-      }
-      if (opts.task) validateIdentifier(opts.task, "task ID");
-      if (!SAFE_AGENT_RE.test(opts.agent)) {
-        fileError(opts.agent, "validate", `Invalid agent name: "${opts.agent}". Only alphanumeric, underscore, and hyphen are allowed.`);
-        return;
-      }
-      const agentName = opts.agent;
-      let evidenceData;
-      try {
-        evidenceData = readInputData();
-      } catch (readErr) {
-        const rnErr = readErr;
-        if (rnErr.code === "NO_STDIN") {
-          evidenceData = void 0;
-        } else if (rnErr.code === "INVALID_JSON") {
-          if (opts.dryRun) {
-            dryRunParseError(rnErr.message);
-            return;
-          }
-          fileError("", "parse", rnErr.message);
-          return;
-        } else {
-          throw readErr;
-        }
-      }
-      if (opts.set.length > 0) {
-        const overrides = parseSetFlags(opts.set);
-        if (evidenceData) {
-          deepMergeSetOverrides(evidenceData, overrides);
-        } else {
-          evidenceData = overrides;
-        }
-      }
-      if (!evidenceData) {
-        noStdinError(
-          "evidence add",
-          "No data provided. Pipe JSON to stdin, or use --set <key=value>."
-        );
-        return;
-      }
-      evidenceData.version = "1.0";
-      evidenceData.agent = agentName;
-      evidenceData.task_id = opts.task || opts.phase;
-      evidenceData.role = opts.role;
-      if (opts.dryRun) {
-        dryRunGuard(true, evidenceData, "evidence");
-        return;
-      }
-      const result = validate("evidence", evidenceData);
-      if (!result.valid) {
-        validationError("evidence", result.errors || []);
-        return;
-      }
-      const missionDir = path9.resolve(geasDir2, "missions", missionId);
-      let evidenceDir;
-      if (opts.phase) {
-        const phaseDir = opts.phase === "evolving" ? "evolution" : opts.phase;
-        evidenceDir = path9.resolve(missionDir, phaseDir, "evidence");
-      } else {
-        evidenceDir = path9.resolve(missionDir, "tasks", opts.task, "evidence");
-        const contractPath = path9.resolve(missionDir, "tasks", opts.task, "contract.json");
-        if (!fs10.existsSync(contractPath)) {
-          fileError(`tasks/${opts.task}/contract.json`, "validate", "Task does not exist. Cannot create evidence for non-existent task.");
+      evidenceData = readInputData();
+    } catch (readErr) {
+      const rnErr = readErr;
+      if (rnErr.code === "NO_STDIN") {
+        evidenceData = void 0;
+      } else if (rnErr.code === "INVALID_JSON") {
+        if (opts.dryRun) {
+          dryRunParseError(rnErr.message);
           return;
         }
-      }
-      ensureDir(evidenceDir);
-      const filePath = path9.resolve(evidenceDir, `${agentName}.json`);
-      writeJsonFile(filePath, evidenceData, { cwd });
-      success({
-        written: normalizePath(filePath),
-        mission_id: missionId,
-        ...opts.task ? { task_id: opts.task } : { phase: opts.phase },
-        agent: agentName,
-        role: opts.role
-      });
-    } catch (err) {
-      const nodeErr = err;
-      if (nodeErr.code === "FILE_ERROR") {
-        fileError("", "evidence add", nodeErr.message);
+        fileError("", "parse", rnErr.message);
+        return;
       } else {
-        throw err;
+        throw readErr;
       }
     }
+    if (opts.set.length > 0) {
+      const overrides = parseSetFlags(opts.set);
+      if (evidenceData) {
+        deepMergeSetOverrides(evidenceData, overrides);
+      } else {
+        evidenceData = overrides;
+      }
+    }
+    if (opts.positionalSummary) {
+      if (!evidenceData) evidenceData = {};
+      if (evidenceData.summary === void 0) {
+        evidenceData.summary = opts.positionalSummary;
+      }
+    }
+    if (!evidenceData) {
+      noStdinError(
+        "evidence add",
+        "No data provided. Pipe JSON to stdin, use --set <key=value>, or use positional args."
+      );
+      return;
+    }
+    evidenceData.version = "1.0";
+    evidenceData.agent = agentName;
+    evidenceData.task_id = opts.task || opts.phase;
+    evidenceData.role = opts.role;
+    if (opts.dryRun) {
+      dryRunGuard(true, evidenceData, "evidence");
+      return;
+    }
+    const result = validate("evidence", evidenceData);
+    if (!result.valid) {
+      validationError("evidence", result.errors || []);
+      return;
+    }
+    const missionDir = path9.resolve(geasDir2, "missions", missionId);
+    let evidenceDir;
+    if (opts.phase) {
+      const phaseDir = opts.phase === "evolving" ? "evolution" : opts.phase;
+      evidenceDir = path9.resolve(missionDir, phaseDir, "evidence");
+    } else {
+      evidenceDir = path9.resolve(missionDir, "tasks", opts.task, "evidence");
+      const contractPath = path9.resolve(missionDir, "tasks", opts.task, "contract.json");
+      if (!fs10.existsSync(contractPath)) {
+        fileError(`tasks/${opts.task}/contract.json`, "validate", "Task does not exist. Cannot create evidence for non-existent task.");
+        return;
+      }
+    }
+    ensureDir(evidenceDir);
+    const filePath = path9.resolve(evidenceDir, `${agentName}.json`);
+    writeJsonFile(filePath, evidenceData, { cwd });
+    success({
+      written: normalizePath(filePath),
+      mission_id: missionId,
+      ...opts.task ? { task_id: opts.task } : { phase: opts.phase },
+      agent: agentName,
+      role: opts.role
+    });
+  } catch (err) {
+    const nodeErr = err;
+    if (nodeErr.code === "FILE_ERROR") {
+      fileError("", "evidence add", nodeErr.message);
+    } else {
+      throw err;
+    }
+  }
+}
+function registerEvidenceCommands(program2) {
+  const cmd = program2.command("evidence").description("Role-based evidence file management");
+  cmd.command("submit [task] [role] [summary]").description("Create evidence file with positional args: geas evidence submit TASK ROLE SUMMARY").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").option("--agent <name>", "Agent name (defaults to role value)").option("--phase <phase>", "Phase name for mission-level evidence (polishing, evolving)").option("--set <key=value...>", "Set individual fields", collectSet3, []).option("--dry-run", "Validate input without writing files").action((task, role, summary, opts) => {
+    evidenceWriteHandler(cmd, {
+      mission: opts.mission,
+      task,
+      phase: opts.phase,
+      agent: opts.agent || role,
+      role,
+      set: opts.set,
+      dryRun: opts.dryRun,
+      positionalSummary: summary
+    });
+  });
+  cmd.command("add").description("Create or overwrite a role-based evidence file (JSON via stdin and/or --set)").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").option("--task <tid>", "Task identifier (use --phase for phase-level evidence)").option("--phase <phase>", "Phase name for mission-level evidence (polishing, evolving)").requiredOption("--agent <name>", "Agent name (used as filename)").requiredOption("--role <role>", "Agent role (implementer, reviewer, tester, authority)").option("--set <key=value...>", "Set individual fields", collectSet3, []).option("--dry-run", "Validate input without writing files").action((opts) => {
+    evidenceWriteHandler(cmd, {
+      mission: opts.mission,
+      task: opts.task,
+      phase: opts.phase,
+      agent: opts.agent,
+      role: opts.role,
+      set: opts.set,
+      dryRun: opts.dryRun
+    });
   });
   cmd.command("read").description("Read evidence for a task (single agent or all)").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").requiredOption("--task <tid>", "Task identifier").option("--agent <name>", "Agent name (omit to list all)").action((opts) => {
     try {
@@ -14851,7 +15056,7 @@ function registerEvidenceCommands(program2) {
     }
   });
 }
-function collectSet2(value, previous) {
+function collectSet3(value, previous) {
   return previous.concat([value]);
 }
 
@@ -15548,9 +15753,49 @@ var transitionGuards = {
 // src/commands/phase.ts
 function registerPhaseCommands(program2) {
   const cmd = program2.command("phase").description("Phase review read/write");
-  cmd.command("write").description("Write a phase review (JSON via stdin)").requiredOption("--mission <mid>", "Mission ID").option("--dry-run", "Validate input without writing files").action((opts, cmd2) => {
+  cmd.command("write [phase] [status]").description("Write a phase review (positional: PHASE STATUS, or JSON via stdin)").requiredOption("--mission <mid>", "Mission ID").option("--summary <text>", "Phase review summary").option("--set <key=value...>", "Set additional fields", collectSet4, []).option("--dry-run", "Validate input without writing files").action((phase, status, opts, cmd2) => {
     try {
-      const data = readInputData();
+      let data;
+      let stdinData;
+      try {
+        stdinData = readInputData();
+      } catch (readErr) {
+        const rnErr = readErr;
+        if (rnErr.code === "NO_STDIN") {
+          stdinData = void 0;
+        } else if (rnErr.code === "INVALID_JSON") {
+          if (opts.dryRun) {
+            dryRunParseError(rnErr.message);
+            return;
+          }
+          fileError("phase-reviews/", "parse", rnErr.message);
+          return;
+        } else {
+          throw readErr;
+        }
+      }
+      if (stdinData) {
+        data = stdinData;
+        if (opts.set.length > 0) {
+          const overrides = parseSetFlags(opts.set);
+          deepMergeSetOverrides(data, overrides);
+        }
+      } else if (phase && status) {
+        data = {
+          mission_phase: phase,
+          status
+        };
+        if (opts.summary) {
+          data.summary = opts.summary;
+        }
+        if (opts.set.length > 0) {
+          const overrides = parseSetFlags(opts.set);
+          deepMergeSetOverrides(data, overrides);
+        }
+      } else {
+        noStdinError("phase write", "No data provided. Pipe JSON to stdin, or use positional args: geas phase write PHASE STATUS --summary TEXT");
+        return;
+      }
       const cwd = getCwd(cmd2);
       const geasDir2 = resolveGeasDir(cwd);
       validateIdentifier(opts.mission, "mission ID");
@@ -15594,33 +15839,20 @@ function registerPhaseCommands(program2) {
         dryRunGuard(true, data, "phase-review");
         return;
       }
-      const phase = data.mission_phase || "unknown";
-      const status = data.status || "unknown";
+      const phaseVal = data.mission_phase || "unknown";
+      const statusVal = data.status || "unknown";
       const timestamp = (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z").replace(/:/g, "-");
-      const filename = `${phase}_${status}_${timestamp}.json`;
+      const filename = `${phaseVal}_${statusVal}_${timestamp}.json`;
       const filePath = path16.resolve(missionDir, "phase-reviews", filename);
       writeJsonFile(filePath, data, { cwd });
       success({
         ok: true,
         mission_id: opts.mission,
-        phase,
-        status,
+        phase: phaseVal,
+        status: statusVal,
         path: filePath
       });
     } catch (err) {
-      const nodeErr = err;
-      if (nodeErr.code === "NO_STDIN") {
-        noStdinError("phase write", nodeErr.message);
-        return;
-      }
-      if (nodeErr.code === "INVALID_JSON") {
-        if (opts.dryRun) {
-          dryRunParseError(nodeErr.message);
-          return;
-        }
-        fileError("phase-reviews/", "parse", nodeErr.message);
-        return;
-      }
       const msg = err instanceof SyntaxError ? "Invalid JSON on stdin" : err.message;
       fileError("phase-reviews/", "write", msg);
     }
@@ -15664,6 +15896,9 @@ function registerPhaseCommands(program2) {
       }
     }
   });
+}
+function collectSet4(value, previous) {
+  return previous.concat([value]);
 }
 
 // src/commands/decision.ts
