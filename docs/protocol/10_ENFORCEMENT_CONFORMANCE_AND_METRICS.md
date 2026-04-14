@@ -16,7 +16,7 @@ A default lifecycle SHOULD include the following enforcement points. Each point 
 | 1 | `task_admission` | a new task enters the active pipeline |
 | 2 | `pre_implementation` | before work begins on an admitted task |
 | 3 | `post_implementation` | after the worker signals implementation complete |
-| 4 | `pre_integration` | before merging output into the shared workspace |
+| 4 | `pre_integration` | before reconciling output into the shared baseline |
 | 5 | `post_integration` | after integration succeeds |
 | 6 | `pre_gate` | before evidence gate evaluation starts |
 | 7 | `post_gate` | after evidence gate produces a verdict |

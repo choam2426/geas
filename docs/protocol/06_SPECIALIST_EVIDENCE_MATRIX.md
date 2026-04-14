@@ -21,7 +21,7 @@ Specialist reviews are stored as role-based evidence files in `evidence/{agent}.
 | `concerns[]` | individually addressable blocking issues |
 | `criteria_results[]` | per-criterion pass/fail assessments |
 | `rationale` | explanation of the overall verdict |
-| `files_changed[]` | files examined or modified during review |
+| `artifact_refs[]` | artifacts examined or modified during review |
 
 A review with no evidence reference MAY still exist, but it SHOULD be treated as lower-confidence input and SHOULD NOT be enough to justify closure by itself on higher-assurance work.
 
@@ -64,17 +64,39 @@ Challenger also writes to `record.json:challenge_review` (dual-write) because th
 | Operations Specialist | delivery pipeline, environment readiness, rollback capability | operational readiness notes | deployment breakage, config drift, missing rollback path |
 | Communication Specialist | documentation impact, user-facing changes, clarity | documentation completeness notes, audience-fit assessment | stale instructions, missing guidance, misleading content |
 
-### Software domain examples
+### Domain-specific evidence examples
 
-For projects using the software development domain profile, slots map to concrete evidence expectations:
+Each domain profile refines the generic slot expectations into concrete inspection targets. The following are representative examples, not exhaustive lists.
+
+#### Software development profile
 
 | slot | concrete types | domain-specific inspection focus |
 |---|---|---|
-| Implementer | `software_engineer` | changed UI paths, interaction states, responsive behavior, a11y surfaces, API contracts, data flows, migration safety, error semantics, idempotency |
-| Quality Specialist | `qa_engineer` | test coverage against criteria, negative paths, demo validation |
-| Risk Specialist | `security_engineer` | authn/authz boundaries, secret handling, injection surfaces, abuse paths |
-| Operations Specialist | `platform_engineer` | CI reliability, deploy implications, config drift, provenance |
-| Communication Specialist | `technical_writer` | docs completeness, migration notes, operator caveats |
+| Implementer | `software-engineer` | changed UI paths, interaction states, responsive behavior, a11y surfaces, API contracts, data flows, migration safety, error semantics, idempotency |
+| Quality Specialist | `qa-engineer` | test coverage against criteria, negative paths, demo validation |
+| Risk Specialist | `security-engineer` | authn/authz boundaries, secret handling, injection surfaces, abuse paths |
+| Operations Specialist | `platform-engineer` | CI reliability, deploy implications, config drift, provenance |
+| Communication Specialist | `technical-writer` | docs completeness, migration notes, operator caveats |
+
+#### Research profile
+
+| slot | concrete types | domain-specific inspection focus |
+|---|---|---|
+| Implementer | `research-analyst` | methodology soundness, data collection validity, analysis reproducibility |
+| Quality Specialist | `methodology-reviewer` | statistical rigor, sample adequacy, reproducibility of findings |
+| Risk Specialist | `research-integrity-reviewer` | ethics compliance, data privacy, bias assessment |
+| Operations Specialist | `research-engineer` | data pipeline reliability, compute reproducibility, environment consistency |
+| Communication Specialist | `research-writer` | paper clarity, citation accuracy, audience-appropriate presentation |
+
+#### Content creation profile
+
+| slot | concrete types | domain-specific inspection focus |
+|---|---|---|
+| Implementer | `content-writer` | factual accuracy, tone consistency, source attribution |
+| Quality Specialist | `fact-checker` | claim verification, source reliability, cross-reference consistency |
+| Risk Specialist | `legal-reviewer` | copyright compliance, liability exposure, regulatory alignment |
+| Operations Specialist | `publishing-engineer` | CMS integration, format conversion, distribution readiness |
+| Communication Specialist | `editor` | audience fit, style consistency, clarity |
 
 ## Matrix by Task Kind
 
@@ -120,7 +142,7 @@ All specialists MAY consume worker artifacts, but the following pairings are esp
 | worker artifact | primary consumer slot | expected effect |
 |---|---|---|
 | `known_risks[]` | Design Authority, Risk Specialist, Challenger | focus review where the worker is already uncertain |
-| `untested_paths[]` | Quality Specialist | prioritize verification effort |
+| `unverified_cases[]` | Quality Specialist | prioritize verification effort |
 | `possible_stubs[]` | Quality Specialist, Design Authority, Challenger | force explicit placeholder validation |
 | `what_to_test_next[]` | Quality Specialist | accelerate verification scenario design |
 | `summary` | all reviewers | orient review focus, not replace review |

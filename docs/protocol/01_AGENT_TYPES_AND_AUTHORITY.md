@@ -50,9 +50,9 @@ Canonical type names for authority slots:
 
 | slot | canonical type name |
 |---|---|
-| Orchestrator | `orchestration_authority` |
-| Decision Maker | `product_authority` |
-| Design Authority | `design_authority` |
+| Orchestrator | `orchestration-authority` |
+| Decision Maker | `product-authority` |
+| Design Authority | `design-authority` |
 | Challenger | `challenger` |
 
 ### Specialist Slots
@@ -71,43 +71,43 @@ A role MAY participate in multiple specialist slots. For example, a quality spec
 
 ### Domain Profiles
 
-A domain profile maps specialist slots to concrete role types. The protocol defines the **software development** profile as the reference example. Projects MUST declare their active domain profile.
+A domain profile maps specialist slots to concrete role types. The protocol bundles three example profiles: software development, research, and content creation. Projects MUST declare their active domain profile.
 
-#### Software Development Profile (reference)
+#### Software Development Profile
 
 | slot | concrete types | area of expertise |
 |---|---|---|
-| Implementer | `software_engineer` | full-stack implementation — UI, APIs, services, persistence, business logic, interaction design |
-| Quality Specialist | `qa_engineer` | acceptance criteria, tests, failure paths, regression risk |
-| Risk Specialist | `security_engineer` | auth, permissions, secret handling, abuse paths |
-| Operations Specialist | `platform_engineer` | CI/CD, environments, deployability, runtime operations |
-| Communication Specialist | `technical_writer` | docs, migrations, operator guidance |
+| Implementer | `software-engineer` | full-stack implementation — UI, APIs, services, persistence, business logic, interaction design |
+| Quality Specialist | `qa-engineer` | acceptance criteria, tests, failure paths, regression risk |
+| Risk Specialist | `security-engineer` | auth, permissions, secret handling, abuse paths |
+| Operations Specialist | `platform-engineer` | CI/CD, environments, deployability, runtime operations |
+| Communication Specialist | `technical-writer` | docs, migrations, operator guidance |
 
 #### Research Profile (example)
 
 | slot | concrete types | area of expertise |
 |---|---|---|
-| Implementer | `literature_analyst`, `research_analyst` | literature search and synthesis; experiment design, data analysis, modeling, simulation |
-| Quality Specialist | `methodology_reviewer` | statistical rigor, reproducibility, methodological soundness |
-| Risk Specialist | `research_integrity_reviewer` | research ethics, data privacy, bias assessment, validity threats |
-| Operations Specialist | `research_engineer` | data pipelines, compute infrastructure, reproducibility environments |
-| Communication Specialist | `research_writer` | paper drafting, reports, presentations, audience-appropriate communication |
+| Implementer | `literature-analyst`, `research-analyst` | literature search and synthesis; experiment design, data analysis, modeling, simulation |
+| Quality Specialist | `methodology-reviewer` | statistical rigor, reproducibility, methodological soundness |
+| Risk Specialist | `research-integrity-reviewer` | research ethics, data privacy, bias assessment, validity threats |
+| Operations Specialist | `research-engineer` | data pipelines, compute infrastructure, reproducibility environments |
+| Communication Specialist | `research-writer` | paper drafting, reports, presentations, audience-appropriate communication |
 
 #### Content Creation Profile (example)
 
 | slot | concrete types | area of expertise |
 |---|---|---|
-| Implementer | `content_writer`, `content_designer` | content drafting; visual design and layout |
-| Quality Specialist | `fact_checker` | source verification, claim accuracy, consistency |
-| Risk Specialist | `legal_reviewer` | copyright, liability, regulatory compliance |
-| Operations Specialist | `publishing_engineer` | CMS, distribution, scheduling, format conversion |
+| Implementer | `content-writer`, `content-designer` | content drafting; visual design and layout |
+| Quality Specialist | `fact-checker` | source verification, claim accuracy, consistency |
+| Risk Specialist | `legal-reviewer` | copyright, liability, regulatory compliance |
+| Operations Specialist | `publishing-engineer` | CMS, distribution, scheduling, format conversion |
 | Communication Specialist | `editor` | tone, clarity, audience fit, style consistency |
 
 A conformant implementation MAY define additional domain profiles or extend existing ones, but MUST NOT weaken the authority model.
 
 ## Detailed Responsibilities and Prohibitions
 
-### Orchestrator (`orchestration_authority`)
+### Orchestrator (`orchestration-authority`)
 
 Responsibilities:
 
@@ -128,7 +128,7 @@ Prohibitions:
 - MUST NOT "green-light" missing evidence by policy convenience
 - MUST NOT hide unresolved conflict from the closure packet
 
-### Decision Maker (`product_authority`)
+### Decision Maker (`product-authority`)
 
 Responsibilities:
 
@@ -144,7 +144,7 @@ Prohibitions:
 - SHOULD NOT be the primary implementation worker
 - MUST NOT weaken integrity invariants without an explicit, auditable override
 
-### Design Authority (`design_authority`)
+### Design Authority (`design-authority`)
 
 Responsibilities:
 
@@ -301,11 +301,11 @@ The following scope signals MUST add reviewer slots when detected:
 
 | signal | reviewer slots to add |
 |---|---|
-| user-facing surfaces, interaction flows, presentation | Implementer (frontend domain), Communication Specialist |
-| core logic, domain model, data handling, interfaces | Implementer (backend domain), Design Authority |
-| trust boundaries, credentials, sensitive data, permissions | Risk Specialist |
-| delivery pipeline, infrastructure, environments, runtime config | Operations Specialist |
-| verification artifacts, acceptance criteria, test surfaces | Quality Specialist |
+| presentation surfaces — user-facing output, interaction flows, visual design | Implementer (presentation domain), Communication Specialist |
+| core logic — domain model, data handling, algorithms, interfaces | Implementer (logic domain), Design Authority |
+| trust boundaries — credentials, sensitive data, permissions | Risk Specialist |
+| operational configuration — delivery pipeline, infrastructure, environments, runtime config | Operations Specialist |
+| verification surfaces — acceptance criteria, coverage artifacts, reproducibility | Quality Specialist |
 | documentation, guides, user-facing text | Communication Specialist |
 
 ### Step 4 — Gate profile and mission mode adjustment

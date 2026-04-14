@@ -31,6 +31,8 @@ Geas memory exists to change future behavior, not to accumulate notes. A memory 
 
 Unifies project conventions, learned rules, and role-specific guidance:
 
+Software project example:
+
 ```markdown
 ## Project Conventions
 - TypeScript strict, ES2022, NodeNext
@@ -45,6 +47,38 @@ Unifies project conventions, learned rules, and role-specific guidance:
 - Always include rubric_scores in evidence
 ```
 
+Research project example:
+
+```markdown
+## Project Conventions
+- APA 7th edition citation format
+- All statistical claims require effect size + confidence interval
+
+## Learned Rules
+- Survey instruments must be pilot-tested before full deployment
+- Mixed-methods designs require explicit integration point documentation
+
+## Role-Specific Rules
+### methodology-reviewer
+- Check for Type I error inflation in multiple comparisons
+```
+
+Content project example:
+
+```markdown
+## Project Conventions
+- AP Stylebook for news content, Chicago Manual for long-form
+- All claims require two independent sources
+
+## Learned Rules
+- Embedded quotes must be verified against primary source, not secondary citations
+- Image alt text must convey informational content, not decorative description
+
+## Role-Specific Rules
+### fact-checker
+- Flag statistical claims that lack original study citation
+```
+
 Updated via the Evolving phase rules-update workflow. Injected into every agent context via the `inject-context.sh` hook.
 
 ### Agent memory
@@ -55,11 +89,31 @@ Per-agent markdown files at `memory/agents/{agent}.md`:
 - **Updated** by the agent itself before exiting (via `geas memory agent-note`)
 - **Scope**: project-wide, persists across missions and sessions
 
+Software domain example:
+
 ```markdown
 # Design Authority Memory
 
 - Review must include rubric_scores (task-001 finding)
 - FTS5 index scope: title+description only, not code (mission-AQeKIOxC)
+```
+
+Research domain example:
+
+```markdown
+# Methodology Reviewer Memory
+
+- Always verify sample size justification against stated power analysis (task-003 finding)
+- Longitudinal designs: check for attrition bias at each measurement wave (mission-R7kL9mQx)
+```
+
+Content domain example:
+
+```markdown
+# Editor Memory
+
+- Headlines over 70 chars get truncated in social previews — flag during review (task-012 finding)
+- Listicle formats must still have narrative thread, not just bullet accumulation (mission-C4nT8pRw)
 ```
 
 ## Sources

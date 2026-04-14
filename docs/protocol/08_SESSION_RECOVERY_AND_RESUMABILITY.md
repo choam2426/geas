@@ -25,7 +25,7 @@ Each recovery class describes a category of session interruption and the expecte
 | `post_compact_resume` | session was compacted by the host platform; context is partially or fully lost but artifacts on disk may be intact |
 | `warm_session_resume` | session ended gracefully or nearly so; most context is available and artifacts are consistent |
 | `interrupted_subagent_resume` | a delegated sub-agent was lost mid-execution; parent session is intact but the sub-agent's work is uncertain |
-| `dirty_state_recovery` | uncommitted or ambiguous local changes exist; workspace state does not match any known checkpoint |
+| `dirty_state_recovery` | unsaved or ambiguous local changes exist; workspace state does not match any known checkpoint |
 | `manual_repair_required` | automated recovery cannot safely proceed; user intervention is needed before work can resume |
 
 ## Recovery Anchor
@@ -199,7 +199,7 @@ A recovery attempt can itself fail. When this happens:
 
 ## Dirty State Recovery
 
-Dirty state means uncommitted or ambiguous local changes exist. This is one of the most common and most dangerous recovery situations because the workspace cannot be trusted to reflect any known checkpoint.
+Dirty state means unsaved or ambiguous local changes exist. This is one of the most common and most dangerous recovery situations because the workspace cannot be trusted to reflect any known checkpoint.
 
 Rules:
 

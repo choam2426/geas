@@ -17,7 +17,7 @@ Parallelism is valuable only when it does not destroy evidence integrity. This d
 
 A baseline is the last verified snapshot of the shared work state that a task was validated against (see `base_snapshot` in doc 03). Every admitted task MUST carry a `base_snapshot` representing the integration baseline last known to be valid for that task.
 
-In software this is typically a Git commit. In other domains it may be a document version, a dataset checkpoint, or any other reproducible state reference.
+A baseline reference may be a document version, a dataset checkpoint, a version-control commit (e.g., Git), or any other reproducible state reference appropriate to the domain.
 
 ### Baseline rules
 
@@ -83,7 +83,7 @@ The revalidation result SHOULD be recorded as an artifact.
 
 ## Workspace
 
-A workspace is an isolated execution context for a task (see Glossary in doc 00). In software this is typically a Git worktree; in other domains it may be a sandboxed environment, a dedicated working directory, or any equivalent isolation mechanism.
+A workspace is an isolated execution context for a task (see Glossary in doc 00). This may be a sandboxed environment, a dedicated working directory, a version-control worktree (e.g., Git), or any equivalent isolation mechanism appropriate to the domain.
 
 ### Workspace rules
 
@@ -96,7 +96,7 @@ A workspace SHOULD be treated as disposable execution context, not the source of
 
 ### Runtime state and workspaces
 
-The runtime state directory (e.g., `.geas/`) is excluded from version control and therefore is NOT part of the workspace. When a workspace is created — for example, via Git worktree — the runtime state directory is not replicated into it. An agent executing inside a workspace that attempts to access runtime state via a relative path will find nothing.
+The runtime state directory (e.g., `.geas/`) is excluded from baseline tracking and therefore is NOT part of the workspace. When a workspace is created — for example, via an isolated working directory or version-control worktree — the runtime state directory is not replicated into it. An agent executing inside a workspace that attempts to access runtime state via a relative path will find nothing.
 
 1. The Orchestrator MUST resolve the project root to an absolute path and pass it to every agent before spawning.
 2. Agents running inside a workspace MUST use the absolute path to the main project's runtime state directory for all runtime state access.
