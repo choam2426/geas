@@ -4,7 +4,7 @@
   "description": "CLI for Geas plugin — wraps all .geas/ file I/O into atomic commands",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "npx tsc && node dist/check-field-policy.js",
     "bundle": "node esbuild.config.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --test dist/test/schema-template.test.js dist/test/envelope.test.js dist/test/validation-hints.test.js dist/test/input.test.js dist/test/dry-run.test.js"

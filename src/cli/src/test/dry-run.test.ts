@@ -53,11 +53,9 @@ describe('dryRunGuard', () => {
     const { dryRunGuard } = await import('../lib/dry-run');
 
     // Build a minimal valid task-contract payload (all required fields)
+    // Envelope fields (version, artifact_type, producer_type, artifact_id)
+    // are NOT schema properties — they are injected externally.
     const validData = {
-      version: '1.0',
-      artifact_type: 'task_contract',
-      producer_type: 'orchestration-authority',
-      artifact_id: 'tc-test-001',
       task_id: 'task-001',
       title: 'Test task',
       goal: 'Test goal',
@@ -71,7 +69,7 @@ describe('dryRunGuard', () => {
       rubric: { dimensions: [{ name: 'correctness', threshold: 1 }] },
       retry_budget: 3,
       scope: { surfaces: [] },
-      routing: { primary_worker_type: 'software-engineer', required_reviewer_types: ['qa-engineer'] },
+      routing: { primary_worker_slot: 'implementer', required_reviewer_slots: ['quality'] },
       base_snapshot: '',
     };
 

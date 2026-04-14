@@ -6,6 +6,7 @@
  */
 
 import { SCHEMAS, DEFS_SCHEMA } from './schemas-embedded';
+import { getStrippableFields } from './field-policy';
 
 const MAX_DEPTH = 10;
 const ISO_PATTERN = '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$';
@@ -18,29 +19,6 @@ const ISO_PATTERN = '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$';
 export function listSchemas(): string[] {
   return Object.keys(SCHEMAS).sort();
 }
-
-/**
- * Generate a fill-in JSON template for the given schema.
- * Only required fields are included at every nesting level.
- *
- * For evidence schema, pass options.role to merge conditional requirements.
- */
-/**
- * Fields auto-injected by the CLI envelope or timestamp logic.
- * Stripped by default when generating pipe-ready templates.
- */
-const ENVELOPE_FIELDS = new Set([
-  'version', 'artifact_type', 'producer_type', 'artifact_id',
-  'created_at', 'updated_at',
-]);
-
-/**
- * Fields that are force-set from CLI flags (not from stdin JSON).
- * Stripped by default so pipe templates don't include them.
- */
-const CLI_FLAG_FIELDS = new Set([
-  'agent', 'task_id', 'role',
-]);
 
 export interface TemplateOptions {
   role?: string;
@@ -57,8 +35,9 @@ export function listRecordSections(): string[] {
   const schema = SCHEMAS['record'] as SchemaNode | undefined;
   if (!schema?.properties) return [];
   const props = schema.properties as Record<string, SchemaNode>;
+  const strippable = getStrippableFields('record');
   return Object.keys(props)
-    .filter(k => !ENVELOPE_FIELDS.has(k) && !CLI_FLAG_FIELDS.has(k))
+    .filter(k => !strippable.has(k))
     .sort();
 }
 
@@ -108,11 +87,11 @@ export function generateTemplate(
     result.role = options.role;
   }
 
-  // Strip envelope + CLI-flag fields by default (opt out with stripEnvelope=false)
+  // Strip system + derived + guarded fields by default (opt out with stripEnvelope=false)
   const shouldStrip = options?.stripEnvelope !== false;
   if (shouldStrip) {
-    for (const field of ENVELOPE_FIELDS) delete result[field];
-    for (const field of CLI_FLAG_FIELDS) delete result[field];
+    const strippable = getStrippableFields(schemaName);
+    for (const field of strippable) delete result[field];
   }
 
   return result;

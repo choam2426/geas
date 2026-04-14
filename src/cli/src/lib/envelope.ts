@@ -10,46 +10,7 @@
  * Evidence is excluded (trust boundary — metadata from CLI flags).
  */
 
-interface EnvelopeEntry {
-  version: string;
-  artifact_type: string;
-  producer_type: string;
-  artifact_id_fn: (
-    data: Record<string, unknown>,
-    context: { mission_id?: string },
-  ) => string;
-}
-
-const ENVELOPE_REGISTRY: Record<string, EnvelopeEntry> = {
-  task_contract: {
-    version: '1.0',
-    artifact_type: 'task_contract',
-    producer_type: 'orchestration-authority',
-    artifact_id_fn: (data) => `tc-${data.task_id || 'unknown'}`,
-  },
-  mission_spec: {
-    version: '1.0',
-    artifact_type: 'mission_spec',
-    producer_type: 'orchestration-authority',
-    artifact_id_fn: (_data, context) => `spec-${context.mission_id || 'unknown'}`,
-  },
-  design_brief: {
-    version: '1.0',
-    artifact_type: 'design_brief',
-    producer_type: 'orchestration-authority',
-    artifact_id_fn: (_data, context) => `brief-${context.mission_id || 'unknown'}`,
-  },
-  phase_review: {
-    version: '1.0',
-    artifact_type: 'phase_review',
-    producer_type: 'orchestration-authority',
-    artifact_id_fn: (data) => {
-      const phase = (data.mission_phase as string) || 'unknown';
-      const ts = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z').replace(/:/g, '-');
-      return `phase-${phase}-${ts}`;
-    },
-  },
-};
+import { getEnvelopeEntry } from './field-policy';
 
 /**
  * Inject envelope fields into artifact data before validation.
@@ -65,7 +26,7 @@ export function injectEnvelope(
   data: Record<string, unknown>,
   context?: { mission_id?: string },
 ): Record<string, unknown> {
-  const entry = ENVELOPE_REGISTRY[artifactType];
+  const entry = getEnvelopeEntry(artifactType);
   if (!entry) return data;
 
   if (data.version === undefined) data.version = entry.version;
