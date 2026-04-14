@@ -14,12 +14,6 @@
       "type": "string",
       "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$"
     },
-    "created_at": {
-      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
-    "updated_at": {
-      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
     "source": {
       "type": "string",
       "enum": [

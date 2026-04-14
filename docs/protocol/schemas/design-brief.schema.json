@@ -187,13 +187,6 @@
       },
       "description": "Record of user rejections and subsequent revisions"
     },
-    "created_at": {
-      "type": "string",
-      "description": "ISO 8601 timestamp"
-    },
-    "updated_at": {
-      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
     "approved_at": {
       "type": [
         "string",

@@ -9,12 +9,6 @@
       "type": "string",
       "minLength": 1
     },
-    "created_at": {
-      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
-    "updated_at": {
-      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
     "implementation_contract": {
       "type": "object",
       "properties": {

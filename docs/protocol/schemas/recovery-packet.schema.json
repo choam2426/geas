@@ -13,12 +13,6 @@
     "artifacts_missing"
   ],
   "properties": {
-    "created_at": {
-      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
-    "updated_at": {
-      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
     "recovery_id": {
       "type": "string",
       "minLength": 1
