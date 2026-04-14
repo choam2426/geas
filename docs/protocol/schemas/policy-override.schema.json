@@ -5,14 +5,9 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "version",
     "overrides"
   ],
   "properties": {
-    "version": {
-      "type": "string",
-      "const": "1.0"
-    },
     "overrides": {
       "type": "array",
       "items": {
@@ -34,7 +29,10 @@
           },
           "action": {
             "type": "string",
-            "enum": ["disable", "modify"],
+            "enum": [
+              "disable",
+              "modify"
+            ],
             "description": "disable = rule is skipped at runtime; modify = rule behavior is changed"
           },
           "modification": {

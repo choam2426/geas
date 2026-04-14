@@ -4,10 +4,6 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "mission_id",
     "depth",
     "status",
@@ -16,23 +12,6 @@
     "verification_strategy"
   ],
   "properties": {
-    "version": {
-      "type": "string",
-      "const": "1.0"
-    },
-    "artifact_type": {
-      "type": "string",
-      "const": "design_brief"
-    },
-    "artifact_id": {
-      "type": "string",
-      "description": "e.g., design-brief-mission-20260407-x7Kq9mPv"
-    },
-    "producer_type": {
-      "type": "string",
-      "const": "orchestration-authority",
-      "description": "Always orchestration-authority for design briefs"
-    },
     "mission_id": {
       "type": "string",
       "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$",
@@ -40,11 +19,19 @@
     },
     "depth": {
       "type": "string",
-      "enum": ["lightweight", "standard", "full_depth"]
+      "enum": [
+        "lightweight",
+        "standard",
+        "full_depth"
+      ]
     },
     "status": {
       "type": "string",
-      "enum": ["draft", "reviewing", "approved"]
+      "enum": [
+        "draft",
+        "reviewing",
+        "approved"
+      ]
     },
     "chosen_approach": {
       "type": "string",
@@ -53,7 +40,9 @@
     },
     "non_goals": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "minItems": 1,
       "description": "What this mission explicitly will not do"
     },
@@ -66,11 +55,18 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["approach", "rejected_reason"],
+        "required": [
+          "approach",
+          "rejected_reason"
+        ],
         "additionalProperties": false,
         "properties": {
-          "approach": { "type": "string" },
-          "rejected_reason": { "type": "string" }
+          "approach": {
+            "type": "string"
+          },
+          "rejected_reason": {
+            "type": "string"
+          }
         }
       },
       "description": "full_depth only. Other approaches and why they were rejected."
@@ -79,14 +75,23 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["decision", "rationale"],
+        "required": [
+          "decision",
+          "rationale"
+        ],
         "additionalProperties": false,
         "properties": {
-          "decision": { "type": "string" },
-          "rationale": { "type": "string" },
+          "decision": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          },
           "constraints": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -96,28 +101,42 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["description", "mitigation"],
+        "required": [
+          "description",
+          "mitigation"
+        ],
         "additionalProperties": false,
         "properties": {
-          "description": { "type": "string" },
-          "mitigation": { "type": "string" }
+          "description": {
+            "type": "string"
+          },
+          "mitigation": {
+            "type": "string"
+          }
         }
       },
       "description": "standard and full_depth. Identified risks with mitigation plans."
     },
     "preserve_list": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "standard and full_depth. Existing behavior/files that must not change."
     },
     "unresolved_assumptions": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "full_depth only. Assumptions not yet validated."
     },
     "design_review": {
       "type": "object",
-      "required": ["reviewer_type", "summary"],
+      "required": [
+        "reviewer_type",
+        "summary"
+      ],
       "additionalProperties": false,
       "properties": {
         "reviewer_type": {
@@ -130,25 +149,40 @@
         },
         "additions": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Items added or modified by the reviewer"
         }
       }
     },
     "vote_round_ref": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Path to vote round artifact, or null if no vote"
     },
     "rejection_history": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["reason", "revision_summary", "rejected_at"],
+        "required": [
+          "reason",
+          "revision_summary",
+          "rejected_at"
+        ],
         "additionalProperties": false,
         "properties": {
-          "reason": { "type": "string" },
-          "revision_summary": { "type": "string" },
-          "rejected_at": { "type": "string" }
+          "reason": {
+            "type": "string"
+          },
+          "revision_summary": {
+            "type": "string"
+          },
+          "rejected_at": {
+            "type": "string"
+          }
         }
       },
       "description": "Record of user rejections and subsequent revisions"
@@ -161,7 +195,10 @@
       "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
     },
     "approved_at": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "ISO 8601 timestamp when user approved, or null"
     }
   }

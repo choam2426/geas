@@ -3,33 +3,59 @@
   "title": "LockManifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "locks"],
+  "required": [
+    "locks"
+  ],
   "properties": {
-    "version": { "type": "string", "const": "1.0" },
     "locks": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["lock_type", "task_id", "session_id", "targets", "status", "acquired_at"],
+        "required": [
+          "lock_type",
+          "task_id",
+          "session_id",
+          "targets",
+          "status",
+          "acquired_at"
+        ],
         "properties": {
           "lock_type": {
             "type": "string",
-            "enum": ["path", "interface", "resource", "integration"]
+            "enum": [
+              "path",
+              "interface",
+              "resource",
+              "integration"
+            ]
           },
-          "task_id": { "type": "string" },
-          "session_id": { "type": "string" },
+          "task_id": {
+            "type": "string"
+          },
+          "session_id": {
+            "type": "string"
+          },
           "targets": {
             "type": "array",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "minItems": 1
           },
           "status": {
             "type": "string",
-            "enum": ["held", "waiting"]
+            "enum": [
+              "held",
+              "waiting"
+            ]
           },
-          "acquired_at": { "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp" },
-          "wait_start": { "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp" }
+          "acquired_at": {
+            "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
+          },
+          "wait_start": {
+            "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
+          }
         }
       }
     }

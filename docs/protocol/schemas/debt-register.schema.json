@@ -4,32 +4,10 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "scope",
     "items"
   ],
   "properties": {
-    "version": {
-      "type": "string",
-      "const": "1.0"
-    },
-    "artifact_type": {
-      "type": "string",
-      "const": "debt_register"
-    },
-    "artifact_id": {
-      "type": "string"
-    },
-    "producer_type": {
-      "type": "string",
-      "enum": [
-        "design-authority",
-        "product-authority"
-      ]
-    },
     "scope": {
       "type": "string",
       "enum": [
@@ -112,23 +90,56 @@
     "rollup_by_severity": {
       "type": "object",
       "properties": {
-        "low": { "type": "integer", "minimum": 0 },
-        "normal": { "type": "integer", "minimum": 0 },
-        "high": { "type": "integer", "minimum": 0 },
-        "critical": { "type": "integer", "minimum": 0 }
+        "low": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "normal": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "high": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "critical": {
+          "type": "integer",
+          "minimum": 0
+        }
       },
       "additionalProperties": false
     },
     "rollup_by_kind": {
       "type": "object",
       "properties": {
-        "output_quality": { "type": "integer", "minimum": 0 },
-        "verification_gap": { "type": "integer", "minimum": 0 },
-        "structural": { "type": "integer", "minimum": 0 },
-        "risk": { "type": "integer", "minimum": 0 },
-        "process": { "type": "integer", "minimum": 0 },
-        "documentation": { "type": "integer", "minimum": 0 },
-        "operations": { "type": "integer", "minimum": 0 }
+        "output_quality": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "verification_gap": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "structural": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "risk": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "process": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "documentation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operations": {
+          "type": "integer",
+          "minimum": 0
+        }
       },
       "additionalProperties": false
     },

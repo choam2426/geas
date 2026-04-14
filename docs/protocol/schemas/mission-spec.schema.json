@@ -3,10 +3,6 @@
   "title": "MissionSpec",
   "type": "object",
   "required": [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "mission_id",
     "mission",
     "done_when",
@@ -14,21 +10,6 @@
     "acceptance_criteria"
   ],
   "properties": {
-    "version": {
-      "type": "string",
-      "const": "1.0"
-    },
-    "artifact_type": {
-      "type": "string",
-      "const": "mission_spec"
-    },
-    "artifact_id": {
-      "type": "string",
-      "minLength": 1
-    },
-    "producer_type": {
-      "$ref": "_defs.schema.json#/$defs/agentTypeId"
-    },
     "mission_id": {
       "type": "string",
       "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$"
@@ -41,14 +22,23 @@
     },
     "source": {
       "type": "string",
-      "enum": ["full_intake", "quick_intake", "external", "existing_project"]
+      "enum": [
+        "full_intake",
+        "quick_intake",
+        "external",
+        "existing_project"
+      ]
     },
     "domain_profile": {
       "type": "string"
     },
     "mode": {
       "type": "string",
-      "enum": ["lightweight", "standard", "full_depth"]
+      "enum": [
+        "lightweight",
+        "standard",
+        "full_depth"
+      ]
     },
     "mission": {
       "type": "string",
@@ -63,48 +53,70 @@
     },
     "scope": {
       "type": "object",
-      "required": ["in", "out"],
+      "required": [
+        "in",
+        "out"
+      ],
       "properties": {
         "in": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "minItems": 1
         },
         "out": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": false
     },
     "acceptance_criteria": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 },
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
       "minItems": 1
     },
     "constraints": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "affected_surfaces": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "risk_notes": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "assumptions": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "ambiguities": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
     "completeness_checklist": {
       "type": "object",
-      "additionalProperties": { "type": "boolean" }
+      "additionalProperties": {
+        "type": "boolean"
+      }
     }
   },
   "additionalProperties": false

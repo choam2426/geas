@@ -5,30 +5,10 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "signals",
     "any_triggered"
   ],
   "properties": {
-    "version": {
-      "type": "string",
-      "const": "1.0"
-    },
-    "artifact_type": {
-      "type": "string",
-      "const": "health_check"
-    },
-    "artifact_id": {
-      "type": "string",
-      "minLength": 1
-    },
-    "producer_type": {
-      "type": "string",
-      "const": "orchestration-authority"
-    },
     "signals": {
       "type": "array",
       "minItems": 8,
@@ -36,7 +16,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "value", "threshold", "triggered"],
+        "required": [
+          "name",
+          "value",
+          "threshold",
+          "triggered"
+        ],
         "properties": {
           "name": {
             "type": "string",

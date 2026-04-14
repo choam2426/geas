@@ -4,33 +4,11 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "mission_phase",
     "status",
     "summary"
   ],
   "properties": {
-    "version": {
-      "type": "string",
-      "const": "1.0"
-    },
-    "artifact_type": {
-      "type": "string",
-      "const": "phase_review"
-    },
-    "artifact_id": {
-      "type": "string"
-    },
-    "producer_type": {
-      "type": "string",
-      "enum": [
-        "orchestration-authority",
-        "product-authority"
-      ]
-    },
     "mission_phase": {
       "type": "string",
       "enum": [
@@ -97,11 +75,17 @@
   },
   "if": {
     "properties": {
-      "status": { "const": "ready_to_exit" }
+      "status": {
+        "const": "ready_to_exit"
+      }
     },
-    "required": ["status"]
+    "required": [
+      "status"
+    ]
   },
   "then": {
-    "required": ["next_phase"]
+    "required": [
+      "next_phase"
+    ]
   }
 }

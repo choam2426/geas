@@ -5,10 +5,6 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "round_type",
     "task_id",
     "participants",
@@ -17,25 +13,12 @@
     "quorum_met"
   ],
   "properties": {
-    "version": {
-      "type": "string",
-      "const": "1.0"
-    },
-    "artifact_type": {
-      "type": "string",
-      "const": "vote_round"
-    },
-    "artifact_id": {
-      "type": "string",
-      "minLength": 1
-    },
-    "producer_type": {
-      "type": "string",
-      "const": "orchestration-authority"
-    },
     "round_type": {
       "type": "string",
-      "enum": ["proposal_round", "readiness_round"]
+      "enum": [
+        "proposal_round",
+        "readiness_round"
+      ]
     },
     "task_id": {
       "type": "string",
@@ -60,7 +43,11 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["voter", "vote", "rationale"],
+        "required": [
+          "voter",
+          "vote",
+          "rationale"
+        ],
         "properties": {
           "voter": {
             "type": "string",
@@ -68,7 +55,13 @@
           },
           "vote": {
             "type": "string",
-            "enum": ["agree", "disagree", "ship", "iterate", "escalate"],
+            "enum": [
+              "agree",
+              "disagree",
+              "ship",
+              "iterate",
+              "escalate"
+            ],
             "description": "proposal_round: agree|disagree. readiness_round: ship|iterate|escalate."
           },
           "rationale": {
@@ -77,7 +70,11 @@
           },
           "severity": {
             "type": "string",
-            "enum": ["minor", "major", "critical"],
+            "enum": [
+              "minor",
+              "major",
+              "critical"
+            ],
             "description": "Required when vote is disagree, iterate, or escalate"
           }
         }
@@ -85,7 +82,14 @@
     },
     "result": {
       "type": "string",
-      "enum": ["agree", "disagree", "ship", "iterate", "escalate", "inconclusive"],
+      "enum": [
+        "agree",
+        "disagree",
+        "ship",
+        "iterate",
+        "escalate",
+        "inconclusive"
+      ],
       "description": "Outcome. 'inconclusive' if quorum was not met."
     },
     "quorum_met": {

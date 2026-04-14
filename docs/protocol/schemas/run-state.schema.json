@@ -4,52 +4,83 @@
   "description": "Session state and checkpoint for the Geas orchestrator. Written by orchestration-authority, read by restore-context hook for session recovery.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "status"],
+  "required": [
+    "status"
+  ],
   "properties": {
-    "version": {
-      "type": "string",
-      "const": "1.0"
-    },
     "status": {
       "type": "string",
-      "enum": ["initialized", "in_progress", "complete"],
+      "enum": [
+        "initialized",
+        "in_progress",
+        "complete"
+      ],
       "description": "Overall session status"
     },
     "mission_id": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$",
       "description": "Mission ID (e.g., 'mission-20260407-x7Kq9mPv') — used to locate spec and artifact files"
     },
     "mission": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Human-readable mission statement from current mission spec"
     },
     "phase": {
-      "type": ["string", "null"],
-      "enum": ["specifying", "building", "polishing", "evolving", "complete", null],
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "specifying",
+        "building",
+        "polishing",
+        "evolving",
+        "complete",
+        null
+      ],
       "description": "Current phase within the mission"
     },
     "current_task_id": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "ID of the task currently being executed"
     },
     "completed_tasks": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "IDs of tasks that have been resolved"
     },
     "decisions": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "IDs of DecisionRecords created during the session"
     },
     "session_latest_path": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "default": ".geas/state/session-latest.md",
       "description": "Path to human-readable session summary for post-compact recovery"
     },
     "recovery_class": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "enum": [
         "post_compact_resume",
         "warm_session_resume",
@@ -62,7 +93,11 @@
     },
     "scheduler_state": {
       "type": "string",
-      "enum": ["active", "idle", "paused"],
+      "enum": [
+        "active",
+        "idle",
+        "paused"
+      ],
       "default": "active",
       "description": "Scheduler execution state (from doc 04)"
     },
@@ -71,16 +106,24 @@
       "additionalProperties": false,
       "properties": {
         "pipeline_step": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Current pipeline step name (e.g., 'specialist_review', 'evidence_gate')"
         },
         "agent_in_flight": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Agent currently spawned and executing"
         },
         "pending_evidence": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Evidence files expected from the current agent"
         },
         "retry_count": {
@@ -89,19 +132,28 @@
           "description": "Number of verify-fix iterations used for the current task"
         },
         "parallel_batch": {
-          "type": ["array", "null"],
-          "items": { "type": "string" },
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
           "description": "Task IDs being executed in the current parallel batch. Null when running sequentially."
         },
         "completed_in_batch": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "Task IDs resolved within the current parallel batch."
         },
         "remaining_steps": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Ordered list of pipeline steps still to complete. Pop from front after each step."
         },
         "last_updated": {
@@ -111,7 +163,10 @@
         },
         "checkpoint_phase": {
           "type": "string",
-          "enum": ["pending", "committed"],
+          "enum": [
+            "pending",
+            "committed"
+          ],
           "default": "committed",
           "description": "Two-phase checkpoint state. 'pending' during write, 'committed' after."
         }

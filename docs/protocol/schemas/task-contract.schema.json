@@ -4,10 +4,6 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "version",
-    "artifact_type",
-    "artifact_id",
-    "producer_type",
     "task_id",
     "title",
     "goal",
@@ -25,20 +21,6 @@
     "status"
   ],
   "properties": {
-    "version": {
-      "type": "string",
-      "const": "1.0"
-    },
-    "artifact_type": {
-      "type": "string",
-      "const": "task_contract"
-    },
-    "artifact_id": {
-      "type": "string"
-    },
-    "producer_type": {
-      "$ref": "_defs.schema.json#/$defs/agentTypeId"
-    },
     "created_at": {
       "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
     },
@@ -57,19 +39,40 @@
     },
     "task_kind": {
       "type": "string",
-      "enum": ["implementation", "documentation", "configuration", "design", "review", "analysis", "delivery"]
+      "enum": [
+        "implementation",
+        "documentation",
+        "configuration",
+        "design",
+        "review",
+        "analysis",
+        "delivery"
+      ]
     },
     "risk_level": {
       "type": "string",
-      "enum": ["low", "normal", "high", "critical"]
+      "enum": [
+        "low",
+        "normal",
+        "high",
+        "critical"
+      ]
     },
     "gate_profile": {
       "type": "string",
-      "enum": ["implementation_change", "artifact_only", "closure_ready"]
+      "enum": [
+        "implementation_change",
+        "artifact_only",
+        "closure_ready"
+      ]
     },
     "vote_round_policy": {
       "type": "string",
-      "enum": ["never", "auto", "always"]
+      "enum": [
+        "never",
+        "auto",
+        "always"
+      ]
     },
     "acceptance_criteria": {
       "type": "array",
@@ -93,7 +96,10 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["name", "threshold"],
+            "required": [
+              "name",
+              "threshold"
+            ],
             "properties": {
               "name": {
                 "type": "string",
@@ -109,7 +115,9 @@
           "minItems": 1
         }
       },
-      "required": ["dimensions"],
+      "required": [
+        "dimensions"
+      ],
       "additionalProperties": false
     },
     "retry_budget": {
@@ -126,7 +134,9 @@
           }
         }
       },
-      "required": ["surfaces"],
+      "required": [
+        "surfaces"
+      ],
       "additionalProperties": false
     },
     "routing": {
@@ -153,7 +163,10 @@
           "minItems": 1
         }
       },
-      "required": ["primary_worker_slot", "required_reviewer_slots"],
+      "required": [
+        "primary_worker_slot",
+        "required_reviewer_slots"
+      ],
       "additionalProperties": false
     },
     "base_snapshot": {
