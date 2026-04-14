@@ -1,0 +1,37 @@
+{
+  "task_id": "task-012",
+  "title": "Literature review on transformer attention mechanisms",
+  "goal": "Survey recent papers on efficient attention variants and summarize trade-offs for the team's model selection decision",
+  "task_kind": "analysis",
+  "risk_level": "low",
+  "gate_profile": "artifact_only",
+  "vote_round_policy": "never",
+  "acceptance_criteria": [
+    "At least 15 papers from 2024-2026 are reviewed and cited",
+    "Each attention variant has a comparison row in the summary table",
+    "Trade-off analysis covers latency, memory, and accuracy dimensions",
+    "Recommendation section ranks top 3 candidates with rationale"
+  ],
+  "eval_commands": [],
+  "rubric": {
+    "dimensions": [
+      { "name": "core_interaction", "threshold": 3 },
+      { "name": "feature_completeness", "threshold": 4 }
+    ]
+  },
+  "retry_budget": 2,
+  "scope": {
+    "surfaces": [
+      "analysis/attention-survey/",
+      "analysis/results.csv"
+    ]
+  },
+  "routing": {
+    "primary_worker_slot": "implementer",
+    "primary_worker_type": "research-analyst",
+    "required_reviewer_slots": ["design-authority", "quality"],
+    "required_reviewer_types": ["design-authority", "domain-expert"]
+  },
+  "base_snapshot": "f1e2d3c4b5a6f7e8d9c0b1a2f3e4d5c6b7a8f9e0",
+  "status": "ready"
+}

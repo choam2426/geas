@@ -1,0 +1,38 @@
+{
+  "task_id": "task-021",
+  "title": "Write API migration guide for v2 to v3",
+  "goal": "Create a step-by-step migration guide that helps existing API consumers upgrade from v2 to v3 without service disruption",
+  "task_kind": "documentation",
+  "risk_level": "normal",
+  "gate_profile": "artifact_only",
+  "vote_round_policy": "never",
+  "acceptance_criteria": [
+    "Every breaking change in v3 has a dedicated migration section",
+    "Code examples show before/after for each breaking change",
+    "Rollback procedure is documented for each migration step",
+    "Estimated migration time is provided per section"
+  ],
+  "eval_commands": [],
+  "rubric": {
+    "dimensions": [
+      { "name": "core_interaction", "threshold": 3 },
+      { "name": "feature_completeness", "threshold": 4 },
+      { "name": "code_quality", "threshold": 3 }
+    ]
+  },
+  "retry_budget": 2,
+  "scope": {
+    "surfaces": [
+      "docs/migration/v2-to-v3.md",
+      "docs/api-reference/"
+    ]
+  },
+  "routing": {
+    "primary_worker_slot": "implementer",
+    "primary_worker_type": "technical-writer",
+    "required_reviewer_slots": ["design-authority"],
+    "required_reviewer_types": ["design-authority"]
+  },
+  "base_snapshot": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
+  "status": "ready"
+}

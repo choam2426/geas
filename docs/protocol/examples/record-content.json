@@ -1,0 +1,74 @@
+{
+  "task_id": "task-021",
+
+  "implementation_contract": {
+    "worker": "technical-writer",
+    "planned_actions": [
+      "Catalog all breaking changes between v2 and v3 API",
+      "Write migration section for each breaking change with before/after code examples",
+      "Document rollback procedure for each migration step",
+      "Add estimated migration time per section"
+    ],
+    "non_goals": [
+      "Updating the v3 API reference itself",
+      "Writing automated migration scripts"
+    ],
+    "edge_cases": [
+      "Breaking changes that affect both REST and WebSocket endpoints",
+      "Deprecated v2 endpoints with no direct v3 equivalent"
+    ],
+    "status": "approved"
+  },
+
+  "self_check": {
+    "confidence": 5,
+    "known_risks": [
+      "Migration time estimates are based on average codebase size and may vary"
+    ],
+    "unverified_cases": [
+      "Rollback procedure for batch endpoint migration has not been tested end-to-end"
+    ],
+    "summary": "All 7 breaking changes documented with before/after examples, rollback steps, and time estimates. Guide follows the established documentation template."
+  },
+
+  "gate_result": {
+    "verdict": "pass",
+    "tier_results": {
+      "tier_0": { "status": "pass", "details": "Contract exists, self-check present" },
+      "tier_1": { "status": "skipped", "details": "No eval_commands for documentation task" },
+      "tier_2": { "status": "pass", "details": "Rubric dimensions meet threshold" }
+    },
+    "rubric_scores": [
+      { "dimension": "core_interaction", "score": 4, "threshold": 3, "passed": true },
+      { "dimension": "feature_completeness", "score": 5, "threshold": 4, "passed": true },
+      { "dimension": "code_quality", "score": 4, "threshold": 3, "passed": true }
+    ]
+  },
+
+  "verdict": {
+    "verdict": "pass",
+    "rationale": "Migration guide covers all breaking changes with actionable steps. Reviewer concern about batch endpoint error handling is minor and tracked as debt."
+  },
+
+  "closure": {
+    "change_summary": "Created comprehensive v2-to-v3 API migration guide covering 7 breaking changes with before/after examples and rollback procedures",
+    "reviews": [
+      { "reviewer_type": "design-authority", "status": "approved", "summary": "All breaking changes covered, examples are accurate" }
+    ],
+    "open_risks": [],
+    "debt_items": [
+      "Add error handling examples to batch endpoint migration section"
+    ]
+  },
+
+  "retrospective": {
+    "what_went_well": [
+      "Before/after code format made breaking changes immediately clear",
+      "Rollback procedures gave users confidence to start migration"
+    ],
+    "what_broke": [],
+    "memory_candidates": [
+      "Migration guides should always include rollback procedures per section, not just a single rollback section"
+    ]
+  }
+}

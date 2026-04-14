@@ -1,9 +1,4 @@
 {
-  "version": "1.0",
-  "artifact_type": "task_contract",
-  "artifact_id": "tc-task-003",
-  "producer_type": "orchestration-authority",
-  "created_at": "2026-04-01T09:00:00Z",
   "task_id": "task-003",
   "title": "Implement user authentication flow",
   "goal": "Build login, signup, and password reset forms with token-based authentication against the existing backend API",
@@ -33,14 +28,16 @@
   },
   "retry_budget": 3,
   "scope": {
-    "paths": [
+    "surfaces": [
       "src/features/auth/",
       "src/components/forms/",
       "src/api/auth.ts"
     ]
   },
   "routing": {
+    "primary_worker_slot": "implementer",
     "primary_worker_type": "software-engineer",
+    "required_reviewer_slots": ["design-authority", "quality"],
     "required_reviewer_types": ["design-authority", "qa-engineer"]
   },
   "base_snapshot": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",

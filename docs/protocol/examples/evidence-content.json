@@ -1,0 +1,10 @@
+{
+  "agent": "design-authority",
+  "task_id": "task-021",
+  "role": "reviewer",
+  "summary": "Reviewed v2-to-v3 migration guide. All 7 breaking changes are documented with before/after examples. Rollback procedures are clear. One concern about the batch endpoint migration section lacking error handling guidance.",
+  "verdict": "approved",
+  "concerns": [
+    "Batch endpoint migration section should include error handling examples for partial failures"
+  ]
+}
