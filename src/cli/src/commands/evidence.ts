@@ -198,7 +198,7 @@ export function registerEvidenceCommands(program: Command): void {
 
   // --- evidence submit TASK ROLE SUMMARY (positional builder) ---
   cmd
-    .command('submit [task] [role] [summary]')
+    .command('submit <task> <role> [summary]')
     .description('Create evidence file with positional args: geas evidence submit TASK ROLE SUMMARY')
     .option('--mission <mid>', 'Mission identifier (auto-resolved from run.json)')
     .option('--agent <name>', 'Agent name (defaults to role value)')

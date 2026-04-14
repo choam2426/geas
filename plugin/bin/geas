@@ -14972,7 +14972,7 @@ function evidenceWriteHandler(parentCmd, opts) {
 }
 function registerEvidenceCommands(program2) {
   const cmd = program2.command("evidence").description("Role-based evidence file management");
-  cmd.command("submit [task] [role] [summary]").description("Create evidence file with positional args: geas evidence submit TASK ROLE SUMMARY").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").option("--agent <name>", "Agent name (defaults to role value)").option("--phase <phase>", "Phase name for mission-level evidence (polishing, evolving)").option("--set <key=value...>", "Set individual fields", collectSet3, []).option("--dry-run", "Validate input without writing files").action((task, role, summary, opts) => {
+  cmd.command("submit <task> <role> [summary]").description("Create evidence file with positional args: geas evidence submit TASK ROLE SUMMARY").option("--mission <mid>", "Mission identifier (auto-resolved from run.json)").option("--agent <name>", "Agent name (defaults to role value)").option("--phase <phase>", "Phase name for mission-level evidence (polishing, evolving)").option("--set <key=value...>", "Set individual fields", collectSet3, []).option("--dry-run", "Validate input without writing files").action((task, role, summary, opts) => {
     evidenceWriteHandler(cmd, {
       mission: opts.mission,
       task,
