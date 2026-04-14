@@ -119,13 +119,16 @@ export function registerTaskCommands(program: Command): void {
     .command('task')
     .description('Task CRUD (contracts, status transitions, execution record)');
 
-  // ── geas task create --mission <mid> (JSON via stdin) ─────────────
+  // ── geas task create TITLE --goal GOAL --kind KIND ────────────────
   cmd
     .command('create')
-    .description('Create a task contract with schema validation (JSON via stdin)')
+    .description('Create a task contract (positional TITLE + flags, or JSON via stdin)')
+    .argument('[title]', 'Task title (positional; omit to use JSON stdin)')
+    .option('--goal <goal>', 'Task goal description')
+    .option('--kind <kind>', 'Task kind (implementation, documentation, configuration, design, review, analysis, delivery)')
     .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
     .option('--dry-run', 'Validate input without writing files')
-    .action((opts: { mission?: string; dryRun?: boolean }) => {
+    .action((title: string | undefined, opts: { goal?: string; kind?: string; mission?: string; dryRun?: boolean }) => {
       try {
         const cwd = getCwd(cmd);
         const geasDir = resolveGeasDir(cwd);
@@ -133,10 +136,82 @@ export function registerTaskCommands(program: Command): void {
         validateIdentifier(missionId, 'mission ID');
         const missionDir = resolveMissionDir(geasDir, missionId);
 
-        const data = readInputData() as Record<string, unknown>;
+        let data: Record<string, unknown>;
 
-        // Inject envelope fields (version, artifact_type, producer_type, artifact_id)
-        injectEnvelope('task_contract', data);
+        let positionalMode = false;
+
+        if (title) {
+          // ── Positional path: construct contract from args ──
+          positionalMode = true;
+
+          if (!opts.goal) {
+            validationError('task-contract', [{ message: '--goal is required when using positional TITLE' }]);
+            return;
+          }
+          if (!opts.kind) {
+            validationError('task-contract', [{ message: '--kind is required when using positional TITLE' }]);
+            return;
+          }
+
+          const VALID_KINDS = ['implementation', 'documentation', 'configuration', 'design', 'review', 'analysis', 'delivery'];
+          if (!VALID_KINDS.includes(opts.kind)) {
+            validationError('task-contract', [{ message: `Invalid --kind '${opts.kind}'. Must be one of: ${VALID_KINDS.join(', ')}` }]);
+            return;
+          }
+
+          // Auto-generate task_id: scan tasks dir, find max numeric suffix, use max+1
+          const tasksDir = path.resolve(missionDir, 'tasks');
+          let nextNum = 1;
+          if (fs.existsSync(tasksDir)) {
+            const entries = fs.readdirSync(tasksDir, { withFileTypes: true });
+            for (const entry of entries) {
+              if (!entry.isDirectory()) continue;
+              const match = entry.name.match(/^task-(\d+)$/);
+              if (match) {
+                const num = parseInt(match[1], 10);
+                if (num >= nextNum) nextNum = num + 1;
+              }
+            }
+          }
+          const taskId = `task-${String(nextNum).padStart(3, '0')}`;
+
+          // Get base_snapshot from git HEAD
+          let baseSnapshot = '';
+          try {
+            baseSnapshot = execFileSync('git', ['rev-parse', 'HEAD'], { cwd, encoding: 'utf-8' }).trim();
+          } catch {
+            process.stderr.write(JSON.stringify({ warning: 'Failed to get git HEAD for base_snapshot' }) + '\n');
+          }
+
+          data = {
+            task_id: taskId,
+            title,
+            goal: opts.goal,
+            task_kind: opts.kind,
+            status: 'drafted',
+            risk_level: 'low',
+            gate_profile: 'implementation_change',
+            vote_round_policy: 'never',
+            acceptance_criteria: ['(pending)'],
+            eval_commands: [],
+            rubric: { dimensions: [{ name: 'default', threshold: 1 }] },
+            retry_budget: 2,
+            scope: { surfaces: [] },
+            routing: {
+              primary_worker_slot: 'implementer',
+              required_reviewer_slots: ['quality'],
+            },
+            base_snapshot: baseSnapshot,
+          };
+        } else {
+          // ── Stdin fallback path (backward compatible) ──
+          data = readInputData() as Record<string, unknown>;
+        }
+
+        // Inject envelope fields for stdin path (backward compatible)
+        if (!positionalMode) {
+          injectEnvelope('task_contract', data);
+        }
 
         // Enforce status=drafted for new task contracts
         if (!data.status || data.status !== 'drafted') {
@@ -198,6 +273,181 @@ export function registerTaskCommands(program: Command): void {
           fileError('', 'parse', nodeErr.message);
         } else if (nodeErr.code === 'FILE_ERROR') {
           fileError('', 'create', nodeErr.message);
+        } else {
+          throw err;
+        }
+      }
+    });
+
+  // ── Shared helper: load an existing task contract ─────────────────
+  function loadContract(missionDir: string, taskId: string): Record<string, unknown> {
+    const contractPath = path.resolve(missionDir, 'tasks', taskId, 'contract.json');
+    const contract = readJsonFile<Record<string, unknown>>(contractPath);
+    if (!contract) {
+      const err = new Error(`Task contract not found: ${normalizePath(contractPath)}`);
+      (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
+      throw err;
+    }
+    return contract;
+  }
+
+  // Fields injected by the CLI (envelope + timestamps) that are not in the task-contract schema
+  const NON_SCHEMA_FIELDS = ['version', 'artifact_type', 'producer_type', 'artifact_id', 'created_at', 'updated_at'];
+
+  function saveContract(missionDir: string, taskId: string, data: Record<string, unknown>, cwd: string): string {
+    const contractPath = path.resolve(missionDir, 'tasks', taskId, 'contract.json');
+    // Strip system/envelope fields for validation (they are re-injected on write)
+    const forValidation = { ...data };
+    for (const field of NON_SCHEMA_FIELDS) {
+      delete forValidation[field];
+    }
+    const result = validate('task-contract', forValidation);
+    if (!result.valid) {
+      validationError('task-contract', result.errors!);
+      return '';
+    }
+    writeJsonFile(contractPath, data, { cwd });
+    return normalizePath(contractPath);
+  }
+
+  // ── geas task add-acceptance <task-id> <criterion> ──────────────
+  cmd
+    .command('add-acceptance')
+    .description('Append an acceptance criterion to a task contract')
+    .argument('<task-id>', 'Task identifier')
+    .argument('<criterion>', 'Acceptance criterion text')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .action((taskId: string, criterion: string, opts: { mission?: string }) => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(taskId, 'task ID');
+        const missionDir = resolveMissionDir(geasDir, missionId);
+
+        if (!criterion.trim()) {
+          validationError('task-contract', [{ message: 'Criterion cannot be empty' }]);
+          return;
+        }
+
+        const contract = loadContract(missionDir, taskId);
+
+        if (!Array.isArray(contract.acceptance_criteria)) {
+          contract.acceptance_criteria = [];
+        }
+        (contract.acceptance_criteria as string[]).push(criterion);
+
+        const written = saveContract(missionDir, taskId, contract, cwd);
+        if (!written) return;
+
+        success({
+          written,
+          task_id: taskId,
+          mission_id: missionId,
+          action: 'add-acceptance',
+          acceptance_criteria: contract.acceptance_criteria,
+        });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'add-acceptance', nodeErr.message);
+        } else {
+          throw err;
+        }
+      }
+    });
+
+  // ── geas task add-surface <task-id> <path> ──────────────────────
+  cmd
+    .command('add-surface')
+    .description('Append a scope surface path to a task contract')
+    .argument('<task-id>', 'Task identifier')
+    .argument('<path>', 'Scope surface path')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .action((taskId: string, surfacePath: string, opts: { mission?: string }) => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(taskId, 'task ID');
+        const missionDir = resolveMissionDir(geasDir, missionId);
+
+        const contract = loadContract(missionDir, taskId);
+
+        if (!contract.scope || typeof contract.scope !== 'object') {
+          contract.scope = { surfaces: [] };
+        }
+        const scope = contract.scope as Record<string, unknown>;
+        if (!Array.isArray(scope.surfaces)) {
+          scope.surfaces = [];
+        }
+        (scope.surfaces as string[]).push(surfacePath);
+
+        const written = saveContract(missionDir, taskId, contract, cwd);
+        if (!written) return;
+
+        success({
+          written,
+          task_id: taskId,
+          mission_id: missionId,
+          action: 'add-surface',
+          surfaces: scope.surfaces,
+        });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'add-surface', nodeErr.message);
+        } else {
+          throw err;
+        }
+      }
+    });
+
+  // ── geas task set-risk <task-id> <level> ────────────────────────
+  const VALID_RISK_LEVELS = ['low', 'medium', 'high', 'critical'] as const;
+
+  cmd
+    .command('set-risk')
+    .description('Update the risk level of a task contract')
+    .argument('<task-id>', 'Task identifier')
+    .argument('<level>', 'Risk level (low, medium, high, critical)')
+    .option('--mission <mission-id>', 'Mission identifier (auto-resolved from run.json)')
+    .action((taskId: string, level: string, opts: { mission?: string }) => {
+      try {
+        const cwd = getCwd(cmd);
+        const geasDir = resolveGeasDir(cwd);
+        const missionId = resolveMissionId(geasDir, opts.mission);
+        validateIdentifier(missionId, 'mission ID');
+        validateIdentifier(taskId, 'task ID');
+        const missionDir = resolveMissionDir(geasDir, missionId);
+
+        // Pre-validate level before reading contract (fast-fail)
+        if (!(VALID_RISK_LEVELS as readonly string[]).includes(level)) {
+          validationError('task-contract', [{
+            message: `Invalid risk level '${level}'. Must be one of: ${VALID_RISK_LEVELS.join(', ')}`,
+          }]);
+          return;
+        }
+
+        const contract = loadContract(missionDir, taskId);
+        contract.risk_level = level;
+
+        const written = saveContract(missionDir, taskId, contract, cwd);
+        if (!written) return;
+
+        success({
+          written,
+          task_id: taskId,
+          mission_id: missionId,
+          action: 'set-risk',
+          risk_level: level,
+        });
+      } catch (err: unknown) {
+        const nodeErr = err as NodeJS.ErrnoException;
+        if (nodeErr.code === 'FILE_ERROR') {
+          fileError('', 'set-risk', nodeErr.message);
         } else {
           throw err;
         }
