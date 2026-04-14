@@ -10,13 +10,21 @@ import { SCHEMAS, DEFS_SCHEMA } from './schemas-embedded';
 const MAX_DEPTH = 10;
 const ISO_PATTERN = '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$';
 
+/**
+ * Schemas used internally by the CLI (health, recovery) but not exposed
+ * to users via `geas schema list` or `geas schema template`.
+ */
+const INTERNAL_SCHEMAS = new Set(['health-check', 'recovery-packet']);
+
 /* ── Public API ─────────────────────────────────────────────────────── */
 
 /**
- * Return sorted list of available schema names.
+ * Return sorted list of available schema names (excluding internal schemas).
  */
 export function listSchemas(): string[] {
-  return Object.keys(SCHEMAS).sort();
+  return Object.keys(SCHEMAS)
+    .filter(k => !INTERNAL_SCHEMAS.has(k))
+    .sort();
 }
 
 /**
@@ -66,6 +74,12 @@ export function generateTemplate(
   schemaName: string,
   options?: TemplateOptions,
 ): object {
+  if (INTERNAL_SCHEMAS.has(schemaName)) {
+    throw new Error(
+      `Schema '${schemaName}' is internal and not available for template generation.`,
+    );
+  }
+
   const schema = SCHEMAS[schemaName] as SchemaNode | undefined;
   if (!schema) {
     const available = listSchemas();
