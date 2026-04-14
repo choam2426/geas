@@ -32,13 +32,13 @@
     "updated_at": {
       "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
     },
-    "files_changed": {
+    "artifact_refs": {
       "type": "array",
       "items": {
         "type": "string"
       }
     },
-    "commit": {
+    "revision_ref": {
       "type": "string"
     },
     "verdict": {
@@ -128,7 +128,7 @@
       },
       "then": {
         "required": [
-          "files_changed"
+          "artifact_refs"
         ]
       }
     },

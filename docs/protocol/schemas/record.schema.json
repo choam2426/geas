@@ -78,7 +78,7 @@
             "type": "string"
           }
         },
-        "untested_paths": {
+        "unverified_cases": {
           "type": "array",
           "items": {
             "type": "string"
@@ -93,7 +93,7 @@
         "confidence",
         "summary",
         "known_risks",
-        "untested_paths"
+        "unverified_cases"
       ],
       "additionalProperties": true
     },
