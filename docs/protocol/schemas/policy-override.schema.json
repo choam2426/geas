@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PolicyOverride",
+  "description": "Machine-readable policy override registry. Temporary overrides for rules.md entries with reason, expiry, approver, and full audit trail. Old entries are never deleted — they are marked expired.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "overrides"
+  ],
+  "properties": {
+    "overrides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rule_id",
+          "action",
+          "reason",
+          "expires_at",
+          "approved_by",
+          "expired"
+        ],
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Matches a rule slug from rules.md"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "disable",
+              "modify"
+            ],
+            "description": "disable = rule is skipped at runtime; modify = rule behavior is changed"
+          },
+          "modification": {
+            "type": "string",
+            "description": "When action = modify, describes the changed behavior. Required if action = modify."
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Justification for the override"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the override automatically expires"
+          },
+          "approved_by": {
+            "type": "string",
+            "description": "Agent type who authorized this override (e.g. product-authority)"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
+          },
+          "expired": {
+            "type": "boolean",
+            "description": "false = currently active; true = past expiry or superseded by a newer override"
+          }
+        }
+      }
+    }
+  }
+}
