@@ -16335,8 +16335,9 @@ function registerPacketCommands(program2) {
 // src/lib/schema-template.ts
 var MAX_DEPTH = 10;
 var ISO_PATTERN = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$";
+var INTERNAL_SCHEMAS = /* @__PURE__ */ new Set(["health-check", "recovery-packet"]);
 function listSchemas() {
-  return Object.keys(SCHEMAS).sort();
+  return Object.keys(SCHEMAS).filter((k) => !INTERNAL_SCHEMAS.has(k)).sort();
 }
 function listRecordSections() {
   const schema = SCHEMAS["record"];
@@ -16346,6 +16347,11 @@ function listRecordSections() {
   return Object.keys(props).filter((k) => !strippable.has(k)).sort();
 }
 function generateTemplate(schemaName, options) {
+  if (INTERNAL_SCHEMAS.has(schemaName)) {
+    throw new Error(
+      `Schema '${schemaName}' is internal and not available for template generation.`
+    );
+  }
   const schema = SCHEMAS[schemaName];
   if (!schema) {
     const available = listSchemas();
