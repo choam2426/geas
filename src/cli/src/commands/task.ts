@@ -406,7 +406,7 @@ export function registerTaskCommands(program: Command): void {
     });
 
   // ── geas task set-risk <task-id> <level> ────────────────────────
-  const VALID_RISK_LEVELS = ['low', 'medium', 'high', 'critical'] as const;
+  const VALID_RISK_LEVELS = ['low', 'normal', 'high', 'critical'] as const;
 
   cmd
     .command('set-risk')

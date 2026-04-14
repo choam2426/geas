@@ -13517,7 +13517,7 @@ function registerTaskCommands(program2) {
       }
     }
   });
-  const VALID_RISK_LEVELS = ["low", "medium", "high", "critical"];
+  const VALID_RISK_LEVELS = ["low", "normal", "high", "critical"];
   cmd.command("set-risk").description("Update the risk level of a task contract").argument("<task-id>", "Task identifier").argument("<level>", "Risk level (low, medium, high, critical)").option("--mission <mission-id>", "Mission identifier (auto-resolved from run.json)").action((taskId, level, opts) => {
     try {
       const cwd = getCwd(cmd);
