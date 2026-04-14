@@ -55,11 +55,6 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "approach",
-          "rejected_reason"
-        ],
-        "additionalProperties": false,
         "properties": {
           "approach": {
             "type": "string"
@@ -75,11 +70,6 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "decision",
-          "rationale"
-        ],
-        "additionalProperties": false,
         "properties": {
           "decision": {
             "type": "string"
@@ -101,11 +91,6 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "description",
-          "mitigation"
-        ],
-        "additionalProperties": false,
         "properties": {
           "description": {
             "type": "string"
@@ -137,11 +122,9 @@
         "reviewer_type",
         "summary"
       ],
-      "additionalProperties": false,
       "properties": {
         "reviewer_type": {
-          "type": "string",
-          "const": "design-authority"
+          "type": "string"
         },
         "summary": {
           "type": "string",
@@ -155,44 +138,6 @@
           "description": "Items added or modified by the reviewer"
         }
       }
-    },
-    "vote_round_ref": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "description": "Path to vote round artifact, or null if no vote"
-    },
-    "rejection_history": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": [
-          "reason",
-          "revision_summary",
-          "rejected_at"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "reason": {
-            "type": "string"
-          },
-          "revision_summary": {
-            "type": "string"
-          },
-          "rejected_at": {
-            "type": "string"
-          }
-        }
-      },
-      "description": "Record of user rejections and subsequent revisions"
-    },
-    "approved_at": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "description": "ISO 8601 timestamp when user approved, or null"
     }
   }
 }

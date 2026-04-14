@@ -52,18 +52,6 @@
       "items": {
         "type": "string"
       }
-    },
-    "rewind_target": {
-      "type": "string",
-      "enum": [
-        "ready",
-        "implementing",
-        "reviewed",
-        "integrated"
-      ]
-    },
-    "resolution": {
-      "type": "string"
     }
   }
 }

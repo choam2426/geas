@@ -50,49 +50,5 @@
         "type": "string"
       }
     }
-  },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "status": {
-            "const": "approved"
-          }
-        },
-        "required": [
-          "status"
-        ]
-      },
-      "then": {
-        "required": [
-          "producer_type",
-          "affected_rule_ids"
-        ],
-        "properties": {
-          "affected_rule_ids": {
-            "minItems": 1
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "not": {
-          "properties": {
-            "status": {
-              "const": "none"
-            }
-          },
-          "required": [
-            "status"
-          ]
-        }
-      },
-      "then": {
-        "required": [
-          "producer_type"
-        ]
-      }
-    }
-  ]
+  }
 }
