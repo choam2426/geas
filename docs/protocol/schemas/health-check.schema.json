@@ -72,13 +72,6 @@
         "manual"
       ],
       "description": "What event triggered this health check"
-    },
-    "created_at": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "updated_at": {
-      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   }
 }

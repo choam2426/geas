@@ -14,21 +14,6 @@
       "type": "string",
       "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$"
     },
-    "created_at": {
-      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
-    "updated_at": {
-      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
-    "source": {
-      "type": "string",
-      "enum": [
-        "full_intake",
-        "quick_intake",
-        "external",
-        "existing_project"
-      ]
-    },
     "domain_profile": {
       "type": "string"
     },
@@ -111,13 +96,7 @@
       "items": {
         "type": "string"
       }
-    },
-    "completeness_checklist": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "boolean"
-      }
     }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }

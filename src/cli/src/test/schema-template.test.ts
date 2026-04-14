@@ -36,18 +36,18 @@ describe('generateTemplate', () => {
     for (const field of expectedFields) {
       assert.ok(field in template, `task-contract template should have field '${field}'`);
     }
-    // Envelope fields should be stripped
-    assert.ok(!('version' in template), 'version should be stripped');
-    assert.ok(!('artifact_type' in template), 'artifact_type should be stripped');
-    // CLI-flag fields should be stripped
-    assert.ok(!('task_id' in template), 'task_id should be stripped');
+    // Envelope fields are not schema properties, so they never appear
+    assert.ok(!('version' in template), 'version should not appear');
+    assert.ok(!('artifact_type' in template), 'artifact_type should not appear');
+    // task_id is an input field for task-contract (not guarded), so it appears
+    assert.ok('task_id' in template, 'task_id should be present (input field)');
   });
 
-  it('task-contract template with stripEnvelope=false has all fields', () => {
+  it('task-contract template with stripEnvelope=false has task_id', () => {
     const template = generateTemplate('task-contract', { stripEnvelope: false }) as Record<string, unknown>;
-    assert.ok('version' in template, 'should have version when not stripping');
-    assert.ok('artifact_type' in template, 'should have artifact_type when not stripping');
+    // task_id is a schema property (guarded), kept when not stripping
     assert.ok('task_id' in template, 'should have task_id when not stripping');
+    // version/artifact_type are NOT schema properties (envelope-injected externally)
   });
 
   it('evidence base template has summary (envelope/CLI fields stripped)', () => {
@@ -60,25 +60,26 @@ describe('generateTemplate', () => {
     assert.ok(!('role' in template), 'role should be stripped (CLI flag)');
   });
 
-  it('evidence with stripEnvelope=false has all fields', () => {
+  it('evidence with stripEnvelope=false has all required fields', () => {
     const template = generateTemplate('evidence', { stripEnvelope: false }) as Record<string, unknown>;
-    const requiredBase = ['version', 'agent', 'task_id', 'role', 'summary'];
+    // Original evidence schema requires: agent, task_id, role, summary
+    const requiredBase = ['agent', 'task_id', 'role', 'summary'];
     for (const field of requiredBase) {
       assert.ok(field in template, `evidence template should have base field '${field}'`);
     }
   });
 
-  it('evidence --role implementer adds files_changed', () => {
+  it('evidence --role does not add conditional fields (no allOf in original schema)', () => {
     const template = generateTemplate('evidence', { role: 'implementer' }) as Record<string, unknown>;
-    assert.ok('files_changed' in template, 'implementer evidence should have files_changed');
+    // Original evidence schema has no allOf conditionals for roles
+    assert.ok('summary' in template, 'implementer evidence should have summary');
     // role is stripped since it is a CLI flag field
     assert.ok(!('role' in template), 'role should be stripped (CLI flag)');
   });
 
-  it('evidence --role reviewer adds verdict and concerns', () => {
+  it('evidence --role reviewer strips guarded fields', () => {
     const template = generateTemplate('evidence', { role: 'reviewer' }) as Record<string, unknown>;
-    assert.ok('verdict' in template, 'reviewer evidence should have verdict');
-    assert.ok('concerns' in template, 'reviewer evidence should have concerns');
+    assert.ok('summary' in template, 'reviewer evidence should have summary');
     // role is stripped since it is a CLI flag field
     assert.ok(!('role' in template), 'role should be stripped (CLI flag)');
   });
@@ -89,9 +90,9 @@ describe('generateTemplate', () => {
     assert.ok(!('task_id' in template), 'task_id should be stripped');
   });
 
-  it('record template with stripEnvelope=false has version and task_id', () => {
+  it('record template with stripEnvelope=false has task_id', () => {
     const template = generateTemplate('record', { stripEnvelope: false }) as Record<string, unknown>;
-    assert.ok('version' in template, 'record template should have version');
+    // task_id is a schema property (guarded), kept when not stripping
     assert.ok('task_id' in template, 'record template should have task_id');
   });
 
@@ -124,8 +125,10 @@ describe('generateTemplate', () => {
 describe('--strip-envelope behavior', () => {
   it('strips envelope fields by default', () => {
     const template = generateTemplate('task-contract') as Record<string, unknown>;
-    for (const field of ['version', 'artifact_type', 'producer_type', 'artifact_id', 'created_at', 'updated_at']) {
-      assert.ok(!(field in template), `${field} should be stripped by default`);
+    // version/artifact_type/producer_type/artifact_id are not schema properties
+    // created_at/updated_at are not in original task-contract schema
+    for (const field of ['version', 'artifact_type', 'producer_type', 'artifact_id']) {
+      assert.ok(!(field in template), `${field} should not appear (not a schema property)`);
     }
   });
 
@@ -136,11 +139,11 @@ describe('--strip-envelope behavior', () => {
     }
   });
 
-  it('keeps all fields when stripEnvelope=false', () => {
+  it('keeps guarded fields when stripEnvelope=false', () => {
     const template = generateTemplate('task-contract', { stripEnvelope: false }) as Record<string, unknown>;
-    assert.ok('version' in template);
-    assert.ok('artifact_type' in template);
+    // task_id is a schema property (guarded), kept when not stripping
     assert.ok('task_id' in template);
+    // version/artifact_type are NOT schema properties (envelope-injected externally)
   });
 });
 
@@ -160,7 +163,7 @@ describe('--section for record sub-schemas', () => {
     assert.ok('confidence' in template, 'should have confidence');
     assert.ok('summary' in template, 'should have summary');
     assert.ok('known_risks' in template, 'should have known_risks');
-    assert.ok('untested_paths' in template, 'should have untested_paths');
+    assert.ok('unverified_cases' in template, 'should have unverified_cases');
   });
 
   it('extracts verdict section', () => {
@@ -199,10 +202,8 @@ describe('listRecordSections', () => {
     assert.ok(sections.includes('implementation_contract'));
     assert.ok(sections.includes('self_check'));
     assert.ok(sections.includes('gate_result'));
-    // Should not include envelope fields
-    assert.ok(!sections.includes('version'));
+    // Should not include guarded fields
     assert.ok(!sections.includes('task_id'));
-    assert.ok(!sections.includes('created_at'));
   });
 });
 

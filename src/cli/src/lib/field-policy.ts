@@ -75,8 +75,6 @@ export const FIELD_POLICIES: Record<string, Record<string, FieldPolicy>> = {
     base_snapshot: { class: 'input' },
     dependencies: { class: 'input' },
     status: { class: 'defaulted', inject: 'drafted' },
-    created_at: { class: 'system' },
-    updated_at: { class: 'system' },
     // Envelope metadata (not schema properties, used by getEnvelopeEntry)
     _envelope: {
       class: 'system',
@@ -104,10 +102,6 @@ export const FIELD_POLICIES: Record<string, Record<string, FieldPolicy>> = {
     risk_notes: { class: 'input' },
     assumptions: { class: 'input' },
     ambiguities: { class: 'input' },
-    completeness_checklist: { class: 'input' },
-    source: { class: 'input' },
-    created_at: { class: 'system' },
-    updated_at: { class: 'system' },
     _envelope: {
       class: 'system',
       inject: {
@@ -135,11 +129,6 @@ export const FIELD_POLICIES: Record<string, Record<string, FieldPolicy>> = {
     preserve_list: { class: 'input' },
     unresolved_assumptions: { class: 'input' },
     design_review: { class: 'input' },
-    vote_round_ref: { class: 'input' },
-    rejection_history: { class: 'input' },
-    approved_at: { class: 'system' },
-    created_at: { class: 'system' },
-    updated_at: { class: 'system' },
     _envelope: {
       class: 'system',
       inject: {
@@ -169,8 +158,6 @@ export const FIELD_POLICIES: Record<string, Record<string, FieldPolicy>> = {
     rationale: { class: 'input' },
     criteria_results: { class: 'input' },
     rubric_scores: { class: 'input' },
-    created_at: { class: 'system' },
-    updated_at: { class: 'system' },
     // No _envelope: evidence has no envelope injection
   },
 
@@ -178,12 +165,7 @@ export const FIELD_POLICIES: Record<string, Record<string, FieldPolicy>> = {
     mission_phase: { class: 'input' },
     status: { class: 'input' },
     summary: { class: 'input' },
-    gate_criteria_met: { class: 'input' },
-    gate_criteria_unmet: { class: 'input' },
-    risk_notes: { class: 'input' },
     next_phase: { class: 'input' },
-    created_at: { class: 'system' },
-    updated_at: { class: 'system' },
     _envelope: {
       class: 'system',
       inject: {
@@ -211,8 +193,6 @@ export const FIELD_POLICIES: Record<string, Record<string, FieldPolicy>> = {
     verdict: { class: 'append_only' },
     closure: { class: 'append_only' },
     retrospective: { class: 'append_only' },
-    created_at: { class: 'system' },
-    updated_at: { class: 'system' },
   },
 
   'gap-assessment': {
@@ -224,16 +204,12 @@ export const FIELD_POLICIES: Record<string, Record<string, FieldPolicy>> = {
     intentional_cuts: { class: 'input' },
     unexpected_additions: { class: 'input' },
     recommended_followups: { class: 'input' },
-    created_at: { class: 'system' },
-    updated_at: { class: 'system' },
   },
 
   'health-check': {
     signals: { class: 'input' },
     any_triggered: { class: 'input' },
     trigger_context: { class: 'input' },
-    created_at: { class: 'system' },
-    updated_at: { class: 'system' },
   },
 
   'recovery-packet': {
@@ -244,10 +220,6 @@ export const FIELD_POLICIES: Record<string, Record<string, FieldPolicy>> = {
     recommended_action: { class: 'input' },
     artifacts_found: { class: 'input' },
     artifacts_missing: { class: 'input' },
-    rewind_target: { class: 'input' },
-    resolution: { class: 'input' },
-    created_at: { class: 'system' },
-    updated_at: { class: 'system' },
   },
 
   'rules-update': {
@@ -258,8 +230,6 @@ export const FIELD_POLICIES: Record<string, Record<string, FieldPolicy>> = {
     reason: { class: 'input' },
     evidence_refs: { class: 'input' },
     applies_to: { class: 'input' },
-    created_at: { class: 'system' },
-    updated_at: { class: 'system' },
   },
 
   /* ── Runtime-only schemas (5) ──────────────────────────────────── */

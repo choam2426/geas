@@ -9,12 +9,6 @@
       "type": "string",
       "minLength": 1
     },
-    "created_at": {
-      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
-    "updated_at": {
-      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
     "implementation_contract": {
       "type": "object",
       "properties": {
@@ -108,55 +102,6 @@
             "block",
             "error"
           ]
-        },
-        "tier_results": {
-          "type": "object",
-          "properties": {
-            "tier_0": {
-              "$ref": "#/$defs/tierResult"
-            },
-            "tier_1": {
-              "$ref": "#/$defs/tierResult"
-            },
-            "tier_2": {
-              "$ref": "#/$defs/tierResult"
-            }
-          }
-        },
-        "rubric_scores": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "dimension": {
-                "type": "string"
-              },
-              "score": {
-                "type": "number",
-                "minimum": 1,
-                "maximum": 5
-              },
-              "threshold": {
-                "type": "number",
-                "minimum": 1,
-                "maximum": 5
-              },
-              "passed": {
-                "type": "boolean"
-              }
-            },
-            "required": [
-              "dimension",
-              "score",
-              "passed"
-            ]
-          }
-        },
-        "blocking_dimensions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         }
       },
       "required": [
@@ -170,31 +115,7 @@
         "concerns": {
           "type": "array",
           "items": {
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "severity": {
-                    "type": "string",
-                    "enum": [
-                      "blocking",
-                      "non_blocking"
-                    ]
-                  },
-                  "description": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "required": [
-                  "severity",
-                  "description"
-                ]
-              }
-            ]
+            "type": "string"
           }
         },
         "blocking": {
@@ -269,11 +190,7 @@
               "summary": {
                 "type": "string"
               }
-            },
-            "required": [
-              "reviewer_type",
-              "status"
-            ]
+            }
           }
         },
         "open_risks": {
@@ -353,28 +270,5 @@
   "required": [
     "task_id"
   ],
-  "additionalProperties": false,
-  "$defs": {
-    "tierResult": {
-      "type": "object",
-      "properties": {
-        "status": {
-          "type": "string",
-          "enum": [
-            "pass",
-            "fail",
-            "block",
-            "error",
-            "skipped"
-          ]
-        },
-        "details": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "status"
-      ]
-    }
-  }
+  "additionalProperties": false
 }

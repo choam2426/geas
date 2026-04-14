@@ -10066,11 +10066,6 @@ var design_brief_schema_default = {
       type: "array",
       items: {
         type: "object",
-        required: [
-          "approach",
-          "rejected_reason"
-        ],
-        additionalProperties: false,
         properties: {
           approach: {
             type: "string"
@@ -10086,11 +10081,6 @@ var design_brief_schema_default = {
       type: "array",
       items: {
         type: "object",
-        required: [
-          "decision",
-          "rationale"
-        ],
-        additionalProperties: false,
         properties: {
           decision: {
             type: "string"
@@ -10112,11 +10102,6 @@ var design_brief_schema_default = {
       type: "array",
       items: {
         type: "object",
-        required: [
-          "description",
-          "mitigation"
-        ],
-        additionalProperties: false,
         properties: {
           description: {
             type: "string"
@@ -10148,11 +10133,9 @@ var design_brief_schema_default = {
         "reviewer_type",
         "summary"
       ],
-      additionalProperties: false,
       properties: {
         reviewer_type: {
-          type: "string",
-          const: "design-authority"
+          type: "string"
         },
         summary: {
           type: "string",
@@ -10166,51 +10149,6 @@ var design_brief_schema_default = {
           description: "Items added or modified by the reviewer"
         }
       }
-    },
-    vote_round_ref: {
-      type: [
-        "string",
-        "null"
-      ],
-      description: "Path to vote round artifact, or null if no vote"
-    },
-    rejection_history: {
-      type: "array",
-      items: {
-        type: "object",
-        required: [
-          "reason",
-          "revision_summary",
-          "rejected_at"
-        ],
-        additionalProperties: false,
-        properties: {
-          reason: {
-            type: "string"
-          },
-          revision_summary: {
-            type: "string"
-          },
-          rejected_at: {
-            type: "string"
-          }
-        }
-      },
-      description: "Record of user rejections and subsequent revisions"
-    },
-    created_at: {
-      type: "string",
-      description: "ISO 8601 timestamp"
-    },
-    updated_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
-    approved_at: {
-      type: [
-        "string",
-        "null"
-      ],
-      description: "ISO 8601 timestamp when user approved, or null"
     }
   }
 };
@@ -10243,12 +10181,6 @@ var evidence_schema_default = {
     summary: {
       type: "string",
       minLength: 1
-    },
-    created_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
-    updated_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     },
     artifact_refs: {
       type: "array",
@@ -10334,68 +10266,7 @@ var evidence_schema_default = {
     "role",
     "summary"
   ],
-  additionalProperties: true,
-  allOf: [
-    {
-      if: {
-        properties: {
-          role: {
-            const: "implementer"
-          }
-        }
-      },
-      then: {
-        required: [
-          "artifact_refs"
-        ]
-      }
-    },
-    {
-      if: {
-        properties: {
-          role: {
-            const: "reviewer"
-          }
-        }
-      },
-      then: {
-        required: [
-          "verdict",
-          "concerns"
-        ]
-      }
-    },
-    {
-      if: {
-        properties: {
-          role: {
-            const: "tester"
-          }
-        }
-      },
-      then: {
-        required: [
-          "verdict",
-          "criteria_results"
-        ]
-      }
-    },
-    {
-      if: {
-        properties: {
-          role: {
-            const: "authority"
-          }
-        }
-      },
-      then: {
-        required: [
-          "verdict",
-          "rationale"
-        ]
-      }
-    }
-  ]
+  additionalProperties: true
 };
 
 // ../../docs/protocol/schemas/gap-assessment.schema.json
@@ -10458,12 +10329,6 @@ var gap_assessment_schema_default = {
       items: {
         type: "string"
       }
-    },
-    created_at: {
-      type: "string"
-    },
-    updated_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   }
 };
@@ -10543,13 +10408,6 @@ var health_check_schema_default = {
         "manual"
       ],
       description: "What event triggered this health check"
-    },
-    created_at: {
-      type: "string",
-      format: "date-time"
-    },
-    updated_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   }
 };
@@ -10636,21 +10494,6 @@ var mission_spec_schema_default = {
       type: "string",
       pattern: "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$"
     },
-    created_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
-    updated_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
-    source: {
-      type: "string",
-      enum: [
-        "full_intake",
-        "quick_intake",
-        "external",
-        "existing_project"
-      ]
-    },
     domain_profile: {
       type: "string"
     },
@@ -10733,15 +10576,9 @@ var mission_spec_schema_default = {
       items: {
         type: "string"
       }
-    },
-    completeness_checklist: {
-      type: "object",
-      additionalProperties: {
-        type: "boolean"
-      }
     }
   },
-  additionalProperties: false
+  additionalProperties: true
 };
 
 // ../../docs/protocol/schemas/phase-review.schema.json
@@ -10778,30 +10615,6 @@ var phase_review_schema_default = {
       type: "string",
       minLength: 1
     },
-    gate_criteria_met: {
-      type: "array",
-      items: {
-        type: "string",
-        minLength: 1
-      },
-      description: "List of phase gate criteria that have been satisfied"
-    },
-    gate_criteria_unmet: {
-      type: "array",
-      items: {
-        type: "string",
-        minLength: 1
-      },
-      description: "List of phase gate criteria that remain unsatisfied"
-    },
-    risk_notes: {
-      type: "array",
-      items: {
-        type: "string",
-        minLength: 1
-      },
-      description: "Known risks or concerns for the upcoming phase"
-    },
     next_phase: {
       type: "string",
       enum: [
@@ -10812,12 +10625,6 @@ var phase_review_schema_default = {
         "complete"
       ],
       description: "The phase to transition into (when status is ready_to_exit)"
-    },
-    created_at: {
-      type: "string"
-    },
-    updated_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   },
   if: {
@@ -10922,12 +10729,6 @@ var record_schema_default = {
       type: "string",
       minLength: 1
     },
-    created_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
-    updated_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
     implementation_contract: {
       type: "object",
       properties: {
@@ -11021,55 +10822,6 @@ var record_schema_default = {
             "block",
             "error"
           ]
-        },
-        tier_results: {
-          type: "object",
-          properties: {
-            tier_0: {
-              $ref: "#/$defs/tierResult"
-            },
-            tier_1: {
-              $ref: "#/$defs/tierResult"
-            },
-            tier_2: {
-              $ref: "#/$defs/tierResult"
-            }
-          }
-        },
-        rubric_scores: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              dimension: {
-                type: "string"
-              },
-              score: {
-                type: "number",
-                minimum: 1,
-                maximum: 5
-              },
-              threshold: {
-                type: "number",
-                minimum: 1,
-                maximum: 5
-              },
-              passed: {
-                type: "boolean"
-              }
-            },
-            required: [
-              "dimension",
-              "score",
-              "passed"
-            ]
-          }
-        },
-        blocking_dimensions: {
-          type: "array",
-          items: {
-            type: "string"
-          }
         }
       },
       required: [
@@ -11083,31 +10835,7 @@ var record_schema_default = {
         concerns: {
           type: "array",
           items: {
-            oneOf: [
-              {
-                type: "string"
-              },
-              {
-                type: "object",
-                properties: {
-                  severity: {
-                    type: "string",
-                    enum: [
-                      "blocking",
-                      "non_blocking"
-                    ]
-                  },
-                  description: {
-                    type: "string",
-                    minLength: 1
-                  }
-                },
-                required: [
-                  "severity",
-                  "description"
-                ]
-              }
-            ]
+            type: "string"
           }
         },
         blocking: {
@@ -11182,11 +10910,7 @@ var record_schema_default = {
               summary: {
                 type: "string"
               }
-            },
-            required: [
-              "reviewer_type",
-              "status"
-            ]
+            }
           }
         },
         open_risks: {
@@ -11266,30 +10990,7 @@ var record_schema_default = {
   required: [
     "task_id"
   ],
-  additionalProperties: false,
-  $defs: {
-    tierResult: {
-      type: "object",
-      properties: {
-        status: {
-          type: "string",
-          enum: [
-            "pass",
-            "fail",
-            "block",
-            "error",
-            "skipped"
-          ]
-        },
-        details: {
-          type: "string"
-        }
-      },
-      required: [
-        "status"
-      ]
-    }
-  }
+  additionalProperties: false
 };
 
 // ../../docs/protocol/schemas/recovery-packet.schema.json
@@ -11308,12 +11009,6 @@ var recovery_packet_schema_default = {
     "artifacts_missing"
   ],
   properties: {
-    created_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
-    updated_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
     recovery_id: {
       type: "string",
       minLength: 1
@@ -11353,18 +11048,6 @@ var recovery_packet_schema_default = {
       items: {
         type: "string"
       }
-    },
-    rewind_target: {
-      type: "string",
-      enum: [
-        "ready",
-        "implementing",
-        "reviewed",
-        "integrated"
-      ]
-    },
-    resolution: {
-      type: "string"
     }
   }
 };
@@ -11421,58 +11104,8 @@ var rules_update_schema_default = {
       items: {
         type: "string"
       }
-    },
-    created_at: {
-      type: "string"
-    },
-    updated_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
-  },
-  allOf: [
-    {
-      if: {
-        properties: {
-          status: {
-            const: "approved"
-          }
-        },
-        required: [
-          "status"
-        ]
-      },
-      then: {
-        required: [
-          "producer_type",
-          "affected_rule_ids"
-        ],
-        properties: {
-          affected_rule_ids: {
-            minItems: 1
-          }
-        }
-      }
-    },
-    {
-      if: {
-        not: {
-          properties: {
-            status: {
-              const: "none"
-            }
-          },
-          required: [
-            "status"
-          ]
-        }
-      },
-      then: {
-        required: [
-          "producer_type"
-        ]
-      }
-    }
-  ]
+  }
 };
 
 // ../../docs/protocol/schemas/run-state.schema.json
@@ -11685,12 +11318,6 @@ var task_contract_schema_default = {
     "status"
   ],
   properties: {
-    created_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
-    updated_at: {
-      $ref: "_defs.schema.json#/$defs/isoUtcTimestamp"
-    },
     task_id: {
       type: "string"
     },
@@ -12659,8 +12286,6 @@ var FIELD_POLICIES = {
     base_snapshot: { class: "input" },
     dependencies: { class: "input" },
     status: { class: "defaulted", inject: "drafted" },
-    created_at: { class: "system" },
-    updated_at: { class: "system" },
     // Envelope metadata (not schema properties, used by getEnvelopeEntry)
     _envelope: {
       class: "system",
@@ -12686,10 +12311,6 @@ var FIELD_POLICIES = {
     risk_notes: { class: "input" },
     assumptions: { class: "input" },
     ambiguities: { class: "input" },
-    completeness_checklist: { class: "input" },
-    source: { class: "input" },
-    created_at: { class: "system" },
-    updated_at: { class: "system" },
     _envelope: {
       class: "system",
       inject: {
@@ -12713,11 +12334,6 @@ var FIELD_POLICIES = {
     preserve_list: { class: "input" },
     unresolved_assumptions: { class: "input" },
     design_review: { class: "input" },
-    vote_round_ref: { class: "input" },
-    rejection_history: { class: "input" },
-    approved_at: { class: "system" },
-    created_at: { class: "system" },
-    updated_at: { class: "system" },
     _envelope: {
       class: "system",
       inject: {
@@ -12742,21 +12358,14 @@ var FIELD_POLICIES = {
     blocking: { class: "input" },
     rationale: { class: "input" },
     criteria_results: { class: "input" },
-    rubric_scores: { class: "input" },
-    created_at: { class: "system" },
-    updated_at: { class: "system" }
+    rubric_scores: { class: "input" }
     // No _envelope: evidence has no envelope injection
   },
   "phase-review": {
     mission_phase: { class: "input" },
     status: { class: "input" },
     summary: { class: "input" },
-    gate_criteria_met: { class: "input" },
-    gate_criteria_unmet: { class: "input" },
-    risk_notes: { class: "input" },
     next_phase: { class: "input" },
-    created_at: { class: "system" },
-    updated_at: { class: "system" },
     _envelope: {
       class: "system",
       inject: {
@@ -12779,9 +12388,7 @@ var FIELD_POLICIES = {
     challenge_review: { class: "append_only" },
     verdict: { class: "append_only" },
     closure: { class: "append_only" },
-    retrospective: { class: "append_only" },
-    created_at: { class: "system" },
-    updated_at: { class: "system" }
+    retrospective: { class: "append_only" }
   },
   "gap-assessment": {
     scope_in_summary: { class: "input" },
@@ -12791,16 +12398,12 @@ var FIELD_POLICIES = {
     not_delivered: { class: "input" },
     intentional_cuts: { class: "input" },
     unexpected_additions: { class: "input" },
-    recommended_followups: { class: "input" },
-    created_at: { class: "system" },
-    updated_at: { class: "system" }
+    recommended_followups: { class: "input" }
   },
   "health-check": {
     signals: { class: "input" },
     any_triggered: { class: "input" },
-    trigger_context: { class: "input" },
-    created_at: { class: "system" },
-    updated_at: { class: "system" }
+    trigger_context: { class: "input" }
   },
   "recovery-packet": {
     recovery_id: { class: "input" },
@@ -12809,11 +12412,7 @@ var FIELD_POLICIES = {
     detected_problem: { class: "input" },
     recommended_action: { class: "input" },
     artifacts_found: { class: "input" },
-    artifacts_missing: { class: "input" },
-    rewind_target: { class: "input" },
-    resolution: { class: "input" },
-    created_at: { class: "system" },
-    updated_at: { class: "system" }
+    artifacts_missing: { class: "input" }
   },
   "rules-update": {
     // producer_type is a schema property for rules-update (input, not system)
@@ -12822,9 +12421,7 @@ var FIELD_POLICIES = {
     affected_rule_ids: { class: "input" },
     reason: { class: "input" },
     evidence_refs: { class: "input" },
-    applies_to: { class: "input" },
-    created_at: { class: "system" },
-    updated_at: { class: "system" }
+    applies_to: { class: "input" }
   },
   /* ── Runtime-only schemas (5) ──────────────────────────────────── */
   "debt-register": {

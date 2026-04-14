@@ -31,30 +31,6 @@
       "type": "string",
       "minLength": 1
     },
-    "gate_criteria_met": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "description": "List of phase gate criteria that have been satisfied"
-    },
-    "gate_criteria_unmet": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "description": "List of phase gate criteria that remain unsatisfied"
-    },
-    "risk_notes": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "description": "Known risks or concerns for the upcoming phase"
-    },
     "next_phase": {
       "type": "string",
       "enum": [
@@ -65,12 +41,6 @@
         "complete"
       ],
       "description": "The phase to transition into (when status is ready_to_exit)"
-    },
-    "created_at": {
-      "type": "string"
-    },
-    "updated_at": {
-      "$ref": "_defs.schema.json#/$defs/isoUtcTimestamp"
     }
   },
   "if": {
