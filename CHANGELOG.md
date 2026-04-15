@@ -4,6 +4,46 @@ All notable changes to this project are documented in this file.
 
 > **Note**: Tags were restructured in v0.5.1. Previous major versions (v1.x, v2.x) have been flattened to v0.x.y to reflect that the project is pre-1.0.
 
+## [1.4.0] — 2026-04-15
+
+### Added
+- **Field policy registry** (`src/cli/src/lib/field-policy.ts`) — single source of truth for field classification across all 15 embedded schema types. Six classifications: `system`, `derived`, `defaulted`, `input`, `append_only`, `guarded`. Helper functions: `getEnvelopeEntry`, `getEnvelopeFields`, `getCliFlagFields`, `getStrippableFields`. Replaces ad-hoc `ENVELOPE_REGISTRY` / `ENVELOPE_FIELDS` / `CLI_FLAG_FIELDS` constants.
+- **Build-time field-policy sync check** — `check-field-policy.ts` runs during `npm run build` and fails on schema/policy drift.
+- **`geas task create TITLE --goal GOAL --kind KIND`** — positional task creation. Auto-generates `task-NNN` ID, writes contract with sensible defaults. Stdin JSON path preserved as fallback.
+- **`geas task add-acceptance TASK_ID CRITERION`** — append acceptance criterion to existing contract.
+- **`geas task add-surface TASK_ID PATH`** — append surface path to scope.
+- **`geas task set-risk TASK_ID LEVEL`** — set risk_level with enum pre-validation (`low|normal|high|critical`).
+- **`geas evidence submit <task> <role> [summary]`** — positional evidence creation. Required positional args enforced by Commander.
+- **`geas task record self-check TASK SUMMARY --confidence N`** — write self_check section without raw JSON.
+- **`geas task record gate TASK VERDICT`** — write gate_result section with verdict enum validation.
+- **`geas mission create TITLE --done-when DESC`** — positional mission creation that scaffolds directory and writes `spec.json` in one step.
+- **`geas phase write PHASE STATUS --summary STR`** — positional phase review writes.
+- **Actionable validation diagnostics** — `validationError()` enriches Ajv errors with per-keyword `suggested_fix` (enum, required, additionalProperties, type, minLength) and `next_command` (`geas schema template <name>`).
+- **`FIELD_ALIASES` + `normalizeAliases()`** in `input.ts` — alias map for `medium→normal`, `doc/docs→documentation`, `qa→qa-engineer`, `dev/sw→software-engineer`, etc. Exported for future caller integration.
+- **Internal schema hiding** — `INTERNAL_SCHEMAS` Set filters `health-check` and `recovery-packet` from `geas schema list` and rejects them from `geas schema template`. Internal CLI code retains access via `SCHEMAS` map.
+
+### Changed
+- **Protocol docs reframed profile-first** — English (`docs/protocol/`) and Korean (`docs/ko/protocol/`) docs rewritten so domain (software/research/etc.) is a profile parameter rather than a hardcoded assumption. Single-domain examples replaced with 3-domain sets.
+- **Schema slot-first routing** — `task-contract`, `record`, `recovery-packet`, `mission-spec` now use slot-based agent taxonomy. `_defs.schema.json` `agentType` replaced with slot-based vocabulary.
+- **Evidence/record schemas neutralized** — software-specific vocabulary stripped to support multi-domain use.
+- **Schemas slimmed** — envelope fields stripped from all artifact schemas (CLI auto-injects via field-policy). 5 unused schemas deleted; remaining 11 had timestamps/decorative fields removed.
+- **Visual documentation overhaul** — diagrams added, CLI reference and Dashboard guide written, `DESIGN.md` rewritten.
+- **`set-risk` enum aligned to schema** — `VALID_RISK_LEVELS` corrected from `medium` to `normal`.
+- **`evidence submit` signature tightened** — `[task] [role]` (optional) → `<task> <role>` (required) so Commander enforces missing-arg errors.
+- `plugin/bin/geas` bundle regenerated.
+- `plugin.json` version bumped to 1.4.0.
+
+### Fixed
+- **Broken main build restored** — schemas-embedded.ts imported 5 schema files (`debt-register`, `lock-manifest`, `policy-override`, `run-state`, `vote-round`) that had been deleted in commit `3d9760f`. Files restored to fix `npm run build` on main.
+
+### Known Issues (tracked as debt for next mission)
+- `enrichTimestamp` injects `created_at`/`updated_at` into record.json root, conflicting with `additionalProperties: false` on subsequent writes (DEBT-004).
+- `normalizeAliases` exported but not yet wired into command handlers (DEBT-006).
+- Positional `task create` skips `injectEnvelope` unlike stdin path (DEBT-007).
+- `--set` flag merged after schema validation, can bypass enum/range checks (DEBT-008).
+- No unit tests for field-policy helpers (DEBT-001).
+- CLI reference docs for new positional commands not yet written (DEBT-012).
+
 ## [1.3.1] — 2026-04-13
 
 ### Security
