@@ -3,7 +3,7 @@
   "task_id": "task-003",
   "role": "implementer",
   "summary": "Implemented authentication flow with login, signup, and password reset. All forms validate inputs, handle errors gracefully, and persist sessions via JWT stored in httpOnly cookies.",
-  "artifact_refs": [
+  "artifacts": [
     "src/features/auth/login.ts",
     "src/features/auth/signup.ts",
     "src/features/auth/reset-password.ts",
