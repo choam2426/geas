@@ -1,7 +1,7 @@
-# 07. Memory System
+# 07. Memory and Retrospective
 
 > **Normative document.**
-> This document defines the purpose, structure, and retrieval of memory in Geas.
+> This document defines the purpose, structure, retrospective loop, and retrieval rules for memory in Geas.
 
 ## Purpose
 
@@ -20,7 +20,7 @@ Geas memory exists to change future behavior, not to accumulate notes. A memory 
 2. **Two storage locations.** `rules.md` for project knowledge, `memory/agents/*.md` for agent-specific notes.
 3. **Selective injection over volume.** Both files are injected into agent context. Keep them concise.
 
-## Structure
+## Storage Structure
 
 | storage | location | format | injected by |
 |---|---|---|---|
@@ -81,7 +81,76 @@ Content project example:
 
 Updated via the Evolving phase rules-update workflow. Injected into every agent context via the `inject-context.sh` hook.
 
-### Agent memory
+These stored updates originate from the retrospective loop that runs after every passed task.
+
+## Per-Task Retrospective Loop
+
+After every `passed` task, the project SHOULD produce a retrospective or retrospective contribution. The retrospective captures what happened during the task so that future tasks benefit from the experience.
+
+### Minimum retrospective topics
+
+Each retrospective SHOULD address at least the following areas:
+
+| topic | what to capture |
+|---|---|
+| `what_went_well[]` | practices, tools, or decisions that produced good outcomes |
+| `what_broke[]` | failures, regressions, or unexpected problems |
+| `what_was_surprising[]` | assumptions that turned out wrong, unexpected complexity |
+| `rule_candidates[]` | behavioral changes that would prevent repeated problems |
+| `memory_candidates[]` | lessons worth preserving for future context |
+| `debt_candidates[]` | compromises that need explicit tracking |
+| `next_time_guidance[]` | concrete advice for the next similar task |
+
+A retrospective SHOULD be concrete. "Need to be more careful" is too weak. "Auth endpoints without rate limits keep failing challenge review" is useful.
+
+### Memory Candidate Sources
+
+Memory candidates originate from:
+
+| source | destination |
+|---|---|
+| task retrospective `memory_candidates` | `rules.md` (project-wide) or agent memory (role-specific) |
+| challenger review `concerns` | `rules.md` as learned rules |
+| worker self-check `known_risks` | agent memory for that worker type |
+| specialist review findings | agent memory for that specialist type |
+
+## Retrospective to Rule Update
+
+When retrospectives surface recurring problems, the project should consider converting those patterns into enforceable rules.
+
+### When a rule candidate is justified
+
+Rule candidates are especially justified when:
+
+- the same failure repeats
+- the same reviewer concern repeats
+- the same recovery mistake repeats
+- the same scope-control drift repeats
+- a clear behavior change would have prevented the problem
+
+### Rule approval expectations
+
+A rule SHOULD have:
+
+| requirement | purpose |
+|---|---|
+| supporting evidence | proves the problem is real and recurring |
+| clear behavior impact | states what changes because of the rule |
+| an owner | someone responsible for enforcement |
+| scope statement | where and when the rule applies |
+| enforcement plan | how the rule will be surfaced or checked |
+
+### Behavior-change requirement
+
+A rule is not complete until the project can explain what will change because of it, such as:
+
+- stricter contract checklist
+- review checklist addition
+- gate focus change
+- scheduler caution
+- packet-builder pinning
+
+## Agent Memory Feedback Loop
 
 Per-agent markdown files at `memory/agents/{agent}.md`:
 
@@ -116,16 +185,16 @@ Content domain example:
 - Listicle formats must still have narrative thread, not just bullet accumulation (mission-C4nT8pRw)
 ```
 
-## Sources
+Role-specific lessons SHOULD become agent memory. Cross-role lessons SHOULD become project memory or rules.
 
-Memory candidates originate from:
+### Role-specific lesson criteria
 
-| source | destination |
-|---|---|
-| task retrospective `memory_candidates` | `rules.md` (project-wide) or agent memory (role-specific) |
-| challenger review `concerns` | `rules.md` as learned rules |
-| worker self-check `known_risks` | agent memory for that worker type |
-| specialist review findings | agent memory for that specialist type |
+A lesson is role-specific when it primarily relates to:
+
+- a tool or technique used mainly by that slot
+- an artifact produced mainly by that slot
+- a recurring review blind spot for that slot
+- a recurring domain-specific success pattern for that slot
 
 ## Admissibility
 
@@ -144,10 +213,34 @@ Reject candidates that are generic advice, unsupported by artifacts, or one-off 
 
 The two files are the complete memory surface.
 
+## Harmful Reuse Rollback
+
+When the team sees a repeated harmful pattern caused by prior guidance:
+
+1. identify the memory or rule involved
+2. move the memory to review if needed
+3. update the rule if needed
+4. record the negative pattern explicitly
+5. verify that future packets stop propagating the bad guidance
+
+A system that keeps reusing harmful guidance without rollback is not evolving.
+
+## Mission-to-Mission Carry Forward
+
+Evolution outputs SHOULD influence the next mission through:
+
+- task templates
+- rules
+- rules.md and agent memory
+- debt priorities
+- reviewer focus
+
+Mission close is therefore not an ending; it is a handoff.
+
 ## Privacy
 
 Memory MUST NOT store raw secrets, credentials, personal data, or security-sensitive exploit details beyond operational need. Abstract sensitive lessons — retain behavioral guidance without sensitive specifics.
 
 ## Key Statement
 
-Memory in Geas is two files: `rules.md` for what the team learned, and agent memory for what each role learned. Everything else is ceremony.
+Memory in Geas is two files and one loop: `rules.md` for what the team learned, agent memory for what each role learned, and the retrospective loop for converting task experience into durable guidance. Everything else is ceremony.

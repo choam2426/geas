@@ -1,85 +1,16 @@
-# 11. Evolution, Debt, and Gap Loop
+# 08. Debt and Gap
 
 > **Normative document.**
-> This document defines the retrospective loop, debt model, gap assessment, and mission-to-mission learning mechanisms that make Geas accumulate operational competence over time.
+> This document defines the debt tracking model and the gap assessment loop used to keep promised scope and delivered scope aligned.
 
 ## Purpose
 
-Evolution is what makes Geas more than a gating workflow. This document answers:
+Debt and gap tracking make compromise visible and scope honest. This document answers:
 
-- what the team must learn after each task or mission
-- how compromises are tracked instead of forgotten
+- how accepted compromises are registered, owned, and tracked
 - how promised scope is compared to delivered scope
-- how harmful patterns get converted into better future behavior
-
-## Per-Task Retrospective Loop
-
-After every `passed` task, the project SHOULD produce a retrospective or retrospective contribution. The retrospective captures what happened during the task so that future tasks benefit from the experience.
-
-### Minimum retrospective topics
-
-Each retrospective SHOULD address at least the following areas:
-
-| topic | what to capture |
-|---|---|
-| `what_went_well[]` | practices, tools, or decisions that produced good outcomes |
-| `what_broke[]` | failures, regressions, or unexpected problems |
-| `what_was_surprising[]` | assumptions that turned out wrong, unexpected complexity |
-| `rule_candidates[]` | behavioral changes that would prevent repeated problems |
-| `memory_candidates[]` | lessons worth preserving for future context |
-| `debt_candidates[]` | compromises that need explicit tracking |
-| `next_time_guidance[]` | concrete advice for the next similar task |
-
-A retrospective SHOULD be concrete. "Need to be more careful" is too weak. "Auth endpoints without rate limits keep failing challenge review" is useful.
-
-## Retrospective to Rule Update
-
-When retrospectives surface recurring problems, the project should consider converting those patterns into enforceable rules.
-
-### When a rule candidate is justified
-
-Rule candidates are especially justified when:
-
-- the same failure repeats
-- the same reviewer concern repeats
-- the same recovery mistake repeats
-- the same scope-control drift repeats
-- a clear behavior change would have prevented the problem
-
-### Rule approval expectations
-
-A rule SHOULD have:
-
-| requirement | purpose |
-|---|---|
-| supporting evidence | proves the problem is real and recurring |
-| clear behavior impact | states what changes because of the rule |
-| an owner | someone responsible for enforcement |
-| scope statement | where and when the rule applies |
-| enforcement plan | how the rule will be surfaced or checked |
-
-### Behavior-change requirement
-
-A rule is not complete until the project can explain what will change because of it, such as:
-
-- stricter contract checklist
-- review checklist addition
-- gate focus change
-- scheduler caution
-- packet-builder pinning
-
-## Agent Memory Feedback Loop
-
-Role-specific lessons SHOULD become agent memory. Cross-role lessons SHOULD become project memory or rules.
-
-### Role-specific lesson criteria
-
-A lesson is role-specific when it primarily relates to:
-
-- a tool or technique used mainly by that slot
-- an artifact produced mainly by that slot
-- a recurring review blind spot for that slot
-- a recurring domain-specific success pattern for that slot
+- what actions are required based on debt severity
+- how gaps are classified rather than merely listed
 
 ## Debt Tracking Model
 
@@ -221,30 +152,6 @@ A mission SHOULD NOT close cleanly until:
 - approved rules or memory changes are recorded
 - mission summary exists
 
-## Harmful Reuse Feedback Loop
-
-When the team sees a repeated harmful pattern caused by prior guidance:
-
-1. identify the memory or rule involved
-2. move the memory to review if needed
-3. update the rule if needed
-4. record the negative pattern explicitly
-5. verify that future packets stop propagating the bad guidance
-
-A system that keeps reusing harmful guidance without rollback is not evolving.
-
-## Mission-to-Mission Carry Forward
-
-Evolution outputs SHOULD influence the next mission through:
-
-- task templates
-- rules
-- rules.md and agent memory
-- debt priorities
-- reviewer focus
-
-Mission close is therefore not an ending; it is a handoff.
-
 ## Key Statement
 
-The protocol is only as strong as its learning loop. Debt makes compromise visible, gap assessment makes scope honest, and retrospectives convert repeated pain into better future defaults.
+Debt makes compromise visible and gap assessment makes scope honest. Together they ensure that what the project accepted and what it actually delivered are explicit, owned, and carried forward rather than silently forgotten.
