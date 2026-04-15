@@ -22,40 +22,32 @@ A mission is the smallest protocol object that can carry a coherent user objecti
 
 ### Required fields
 
-A mission MUST contain at least the following fields:
+A mission MUST contain at least the following fields (canonical shape in `mission-spec.schema.json`):
 
 | field | description |
 |---|---|
 | `mission_id` | unique identifier for the mission — format: `mission-{YYYYMMDD}-{8char}` (e.g., `mission-20260407-x7Kq9mPv`) |
-| `intent` | canonical intent enum value describing the mission's purpose |
-| `goal` | human-readable description of the desired outcome |
+| `mission` | human-readable statement of what the mission is |
 | `done_when` | verifiable condition that must be true for the mission to be considered complete |
-| `constraints` | boundaries and limitations that scope the work |
-| `source_request` | the original user request that triggered the mission |
-| `entry_signals` | conditions that were true when the mission was created |
-| `scope_in` | the promised scope captured during specifying |
-| `current_phase` | the active mission phase |
-| `mode` | mission operating mode: `lightweight`, `standard`, `full_depth` |
+| `scope` | object containing `in` (promised surfaces, min 1) and `out` (explicit exclusions) |
+| `acceptance_criteria` | array of verifiable statements that together define completion (min 1) |
+
+### Optional fields
+
+These fields are defined by `mission-spec.schema.json` but are not required:
+
+| field | description |
+|---|---|
+| `mode` | mission operating mode (`lightweight`, `standard`, `full_depth`) |
 | `domain_profile` | active domain profile identifier |
+| `target_user` | who the mission outcome is for |
+| `constraints` | boundaries and limitations that scope the work |
+| `affected_surfaces` | surfaces the mission is expected to touch |
+| `risk_notes` | known risks recorded during specifying |
+| `assumptions` | assumptions made during specifying |
+| `ambiguities` | open questions not yet resolved |
 
-### Additional recommended metadata
-
-Mission mode defines rigor levels: `lightweight` (lightest) → `standard` → `full_depth` (strictest). These fields are optional under `lightweight`, expected under `standard`, and effectively required under `full_depth`. They capture context that improves recovery, traceability, and scope discipline.
-
-| field | schema field name | description |
-|---|---|---|
-| excluded scope / non-goals | `scope.out` | explicitly out-of-scope items to prevent creep |
-| risk notes | `risk_notes` | known risks and their mitigations |
-| affected surfaces | `affected_surfaces` | areas, paths, or systems expected to be touched |
-| constraints | `constraints` | technical or business boundaries that scope the work |
-| assumptions | `assumptions` | confirmed assumptions the mission relies on |
-| ambiguities | `ambiguities` | deferred ambiguities with rationale |
-| external dependency summary | — | dependencies outside the team's control |
-| phase owner notes | — | per-phase context from the Orchestrator |
-| initial debt or known constraints | — | pre-existing technical or process debt |
-| rollback / de-scope strategy | — | plan for controlled retreat if needed |
-
-Fields with a schema field name are defined in `mission-spec.schema.json`. Fields marked `—` MAY be stored in companion artifacts.
+Projects MAY carry additional orchestration metadata on the mission object (schema permits `additionalProperties`). Those conventions are project-specific and not part of the canonical shape.
 
 ## Mission Intent Enum
 
@@ -156,38 +148,44 @@ Captures what was learned and prepares the system for future work. Prevents miss
 
 ## `run.json` Key Fields
 
-The runtime anchor is the persistent state object that tracks session progress. It SHOULD expose at least the following fields:
+The runtime anchor is the persistent state object that tracks session progress. Canonical shape is in `run-state.schema.json`.
+
+### Required fields
 
 | field | description |
 |---|---|
-| `session_start_ref` | reference point (commit, snapshot, or timestamp) marking session start |
-| `integration_target` | the target branch, environment, or artifact collection that receives integrated work |
-| `mission_phase` | current mission phase |
-| `focus_task_id` | the task currently being executed |
-| `checkpoint_seq` | monotonically increasing checkpoint sequence number |
-| `recovery_state` | recovery status (none, detecting, restoring, etc.) |
-| `active_locks` | currently held resource locks |
-| `packet_refs` | references to assembled closure packets |
+| `status` | session status: `initialized`, `in_progress`, or `complete` |
 
-### Field value enums
-
-| field | valid values |
-|---|---|
-| `recovery_state` | `none`, `detecting`, `restoring`, `manual_repair_required`, `completed` |
-| `mission_phase` | `specifying`, `building`, `polishing`, `evolving` |
-
-### Additional recommended fields
-
-Mission mode defines rigor levels: `lightweight` (lightest) → `standard` → `full_depth` (strictest). These fields are optional under `lightweight`, expected under `standard`, and effectively required under `full_depth`.
+### Common fields
 
 | field | description |
 |---|---|
-| selected mission mode | the operating mode governing this mission |
-| current integration lane owner | which agent holds the integration lane |
-| remaining steps | estimated steps to phase or mission completion |
-| last safe boundary | the most recent safe recovery point |
-| last successful verification timestamp | when the last gate or verification passed |
-| current blocking cause | the reason work is blocked, if applicable |
+| `mission_id` | identifier of the active mission (e.g., `mission-20260407-x7Kq9mPv`), used to locate spec and artifact files (nullable) |
+| `mission` | human-readable mission statement from the current mission spec (nullable when no mission is active) |
+| `phase` | current mission phase: `specifying`, `building`, `polishing`, `evolving`, or `complete` (nullable when not set) |
+| `scheduler_state` | scheduler state: `active`, `idle`, or `paused` |
+| `current_task_id` | task currently in focus (nullable) |
+| `completed_tasks` | list of task identifiers that have reached `passed` state |
+| `decisions` | list of DecisionRecord identifiers created during the session |
+| `recovery_class` | recovery class from the last session recovery (`post_compact_resume`, `warm_session_resume`, `interrupted_subagent_resume`, `dirty_state_recovery`, `manual_repair_required`); null when the session is clean |
+| `checkpoint` | last committed checkpoint object (see Checkpoint object below) |
+| `created_at` / `updated_at` | ISO-8601 timestamps maintained by the CLI |
+
+### Checkpoint object
+
+The checkpoint sub-object captures state for recovery:
+
+| field | description |
+|---|---|
+| `pipeline_step` | current step in the pipeline |
+| `agent_in_flight` | agent currently executing |
+| `pending_evidence` | evidence artifacts not yet persisted |
+| `retry_count` | current retry count for the in-flight step |
+| `parallel_batch` | task IDs in the current parallel batch (null when running sequentially) |
+| `completed_in_batch` | completed steps within the current batch |
+| `remaining_steps` | ordered list of steps still to complete |
+| `last_updated` | ISO-8601 timestamp of the last checkpoint write |
+| `checkpoint_phase` | `pending` (intent recorded) or `committed` (step completed) |
 
 ## Phase Entry Rules
 
