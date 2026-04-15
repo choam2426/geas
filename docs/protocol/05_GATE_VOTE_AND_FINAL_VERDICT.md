@@ -199,6 +199,22 @@ Projects MAY add dimensions based on domain and need:
 - dimensions that caused failure SHOULD be recorded in `blocking_dimensions[]` for the verify-fix loop
 - threshold changes MUST be attributable to explicit policy, not ad hoc mood
 
+### Gate result record
+
+The gate writes its evaluation into `record.gate_result`. Canonical shape: `record.schema.json`.
+
+| field | meaning |
+|---|---|
+| `verdict` | overall gate outcome: `pass`, `fail`, `block`, or `error` |
+| `tier_results` | per-tier outcome object with keys `tier_0`, `tier_1`, `tier_2`; each has `status` (required) and `details` |
+| `rubric_scores` | array of `{ dimension, score, threshold, passed }` — the gate's per-dimension evaluation (dimension name, score, threshold, pass/fail) |
+| `blocking_dimensions` | array of dimension names whose `passed` is false; consumed by the verify-fix loop to focus repair |
+
+`rubric_scores` here differs from `evidence.rubric_scores` (which has been removed from the evidence schema): gate's version records the evaluated outcome, not a reviewer's bare score. The reviewer's rationale remains in the evidence file.
+
+When `verdict` is `pass`, `blocking_dimensions` MUST be empty.
+When `verdict` is `fail`, `blocking_dimensions` SHOULD enumerate the failing dimensions.
+
 ## Low-Confidence Adjustment
 
 When worker self-check `confidence <= 2`, the gate SHOULD tighten scrutiny.
@@ -331,18 +347,13 @@ A packet MUST NOT be called “complete enough” by prose if the formal complet
 
 ## Specialist Review Requirements Inside the Packet
 
-Each specialist review SHOULD include at minimum:
+Each review item has these fields:
 
-| field | description |
-|---|---|
-| `reviewer_type` | which specialist slot produced this review |
-| `status` | `approved`, `changes_requested`, or `blocked` |
-| `summary` | review findings and rationale |
-| `blocking_concerns[]` | individually addressable blocking issues |
-| `evidence_refs[]` | artifacts examined during review |
-| `rubric_scores[]` | optional rubric dimension scores |
+- `reviewer_type` — which specialist slot issued the review (e.g., `design-authority`, `qa-engineer`)
+- `status` — `approved`, `changes_requested`, or `blocked`
+- `summary` — narrative findings
 
-Blocking concerns SHOULD remain individually addressable. “Many concerns” is not enough.
+Additional detail lives in the linked evidence file, not in the closure summary.
 
 ## Critical Review Challenge
 

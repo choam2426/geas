@@ -44,7 +44,7 @@ Software project example:
 
 ## Role-Specific Rules
 ### reviewer
-- Always include rubric_scores in evidence
+- Always verify acceptance_criteria against the delivered evidence before approving
 ```
 
 Research project example:
@@ -94,7 +94,7 @@ Software domain example:
 ```markdown
 # Design Authority Memory
 
-- Review must include rubric_scores (task-001 finding)
+- Review must reference each acceptance_criterion explicitly (task-001 finding)
 - FTS5 index scope: title+description only, not code (mission-AQeKIOxC)
 ```
 
