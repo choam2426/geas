@@ -124,10 +124,10 @@ Locks prevent unsafe overlap between concurrent tasks. They are a coordination m
 
 | lock type | purpose | example |
 |---|---|---|
-| `path_lock` | direct path or surface overlap | two tasks editing the same file, document section, or data table |
-| `interface_lock` | shared contract, schema, or abstraction overlap | two tasks altering the same API, event format, or shared interface |
-| `resource_lock` | shared mutable resource | local ports, fixtures, external sandboxes, scarce tool capacity |
-| `integration_lock` | global serialized lane for baseline-changing integration | only one task may integrate at a time |
+| `path` | direct path or surface overlap | two tasks editing the same file, document section, or data table |
+| `interface` | shared contract, schema, or abstraction overlap | two tasks altering the same API, event format, or shared interface |
+| `resource` | shared mutable resource | local ports, fixtures, external sandboxes, scarce tool capacity |
+| `integration` | global serialized lane for baseline-changing integration | only one task may integrate at a time |
 
 ### Lock lifecycle
 
@@ -144,10 +144,10 @@ Abandoned locks SHOULD expire conservatively or require recovery cleanup. The in
 
 To avoid deadlock, the recommended acquisition order is:
 
-1. `resource_lock`
-2. `interface_lock`
-3. `path_lock`
-4. `integration_lock`
+1. `resource`
+2. `interface`
+3. `path`
+4. `integration`
 
 A project MAY adopt a different order, but it MUST document and enforce it consistently.
 
@@ -184,6 +184,16 @@ To consider critical tasks "proven independent," all of the following must hold:
 
 The scheduler MUST NOT maximize concurrency at the cost of impossible review or impossible recovery.
 
+### Scheduler State
+
+The scheduler exposes its current state via `run.json.scheduler_state`, with enum values `active`, `idle`, `paused`:
+
+- `active` — scheduler is selecting and dispatching ready tasks.
+- `idle` — scheduler has no ready tasks to dispatch; waiting for external input.
+- `paused` — scheduler is explicitly held (e.g., during integration-lane-only periods or manual intervention).
+
+State changes do not alter task contracts; they only gate whether new dispatches happen.
+
 ## Safe Parallel Conditions
 
 Tasks MAY run in parallel when all of the following are true:
@@ -198,8 +208,8 @@ Tasks MAY run in parallel when all of the following are true:
 
 Parallel execution SHOULD be blocked when any of the following are true:
 
-- overlapping `path_lock`
-- overlapping `interface_lock`
+- overlapping `path`
+- overlapping `interface`
 - shared migration or shared delivery artifact without serialization
 - coupled risk-sensitive changes across surfaces
 - one task's output is another's required baseline

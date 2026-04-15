@@ -224,7 +224,7 @@ Before claiming implementation completion, the primary worker MUST produce a wor
 - `confidence` — integer 1-5 (see Confidence semantics below)
 - `summary` — assessment of what was done and current state
 - `known_risks[]` — risks the worker identified during implementation
-- `untested_paths[]` — code paths or scenarios the worker did not test
+- `unverified_cases[]` — cases the worker did not verify
 
 ### Interpretation rules
 
