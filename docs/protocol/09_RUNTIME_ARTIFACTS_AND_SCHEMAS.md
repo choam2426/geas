@@ -57,7 +57,7 @@ The execution record accumulates sections as the pipeline progresses. Each secti
 |---|---|---|
 | `implementation_contract` | implementation contract approval | planned_actions, edge_cases, status |
 | `self_check` | worker self-assessment | confidence (1-5), known_risks, summary |
-| `gate_result` | evidence gate | verdict (pass/fail/block/error), tier_results, rubric_scores |
+| `gate_result` | evidence gate | verdict (pass/fail/block/error), tier_results, rubric_scores, blocking_dimensions |
 | `challenge_review` | challenger review (high/critical) | concerns, blocking |
 | `verdict` | final verdict | verdict (pass/iterate/escalate), rationale |
 | `closure` | closure assembly | change_summary, reviews, open_risks |
@@ -69,7 +69,7 @@ Evidence files use role-based required fields:
 
 | role | required fields | typical agents |
 |---|---|---|
-| implementer | summary, files_changed | software-engineer, platform-engineer |
+| implementer | summary, artifacts | software-engineer, platform-engineer |
 | reviewer | summary, verdict, concerns | design-authority, security-engineer, challenger |
 | tester | summary, verdict, criteria_results | qa-engineer |
 | authority | summary, verdict, rationale | product-authority |

@@ -21,7 +21,7 @@ Specialist reviews are stored as role-based evidence files in `evidence/{agent}.
 | `concerns[]` | individually addressable blocking issues |
 | `criteria_results[]` | per-criterion pass/fail assessments |
 | `rationale` | explanation of the overall verdict |
-| `artifact_refs[]` | artifacts examined or modified during review |
+| `artifacts[]` | artifacts examined or modified during review |
 
 A review with no evidence reference MAY still exist, but it SHOULD be treated as lower-confidence input and SHOULD NOT be enough to justify closure by itself on higher-assurance work.
 
