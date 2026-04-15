@@ -19,17 +19,7 @@ A task is the executable unit of closure in Geas. The task model exists so that 
 
 ### `task_kind`
 
-Describes what the task produces or does.
-
-| value | meaning | typical primary worker slot |
-|---|---|---|
-| `implementation` | produce or modify the core deliverable | Implementer |
-| `documentation` | create or update documentation, guides, or references | Communication Specialist |
-| `configuration` | set up or modify parameters, environments, or templates | Operations Specialist |
-| `design` | create or revise structural, visual, or methodological designs | Implementer or Design Authority |
-| `review` | perform assessment, audit, or evaluation of existing work | Risk Specialist or Quality Specialist |
-| `analysis` | investigate, explore, or extract insight from data, systems, or sources | Implementer or Quality Specialist |
-| `delivery` | package and ship a release, publication, or final output | Operations Specialist |
+Describes what the task produces or does. For each kind's semantic meaning and routing hint, see doc 01 Section 4. The canonical enum is defined in `docs/protocol/schemas/task-contract.schema.json`.
 
 Projects MAY define local sub-kinds (e.g., `implementation:frontend`, `review:security`) but the canonical kind MUST remain identifiable.
 
