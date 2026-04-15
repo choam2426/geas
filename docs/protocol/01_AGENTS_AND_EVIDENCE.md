@@ -1,9 +1,9 @@
-# 01. Agent Types and Authority
+# 01. Agents, Authority, and Evidence
 
 > **Normative document.**
-> This document defines the role taxonomy, authority boundaries, separation-of-duties rules, reviewer routing rules, and escalation model for Geas.
+> This document defines the role taxonomy, authority boundaries, separation-of-duties rules, reviewer routing, specialist evidence obligations, and escalation model for Geas.
 
-## Purpose
+## 1. Role Architecture
 
 Geas defines agents by **type**, not by friendly name. A type carries:
 
@@ -16,7 +16,7 @@ Geas defines agents by **type**, not by friendly name. A type carries:
 
 An implementation MUST be able to answer, for every task: **who worked, who reviewed, who challenged, who decided, and under what authority.**
 
-## Separation of Duties
+### Separation of Duties
 
 The protocol enforces the following separation principles:
 
@@ -25,15 +25,6 @@ The protocol enforces the following separation principles:
 3. The role that performs critical challenge MUST be allowed to raise blocking concerns without being overridden by omission.
 4. High-risk work MUST involve more than one evaluative perspective before final verdict.
 5. A local implementation MAY collapse multiple types into one physical agent instance, but it MUST preserve logical role separation in artifacts.
-
-## Role Architecture
-
-Geas roles are organized in two tiers:
-
-- **Authority slots** — domain-agnostic roles defined by the protocol. Present in every conformant implementation.
-- **Specialist slots** — functional categories that each domain profile fills with concrete role types.
-
-A single physical agent MAY occupy multiple slots. Slot assignment describes **primary responsibility**, not exclusive ownership.
 
 ### Authority Slots
 
@@ -75,37 +66,37 @@ A domain profile maps specialist slots to concrete role types. The protocol bund
 
 #### Software Development Profile
 
-| slot | concrete types | area of expertise |
-|---|---|---|
-| Implementer | `software-engineer` | full-stack implementation — UI, APIs, services, persistence, business logic, interaction design |
-| Quality Specialist | `qa-engineer` | acceptance criteria, tests, failure paths, regression risk |
-| Risk Specialist | `security-engineer` | auth, permissions, secret handling, abuse paths |
-| Operations Specialist | `platform-engineer` | CI/CD, environments, deployability, runtime operations |
-| Communication Specialist | `technical-writer` | docs, migrations, operator guidance |
+| slot | concrete types | area of expertise | inspection focus |
+|---|---|---|---|
+| Implementer | `software-engineer` | full-stack implementation — UI, APIs, services, persistence, business logic, interaction design | changed UI paths, interaction states, responsive behavior, a11y surfaces, API contracts, data flows, migration safety, error semantics, idempotency |
+| Quality Specialist | `qa-engineer` | acceptance criteria, tests, failure paths, regression risk | test coverage against criteria, negative paths, demo validation |
+| Risk Specialist | `security-engineer` | auth, permissions, secret handling, abuse paths | authn/authz boundaries, secret handling, injection surfaces, abuse paths |
+| Operations Specialist | `platform-engineer` | CI/CD, environments, deployability, runtime operations | CI reliability, deploy implications, config drift, provenance |
+| Communication Specialist | `technical-writer` | docs, migrations, operator guidance | docs completeness, migration notes, operator caveats |
 
 #### Research Profile (example)
 
-| slot | concrete types | area of expertise |
-|---|---|---|
-| Implementer | `literature-analyst`, `research-analyst` | literature search and synthesis; experiment design, data analysis, modeling, simulation |
-| Quality Specialist | `methodology-reviewer` | statistical rigor, reproducibility, methodological soundness |
-| Risk Specialist | `research-integrity-reviewer` | research ethics, data privacy, bias assessment, validity threats |
-| Operations Specialist | `research-engineer` | data pipelines, compute infrastructure, reproducibility environments |
-| Communication Specialist | `research-writer` | paper drafting, reports, presentations, audience-appropriate communication |
+| slot | concrete types | area of expertise | inspection focus |
+|---|---|---|---|
+| Implementer | `literature-analyst`, `research-analyst` | literature search and synthesis; experiment design, data analysis, modeling, simulation | methodology soundness, data collection validity, analysis reproducibility |
+| Quality Specialist | `methodology-reviewer` | statistical rigor, reproducibility, methodological soundness | statistical rigor, sample adequacy, reproducibility of findings |
+| Risk Specialist | `research-integrity-reviewer` | research ethics, data privacy, bias assessment, validity threats | ethics compliance, data privacy, bias assessment |
+| Operations Specialist | `research-engineer` | data pipelines, compute infrastructure, reproducibility environments | data pipeline reliability, compute reproducibility, environment consistency |
+| Communication Specialist | `research-writer` | paper drafting, reports, presentations, audience-appropriate communication | paper clarity, citation accuracy, audience-appropriate presentation |
 
 #### Content Creation Profile (example)
 
-| slot | concrete types | area of expertise |
-|---|---|---|
-| Implementer | `content-writer`, `content-designer` | content drafting; visual design and layout |
-| Quality Specialist | `fact-checker` | source verification, claim accuracy, consistency |
-| Risk Specialist | `legal-reviewer` | copyright, liability, regulatory compliance |
-| Operations Specialist | `publishing-engineer` | CMS, distribution, scheduling, format conversion |
-| Communication Specialist | `editor` | tone, clarity, audience fit, style consistency |
+| slot | concrete types | area of expertise | inspection focus |
+|---|---|---|---|
+| Implementer | `content-writer`, `content-designer` | content drafting; visual design and layout | factual accuracy, tone consistency, source attribution |
+| Quality Specialist | `fact-checker` | source verification, claim accuracy, consistency | claim verification, source reliability, cross-reference consistency |
+| Risk Specialist | `legal-reviewer` | copyright, liability, regulatory compliance | copyright compliance, liability exposure, regulatory alignment |
+| Operations Specialist | `publishing-engineer` | CMS, distribution, scheduling, format conversion | CMS integration, format conversion, distribution readiness |
+| Communication Specialist | `editor` | tone, clarity, audience fit, style consistency | audience fit, style consistency, clarity |
 
 A conformant implementation MAY define additional domain profiles or extend existing ones, but MUST NOT weaken the authority model.
 
-## Detailed Responsibilities and Prohibitions
+## 2. Authority Detailed Responsibilities
 
 ### Orchestrator (`orchestration-authority`)
 
@@ -151,7 +142,6 @@ Responsibilities:
 - review structural decisions, interfaces, dependencies, and maintainability
 - challenge hidden complexity, layering violations, and contract ambiguity
 - approve or reject implementation contracts for implementation-bearing tasks
-- SHOULD produce memory_suggestions when discovering information that would help future invocations of the same agent type
 
 In software: architecture review. In research: methodology review. In content: editorial direction review.
 
@@ -167,70 +157,110 @@ Responsibilities:
 - perform adversarial pre-ship challenge
 - search for assumptions the main path ignored
 - force articulation of why shipping may be unsafe, incomplete, or strategically weak
-- SHOULD produce memory_suggestions when discovering information that would help future invocations of the same agent type
 
 Prohibitions:
 
 - MUST NOT reduce their review to a rubber-stamp summary
 - MUST NOT skip challenge on `high` or `critical` work unless the task is explicitly cancelled
 
-## Minimum Review Obligations by Specialist Slot
+## 3. Specialist Evidence Obligations
 
-The following checks are minimum expectations per slot, not exhaustive lists. Domain profiles refine these into concrete checklists.
+Specialist participation counts only when it changes evidence quality. A specialist slot is not satisfied by mere presence on a task; it is satisfied when the role inspects the appropriate surfaces and records a review outcome.
 
-### Implementer (when reviewing peer work)
+### Common Specialist Review Artifact
 
-MUST consider:
+Specialist reviews are stored as role-based evidence files in `evidence/{agent}.json` via `geas evidence add`. Every specialist review SHOULD include, at minimum:
 
-- whether the approach matches the approved contract
-- interface correctness and boundary behavior
-- regression risk from the change
+| field | description |
+|---|---|
+| `agent` | which agent produced this review |
+| `task_id` | the task this review applies to |
+| `role` | the agent's role in this task: `implementer`, `reviewer`, `tester`, or `authority` |
+| `summary` | review findings and rationale |
+| `verdict` | `approved`, `changes_requested`, or `blocked` |
+| `concerns[]` | individually addressable blocking issues |
+| `criteria_results[]` | per-criterion pass/fail assessments |
+| `rationale` | explanation of the overall verdict |
+| `artifacts[]` | artifacts examined or modified during review |
+
+A review with no evidence reference MAY still exist, but it SHOULD be treated as lower-confidence input and SHOULD NOT be enough to justify closure by itself on higher-assurance work.
+
+### Status Semantics
+
+| status | meaning |
+|---|---|
+| `approved` | the reviewer found the task acceptable within their jurisdiction |
+| `changes_requested` | the reviewer requires additional work before acceptance |
+| `blocked` | the reviewer found a structural issue that should prevent forward motion absent explicit escalation |
+
+### Per-Slot Obligations
+
+The following expectations are minimum per slot, not exhaustive lists. Domain profiles refine these into concrete checklists.
+
+#### Implementer (when reviewing peer work)
+
+| MUST inspect | SHOULD produce | common blocking conditions |
+|---|---|---|
+| approach vs contract, interface correctness, regression risk | implementation review notes, boundary observations | contract violation, broken interface, regression introduced |
+
+Additional MUST consider:
 - whether the change requires involvement from other specialist slots
-- SHOULD produce memory_suggestions when discovering information that would help future invocations of the same agent type
 
-### Quality Specialist
+#### Quality Specialist
 
-MUST consider:
+| MUST inspect | SHOULD produce | common blocking conditions |
+|---|---|---|
+| acceptance criteria, verification coverage, negative paths | coverage analysis, missing-path notes, reproducibility assessment | unmet criteria, unverified negative path, irreproducible evidence |
 
+Additional MUST consider:
 - traceability from acceptance criteria to verification evidence
-- negative paths and regressions
 - whether untested paths remain material
-- reproducibility of the submitted evidence
-- SHOULD produce memory_suggestions when discovering information that would help future invocations of the same agent type
 
-### Risk Specialist
+#### Risk Specialist
 
-MUST consider:
+| MUST inspect | SHOULD produce | common blocking conditions |
+|---|---|---|
+| trust boundaries, sensitive data handling, domain-specific threats | risk notes, threat observations | privilege escalation, data exposure, unsafe trust assumption |
 
-- trust boundaries and privilege handling
-- sensitive data exposure or mishandling
+Additional MUST consider:
 - abuse paths and adversarial scenarios relevant to the domain
 - compliance with applicable policies
-- SHOULD produce memory_suggestions when discovering information that would help future invocations of the same agent type
 
-### Operations Specialist
+#### Operations Specialist
 
-MUST consider:
+| MUST inspect | SHOULD produce | common blocking conditions |
+|---|---|---|
+| delivery pipeline, environment readiness, rollback capability | operational readiness notes | deployment breakage, config drift, missing rollback path |
 
-- delivery pipeline impact
-- operational readiness and rollback capability
+Additional MUST consider:
 - configuration drift
 - environment or infrastructure implications
-- SHOULD produce memory_suggestions when discovering information that would help future invocations of the same agent type
 
-### Communication Specialist
+#### Communication Specialist
 
-MUST consider:
+| MUST inspect | SHOULD produce | common blocking conditions |
+|---|---|---|
+| documentation impact, user-facing changes, clarity | documentation completeness notes, audience-fit assessment | stale instructions, missing guidance, misleading content |
 
-- whether changes are documented at the right audience level
+Additional MUST consider:
 - migration, upgrade, or transition guidance
-- clarity and accuracy of user-facing content
 - whether examples or references have become stale
-- SHOULD produce memory_suggestions when discovering information that would help future invocations of the same agent type
 
-## Task Kind Taxonomy
+### Slot vs Evidence Role
 
-The canonical `task_kind` values are domain-agnostic:
+A **slot** is the organizational function an agent fills (e.g., Design Authority, Challenger). The **evidence role** determines the required fields when writing evidence via CLI.
+
+| Slot | Evidence Role | Rationale |
+|------|--------------|-----------|
+| Design Authority | `reviewer` | Reviews structural quality; evidence requires verdict + concerns |
+| Challenger | `authority` | Issues blocking/non-blocking decisions; evidence requires verdict + rationale |
+| Product Authority | `authority` | Issues final verdict; evidence requires verdict + rationale |
+
+Challenger also writes to `record.json:challenge_review` (dual-write) because the `verified→passed` transition guard checks this section directly.
+
+## 4. Required Reviewer Routing
+
+### Task Kind Taxonomy
 
 | task_kind | meaning | typical primary worker slot |
 |---|---|---|
@@ -244,7 +274,85 @@ The canonical `task_kind` values are domain-agnostic:
 
 Projects MAY define local sub-kinds (e.g., `implementation:frontend`, `review:security`) but the canonical kind MUST remain identifiable.
 
-## Decision Boundary
+Canonical enum: `docs/protocol/schemas/task-contract.schema.json`.
+
+### Routing Algorithm
+
+A task's `required_reviewer_types[]` MUST be computed cumulatively.
+
+#### Step 0 — Phase and mission sanity check
+
+Before routing reviewers, the Orchestrator MUST confirm:
+
+- the task belongs to the current mission and phase
+- the task kind and risk level are set
+- the task scope is concrete enough to infer affected surfaces
+
+If these are missing, reviewer routing MUST block.
+
+#### Step 1 — Default reviewers by `task_kind`
+
+| task_kind | minimum required reviewer slot | commonly additional slots |
+|---|---|---|
+| `implementation` | Design Authority | Quality, Risk, Implementer (peer), Operations, Communication |
+| `documentation` | Communication Specialist | Quality, Design Authority if structural semantics changed |
+| `configuration` | Operations Specialist | Risk, Quality, Design Authority |
+| `design` | Design Authority | Communication, Implementer, Quality |
+| `review` | Risk Specialist | Design Authority, Quality, Operations |
+| `analysis` | Design Authority, Quality Specialist | Risk, Communication |
+| `delivery` | Operations Specialist, Quality Specialist | Communication, Risk |
+
+The domain profile maps each slot to concrete reviewer types.
+
+#### Step 2 — Risk expansion
+
+| risk_level | additional required reviewers | minimum independent review expectation |
+|---|---|---|
+| `low` | none | at least one independent reviewer |
+| `normal` | none | at least one independent reviewer, plus domain expansion when affected surfaces justify it |
+| `high` | Challenger, Risk Specialist | independent reviewer set plus Challenger and Risk Specialist where applicable |
+| `critical` | Challenger, Risk Specialist, Quality Specialist | strong multi-perspective review including Challenger; closure SHOULD not rely on one perspective alone |
+
+#### Step 3 — Surface-signal expansion
+
+The following scope signals MUST add reviewer slots when detected:
+
+| signal | reviewer slots to add |
+|---|---|
+| presentation surfaces — user-facing output, interaction flows, visual design | Implementer (presentation domain), Communication Specialist |
+| core logic — domain model, data handling, algorithms, interfaces | Implementer (logic domain), Design Authority |
+| trust boundaries — credentials, sensitive data, permissions | Risk Specialist |
+| operational configuration — delivery pipeline, infrastructure, environments, runtime config | Operations Specialist |
+| verification surfaces — acceptance criteria, coverage artifacts, reproducibility | Quality Specialist |
+| documentation, guides, user-facing text | Communication Specialist |
+
+#### Step 4 — Gate profile and mission mode adjustment
+
+- `closure_ready` MUST include Quality Specialist.
+- `artifact_only` MAY omit implementation-specialist reviewers when no implementation surface is affected.
+
+#### Step 5 — Cross-cutting change expansion
+
+The following conditions SHOULD trigger additional review even if surface heuristics did not:
+
+- public interface or contract change
+- data model or schema change
+- migration, backfill, or bulk transformation
+- trust boundary or permission change
+- user-visible content or flow change
+- delivery pipeline or versioning change
+
+#### Step 6 — Deduplicate and preserve expertise need
+
+Duplicate reviewer types MUST be removed. If `primary_worker_type` also appears in the review set, that means the expertise is required; it does **not** mean self-review is sufficient.
+
+#### Step 7 — Minimum guarantee
+
+Every task MUST have at least one reviewer type that differs from `primary_worker_type`. If the computed set contains only the worker's own type or is empty, add Design Authority.
+
+## 5. Conflict Resolution and Quorum
+
+### Decision Boundary
 
 | decision | primary owner | mandatory participants / notes |
 |---|---|---|
@@ -258,81 +366,7 @@ Projects MAY define local sub-kinds (e.g., `implementation:frontend`, `review:se
 | memory update (rules.md, agent notes) | Orchestrator | see doc 07 |
 | policy override | local governance path | see doc 10; MUST be explicit and audited |
 
-## Required Reviewer Routing Algorithm
-
-A task's `required_reviewer_types[]` MUST be computed cumulatively.
-
-### Step 0 — Phase and mission sanity check
-
-Before routing reviewers, the Orchestrator MUST confirm:
-
-- the task belongs to the current mission and phase
-- the task kind and risk level are set
-- the task scope is concrete enough to infer affected surfaces
-
-If these are missing, reviewer routing MUST block.
-
-### Step 1 — Default reviewers by `task_kind`
-
-| task_kind | minimum required reviewer slot |
-|---|---|
-| `implementation` | Design Authority |
-| `documentation` | Communication Specialist |
-| `configuration` | Operations Specialist |
-| `design` | Design Authority |
-| `review` | Risk Specialist |
-| `analysis` | Design Authority, Quality Specialist |
-| `delivery` | Operations Specialist, Quality Specialist |
-
-The domain profile maps each slot to concrete reviewer types.
-
-### Step 2 — Risk expansion
-
-| risk_level | additional required reviewers |
-|---|---|
-| `low` | none |
-| `normal` | none |
-| `high` | Challenger, Risk Specialist |
-| `critical` | Challenger, Risk Specialist, Quality Specialist |
-
-### Step 3 — Surface-signal expansion
-
-The following scope signals MUST add reviewer slots when detected:
-
-| signal | reviewer slots to add |
-|---|---|
-| presentation surfaces — user-facing output, interaction flows, visual design | Implementer (presentation domain), Communication Specialist |
-| core logic — domain model, data handling, algorithms, interfaces | Implementer (logic domain), Design Authority |
-| trust boundaries — credentials, sensitive data, permissions | Risk Specialist |
-| operational configuration — delivery pipeline, infrastructure, environments, runtime config | Operations Specialist |
-| verification surfaces — acceptance criteria, coverage artifacts, reproducibility | Quality Specialist |
-| documentation, guides, user-facing text | Communication Specialist |
-
-### Step 4 — Gate profile and mission mode adjustment
-
-- `closure_ready` MUST include Quality Specialist.
-- `artifact_only` MAY omit implementation-specialist reviewers when no implementation surface is affected.
-
-### Step 5 — Cross-cutting change expansion
-
-The following conditions SHOULD trigger additional review even if surface heuristics did not:
-
-- public interface or contract change
-- data model or schema change
-- migration, backfill, or bulk transformation
-- trust boundary or permission change
-- user-visible content or flow change
-- delivery pipeline or versioning change
-
-### Step 6 — Deduplicate and preserve expertise need
-
-Duplicate reviewer types MUST be removed. If `primary_worker_type` also appears in the review set, that means the expertise is required; it does **not** mean self-review is sufficient.
-
-### Step 7 — Minimum guarantee
-
-Every task MUST have at least one reviewer type that differs from `primary_worker_type`. If the computed set contains only the worker's own type or is empty, add Design Authority.
-
-## Conflict Resolution
+### Conflict Resolution
 
 A protocol conflict exists when required reviewers produce materially incompatible conclusions, for example:
 
@@ -351,14 +385,14 @@ Conflict handling MUST follow this order:
 
 A conflict MUST NOT disappear simply because the Orchestrator prefers throughput.
 
-## Quorum Rules
+### Quorum Rules
 
-### Proposal-round quorum
+#### Proposal-round quorum
 
 Minimum: proposer plus one independent reviewer.
 Recommended for cross-cutting changes: proposer plus Design Authority plus one affected domain specialist.
 
-### Readiness-round quorum
+#### Readiness-round quorum
 
 Minimum for `high` or `critical` risk:
 
@@ -369,7 +403,74 @@ Minimum for `high` or `critical` risk:
 
 If quorum cannot be reached after two attempts, the task SHOULD transition to `escalated` unless a local policy explicitly allows deferred decision with recorded rationale.
 
-## Single-Agent and Small-Team Operation
+## 6. Evidence Flow and Closure Integration
+
+All specialists SHOULD emit `memory_suggestions` in their output artifacts when they encounter reusable knowledge. The Orchestrator harvests confirmed suggestions during retrospective and writes them to the appropriate agent memory file at `.geas/memory/agents/{agent_type}.md`.
+
+### Evidence Source Priority
+
+When available, specialists SHOULD prefer direct evidence in this order:
+
+| priority | source | trust level |
+|---|---|---|
+| 1 | canonical artifacts produced for the current task | highest |
+| 2 | reproducible command, test, or verification output | high |
+| 3 | direct inspection of the work output | high |
+| 4 | rules.md entries and agent memory notes | medium |
+| 5 | prose claims not tied to artifacts | lowest |
+
+Lower-priority evidence MUST NOT overrule higher-priority contradictory evidence without rationale.
+
+### Worker Artifacts Consumed by Specialists
+
+All specialists MAY consume worker artifacts, but the following pairings are especially important:
+
+| worker artifact | primary consumer slot | expected effect |
+|---|---|---|
+| `known_risks[]` | Design Authority, Risk Specialist, Challenger | focus review where the worker is already uncertain |
+| `unverified_cases[]` | Quality Specialist | prioritize verification effort |
+| `possible_stubs[]` | Quality Specialist, Design Authority, Challenger | force explicit placeholder validation |
+| `what_to_test_next[]` | Quality Specialist | accelerate verification scenario design |
+| `summary` | all reviewers | orient review focus, not replace review |
+
+### Rule When Worker Self-Check Is Absent
+
+If a worker self-check is required but absent:
+
+- the review set MUST NOT pretend the task is review-ready
+- the task SHOULD remain pre-review or be rewound
+- specialists MAY note the absence, but the absence itself is not a substitute artifact
+
+### Required Reviewer Resolution
+
+A task is not review-complete until the required review set has been satisfied according to routing rules. This means:
+
+- every required reviewer type has either produced a review
+- or a formally documented substitution path exists
+- or the task has been escalated
+
+The Orchestrator MUST NOT infer silent approval from inactivity.
+
+### Closure Inclusion Rule
+
+If a specialist participated materially, the closure packet SHOULD include their review or a traceable summary reference to it. Participation that affected a decision MUST be auditable later.
+
+### Evolution Handoff Rule
+
+Specialists SHOULD emit memory and rule candidates when they observe:
+
+| observation | priority |
+|---|---|
+| repeated blocking failure | highest — immediate rule candidate |
+| repeated preventable regression | high — pattern worth capturing |
+| high-value reusable success pattern | high — worth standardizing |
+| reviewer checklist gap | medium — improves future review quality |
+| domain-specific anti-pattern | medium — prevents recurrence |
+| lower-value advisory observation | low — capture if evidence is strong |
+
+## 7. Operational Rules
+
+### Single-Agent and Small-Team Operation
 
 A single physical agent MAY play multiple logical types, but the artifacts MUST show explicit role switching. In single-agent mode:
 
@@ -379,7 +480,7 @@ A single physical agent MAY play multiple logical types, but the artifacts MUST 
 - final verdict MUST be rendered under an explicit Decision Maker role switch
 - the system MUST NOT pretend independent review happened if it did not
 
-## User Escalation Boundary
+### User Escalation Boundary
 
 A conformant implementation SHOULD escalate to the user when any of the following occur:
 
@@ -389,7 +490,7 @@ A conformant implementation SHOULD escalate to the user when any of the followin
 - delivery of regulated or safety-sensitive output under a profile that requires user approval
 - a policy override that weakens a normal hard-stop
 
-## Audit Requirements
+### Audit Requirements
 
 The following MUST remain reconstructible from artifacts:
 
@@ -401,7 +502,7 @@ The following MUST remain reconstructible from artifacts:
 - which dissenting positions were overruled and why
 - whether any logical role separation collapsed into a single physical agent instance
 
-## Type Naming Rules for Artifacts
+### Type Naming Rules for Artifacts
 
 Artifact types map to storage locations as follows:
 
@@ -416,4 +517,4 @@ Role identity belongs inside validated fields, not inside ad hoc filenames.
 
 ## Key Statement
 
-Authority in Geas is not ornamental. A role exists to constrain who may decide, what evidence they must inspect, and how a future auditor can verify that the decision was legitimate.
+Authority in Geas is not ornamental and specialist evidence is not ceremonial. A role exists to constrain who may decide, what evidence they must inspect, and how a future auditor can verify that the decision was legitimate.
