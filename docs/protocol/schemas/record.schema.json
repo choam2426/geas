@@ -102,6 +102,90 @@
             "block",
             "error"
           ]
+        },
+        "tier_results": {
+          "type": "object",
+          "properties": {
+            "tier_0": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string"
+                },
+                "details": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "tier_1": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string"
+                },
+                "details": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            },
+            "tier_2": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string"
+                },
+                "details": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "rubric_scores": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "dimension": {
+                "type": "string"
+              },
+              "score": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5
+              },
+              "threshold": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5
+              },
+              "passed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "dimension",
+              "score",
+              "threshold",
+              "passed"
+            ]
+          }
+        },
+        "blocking_dimensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [

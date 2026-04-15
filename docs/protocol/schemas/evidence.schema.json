@@ -26,7 +26,7 @@
       "type": "string",
       "minLength": 1
     },
-    "artifact_refs": {
+    "artifacts": {
       "type": "array",
       "items": {
         "type": "string"
@@ -77,29 +77,6 @@
         "required": [
           "criterion",
           "passed"
-        ]
-      }
-    },
-    "rubric_scores": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "dimension": {
-            "type": "string"
-          },
-          "score": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 5
-          },
-          "rationale": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "dimension",
-          "score"
         ]
       }
     }
