@@ -115,14 +115,13 @@ Key CLI commands:
 | Topic | Protocol doc |
 |-------|-------------|
 | Design principles, 4 Pillars, terminology | `protocol/00` |
-| Agent types, authority, routing | `protocol/01` |
-| Mission phases, mission model | `protocol/02` |
+| Agents, authority, routing, specialist evidence | `protocol/01` |
+| Mission phases, mission model, runtime | `protocol/02` |
 | Task states, transitions, record.json | `protocol/03` |
 | Workspace, locks, parallelism | `protocol/04` |
 | Gate, vote, closure, verdict | `protocol/05` |
-| Specialist evidence matrix | `protocol/06` |
-| Memory system (lifecycle + retrieval) | `protocol/07` |
-| Session recovery | `protocol/08` |
+| Session recovery | `protocol/06` |
+| Memory and retrospective | `protocol/07` |
+| Debt and gap | `protocol/08` |
 | Runtime artifacts, schemas, directory structure | `protocol/09` |
 | Enforcement, transition guards, metrics | `protocol/10` |
-| Evolution, debt, gap loop | `protocol/11` |
