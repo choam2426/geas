@@ -312,7 +312,6 @@ The following scope signals MUST add reviewer slots when detected:
 
 - `closure_ready` MUST include Quality Specialist.
 - `artifact_only` MAY omit implementation-specialist reviewers when no implementation surface is affected.
-- `recovery_first` missions SHOULD add whichever specialist owns the damaged surface.
 
 ### Step 5 — Cross-cutting change expansion
 

@@ -1,7 +1,7 @@
-# 02. Missions and Runtime
+# 02. Modes, Missions, and Runtime
 
 > **Normative document.**
-> This document defines mission structure, mission operating modes, the four-phase model, runtime phases, and phase transition controls.
+> This document defines mission structure, mission operating modes, the four-phase model, and phase transition controls.
 
 ## Purpose
 
@@ -35,7 +35,7 @@ A mission MUST contain at least the following fields:
 | `entry_signals` | conditions that were true when the mission was created |
 | `scope_in` | the promised scope captured during specifying |
 | `current_phase` | the active mission phase |
-| `mode` | mission operating mode: `lightweight`, `standard`, `full_depth`, `recovery_first`, `audit_only` |
+| `mode` | mission operating mode: `lightweight`, `standard`, `full_depth` |
 | `domain_profile` | active domain profile identifier |
 
 ### Additional recommended metadata
@@ -82,14 +82,11 @@ Mission mode determines how much rigor is applied by default. Mode selection MUS
 | `lightweight` | small, localized, low-risk changes | minimal compatible rigor; phases may be compact but not skipped semantically |
 | `standard` | ordinary structured work | full task lifecycle with normal reviewer routing |
 | `full_depth` | cross-cutting, risky, or ambiguous work | explicit design brief, broad review, strong evolution outputs |
-| `recovery_first` | interrupted or damaged sessions | recovery and integrity restoration take priority over new implementation |
-| `audit_only` | diagnosis, review, or evidence gathering without intended implementation change | strong traceability and review, lighter implementation path |
 
 Rules:
 
 - A mission mode MUST NOT weaken the foundational invariants from doc 00.
 - `full_depth` SHOULD be the default for new architectures, major refactors, security-sensitive changes, and unclear requirements.
-- `recovery_first` MUST suspend normal throughput optimization until state integrity is restored.
 - In urgent situations, `lightweight` mode SHOULD be used rather than inventing an emergency exception. Lightweight mode preserves all foundational invariants while minimizing ceremony.
 
 ## Initiative 4-Phase Model
@@ -157,35 +154,6 @@ Captures what was learned and prepares the system for future work. Prevents miss
 | **outputs** | gap assessment, rules update, debt register (final), mission summary, phase review |
 | **exit conditions** | gap assessment exists / retrospective bundle exists / rules and memory actions recorded / debt snapshot captured / mission summary exists |
 
-## Runtime Phases
-
-Runtime phase describes what the session is doing **now**, regardless of mission phase. A session cycles through runtime phases multiple times within a single mission phase.
-
-| runtime phase | primary allowed operations |
-|---|---|
-| `bootstrap` | load state, detect recovery conditions, verify environment and anchors |
-| `planning` | clarify mission, refine tasks, review contracts, amend scope if allowed |
-| `scheduling` | select ready tasks, calculate concurrency window, allocate locks |
-| `executing` | implement or edit within workspace, produce local evidence |
-| `integrating` | enter serialized integration lane, reconcile baseline, integrate changes |
-| `verifying` | run gates, assemble packet, execute vote / verdict flow |
-| `learning` | retrospective, memory extraction, debt and rule updates |
-| `idle` | no active in-flight work; waiting, paused, or mission complete |
-
-### Transition pattern
-
-Runtime phases follow a cyclical pattern within each mission phase:
-
-```text
-bootstrap (once per session)
-→ planning
-→ scheduling → executing → integrating → verifying (loop until phase exit conditions met)
-→ learning
-→ idle
-```
-
-Phases MUST NOT be skipped, but in a single-task session some phases may be traversed instantaneously.
-
 ## `run.json` Key Fields
 
 The runtime anchor is the persistent state object that tracks session progress. It SHOULD expose at least the following fields:
@@ -194,7 +162,6 @@ The runtime anchor is the persistent state object that tracks session progress. 
 |---|---|
 | `session_start_ref` | reference point (commit, snapshot, or timestamp) marking session start |
 | `integration_target` | the target branch, environment, or artifact collection that receives integrated work |
-| `phase` | current runtime phase |
 | `mission_phase` | current mission phase |
 | `focus_task_id` | the task currently being executed |
 | `checkpoint_seq` | monotonically increasing checkpoint sequence number |
@@ -207,7 +174,6 @@ The runtime anchor is the persistent state object that tracks session progress. 
 | field | valid values |
 |---|---|
 | `recovery_state` | `none`, `detecting`, `restoring`, `manual_repair_required`, `completed` |
-| `phase` | `bootstrap`, `planning`, `scheduling`, `executing`, `integrating`, `verifying`, `learning`, `idle` |
 | `mission_phase` | `specifying`, `building`, `polishing`, `evolving` |
 
 ### Additional recommended fields

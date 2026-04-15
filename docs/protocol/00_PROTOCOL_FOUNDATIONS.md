@@ -255,8 +255,7 @@ This rule exists to preserve validator predictability while allowing the standar
 
 - **Task** — the only first-class unit that can become `passed`
 - **Mission** — the higher-level objective that normalizes a user request into executable protocol work
-- **Runtime Phase** — `bootstrap | planning | scheduling | executing | integrating | verifying | learning | idle`
-- **Mission Phase** — `specifying | building | polishing | evolving`
+- **Mission Phase** — `specifying | building | polishing | evolving | complete`
 - **Baseline** — the last verified snapshot of the work state that a task was validated against (e.g., a Git commit, a document version, a dataset checkpoint)
 - **Workspace** — an isolated task execution context (e.g., a Git worktree, a sandboxed environment, a dedicated working directory)
 - **Integration** — the process of merging a task's outputs into the shared baseline (e.g., a Git merge, a document version publish, a dataset update)

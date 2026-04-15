@@ -29,7 +29,7 @@
 
 - `00_PROTOCOL_FOUNDATIONS.md` — control objectives, invariants, conformance units, precedence rules, threat model
 - `01_AGENT_TYPES_AND_AUTHORITY.md` — role taxonomy, separation of duties, reviewer routing, conflict rules
-- `02_MODES_MISSIONS_AND_RUNTIME.md` — mission model, mission modes, four phases, runtime phases, phase gates
+- `02_MODES_MISSIONS_AND_RUNTIME.md` — mission model, mission modes, four phases, phase gates
 - `03_TASK_MODEL_AND_LIFECYCLE.md` — task metadata, contract quality, lifecycle states, state restoration, retry and iterate rules
 - `04_BASELINE_WORKSPACE_SCHEDULER_AND_PARALLELISM.md` — baseline freshness, revalidation, workspace lifecycle, lock and scheduler model
 - `05_GATE_VOTE_AND_FINAL_VERDICT.md` — gate semantics, rubric scoring, vote rounds, closure packets, final verdict

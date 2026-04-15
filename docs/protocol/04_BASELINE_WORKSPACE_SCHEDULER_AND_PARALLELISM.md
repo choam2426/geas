@@ -253,7 +253,7 @@ Integration changes the shared baseline and therefore MUST be serialized unless 
 
 ### All tasks are paused
 
-- runtime phase MAY become `idle`
+- `scheduler_state` MAY become `idle`
 - the current blocking reason SHOULD be recorded
 - a future resume MUST still perform freshness checks
 
