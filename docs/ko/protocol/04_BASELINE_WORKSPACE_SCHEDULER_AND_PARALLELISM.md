@@ -124,10 +124,10 @@ Lock은 동시 task 간의 안전하지 않은 겹침을 방지하는 조율 장
 
 | lock 유형 | 목적 | 예시 |
 |---|---|---|
-| `path_lock` | 직접적 경로나 표면 겹침 | 같은 파일, 문서 섹션, 데이터 테이블을 두 task가 편집 |
-| `interface_lock` | 공유 계약, schema, 추상화 겹침 | 같은 API, 이벤트 형식, 공유 인터페이스를 두 task가 변경 |
-| `resource_lock` | 공유 가변 자원 | 로컬 포트, 픽스처, 외부 샌드박스, 부족한 도구 용량 |
-| `integration_lock` | baseline 변경을 위한 전역 직렬화 레인 | 한 번에 하나의 task만 통합 가능 |
+| `path` | 직접적 경로나 표면 겹침 | 같은 파일, 문서 섹션, 데이터 테이블을 두 task가 편집 |
+| `interface` | 공유 계약, schema, 추상화 겹침 | 같은 API, 이벤트 형식, 공유 인터페이스를 두 task가 변경 |
+| `resource` | 공유 가변 자원 | 로컬 포트, 픽스처, 외부 샌드박스, 부족한 도구 용량 |
+| `integration` | baseline 변경을 위한 전역 직렬화 레인 | 한 번에 하나의 task만 통합 가능 |
 
 ### Lock 생명주기
 
@@ -144,10 +144,10 @@ Lock은 동시 task 간의 안전하지 않은 겹침을 방지하는 조율 장
 
 교착을 방지하기 위한 권장 획득 순서:
 
-1. `resource_lock`
-2. `interface_lock`
-3. `path_lock`
-4. `integration_lock`
+1. `resource`
+2. `interface`
+3. `path`
+4. `integration`
 
 프로젝트가 다른 순서를 채택할 수 있지만, 문서화하고 일관되게 적용해야 한다.
 
@@ -184,6 +184,16 @@ Critical task가 "독립이 증명되었다"고 판단하려면 다음을 모두
 
 리뷰 불가능하거나 복구 불가능한 수준까지 동시성을 높여서는 안 된다.
 
+### 스케줄러 상태
+
+스케줄러는 현재 상태를 `run.json.scheduler_state`를 통해 외부에 노출한다. 유효 값은 `active`, `idle`, `paused`이다:
+
+- `active` — 스케줄러가 ready task를 선택하고 배정 중이다.
+- `idle` — 배정할 ready task가 없어 외부 입력을 기다리는 상태이다.
+- `paused` — 스케줄러가 명시적으로 보류 중이다 (예: integration-lane 전용 구간 또는 수동 개입 중).
+
+상태 변경은 task contract에 영향을 주지 않으며, 새로운 배정이 일어날지 여부만 결정한다.
+
 ## 안전한 병렬 조건
 
 다음을 모두 충족하면 task를 병렬 실행할 수 있다:
@@ -198,8 +208,8 @@ Critical task가 "독립이 증명되었다"고 판단하려면 다음을 모두
 
 다음 중 하나라도 해당하면 병렬 실행을 차단해야 한다:
 
-- `path_lock` 겹침
-- `interface_lock` 겹침
+- `path` 겹침
+- `interface` 겹침
 - 직렬화 없는 공유 마이그레이션이나 전달 artifact
 - 리스크 민감 표면에 걸친 결합된 변경
 - 한 task의 산출물이 다른 task의 필수 baseline
@@ -253,7 +263,7 @@ Preemption checkpoint에 포함해야 하는 항목:
 
 ### 모든 task가 paused
 
-- 런타임 단계가 `idle`이 될 수 있다
+- `scheduler_state`가 `idle`이 될 수 있다
 - 현재 차단 사유를 기록해야 한다
 - 재개 시 최신성 확인을 반드시 수행해야 한다
 

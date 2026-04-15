@@ -224,7 +224,7 @@ task에 반드시 있어야 하는 것:
 - `confidence` — 정수 1-5 (아래 Confidence semantics 참조)
 - `summary` — 수행한 내용과 현재 상태 평가
 - `known_risks[]` — 구현 중 발견한 위험
-- `untested_paths[]` — 테스트하지 않은 코드 경로나 시나리오
+- `unverified_cases[]` — 검증하지 않은 케이스
 
 ### 활용 방식
 

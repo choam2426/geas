@@ -14,7 +14,7 @@
   "self_check": {
     "confidence": 4,
     "known_risks": ["Cross-platform targets untested on single OS"],
-    "untested_paths": ["macOS dmg build on Windows host"],
+    "unverified_cases": ["macOS dmg build on Windows host"],
     "summary": "Build succeeded, MSI and NSIS installers verified"
   },
 

@@ -199,6 +199,22 @@ Tier 2 확인 대상:
 - 실패 원인이 된 차원을 `blocking_dimensions[]`에 기록하여 검증-수정 루프에서 활용한다
 - 임계값은 명시적 정책으로만 변경할 수 있으며, 즉흥적 판단으로 바꿀 수 없다
 
+### 게이트 결과 기록
+
+게이트는 평가 결과를 `record.gate_result`에 기록한다. 정규 형식은 `record.schema.json` 참조.
+
+| 필드 | 의미 |
+|---|---|
+| `verdict` | 전체 게이트 결과: `pass`, `fail`, `block`, 또는 `error` |
+| `tier_results` | 티어별 결과 객체 — `tier_0`, `tier_1`, `tier_2` 키를 가지며 각각 `status`(필수)와 `details`를 담는다 |
+| `rubric_scores` | `{ dimension, score, threshold, passed }` 배열 — 게이트의 차원별 평가 결과 (차원명, 점수, 임계값, pass/fail) |
+| `blocking_dimensions` | `passed`가 false인 차원명 배열. 검증-수정 루프가 이를 보고 수정 초점을 결정한다 |
+
+여기서 `rubric_scores`는 `evidence.rubric_scores`(evidence 스키마에서 제거됨)와 다르다. 게이트의 `rubric_scores`는 평가된 결과를 기록하며, 리뷰어의 판단 근거는 evidence 파일에 남는다.
+
+`verdict`가 `pass`이면 `blocking_dimensions`는 반드시 비어 있어야 한다.
+`verdict`가 `fail`이면 `blocking_dimensions`에 실패 차원을 열거해야 한다.
+
 ## 낮은 Confidence 조정
 
 Worker self-check의 `confidence`가 2 이하이면 게이트 검증을 강화한다.
@@ -331,18 +347,13 @@ Closure packet이 완전하다고 인정되려면 다음을 모두 충족해야 
 
 ## Closure Packet 내 Specialist 리뷰
 
-각 specialist 리뷰에 포함해야 하는 최소 필드:
+각 리뷰 항목이 담는 필드:
 
-| 필드 | 설명 |
-|---|---|
-| `reviewer_type` | 리뷰를 작성한 specialist 슬롯 |
-| `status` | `approved`, `changes_requested`, 또는 `blocked` |
-| `summary` | 리뷰 결과와 판단 근거 |
-| `blocking_concerns[]` | 개별적으로 대응 가능한 차단 사안 목록 |
-| `evidence_refs[]` | 리뷰 과정에서 검토한 artifact |
-| `rubric_scores[]` | 루브릭 차원별 점수 (선택) |
+- `reviewer_type` — 리뷰를 발행한 specialist 슬롯 (예: `design-authority`, `qa-engineer`)
+- `status` — `approved`, `changes_requested`, 또는 `blocked`
+- `summary` — 리뷰 결과에 대한 서술
 
-차단 사안은 개별 식별과 대응이 가능한 형태여야 한다. "우려가 여러 가지 있다" 수준으로는 부족하다.
+추가 세부 내용은 closure 요약이 아닌 연결된 evidence 파일에 담는다.
 
 ## Critical Review Challenge
 

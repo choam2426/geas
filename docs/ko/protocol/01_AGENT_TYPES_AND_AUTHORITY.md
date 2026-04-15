@@ -313,7 +313,6 @@ task의 `required_reviewer_types[]`는 누적 방식으로 계산한다.
 
 - `closure_ready`에는 Quality Specialist를 반드시 포함한다.
 - `artifact_only`는 구현 표면에 영향이 없으면 Implementer 리뷰어를 생략할 수 있다.
-- `recovery_first` 미션에서는 손상된 표면을 담당하는 specialist를 추가해야 한다.
 
 ### 5단계 — 횡단 변경 확장
 

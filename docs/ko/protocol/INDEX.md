@@ -29,7 +29,7 @@
 
 - `00_PROTOCOL_FOUNDATIONS.md` — 통제 목표, invariant, conformance 단위, 우선순위 규칙, 위협 모델
 - `01_AGENT_TYPES_AND_AUTHORITY.md` — 역할 분류, 직무 분리, reviewer routing, 충돌 규칙
-- `02_MODES_MISSIONS_AND_RUNTIME.md` — mission 모델, mission mode, 4-phase, 런타임 phase, phase gate
+- `02_MODES_MISSIONS_AND_RUNTIME.md` — mission 모델, mission mode, 4-phase, phase gate
 - `03_TASK_MODEL_AND_LIFECYCLE.md` — task 메타데이터, contract 품질, lifecycle 상태, 상태 복원, retry/iterate 규칙
 - `04_BASELINE_WORKSPACE_SCHEDULER_AND_PARALLELISM.md` — baseline 최신성, 재검증, workspace lifecycle, lock/scheduler 모델
 - `05_GATE_VOTE_AND_FINAL_VERDICT.md` — gate 의미론, rubric 채점, vote round, closure packet, final verdict

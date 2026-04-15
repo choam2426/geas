@@ -138,17 +138,19 @@ Artifact completeness는 recovery 엔진이 주장된 상태를 얼마나 신뢰
 
 ## Recovery Packet
 
-`recovery-packet`은 중단된 상태에 대한 엔진의 판단을 기록하여, 다음 세션이 이를 토대로 결정을 내릴 수 있게 한다. Recovery packet은 최소한 다음을 포함해야 한다:
+`recovery-packet`은 중단된 상태에 대한 엔진의 판단을 기록하여, 다음 세션이 이를 토대로 결정을 내릴 수 있게 한다.
 
-| 필드 | 설명 |
-|---|---|
-| recovery class | 해당하는 정규 recovery class |
-| 관찰된 상태 요약 | 엔진이 상황 평가 시 발견한 내용 |
-| 활성 task와 마지막 safe boundary | task별 안전하게 재개 가능한 지점 |
-| 부실 또는 손상된 artifact 노트 | 의심되는 artifact와 그 이유 |
-| 권장 다음 행동 | 엔진이 제안하는 복구 경로 |
-| 누락되거나 의심스러운 evidence | 예상했으나 부재하거나 신뢰할 수 없는 artifact |
-| 수동 개입 필요 여부 | 작업 재개 전 사용자 개입이 필요한지 |
+recovery packet은 엔진이 관찰한 내용과 취해야 할 조치를 기록한다. 정규 형식은 `recovery-packet.schema.json`에 있다. 필수 필드는 다음과 같다:
+
+- `recovery_id` — 이 복구 시도의 식별자
+- `recovery_class` — 정규 class (`post_compact_resume`, `warm_session_resume`, `interrupted_subagent_resume`, `dirty_state_recovery`, `manual_repair_required`)
+- `focus_task_id` — 복구 대상으로 집중 중인 task
+- `detected_problem` — 복구를 촉발한 엔진의 발견 내용
+- `recommended_action` — 취해야 할 복구 경로
+- `artifacts_found` — 존재하고 유효성 검증을 통과한 artifact
+- `artifacts_missing` — 예상했으나 부재하는 artifact
+
+수동 개입이 필요한 경우, `recovery_class`를 반드시 `manual_repair_required`로 설정해야 한다. 별도의 boolean 플래그는 필요 없다 — class 자체가 그 신호를 전달한다.
 
 ## Workspace Recovery Rules
 

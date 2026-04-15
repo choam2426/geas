@@ -255,8 +255,7 @@ Geas가 다루는 기본 범위:
 
 - **Task** — `passed`가 될 수 있는 유일한 단위
 - **Mission** — 사용자 요청을 실행 가능한 프로토콜 작업으로 바꾸는 상위 목적
-- **Runtime Phase** — `bootstrap | planning | scheduling | executing | integrating | verifying | learning | idle`
-- **Mission Phase** — `specifying | building | polishing | evolving`
+- **Mission Phase** — `specifying | building | polishing | evolving | complete`
 - **Baseline** — task가 마지막으로 검증된 작업 상태의 스냅샷. Git 커밋일 수도, 문서 버전일 수도, 데이터셋 체크포인트일 수도 있다
 - **Workspace** — task 실행을 위한 격리 환경. Git worktree, 샌드박스, 전용 작업 디렉토리 등
 - **Integration** — task 산출물을 공유 baseline에 합치는 과정. Git 머지, 문서 버전 발행, 데이터셋 갱신 등

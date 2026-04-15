@@ -21,7 +21,7 @@ Specialist 리뷰는 `evidence/{agent}.json`에 역할 기반 evidence 파일로
 | `concerns[]` | 개별 대응 가능한 차단 사안 |
 | `criteria_results[]` | 기준별 pass/fail 평가 |
 | `rationale` | 전체 verdict에 대한 설명 |
-| `artifact_refs[]` | 리뷰 과정에서 검토 또는 수정한 artifact |
+| `artifacts[]` | 리뷰 과정에서 검토 또는 수정한 artifact |
 
 Evidence 참조가 없는 리뷰도 존재할 수 있지만, 신뢰도가 낮은 입력으로 취급해야 하며 높은 엄격도 수준에서는 단독으로 종결 근거가 될 수 없다.
 

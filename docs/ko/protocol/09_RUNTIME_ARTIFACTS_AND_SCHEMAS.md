@@ -57,7 +57,7 @@ Execution record는 pipeline이 진행됨에 따라 섹션을 축적한다. 각 
 |---|---|---|
 | `implementation_contract` | implementation contract 승인 | planned_actions, edge_cases, status |
 | `self_check` | worker 자체 평가 | confidence (1-5), known_risks, summary |
-| `gate_result` | evidence gate | verdict (pass/fail/block/error), tier_results, rubric_scores |
+| `gate_result` | evidence gate | verdict (pass/fail/block/error), tier_results, rubric_scores, blocking_dimensions |
 | `challenge_review` | challenger review (high/critical) | concerns, blocking |
 | `verdict` | final verdict | verdict (pass/iterate/escalate), rationale |
 | `closure` | closure 조립 | change_summary, reviews, open_risks |
@@ -69,7 +69,7 @@ Evidence 파일은 역할별 필수 필드를 사용한다:
 
 | 역할 | 필수 필드 | 일반적 에이전트 |
 |---|---|---|
-| implementer | summary, files_changed | software-engineer, platform-engineer |
+| implementer | summary, artifacts | software-engineer, platform-engineer |
 | reviewer | summary, verdict, concerns | design-authority, security-engineer, challenger |
 | tester | summary, verdict, criteria_results | qa-engineer |
 | authority | summary, verdict, rationale | product-authority |
