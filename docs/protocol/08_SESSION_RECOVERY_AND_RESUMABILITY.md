@@ -138,17 +138,19 @@ Examples:
 
 ## Recovery Packet
 
-A `recovery-packet` captures the engine's assessment of the interrupted state so that the next session can make informed decisions. A recovery packet or equivalent SHOULD contain:
+A `recovery-packet` captures the engine's assessment of the interrupted state so that the next session can make informed decisions.
 
-| field | description |
-|---|---|
-| recovery class | which canonical recovery class applies |
-| observed state summary | what the engine found when it assessed the situation |
-| active tasks and last safe boundaries | per-task record of where safe resume is possible |
-| stale or damaged artifact notes | which artifacts are suspect and why |
-| recommended next action | what the engine suggests as the recovery path |
-| missing or suspect evidence | which expected artifacts are absent or untrusted |
-| manual intervention required | whether the user must intervene before work resumes |
+A recovery packet records what the engine observed and what action to take. Canonical shape in `recovery-packet.schema.json`. The required fields are:
+
+- `recovery_id` — identifier for this recovery attempt
+- `recovery_class` — canonical class (`post_compact_resume`, `warm_session_resume`, `interrupted_subagent_resume`, `dirty_state_recovery`, `manual_repair_required`)
+- `focus_task_id` — task currently in focus for recovery
+- `detected_problem` — what the engine found that triggered recovery
+- `recommended_action` — the recovery path to take
+- `artifacts_found` — artifacts that exist and validate
+- `artifacts_missing` — artifacts expected but absent
+
+If manual intervention is required, the `recovery_class` MUST be `manual_repair_required`. No separate boolean flag is needed — the class carries that signal.
 
 ## Workspace Recovery Rules
 
