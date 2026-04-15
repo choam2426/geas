@@ -127,31 +127,6 @@ Not every gap is failure. The assessment SHOULD classify the gap rather than jus
 | **risk transfer** | core functionality delivered but hidden cost moved into debt |
 | **learning gain** | scope changed because the original plan was wrong and the change improved reality |
 
-## Initiative Evolving Phase
-
-The evolving phase exists to consolidate what the mission learned. It is the final phase of a mission and ensures that lessons, debt, and gaps are processed rather than lost.
-
-Typical evolving work includes:
-
-- memory extraction to rules.md and agent notes
-- rules updates
-- debt rollup
-- gap analysis
-- mission summary
-- carry-forward backlog framing
-
-The evolving phase SHOULD not be skipped for non-trivial work.
-
-## Evolving Phase Exit Gate
-
-A mission SHOULD NOT close cleanly until:
-
-- gap assessment exists
-- retrospective bundle exists
-- debt snapshot exists
-- approved rules or memory changes are recorded
-- mission summary exists
-
 ## Key Statement
 
 Debt makes compromise visible and gap assessment makes scope honest. Together they ensure that what the project accepted and what it actually delivered are explicit, owned, and carried forward rather than silently forgotten.

@@ -127,31 +127,6 @@ Gap assessment는 다음 시점에 수행해야 한다:
 | **risk transfer** | 핵심 기능은 전달되었으나 숨겨진 비용이 debt로 이전 |
 | **learning gain** | 원래 계획이 잘못되었고, 변경이 현실을 개선했기에 scope가 달라짐 |
 
-## Initiative Evolving Phase
-
-Evolving phase는 mission이 축적한 교훈을 통합하기 위해 존재한다. Mission의 마지막 phase로서, 교훈, debt, gap이 유실되지 않고 처리되도록 보장한다.
-
-일반적인 evolving 작업:
-
-- rules.md 및 agent 노트에 대한 memory 추출
-- rules update
-- debt rollup
-- gap analysis
-- mission summary
-- carry-forward backlog 구성
-
-Non-trivial 작업에서 evolving phase를 생략해서는 안 된다.
-
-## Evolving Phase Exit Gate
-
-Mission은 아래 조건이 충족될 때까지 정상 종료할 수 없다:
-
-- gap assessment 존재
-- retrospective bundle 존재
-- debt snapshot 존재
-- 승인된 rules 또는 memory 변경이 기록됨
-- mission summary 존재
-
 ## 핵심 선언
 
 Debt는 타협을 가시화하고, gap assessment는 scope를 정직하게 만든다. 두 메커니즘이 함께 작동하여 프로젝트가 수용한 것과 실제 전달한 것이 명확하게 드러나고, 소유되고, 조용히 잊히지 않고 앞으로 이어지게 한다.

@@ -138,13 +138,17 @@ Hardens the result for delivery, adoption, or internal trust. Applies specialist
 
 ### 4) `evolving`
 
+The evolving phase exists to consolidate what the mission learned. It is the final phase of a mission and ensures that lessons, debt, and gaps are processed rather than lost.
+
 Captures what was learned and prepares the system for future work. Prevents missions from ending with amnesia by extracting lessons, consolidating debt, and feeding the memory system.
 
 | aspect | content |
 |---|---|
-| **what it does** | compare promised scope with delivered scope / extract lessons, memories, and rules / consolidate debt / prepare carry-forward for next mission |
+| **what it does** | memory extraction to rules.md and agent notes / rules updates / debt rollup / gap analysis / mission summary / carry-forward backlog framing |
 | **outputs** | gap assessment, rules update, debt register (final), mission summary, phase review |
 | **exit conditions** | gap assessment exists / retrospective bundle exists / rules and memory actions recorded / debt snapshot captured / mission summary exists |
+
+The evolving phase SHOULD not be skipped for non-trivial work.
 
 ## `run.json` Key Fields
 
