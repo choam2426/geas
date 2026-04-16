@@ -33,6 +33,7 @@
     },
     "task_kind": {
       "type": "string",
+      "description": "Coarse task classification used as a routing hint and reporting label. It does not fully determine reviewer routing by itself.",
       "enum": [
         "implementation",
         "documentation",
@@ -137,13 +138,16 @@
       "type": "object",
       "properties": {
         "primary_worker_slot": {
-          "$ref": "_defs.schema.json#/$defs/specialistSlot"
+          "$ref": "_defs.schema.json#/$defs/specialistSlot",
+          "description": "Default specialist slot assigned as the primary worker for this task."
         },
         "primary_worker_type": {
-          "$ref": "_defs.schema.json#/$defs/agentTypeId"
+          "$ref": "_defs.schema.json#/$defs/agentTypeId",
+          "description": "Concrete implementation-specific worker type mapped from the primary worker slot."
         },
         "required_reviewer_slots": {
           "type": "array",
+          "description": "Final reviewer slots chosen by the orchestrator after considering task_kind, risk, surfaces, and mission context.",
           "items": {
             "$ref": "_defs.schema.json#/$defs/anySlot"
           },
@@ -151,6 +155,7 @@
         },
         "required_reviewer_types": {
           "type": "array",
+          "description": "Concrete reviewer types resolved from required_reviewer_slots by the implementation.",
           "items": {
             "$ref": "_defs.schema.json#/$defs/agentTypeId"
           },

@@ -114,6 +114,21 @@ Memory candidate는 다음에서 발생한다:
 | worker self-check의 `known_risks` | 해당 worker 유형의 agent memory |
 | specialist review 발견사항 | 해당 specialist 유형의 agent memory |
 
+### Specialist의 memory 제안
+
+모든 specialist는 재사용 가능한 지식을 발견하면 evidence의 공통 선택 필드 `memory_suggestions[]`에 담아야 한다. Orchestrator는 회고 과정에서 확인된 제안을 수확하고, 해당 agent memory 파일(`.geas/memory/agents/{agent_type}.md`) 또는 `rules.md` 반영 대상으로 정리한다.
+
+Specialist는 다음을 관찰할 때 memory와 rule 후보를 생성해야 한다:
+
+| 관찰 내용 | 우선순위 |
+|---|---|
+| 반복되는 차단 실패 | 최고 — 즉시 규칙 후보 |
+| 반복되는 예방 가능 회귀 | 높음 — 패턴으로 포착할 가치 |
+| 재사용 가치가 높은 성공 패턴 | 높음 — 표준화할 가치 |
+| 리뷰어 체크리스트 빈틈 | 중간 — 향후 리뷰 품질 개선 |
+| 도메인별 안티패턴 | 중간 — 재발 방지 |
+| 낮은 가치의 조언성 관찰 | 낮음 — evidence가 강할 때만 포착 |
+
 ## Retrospective to Rule Update
 
 Retrospective에서 반복 문제가 드러나면, 해당 패턴을 enforcement 가능한 rule로 변환하는 것을 검토해야 한다.

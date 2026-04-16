@@ -14,7 +14,7 @@
       "type": "string",
       "enum": [
         "design-authority",
-        "product-authority",
+        "decision-maker",
         "qa-engineer",
         "security-engineer"
       ]

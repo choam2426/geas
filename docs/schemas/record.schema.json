@@ -58,39 +58,6 @@
       ],
       "additionalProperties": true
     },
-    "self_check": {
-      "type": "object",
-      "properties": {
-        "confidence": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 5
-        },
-        "known_risks": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "unverified_cases": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "summary": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "required": [
-        "confidence",
-        "summary",
-        "known_risks",
-        "unverified_cases"
-      ],
-      "additionalProperties": true
-    },
     "gate_result": {
       "type": "object",
       "properties": {
@@ -221,9 +188,9 @@
         "verdict": {
           "type": "string",
           "enum": [
-            "pass",
-            "iterate",
-            "escalate"
+            "approved",
+            "changes_requested",
+            "escalated"
           ]
         },
         "rationale": {

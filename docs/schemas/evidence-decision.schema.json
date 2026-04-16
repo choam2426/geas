@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "evidence-decision.schema.json",
+  "title": "GEAS Decision Evidence",
+  "type": "object",
+  "properties": {
+    "agent": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_kind": {
+      "const": "decision"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "approved",
+        "changes_requested",
+        "escalated"
+      ]
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "memory_suggestions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "revision_ref": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "agent",
+    "task_id",
+    "evidence_kind",
+    "summary",
+    "verdict",
+    "rationale"
+  ],
+  "additionalProperties": true
+}

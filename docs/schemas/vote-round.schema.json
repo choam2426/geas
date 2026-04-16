@@ -35,7 +35,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Agent types participating. proposal_round: >= 2 (proposer + reviewer). readiness_round: >= orchestration-authority + product-authority + 1 specialist."
+      "description": "Agent types participating. proposal_round: >= 2 (proposer + reviewer). readiness_round: >= orchestrator + decision-maker + 1 specialist."
     },
     "votes": {
       "type": "array",

@@ -10,8 +10,8 @@
     "authoritySlot": {
       "type": "string",
       "enum": [
-        "orchestration-authority",
-        "product-authority",
+        "orchestrator",
+        "decision-maker",
         "design-authority",
         "challenger"
       ]
@@ -20,10 +20,10 @@
       "type": "string",
       "enum": [
         "implementer",
-        "quality",
-        "risk",
-        "operations",
-        "communication"
+        "verifier",
+        "risk-assessor",
+        "operator",
+        "communicator"
       ]
     },
     "agentTypeId": {

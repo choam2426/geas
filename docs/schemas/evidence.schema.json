@@ -2,90 +2,34 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "evidence.schema.json",
   "title": "GEAS Agent Evidence",
-  "description": "Evidence file produced by an agent. Role-based required fields ensure each agent type provides appropriate detail.",
-  "type": "object",
-  "properties": {
-    "agent": {
-      "type": "string",
-      "minLength": 1
-    },
-    "task_id": {
-      "type": "string",
-      "minLength": 1
-    },
-    "role": {
+  "description": "Dispatch schema for evidence_kind-specific evidence files.",
+  "$defs": {
+    "evidenceKind": {
       "type": "string",
       "enum": [
-        "implementer",
-        "reviewer",
-        "tester",
-        "authority"
-      ]
-    },
-    "summary": {
-      "type": "string",
-      "minLength": 1
-    },
-    "artifacts": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "revision_ref": {
-      "type": "string"
-    },
-    "verdict": {
-      "type": "string",
-      "enum": [
-        "approved",
-        "changes_requested",
-        "blocked",
-        "pass",
-        "iterate",
-        "escalate"
-      ]
-    },
-    "concerns": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "blocking": {
-      "type": "boolean"
-    },
-    "rationale": {
-      "type": "string",
-      "minLength": 1
-    },
-    "criteria_results": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "criterion": {
-            "type": "string"
-          },
-          "passed": {
-            "type": "boolean"
-          },
-          "details": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "criterion",
-          "passed"
-        ]
-      }
+        "implementation",
+        "review",
+        "verification",
+        "challenge",
+        "decision"
+      ],
+      "description": "Dispatch key selecting the concrete evidence schema."
     }
   },
+  "type": "object",
   "required": [
-    "agent",
-    "task_id",
-    "role",
-    "summary"
+    "evidence_kind"
   ],
-  "additionalProperties": true
+  "properties": {
+    "evidence_kind": {
+      "$ref": "#/$defs/evidenceKind"
+    }
+  },
+  "oneOf": [
+    { "$ref": "evidence-implementation.schema.json" },
+    { "$ref": "evidence-review.schema.json" },
+    { "$ref": "evidence-verification.schema.json" },
+    { "$ref": "evidence-challenge.schema.json" },
+    { "$ref": "evidence-decision.schema.json" }
+  ]
 }
