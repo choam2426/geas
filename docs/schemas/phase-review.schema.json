@@ -15,7 +15,7 @@
         "specifying",
         "building",
         "polishing",
-        "evolving"
+        "consolidating"
       ]
     },
     "status": {
@@ -37,7 +37,7 @@
         "specifying",
         "building",
         "polishing",
-        "evolving",
+        "consolidating",
         "complete"
       ],
       "description": "The phase to transition into (when status is ready_to_exit)"

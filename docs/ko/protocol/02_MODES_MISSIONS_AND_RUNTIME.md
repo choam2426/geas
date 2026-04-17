@@ -1,7 +1,6 @@
 # 02. Modes, Missions, and Runtime
 
-> **기준 문서.**
-> 이 문서는 미션 구조, 미션 운영 모드, 4-phase 모델, phase 전이 제어를 정의한다.
+> Geas의 mission 객체, 운영 mode, phase 흐름, run state의 의미를 정의한다.
 
 ## 목적
 
@@ -12,278 +11,281 @@
 - 작업이 어떤 phase에 있는가
 - 어떤 엄격도 수준이 적절한가
 - 현재 어떤 작업이 활성, 일시 정지, 완료 상태인가
-- phase를 떠나기 전에 어떤 evidence가 필요한가
+- 다음 phase로 넘어가기 전에 어떤 evidence가 필요한가
 
 이 질문은 소프트웨어 개발, 연구 조율, 콘텐츠 제작, 데이터 파이프라인 구축 등 작업 유형에 관계없이 동일하게 적용된다.
 
-## 미션 모델
+## 미션
 
-미션은 여러 task에 걸쳐 일관된 사용자 목적을 전달할 수 있는 가장 작은 프로토콜 객체다.
+미션은 여러 task를 하나의 사용자 목적 아래에서 묶는 최소 프로토콜 객체다. 정규 기록은 mission spec으로 남기며, 형식과 저장 위치는 각각 `mission-spec.schema.json`과 doc 09를 따른다.
 
-### 필수 필드
+미션은 최소한 다음을 분명히 해야 한다:
 
-미션은 최소한 다음 필드를 포함해야 한다 (정규 형식은 `mission-spec.schema.json` 참조):
+- 무엇을 달성하려는지
+- 누구를 위한 결과인지
+- 언제 미션이 끝났다고 볼 수 있는지
+- `scope.in`과 `scope.out`으로 어디까지 맡고 어디까지 제외하는지
+- 무엇으로 완료를 판단할지
+- 어떤 mode로 이 미션을 다룰지
+- 어떤 표면에 영향을 주는지
+- 어떤 제약, 가정, 모호성, 리스크가 있는지
 
-| 필드 | 설명 |
-|---|---|
-| `mission_id` | 미션의 고유 식별자 — 형식: `mission-{YYYYMMDD}-{8char}` (예: `mission-20260407-x7Kq9mPv`) |
-| `mission` | 미션이 무엇인지를 사람이 읽을 수 있는 형태로 기술한 문장 |
-| `done_when` | 이 조건이 참이면 미션 완료라고 판단할 수 있는 검증 가능한 조건 |
-| `scope` | `in`(약속된 표면, 최소 1개)과 `out`(명시적 제외 항목)을 담는 객체 |
-| `acceptance_criteria` | 완료를 정의하는 검증 가능한 조건 배열 (최소 1개) |
+해당 사항이 없다고 판단한 항목도 생략하지 말고 드러나게 남겨야 한다.
 
-### 선택 필드
+실제 전달 범위가 `scope.in`, `scope.out`과 어긋나면 gap assessment에 반영하고, 미션 수준 전제가 바뀌면 새 미션으로 다시 시작해야 한다.
 
-다음 필드는 `mission-spec.schema.json`에 정의되어 있으나 필수는 아니다:
-
-| 필드 | 설명 |
-|---|---|
-| `mode` | 미션 운영 모드: `lightweight`, `standard`, `full_depth` |
-| `domain_profile` | 활성 도메인 프로필 식별자 |
-| `target_user` | 미션 결과의 수혜자 |
-| `constraints` | 작업 범위를 한정하는 경계와 제약 |
-| `affected_surfaces` | 미션이 영향을 줄 것으로 예상되는 표면 |
-| `risk_notes` | specifying 중 기록된 알려진 리스크 |
-| `assumptions` | specifying 중 세운 가정 |
-| `ambiguities` | 아직 해소되지 않은 미결 질문 |
-
-프로젝트는 미션 객체에 오케스트레이션 관련 메타데이터를 추가로 담을 수 있다 (스키마가 `additionalProperties`를 허용한다). 이 규칙은 프로젝트별 관례이며 정규 형식의 일부가 아니다.
-
-## Mission Intent Enum
-
-Intent enum은 미션의 근본적 목적을 분류한다. 프로젝트는 이를 기반으로 기본 엄격도, reviewer 라우팅, phase 동작을 선택한다.
-
-| intent | 설명 |
-|---|---|
-| `explore` | 출시 약속 없이 조사, 연구, 프로토타이핑 |
-| `plan` | 구현 없이 계획, 설계, 아키텍처 수립 |
-| `build` | 새로운 기능이나 산출물 생성 |
-| `fix` | 결함, 회귀, 인시던트 수정 |
-| `review` | 기존 작업의 품질, 준수, 개선 검토 |
-| `decide` | 논쟁적이거나 모호한 주제에 대한 구조화된 결정 |
-| `recover` | 세션 무결성 복원 또는 중단된 작업 재개 |
-
-프로젝트는 이 값들로부터 로컬 하위 모드를 파생할 수 있지만, 상호 운용성을 위해 canonical enum을 유지해야 한다.
+프로젝트는 미션 객체에 로컬 오케스트레이션 메타데이터를 추가할 수 있다. 다만 그 구조는 로컬 관례이며 정규 형식의 일부는 아니다.
 
 ## 미션 운영 모드
 
-미션 mode는 기본적으로 적용되는 엄격도를 결정한다. Mode 선택은 반드시 명시적이어야 한다. Mode는 기본 phase 순서를 변경하지 않으면서 phase 깊이, reviewer 라우팅, evidence 임계값을 제어한다.
+미션 mode는 미션을 어떤 깊이로 운영할지 정하는 기본값이다. mode가 바뀌면 4-phase 순서가 달라지는 것이 아니라, 설계 기록, reviewer 라우팅, evidence 기준, phase 압축 가능 범위의 기본 강도가 달라진다.
 
-| mode | 예상 용도 | 기본 엄격도 |
+| mode | 쓰는 경우 | 기본 기대 |
 |---|---|---|
-| `lightweight` | 작고, 국지적이며, 저위험 변경 | 호환 가능한 최소 엄격도; phase가 압축될 수 있으나 의미적으로 건너뛸 수 없음 |
-| `standard` | 일반 구조화된 작업 | 정상 reviewer 라우팅을 포함한 전체 task 생명주기 |
-| `full_depth` | 여러 영역에 걸치거나, 위험하거나, 모호한 작업 | 명시적 design brief, 광범위 리뷰, 강력한 evolution 산출물 |
+| `lightweight` | 범위가 작고 영향이 제한적이며 되돌리기 쉬운 작업 | 기록과 리뷰는 줄일 수 있지만 필수 phase와 evidence는 그대로 둠 |
+| `standard` | 대부분의 일반 작업 | 기본 task 흐름과 통상적인 reviewer 라우팅을 따름 |
+| `full_depth` | 영향 범위가 넓거나 불확실성이 크거나 실패 비용이 큰 작업 | mission design을 더 자세히 남기고 리뷰 범위와 evidence 기준을 높게 잡음 |
 
 규칙:
 
-- 미션 mode가 doc 00의 기본 불변 규칙을 약화시켜서는 안 된다.
-- 새로운 아키텍처, 대규모 리팩토링, 보안 민감 변경, 요구사항이 불명확한 경우에는 `full_depth`를 기본으로 써야 한다.
-- 긴급 상황에서는 별도의 예외를 만들지 말고 `lightweight` 모드를 쓴다. Lightweight 모드는 절차를 최소화하면서도 모든 기본 불변 규칙을 보존한다.
+- mode는 운영 깊이를 정하는 값일 뿐이며 doc 00의 기본 불변 규칙을 약화할 수 없다.
+- 새로운 아키텍처, 대규모 리팩토링, 보안 민감 변경, 요구사항이 불분명한 작업은 `full_depth`를 기본으로 둔다.
+- 어떤 mode를 써야 할지 분명하지 않으면 더 엄격한 쪽으로 정한다.
+- 긴급 상황도 별도 예외로 다루지 않고 `lightweight`로 처리한다. 이 경우에도 기본 불변 규칙은 그대로 지킨다.
 
-## Initiative 4-Phase 모델
+## 4-Phase 모델
 
-모든 미션은 다음 phase를 순서대로 거친다. 작은 미션은 필수 evidence가 여전히 생산되는 한 일부 phase를 빠르게 통과할 수 있지만, 어떤 phase도 의미적으로 건너뛸 수 없다.
+모든 미션은 아래 네 phase를 순서대로 거친다. 작은 미션은 일부 phase를 짧게 거칠 수는 있지만, 필요한 evidence 없이 생략할 수는 없다.
 
 1. `specifying`
 2. `building`
 3. `polishing`
-4. `evolving`
+4. `consolidating`
 
 ### Phase 흐름
 
 ```text
-specifying --[phase gate 1]--> building --[phase gate 2]--> polishing --[phase gate 3]--> evolving --[phase gate 4]--> complete
+specifying --[phase gate 1]--> building --[phase gate 2]--> polishing --[phase gate 3]--> consolidating --[phase gate 4]--> complete
 ```
 
-### Phase-gate 원칙
+### Phase gate 원칙
 
-Phase gate는 phase 간의 엄격한 경계다. 조기 전이로 인해 후속 품질이 저하되는 것을 방지하기 위해 존재한다.
+Phase gate는 phase 사이 전이 조건을 확인하는 경계다. 준비되지 않은 상태에서 다음 phase로 넘어가는 일을 막기 위해 둔다.
 
-- Phase gate는 artifact와 의미적 준비 상태를 모두 검사해야 한다.
-- 필수 gate evidence 없이 phase를 떠나는 것은 프로토콜 위반이다.
-- Phase gate는 형식적인 절차가 아니라 집행 지점이다.
+- Phase gate는 artifact 존재 여부와 실제 준비 상태를 함께 본다.
+- 필수 gate evidence 없이 다음 phase로 넘어가면 프로토콜 위반이다.
+- Phase gate는 형식적인 절차가 아니라 실제 통제 지점이다.
+
+## Phase Review
+
+Phase review는 phase별 단일 요약이 아니라, phase 전이 판단마다 남기는 기록이다. 같은 `mission_phase`를 다시 방문하면 해당 phase의 review가 여러 개 생길 수 있으며, 이전 기록을 덮어쓰지 않는다.
+
+Phase review는 최소한 다음을 드러내야 한다:
+
+- 현재 phase에서 어떤 판단이 내려졌는지
+- 다음 phase로 넘어갈 수 있는지, 아니면 막혔는지
+- 되돌아가거나 재진입해야 한다면 그 이유가 무엇인지
+- 실패 이력과 보류 사유가 어떻게 남았는지
+
+Phase gate는 artifact 존재 여부만 보는 것이 아니라, phase review에 남은 전이 판단도 함께 본다. 정확한 필드 구조는 `phase-review.schema.json`과 doc 09를 따른다.
 
 ## Phase 상세
 
 ### 1) `specifying`
 
-사용자 요청을 구조화된 미션 정의로 변환하는 단계. 작업을 안전하게 시작할 수 있을 만큼 충분히 명확해지면 종료된다.
+사용자와의 토론을 통해 요청을 구체화하고 mission spec을 작성한 뒤, 이를 바탕으로 `mission-design.md`와 초기 task contract 집합을 순차적으로 확정하는 단계다. 이 단계가 끝나면 미션은 곧바로 building에 들어갈 수 있어야 한다.
+
+- 먼저 mission spec을 작성하고 사용자 승인을 받는다.
+- 다음으로 승인된 mission spec을 바탕으로 `mission-design.md`를 작성하고 사용자 승인을 받는다.
+- 마지막으로 승인된 mission spec과 `mission-design.md`를 바탕으로 초기 task contract 집합을 만들고 사용자 승인을 받는다.
 
 | 구분 | 내용 |
 |---|---|
-| **하는 일** | 요청을 미션 언어로 정규화 / `scope_in` 확정 / 주요 설계 결정 해소 또는 기록 / 초기 task 컴파일 / 필요한 엄격도 결정 |
-| **산출물** | mission spec, design brief (필요 시), task contract, vote-round result (full_depth 시), phase review |
-| **종료 조건** | 미션 정의가 실행에 충분히 안정적 / task 목록이 실행 가능 / 해소 안 된 모호성이 명시적 탐색 task로 전환됨 / 필요 시 design brief 승인 기록됨 |
+| **하는 일** | mission spec 작성 및 승인 / 승인된 mission spec을 바탕으로 `mission-design.md` 작성 및 승인 / 승인된 mission spec과 mission design을 바탕으로 초기 task contract 집합 구성 및 승인 / task별 책임과 리뷰 경로 정리 / 남은 모호성을 탐색 task나 보류 판단으로 분리 |
+| **산출물** | 승인된 mission spec, 승인된 `mission-design.md`, 승인된 초기 task contract 집합, phase review |
+| **종료 조건** | mission spec, `mission-design.md`, 초기 task contract 집합에 대한 사용자 승인이 모두 끝남 / 초기 task contract가 바로 착수 가능한 수준으로 준비됨 / 각 task의 책임과 리뷰 경로가 드러남 / 남은 모호성은 탐색 task나 보류 판단으로 분리됨 |
+
+#### `specifying` mode별 기본 기대
+
+| mode | 기본 기대 |
+|---|---|
+| `lightweight` | mission spec, mission design, 초기 task contract를 짧고 직접적으로 정리하되 승인 순서는 그대로 지킨다 |
+| `standard` | 일반적인 수준의 설계 설명, task 분해, 리뷰 경로를 정리하고 승인 근거를 분명히 남긴다 |
+| `full_depth` | 대안, 리스크, 분해 근거, 리뷰 경로를 더 자세히 정리하고 보류 사유와 남은 모호성까지 명시한다. `specifying` 단계에서 Challenger가 mission design과 task 분해를 반드시 검토해야 한다 |
+
+#### `specifying`에서 slot별 주요 작성·승인 책임
+
+| slot | 주로 맡는 것 |
+|---|---|
+| Orchestrator | 사용자와의 토론을 바탕으로 `spec.json` 초안을 정리하고, 승인된 spec과 mission design을 바탕으로 초기 task contract 집합과 `phase review`를 작성 |
+| Design Authority | `mission-design.md`를 작성하거나 보강하고, task 분해와 리뷰 경로의 구조적 타당성을 검토 |
+| Decision Maker | `spec.json`, `mission-design.md`, 초기 task contract 집합의 승인 또는 수정 요구를 결정 |
+| Challenger | 필요 시 mission design과 task 분해에 대해 반대 근거와 차단 사유를 남김 |
+
+#### `specifying` phase gate에서 확인하는 것
+
+- `spec.json`이 존재하고 `user_approved=true`여야 한다.
+- `mission-design.md`가 존재하고, 승인된 mission spec을 바탕으로 작성되어 사용자 승인 상태여야 한다.
+- 초기 task contract 집합이 존재하고, 승인된 mission spec과 `mission-design.md`를 바탕으로 작성되어 각 contract의 `user_approved=true`여야 한다.
+- 각 task의 책임과 기본 리뷰 경로가 드러나 있어야 한다.
+- 남은 모호성은 방치하지 않고 탐색 task나 보류 판단으로 분리되어 있어야 한다.
+- phase review는 `building`으로 넘어가도 된다는 판단을 남겨야 한다.
+
+#### `specifying` phase gate 통과 시 작업
+
+- 승인된 초기 task contract의 `status`를 `drafted`에서 `ready`로 바꾼다.
 
 ### 2) `building`
 
-미션의 핵심 가치를 실현하는 단계. Task가 `ready`에서 `passed`까지 전체 생명주기를 거치는 주요 phase다.
+미션의 핵심 가치를 실제 산출물로 만드는 단계다. 승인된 task contract를 기준으로 구현, 리뷰, 검증, 종결을 진행한다. Task가 `ready`에서 `passed`까지 전체 생명주기를 거치는 주요 phase다.
 
 | 구분 | 내용 |
 |---|---|
 | **하는 일** | 핵심 가치 경로 구현 / task를 반복적으로 종결 / 의도를 검증된 변경으로 전환 |
-| **산출물** | task별: implementation contract, worker self-check, specialist review, gate result, closure packet, challenge review (high/critical), final verdict, retrospective · phase 수준: gap assessment, debt register, phase review |
-| **종료 조건** | 모든 MVP-critical task가 `passed` / 미해결 blocking 충돌 없음 / critical debt가 없거나 공식 escalation됨 / scope creep가 숨겨지지 않고 가시적으로 평가됨 |
+| **산출물** | task별: implementation contract, worker self-check, specialist review, gate result, closure packet, challenge review (high/critical), task closure decision, retrospective · phase 수준: gap assessment, debt register, phase review |
+| **종료 조건** | building에서 다룬 task가 모두 종결됨 / 미해결 blocking 충돌 없음 / critical debt가 없거나 공식적으로 에스컬레이션됨 / 숨은 scope 확장이 드러나고 평가됨 |
+
+#### `building` mode별 기본 기대
+
+| mode | 기본 기대 |
+|---|---|
+| `lightweight` | 핵심 task를 빠르게 닫되 필수 evidence와 task closure decision은 생략하지 않는다 |
+| `standard` | 각 task를 기본 생명주기대로 진행하고 필요한 review와 verification evidence를 남긴다 |
+| `full_depth` | 리뷰 범위와 재검증을 더 넓게 적용하고, `high`·`critical` task는 Challenger 검토를 포함한다 |
+
+#### `building`에서 slot별 주요 작성 책임
+
+| slot | 주로 맡는 것 |
+|---|---|
+| Orchestrator | `ready` task의 순서 조정, 의존성·충돌·재시도 관리, closure packet을 바탕으로 task closure decision을 남기고 task 종결 상태를 모아 `phase review`를 작성 |
+| Implementer | 구현을 수행하고 `record.json`의 implementation contract를 준비하며 `self-check.json`과 implementation evidence를 남김 |
+| Design Authority | implementation contract를 승인하고 구조적 타당성에 대한 review evidence를 남김 |
+| Verifier | acceptance criteria와 eval 결과를 바탕으로 verification evidence를 남김 |
+| Risk Assessor / Operator / Communicator | task 표면에 따라 필요한 review evidence를 남김 |
+| Challenger | `high`·`critical` task 또는 해소되지 않은 쟁점에 대해 challenge evidence를 남김 |
+
+#### `building` phase gate에서 확인하는 것
+
+- building에서 다룬 task가 모두 `passed` 또는 `cancelled`로 정리되어 있어야 한다.
+- 각 task에 필요한 implementation, review, verification evidence가 빠지지 않아야 한다.
+- `high`·`critical` task는 필요한 challenge review가 남아 있어야 한다.
+- building 단계에서 드러난 gap과 debt가 가시화되어 있어야 한다.
+- 숨은 scope 확장과 미해결 충돌이 방치되지 않아야 한다.
+- phase review는 `polishing`으로 넘어가도 된다는 판단을 남겨야 한다.
+
+#### `building` phase gate 통과 시 작업
+
+- building 단계에서 종결된 task의 상태를 그대로 확정한다.
+- polishing에서 검토할 전달 표면과 필수 specialist review 범위를 확정한다.
+- building 단계의 gap assessment와 debt register를 다음 phase 기준선으로 넘긴다.
 
 ### 3) `polishing`
 
-결과물을 전달·채택·신뢰에 적합한 수준으로 강화하는 단계. 모든 관련 품질 차원에 걸쳐 specialist slot 리뷰를 적용한다.
+`building`에서 만든 결과를 실제 전달 직전 수준으로 다듬는 단계다. 이 단계에서는 새 기능을 붙이기보다, 실제로 넘길 산출물이 문서, 운영 준비, 사용자 대면 표현, 잔여 리스크 기준에서 서로 어긋나지 않는지 점검한다. 다만 polishing 중 새 task가 필요하다고 드러나면 그 작업을 감추지 말고 task를 만든 뒤 `building`으로 돌아가야 한다.
 
 | 구분 | 내용 |
 |---|---|
-| **하는 일** | 전달 준비를 위한 결과 강화 / 전 specialist slot에 걸친 품질 리뷰 / 불필요한 artifact, boilerplate, drift, 숨겨진 지름길 식별 |
-| **산출물** | specialist slot별 리뷰 (security, documentation, entropy), debt register 갱신, gap assessment, phase review |
-| **종료 조건** | high·critical debt가 분류됨 / 전달 표면에 대한 필수 specialist 리뷰 완료 / 알려진 리스크에 근거 기록 / 문서·운영 준비가 낡지 않음 |
+| **하는 일** | 전달 표면 기준 최종 점검 / 문서·운영 준비·사용자 대면 표현이 실제 전달물과 맞는지 확인 / 잔여 리스크와 전달 제외 범위 재확인 / 전달 직전 발견 이슈를 수정, 새 task 생성 후 `building` 재진입, debt·gap 처리, 에스컬레이션 중 하나로 정리 |
+| **산출물** | 전달 표면별 specialist review evidence, 갱신된 debt register, 갱신된 gap assessment, phase review |
+| **종료 조건** | 전달 표면에 필요한 specialist review가 끝남 / 남은 `high`·`critical` 이슈가 수정·다음 단계로 넘김·에스컬레이션 중 하나로 정리됨 / 실제 전달물과 문서·운영 준비·사용자 대면 표현이 서로 어긋나지 않음 |
 
-### 4) `evolving`
+#### `polishing` mode별 기본 기대
 
-evolving 페이즈는 미션이 학습한 내용을 통합하기 위해 존재한다. 미션의 마지막 페이즈이며, 교훈·부채·갭이 유실되지 않도록 처리한다.
+| mode | 기본 기대 |
+|---|---|
+| `lightweight` | 실제 전달 표면에 직접 닿는 문서, 운영 준비, 안내만 짧게 점검하되 필요한 specialist review는 빼지 않는다 |
+| `standard` | 전달 표면별 필수 review를 완료하고, polishing에서 발견된 실제 작업은 새 task로 올려 `building`에서 처리한다 |
+| `full_depth` | 각 전달 표면에 대해 specialist review를 따로 남기고, 남은 `high`·`critical` 전달 리스크에는 Challenger 검토를 붙인다. polishing에서 새 작업이 드러나면 반드시 새 task와 재진입 근거를 남긴다 |
 
-미션에서 배운 것을 포착하고 시스템을 다음 작업에 대비시키는 단계. 교훈 추출, 부채 통합, memory 피드를 통해 미션이 배운 것 없이 끝나는 것을 방지한다.
+#### `polishing`에서 slot별 주요 작성 책임
 
+| slot | 주로 맡는 것 |
+|---|---|
+| Orchestrator | 전달 표면과 필수 specialist review 범위를 고정하고, polishing 중 새 작업이 드러나면 task를 만들고 `building` 재진입을 기록하며, review 결과를 모아 `phase review`, gap assessment, debt register 갱신에 반영 |
+| Verifier | 전달 직전 상태에서 필요한 재검증과 회귀 확인을 맡고 verification evidence를 보강 |
+| Risk Assessor | 잔여 리스크, 정책 저촉 가능성, 신뢰 경계를 다시 점검하고 review evidence를 남김 |
+| Operator | 인계 절차, 운영 준비, 복구 가능성, 롤백 가능성을 점검하고 review evidence를 남김 |
+| Communicator | 문서, 안내 문안, 사용자 대면 표현이 실제 전달물과 맞는지 검토하고 review evidence를 남김 |
+| Design Authority | polishing 과정의 수정이 인터페이스, 경계, 계약 구조를 건드리면 review evidence를 남김 |
+| Challenger | 남은 `high`·`critical` 전달 리스크나 감춰진 타협에 대해 challenge evidence를 남김 |
+
+#### `polishing` phase gate에서 확인하는 것
+
+- 전달 표면별로 요구된 specialist review evidence가 모두 남아 있어야 한다.
+- 실제 전달물과 문서, 운영 준비, 사용자 안내가 서로 어긋나지 않아야 한다.
+- 남은 `high`·`critical` 이슈는 수정, debt 등록, gap 분류, 에스컬레이션 중 하나로 정리되어 있어야 한다.
+- `blocked` 또는 `escalated` 판단이 "나중에 보자" 식으로 묻혀 있지 않아야 한다.
+- polishing 과정에서 새 task가 필요하다고 드러났다면 그 task가 생성되어 `building` 재진입으로 처리되어야 하며, `consolidating`으로 넘겨서는 안 된다.
+- polishing 과정에서 생긴 추가 변경이 있다면 필요한 task와 evidence를 거쳤어야 한다.
+- phase review는 `consolidating`으로 넘어가도 된다는 판단을 남겨야 한다.
+
+#### `polishing` phase gate 통과 시 작업
+
+- 전달 표면별 review 완료 상태를 현재 미션 기준선으로 확정한다.
+- 남은 debt, gap, escalation 항목을 `consolidating`에서 다룰 입력으로 넘긴다.
+
+### 4) `consolidating`
+	
+미션을 마무리하면서 남길 것과 넘길 것을 정리하는 단계다. 미션의 마지막 phase이며, 드러난 교훈과 남은 debt·gap, 다음 작업으로 넘길 항목을 빠짐없이 정리하고 mission final verdict 판단 근거를 모은다.
+	
 | 구분 | 내용 |
 |---|---|
-| **하는 일** | rules.md 및 agent 노트에 대한 memory 추출 / rules update / debt rollup / gap analysis / mission summary / carry-forward backlog 구성 |
-| **산출물** | gap assessment, rules update, debt register (최종), mission summary, phase review |
-| **종료 조건** | gap assessment 존재 / retrospective 묶음 존재 / rules·memory 조치 기록됨 / debt snapshot 캡처됨 / mission summary 존재 |
+| **하는 일** | rules·memory에 반영할 사항 정리 / 최종 debt·gap 정리 / 다음 작업으로 넘길 항목 정리 / mission final verdict 판단 근거 정리 |
+| **산출물** | gap assessment, rules update, debt register (최종), phase review |
+| **종료 조건** | gap assessment가 최종 상태로 정리됨 / rules·memory 조치가 기록되거나 없다고 명시됨 / 최종 debt 현황이 확정됨 / 다음 작업으로 넘길 항목이 정리됨 / mission final verdict를 내릴 판단 근거가 충분히 모임 |
 
-evolving 페이즈는 사소하지 않은 작업에서는 생략하지 않는다.
+#### `consolidating` mode별 기본 기대
 
-## `run.json` 핵심 필드
-
-런타임 앵커는 세션 진행 상황을 추적하는 영속 상태 객체다. 정규 형식은 `run-state.schema.json`에 있다.
-
-### 필수 필드
-
-| 필드 | 설명 |
+| mode | 기본 기대 |
 |---|---|
-| `status` | 세션 상태: `initialized`, `in_progress`, 또는 `complete` |
+| `lightweight` | 짧게 정리하더라도 gap, debt, rules·memory 반영 여부, 다음 작업으로 넘길 항목은 빠뜨리지 않는다 |
+| `standard` | 미션에서 드러난 교훈과 남은 문제를 다음 작업이 바로 이어받을 수 있게 정리한다 |
+| `full_depth` | debt, gap, 다음 작업으로 넘길 항목, rules·memory 조치 근거를 더 분명히 남기고 mission final verdict에 필요한 반대 의견과 보류 사유까지 정리한다 |
 
-### 공통 필드
+#### `consolidating`에서 slot별 주요 작성 책임
 
-| 필드 | 설명 |
+| slot | 주로 맡는 것 |
 |---|---|
-| `mission_id` | 활성 미션 식별자 (예: `mission-20260407-x7Kq9mPv`). spec과 artifact 파일을 찾는 데 사용한다 (null 가능) |
-| `mission` | 현재 미션 spec의 사람이 읽을 수 있는 미션 문장 (활성 미션이 없으면 null) |
-| `phase` | 현재 미션 phase: `specifying`, `building`, `polishing`, `evolving`, 또는 `complete` (설정 전 null) |
-| `scheduler_state` | 스케줄러 상태: `active`, `idle`, 또는 `paused` |
-| `current_task_id` | 현재 집중 중인 task (null 가능) |
-| `completed_tasks` | `passed` 상태에 도달한 task 식별자 목록 |
-| `decisions` | 세션 중 생성된 DecisionRecord 식별자 목록 |
-| `recovery_class` | 가장 최근 세션 복구의 recovery class (`post_compact_resume`, `warm_session_resume`, `interrupted_subagent_resume`, `dirty_state_recovery`, `manual_repair_required`). 세션이 깨끗하면 null |
-| `checkpoint` | 마지막으로 커밋된 checkpoint 객체 (아래 Checkpoint 객체 참조) |
-| `created_at` / `updated_at` | CLI가 자동 관리하는 ISO-8601 타임스탬프 |
+| Orchestrator | retrospective, gap, debt, memory 제안을 모아 `phase review`를 작성하고 다음 작업으로 넘길 항목을 정리 |
+| Decision Maker | gap assessment, debt register, 마지막 phase review를 바탕으로 mission final verdict 판단을 내리거나 보류·에스컬레이션 사유를 남김 |
+| Design Authority | 구조적 debt, 설계 교훈, 다음 미션에서 주의할 설계 쟁점을 검토 |
+| Challenger | 종결 단계에서 빠지기 쉬운 반대 의견, 남은 리스크, 과도한 낙관을 드러냄 |
 
-### Checkpoint 객체
+#### `consolidating` phase gate에서 확인하는 것
 
-checkpoint 하위 객체는 복구용 상태를 기록한다:
+- 최종 gap assessment가 존재해야 한다.
+- 최종 debt register가 존재하거나, 남길 debt가 없다고 명시되어야 한다.
+- rules update와 memory 반영 조치가 기록되거나, 반영할 항목이 없다고 명시되어야 한다.
+- 다음 작업으로 넘길 항목이 다음 미션 입력, debt, 또는 명시적 제외로 정리되어야 한다.
+- mission final verdict를 내리기에 필요한 판단 근거와 보류 사유가 phase review에 드러나 있어야 한다.
 
-| 필드 | 설명 |
-|---|---|
-| `pipeline_step` | 파이프라인의 현재 단계 |
-| `agent_in_flight` | 현재 실행 중인 에이전트 |
-| `pending_evidence` | 아직 저장되지 않은 evidence artifact |
-| `retry_count` | 진행 중인 단계의 현재 재시도 횟수 |
-| `parallel_batch` | 현재 병렬 배치의 task ID 배열 (순차 실행 시 null) |
-| `completed_in_batch` | 현재 배치에서 완료된 단계 |
-| `remaining_steps` | 아직 완료되지 않은 단계의 순서 목록 |
-| `last_updated` | 마지막 checkpoint 기록 시각 (ISO-8601) |
-| `checkpoint_phase` | `pending` (의도 기록됨) 또는 `committed` (단계 완료됨) |
+#### `consolidating` phase gate 통과 시 작업
 
-## Phase 진입 규칙
+- 미션 종료에 필요한 판단 근거를 현재 기준선으로 확정한다.
+- 다음 미션이나 후속 작업에 넘길 항목, debt, rules·memory 조치를 고정한다.
 
-Phase 진입 규칙은 미션이 각 phase로 넘어가기 전에 충족해야 할 전제조건을 정의한다. 준비가 덜 된 채 넘어가서 후속 작업 품질이 떨어지는 것을 방지한다.
+## Run State
 
-### `specifying` 진입
+Run state는 현재 미션의 진행 상태와 재개 기준을 붙드는 상태 기록이다. 지금 어디까지 왔는지, 무엇이 진행 중인지, 중단되면 어디서 다시 이어야 하는지를 한곳에서 보여준다. 정규 artifact는 `.geas/state/run-state.json`이고, 형식은 `run-state.schema.json`을 따른다. 이 섹션은 필드 목록이 아니라 run state가 맡는 역할만 정리한다.
 
-새 미션은 다음 조건에서 `specifying`에 진입한다:
+Run state에는 최소한 다음이 드러나야 한다:
 
-- 사용자 의도가 존재
-- 대상 workspace 또는 전달 표면이 식별 가능
-- 미해결 recovery 조건이 없음: 이전 세션 recovery가 완료되었거나 필요 없고, baseline이 확인 가능한 상태이며, 이전 미션에서 남은 orphan task가 없음
+- 지금 어떤 mission을 수행 중인지
+- 미션 전체 상태가 무엇인지
+- 현재 phase와 scheduler 상태가 무엇인지
+- 지금 진행 중인 task와 이미 정리된 task가 무엇인지
+- 최근 recovery 판단이 무엇이었는지
+- 다음 복구나 재개 판단에 필요한 checkpoint가 무엇인지
 
-### `building` 진입
+Run state는 evidence, review, phase review를 대신하지 않는다. 판단과 결과는 각 canonical artifact에 남기고, run state는 현재 실행 상태와 재개 기준만 붙든다.
 
-design brief와 task set이 선택된 엄격도에서 실행하기에 충분해야 `building`에 진입할 수 있다.
+### Checkpoint가 남겨야 하는 것
 
-### `polishing` 진입
+checkpoint는 중단 뒤 재개 판단에 바로 쓸 수 있는 복구 기준선이다. 정확한 필드 구조는 `run-state.schema.json`이 관리하며, 여기서는 다음 의미가 빠지지 않아야 한다:
 
-핵심 가치 경로가 기능적으로 완성되어야 `polishing`에 진입할 수 있다. 미션 범위를 명시적으로 재조정하지 않는 한, `polishing`을 미완성 핵심 구현의 대체로 써서는 안 된다.
-
-### `evolving` 진입
-
-사소하지 않은 변경이라면 미션을 닫기 전에 반드시 `evolving`을 거쳐야 한다. 작은 task에서는 evolving phase를 압축할 수 있지만, 교훈 / 부채 / gap은 반드시 남겨야 한다.
-
-## Phase 전이 조건
-
-위의 Phase 상세에서 각 phase가 만들어내는 산출물을 나열했다. 이 섹션은 그 산출물 중 **다음 phase로 넘어가기 위해 반드시 존재해야 하는 것**을 정의한다. 이 조건을 충족하지 않고 전이를 시도하면 프로토콜 위반이다.
-
-| Phase 종료 | 필수 artifact |
-|---|---|
-| `specifying` → `building` | spec.json, design-brief.json (승인됨), task contract ≥1개 |
-| `building` → `polishing` | 모든 task passed/cancelled, gap-assessment-building.json |
-| `polishing` → `evolving` | gap-assessment-polishing.json, debt-register.json, blocked/escalated task 없음 |
-| `evolving` → close | gap-assessment-evolving.json, mission-summary.md |
-
-### 추가 권장 artifact
-
-미션의 결정 이력을 보존하는 데 유용하다. 미션 mode 엄격도가 높을수록 포함을 강하게 권장한다.
-
-| artifact | 담는 것 |
-|---|---|
-| decision record | 주요 범위 변경이나 갈등 해소의 근거 |
-| rules update | 미션에서 도출된 규칙 변경 |
-| run summary | 미션 실행을 사람이 읽을 수 있는 형태로 요약 |
-
-## Scope In / Scope Out
-
-Scope 추적은 실제 전달 내용이 약속 범위와 모르는 사이에 벌어지는 흔한 실패를 방지한다.
-
-- `scope_in`은 specifying 중 약속된 범위다.
-- `scope_out`은 `passed` task evidence로 뒷받침되는 전달된 범위다.
-
-규칙:
-
-- `scope_out`은 희망적 요약이 아니라 evidence 기반 task에서 도출되어야 한다.
-- `scope_in`과 `scope_out` 사이의 실질적 차이는 gap assessment에 반영되어야 한다.
-- 미승인 scope 확장은 implementation-contract amendment 또는 phase 수준 재승인을 촉발해야 한다.
-
-## 미션 수정 규칙
-
-미션은 통제된 조건에서만 수정할 수 있다. 통제 없는 수정은 scope drift와 책임 소실의 주요 원인이다.
-
-다음 중 하나가 참이 될 때 수정이 필수다:
-
-- 수용된 scope가 실질적으로 변경됨
-- 설계 가정이 변경됨
-- 리스크 수준이 실질적으로 상승함
-- 외부 의존성이 원래 계획을 무효화함
-
-### 수정 승인
-
-- 범위 변경: Decision Maker 승인
-- 설계 가정 변경: Design Authority 승인
-- 양쪽 모두 해당: 양쪽 모두 승인
-
-수정은 다음을 생산해야 한다:
-
-| artifact | 설명 |
-|---|---|
-| 업데이트된 근거 | 수정이 필요한 이유 |
-| 업데이트된 영향받는 task | 추가, 변경, 제거되는 task |
-| 업데이트된 리스크 요약 | 신규 또는 변경된 리스크 |
-| 업데이트된 phase review 노트 | 현재 phase에 대한 영향 |
-
-## Phase 전이 실패
-
-Phase 전이가 실패하면 누락된 evidence를 대충 넘기지 않고 명시적으로 복구해야 한다.
-
-1. Orchestrator는 어떤 종료 조건이 충족되지 않았는지 식별해야 한다.
-2. 누락 항목은 넘기지 말고 명시적인 작업으로 전환한다.
-3. 반복 실패하면 범위를 재조정하거나 escalation한다.
-4. 실패 이력은 phase-review 기록에 가시적으로 남아야 한다.
-
-## 핵심 선언
-
-미션과 런타임 구조는 대규모 AI 지원 작업이 제각각인 국소 최적화로 흩어지는 것을 막기 위해 존재한다. 명시적 phase 의미 체계가 없는 미션은 통제되는 작업이 아니다.
+- 현재 pipeline 단계와 작업 중인 agent
+- 아직 회수되지 않은 evidence 기대치
+- 현재 단계의 retry 상태와 남은 단계
+- 병렬 batch가 있다면 그 대상과 완료 현황
+- checkpoint가 기록 중인지, 확정되었는지
+- checkpoint를 마지막으로 언제 어떤 상태로 확정했는지

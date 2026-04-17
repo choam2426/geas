@@ -4,10 +4,18 @@
   "type": "object",
   "required": [
     "mission_id",
+    "mode",
     "mission",
     "done_when",
+    "target_user",
+    "user_approved",
     "scope",
-    "acceptance_criteria"
+    "acceptance_criteria",
+    "constraints",
+    "affected_surfaces",
+    "risk_notes",
+    "assumptions",
+    "ambiguities"
   ],
   "properties": {
     "mission_id": {
@@ -34,7 +42,11 @@
       "minLength": 1
     },
     "target_user": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
+    },
+    "user_approved": {
+      "type": "boolean"
     },
     "scope": {
       "type": "object",
@@ -70,31 +82,36 @@
     "constraints": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       }
     },
     "affected_surfaces": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       }
     },
     "risk_notes": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       }
     },
     "assumptions": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       }
     },
     "ambiguities": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       }
     }
   },

@@ -30,7 +30,7 @@
 - `02_MODES_MISSIONS_AND_RUNTIME.md` — mission 모델, mission mode, 4-phase, phase gate, runtime anchor
 - `03_TASK_MODEL_AND_LIFECYCLE.md` — task 메타데이터, contract 품질, lifecycle 상태, 상태 복원, retry/iterate 규칙
 - `04_BASELINE_WORKSPACE_SCHEDULER_AND_PARALLELISM.md` — baseline 최신성, 재검증, workspace lifecycle, lock/scheduler 모델
-- `05_GATE_VOTE_AND_FINAL_VERDICT.md` — gate 의미론, rubric 채점, vote round, closure packet, final verdict
+- `05_GATE_VOTE_AND_FINAL_VERDICT.md` — gate 의미론, rubric 채점, vote round, closure packet, task closure decision, mission final verdict
 - `06_SESSION_RECOVERY_AND_RESUMABILITY.md` — checkpoint, safe boundary, recovery 결정, replay vs restore
 - `07_MEMORY_AND_RETROSPECTIVE.md` — memory 저장소, retrospective 루프, rule/agent-memory 흐름, 검색, 개인정보
 - `08_DEBT_AND_GAP.md` — debt 추적, debt lifecycle, gap 평가, gap 해석

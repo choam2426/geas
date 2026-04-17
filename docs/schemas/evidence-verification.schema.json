@@ -61,6 +61,18 @@
         "minLength": 1
       }
     },
+    "debt_candidates": {
+      "type": "array",
+      "items": {
+        "$ref": "_defs.schema.json#/$defs/debtCandidate"
+      }
+    },
+    "gap_signals": {
+      "type": "array",
+      "items": {
+        "$ref": "_defs.schema.json#/$defs/gapSignal"
+      }
+    },
     "revision_ref": {
       "type": "string"
     }

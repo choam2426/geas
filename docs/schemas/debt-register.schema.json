@@ -80,7 +80,7 @@
             "type": "string",
             "enum": [
               "polishing",
-              "evolving",
+              "consolidating",
               "future"
             ]
           }

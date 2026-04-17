@@ -7,6 +7,79 @@
       "type": "string",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
     },
+    "debtSeverity": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "normal",
+        "low"
+      ]
+    },
+    "debtKind": {
+      "type": "string",
+      "enum": [
+        "output_quality",
+        "verification_gap",
+        "structural",
+        "risk",
+        "process",
+        "documentation",
+        "operations"
+      ]
+    },
+    "gapSignalKind": {
+      "type": "string",
+      "enum": [
+        "under_delivery",
+        "over_delivery",
+        "risk_transfer",
+        "learning_gain"
+      ]
+    },
+    "debtCandidate": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "$ref": "_defs.schema.json#/$defs/debtKind"
+        },
+        "severity": {
+          "$ref": "_defs.schema.json#/$defs/debtSeverity"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "title",
+        "kind",
+        "severity",
+        "summary"
+      ],
+      "additionalProperties": true
+    },
+    "gapSignal": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "_defs.schema.json#/$defs/gapSignalKind"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "kind",
+        "summary"
+      ],
+      "additionalProperties": true
+    },
     "authoritySlot": {
       "type": "string",
       "enum": [

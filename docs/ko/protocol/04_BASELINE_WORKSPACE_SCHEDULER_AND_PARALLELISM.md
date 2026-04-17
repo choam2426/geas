@@ -186,7 +186,7 @@ Critical task가 "독립이 증명되었다"고 판단하려면 다음을 모두
 
 ### 스케줄러 상태
 
-스케줄러는 현재 상태를 `run.json.scheduler_state`를 통해 외부에 노출한다. 유효 값은 `active`, `idle`, `paused`이다:
+스케줄러는 현재 상태를 `run-state.json.scheduler_state`를 통해 외부에 노출한다. 유효 값은 `active`, `idle`, `paused`이다:
 
 - `active` — 스케줄러가 ready task를 선택하고 배정 중이다.
 - `idle` — 배정할 ready task가 없어 외부 입력을 기다리는 상태이다.
