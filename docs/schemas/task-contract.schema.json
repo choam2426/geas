@@ -11,8 +11,6 @@
     "risk_level",
     "acceptance_criteria",
     "eval_commands",
-    "rubric",
-    "retry_budget",
     "user_approved",
     "scope",
     "routing",
@@ -59,43 +57,6 @@
         "type": "string"
       }
     },
-    "rubric": {
-      "type": "object",
-      "properties": {
-        "dimensions": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "name",
-              "threshold"
-            ],
-            "properties": {
-              "name": {
-                "type": "string",
-                "minLength": 1
-              },
-              "threshold": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 5
-              }
-            }
-          },
-          "minItems": 1
-        }
-      },
-      "required": [
-        "dimensions"
-      ],
-      "additionalProperties": false
-    },
-    "retry_budget": {
-      "type": "integer",
-      "description": "Maximum meaningful validation-rework retries allowed for this task.",
-      "minimum": 0
-    },
     "user_approved": {
       "type": "boolean",
       "description": "Whether the user has approved this task contract as ready to enter execution."
@@ -120,18 +81,38 @@
       "type": "object",
       "properties": {
         "primary_worker_slot": {
-          "$ref": "_defs.schema.json#/$defs/specialistSlot",
+          "type": "string",
+          "enum": [
+            "implementer",
+            "verifier",
+            "risk-assessor",
+            "operator",
+            "communicator"
+          ],
           "description": "Default specialist slot assigned as the primary worker for this task."
         },
         "primary_worker_type": {
-          "$ref": "_defs.schema.json#/$defs/agentTypeId",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
           "description": "Concrete implementation-specific worker type mapped from the primary worker slot."
         },
         "required_reviewer_slots": {
           "type": "array",
           "description": "Final reviewer slots chosen by the orchestrator after considering the primary worker slot, risk, surfaces, and mission context.",
           "items": {
-            "$ref": "_defs.schema.json#/$defs/anySlot"
+            "type": "string",
+            "enum": [
+              "orchestrator",
+              "decision-maker",
+              "design-authority",
+              "challenger",
+              "implementer",
+              "verifier",
+              "risk-assessor",
+              "operator",
+              "communicator"
+            ]
           },
           "minItems": 1
         },
@@ -139,7 +120,9 @@
           "type": "array",
           "description": "Concrete reviewer types resolved from required_reviewer_slots by the implementation.",
           "items": {
-            "$ref": "_defs.schema.json#/$defs/agentTypeId"
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
           },
           "minItems": 1
         }

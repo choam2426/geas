@@ -7,16 +7,13 @@
     "mission_id",
     "mode",
     "mission",
-    "done_when",
-    "target_user",
+    "definition_of_done",
     "user_approved",
     "scope",
     "acceptance_criteria",
     "constraints",
     "affected_surfaces",
-    "risk_notes",
-    "assumptions",
-    "ambiguities"
+    "risks"
   ],
   "properties": {
     "mission_id": {
@@ -42,14 +39,9 @@
       "description": "Core user request or mission objective this mission is meant to satisfy.",
       "minLength": 1
     },
-    "done_when": {
+    "definition_of_done": {
       "type": "string",
       "description": "High-level completion statement used to judge whether the mission is done.",
-      "minLength": 1
-    },
-    "target_user": {
-      "type": "string",
-      "description": "Intended recipient or consumer of the mission outcome.",
       "minLength": 1
     },
     "user_approved": {
@@ -83,7 +75,7 @@
     },
     "acceptance_criteria": {
       "type": "array",
-      "description": "Concrete criteria derived from done_when and used for phase gates and task derivation.",
+      "description": "Concrete criteria derived from definition_of_done and used for phase gates and task derivation.",
       "items": {
         "type": "string",
         "minLength": 1
@@ -106,25 +98,9 @@
         "minLength": 1
       }
     },
-    "risk_notes": {
+    "risks": {
       "type": "array",
       "description": "Mission-level risks already visible before task execution begins.",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
-    },
-    "assumptions": {
-      "type": "array",
-      "description": "Current assumptions accepted for mission planning and execution.",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
-    },
-    "ambiguities": {
-      "type": "array",
-      "description": "Unresolved ambiguities that must stay visible during mission execution.",
       "items": {
         "type": "string",
         "minLength": 1

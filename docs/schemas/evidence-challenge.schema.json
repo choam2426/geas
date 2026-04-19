@@ -47,13 +47,71 @@
     "debt_candidates": {
       "type": "array",
       "items": {
-        "$ref": "_defs.schema.json#/$defs/debtCandidate"
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "output_quality",
+              "verification_gap",
+              "structural",
+              "risk",
+              "process",
+              "documentation",
+              "operations"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "high",
+              "normal",
+              "low"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "title",
+          "kind",
+          "severity",
+          "summary"
+        ],
+        "additionalProperties": true
       }
     },
     "gap_signals": {
       "type": "array",
       "items": {
-        "$ref": "_defs.schema.json#/$defs/gapSignal"
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "under_delivery",
+              "over_delivery",
+              "risk_transfer",
+              "learning_gain"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "kind",
+          "summary"
+        ],
+        "additionalProperties": true
       }
     },
     "revision_ref": {

@@ -21,13 +21,16 @@ artifact를 읽을 때는 다음 순서를 따른다.
 | phase review | `.geas/missions/{mission_id}/phase-reviews/*.json` | `docs/schemas/phase-review.schema.json` | doc 02 |
 | task contract | `.geas/missions/{mission_id}/tasks/{task_id}/contract.json` | `docs/schemas/task-contract.schema.json` | doc 03 |
 | implementation contract | `.geas/missions/{mission_id}/tasks/{task_id}/implementation-contract.json` | `docs/schemas/implementation-contract.schema.json` | doc 03 |
-| worker self-check | `.geas/missions/{mission_id}/tasks/{task_id}/self-check.json` | `docs/schemas/self-check.schema.json` | doc 03 |
-| evidence (dispatch) | `.geas/missions/{mission_id}/tasks/{task_id}/evidence/{agent}.json` | `docs/schemas/evidence.schema.json` | doc 03 |
-| evidence (implementation) | same as above | `docs/schemas/evidence-implementation.schema.json` | doc 03 |
+| implementer self-check | `.geas/missions/{mission_id}/tasks/{task_id}/self-check.json` | `docs/schemas/self-check.schema.json` | doc 03 |
+| evidence (implementation) | `.geas/missions/{mission_id}/tasks/{task_id}/evidence/{agent}.json` | `docs/schemas/evidence-implementation.schema.json` | doc 03 |
 | evidence (review) | same as above | `docs/schemas/evidence-review.schema.json` | doc 03 |
 | evidence (verification) | same as above | `docs/schemas/evidence-verification.schema.json` | doc 03 |
 | evidence (challenge) | same as above | `docs/schemas/evidence-challenge.schema.json` | doc 03 |
-| evidence (decision) | same as above | `docs/schemas/evidence-decision.schema.json` | doc 03 |
+| evidence (closure) | same as above | `docs/schemas/evidence-closure.schema.json` | doc 03 |
+| gate result | `.geas/missions/{mission_id}/tasks/{task_id}/gate-results/{gate_run_id}.json` | `docs/schemas/gate-result.schema.json` | doc 03 |
+| task-level deliberation | `.geas/missions/{mission_id}/tasks/{task_id}/deliberations/{deliberation_id}.json` | `docs/schemas/deliberation.schema.json` | doc 03 |
+| mission-level deliberation | `.geas/missions/{mission_id}/deliberations/{deliberation_id}.json` | `docs/schemas/deliberation.schema.json` | doc 02 |
+| mission final verdict | `.geas/missions/{mission_id}/mission-verdict.json` | `docs/schemas/mission-verdict.schema.json` | doc 02 |
 | task record | `.geas/missions/{mission_id}/tasks/{task_id}/record.json` | `docs/schemas/record.schema.json` | doc 03 |
 | run state | `.geas/state/run-state.json` | `docs/schemas/run-state.schema.json` | doc 05 |
 | recovery packet | `.geas/recovery/*.json` | `docs/schemas/recovery-packet.schema.json` | doc 05 |
@@ -37,25 +40,12 @@ artifact를 읽을 때는 다음 순서를 따른다.
 | debt register | `.geas/missions/{mission_id}/consolidation/debt-register.json` | `docs/schemas/debt-register.schema.json` | doc 07 |
 | gap assessment | `.geas/missions/{mission_id}/consolidation/gap-assessment.json` | `docs/schemas/gap-assessment.schema.json` | doc 07 |
 
-## Current Mixed-storage or Unschematized Artifacts
-
-이번 라운드에서 standalone schema나 canonical file shape를 새로 만들지 않은 항목은 다음처럼 읽는다.
-
-| 개념 | 현재 상태 | owner |
-|---|---|---|
-| task-level deliberation | `.geas/missions/{mission_id}/decisions/*.json`에 저장하며 현재 schema 파일명은 `vote-round.schema.json`이다 | doc 03 |
-| closure packet | standalone schema 없음. 현재는 `record.json.closure`와 관련 evidence 묶음으로 읽는다 | doc 03 |
-| mission final verdict | standalone schema와 canonical path를 이번 라운드에서 고정하지 않는다 | doc 02 |
-
-`vote-round.schema.json`은 현재 파일명만 유지하는 legacy 이름이다. 의미 owner는 deliberation을 다루는 문서 쪽이다.
-
 ## Auxiliary Schemas
 
 아래 schema는 현재 core owner 문서를 직접 대표하지는 않지만, runtime이나 enforcement를 보조하는 구조다.
 
 | schema | 역할 |
 |---|---|
-| `_defs.schema.json` | slot enum, timestamp, 공통 정의 |
 | `design-brief.schema.json` | 과거 설계 요약용 보조 schema. 현재 mission design markdown을 대체하지 않는다 |
 | `lock-manifest.schema.json` | 병렬 조율 구현체가 별도 lock 상태를 serialize할 때 쓰는 보조 schema |
 | `health-check.schema.json` | enforcement/observability 계층의 health signal 직렬화 |
@@ -75,8 +65,9 @@ artifact를 읽을 때는 다음 순서를 따른다.
   missions/{mission_id}/
     spec.json
     mission-design.md
-    decisions/
-      *.json
+    mission-verdict.json
+    deliberations/
+      {deliberation_id}.json
     phase-reviews/
       *.json
     consolidation/
@@ -89,6 +80,10 @@ artifact를 읽을 때는 다음 순서를 따른다.
       self-check.json
       record.json
       evidence/{agent}.json
+      gate-results/
+        {gate_run_id}.json
+      deliberations/
+        {deliberation_id}.json
 ```
 
 ## Drift를 읽는 기본 원칙

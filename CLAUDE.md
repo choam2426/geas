@@ -10,25 +10,31 @@ When making any design decision, ask: **"Does this make the multi-agent process 
 
 ## Execution Model
 
-Every mission follows 4 phases: Specifying → Building → Polishing → Evolving. Scale adapts to the request — from a single feature to a full product. Always follows the same pipeline order.
+Every mission follows 4 phases: Specifying → Building → Polishing → Consolidating. After consolidating, mission phase transitions to terminal state `complete`. Scale adapts to the request — from a single feature to a full product. Always follows the same pipeline order.
 
-Specifying produces three user-approved artifacts: mission spec (WHAT/WHY), design-brief (HOW), and task list (UNITS OF WORK). Design-authority reviews every design-brief. Full-depth briefs also go through a vote round.
+Specifying produces three user-approved artifacts: mission spec (WHAT), mission design (HOW), and initial task contract set (UNITS OF WORK). Orchestrator captures user intent into mission spec; Design Authority writes mission design and task decomposition; Decision Maker approves each. In `full_depth` operating mode, a mission-level deliberation with Challenger participation is required before mission design approval.
 
 ## Task Lifecycle
 
-7 primary states: `drafted → ready → implementing → reviewed → integrated → verified → passed`
+6 primary states: `drafted → ready → implementing → reviewed → verified → passed`
 3 auxiliary states: `blocked`, `escalated`, `cancelled`
 
 ## Verification Flow
 
+**Task-level closure**:
 ```
 Evidence Gate (Tier 0 → Tier 1 → Tier 2)
-    → Closure Packet assembly
-    → Challenger Review (high/critical required)
-    → Final Verdict (product-authority: pass / iterate / escalate)
+    → Task Closure Decision (Orchestrator reads evidence and records `closure` evidence)
 ```
 
-Gate verdicts: `pass | fail | block | error`. `iterate` is Final Verdict only.
+**Mission-level verdict**:
+```
+Phase gates (each phase) → Mission Final Verdict (Decision Maker at consolidating)
+```
+
+Gate verdicts: `pass | fail | block | error`.
+Closure verdicts: `approved | changes_requested | escalated | cancelled`.
+Mission verdicts: `approved | changes_requested | escalated`.
 
 ## Project Structure
 
@@ -51,13 +57,12 @@ src/
 └── dashboard/               # Tauri desktop dashboard source
 
 docs/
-├── protocol/                # 12 protocol documents (English canonical)
-│   ├── schemas/             # 16 JSON Schema (draft 2020-12)
-│   └── examples/
+├── protocol/                # English canonical (11 docs, pending sync to new structure)
+├── schemas/                 # 23 JSON Schema (draft 2020-12, self-contained, no external $ref)
 ├── architecture/DESIGN.md
-└── reference/               # AGENTS.md, SKILLS.md, HOOKS.md
+└── reference/               # AGENTS.md, SKILLS.md, HOOKS.md, DASHBOARD.md
 
-docs/ko/                     # Korean mirror
+docs/ko/                     # Korean canonical (protocol reorganized to 10 docs: 00–09)
 ```
 
 ## Design Principles
@@ -96,7 +101,7 @@ Key CLI commands:
 
 - Skills: `SKILL.md` with YAML frontmatter (`name`, `description`). All skills must be direct children of `plugin/skills/` (flat structure).
 - Agents: `.md` with YAML frontmatter (`name`, `model`, etc.)
-- Schemas: JSON Schema draft 2020-12 in `docs/protocol/schemas/`
+- Schemas: JSON Schema draft 2020-12 in `docs/schemas/`, self-contained (no `$ref` to other schema files)
 - Runtime state: `.geas/` (gitignored, per-project)
 - Protocol: `docs/protocol/` (English canonical), `docs/ko/protocol/` (Korean canonical)
 - Versioning: `plugin/plugin.json` is the single source of truth. `.claude-plugin/marketplace.json` must NOT contain a `version` field (breaks `/plugin update`). Only `description` must stay in sync.
@@ -105,23 +110,24 @@ Key CLI commands:
 
 1. **Read the protocol doc first** — before touching any skill, read the relevant protocol document in `docs/protocol/`.
 2. **Read the skill second** — understand what it currently does vs what the protocol requires.
-3. **Protocol schemas are the contract** — `docs/protocol/schemas/` defines the exact artifact shapes.
+3. **Protocol schemas are the contract** — `docs/schemas/` defines the exact artifact shapes.
 4. **Keep skills focused** — one skill, one responsibility.
 5. **Update `mission/references/`** when changing pipeline behavior.
 6. **Test changes** by running a fresh integration test in a separate project directory.
 
 ### Protocol quick reference
 
-| Topic | Protocol doc |
-|-------|-------------|
-| Design principles, 4 Pillars, terminology | `protocol/00` |
-| Agents, authority, routing, specialist evidence | `protocol/01` |
-| Mission phases, mission model, runtime | `protocol/02` |
-| Task states, transitions, record.json | `protocol/03` |
-| Workspace, locks, parallelism | `protocol/04` |
-| Gate, vote, closure, verdict | `protocol/05` |
-| Session recovery | `protocol/06` |
-| Memory and retrospective | `protocol/07` |
-| Debt and gap | `protocol/08` |
-| Runtime artifacts, schemas, directory structure | `protocol/09` |
-| Enforcement, transition guards, metrics | `protocol/10` |
+Korean protocol is the current canonical structure (10 docs, 00–09). English protocol at `docs/protocol/` still follows the old 11-doc layout (00–10) and is pending sync.
+
+| Topic | Korean | English (pending sync) |
+|-------|--------|-----------------------|
+| Foundations, design axes, risks | `ko/protocol/00` | `protocol/00` |
+| Agents, authority, slots | `ko/protocol/01` | `protocol/01` |
+| Missions, phases, final verdict | `ko/protocol/02` | `protocol/02`, `protocol/05` (partial) |
+| Task lifecycle, evidence, gate, closure | `ko/protocol/03` | `protocol/03`, `protocol/05` (partial) |
+| Baseline, workspace, parallelism | `ko/protocol/04` | `protocol/04` |
+| Runtime, checkpoints, recovery | `ko/protocol/05` | `protocol/06` |
+| Memory and rules | `ko/protocol/06` | `protocol/07` |
+| Debt and gap | `ko/protocol/07` | `protocol/08` |
+| Runtime artifacts, schemas, paths | `ko/protocol/08` | `protocol/09` |
+| Enforcement, conformance, metrics | `ko/protocol/09` | `protocol/10` |

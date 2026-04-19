@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "evidence-review.schema.json",
-  "title": "GEAS Review Evidence",
+  "$id": "evidence-closure.schema.json",
+  "title": "GEAS Task Closure Evidence",
   "type": "object",
   "properties": {
     "agent": {
@@ -13,7 +13,7 @@
       "minLength": 1
     },
     "evidence_kind": {
-      "const": "review"
+      "const": "closure"
     },
     "summary": {
       "type": "string",
@@ -24,14 +24,13 @@
       "enum": [
         "approved",
         "changes_requested",
-        "blocked"
+        "escalated",
+        "cancelled"
       ]
     },
-    "concerns": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+    "rationale": {
+      "type": "string",
+      "minLength": 1
     },
     "artifacts": {
       "type": "array",
@@ -116,6 +115,19 @@
         "additionalProperties": true
       }
     },
+    "rewind_target": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "implementing",
+        "reviewed"
+      ],
+      "description": "State to revert to when verdict is changes_requested. Not applicable for other verdicts."
+    },
+    "superseded_by": {
+      "type": "string",
+      "description": "Reference to a replacement task contract when verdict is cancelled because a new contract supersedes this one."
+    },
     "revision_ref": {
       "type": "string"
     }
@@ -126,7 +138,7 @@
     "evidence_kind",
     "summary",
     "verdict",
-    "concerns"
+    "rationale"
   ],
   "additionalProperties": true
 }
