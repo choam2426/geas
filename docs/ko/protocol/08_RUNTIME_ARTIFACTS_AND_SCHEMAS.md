@@ -34,8 +34,8 @@ artifact를 읽을 때는 다음 순서를 따른다.
 | task record | `.geas/missions/{mission_id}/tasks/{task_id}/record.json` | `docs/schemas/record.schema.json` | doc 03 |
 | mission state | `.geas/missions/{mission_id}/mission-state.json` | `docs/schemas/mission-state.schema.json` | doc 05 |
 | task state | `.geas/missions/{mission_id}/tasks/{task_id}/task-state.json` | `docs/schemas/task-state.schema.json` | doc 05 |
-| rules update | `.geas/missions/{mission_id}/consolidation/rules-update.json` | `docs/schemas/rules-update.schema.json` | doc 06 |
-| rules | `.geas/rules.md` | markdown | doc 06 |
+| memory update | `.geas/missions/{mission_id}/consolidation/memory-update.json` | `docs/schemas/memory-update.schema.json` | doc 06 |
+| shared memory | `.geas/memory/shared.md` | markdown | doc 06 |
 | agent memory | `.geas/memory/agents/{agent}.md` | markdown | doc 06 |
 | debt register | `.geas/missions/{mission_id}/consolidation/debt-register.json` | `docs/schemas/debt-register.schema.json` | doc 07 |
 | gap assessment | `.geas/missions/{mission_id}/consolidation/gap-assessment.json` | `docs/schemas/gap-assessment.schema.json` | doc 07 |
@@ -55,8 +55,8 @@ artifact를 읽을 때는 다음 순서를 따른다.
 
 ```text
 .geas/
-  rules.md
   memory/
+    shared.md
     agents/{agent}.md
   missions/{mission_id}/
     spec.json
@@ -68,7 +68,7 @@ artifact를 읽을 때는 다음 순서를 따른다.
     phase-reviews/
       *.json
     consolidation/
-      rules-update.json
+      memory-update.json
       debt-register.json
       gap-assessment.json
     tasks/{task_id}/

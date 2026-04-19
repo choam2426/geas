@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GEAS Memory Update",
+  "description": "Per-mission change log recording what this mission's consolidating phase did to shared memory (memory/shared.md). Canonical shared-memory content lives in shared.md; this artifact records which entries were added, modified, or removed and why. Agent-memory changes are written directly to each agent's memory file and do not produce a change log.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "mission_id"
+  ],
+  "properties": {
+    "mission_id": {
+      "type": "string",
+      "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$",
+      "description": "Mission whose consolidating phase produced this change log."
+    },
+    "added": {
+      "type": "array",
+      "description": "Shared-memory entries newly introduced during this mission's consolidating phase.",
+      "items": {
+        "$ref": "#/$defs/changeEntry"
+      },
+      "default": []
+    },
+    "modified": {
+      "type": "array",
+      "description": "Existing shared-memory entries whose text or scope was changed.",
+      "items": {
+        "$ref": "#/$defs/changeEntry"
+      },
+      "default": []
+    },
+    "removed": {
+      "type": "array",
+      "description": "Shared-memory entries removed or marked deprecated. An entry replaced by a new one is represented as a 'removed' entry plus an 'added' entry that references the prior memory_id in its reason.",
+      "items": {
+        "$ref": "#/$defs/removalEntry"
+      },
+      "default": []
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "changeEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "memory_id",
+        "reason"
+      ],
+      "properties": {
+        "memory_id": {
+          "type": "string",
+          "description": "Stable identifier for the shared-memory entry in shared.md."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Why this entry was added or modified."
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Paths to evidence or deliberation artifacts that motivated the change."
+        }
+      }
+    },
+    "removalEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "memory_id",
+        "reason"
+      ],
+      "properties": {
+        "memory_id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

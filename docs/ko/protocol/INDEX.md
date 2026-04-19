@@ -8,7 +8,7 @@
 - `03_TASK_LIFECYCLE_AND_EVIDENCE.md` — task contract, evidence, gate, closure, self-check
 - `04_BASELINE_WORKSPACE_AND_PARALLELISM.md` — baseline, workspace, 병렬 실행 원칙
 - `05_RUNTIME_STATE_AND_RECOVERY.md` — mission state, task state, 재개 절차와 안전 원칙
-- `06_MEMORY_AND_RULES.md` — rules, agent memory, rule update, carry forward
+- `06_MEMORY.md` — shared memory, agent memory, memory update, carry forward
 - `07_DEBT_AND_GAP.md` — debt register, gap assessment, mission-level 부족분 정리
 - `08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md` — artifact, 경로, schema, owner 문서 연결
 - `09_ENFORCEMENT_CONFORMANCE_AND_METRICS.md` — enforcement, conformance, health signal, metrics
@@ -30,7 +30,7 @@
 3. `04_BASELINE_WORKSPACE_AND_PARALLELISM.md`
 4. `05_RUNTIME_STATE_AND_RECOVERY.md`
 5. `07_DEBT_AND_GAP.md`
-6. `06_MEMORY_AND_RULES.md`
+6. `06_MEMORY.md`
 
 ### 구현체 검증 관점에서 읽고 싶을 때
 
