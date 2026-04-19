@@ -202,7 +202,7 @@ skills/
 
 YAML frontmatter + markdown 본문.
 
-**frontmatter 필드**:
+**frontmatter 필드** (Anthropic 표준만 사용):
 
 ```yaml
 ---
@@ -211,15 +211,13 @@ description: >                    # 필수. 3인칭, 1024자 이내
   Runs the specifying phase — captures the mission spec, mission design,
   and initial task contract set with user approvals. Triggers at mission
   start before any building work.
-execution: main_session           # Geas 전용: main_session | spawned
-slot: orchestrator                # Geas 전용: 이 skill을 실행하는 protocol slot
 ---
 ```
 
 - `name`은 예약어(`anthropic`, `claude`) 금지. Gerund 형태(예: `task-drafting`) 또는 짧은 명사형(`task-draft`) 둘 다 허용하되 skill 집합 내 일관된 선택.
 - `description`은 무엇을 하는지와 언제 쓰는지를 포함한다 (Anthropic skill 가이드). "이 skill은..."이 아니라 "Runs the...", "Captures the..." 같은 3인칭.
-- `execution`: `main_session`이면 클라이언트 메인 세션(= orchestrator)에서 실행. `spawned`이면 orchestrator가 호출한 별도 agent에서 실행.
-- `slot`: 실행 slot enum. 여러 slot이 같은 skill을 쓰는 경우 `slots: [...]` 배열로.
+
+각 skill의 실행 주체(메인 세션 vs 스폰)와 담당 slot은 아래 "Skill 명세" 테이블이 단일 진실원이다. 프로토콜이 정한 고정 매핑이므로 skill 파일 자체에 중복해서 쓰지 않는다.
 
 **본문 권장 섹션** (500줄 이내):
 
