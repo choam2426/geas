@@ -44,8 +44,7 @@ Gap은 scope와 delivery 사이의 차이를 정리한다. Scope 요약은 missi
 | `scope_out_summary` | 실제로 범위 밖으로 남긴 일의 요약 |
 | `fully_delivered` | 그대로 전달된 항목 |
 | `partially_delivered` | 일부만 전달된 항목 |
-| `not_delivered` | 전달되지 않은 항목 |
-| `intentional_cuts` | 의도적으로 잘라 낸 항목 |
+| `not_delivered` | 전달되지 않은 항목. 의도적 cut 여부는 항목 서술에 인라인으로 표시한다 (예: "X (의도적 cut: 시간 부족)") |
 | `unexpected_additions` | 계획에 없었지만 추가된 항목 |
 
 후속 작업 제안은 gap이 아니라 debts가 owner다. gap에서 발견된 미전달 항목 중 이어 가야 할 것은 debt 항목으로 등록한다.

@@ -10,7 +10,6 @@
     "fully_delivered",
     "partially_delivered",
     "not_delivered",
-    "intentional_cuts",
     "unexpected_additions"
   ],
   "properties": {
@@ -40,13 +39,8 @@
       "type": "array",
       "items": {
         "type": "string"
-      }
-    },
-    "intentional_cuts": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+      },
+      "description": "Items that were in scope but not delivered. Note intentional cuts inline in each entry (for example, 'X (intentionally cut: time)')."
     },
     "unexpected_additions": {
       "type": "array",
