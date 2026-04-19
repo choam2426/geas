@@ -47,13 +47,11 @@ Gap은 scope와 delivery 사이의 차이를 정리한다. Scope 요약은 missi
 | `not_delivered` | 전달되지 않은 항목. 의도적 cut 여부는 항목 서술에 인라인으로 표시한다 (예: "X (의도적 cut: 시간 부족)") |
 | `unexpected_additions` | 계획에 없었지만 추가된 항목 |
 
-후속 작업 제안은 gap이 아니라 debts가 owner다. gap에서 발견된 미전달 항목 중 이어 가야 할 것은 debt 항목으로 등록한다.
-
 ## 입력과 확정의 구분
 
 Task evidence는 debt candidate와 gap signal을 남길 수 있다. 하지만 그것이 곧 공식 debts나 gap artifact는 아니다.
 
-- task는 신호를 올린다
+- 각 task의 evidence를 쓰는 agent가 신호를 올린다
 - consolidating phase가 공식 항목으로 채택할지 판단한다
 - final verdict는 공식 debts와 gap을 기준으로 읽는다
 
@@ -63,6 +61,6 @@ Mission final verdict는 debt와 gap을 함께 본다.
 
 - 큰 debt가 남아도 승인할 수는 있다. 다만 왜 수용하는지 설명되어야 한다.
 - gap이 남아 있는데 승인한다면, 그것이 intentional cut인지 미전달인지 분명해야 한다.
-- 다음 작업으로 넘길 follow-up은 debts에 등록되어 있어야 한다. gap의 미전달 항목도 이어 갈 만큼의 가치가 있다면 debt 항목으로 승격해야 한다.
+- 다음 작업으로 넘길 follow-up은 debts가 owner다. gap의 미전달 항목 중 이어 갈 만큼의 가치가 있다면 debt 항목으로 승격한다.
 
 Debt와 gap을 정리하지 않은 채 final verdict로 넘어가면, 승인 의미가 흐려진다.
