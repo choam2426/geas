@@ -172,34 +172,6 @@
           },
           "description": "Per-criterion verification results. Required for verification entries."
         },
-        "rewind_target": {
-          "oneOf": [
-            {
-              "type": "null"
-            },
-            {
-              "type": "string",
-              "enum": [
-                "ready",
-                "implementing",
-                "reviewed"
-              ]
-            }
-          ],
-          "description": "State to revert to when closure verdict is changes_requested. Null otherwise. Required field for closure entries."
-        },
-        "superseded_by": {
-          "oneOf": [
-            {
-              "type": "null"
-            },
-            {
-              "type": "string",
-              "pattern": "^task-[0-9]{3}$"
-            }
-          ],
-          "description": "Replacement task id when closure verdict is cancelled due to a replacement contract. Null otherwise. Required field for closure entries."
-        },
         "what_went_well": {
           "type": "array",
           "items": {
@@ -316,8 +288,6 @@
             "required": [
               "verdict",
               "rationale",
-              "rewind_target",
-              "superseded_by",
               "what_went_well",
               "what_broke",
               "what_was_surprising",

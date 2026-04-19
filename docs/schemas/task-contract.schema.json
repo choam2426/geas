@@ -17,6 +17,7 @@
     "routing",
     "base_snapshot",
     "dependencies",
+    "supersedes",
     "status",
     "created_at",
     "updated_at"
@@ -136,6 +137,18 @@
         "pattern": "^task-[0-9]{3}$"
       },
       "description": "Task IDs that must reach 'passed' before this task can start. Empty array if no dependencies."
+    },
+    "supersedes": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^task-[0-9]{3}$"
+        }
+      ],
+      "description": "Task id that this contract replaces. Set when this task is created to take over work from a cancelled predecessor. Null when this task is not a replacement."
     },
     "status": {
       "type": "string",
