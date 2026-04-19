@@ -34,7 +34,6 @@ artifact를 읽을 때는 다음 순서를 따른다.
 | task record | `.geas/missions/{mission_id}/tasks/{task_id}/record.json` | `docs/schemas/record.schema.json` | doc 03 |
 | mission state | `.geas/missions/{mission_id}/mission-state.json` | `docs/schemas/mission-state.schema.json` | doc 05 |
 | task state | `.geas/missions/{mission_id}/tasks/{task_id}/task-state.json` | `docs/schemas/task-state.schema.json` | doc 05 |
-| recovery packet | `.geas/recovery/*.json` | `docs/schemas/recovery-packet.schema.json` | doc 05 |
 | rules update | `.geas/missions/{mission_id}/consolidation/rules-update.json` | `docs/schemas/rules-update.schema.json` | doc 06 |
 | rules | `.geas/rules.md` | markdown | doc 06 |
 | agent memory | `.geas/memory/agents/{agent}.md` | markdown | doc 06 |
@@ -56,8 +55,6 @@ artifact를 읽을 때는 다음 순서를 따른다.
 
 ```text
 .geas/
-  recovery/
-    *.json
   rules.md
   memory/
     agents/{agent}.md

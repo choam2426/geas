@@ -7,7 +7,7 @@
 - `02_MISSIONS_PHASES_AND_FINAL_VERDICT.md` — mission, phase, phase review, mission final verdict
 - `03_TASK_LIFECYCLE_AND_EVIDENCE.md` — task contract, evidence, gate, closure, self-check
 - `04_BASELINE_WORKSPACE_AND_PARALLELISM.md` — baseline, workspace, 병렬 실행 원칙
-- `05_RUNTIME_STATE_AND_RECOVERY.md` — mission state, task state, recovery, recovery packet
+- `05_RUNTIME_STATE_AND_RECOVERY.md` — mission state, task state, 재개 절차와 안전 원칙
 - `06_MEMORY_AND_RULES.md` — rules, agent memory, rule update, carry forward
 - `07_DEBT_AND_GAP.md` — debt register, gap assessment, mission-level 부족분 정리
 - `08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md` — artifact, 경로, schema, owner 문서 연결
