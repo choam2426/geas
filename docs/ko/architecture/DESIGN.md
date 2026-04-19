@@ -67,76 +67,9 @@ Geas는 두 층으로 구성된다.
 
 ## 4. CLI `geas`
 
-### 역할
+CLI는 `.geas/` 아래 모든 쓰기가 통과해야 하는 단일 actuator다. Schema 검증, 타임스탬프 주입, atomic rename, append-only 강제, transition guard, id 생성, template 제공이 모두 CLI 책임이다.
 
-CLI는 `.geas/` 아래 **모든** 쓰기가 통과해야 하는 단일 통로다. Agent가 Edit/Write 도구로 직접 `.geas/` 파일을 건드리는 것은 금지된다. 이 원칙이 깨지면 프로토콜의 schema 정합·타임스탬프 일관·atomic rename 보장이 전부 무너진다.
-
-### CLI가 책임지는 것
-
-1. **Schema 검증**: 쓰기 전에 해당 artifact의 JSON Schema로 payload를 검증한다. 실패하면 commit하지 않고 힌트를 반환한다.
-2. **타임스탬프 주입**: `created_at`·`updated_at`과 append 객체의 `created_at`을 CLI가 자동으로 채운다. Agent가 직접 쓰지 않는다.
-3. **Atomic rename**: temp 파일에 쓰고 원자적 rename으로 교체해 부분 쓰기를 막는다.
-4. **Append-only 강제**: `phase-reviews.reviews`, `mission-verdicts.verdicts`, `gate-results.runs`, `deliberations.entries`, `evidence.entries`는 기존 item 수정·삭제를 거부한다.
-5. **Transition guard**: `task transition`은 목표 상태가 요구하는 선행 artifact(예: `approved_by != null`, dependency passed, gate pass)가 실제로 있는지 CLI가 확인한 뒤에만 task-state를 전이한다.
-6. **ID 생성**: `gate_run_id`, 그리고 필요한 경우 `mission_id` 같은 안정 식별자를 CLI가 패턴에 맞춰 생성한다.
-7. **Template 제공**: `schema template <type>`이 해당 artifact의 필수 필드가 포함된 JSON 골격을 반환한다. Agent는 이걸 채워 CLI에 제출한다.
-
-### 명령 체계
-
-CLI 명령은 "어떤 artifact를 어떻게 다루는가"를 기준으로 정돈된다. 읽기와 쓰기를 분리하고, 쓰기는 create / update / append로 나눈다.
-
-**Mission artifact**
-
-| 명령 | 동작 |
-|---|---|
-| `geas mission create --spec <json>` | `spec.json` 최초 작성 |
-| `geas mission design-set --markdown <path>` | `mission-design.md` 갱신 |
-| `geas mission-state update --phase <p> --active-tasks <ids>` | `mission-state.json` 갱신 |
-| `geas phase-review append --entry <json>` | `phase-reviews.reviews`에 append |
-| `geas mission-verdict append --entry <json>` | `mission-verdicts.verdicts`에 append |
-| `geas deliberation append --level mission --entry <json>` | 미션 수준 `deliberations.entries`에 append |
-| `geas debt register --entry <json>` | `debts.entries`에 새 debt 등록 |
-| `geas debt update-status --id <debt-id> --to resolved\|dropped --rationale <text>` | 기존 debt의 status 전환 |
-| `geas gap set --json <json>` | `gap.json` 작성 |
-| `geas memory-update set --json <json>` | `memory-update.json` 작성 |
-
-**Task artifact**
-
-| 명령 | 동작 |
-|---|---|
-| `geas task draft --contract <json>` | `contract.json` 최초 작성 (`drafted` 상태) |
-| `geas task approve --task <id> --by user\|decision_maker` | `contract.approved_by` 설정 |
-| `geas task transition --task <id> --to <state>` | `task-state`의 lifecycle 상태 전이 (guard 검증) |
-| `geas task-state update --task <id> --active-agent <type> --iterations <n>` | `task-state.json` 갱신 |
-| `geas impl-contract set --task <id> --json <json>` | `implementation-contract.json` 작성 |
-| `geas self-check set --task <id> --json <json>` | `self-check.json` 작성 |
-| `geas evidence append --task <id> --agent <type> --entry <json>` | `evidence/{agent}.json`의 `entries`에 append |
-| `geas gate run --task <id> --entry <json>` | `gate-results.runs`에 새 run append |
-| `geas deliberation append --level task --task <id> --entry <json>` | 태스크 수준 `deliberations.entries`에 append |
-
-**Memory**
-
-| 명령 | 동작 |
-|---|---|
-| `geas memory shared-edit` | `.geas/memory/shared.md` 편집 (memory-update.json과 동기) |
-| `geas memory agent-note --agent <type>` | `.geas/memory/agents/{agent}.md` 편집 |
-
-**Utility**
-
-| 명령 | 동작 |
-|---|---|
-| `geas schema list` | 사용 가능한 schema 목록 |
-| `geas schema template <type>` | 해당 schema의 fill-in 템플릿 반환 |
-| `geas resume` | 현재 mission/task 상태를 요약해서 session context로 주입 가능한 형태로 출력 |
-| `geas validate` | `.geas/` 전체를 schema로 검증 |
-| `geas setup` | 프로젝트에 `.geas/` 디렉토리 초기화 |
-| `geas event log --kind <k> --payload <json>` | `events.jsonl`에 append (선택적 감사 로그) |
-
-### 입력·출력 규약
-
-- 입력: JSON payload는 `--json <inline>` 또는 `--json-file <path>`로 전달한다.
-- 출력: 성공은 작성된 경로와 필수 식별자(mission_id, task_id, entry_id 등)를 JSON으로 반환. 실패는 `{ ok: false, error, hints }` 형식이며 `hints`는 누락된 필드, 잘못된 enum 값, 기대 패턴을 포함한다.
-- 종료 코드: 0=성공, 2=schema 검증 실패, 3=guard 실패, 4=I/O 실패, 1=기타.
+내부 계약(명령 체계, 입력·출력 규약, 쓰기 파이프라인, 전이 guard 로직, append-only 검증 알고리즘, id 생성 규칙 등)은 `architecture/CLI.md`에서 상세히 기술한다.
 
 ## 5. Runtime State `.geas/`
 
