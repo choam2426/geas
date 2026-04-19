@@ -1,6 +1,6 @@
 # 02. Missions, Phases, and Final Verdict
 
-> GEAS의 mission 모델, mission operating mode, 4-phase 흐름, phase review, mission-level deliberation, mission final verdict를 정의한다.
+> Geas의 mission 모델, mission operating mode, 4-phase 흐름, phase review, mission-level deliberation, mission final verdict를 정의한다.
 
 ## 목적
 

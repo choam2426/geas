@@ -1,6 +1,6 @@
 # 04. Baseline, Workspace, and Parallelism
 
-> GEAS가 task를 어떤 baseline 위에서 시작하고, 어떤 workspace에 격리하며, 어떤 조건에서 병렬로 돌릴 수 있는지 정의한다.
+> Geas가 task를 어떤 baseline 위에서 시작하고, 어떤 workspace에 격리하며, 어떤 조건에서 병렬로 돌릴 수 있는지 정의한다.
 
 ## 목적
 

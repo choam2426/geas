@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "deliberation.schema.json",
-  "title": "GEAS Deliberation Record",
+  "title": "Geas Deliberation Record",
   "description": "Structured multi-party judgment over a proposal. Used at both task level and mission level; the level is inferred from storage path (under tasks/{task_id}/deliberations/ for task-level, under missions/{mission_id}/deliberations/ for mission-level).",
   "type": "object",
   "additionalProperties": false,

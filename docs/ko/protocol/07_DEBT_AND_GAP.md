@@ -1,6 +1,6 @@
 # 07. Debt and Gap
 
-> GEAS의 debts와 gap artifact를 정의한다. Task에서 올라오는 debt/gap 입력은 doc 03이 owner이고, 공식 누적과 미션 수준 판단은 이 문서가 owner다.
+> Geas의 debts와 gap artifact를 정의한다. Task에서 올라오는 debt/gap 입력은 doc 03이 owner이고, 공식 누적과 미션 수준 판단은 이 문서가 owner다.
 
 ## 목적
 

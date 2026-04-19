@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "GEAS Task State",
+  "title": "Geas Task State",
   "description": "Task-scoped runtime index. Points to which agent is in flight, which evidence files are expected from it, and how many verify-fix iterations have been consumed. Distinct from the task contract's 'status' field, which is the lifecycle state.",
   "type": "object",
   "additionalProperties": false,

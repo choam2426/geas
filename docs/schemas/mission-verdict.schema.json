@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mission-verdict.schema.json",
-  "title": "GEAS Mission Final Verdict",
+  "title": "Geas Mission Final Verdict",
   "description": "Final verdict on whether a mission is approved, needs more work, or must be escalated. Produced by Decision Maker at the end of the consolidating phase.",
   "type": "object",
   "additionalProperties": false,

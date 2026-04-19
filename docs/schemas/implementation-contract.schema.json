@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "implementation-contract.schema.json",
-  "title": "GEAS Implementation Contract",
+  "title": "Geas Implementation Contract",
   "description": "Canonical pre-work implementation plan capturing intended change scope and planned actions before main task execution begins.",
   "type": "object",
   "additionalProperties": false,

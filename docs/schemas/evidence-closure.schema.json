@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "evidence-closure.schema.json",
-  "title": "GEAS Task Closure Evidence",
+  "title": "Geas Task Closure Evidence",
   "type": "object",
   "properties": {
     "agent": {

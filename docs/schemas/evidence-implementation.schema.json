@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "evidence-implementation.schema.json",
-  "title": "GEAS Implementation Evidence",
+  "title": "Geas Implementation Evidence",
   "type": "object",
   "properties": {
     "agent": {

@@ -1,6 +1,6 @@
 # 06. Memory
 
-> GEAS의 memory 구조, 변경 이력, retrieval, rollback을 정의한다. Task에서 올라오는 retrospective 입력은 doc 03이 owner이고, 미해결 debt와 gap은 doc 07이 owner다.
+> Geas의 memory 구조, 변경 이력, retrieval, rollback을 정의한다. Task에서 올라오는 retrospective 입력은 doc 03이 owner이고, 미해결 debt와 gap은 doc 07이 owner다.
 
 ## 목적
 

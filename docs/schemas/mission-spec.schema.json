@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "GEAS Mission Spec",
+  "title": "Geas Mission Spec",
   "description": "Canonical mission baseline approved during specifying phase. Captures mission intent, scope, completion criteria, constraints, and user approval.",
   "type": "object",
   "required": [
@@ -18,7 +18,7 @@
   "properties": {
     "mission_id": {
       "type": "string",
-      "description": "Stable mission identifier within the GEAS runtime.",
+      "description": "Stable mission identifier within the Geas runtime.",
       "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$"
     },
     "domain_profile": {

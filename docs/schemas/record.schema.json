@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "record.schema.json",
-  "title": "GEAS Task Record",
+  "title": "Geas Task Record",
   "description": "Current shared task record for structured sections that are still stored together, including retrospective inputs.",
   "type": "object",
   "properties": {

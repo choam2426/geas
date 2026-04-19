@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "GEAS Mission State",
+  "title": "Geas Mission State",
   "description": "Mission-scoped runtime index. Points to which phase the mission is in and which tasks are currently executing within it.",
   "type": "object",
   "additionalProperties": false,

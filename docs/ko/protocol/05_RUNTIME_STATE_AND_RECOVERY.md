@@ -1,6 +1,6 @@
 # 05. Runtime State and Recovery
 
-> GEAS의 mission state, task state, 재개 절차와 안전 원칙을 정의한다. Mission phase와 task closure 의미는 각각 doc 02, doc 03이 owner다.
+> Geas의 mission state, task state, 재개 절차와 안전 원칙을 정의한다. Mission phase와 task closure 의미는 각각 doc 02, doc 03이 owner다.
 
 ## 목적
 

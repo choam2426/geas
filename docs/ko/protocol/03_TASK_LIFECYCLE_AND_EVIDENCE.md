@@ -1,6 +1,6 @@
 # 03. Task Lifecycle and Evidence
 
-> GEAS의 task contract, task 상태 전이, evidence 구조, evidence gate, task-level deliberation, task closure decision, implementation contract, self-check를 정의한다.
+> Geas의 task contract, task 상태 전이, evidence 구조, evidence gate, task-level deliberation, task closure decision, implementation contract, self-check를 정의한다.
 
 ## 목적
 
@@ -92,7 +92,7 @@ Task를 되돌릴 때 어느 상태로 복원할지는 고정 표보다 Orchestr
 
 ## Evidence
 
-Evidence는 task에 대한 역할별 작업/판단 기록이다. GEAS에서 evidence는 task 단위 artifact이며, 정확한 구조는 `evidence_kind`별 schema(`evidence-implementation.schema.json`, `evidence-review.schema.json`, `evidence-verification.schema.json`, `evidence-challenge.schema.json`, `evidence-closure.schema.json`)가 각각 관리한다.
+Evidence는 task에 대한 역할별 작업/판단 기록이다. Geas에서 evidence는 task 단위 artifact이며, 정확한 구조는 `evidence_kind`별 schema(`evidence-implementation.schema.json`, `evidence-review.schema.json`, `evidence-verification.schema.json`, `evidence-challenge.schema.json`, `evidence-closure.schema.json`)가 각각 관리한다.
 
 ### 공통 필드
 

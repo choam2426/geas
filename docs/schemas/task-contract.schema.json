@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "GEAS Task Contract",
+  "title": "Geas Task Contract",
   "description": "Canonical task contract capturing task intent, routing, acceptance criteria, approval state, baseline, and lifecycle status.",
   "type": "object",
   "additionalProperties": false,

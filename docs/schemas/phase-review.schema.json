@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "GEAS Phase Review",
+  "title": "Geas Phase Review",
   "description": "Mission-level phase gate record describing whether a phase may be entered, exited, blocked, or escalated.",
   "type": "object",
   "additionalProperties": false,

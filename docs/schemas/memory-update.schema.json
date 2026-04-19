@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "GEAS Memory Update",
+  "title": "Geas Memory Update",
   "description": "Per-mission change log recording what this mission's consolidating phase did to shared memory (memory/shared.md). Canonical shared-memory content lives in shared.md; this artifact records which entries were added, modified, or removed and why. Agent-memory changes are written directly to each agent's memory file and do not produce a change log.",
   "type": "object",
   "additionalProperties": false,

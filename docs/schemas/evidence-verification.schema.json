@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "evidence-verification.schema.json",
-  "title": "GEAS Verification Evidence",
+  "title": "Geas Verification Evidence",
   "type": "object",
   "properties": {
     "agent": {

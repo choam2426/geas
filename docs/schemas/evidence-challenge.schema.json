@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "evidence-challenge.schema.json",
-  "title": "GEAS Challenge Evidence",
+  "title": "Geas Challenge Evidence",
   "type": "object",
   "properties": {
     "agent": {

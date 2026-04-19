@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "self-check.schema.json",
-  "title": "GEAS Task Self-Check",
+  "title": "Geas Task Self-Check",
   "description": "Canonical worker self-check recorded after implementation and before independent review.",
   "type": "object",
   "properties": {

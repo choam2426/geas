@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "gate-result.schema.json",
-  "title": "GEAS Gate Result",
+  "title": "Geas Gate Result",
   "description": "Record of a single Evidence Gate run for a task, capturing tier verdicts and the overall gate verdict. Each gate run produces its own artifact so retry history is preserved.",
   "type": "object",
   "properties": {

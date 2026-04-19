@@ -1,4 +1,4 @@
-# GEAS Korean Protocol Index
+# Geas Korean Protocol Index
 
 ## 문서 목록
 
