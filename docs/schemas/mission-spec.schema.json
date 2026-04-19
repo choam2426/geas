@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "MissionSpec",
+  "title": "GEAS Mission Spec",
+  "description": "Canonical mission baseline approved during specifying phase. Captures mission intent, scope, completion criteria, constraints, and user approval.",
   "type": "object",
   "required": [
     "mission_id",
@@ -20,13 +21,16 @@
   "properties": {
     "mission_id": {
       "type": "string",
+      "description": "Stable mission identifier within the GEAS runtime.",
       "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$"
     },
     "domain_profile": {
-      "type": "string"
+      "type": "string",
+      "description": "Optional implementation-specific domain profile attached to the mission."
     },
     "mode": {
       "type": "string",
+      "description": "Default operating depth for the mission.",
       "enum": [
         "lightweight",
         "standard",
@@ -35,18 +39,22 @@
     },
     "mission": {
       "type": "string",
+      "description": "Core user request or mission objective this mission is meant to satisfy.",
       "minLength": 1
     },
     "done_when": {
       "type": "string",
+      "description": "High-level completion statement used to judge whether the mission is done.",
       "minLength": 1
     },
     "target_user": {
       "type": "string",
+      "description": "Intended recipient or consumer of the mission outcome.",
       "minLength": 1
     },
     "user_approved": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether the user has approved this mission spec as the current basis for execution."
     },
     "scope": {
       "type": "object",
@@ -57,6 +65,7 @@
       "properties": {
         "in": {
           "type": "array",
+          "description": "In-scope surfaces or responsibilities owned by this mission.",
           "items": {
             "type": "string"
           },
@@ -64,6 +73,7 @@
         },
         "out": {
           "type": "array",
+          "description": "Explicitly out-of-scope surfaces or responsibilities for this mission.",
           "items": {
             "type": "string"
           }
@@ -73,6 +83,7 @@
     },
     "acceptance_criteria": {
       "type": "array",
+      "description": "Concrete criteria derived from done_when and used for phase gates and task derivation.",
       "items": {
         "type": "string",
         "minLength": 1
@@ -81,6 +92,7 @@
     },
     "constraints": {
       "type": "array",
+      "description": "Non-negotiable constraints that shape how the mission may be executed.",
       "items": {
         "type": "string",
         "minLength": 1
@@ -88,6 +100,7 @@
     },
     "affected_surfaces": {
       "type": "array",
+      "description": "Surfaces likely to be affected by the mission outcome.",
       "items": {
         "type": "string",
         "minLength": 1
@@ -95,6 +108,7 @@
     },
     "risk_notes": {
       "type": "array",
+      "description": "Mission-level risks already visible before task execution begins.",
       "items": {
         "type": "string",
         "minLength": 1
@@ -102,6 +116,7 @@
     },
     "assumptions": {
       "type": "array",
+      "description": "Current assumptions accepted for mission planning and execution.",
       "items": {
         "type": "string",
         "minLength": 1
@@ -109,6 +124,7 @@
     },
     "ambiguities": {
       "type": "array",
+      "description": "Unresolved ambiguities that must stay visible during mission execution.",
       "items": {
         "type": "string",
         "minLength": 1

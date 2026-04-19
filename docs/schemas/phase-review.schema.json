@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "PhaseReview",
+  "title": "GEAS Phase Review",
+  "description": "Mission-level phase gate record describing whether a phase may be entered, exited, blocked, or escalated.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -40,7 +41,7 @@
         "consolidating",
         "complete"
       ],
-      "description": "The phase to transition into (when status is ready_to_exit)"
+      "description": "The next mission phase to enter when status is ready_to_exit."
     }
   },
   "if": {

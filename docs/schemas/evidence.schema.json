@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "evidence.schema.json",
   "title": "GEAS Agent Evidence",
-  "description": "Dispatch schema for evidence_kind-specific evidence files.",
+  "description": "Dispatch schema for task-level evidence_kind-specific evidence files.",
   "$defs": {
     "evidenceKind": {
       "type": "string",
@@ -13,7 +13,7 @@
         "challenge",
         "decision"
       ],
-      "description": "Dispatch key selecting the concrete evidence schema."
+      "description": "Dispatch key selecting the concrete task evidence schema."
     }
   },
   "type": "object",

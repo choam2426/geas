@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "RunState",
-  "description": "Session state and checkpoint for the Geas orchestrator. Used to resume or repair mission runtime state after interruption.",
+  "title": "GEAS Run State",
+  "description": "Mission runtime state and checkpoint used to resume or repair execution after interruption.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -23,14 +23,14 @@
         "null"
       ],
       "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$",
-      "description": "Mission ID (e.g., 'mission-20260407-x7Kq9mPv') — used to locate spec and artifact files"
+      "description": "Mission ID used to locate mission artifacts."
     },
     "mission": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Human-readable mission statement from current mission spec"
+      "description": "Human-readable mission statement copied from the current mission spec."
     },
     "phase": {
       "type": [
@@ -99,7 +99,7 @@
         "paused"
       ],
       "default": "active",
-      "description": "Scheduler execution state (from doc 04)"
+      "description": "Implementation-reported execution state for the runtime loop."
     },
     "checkpoint": {
       "type": "object",
@@ -110,7 +110,7 @@
             "string",
             "null"
           ],
-          "description": "Current pipeline step name (e.g., 'specialist_review', 'evidence_gate')"
+          "description": "Current runtime pipeline step name."
         },
         "agent_in_flight": {
           "type": [
@@ -171,7 +171,7 @@
           "description": "Two-phase checkpoint state. 'pending' during write, 'committed' after."
         }
       },
-      "description": "Pipeline checkpoint for session recovery. Updated before every agent spawn."
+      "description": "Pipeline checkpoint for session recovery."
     },
     "created_at": {
       "type": "string",

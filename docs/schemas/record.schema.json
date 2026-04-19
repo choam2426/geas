@@ -1,62 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "record.schema.json",
-  "title": "GEAS Task Execution Record",
-  "description": "Single file accumulating all pipeline step outputs for a task. Sections are added incrementally as the pipeline progresses.",
+  "title": "GEAS Task Record",
+  "description": "Current shared task record for structured sections that are still stored together, including gate, closure, verdict, and retrospective inputs.",
   "type": "object",
   "properties": {
     "task_id": {
       "type": "string",
       "minLength": 1
-    },
-    "implementation_contract": {
-      "type": "object",
-      "properties": {
-        "worker": {
-          "type": "string",
-          "minLength": 1
-        },
-        "planned_actions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1
-        },
-        "edge_cases": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "non_goals": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "demo_steps": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "draft",
-            "in_review",
-            "approved",
-            "revision_requested"
-          ]
-        }
-      },
-      "required": [
-        "planned_actions",
-        "non_goals",
-        "status"
-      ],
-      "additionalProperties": true
     },
     "gate_result": {
       "type": "object",

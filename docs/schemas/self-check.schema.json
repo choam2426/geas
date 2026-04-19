@@ -1,37 +1,34 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "self-check.schema.json",
-  "title": "GEAS Worker Self-Check",
-  "description": "Worker self-check artifact recorded after implementation and before review.",
+  "title": "GEAS Task Self-Check",
+  "description": "Canonical worker self-check recorded after implementation and before independent review.",
   "type": "object",
   "properties": {
-    "confidence": {
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 5
+    "completed_work": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What the worker believes was actually completed in this task."
+    },
+    "reviewer_focus": {
+      "type": "array",
+      "description": "Areas reviewers should inspect first based on the worker's own implementation experience.",
+      "items": {
+        "type": "string"
+      }
     },
     "known_risks": {
       "type": "array",
+      "description": "Known risks, weak spots, or unresolved concerns that remain after implementation.",
       "items": {
         "type": "string"
       }
-    },
-    "unverified_cases": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "summary": {
-      "type": "string",
-      "minLength": 1
     }
   },
   "required": [
-    "confidence",
-    "summary",
-    "known_risks",
-    "unverified_cases"
+    "completed_work",
+    "reviewer_focus",
+    "known_risks"
   ],
   "additionalProperties": true
 }

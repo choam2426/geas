@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "HealthCheck",
-  "description": "Health signal calculation results. 8 signals from protocol doc 10, each with a value, threshold, and whether it triggered a mandatory response. Calculated at phase transitions, session start, and consolidating phase entry.",
+  "title": "GEAS Health Check",
+  "description": "Serialized health signal results used by enforcement and observability layers.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -11,8 +11,8 @@
   "properties": {
     "signals": {
       "type": "array",
-      "minItems": 8,
-      "maxItems": 8,
+      "minItems": 7,
+      "maxItems": 7,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -32,8 +32,7 @@
               "contradiction_accumulation",
               "repeated_failure_class",
               "debt_stagnation",
-              "scope_control_weakness",
-              "worker_low_confidence"
+              "scope_control_weakness"
             ]
           },
           "value": {
@@ -42,7 +41,7 @@
           },
           "threshold": {
             "type": "number",
-            "description": "Threshold from protocol doc 10"
+            "description": "Threshold from the enforcement and health-signal policy."
           },
           "triggered": {
             "type": "boolean",

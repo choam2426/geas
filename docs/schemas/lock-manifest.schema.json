@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "LockManifest",
+  "title": "GEAS Lock Manifest (Auxiliary)",
+  "description": "Auxiliary serialization for implementations that track explicit lock ownership during parallel execution.",
   "type": "object",
   "additionalProperties": false,
   "required": [

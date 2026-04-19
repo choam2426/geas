@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "PolicyOverride",
-  "description": "Machine-readable policy override registry. Temporary overrides for rules.md entries with reason, expiry, approver, and full audit trail. Old entries are never deleted — they are marked expired.",
+  "title": "GEAS Policy Override",
+  "description": "Machine-readable registry for temporary rule overrides, including reason, expiry, approver, and audit trail.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -51,7 +51,7 @@
           },
           "approved_by": {
             "type": "string",
-            "description": "Agent type who authorized this override (e.g. product-authority)"
+            "description": "Agent type who authorized this override (e.g. decision-maker)"
           },
           "created_at": {
             "type": "string",

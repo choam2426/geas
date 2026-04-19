@@ -1,16 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "TaskContract",
+  "title": "GEAS Task Contract",
+  "description": "Canonical task contract capturing task intent, routing, acceptance criteria, approval state, baseline, and lifecycle status.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "task_id",
     "title",
     "goal",
-    "task_kind",
     "risk_level",
-    "gate_profile",
-    "vote_round_policy",
     "acceptance_criteria",
     "eval_commands",
     "rubric",
@@ -23,30 +21,21 @@
   ],
   "properties": {
     "task_id": {
-      "type": "string"
+      "type": "string",
+      "description": "Stable task identifier within a mission."
     },
     "title": {
-      "type": "string"
+      "type": "string",
+      "description": "Short human-readable label for the task."
     },
     "goal": {
       "type": "string",
+      "description": "Concrete outcome the task is expected to achieve.",
       "minLength": 1
-    },
-    "task_kind": {
-      "type": "string",
-      "description": "Coarse task classification used as a routing hint and reporting label. It does not fully determine reviewer routing by itself.",
-      "enum": [
-        "implementation",
-        "documentation",
-        "configuration",
-        "design",
-        "review",
-        "analysis",
-        "delivery"
-      ]
     },
     "risk_level": {
       "type": "string",
+      "description": "Failure-cost classification used for routing and review conservatism.",
       "enum": [
         "low",
         "normal",
@@ -54,24 +43,9 @@
         "critical"
       ]
     },
-    "gate_profile": {
-      "type": "string",
-      "enum": [
-        "implementation_change",
-        "artifact_only",
-        "closure_ready"
-      ]
-    },
-    "vote_round_policy": {
-      "type": "string",
-      "enum": [
-        "never",
-        "auto",
-        "always"
-      ]
-    },
     "acceptance_criteria": {
       "type": "array",
+      "description": "Observable criteria that must hold before the task may be closed as complete.",
       "items": {
         "type": "string",
         "minLength": 1
@@ -80,6 +54,7 @@
     },
     "eval_commands": {
       "type": "array",
+      "description": "Repeatable validation commands or procedures attached to the contract.",
       "items": {
         "type": "string"
       }
@@ -118,16 +93,19 @@
     },
     "retry_budget": {
       "type": "integer",
+      "description": "Maximum meaningful validation-rework retries allowed for this task.",
       "minimum": 0
     },
     "user_approved": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether the user has approved this task contract as ready to enter execution."
     },
     "scope": {
       "type": "object",
       "properties": {
         "surfaces": {
           "type": "array",
+          "description": "Reviewer-readable impact surfaces touched by the task.",
           "items": {
             "type": "string"
           }
@@ -151,7 +129,7 @@
         },
         "required_reviewer_slots": {
           "type": "array",
-          "description": "Final reviewer slots chosen by the orchestrator after considering task_kind, risk, surfaces, and mission context.",
+          "description": "Final reviewer slots chosen by the orchestrator after considering the primary worker slot, risk, surfaces, and mission context.",
           "items": {
             "$ref": "_defs.schema.json#/$defs/anySlot"
           },
@@ -173,7 +151,8 @@
       "additionalProperties": false
     },
     "base_snapshot": {
-      "type": "string"
+      "type": "string",
+      "description": "Shared baseline snapshot this task starts from."
     },
     "dependencies": {
       "type": "array",
@@ -184,12 +163,12 @@
     },
     "status": {
       "type": "string",
+      "description": "Current lifecycle status for the task and its execution.",
       "enum": [
         "drafted",
         "ready",
         "implementing",
         "reviewed",
-        "integrated",
         "verified",
         "passed",
         "blocked",

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "implementation-contract.schema.json",
+  "title": "GEAS Implementation Contract",
+  "description": "Canonical pre-work implementation plan capturing intended change scope and planned actions before main task execution begins.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "worker": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Concrete worker or worker type proposing this implementation plan."
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short description of what will change in this task."
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Why this change is needed and why this approach is worth taking."
+    },
+    "change_scope": {
+      "type": "array",
+      "description": "Concrete files, modules, documents, flows, assets, or surfaces this plan expects to modify.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "planned_actions": {
+      "type": "array",
+      "description": "Concrete execution steps specific enough for worker action and reviewer inspection.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "non_goals": {
+      "type": "array",
+      "description": "Explicitly excluded work kept outside the task's active implementation scope.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "summary",
+    "rationale",
+    "change_scope",
+    "planned_actions",
+    "non_goals"
+  ]
+}

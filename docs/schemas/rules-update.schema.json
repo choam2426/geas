@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "RulesUpdate",
+  "title": "GEAS Rules Update",
+  "description": "Structured proposal or decision record for updating long-lived project rules.",
   "type": "object",
   "additionalProperties": false,
   "required": [

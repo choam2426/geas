@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "VoteRound",
-  "description": "Result of a structured vote round — either a proposal_round (agree/disagree) or a readiness_round (ship/iterate/escalate). Recorded in .geas/missions/{mission_id}/decisions/.",
+  "title": "GEAS Deliberation Record",
+  "description": "Current structured deliberation record stored under a legacy file/schema name. Used for task-level or mission-level multi-party judgment and stored in .geas/missions/{mission_id}/decisions/.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -23,11 +23,11 @@
     "task_id": {
       "type": "string",
       "minLength": 1,
-      "description": "Task this vote pertains to"
+      "description": "Task this deliberation pertains to. Mission-level deliberations may use an implementation-defined surrogate or omit task binding at a higher wrapper layer."
     },
     "proposal_summary": {
       "type": "string",
-      "description": "What is being voted on (proposal_round: the proposal text; readiness_round: the ship-readiness question)"
+      "description": "Short summary of the question under deliberation."
     },
     "participants": {
       "type": "array",
@@ -35,7 +35,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Agent types participating. proposal_round: >= 2 (proposer + reviewer). readiness_round: >= orchestrator + decision-maker + 1 specialist."
+      "description": "Agent types participating in the deliberation."
     },
     "votes": {
       "type": "array",
@@ -62,7 +62,7 @@
               "iterate",
               "escalate"
             ],
-            "description": "proposal_round: agree|disagree. readiness_round: ship|iterate|escalate."
+            "description": "Recorded position for this participant. Current enum values are retained for backward compatibility."
           },
           "rationale": {
             "type": "string",
@@ -75,7 +75,7 @@
               "major",
               "critical"
             ],
-            "description": "Required when vote is disagree, iterate, or escalate"
+            "description": "Required when the participant records a materially negative or blocking position."
           }
         }
       }
@@ -90,7 +90,7 @@
         "escalate",
         "inconclusive"
       ],
-      "description": "Outcome. 'inconclusive' if quorum was not met."
+      "description": "Outcome of the deliberation. 'inconclusive' means quorum was not met."
     },
     "quorum_met": {
       "type": "boolean"
@@ -98,7 +98,7 @@
     "quorum_failure_count": {
       "type": "integer",
       "minimum": 0,
-      "description": "Consecutive quorum failures. 2 consecutive failures = task escalated."
+      "description": "Consecutive quorum failures tracked by the implementation."
     },
     "created_at": {
       "type": "string",

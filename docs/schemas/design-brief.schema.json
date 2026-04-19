@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "DesignBrief",
+  "title": "GEAS Design Brief (Auxiliary)",
+  "description": "Auxiliary planning schema retained for compatibility. Current protocol owner artifact for mission planning is mission-design.md rather than this schema.",
   "type": "object",
   "additionalProperties": false,
   "required": [
