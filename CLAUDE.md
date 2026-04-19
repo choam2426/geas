@@ -62,7 +62,7 @@ docs/
 ├── architecture/DESIGN.md
 └── reference/               # AGENTS.md, SKILLS.md, HOOKS.md, DASHBOARD.md
 
-docs/ko/                     # Korean canonical (protocol reorganized to 10 docs: 00–09)
+docs/ko/                     # Korean canonical (protocol reorganized to 9 docs: 00–08)
 ```
 
 ## Design Principles
@@ -71,7 +71,7 @@ docs/ko/                     # Korean canonical (protocol reorganized to 10 docs
 2. **Agents are templates, not identity** — the 14-agent team is one configuration. The contract engine works with any agent setup.
 3. **Collaboration surface is an adapter** — don't hardcode surface assumptions into core skills.
 4. **Evidence over declaration** — "agent says done" is never enough. Evidence Gate must verify.
-5. **Memory is a behavior-change mechanism** — memory must alter future actions through rules.md and agent memory notes.
+5. **Memory is a behavior-change mechanism** — memory must alter future actions through shared memory and agent memory notes.
 6. **Protocol is north star** — skills are upgraded to match the protocol, not the other way around.
 
 ## Rules
