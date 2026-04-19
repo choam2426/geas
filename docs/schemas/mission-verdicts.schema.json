@@ -47,7 +47,8 @@
           "enum": [
             "approved",
             "changes_requested",
-            "escalated"
+            "escalated",
+            "cancelled"
           ]
         },
         "rationale": {

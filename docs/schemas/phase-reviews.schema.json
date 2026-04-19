@@ -66,13 +66,12 @@
         "next_phase": {
           "type": "string",
           "enum": [
-            "specifying",
             "building",
             "polishing",
             "consolidating",
             "complete"
           ],
-          "description": "The next mission phase to enter when status is passed."
+          "description": "The next mission phase to enter when status is passed. Allowed rollbacks are polishing -> building, consolidating -> polishing, and consolidating -> building. Rollback to specifying is not allowed; mission scope changes must be handled by escalating or starting a new mission."
         },
         "created_at": {
           "type": "string",

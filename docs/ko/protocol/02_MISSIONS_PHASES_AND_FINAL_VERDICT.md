@@ -127,6 +127,8 @@ Specifying의 승인 순서는 고정한다.
 
 Building에서 Decision Maker가 task별 final verdict를 반복해서 내리지는 않는다. task를 종결하는 판단은 Orchestrator의 task closure decision으로 처리하고, Decision Maker는 mission 수준 판단에 집중한다.
 
+Building이나 polishing에서 새 task contract가 추가될 때 승인 주체는 현재 mission scope 내인지에 따라 갈린다. 현재 mission scope 안에 들어오는 task는 Decision Maker가 승인하며 task contract의 `approved_by`는 `decision_maker`로 기록한다. 현재 scope 밖이라면 먼저 mission spec을 확장해 사용자 승인을 받아야 하며, 그 후 새 task는 `approved_by`를 `user` 또는 scope 확장 이후의 `decision_maker`로 둔다.
+
 ### `polishing`
 
 **목적**: task 단위 완료를 mission 수준 완성도로 다시 점검한다.
@@ -147,11 +149,20 @@ Polishing은 "예쁘게 마무리"하는 단계라기보다, 미션 수준에서
 
 **산출물**: gap, debts, memory 입력, mission final verdict, 마지막 phase review.
 
-**Slot별 책임**: Orchestrator가 종결 근거와 debts를 정리한다. Design Authority가 scope closure를 점검하고 gap을 작성한다. Decision Maker가 mission final verdict를 내린다.
+**Slot별 책임**: Orchestrator가 종결 근거와 debts, memory update를 정리한다. Design Authority가 scope closure를 점검하고 gap을 작성한다. Decision Maker가 mission final verdict를 내린다.
 
 **Phase gate 확인 사항**: debt와 gap이 정리되었는지, 다음 작업으로 넘길 항목이 드러나는지, final verdict 판단 근거가 충분한지.
 
 **Phase gate 통과 시**: mission phase를 `complete`로 전이한다.
+
+### Phase 역행 규칙
+
+Phase gate가 `passed`로 끝난 뒤 다음 phase를 정할 때, 정상 경로 외에 다음 역행만 허용된다.
+
+- `polishing → building`: 남은 구조적 부족분이 새 task로만 풀릴 때.
+- `consolidating → polishing` 또는 `consolidating → building`: consolidating에서 debt나 gap으로 넘길 수 없는 부족분이 드러나 mission 안에서 다시 처리해야 할 때.
+
+`specifying`으로의 역행은 허용하지 않는다. mission spec 자체가 바뀌어야 한다면 현재 mission을 escalate하거나 새 mission으로 시작한다.
 
 ## Mission-level Deliberation
 
@@ -175,7 +186,7 @@ Task를 종결하기 위한 deliberation은 doc 03이 owner다.
 
 ## Mission Verdict
 
-Mission verdict는 미션의 종결 판단이다. verdict 값은 `approved` / `changes_requested` / `escalated` 중 하나이며, 이 판단은 Decision Maker만 내릴 수 있다. 한 미션의 모든 verdict는 단일 파일(`mission-verdicts.json`)의 `verdicts` 배열에 시간 순으로 append된다. 정확한 구조는 `mission-verdicts.schema.json`이 관리한다.
+Mission verdict는 미션의 종결 판단이다. verdict 값은 `approved` / `changes_requested` / `escalated` / `cancelled` 중 하나이며, 이 판단은 Decision Maker만 내릴 수 있다. 한 미션의 모든 verdict는 단일 파일(`mission-verdicts.json`)의 `verdicts` 배열에 시간 순으로 append된다. 정확한 구조는 `mission-verdicts.schema.json`이 관리한다.
 
 `changes_requested`나 `escalated` 이후 추가 작업을 거쳐 다시 consolidating이 끝나면 새 verdict object가 배열에 append된다. 최신 항목이 현재 판단이다.
 
@@ -183,10 +194,14 @@ Mission verdict는 미션의 종결 판단이다. verdict 값은 `approved` / `c
 
 | 필드 | 의미 |
 |---|---|
-| `verdict` | `approved` / `changes_requested` / `escalated` 중 이번 판단 |
+| `verdict` | `approved` / `changes_requested` / `escalated` / `cancelled` 중 이번 판단 |
 | `rationale` | 이 판단의 근거 서술. 필요하면 특정 artifact 경로를 문장 안에 인용 |
 | `carry_forward` | 미래로 넘길 항목(리스크, debt, 미해결 gap 등). 없으면 빈 배열 |
 | `created_at` | 이 verdict가 작성된 시각 |
+
+### 취소된 mission 처리
+
+사용자 요청이나 외부 사유로 mission을 중단해야 할 때는 verdict `cancelled`로 종결한다. 실행이 조금이라도 진행된 mission은 consolidating phase를 거쳐 가능한 범위에서 debts, gap, memory update를 정리한 뒤 verdict `cancelled`를 기록한다. 아직 mission spec이 사용자 승인되지 않은 specifying 단계에서 포기하는 경우에만 consolidating을 건너뛰고 곧바로 `complete`로 전이하면서 verdict `cancelled`를 남긴다.
 
 Decision Maker는 verdict를 낼 때 미션의 모든 artifact(mission spec, mission design, phase reviews, gap, debts, memory update, 모든 mission-level deliberation, 각 task의 contract·evidence·closure)를 읽고 판단한다. 판단 근거는 `rationale`에 담는다.
 
