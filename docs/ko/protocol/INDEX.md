@@ -7,7 +7,7 @@
 - `02_MISSIONS_PHASES_AND_FINAL_VERDICT.md` — mission, phase, phase review, mission final verdict
 - `03_TASK_LIFECYCLE_AND_EVIDENCE.md` — task contract, evidence, gate, closure, self-check
 - `04_BASELINE_WORKSPACE_AND_PARALLELISM.md` — baseline, workspace, 병렬 실행 원칙
-- `05_RUNTIME_CHECKPOINTS_AND_RECOVERY.md` — run state, checkpoint, recovery, recovery packet
+- `05_RUNTIME_STATE_AND_RECOVERY.md` — mission state, task state, recovery, recovery packet
 - `06_MEMORY_AND_RULES.md` — rules, agent memory, rule update, carry forward
 - `07_DEBT_AND_GAP.md` — debt register, gap assessment, mission-level 부족분 정리
 - `08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md` — artifact, 경로, schema, owner 문서 연결
@@ -28,13 +28,13 @@
 1. `02_MISSIONS_PHASES_AND_FINAL_VERDICT.md`
 2. `03_TASK_LIFECYCLE_AND_EVIDENCE.md`
 3. `04_BASELINE_WORKSPACE_AND_PARALLELISM.md`
-4. `05_RUNTIME_CHECKPOINTS_AND_RECOVERY.md`
+4. `05_RUNTIME_STATE_AND_RECOVERY.md`
 5. `07_DEBT_AND_GAP.md`
 6. `06_MEMORY_AND_RULES.md`
 
 ### 구현체 검증 관점에서 읽고 싶을 때
 
 1. `03_TASK_LIFECYCLE_AND_EVIDENCE.md`
-2. `05_RUNTIME_CHECKPOINTS_AND_RECOVERY.md`
+2. `05_RUNTIME_STATE_AND_RECOVERY.md`
 3. `08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md`
 4. `09_ENFORCEMENT_CONFORMANCE_AND_METRICS.md`

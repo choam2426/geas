@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GEAS Task State",
+  "description": "Task-scoped runtime index. Captures which pipeline step, agent, and evidence this task is tracking so execution can continue coherently. Distinct from the task contract's 'status' field, which is the lifecycle state.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "pipeline_step": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Runtime pipeline step this task was in when the snapshot was taken."
+    },
+    "agent_in_flight": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Agent currently spawned and executing on this task."
+    },
+    "pending_evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Evidence files expected from the agent currently in flight."
+    },
+    "retry_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of verify-fix iterations already consumed on this task."
+    },
+    "remaining_steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ordered list of pipeline steps still to complete for this task."
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of the last snapshot update."
+    },
+    "checkpoint_phase": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "committed"
+      ],
+      "default": "committed",
+      "description": "Two-phase snapshot state. 'pending' during write, 'committed' after."
+    }
+  }
+}

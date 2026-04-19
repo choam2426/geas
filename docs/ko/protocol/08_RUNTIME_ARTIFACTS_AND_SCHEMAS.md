@@ -32,7 +32,8 @@ artifact를 읽을 때는 다음 순서를 따른다.
 | mission-level deliberation | `.geas/missions/{mission_id}/deliberations/{deliberation_id}.json` | `docs/schemas/deliberation.schema.json` | doc 02 |
 | mission final verdict | `.geas/missions/{mission_id}/mission-verdict.json` | `docs/schemas/mission-verdict.schema.json` | doc 02 |
 | task record | `.geas/missions/{mission_id}/tasks/{task_id}/record.json` | `docs/schemas/record.schema.json` | doc 03 |
-| run state | `.geas/state/run-state.json` | `docs/schemas/run-state.schema.json` | doc 05 |
+| mission state | `.geas/missions/{mission_id}/mission-state.json` | `docs/schemas/mission-state.schema.json` | doc 05 |
+| task state | `.geas/missions/{mission_id}/tasks/{task_id}/task-state.json` | `docs/schemas/task-state.schema.json` | doc 05 |
 | recovery packet | `.geas/recovery/*.json` | `docs/schemas/recovery-packet.schema.json` | doc 05 |
 | rules update | `.geas/missions/{mission_id}/consolidation/rules-update.json` | `docs/schemas/rules-update.schema.json` | doc 06 |
 | rules | `.geas/rules.md` | markdown | doc 06 |
@@ -55,8 +56,6 @@ artifact를 읽을 때는 다음 순서를 따른다.
 
 ```text
 .geas/
-  state/
-    run-state.json
   recovery/
     *.json
   rules.md
@@ -65,6 +64,7 @@ artifact를 읽을 때는 다음 순서를 따른다.
   missions/{mission_id}/
     spec.json
     mission-design.md
+    mission-state.json
     mission-verdict.json
     deliberations/
       {deliberation_id}.json
@@ -78,6 +78,7 @@ artifact를 읽을 때는 다음 순서를 따른다.
       contract.json
       implementation-contract.json
       self-check.json
+      task-state.json
       record.json
       evidence/{agent}.json
       gate-results/
@@ -91,7 +92,7 @@ artifact를 읽을 때는 다음 순서를 따른다.
 | 충돌 | 먼저 신뢰할 것 |
 |---|---|
 | 문서와 schema 충돌 | 구조는 schema, 의미는 owner 문서 |
-| run state와 artifact 충돌 | artifact |
+| mission state나 task state와 artifact 충돌 | artifact |
 | 요약과 canonical artifact 충돌 | canonical artifact |
 
 Artifact가 어디에 있고 어떤 schema를 따르는지 헷갈릴 때는 이 문서로 돌아오고, 왜 필요한지와 무엇을 뜻하는지는 owner 문서로 돌아간다.
