@@ -1,371 +1,362 @@
-# Geas 아키텍처
+# Geas 구현체 설계
+
+이 문서는 Geas 프로토콜(`docs/ko/protocol/` 9 docs + `docs/schemas/` 14 schemas)을 실제로 돌리는 구현체의 아키텍처를 기술한다. 독자는 Geas를 하나 이상의 agent 클라이언트(Claude Code, Codex, opencode 등) 위에 구축하려는 구현자다.
+
+프로토콜 자체의 규칙·상태·artifact 의미는 이 문서가 아닌 protocol docs와 schema에 있다. 이 문서는 "그 프로토콜을 어떻게 realize하는가"만 다룬다.
 
 ## 1. 개요
 
-Geas는 멀티 에이전트 AI 팀을 위한 거버넌스 프로토콜이다. 소프트웨어 개발, 연구, 콘텐츠 제작 등 구조화된 작업에 참여하는 AI 에이전트 그룹이라면 Geas를 적용하여 거버넌스가 보장되고, 추적 가능하며, 검증된 결과를 산출할 수 있다. 그리고 그 과정에서 팀은 지속적으로 성장한다.
+### 무엇인가
 
-### 문제
+Geas는 두 층으로 구성된다.
 
-여러 AI 에이전트가 구조 없이 협업하면 세 가지 문제가 발생한다:
+1. **Protocol**: 불변 계약. 무엇이 발생해야 하는지, 어떤 artifact가 어떤 모양이어야 하는지 정의. `docs/ko/protocol/` 9 docs + `docs/schemas/` 14 schemas.
+2. **Reference implementation**: 여러 agent 클라이언트 위에서 그 프로토콜을 돌리는 시스템. 이 문서의 주제.
 
-1. **검증이 없다.** 에이전트가 "완료"라고 선언하면 그대로 넘어간다. 작업이 실제로 계약을 충족하는지 독립적으로 확인하는 절차가 없다.
-2. **기억이 없다.** 매 세션이 백지에서 시작된다. 과거 실패에서 얻은 교훈, 효과적인 패턴, 축적된 판단이 모두 사라진다.
-3. **통제가 없다.** 의사결정이 암묵적으로 이루어진다. 누가, 어떤 권한으로, 어떤 근거에 기반해 무엇을 결정했는지 기록이 남지 않는다.
+프로토콜은 한 쌍의 합의이고, 구현체는 그 합의를 실제 agent들이 따르도록 붙드는 레일이다. 프로토콜과 구현체는 독립 진화한다 — 프로토콜이 바뀌면 구현체가 그에 맞춰 재설계되며, 그 반대는 아니다.
 
-### 해결책
+### 설계 목표
 
-Geas는 **Contract Engine**을 도입한다. 도메인에 무관하게 모든 작업 단위에 거버넌스 파이프라인을 강제하는 스킬 집합이다:
+- **프로토콜 충실**: 구현체는 프로토콜이 정한 상태·전이·artifact를 한 치도 어긋나지 않게 실행한다.
+- **클라이언트 중립**: 같은 프로토콜이 여러 agent 런타임(Claude Code, Codex, opencode 등) 위에서 동일하게 돈다.
+- **쓰기 통로 단일화**: `.geas/` 모든 쓰기는 단일 CLI를 경유해 schema 검증과 atomic rename을 강제한다.
+- **관측 가능**: artifact만 읽어도 mission이 어디까지 왔는지, 누가 무엇을 판단했는지 재구성 가능하다.
+- **교체 가능 vs 불변**: 클라이언트 어댑터와 agent roster는 교체 가능하지만 프로토콜과 CLI 계약은 불변이다.
 
-- **태스크 계약(task contract)**이 수행할 작업, 검증 방법, 리뷰어를 정의한다.
-- **에비던스 게이트(evidence gate)**가 작업의 계약 충족 여부를 독립적으로 검증한다. "완료"란 "증거가 증명한 상태"를 뜻한다.
-- **클로저 패킷(closure packet)**이 구현, 리뷰, 게이트 결과, 리스크를 포함한 전체 이력을 조립하여 최종 판정에 제출한다.
-- **메모리 시스템(memory system)**이 교훈을 포착하여 rules.md와 에이전트 메모리를 통해 미래 작업에 반영한다.
+## 2. 계층 구조
 
-Contract Engine은 도구에도 도메인에도 종속되지 않는다. 에이전트가 코드를 작성하든, 실험을 수행하든, 콘텐츠를 제작하든 상관없다. 오직 계약이 있었는가, 검증되었는가, 팀이 무엇을 배웠는가만을 다룬다.
-
-### 설계 철학 (4 Pillars)
-
-모든 설계 판단의 기준: **"이 결정이 프로세스를 더 통제 가능하고, 추적 가능하고, 검증 가능하고, 학습 가능하게 만드는가?"**
-
-| Pillar | 보장하는 것 |
-|---|---|
-| **Governance** | 모든 의사결정이 명시적 권한과 정해진 절차를 따른다 |
-| **Traceability** | 모든 행위가 기록되어 사후 감사가 가능하다 |
-| **Verification** | 모든 산출물이 에이전트의 주장이 아닌 계약 대비 검증된다 |
-| **Evolution** | 팀이 회고, 규칙, 메모리, 부채 추적을 통해 세션을 거듭하며 성장한다 |
-
-> 4 Pillars의 구체적 프로토콜 바인딩과 설계 원칙은 `protocol/00_PROTOCOL_FOUNDATIONS.md` 참조.
-
----
-
-## 2. 4계층 아키텍처
-
-Geas는 관심사를 네 계층으로 분리한다. 핵심 통찰: **안정적이어야 하는 계층은 Contract Engine뿐이다.** 그 위아래는 거버넌스 모델을 깨뜨리지 않고 자유롭게 교체할 수 있다.
+구현체는 여섯 계층으로 나뉜다. 아래로 갈수록 불변, 위로 갈수록 클라이언트별.
 
 ```
-┌───────────────────────────┐
-│  Collaboration Surface    │  대시보드, CLI, 채팅, IDE — 사람과의 접점
-├───────────────────────────┤
-│  Agent Teams              │  도메인 프로필이 전문가 슬롯을 구체적 에이전트로 채운다
-├───────────────────────────┤
-│  Contract Engine          │  12개 핵심 스킬 — 불변의 거버넌스 파이프라인
-├───────────────────────────┤
-│  Tool Adapters            │  파일 I/O, 셸, MCP 서버 — 에이전트가 외부 세계에 작용하는 방식
-└───────────────────────────┘
+┌─ Client Adapter      ── 클라이언트별 (Claude Code / Codex / opencode)
+├─ Skill               ── 공유: 프로토콜 단계별 실행 prompt
+├─ Agent Roster        ── 공유: slot → concrete agent 매핑
+├─ CLI (geas)          ── 공유: .geas/ 쓰기 actuator
+├─ Runtime State       ── 공유: .geas/ 디렉토리 포맷
+└─ Protocol + Schemas  ── 불변 핵심
 ```
 
-> 이 아키텍처 내 에이전트 상호작용을 시각적으로 보려면 [DIAGRAMS.md — 에이전트 상호작용](../DIAGRAMS.md#4-에이전트-상호작용) 참조.
-
-| 계층 | 존재 이유 | 교체 가능 여부 |
+| 계층 | 역할 | 교체 가능 |
 |---|---|---|
-| **Collaboration Surface** | 사용자 경험과 에이전트 워크플로를 분리한다. 대시보드를 쓰든 CLI를 쓰든 동일한 거버넌스가 보장된다. | 가능 |
-| **Agent Teams** | 전문성과 프로세스를 분리한다. Contract Engine은 품질 슬롯의 산출물이 `qa_engineer`에서 나왔든 `methodology_reviewer`에서 나왔든 관여하지 않는다. 리뷰가 존재하면 된다. | 가능 |
-| **Contract Engine** | 불변 핵심. 태스크 생명주기를 강제하는 12개 스킬: intake, compilation, contracts, gates, verification, voting, memory, scheduling, setup, policy, reporting. | **불가** |
-| **Tool Adapters** | 에이전트 역량과 에이전트 정체성을 분리한다. `git`을 쓰든 버전 관리 API를 쓰든 동일한 계약을 만족하면 된다. | 가능 |
+| Protocol + Schemas | 프로토콜 문서와 JSON 스키마. 모든 artifact 구조와 상태 규칙의 정본 | 불가 |
+| Runtime State | `.geas/` 디렉토리 포맷. 파일 위치·이름·append 규칙 | 불가 |
+| CLI (`geas`) | `.geas/` 단일 쓰기 통로. schema 검증 + 타임스탬프 + atomic rename | 불가 |
+| Agent Roster | slot 별 역할 정의 + 도메인 프로필(concrete agent 매핑) | 가능 |
+| Skill | 프로토콜 단계를 agent에게 실행시키는 prompt·절차 | 가능 |
+| Client Adapter | 각 agent 런타임이 skill·agent·CLI를 bind하는 얇은 층 | 가능 |
 
-### 도메인 프로필과 슬롯 해석
+교체 가능한 계층 중 하나를 바꿔도 아래 계층이 그대로면 프로토콜 충실성은 유지된다. 예: agent roster에 새 specialist를 추가하거나 skill prompt 문구를 고쳐도 CLI와 프로토콜은 영향 없다.
 
-Agent Teams는 **도메인 프로필** 단위로 구성된다. 각 프로필은 추상 전문가 슬롯을 구체적 에이전트 타입에 매핑한다:
+## 3. Protocol 층
 
-```
-Mission spec: { "domain_profile": "software" }
-    ↓
-Orchestrator reads profiles.json
-    ↓
-quality_specialist → qa_engineer → Agent(agent: "qa-engineer", ...)
-```
-
-Contract Engine은 슬롯 이름(`implementer`, `quality_specialist`, `risk_specialist`, `operations_specialist`, `communication_specialist`)만 참조한다. Orchestrator가 런타임에 이를 구체적 에이전트로 해석한다. 동일한 12개 핵심 스킬이 소프트웨어, 연구, 기타 모든 도메인에서 작동하는 이유가 여기에 있다.
-
-> 에이전트 타입, 권한 규칙, 라우팅에 대해서는 `protocol/01_AGENT_TYPES_AND_AUTHORITY.md` 참조.
-
----
-
-## 3. 실행 모델
-
-### 4단계 구조의 이유
-
-모든 미션은 규모와 무관하게 동일한 네 단계를 거친다. 단일 기능은 경량으로, 전체 제품은 완전한 깊이로 처리되지만 순서는 변하지 않는다. 명세 없이 구현에 돌입하면 범위가 흘러가고, 다듬기 없이 출하하면 부채가 쌓이기 때문이다.
-
-```
-Specifying ──→ Building ──→ Polishing ──→ Evolving ──→ Close
-   │              │             │              │
- gate 1        gate 2        gate 3        gate 4
-```
-
-> 미션 라이프사이클과 페이즈 게이트의 시각적 다이어그램은 [DIAGRAMS.md — 미션 라이프사이클](../DIAGRAMS.md#1-미션-라이프사이클) 참조.
-
-| 단계 | 목적 | 종료 조건 |
-|---|---|---|
-| **Specifying** | WHAT과 WHY를 정의한다. 미션 스펙, 디자인 브리프, 태스크 목록을 산출한다. 아키텍처 리뷰 필수. | 사용자 승인된 스펙 + 디자인 브리프 + 컴파일된 태스크 |
-| **Building** | 개별 태스크 파이프라인을 실행한다. 각 태스크는 contract → implement → review → gate → verdict를 따른다. | 모든 태스크가 통과하거나 명시적으로 보류됨 |
-| **Polishing** | Building 중 발견된 부채, 문서 공백, 품질 이슈를 처리한다. | 부채 분류 완료, gap assessment 완료 |
-| **Evolving** | 교훈을 포착한다. 회고, rules.md 갱신, 에이전트 메모리 갱신, 이월 백로그. | 진화 산출물 기록, 미션 요약 작성 |
-
-규모에 따라 자동 조절된다: 경량 미션은 단계를 압축할 수 있지만 순서 자체는 절대 바뀌지 않는다.
-
-> 미션과 페이즈의 상세 내용은 `protocol/02_MODES_MISSIONS_AND_RUNTIME.md` 참조.
-
----
-
-## 4. 태스크 생명주기
-
-태스크는 프로토콜의 유일한 완결 단위다. 어떤 것도 태스크가 `passed`에 도달하지 않고는 출하, 완료, "끝남"으로 인정되지 않는다.
-
-### 7개 상태의 이유
-
-각 상태는 서로 다른 주체가 책임지는 고유한 점검 지점이다. 상태를 합치면(예: review를 implementation에 병합) 책임 소재가 흐려진다. 7-상태 모델은 어느 시점에서든 **지금 누가 책임지고 있으며, 다음에 무엇이 일어나야 하는가**를 답할 수 있도록 보장한다.
-
-```
-drafted → ready → implementing → reviewed → integrated → verified → passed
-```
-
-보조 상태: `blocked`, `escalated`, `cancelled`
-
-> 되감기 경로와 보조 상태를 포함한 전체 상태 머신 다이어그램은 [DIAGRAMS.md — 태스크 상태머신](../DIAGRAMS.md#2-태스크-상태머신) 참조.
-
-### 전이별 필수 산출물
-
-증거 없이는 어떤 전이도 발생하지 않는다. 상태 변경이 주장이 아닌 산출물에 의해 통제되는 것이 핵심 강제 메커니즘이다.
-
-태스크별 산출물은 단일 `record.json` 파일에 섹션 단위로 누적되며, 전문가 리뷰 산출물은 `evidence/` 디렉토리에 별도 저장된다.
-
-| 전이 | 가드 조건 | 증명하는 것 |
-|---|---|---|
-| drafted → ready | `contract.json` 필수 필드 (task_kind, risk_level, gate_profile, vote_round_policy, base_snapshot, rubric) | 범위, 기준, 라우팅이 정의됨 |
-| ready → implementing | `record.json:implementation_contract.status == "approved"` | 작업자와 리뷰어가 계획에 합의함 |
-| implementing → reviewed | `record.json:self_check` + `evidence/`에 implementer 역할 | 작업이 완료되고 자기 평가됨 |
-| reviewed → integrated | `record.json:gate_result.verdict == "pass"` + `evidence/`에 reviewer/tester 역할 | 에비던스 게이트가 품질을 확인함 |
-| integrated → verified | (없음 — 오케스트레이터의 merge가 관문) | 변경 사항이 베이스라인에 병합됨 |
-| verified → passed | `verdict.verdict == "pass"` + `gate_result` + `closure` (리뷰 1건 이상) + `retrospective` + `challenge_review` (high/critical) | Decision Maker 수락, 전체 기록 완성 |
-
-> 전체 상태 머신, 되감기 규칙, 재시도 예산: `protocol/03_TASK_MODEL_AND_LIFECYCLE.md`.
-
----
-
-## 5. 검증 흐름
-
-검증은 Geas의 핵심이다. 프로토콜은 어떤 에이전트의 완료 주장도 신뢰하지 않으며, 독립적 증거를 요구한다.
-
-```
-Implementation complete
-        │
-        ▼
-  Evidence Gate
-  ┌─────────────────────┐
-  │ Tier 0: Precheck    │──→ block (산출물 누락, 부적격 상태)
-  │ Tier 1: Mechanical  │──→ fail (반복 가능한 검사 실패)
-  │ Tier 2: Contract    │──→ fail (기준 미달, 루브릭 임계값 미충족)
-  └─────────────────────┘
-        │ pass
-        ▼
-  Closure Packet 조립
-        │
-        ▼
-  Challenger Review (high/critical 위험 필수)
-        │
-        ▼
-  Final Verdict (Decision Maker: pass / iterate / escalate)
-        │ pass
-        ▼
-     완료
-```
-
-> 게이트 프로필과 투표 라운드 처리를 포함한 상세 흐름 다이어그램은 [DIAGRAMS.md — 에비던스 게이트 플로우](../DIAGRAMS.md#3-에비던스-게이트-플로우) 참조.
-
-### 게이트 단계
-
-| Tier | 답하는 질문 | 예시 |
-|---|---|---|
-| **Tier 0** (Precheck) | 이 태스크가 게이트 대상 자격이 있는가? | 필수 산출물 존재, 태스크 상태 유효, 베이스라인 최신 |
-| **Tier 1** (Mechanical) | 반복 가능한 검사를 통과하는가? | 소프트웨어: build, lint, test. 연구: 인용 검증, 통계 재현성. 콘텐츠: 문법, 팩트 체크 |
-| **Tier 2** (Contract + Rubric) | 작업이 계약을 충족하는가? | 인수 기준 충족, 루브릭 점수 임계값 이상(1-5 척도), 알려진 리스크 처리됨 |
-
-### 게이트 결과
-
-| 결과 | 의미 | 재시도 예산 영향 |
-|---|---|---|
-| `pass` | 검증 완료 — 클로저로 진행 | 없음 |
-| `fail` | 품질 이슈 — verify-fix 루프 진입 | -1 |
-| `block` | 구조적 문제 — 진행 불가 | 없음 |
-| `error` | 게이트 자체 실패 — 조사 후 재실행 | 없음 |
-
-### 최종 판정(Final Verdict)
-
-게이트는 "증거가 확인되었다"고 말한다. Decision Maker는 "제품이 이를 수용해야 한다"고 말한다. 이 둘은 별개의 판단이다. 게이트 통과가 자동으로 출하를 의미하지 않는다 — Decision Maker는 미해결 리스크, 부채, 제품 적합성을 포함한 전체 클로저 패킷을 평가한다.
-
-- `pass` — 완료, 태스크가 `passed`에 도달
-- `iterate` — 검증되었으나 충분하지 않음, 재작업 필요 (재시도 예산 미소비; 누적 3회 iterate 시 에스컬레이션)
-- `escalate` — 로컬 권한 범위 초과, 사용자에게 에스컬레이션
-
-> 전체 상세: `protocol/05_GATE_VOTE_AND_FINAL_VERDICT.md`.
-
----
-
-## 6. 메모리와 진화
-
-### 메모리가 해결하는 문제
-
-메모리 없이는 매 세션이 백지에서 시작된다. 팀은 같은 실수를 반복하고, 같은 엣지 케이스를 놓치며, 같은 패턴을 다시 발견한다. 메모리의 존재 이유는 **과거 경험이 미래 행동을 바꾸는 것**이다 — 지식 저장소가 아니라 행동 변경 메커니즘이다.
-
-### 메모리의 작동 방식
-
-메모리는 구체적 표면을 통해 행동에 영향을 미친다:
-
-| 표면 | 예시 |
-|---|---|
-| `rules.md` | "Auth 엔드포인트에는 반드시 rate limiting을 적용할 것" — 과거 게이트 실패에서 얻은 교훈 |
-| 에이전트 메모리 | `.geas/memory/agents/{type}.md` — 호출 시 읽히는 역할별 지침 |
-| 게이트 엄격도 | 과거 실패 이력이 있는 영역에 더 엄격한 임계값 적용 |
-| 스케줄링 주의 | 이전에 충돌을 유발한 병렬 조합 회피 |
-
-### 메모리 생명주기
-
-메모리는 지속성이 아닌 증거를 통해 신뢰를 획득한다. 교훈이 참인 이유는 누군가 그렇게 말했기 때문이 아니라, 검증되었기 때문이다.
-
-```
-rules.md           — 프로젝트 전체 지식 (관례 + 학습된 규칙)
-agents/{agent}.md  — 에이전트별 메모 (역할 특화 교훈)
-```
-
-메모리는 두 파일로 구성된다. `rules.md`는 모든 프로젝트 지식을 담으며 모든 에이전트 컨텍스트에 주입된다. 에이전트 메모리 파일은 역할별 메모를 담으며 해당 에이전트에게만 주입된다.
-
-### 진화 루프
-
-완료된 모든 태스크 이후, 프로토콜은 가치를 추출한다:
-
-1. **회고** — 무엇이 효과적이었고, 무엇이 실패했고, 무엇이 예상 밖이었는가
-2. **규칙 후보** — 강제할 가치가 있는 패턴 ("이런 유형의 실패가 반복되고 있다")
-3. **메모리 추출** — 교훈을 rules.md와 에이전트 메모리에 반영
-4. **부채 추적** — 타협 사항을 가시화하고 소유자를 지정
-5. **갭 평가(gap assessment)** — 약속한 범위 대비 실제 산출 범위의 정직한 비교
-
-미션 종료 시 Evolving 단계에서 이 모든 것을 통합한다. 진화하지 않는 미션은 배우지 않는 미션이다.
-
-> 메모리 시스템: `protocol/07`. 진화 루프: `protocol/11`.
-
----
-
-## 7. 컨텍스트 유실 방어
-
-LLM 세션은 컨텍스트 한계에 도달한다. 압축(compaction)이 발생하면 오케스트레이터는 작업 메모리 — 현재 페이즈, 활성 태스크, 남은 단계, 미해결 리스크 — 를 잃는다. 방어 없이는 세션이 혼란스러운 상태에서 재개되어 잘못된 판단을 내린다.
-
-### 방어 1: 외부화된 상태
-
-`run.json`이 전체 파이프라인 위치를 디스크에 저장한다: 현재 페이즈, 활성 태스크, `remaining_steps[]` 배열, 체크포인트 메타데이터. 컨텍스트가 완전히 유실되더라도 이 파일을 읽으면 오케스트레이터는 현재 위치와 다음 행동을 정확히 파악할 수 있다.
-
-### 방어 2: 자동 복원
-
-`PostCompact` 훅이 모든 압축 이벤트 이후 실행된다. `run.json`, `session-latest.md`, `rules.md`, 활성 태스크 계약을 읽어 L0(절대 삭제 불가) 컨텍스트로 재주입한다. 오케스트레이터는 다음 정보를 갖고 재개한다:
-
-- 현재 페이즈와 태스크
-- 다음 파이프라인 단계
-- 인수 기준과 미해결 리스크
-- 활성 규칙과 메모리 상태
-
-이것은 최선 노력 복구가 아니라 프로토콜 보장이다. Anti-forgetting 계층이 압축으로 인한 컨텍스트 저하를 치명적이 아닌 점진적으로 만든다.
-
-> 전체 복구 모델: `protocol/08_SESSION_RECOVERY_AND_RESUMABILITY.md`.
-
----
-
-## 8. 플러그인 구조
-
-```
-plugin/
-├── plugin.json                # 매니페스트
-├── bin/
-│   └── geas                   # 사전 빌드된 CLI 번들 (단일 파일)
-├── skills/                    # 13개 스킬 (12 핵심 + 1 유틸리티)
-│   ├── mission/               # 오케스트레이터: 4페이즈 파이프라인, 슬롯 해석
-│   ├── intake/                # 요구사항 수집
-│   ├── task-compiler/         # 미션 스펙 → TaskContract
-│   ├── implementation-contract/
-│   ├── evidence-gate/         # Tier 0/1/2 검증
-│   ├── verify-fix-loop/
-│   ├── vote-round/            # 구조화된 투표와 의사결정
-│   ├── memorizing/            # 메모리 생명주기
-│   ├── scheduling/            # 병렬 태스크 스케줄링
-│   ├── setup/                 # 프로젝트 초기화 + 코드베이스 탐색
-│   ├── policy-managing/       # 규칙 오버라이드 관리
-│   ├── reporting/             # 건강 신호, 브리핑, 요약
-│   └── help/                  # 사용 가이드 (유틸리티, 핵심 엔진 아님)
-├── agents/
-│   ├── authority/             # 3개 권한 에이전트 (product-authority, design-authority, challenger)
-│   ├── software/              # 5개 전문가 (software-engineer, qa-engineer, security-engineer, platform-engineer, technical-writer)
-│   └── research/              # 6개 전문가 (literature-analyst, research-analyst, methodology-reviewer, research-integrity-reviewer, research-engineer, research-writer)
-└── hooks/
-    ├── hooks.json             # 7개 이벤트 타입에 걸친 10개 라이프사이클 훅
-    └── scripts/               # 훅 구현 스크립트
-```
-
-> 태스크 단위 파이프라인 실행의 전체 시각적 다이어그램은 [DIAGRAMS.md — 파이프라인 실행 흐름](../DIAGRAMS.md#5-파이프라인-실행-흐름) 참조.
-
-에이전트 상세: `reference/AGENTS.md`. 스킬 상세: `reference/SKILLS.md`. 훅 상세: `reference/HOOKS.md`.
-
----
-
-## 9. 런타임 상태 (`.geas/`)
-
-`.geas/`는 프로젝트별 런타임 디렉토리다. gitignore 대상이며 setup 스킬이 생성한다. 태스크 계약, 에비던스, 메모리, 이벤트 로그 등 모든 런타임 산출물이 이곳에 저장된다.
-
-```
-.geas/
-├── state/
-│   ├── run.json                    # 미션 상태, 체크포인트, remaining_steps
-│   ├── locks.json                  # 병렬 처리용 잠금 매니페스트
-│   ├── session-latest.md           # 최근 세션 요약
-│   └── events.jsonl                # 추가 전용 감사 추적
-├── missions/{mission_id}/
-│   ├── spec.json                   # 미션 스펙 (intake 후 동결)
-│   ├── design-brief.json           # 디자인 브리프
-│   ├── decisions/                  # 투표 라운드 결과
-│   ├── evolution/                  # 부채 레지스터, 갭 평가, 규칙 갱신
-│   ├── phase-reviews/             # 페이즈 전환 리뷰
-│   └── tasks/{task_id}/
-│       ├── contract.json           # 태스크 계약 (범위, 기준, 라우팅)
-│       ├── record.json             # 누적된 태스크 기록 (모든 섹션)
-│       ├── packets/                # 작업자용 컨텍스트 패킷
-│       └── evidence/               # 역할 기반 에이전트 에비던스
-├── memory/
-│   └── agents/{type}.md            # 에이전트별 영속 메모리
-├── recovery/                       # 복구 패킷
-└── rules.md                        # 관례 + 팀 규칙 (통합)
-```
-
-> 산출물 스키마: `protocol/09_RUNTIME_ARTIFACTS_AND_SCHEMAS.md`.
-
----
-
-## 10. 도구 무관 원칙
-
-핵심 스킬은 특정 도구, 프레임워크, 패키지 매니저를 가정해서는 안 된다. Contract Engine이 도메인에 무관할 수 있는 이유가 바로 이것이다 — 동일한 에비던스 게이트가 pytest를 쓰든 인용 검증기를 쓰든 작동한다.
-
-**작동 방식:** setup 스킬이 초기화 시 프로젝트 관례를 감지하여 `.geas/rules.md`에 기록한다. 스킬은 이 파일을 읽어 실행할 명령을 판단한다. 프로젝트 스택이 바뀌어도 스킬 정의를 수정할 필요가 없다.
-
-**핵심 스킬에서 금지:** 하드코딩된 도구 이름, 프레임워크 가정, 기본 패키지 매니저.
-
-**허용:** `rules.md` 참조, 마커 파일 감지(package.json, go.mod, pyproject.toml), 다중 대안 예시.
-
----
-
-## 11. 프로토콜 참조
-
-`docs/protocol/`의 프로토콜 문서가 모든 프로토콜 수준 규칙의 정본이다. 본 문서는 아키텍처 개요이므로, 충돌 시 프로토콜이 우선한다.
+이 문서는 protocol을 재술하지 않는다. 아래 포인터만 둔다.
 
 | 주제 | 문서 |
 |---|---|
-| 설계 원칙, 4 Pillars | `00_PROTOCOL_FOUNDATIONS` |
-| 에이전트 타입, 권한, 라우팅 | `01_AGENT_TYPES_AND_AUTHORITY` |
-| 미션 페이즈, 모드 | `02_MODES_MISSIONS_AND_RUNTIME` |
-| 태스크 생명주기, 상태 머신 | `03_TASK_MODEL_AND_LIFECYCLE` |
-| 워크스페이스, 잠금, 병렬성 | `04_BASELINE_WORKSPACE_SCHEDULER_AND_PARALLELISM` |
-| 게이트, 투표, 판정 | `05_GATE_VOTE_AND_FINAL_VERDICT` |
-| 전문가 에비던스 매트릭스 | `06_SPECIALIST_EVIDENCE_MATRIX` |
-| 메모리 시스템 | `07_MEMORY_SYSTEM_OVERVIEW` |
-| 세션 복구 | `08_SESSION_RECOVERY_AND_RESUMABILITY` |
-| 산출물, 스키마 | `09_RUNTIME_ARTIFACTS_AND_SCHEMAS` |
-| 강제, 메트릭 | `10_ENFORCEMENT_CONFORMANCE_AND_METRICS` |
-| 진화, 부채, 갭 루프 | `11_EVOLUTION_DEBT_AND_GAP_LOOP` |
+| 설계 축, 위험 | `protocol/00_PROTOCOL_FOUNDATIONS.md` |
+| Agent slot, 권한 | `protocol/01_AGENTS_AND_AUTHORITY.md` |
+| Mission phase, final verdict | `protocol/02_MISSIONS_PHASES_AND_FINAL_VERDICT.md` |
+| Task lifecycle, evidence, gate, closure | `protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md` |
+| Baseline, workspace, parallelism | `protocol/04_BASELINE_WORKSPACE_AND_PARALLELISM.md` |
+| Runtime state, 재개 | `protocol/05_RUNTIME_STATE_AND_RECOVERY.md` |
+| Memory | `protocol/06_MEMORY.md` |
+| Debt, gap | `protocol/07_DEBT_AND_GAP.md` |
+| Artifact 경로·스키마 registry | `protocol/08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md` |
 
-> 모든 주요 프로토콜 흐름의 시각적 다이어그램은 [DIAGRAMS.md](../DIAGRAMS.md) 참조.
+시각 다이어그램은 `docs/ko/DIAGRAMS.md`에 있다.
+
+## 4. CLI `geas`
+
+### 역할
+
+CLI는 `.geas/` 아래 **모든** 쓰기가 통과해야 하는 단일 통로다. Agent가 Edit/Write 도구로 직접 `.geas/` 파일을 건드리는 것은 금지된다. 이 원칙이 깨지면 프로토콜의 schema 정합·타임스탬프 일관·atomic rename 보장이 전부 무너진다.
+
+### CLI가 책임지는 것
+
+1. **Schema 검증**: 쓰기 전에 해당 artifact의 JSON Schema로 payload를 검증한다. 실패하면 commit하지 않고 힌트를 반환한다.
+2. **타임스탬프 주입**: `created_at`·`updated_at`과 append 객체의 `created_at`을 CLI가 자동으로 채운다. Agent가 직접 쓰지 않는다.
+3. **Atomic rename**: temp 파일에 쓰고 원자적 rename으로 교체해 부분 쓰기를 막는다.
+4. **Append-only 강제**: `phase-reviews.reviews`, `mission-verdicts.verdicts`, `gate-results.runs`, `deliberations.entries`, `evidence.entries`는 기존 item 수정·삭제를 거부한다.
+5. **Transition guard**: `task transition`은 목표 상태가 요구하는 선행 artifact(예: `approved_by != null`, dependency passed, gate pass)가 실제로 있는지 CLI가 확인한 뒤에만 task-state를 전이한다.
+6. **ID 생성**: `gate_run_id`, 그리고 필요한 경우 `mission_id` 같은 안정 식별자를 CLI가 패턴에 맞춰 생성한다.
+7. **Template 제공**: `schema template <type>`이 해당 artifact의 필수 필드가 포함된 JSON 골격을 반환한다. Agent는 이걸 채워 CLI에 제출한다.
+
+### 명령 체계
+
+CLI 명령은 "어떤 artifact를 어떻게 다루는가"를 기준으로 정돈된다. 읽기와 쓰기를 분리하고, 쓰기는 create / update / append로 나눈다.
+
+**Mission artifact**
+
+| 명령 | 동작 |
+|---|---|
+| `geas mission create --spec <json>` | `spec.json` 최초 작성 |
+| `geas mission design-set --markdown <path>` | `mission-design.md` 갱신 |
+| `geas mission-state update --phase <p> --active-tasks <ids>` | `mission-state.json` 갱신 |
+| `geas phase-review append --entry <json>` | `phase-reviews.reviews`에 append |
+| `geas mission-verdict append --entry <json>` | `mission-verdicts.verdicts`에 append |
+| `geas deliberation append --level mission --entry <json>` | 미션 수준 `deliberations.entries`에 append |
+| `geas debt register --entry <json>` | `debts.entries`에 새 debt 등록 |
+| `geas debt update-status --id <debt-id> --to resolved\|dropped --rationale <text>` | 기존 debt의 status 전환 |
+| `geas gap set --json <json>` | `gap.json` 작성 |
+| `geas memory-update set --json <json>` | `memory-update.json` 작성 |
+
+**Task artifact**
+
+| 명령 | 동작 |
+|---|---|
+| `geas task draft --contract <json>` | `contract.json` 최초 작성 (`drafted` 상태) |
+| `geas task approve --task <id> --by user\|decision_maker` | `contract.approved_by` 설정 |
+| `geas task transition --task <id> --to <state>` | `task-state`의 lifecycle 상태 전이 (guard 검증) |
+| `geas task-state update --task <id> --active-agent <type> --iterations <n>` | `task-state.json` 갱신 |
+| `geas impl-contract set --task <id> --json <json>` | `implementation-contract.json` 작성 |
+| `geas self-check set --task <id> --json <json>` | `self-check.json` 작성 |
+| `geas evidence append --task <id> --agent <type> --entry <json>` | `evidence/{agent}.json`의 `entries`에 append |
+| `geas gate run --task <id> --entry <json>` | `gate-results.runs`에 새 run append |
+| `geas deliberation append --level task --task <id> --entry <json>` | 태스크 수준 `deliberations.entries`에 append |
+
+**Memory**
+
+| 명령 | 동작 |
+|---|---|
+| `geas memory shared-edit` | `.geas/memory/shared.md` 편집 (memory-update.json과 동기) |
+| `geas memory agent-note --agent <type>` | `.geas/memory/agents/{agent}.md` 편집 |
+
+**Utility**
+
+| 명령 | 동작 |
+|---|---|
+| `geas schema list` | 사용 가능한 schema 목록 |
+| `geas schema template <type>` | 해당 schema의 fill-in 템플릿 반환 |
+| `geas resume` | 현재 mission/task 상태를 요약해서 session context로 주입 가능한 형태로 출력 |
+| `geas validate` | `.geas/` 전체를 schema로 검증 |
+| `geas setup` | 프로젝트에 `.geas/` 디렉토리 초기화 |
+| `geas event log --kind <k> --payload <json>` | `events.jsonl`에 append (선택적 감사 로그) |
+
+### 입력·출력 규약
+
+- 입력: JSON payload는 `--json <inline>` 또는 `--json-file <path>`로 전달한다.
+- 출력: 성공은 작성된 경로와 필수 식별자(mission_id, task_id, entry_id 등)를 JSON으로 반환. 실패는 `{ ok: false, error, hints }` 형식이며 `hints`는 누락된 필드, 잘못된 enum 값, 기대 패턴을 포함한다.
+- 종료 코드: 0=성공, 2=schema 검증 실패, 3=guard 실패, 4=I/O 실패, 1=기타.
+
+## 5. Runtime State `.geas/`
+
+```
+.geas/
+├── missions/
+│   └── {mission_id}/
+│       ├── spec.json                         # mission-spec
+│       ├── mission-design.md                 # mission-design
+│       ├── mission-state.json                # mission-state
+│       ├── phase-reviews.json                # append (reviews[])
+│       ├── deliberations.json                # append (entries[], level=mission)
+│       ├── mission-verdicts.json             # append (verdicts[])
+│       ├── consolidation/
+│       │   ├── debts.json
+│       │   ├── gap.json
+│       │   └── memory-update.json
+│       └── tasks/
+│           └── {task_id}/
+│               ├── contract.json             # task-contract
+│               ├── implementation-contract.json
+│               ├── self-check.json
+│               ├── task-state.json
+│               ├── gate-results.json         # append (runs[])
+│               ├── deliberations.json        # append (entries[], level=task)
+│               └── evidence/
+│                   └── {agent}.json          # append (entries[])
+├── memory/
+│   ├── shared.md
+│   └── agents/
+│       └── {agent}.md
+└── events.jsonl                              # (선택) 감사 로그
+```
+
+### 파일 owner 매트릭스
+
+Writer는 반드시 CLI를 경유한다. "Writer"는 실제 `.geas/` 파일을 쓰라는 지시를 내리는 slot을 뜻한다.
+
+| 파일 | Writer | 쓰기 시점 |
+|---|---|---|
+| `spec.json` | orchestrator | specifying |
+| `mission-design.md` | design-authority | specifying |
+| `mission-state.json` | orchestrator | phase·active task 변경 시 |
+| `phase-reviews.json` | orchestrator | 각 phase gate 판정 후 |
+| `deliberations.json` (mission) | orchestrator (기록자) | deliberation 완료 후 |
+| `mission-verdicts.json` | decision-maker | consolidating |
+| `debts.json` | orchestrator | consolidating |
+| `gap.json` | design-authority | consolidating |
+| `memory-update.json` | orchestrator | consolidating |
+| `contract.json` | design-authority | drafted 생성 시 |
+| `contract.approved_by` | user 또는 decision-maker | 승인 시 |
+| `implementation-contract.json` | implementer | implementing 진입 시 |
+| `self-check.json` | implementer | 구현 완료 후 |
+| `task-state.json` | orchestrator | lifecycle 전이·agent 활성화 시 |
+| `gate-results.json` | orchestrator | 각 gate run 후 |
+| `deliberations.json` (task) | orchestrator | deliberation 완료 후 |
+| `evidence/{agent}.json` | 해당 slot | 자기 evidence 제출 시 |
+
+### Append-only 불변성
+
+다음 로그는 과거 item을 덮어쓰거나 삭제할 수 없다. 재시도·재판정도 새 item을 배열에 append한다.
+
+- `phase-reviews.reviews`
+- `mission-verdicts.verdicts`
+- `gate-results.runs`
+- `deliberations.entries`
+- `evidence/{agent}.entries`
+
+CLI는 이 규칙을 강제한다 — append 외 연산은 거부한다. 이는 감사 가능성의 기초다.
+
+### Drift 원칙
+
+State 파일(`mission-state.json`, `task-state.json`)과 실제 artifact가 어긋나면 항상 artifact 쪽을 신뢰한다. State 파일은 인덱스이지 소유권 주장이 아니다. 자세한 재개 절차는 `protocol/05`.
+
+## 6. Skill
+
+Skill은 프로토콜 단계를 실제 agent에게 실행시키는 prompt + 절차 묶음이다. Skill 본문은 어떤 agent가 어떤 slot 역할로 실행하든 동일하게 읽힌다. Skill이 바뀌면 프로토콜 변경에 맞춘 것이지 agent 구현체 변경 때문이 아니다.
+
+### 핵심 skill 12개
+
+각 skill은 프로토콜의 한 단계에 1:1로 대응한다.
+
+| skill | 호출 slot | 목적 | 주된 CLI 호출 |
+|---|---|---|---|
+| `/mission-init` | orchestrator | specifying phase 실행 — mission spec·design·초기 task 집합 작성과 사용자 승인 받기 | `mission create`, `mission design-set`, `task draft`, `task approve` |
+| `/task-draft` | design-authority | mission 진행 중 새 task contract 작성 | `task draft`, `task approve` |
+| `/task-implement` | implementer | implementation contract 작성 → 구현 → self-check → implementation evidence | `impl-contract set`, `self-check set`, `evidence append` |
+| `/task-review` | risk-assessor, operator, communicator, challenger | review evidence 제출 | `evidence append` |
+| `/task-verify` | verifier | 독립 검증 수행 + verification evidence 제출 | `evidence append` |
+| `/gate-run` | orchestrator | Tier 0 → 1 → 2 evidence gate 실행 | `gate run`, `task transition` |
+| `/task-close` | orchestrator | closure evidence 작성 (approved / changes_requested / escalated / cancelled) | `evidence append`, `task transition` |
+| `/deliberation` | 여러 slot | mission 또는 task 수준 다자 심의 | `deliberation append` |
+| `/phase-review` | orchestrator | phase gate 판정 및 review 기록 | `phase-review append`, `mission-state update` |
+| `/mission-consolidate` | orchestrator + design-authority | consolidating phase — debts, gap, memory-update 작성 | `debt register`, `gap set`, `memory-update set` |
+| `/mission-verdict` | decision-maker | mission final verdict 작성 | `mission-verdict append` |
+| `/resume` | orchestrator | context 유실 후 `.geas/` 읽고 현재 지점 재구성 | `resume` (CLI 출력 소비) |
+
+### Skill 규약
+
+- **Tool-agnostic**: skill 본문은 특정 언어·프레임워크·패키지 매니저를 가정하지 않는다. 도구 선택은 task contract의 `verification_plan`이나 프로젝트 관례가 결정한다.
+- **CLI 지시만**: skill이 `.geas/`에 무언가 쓰게 할 때는 반드시 CLI 명령으로 지시한다. "이 JSON을 이 경로에 저장해" 같은 직접 쓰기 지시는 금지.
+- **Schema template 선조회**: 새 artifact를 만들 때 skill은 먼저 `geas schema template <type>`을 호출해 필수 필드 골격을 받고 채운다.
+- **Error hint 소비**: CLI 명령이 실패하면 skill은 error의 `hints`를 읽어 누락 필드를 보충하고 재시도한다.
+
+### 유틸리티 skill
+
+핵심 12개 외에 구현체 편의용 skill이 추가될 수 있다.
+
+- `/setup` — 프로젝트에 `.geas/` 초기화
+- `/help` — skill·명령 탐색 안내
+
+유틸리티는 프로토콜에 필수가 아니므로 클라이언트별로 더하거나 뺄 수 있다.
+
+## 7. Agent Roster
+
+### Slot → agent 매핑
+
+프로토콜은 9개 slot을 정의한다. 각 slot은 하나 이상의 concrete agent가 맡는다.
+
+| slot | 역할 | 도메인 변형 유무 |
+|---|---|---|
+| `orchestrator` | mission 제어, task 전이, closure evidence 작성 | 없음 |
+| `decision-maker` | mission final verdict, 중간 task 승인, standard 선승인 | 없음 |
+| `design-authority` | mission design, task 분해, gap 작성 | 없음 |
+| `challenger` | 반대 의견, deliberation 참여 | 없음 |
+| `implementer` | 구현 + self-check + implementation evidence | 도메인별 |
+| `verifier` | 독립 검증 | 도메인별 |
+| `risk-assessor` | 위험 리뷰 | 도메인별 |
+| `operator` | 운영 리뷰 | 도메인별 |
+| `communicator` | 문서·전달 리뷰 | 도메인별 |
+
+Authority slot 넷은 domain과 무관하게 단일 agent 정의를 갖는다. Specialist slot 다섯은 도메인 프로필이 concrete agent를 제공한다.
+
+### Agent 파일 배치
+
+```
+agents/
+├── authority/
+│   ├── orchestrator.md
+│   ├── decision-maker.md
+│   ├── design-authority.md
+│   └── challenger.md
+└── specialist/
+    ├── software/
+    │   ├── implementer.md       # 예: software-engineer
+    │   ├── verifier.md          # 예: qa-engineer
+    │   ├── risk-assessor.md     # 예: security-engineer
+    │   ├── operator.md          # 예: platform-engineer
+    │   └── communicator.md      # 예: technical-writer
+    └── research/
+        ├── implementer.md
+        ├── verifier.md
+        ├── risk-assessor.md
+        ├── operator.md
+        └── communicator.md
+```
+
+### 도메인 프로필
+
+도메인 프로필은 "이 프로젝트에서 specialist slot들이 어떤 concrete agent로 해석되는가"를 선언한다. Mission spec의 단일 필드 또는 프로젝트 설정이 프로필을 선택한다. 프로필이 바뀌어도 skill·CLI·프로토콜은 동일하게 작동한다.
+
+### Agent ≠ 정체성
+
+한 concrete agent가 여러 slot을 겸임할 수 있다. 예: 한 software-engineer agent가 implementer로 작업한 task의 verifier까지 맡는 것은 허용되지 않지만(독립성 요구), 다른 task에서는 operator 역할을 맡을 수 있다. 어떤 slot으로 작업하고 있는지는 evidence 파일의 경로와 내부 `agent` 필드로 드러난다.
+
+## 8. Client Adapter
+
+Client adapter는 공유 skill·agent·CLI를 특정 agent 런타임이 실행할 수 있는 형태로 bind하는 얇은 층이다. 각 어댑터가 책임지는 일은 셋이다.
+
+1. **Skill loading**: 공유 skill 본문을 해당 런타임의 네이티브 skill/command 포맷으로 등록.
+2. **Agent loading**: 공유 agent 정의를 런타임의 agent/프롬프트 형식으로 등록.
+3. **CLI invocation**: skill이 CLI 명령을 부르면 런타임이 그 명령을 실행하도록 함. (쉘 실행, 서브프로세스, 플러그인 bridge 등)
+
+### 공통 기대 동작
+
+어떤 클라이언트든 다음을 제공해야 한다.
+
+- Skill 본문을 agent에게 전달할 수 있는 경로 (예: slash 명령, AGENTS.md, 직접 프롬프트)
+- Agent 정체성을 slot에 바인딩하는 방법
+- CLI 실행 (shell 또는 동등 통로)
+- `.geas/` 읽기 (artifact 확인용)
+
+### 선택적 강화
+
+다음은 있으면 좋지만 없어도 프로토콜은 작동한다. 강화 수단이 없는 클라이언트는 해당 책임을 agent discipline과 CLI 명시 호출로 대신한다.
+
+- `.geas/` 직접 쓰기 차단 (PreToolUse 훅 등): CLI-only 규약을 runtime이 강제
+- Context 유실 후 자동 `/resume` 실행 (PostCompact 훅 등): 없는 환경에서는 agent가 감지 후 수동 호출
+- Session 경계 이벤트 기록 (SessionStart/End 훅 등): CLI `event log` 직접 호출로 대체
+
+### 구체 클라이언트
+
+각 클라이언트의 구체적 hook·skill·agent 매핑 세부는 이 문서가 아닌 reference 문서에 둔다. 클라이언트별 매핑이 바뀌어도 DESIGN 계층 구조는 영향받지 않는다.
+
+## 9. 설계 원칙
+
+1. **Protocol as north star** — skill·CLI·agent는 프로토콜 변경에 맞춰 조정되며 반대 방향은 없다. 프로토콜 문서와 schema가 충돌의 정본이다.
+2. **CLI-only writes** — `.geas/` 아래 어떤 쓰기도 CLI를 우회하지 않는다. Agent가 Edit/Write로 직접 건드리면 schema 보장과 append-only 불변성이 즉시 깨진다.
+3. **Evidence over declaration** — agent가 "done"이라 말해도 evidence 파일이 있기 전까지 상태는 전이하지 않는다. Transition guard는 주장 대신 artifact를 읽는다.
+4. **Slot ≠ identity** — slot은 역할 자리, concrete agent는 구현체 정체성. 한 agent가 여러 slot을 겸임할 수 있고 같은 slot을 여러 agent가 돌아가며 맡을 수 있다.
+5. **Tool-agnostic skills** — skill 본문은 언어·프레임워크·패키지 매니저를 고정하지 않는다. 구체 도구 선택은 task contract(`verification_plan`)와 프로젝트 관례에 맡긴다.
+6. **Append-only where provable** — 재판정·재시도가 있을 수 있는 판단 로그는 replace가 아닌 append로만 누적한다. 감사는 과거 결정의 흔적을 전제로 가능하다.
+7. **Self-describing artifacts** — 모든 artifact는 `mission_id`를 포함하고 task-level artifact는 `task_id`도 포함한다. 파일을 경로와 분리해도 소속이 분명해야 한다.
+8. **교체 가능 계층 명시** — 어떤 계층이 교체 가능한지, 어떤 계층이 불변인지 구현자가 혼동하지 않도록 선언한다 (§2 참조).
+
+## 10. 확장 포인트
+
+- **새 도메인 프로필** — specialist slot 5개에 대응하는 agent 묶음 하나를 `agents/specialist/{domain}/`에 더한다. Skill·CLI·프로토콜 변경 없음.
+- **새 클라이언트 어댑터** — §8의 공통 기대 동작을 구현하면 된다. 기존 어댑터 영향 없음.
+- **새 utility skill** — 핵심 12개 외에 프로젝트 편의를 위한 skill은 자유롭게 추가 가능하다. 단 프로토콜 단계의 필수 skill을 대체하지 않는다.
+- **대시보드·관측 도구** — `.geas/` 파일을 읽기 전용으로 소비하는 도구는 제한 없이 추가 가능하다. 쓰기가 필요하면 CLI를 경유한다.
+
+## 11. 금지 지점
+
+- **Protocol 우회** — 구현체가 프로토콜이 정의한 상태·전이·artifact를 생략하거나 단축하는 것.
+- **CLI 우회 쓰기** — agent가 Edit/Write 도구로 `.geas/` 파일을 직접 수정하는 것.
+- **Append-only 로그 수정** — 과거 review·verdict·run·entry 객체의 내용을 바꾸거나 삭제하는 것. 정정이 필요하면 새 item을 append한다.
+- **Slot 정체성 위조** — agent가 자기 slot이 아닌 이름으로 evidence를 제출하는 것.
+- **핵심 12 skill의 의미 임의 변경** — 이름이나 호출 패턴은 클라이언트별로 다를 수 있으나 단계별 책임과 산출물 관계는 프로토콜 그대로다.
+
+---
+
+부록으로 클라이언트별 매핑·현재 구현체 상태·이관 절차는 `docs/ko/reference/`에 둔다. 이 문서는 그것들과 독립적으로 구현 목표 구조를 기술한다.
