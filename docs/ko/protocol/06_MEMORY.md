@@ -1,6 +1,6 @@
 # 06. Memory
 
-> GEAS의 memory 구조, 변경 이력, retrieval, 잘못된 재사용의 rollback, mission 간 carry forward를 정의한다. Task에서 올라오는 retrospective 입력은 doc 03이 owner다.
+> GEAS의 memory 구조, 변경 이력, retrieval, rollback을 정의한다. Task에서 올라오는 retrospective 입력은 doc 03이 owner이고, 미해결 debt와 gap은 doc 07이 owner다.
 
 ## 목적
 
@@ -62,45 +62,16 @@ Memory update는 이 mission이 shared memory에 가한 변경을 기록한다.
 
 ## Retrieval
 
-Memory는 자동 주입의 편의를 위해 존재하는 것이 아니라, 더 나은 판단을 돕기 위해 존재한다.
+Memory는 구현체가 context에 자동 주입하기 편하도록 존재하는 것이 아니라, 더 나은 판단을 돕기 위해 존재한다.
 
-- mission 시작 시 관련 shared memory와 agent memory를 먼저 읽는다.
-- 새 task나 새 phase가 열릴 때 현재 contract와 직접 관련된 memory만 다시 끌어온다.
-- 오래된 memory가 현재 계약과 충돌하면 현재 계약을 우선한다.
+- mission 시작 시 mission spec의 scope·affected_surfaces와 관련 있는 shared memory와 agent memory를 먼저 읽는다.
+- 새 task가 `ready`로 열릴 때 해당 task contract의 scope·surfaces에 관련된 memory만 다시 끌어온다. Task마다 적용 대상이 다르기 때문이다.
+- 오래된 memory가 현재 mission spec이나 task contract와 충돌하면 현재 계약을 우선한다.
 
-## 재개 중 드러난 입력
+## Rollback
 
-재개 과정에서 드러난 반복 실패는 memory의 좋은 후보가 될 수 있다. 재개 자체를 memory로 승격하는 것이 아니라, 재개가 드러낸 반복 패턴을 승격한다.
+기존 memory가 오히려 품질을 떨어뜨리거나 잘못된 반복을 만든다면 되돌릴 수 있어야 한다. Shared memory, agent memory 모두에 해당한다.
 
-예를 들어 다음은 memory 후보가 될 수 있다.
-
-- 같은 단계에서 artifact completeness 문제가 반복됨
-- 재개할 때마다 같은 workspace 혼선이 다시 드러남
-- 같은 종류의 상태 누락이 반복됨
-
-## 잘못된 재사용의 Rollback
-
-기존 memory가 오히려 품질을 떨어뜨리거나 잘못된 반복을 만든다면 되돌릴 수 있어야 한다.
-
-- 잘못된 memory를 무조건 누적하지 않는다.
-- 더 이상 맞지 않는 항목은 `removed`로 memory-update.json에 기록하고 shared.md에서 폐기하거나 deprecated 섹션으로 옮긴다.
-- rollback의 근거도 함께 남긴다.
-
-## Mission 간 Carry Forward
-
-다음 mission으로 넘길 것은 두 종류다.
-
-- 이번 mission을 넘어 반복해서 유효한 memory
-- 아직 해결되지 않았지만 다음 mission 설계에 반영해야 할 주의점
-
-Carry forward는 "남았던 일 목록" 전체를 복사하는 절차가 아니다. 반복해서 유효한 기준만 압축해 넘겨야 한다.
-
-## Privacy
-
-Memory는 다음을 불필요하게 장기 보존하지 않아야 한다.
-
-- 비밀값
-- 민감한 개인 정보
-- 다음 mission 판단에 필요 없는 운영 세부정보
-
-오래 남길 가치가 없는 정보는 memory가 아니라 일회성 task artifact로 남겨야 한다.
+- memory는 반복 가능한 교훈만 누적한다. 한 번의 우연이나 단기 상황은 승격하지 않는다.
+- 더 이상 유효하지 않은 항목은 즉시 rollback한다. 실제 절차는 Memory Update 섹션이 정한다.
+- rollback의 근거를 함께 남긴다. rollback 패턴 자체가 반복되면 ("이 유형의 memory를 자주 잘못 승격한다") 별도 항목으로 승격한다.
