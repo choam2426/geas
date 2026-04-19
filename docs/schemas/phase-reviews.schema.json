@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Geas Phase Reviews",
+  "description": "Ordered log of mission-level phase gate records accumulated throughout the mission. Each review is an immutable snapshot appended to the reviews array.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "mission_id",
+    "reviews",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "mission_id": {
+      "type": "string",
+      "pattern": "^mission-[0-9]{8}-[a-zA-Z0-9]{8}$"
+    },
+    "reviews": {
+      "type": "array",
+      "description": "Phase review records in the order they were created.",
+      "items": {
+        "$ref": "#/$defs/review"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mission_phase",
+        "status",
+        "summary",
+        "created_at"
+      ],
+      "properties": {
+        "mission_phase": {
+          "type": "string",
+          "enum": [
+            "specifying",
+            "building",
+            "polishing",
+            "consolidating"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "blocked",
+            "escalated"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "next_phase": {
+          "type": "string",
+          "enum": [
+            "specifying",
+            "building",
+            "polishing",
+            "consolidating",
+            "complete"
+          ],
+          "description": "The next mission phase to enter when status is passed."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "const": "passed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "next_phase"
+        ]
+      }
+    }
+  }
+}

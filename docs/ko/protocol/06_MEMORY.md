@@ -1,6 +1,6 @@
 # 06. Memory
 
-> Geas의 memory 구조, 변경 이력, retrieval, rollback을 정의한다. Task에서 올라오는 retrospective 입력은 doc 03이 owner이고, 미해결 debt와 gap은 doc 07이 owner다.
+> Geas의 memory 구조, 변경 이력, retrieval, rollback을 정의한다. Task에서 올라오는 회고 입력은 doc 03이 owner이고, 미해결 debt와 gap은 doc 07이 owner다.
 
 ## 목적
 
@@ -17,7 +17,7 @@ Memory는 두 scope로 나뉘어 저장된다.
 
 Shared memory는 규범적이다. 반복 가능한 행동 기준으로 쓰이며, enforcement나 review에서 근거로 인용된다. Agent memory는 조언적이다. 역할별 판단을 돕지만, 새 mission의 contract나 evidence와 충돌하면 쉽게 버릴 수 있다.
 
-Task evidence의 `memory_suggestions`나 retrospective의 `rule_candidates`·`memory_candidates`는 후보 입력일 뿐이다. 이 문서는 그 입력을 각 scope로 어떻게 승격할지 다룬다. debt와 gap 신호는 doc 07이 owner다.
+Task evidence의 `memory_suggestions`와 closure evidence의 회고 필드(`what_went_well`, `what_broke`, `what_was_surprising`, `next_time_guidance`)는 후보 입력일 뿐이다. 이 문서는 그 입력을 각 scope로 어떻게 승격할지 다룬다. debt와 gap 신호는 doc 07이 owner다.
 
 ## Shared Memory
 
@@ -39,19 +39,20 @@ Agent memory (`.geas/memory/agents/{agent}.md`)는 특정 slot이나 concrete ag
 - 역할에 맞는 판단 포인트를 짧게 요약한다.
 - 새 mission의 contract나 evidence와 충돌하면 쉽게 버릴 수 있다.
 
-Shared memory와 달리 agent memory는 조언적이라, formal 변경 이력을 두지 않는다. 각 mission의 retrospective 신호가 승격된 결과는 agent memory 파일 자체에 반영된다.
+Agent memory도 shared memory와 동일하게 consolidating phase에서 Orchestrator가 승격 판단을 내리고, 그 결과를 `memory-update.json`의 `agents` 섹션에 기록한다.
 
 ## Memory Update
 
-Shared memory의 각 mission별 변경 이력은 `memory-update.json`에 기록한다. 경로는 `.geas/missions/{mission_id}/consolidation/memory-update.json`, 정확한 구조는 `memory-update.schema.json`이 관리한다.
+이 mission이 memory에 가한 변경은 `memory-update.json`에 기록한다. 경로는 `.geas/missions/{mission_id}/consolidation/memory-update.json`, 정확한 구조는 `memory-update.schema.json`이 관리한다.
 
-Memory update는 이 mission이 shared memory에 가한 변경을 기록한다.
+memory-update.json은 두 섹션을 가진다.
 
-- `added` — 새로 추가한 항목 목록
-- `modified` — 기존 항목 중 내용이나 범위가 바뀐 것
-- `removed` — 삭제되거나 더 이상 유효하지 않다고 판단한 것
+- `shared` — `memory/shared.md`에 가한 변경 (added / modified / removed)
+- `agents` — agent별 `memory/agents/{agent}.md` 변경. 변경 있는 agent만 배열에 포함
 
-각 항목은 memory_id와 reason을 남기고, 필요하면 evidence나 deliberation 링크도 함께 기록한다. 제안됐지만 반영되지 않은 변경은 memory-update.json에 들어가지 않는다. 반영 여부 자체를 논의해야 할 만큼 비중이 큰 제안이라면 deliberation에 남기고, 거기에서 결론이 나면 그 결론만 memory-update.json에 반영한다.
+각 added·modified 항목은 `memory_id`, `reason`, 변경 근거가 된 `evidence_refs`를 남긴다. removed 항목은 `memory_id`와 `reason`만 남긴다. 제안됐지만 반영되지 않은 변경은 memory-update.json에 들어가지 않는다. 반영 여부 자체를 논의해야 할 만큼 비중이 큰 제안이라면 deliberation에 남기고, 거기에서 결론이 나면 그 결론만 memory-update.json에 반영한다.
+
+Orchestrator가 consolidating phase에서 작성한다. task evidence의 `memory_suggestions`와 closure evidence의 회고 필드를 입력으로 받아, 각 후보를 (1) shared로 승격, (2) 특정 agent memory로 승격, (3) 버림 중에서 결정하고, 승격된 결과만 이 artifact에 기록한다.
 
 ### shared memory 후보가 되는 기준
 

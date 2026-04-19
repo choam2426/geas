@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Geas Mission Verdicts",
+  "description": "Ordered log of mission-level verdicts issued by Decision Maker. Each verdict is an immutable snapshot appended when consolidating concludes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "mission_id",
+    "verdicts",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "mission_id": {
+      "type": "string",
+      "pattern": "^mission-[0-9]{8}-[a-zA-Z0-9]{8}$"
+    },
+    "verdicts": {
+      "type": "array",
+      "description": "Verdict records in the order they were issued.",
+      "items": {
+        "$ref": "#/$defs/verdict"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verdict",
+        "rationale",
+        "carry_forward",
+        "created_at"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "approved",
+            "changes_requested",
+            "escalated"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reasoning for the verdict. May cite artifact paths inline when helpful."
+        },
+        "carry_forward": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Items handed off to future work — risks, debt, unresolved gaps accepted at closure. Empty array if none."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

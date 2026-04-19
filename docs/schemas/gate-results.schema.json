@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Geas Gate Results",
+  "description": "Ordered log of Evidence Gate runs for a single task. Each gate run is appended as an immutable entry to the runs array, preserving retry history.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "mission_id",
+    "task_id",
+    "runs",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "mission_id": {
+      "type": "string",
+      "pattern": "^mission-[0-9]{8}-[a-zA-Z0-9]{8}$"
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^task-[0-9]{3}$"
+    },
+    "runs": {
+      "type": "array",
+      "description": "Gate run records in the order they were executed.",
+      "items": {
+        "$ref": "#/$defs/gateRun"
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "gateRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_run_id",
+        "verdict",
+        "tier_results",
+        "created_at"
+      ],
+      "properties": {
+        "gate_run_id": {
+          "type": "string",
+          "pattern": "^gate-[0-9]+$",
+          "description": "Unique identifier for this gate run within the task."
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "pass",
+            "fail",
+            "block",
+            "error"
+          ],
+          "description": "Overall gate verdict combining tier outcomes."
+        },
+        "tier_results": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tier_0",
+            "tier_1",
+            "tier_2"
+          ],
+          "properties": {
+            "tier_0": {
+              "$ref": "#/$defs/tierResult"
+            },
+            "tier_1": {
+              "$ref": "#/$defs/tierResult"
+            },
+            "tier_2": {
+              "$ref": "#/$defs/tierResult"
+            }
+          }
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "tierResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "details"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "pass",
+            "fail",
+            "block",
+            "error",
+            "skipped"
+          ]
+        },
+        "details": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Explanation of the tier's status including what was checked and what the outcome was."
+        }
+      }
+    }
+  }
+}

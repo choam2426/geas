@@ -1,10 +1,29 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "self-check.schema.json",
   "title": "Geas Task Self-Check",
   "description": "Canonical worker self-check recorded after implementation and before independent review.",
   "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "mission_id",
+    "task_id",
+    "completed_work",
+    "reviewer_focus",
+    "known_risks",
+    "deviations_from_plan",
+    "gap_signals",
+    "created_at",
+    "updated_at"
+  ],
   "properties": {
+    "mission_id": {
+      "type": "string",
+      "pattern": "^mission-[0-9]{8}-[a-zA-Z0-9]{8}$"
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^task-[0-9]{3}$"
+    },
     "completed_work": {
       "type": "string",
       "minLength": 1,
@@ -12,23 +31,43 @@
     },
     "reviewer_focus": {
       "type": "array",
-      "description": "Areas reviewers should inspect first based on the worker's own implementation experience.",
       "items": {
-        "type": "string"
-      }
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Areas reviewers should inspect first based on the worker's own implementation experience. Empty array if none."
     },
     "known_risks": {
       "type": "array",
-      "description": "Known risks, weak spots, or unresolved concerns that remain after implementation.",
       "items": {
-        "type": "string"
-      }
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Forward-looking risks, weak spots, or unresolved concerns that remain after implementation. Empty array if none."
+    },
+    "deviations_from_plan": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Differences between implementation-contract planned_actions and what actually happened. Empty array if the plan was followed."
+    },
+    "gap_signals": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Early signals of scope or expectation gaps noticed during implementation. Feeds into closure evidence and mission-level gap. Empty array if none."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
     }
-  },
-  "required": [
-    "completed_work",
-    "reviewer_focus",
-    "known_risks"
-  ],
-  "additionalProperties": true
+  }
 }

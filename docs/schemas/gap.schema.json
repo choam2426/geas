@@ -1,18 +1,25 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Gap",
+  "title": "Geas Gap",
   "description": "Mission-level record of the difference between committed scope and actual delivery. Narrative scope summaries describe the scope as actually reflected in delivery, which may drift from the original mission spec.",
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "mission_id",
     "scope_in_summary",
     "scope_out_summary",
     "fully_delivered",
     "partially_delivered",
     "not_delivered",
-    "unexpected_additions"
+    "unexpected_additions",
+    "created_at",
+    "updated_at"
   ],
   "properties": {
+    "mission_id": {
+      "type": "string",
+      "pattern": "^mission-[0-9]{8}-[a-zA-Z0-9]{8}$"
+    },
     "scope_in_summary": {
       "type": "string",
       "minLength": 1,
@@ -26,27 +33,34 @@
     "fully_delivered": {
       "type": "array",
       "items": {
-        "type": "string"
-      }
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Items delivered as originally committed. Empty array if none."
     },
     "partially_delivered": {
       "type": "array",
       "items": {
-        "type": "string"
-      }
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Items partially delivered. Each entry should describe what was delivered vs what was not. Empty array if none."
     },
     "not_delivered": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
-      "description": "Items that were in scope but not delivered. Note intentional cuts inline in each entry (for example, 'X (intentionally cut: time)')."
+      "description": "Items that were in scope but not delivered. Note intentional cuts inline (for example, 'X (intentionally cut: time)'). Empty array if none."
     },
     "unexpected_additions": {
       "type": "array",
       "items": {
-        "type": "string"
-      }
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Work added during execution that was not in the original scope. Empty array if none."
     },
     "created_at": {
       "type": "string",

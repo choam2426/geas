@@ -1,40 +1,43 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "deliberation.schema.json",
   "title": "Geas Deliberation Record",
-  "description": "Structured multi-party judgment over a proposal. Used at both task level and mission level; the level is inferred from storage path (under tasks/{task_id}/deliberations/ for task-level, under missions/{mission_id}/deliberations/ for mission-level).",
+  "description": "Structured multi-party judgment over a proposal. Used at both task level and mission level; level is encoded in the 'level' field.",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "subject_id",
+    "level",
+    "mission_id",
     "proposal_summary",
-    "participants",
     "votes",
     "result",
-    "quorum_met"
+    "created_at",
+    "updated_at"
   ],
   "properties": {
-    "subject_id": {
+    "level": {
       "type": "string",
-      "minLength": 1,
-      "description": "task_id for task-level deliberation; mission_id for mission-level deliberation. Level is determined by storage path, not by this field."
+      "enum": [
+        "mission",
+        "task"
+      ]
+    },
+    "mission_id": {
+      "type": "string",
+      "pattern": "^mission-[0-9]{8}-[a-zA-Z0-9]{8}$"
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^task-[0-9]{3}$",
+      "description": "Task identifier within the mission. Required when level is 'task'."
     },
     "proposal_summary": {
       "type": "string",
       "minLength": 1,
       "description": "Short summary of the question under deliberation."
     },
-    "participants": {
-      "type": "array",
-      "minItems": 2,
-      "items": {
-        "type": "string"
-      },
-      "description": "Agent types participating in the deliberation."
-    },
     "votes": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 2,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -59,15 +62,6 @@
           "rationale": {
             "type": "string",
             "minLength": 1
-          },
-          "severity": {
-            "type": "string",
-            "enum": [
-              "minor",
-              "major",
-              "critical"
-            ],
-            "description": "Required when the participant records a materially negative or blocking position."
           }
         }
       }
@@ -80,15 +74,30 @@
         "escalate",
         "inconclusive"
       ],
-      "description": "Outcome of the deliberation. 'inconclusive' means quorum was not met."
+      "description": "Outcome of the deliberation. 'inconclusive' means the deliberation did not produce a valid judgment (e.g. insufficient participants)."
     },
-    "quorum_met": {
-      "type": "boolean"
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
     },
-    "quorum_failure_count": {
-      "type": "integer",
-      "minimum": 0,
-      "description": "Consecutive quorum failures tracked by the implementation."
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
     }
+  },
+  "if": {
+    "properties": {
+      "level": {
+        "const": "task"
+      }
+    },
+    "required": [
+      "level"
+    ]
+  },
+  "then": {
+    "required": [
+      "task_id"
+    ]
   }
 }

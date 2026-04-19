@@ -1,39 +1,42 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Geas Task State",
-  "description": "Task-scoped runtime index. Points to which agent is in flight, which evidence files are expected from it, and how many verify-fix iterations have been consumed. Distinct from the task contract's 'status' field, which is the lifecycle state.",
+  "description": "Task-scoped runtime index. Points to which agent is currently executing this task and how many verify-fix iterations have been consumed. Distinct from the task contract's 'status' field, which is the lifecycle state.",
   "type": "object",
   "additionalProperties": false,
+  "required": [
+    "mission_id",
+    "task_id",
+    "active_agent",
+    "verify_fix_iterations",
+    "created_at",
+    "updated_at"
+  ],
   "properties": {
-    "agent_in_flight": {
-      "type": [
-        "string",
-        "null"
+    "mission_id": {
+      "type": "string",
+      "pattern": "^mission-[0-9]{8}-[a-zA-Z0-9]{8}$"
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^task-[0-9]{3}$"
+    },
+    "active_agent": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1
+        }
       ],
-      "description": "Agent currently spawned and executing on this task. Null when no agent is in flight."
+      "description": "Agent currently executing on this task. Null when no agent is active."
     },
-    "pending_evidence": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "default": [],
-      "description": "Evidence file paths expected from the agent currently in flight (e.g. 'evidence/implementer.json')."
-    },
-    "retry_count": {
+    "verify_fix_iterations": {
       "type": "integer",
       "minimum": 0,
-      "default": 0,
       "description": "Number of verify-fix iterations already consumed on this task."
-    },
-    "write_phase": {
-      "type": "string",
-      "enum": [
-        "pending",
-        "committed"
-      ],
-      "default": "committed",
-      "description": "Two-phase write state. 'pending' during write, 'committed' after the write has been confirmed."
     },
     "created_at": {
       "type": "string",

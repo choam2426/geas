@@ -1,15 +1,31 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "implementation-contract.schema.json",
   "title": "Geas Implementation Contract",
   "description": "Canonical pre-work implementation plan capturing intended change scope and planned actions before main task execution begins.",
   "type": "object",
   "additionalProperties": false,
+  "required": [
+    "mission_id",
+    "task_id",
+    "summary",
+    "rationale",
+    "change_scope",
+    "planned_actions",
+    "non_goals",
+    "alternatives_considered",
+    "assumptions",
+    "open_questions",
+    "created_at",
+    "updated_at"
+  ],
   "properties": {
-    "worker": {
+    "mission_id": {
       "type": "string",
-      "minLength": 1,
-      "description": "Concrete worker or worker type proposing this implementation plan."
+      "pattern": "^mission-[0-9]{8}-[a-zA-Z0-9]{8}$"
+    },
+    "task_id": {
+      "type": "string",
+      "pattern": "^task-[0-9]{3}$"
     },
     "summary": {
       "type": "string",
@@ -23,37 +39,61 @@
     },
     "change_scope": {
       "type": "array",
-      "description": "Concrete files, modules, documents, flows, assets, or surfaces this plan expects to modify.",
+      "minItems": 1,
       "items": {
         "type": "string",
         "minLength": 1
       },
-      "minItems": 1
+      "description": "Concrete files, modules, documents, flows, assets, or surfaces this plan expects to modify."
     },
     "planned_actions": {
       "type": "array",
-      "description": "Concrete execution steps specific enough for worker action and reviewer inspection.",
+      "minItems": 1,
       "items": {
         "type": "string",
         "minLength": 1
       },
-      "minItems": 1
+      "description": "Concrete execution steps specific enough for worker action and reviewer inspection."
     },
     "non_goals": {
       "type": "array",
-      "description": "Explicitly excluded work kept outside the task's active implementation scope.",
       "items": {
         "type": "string",
         "minLength": 1
       },
-      "minItems": 1
+      "description": "Explicitly excluded work kept outside the task's active implementation scope. Empty array if none."
+    },
+    "alternatives_considered": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Approaches considered and rejected, with the reason for rejection. Empty array if none."
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Assumptions this plan depends on. If an assumption breaks, the plan must be revisited. Empty array if none."
+    },
+    "open_questions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Unresolved questions the implementer wants answered before or during execution. Empty array if none."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
     }
-  },
-  "required": [
-    "summary",
-    "rationale",
-    "change_scope",
-    "planned_actions",
-    "non_goals"
-  ]
+  }
 }

@@ -5,101 +5,96 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "mission_id",
     "task_id",
     "title",
     "goal",
     "risk_level",
     "acceptance_criteria",
-    "eval_commands",
+    "verification_plan",
     "user_approved",
-    "scope",
+    "surfaces",
     "routing",
     "base_snapshot",
-    "status"
+    "dependencies",
+    "status",
+    "created_at",
+    "updated_at"
   ],
   "properties": {
+    "mission_id": {
+      "type": "string",
+      "pattern": "^mission-[0-9]{8}-[a-zA-Z0-9]{8}$"
+    },
     "task_id": {
       "type": "string",
+      "pattern": "^task-[0-9]{3}$",
       "description": "Stable task identifier within a mission."
     },
     "title": {
       "type": "string",
+      "minLength": 1,
       "description": "Short human-readable label for the task."
     },
     "goal": {
       "type": "string",
-      "description": "Concrete outcome the task is expected to achieve.",
-      "minLength": 1
+      "minLength": 1,
+      "description": "Concrete outcome the task is expected to achieve."
     },
     "risk_level": {
       "type": "string",
-      "description": "Failure-cost classification used for routing and review conservatism.",
       "enum": [
         "low",
         "normal",
         "high",
         "critical"
-      ]
+      ],
+      "description": "Failure-cost classification used for routing and review conservatism."
     },
     "acceptance_criteria": {
       "type": "array",
-      "description": "Observable criteria that must hold before the task may be closed as complete.",
+      "minItems": 1,
       "items": {
         "type": "string",
         "minLength": 1
       },
-      "minItems": 1
+      "description": "Observable criteria that must hold before the task may be closed as complete."
     },
-    "eval_commands": {
-      "type": "array",
-      "description": "Repeatable validation commands or procedures attached to the contract.",
-      "items": {
-        "type": "string"
-      }
+    "verification_plan": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Description of how this task will be verified. Markdown allowed. Covers both automated and manual verification approaches in prose."
     },
     "user_approved": {
       "type": "boolean",
       "description": "Whether the user has approved this task contract as ready to enter execution."
     },
-    "scope": {
-      "type": "object",
-      "properties": {
-        "surfaces": {
-          "type": "array",
-          "description": "Reviewer-readable impact surfaces touched by the task.",
-          "items": {
-            "type": "string"
-          }
-        }
+    "surfaces": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
       },
-      "required": [
-        "surfaces"
-      ],
-      "additionalProperties": false
+      "description": "Reviewer-readable impact surfaces touched by the task."
     },
     "routing": {
       "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_worker_type",
+        "required_reviewer_slots",
+        "required_reviewer_types"
+      ],
       "properties": {
-        "primary_worker_slot": {
-          "type": "string",
-          "enum": [
-            "implementer",
-            "verifier",
-            "risk-assessor",
-            "operator",
-            "communicator"
-          ],
-          "description": "Default specialist slot assigned as the primary worker for this task."
-        },
         "primary_worker_type": {
           "type": "string",
           "minLength": 1,
           "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
-          "description": "Concrete implementation-specific worker type mapped from the primary worker slot."
+          "description": "Concrete implementation-specific worker type. Primary worker is always the implementer slot; this field records which concrete implementer handles the task."
         },
         "required_reviewer_slots": {
           "type": "array",
-          "description": "Final reviewer slots chosen by the orchestrator after considering the primary worker slot, risk, surfaces, and mission context.",
+          "minItems": 1,
           "items": {
             "type": "string",
             "enum": [
@@ -114,39 +109,35 @@
               "communicator"
             ]
           },
-          "minItems": 1
+          "description": "Final reviewer slots chosen by the orchestrator after considering risk, surfaces, and mission context."
         },
         "required_reviewer_types": {
           "type": "array",
-          "description": "Concrete reviewer types resolved from required_reviewer_slots by the implementation.",
+          "minItems": 1,
           "items": {
             "type": "string",
             "minLength": 1,
             "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
           },
-          "minItems": 1
+          "description": "Concrete reviewer types resolved from required_reviewer_slots by the implementation."
         }
-      },
-      "required": [
-        "primary_worker_slot",
-        "required_reviewer_slots"
-      ],
-      "additionalProperties": false
+      }
     },
     "base_snapshot": {
       "type": "string",
-      "description": "Shared baseline snapshot this task starts from."
+      "minLength": 1,
+      "description": "Shared baseline snapshot this task starts from. Format is implementation-specific."
     },
     "dependencies": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "pattern": "^task-[0-9]{3}$"
       },
-      "description": "Task IDs that must be passed before this task can start"
+      "description": "Task IDs that must reach 'passed' before this task can start. Empty array if no dependencies."
     },
     "status": {
       "type": "string",
-      "description": "Current lifecycle status for the task and its execution.",
       "enum": [
         "drafted",
         "ready",
@@ -157,7 +148,16 @@
         "blocked",
         "escalated",
         "cancelled"
-      ]
+      ],
+      "description": "Current lifecycle status for the task and its execution."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
     }
   }
 }

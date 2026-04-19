@@ -17,14 +17,16 @@ Debt와 gap은 비슷해 보여도 다르다. 둘을 분리해서 기록하고 f
 
 정규 JSON artifact는 `.geas/missions/{mission_id}/consolidation/debts.json`이고, 정확한 구조는 `debts.schema.json`이 관리한다. Consolidating phase에서 Orchestrator가 작성한다. 모든 task의 evidence에 남은 `debt_candidates`와 이전 mission에서 넘어온 open debt를 함께 보고 공식 등록 여부를 판단한다.
 
-이 목록은 이번 mission의 consolidating phase가 공식 등록한 debt 항목을 담는다. 이전 mission에서 open 상태로 넘어온 carry-forward debt도 여기에 포함될 수 있다. 각 item은 다음을 담는다.
+이 목록은 이번 mission의 consolidating phase가 공식 등록한 debt 항목을 담는다. 이전 mission에서 open 상태로 넘어온 carry-forward debt도 여기에 포함될 수 있다. 각 item은 다음 필드를 고정한다.
 
-- `debt_id` — 안정적 식별자
-- `severity` — low/normal/high/critical
-- `kind` — schema enum 중 하나
-- `title`, `description`
-- `status` — open/resolved/dropped
-- 필요하면 `introduced_by_task_id`, `target_phase`
+| 필드 | 의미 |
+|---|---|
+| `debt_id` | 안정적 식별자 (`^debt-[0-9]{3}$`) |
+| `severity` | low / normal / high / critical |
+| `kind` | schema enum 중 하나 |
+| `title`, `description` | 사람이 읽는 제목과 서술 |
+| `status` | open / resolved / dropped |
+| `introduced_by` | `{mission_id, task_id}` — 이 debt가 처음 관측된 mission과 task. carry-forward는 이전 mission을 가리킴 |
 
 ### debt를 올리는 기준
 

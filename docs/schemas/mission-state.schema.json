@@ -6,26 +6,25 @@
   "additionalProperties": false,
   "required": [
     "mission_id",
-    "phase"
+    "phase",
+    "active_tasks",
+    "created_at",
+    "updated_at"
   ],
   "properties": {
     "mission_id": {
       "type": "string",
-      "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$",
+      "pattern": "^mission-[0-9]{8}-[a-zA-Z0-9]{8}$",
       "description": "Mission ID matching the enclosing mission directory."
     },
     "phase": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "enum": [
         "specifying",
         "building",
         "polishing",
         "consolidating",
-        "complete",
-        null
+        "complete"
       ],
       "description": "Current phase within the mission."
     },
@@ -34,7 +33,6 @@
       "items": {
         "type": "string"
       },
-      "default": [],
       "description": "Task IDs currently executing. A single-element array denotes sequential execution; multiple elements denote a parallel batch; an empty array denotes no task in flight."
     },
     "created_at": {
