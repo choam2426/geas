@@ -1,374 +1,255 @@
 # Geas 프로토콜 다이어그램
 
-이 문서는 Geas 프로토콜의 핵심 흐름을 Mermaid 다이어그램으로 시각화한다. 각 다이어그램은 해당 프로토콜 문서 번호를 명시한다.
+이 문서는 Geas 프로토콜(`docs/ko/protocol/` 9 docs)과 JSON schema(`docs/schemas/` 14 schemas)에 정의된 핵심 흐름을 Mermaid 다이어그램으로 보여 준다. 각 다이어그램은 출처 문서를 상단에 표시한다.
 
 ## 목차
 
-1. [미션 라이프사이클](#1-미션-라이프사이클)
-2. [태스크 상태머신](#2-태스크-상태머신)
-3. [에비던스 게이트 플로우](#3-에비던스-게이트-플로우)
-4. [에이전트 상호작용](#4-에이전트-상호작용)
-5. [파이프라인 실행 흐름](#5-파이프라인-실행-흐름)
+1. [미션 페이즈 흐름](#1-미션-페이즈-흐름)
+2. [Specifying 승인 흐름](#2-specifying-승인-흐름)
+3. [Task lifecycle](#3-task-lifecycle)
+4. [Evidence Gate](#4-evidence-gate)
+5. [Agent slot과 책임](#5-agent-slot과-책임)
+6. [Artifact 관계](#6-artifact-관계)
 
 ---
 
-## 1. 미션 라이프사이클
+## 1. 미션 페이즈 흐름
 
-> 참조: `protocol/02_MODES_MISSIONS_AND_RUNTIME.md`
+> 참조: `protocol/02_MISSIONS_PHASES_AND_FINAL_VERDICT.md`
 
-미션은 4개의 페이즈를 순서대로 통과한다. 각 페이즈 전환에는 페이즈 게이트가 존재하며, 필수 산출물이 충족되어야 다음 페이즈로 진입할 수 있다.
+미션은 네 phase를 차례로 통과해 `complete`로 종결된다. 각 phase 끝에 phase gate가 있고, phase review가 `passed`여야 다음 phase로 간다. Polishing과 consolidating에서만 제한적 역행이 허용된다 (specifying으로의 역행은 금지).
 
 ```mermaid
 flowchart LR
-    subgraph 페이즈_흐름["미션 페이즈 흐름"]
-        direction LR
-        S["1. Specifying\n(명세화)"]
-        B["2. Building\n(구현)"]
-        P["3. Polishing\n(다듬기)"]
-        E["4. Evolving\n(진화)"]
-        C["완료"]
-    end
+    S["specifying<br/>(명세)"]
+    B["building<br/>(구현)"]
+    P["polishing<br/>(다듬기)"]
+    CS["consolidating<br/>(종결 정리)"]
+    C(["complete"])
 
-    S -->|"페이즈 게이트 1\n- spec.json\n- design-brief.json (승인됨)\n- 1개 이상 태스크 계약"| B
-    B -->|"페이즈 게이트 2\n- 모든 태스크 passed/cancelled\n- gap-assessment-building.json"| P
-    P -->|"페이즈 게이트 3\n- gap-assessment-polishing.json\n- debt-register.json\n- blocked/escalated 태스크 없음"| E
-    E -->|"페이즈 게이트 4\n- gap-assessment-evolving.json\n- mission-summary.md"| C
+    S -->|phase review passed| B
+    B -->|phase review passed| P
+    P -->|phase review passed<br/>추가 task 없음| CS
+    CS -->|mission verdict<br/>approved / cancelled| C
 
-    style S fill:#4a90d9,color:#fff
-    style B fill:#e67e22,color:#fff
-    style P fill:#27ae60,color:#fff
-    style E fill:#8e44ad,color:#fff
-    style C fill:#2c3e50,color:#fff
+    P -.->|새 task 필요<br/>역행| B
+    CS -.->|부족분 다시 정리<br/>역행| P
+    CS -.->|새 task 실행 필요<br/>역행| B
 ```
 
-### 페이즈별 핵심 활동
-
-| 페이즈 | 핵심 활동 | 주요 산출물 |
-|--------|----------|------------|
-| Specifying | 요구사항 정규화, 스코프 확정, 태스크 분해 | 미션 스펙, 디자인 브리프, 태스크 계약 |
-| Building | 핵심 가치 경로 구현, 태스크 클로저 순환 | 구현 계약, 게이트 결과, 클로저 패킷, 최종 판정 |
-| Polishing | 전달 준비 경화, 전문가 슬롯 리뷰 | 전문가 리뷰, 부채 레지스터 갱신 |
-| Evolving | 교훈 추출, 부채 정리, 메모리 시스템 반영 | 갭 평가, 규칙 갱신, 미션 요약 |
+Mission verdict은 `approved` / `changes_requested` / `escalated` / `cancelled` 중 하나다. `changes_requested`나 `escalated`는 추가 작업 후 새 verdict를 배열에 append한다. `cancelled`는 종결 유형이며, spec 승인 전 포기는 consolidating을 건너뛰고 바로 complete로 간다.
 
 ---
 
-## 2. 태스크 상태머신
+## 2. Specifying 승인 흐름
 
-> 참조: `protocol/03_TASK_MODEL_AND_LIFECYCLE.md`
+> 참조: `protocol/02_MISSIONS_PHASES_AND_FINAL_VERDICT.md` (`Operating mode별 요구` + `specifying` phase)
 
-태스크는 7개의 주요 상태와 3개의 보조 상태를 가진다. 각 전환에는 필수 조건이 존재하며, 상태를 건너뛸 수 없다.
+Mission spec은 모든 mode에서 사용자 단독 승인이다. Mission design과 초기 task contract 집합은 operating mode에 따라 선행 절차가 다르다.
+
+```mermaid
+flowchart TD
+    A["Orchestrator가 사용자와의 대화로<br/>mission spec 작성"]
+    B["사용자 승인<br/>(mission spec)"]
+    C["Design Authority가 mission design 작성"]
+    D{mission mode?}
+    D1["사용자 승인"]
+    D2["Decision Maker 선승인<br/>→ 사용자 승인"]
+    D3["Deliberation<br/>DM + Challenger + specialist 1명<br/>→ 사용자 승인"]
+    E["Design Authority가<br/>초기 task contract 집합 작성"]
+    F{mission mode?}
+    F1["사용자 승인"]
+    F2["Decision Maker 선승인<br/>→ 사용자 승인"]
+    F3["Deliberation<br/>DM + Challenger + specialist 1명<br/>→ 사용자 승인"]
+    G(["building phase 진입"])
+
+    A --> B --> C --> D
+    D -->|lightweight| D1
+    D -->|standard| D2
+    D -->|full_depth| D3
+    D1 --> E
+    D2 --> E
+    D3 --> E
+    E --> F
+    F -->|lightweight| F1
+    F -->|standard| F2
+    F -->|full_depth| F3
+    F1 --> G
+    F2 --> G
+    F3 --> G
+```
+
+Task contract의 `approved_by` 필드에는 최종 승인 주체가 기록된다 (`user` 또는 `decision_maker`; 초기 task 집합은 `user`). Building/polishing 중 추가되는 scope 내 task는 `decision_maker` 승인만으로 ready 전이 가능하고, scope 밖이라면 mission spec을 확장해 사용자 재승인이 선행되어야 한다.
+
+---
+
+## 3. Task lifecycle
+
+> 참조: `protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md`
+
+Task는 6개 주 상태(`drafted` → `ready` → `implementing` → `reviewed` → `verified` → `passed`)와 3개 보류/종결 상태(`blocked`, `escalated`, `cancelled`)를 가진다. `blocked`와 `escalated`는 일시 상태이며 해소되면 해당 조건에 따라 복귀하거나 종결된다.
 
 ```mermaid
 stateDiagram-v2
     [*] --> drafted
+    drafted --> ready: approved_by 확정<br/>+ phase gate
+    ready --> implementing: 의존 task passed<br/>+ baseline 유효
+    implementing --> reviewed: self-check + required<br/>reviewer evidence 제출
+    reviewed --> verified: evidence gate 통과
+    verified --> passed: closure approved
 
-    drafted --> ready : contract.json 존재
+    implementing --> blocked: 차단 사유
+    reviewed --> blocked: 차단 사유
+    verified --> blocked: 차단 사유
+    blocked --> ready: 차단 해소
+    blocked --> implementing: 차단 해소
+    blocked --> reviewed: 차단 해소
 
-    ready --> implementing : 구현 계약 승인됨\n(implementation_contract.status=approved)
+    blocked --> escalated: 상위 판단 필요
+    verified --> escalated: 상위 판단 필요
+    escalated --> passed: 상위 approved<br/>(verified에서 escalate)
+    escalated --> ready: 상위 changes_requested
+    escalated --> implementing: 상위 changes_requested
+    escalated --> reviewed: 상위 changes_requested
 
-    implementing --> reviewed : 자체점검 완료 +\nimplementer 에비던스
-
-    reviewed --> integrated : 게이트 결과 pass +\nreviewer/tester 에비던스
-
-    integrated --> verified : 에비던스 게이트 통과\n(통합 후 검증)
-
-    verified --> passed : 최종 판정 pass +\nclosure + retrospective +\nchallenge_review (high/critical)
+    drafted --> cancelled
+    ready --> cancelled
+    implementing --> cancelled
+    reviewed --> cancelled
+    verified --> cancelled
+    blocked --> cancelled
+    escalated --> cancelled
 
     passed --> [*]
-
-    %% 되감기 경로
-    integrated --> implementing : 게이트 실패\n(verify-fix 루프)
-    integrated --> reviewed : 통합 실패/불일치
-    verified --> ready : 최종 판정 iterate\n(명시적 복원 대상)
-    verified --> implementing : 최종 판정 iterate
-    verified --> reviewed : 최종 판정 iterate
-
-    %% 보조 상태
-    state "blocked\n(진행 불가)" as blocked
-    state "escalated\n(권한 부족)" as escalated
-    state "cancelled\n(작업 취소)" as cancelled
-
-    ready --> blocked : 외부/구조적 장애
-    implementing --> blocked : 외부/구조적 장애
-    reviewed --> blocked : 외부/구조적 장애
-    integrated --> blocked : 외부/구조적 장애
-
-    ready --> escalated : 권한 경계 도달
-    implementing --> escalated : 권한 경계 도달
-
-    ready --> cancelled : 명시적 취소 (사유 기록)
-    implementing --> cancelled : 명시적 취소 (사유 기록)
-
-    blocked --> ready : 차단 원인 해결 +\n재검증 통과
-    escalated --> ready : 에스컬레이션 해결 +\n의도적 재진입
+    cancelled --> [*]
 ```
 
-### 대표 경로
-
-| 경로 | 상태 흐름 |
-|------|----------|
-| 정상 경로 | drafted -> ready -> implementing -> reviewed -> integrated -> verified -> passed |
-| 검증-수정 경로 | integrated(fail) -> implementing -> reviewed -> integrated -> verified -> passed |
-| 제품-반복 경로 | verified -> iterate -> implementing/reviewed -> ... -> verified -> passed |
+Closure verdict는 `approved` / `changes_requested` / `escalated` / `cancelled` 중 하나다. `changes_requested`는 rewind에 해당하며 Orchestrator가 rationale에 복원 대상과 근거를 담는다. `cancelled` 종결에서 대체 계약이 있으면 새 task contract의 `supersedes` 필드가 이 task를 가리킨다.
 
 ---
 
-## 3. 에비던스 게이트 플로우
+## 4. Evidence Gate
 
-> 참조: `protocol/05_GATE_VOTE_AND_FINAL_VERDICT.md`
+> 참조: `protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md` (`Evidence Gate` 섹션)
 
-에비던스 게이트는 3단계(Tier 0/1/2) 검증 메커니즘이다. 게이트, 투표 라운드, 최종 판정은 반드시 분리되어야 한다.
+Evidence gate는 Tier 0 → Tier 1 → Tier 2 순서로 진행한다. 어느 Tier에서든 `fail` / `block` / `error`가 나오면 그것이 곧 전체 gate verdict가 된다. Tier 2는 reviewer verdict를 집계한다.
 
 ```mermaid
 flowchart TD
-    Start["게이트 시작"]
+    Start(["Gate 시작<br/>(task = reviewed)"])
 
-    subgraph Tier0["Tier 0 - 사전검사 (Precheck)"]
-        T0_1["필수 산출물 존재 확인"]
-        T0_2["태스크 상태 적격성"]
-        T0_3["베이스라인/통합 전제조건"]
-        T0_4["필수 리뷰셋 존재"]
-        T0_5["워커 자체점검 존재"]
-    end
+    T0["Tier 0<br/>필수 artifact + 필수 reviewer<br/>evidence 제출 여부"]
+    T1["Tier 1<br/>verification_plan이 명시한<br/>반복 가능한 기계 검증"]
+    T2["Tier 2<br/>reviewer verdict 집계<br/>+ contract 대조"]
 
-    subgraph Tier1["Tier 1 - 기계적 검증 (Mechanical)"]
-        T1_1["반복 가능한 검사 실행\n(빌드, 린트, 테스트, 타입검사 등)"]
-        T1_2["실행 결과 기록\n(명령어, 종료 상태, 타임스탬프)"]
-    end
+    Out0["gate = Tier 0 결과<br/>(fail/block/error)"]
+    Out1["gate = Tier 1 결과<br/>(fail/block/error)"]
+    OutPass(["gate pass<br/>→ task verified"])
+    OutFail["gate fail"]
+    OutBlock["gate block"]
 
-    subgraph Tier2["Tier 2 - 계약/루브릭 검증 (Contract + Rubric)"]
-        T2_1["인수 기준 충족 여부"]
-        T2_2["스코프 위반 검사"]
-        T2_3["알려진 위험 처리 상태"]
-        T2_4["리뷰 결과 반영"]
-        T2_5["루브릭 점수 평가\n(각 차원별 임계값)"]
-        T2_6["스텁/플레이스홀더 검증"]
-    end
+    Delib{"verdict 양립 어려움?"}
+    DelibRun["task-level deliberation"]
 
-    Start --> T0_1
-    T0_1 --> T0_2 --> T0_3 --> T0_4 --> T0_5
+    Start --> T0
+    T0 -->|pass| T1
+    T0 -->|그 외| Out0
 
-    T0_5 -->|"모두 통과"| T1_1
-    T1_1 --> T1_2
+    T1 -->|pass| T2
+    T1 -->|그 외| Out1
 
-    T1_2 -->|"검사 통과"| T2_1
-    T2_1 --> T2_2 --> T2_3 --> T2_4 --> T2_5 --> T2_6
+    T2 --> Delib
+    Delib -->|예| DelibRun
+    DelibRun --> T2
+    Delib -->|아니오| Agg["집계<br/>blocked 있으면 block<br/>changes_requested 있고<br/>blocked 없으면 fail<br/>모두 approved면 pass"]
 
-    %% 결과 분기
-    T0_5 -->|"산출물 누락"| BLOCK["block\n(구조적 전제조건 미충족)"]
-    T0_5 -->|"부적격 상태"| ERROR["error\n(게이트 실행 자체 실패)"]
-    T1_2 -->|"검사 실패"| FAIL["fail\n(구현/검증 품질 문제)"]
-    T2_6 -->|"기준 미달"| FAIL
-    T2_6 -->|"모두 충족"| PASS["pass\n(게이트 통과)"]
-
-    PASS --> Closure["클로저 패킷 조립"]
-    FAIL --> Rewind["되감기\n(retry_budget 1 소모)"]
-    BLOCK --> Blocked["태스크 blocked 전환"]
-    ERROR --> Resolve["원인 해결 후 재실행"]
-
-    Closure --> Challenge{"챌린저 리뷰\n(high/critical 필수)"}
-    Challenge -->|"차단 우려 없음"| Verdict["최종 판정\n(product-authority)"]
-    Challenge -->|"차단 우려 있음"| VoteRound["투표 라운드\n(readiness_round)"]
-    VoteRound -->|"ship"| Verdict
-    VoteRound -->|"iterate"| Rewind2["되감기 후 재작업"]
-    VoteRound -->|"escalate"| Escalated["태스크 escalated"]
-
-    Verdict -->|"pass"| Done["태스크 passed"]
-    Verdict -->|"iterate"| Rewind3["복원 대상 지정 후 재작업\n(retry_budget 미소모)"]
-    Verdict -->|"escalate"| Escalated2["사용자에게 에스컬레이션"]
-
-    style PASS fill:#27ae60,color:#fff
-    style FAIL fill:#e74c3c,color:#fff
-    style BLOCK fill:#f39c12,color:#fff
-    style ERROR fill:#95a5a6,color:#fff
-    style Done fill:#27ae60,color:#fff
+    Agg -->|pass| OutPass
+    Agg -->|fail| OutFail
+    Agg -->|block| OutBlock
 ```
 
-### 게이트 프로필별 적용 범위
-
-| 게이트 프로필 | Tier 0 | Tier 1 | Tier 2 | 사용 시점 |
-|--------------|--------|--------|--------|----------|
-| implementation_change | 실행 | 실행 | 실행 | 구현 변경이 있는 표준 태스크 |
-| artifact_only | 실행 | 생략/축소 | 실행 | 문서, 설계, 리뷰, 분석 작업 |
-| closure_ready | 실행 | 선택적 | 간소화 | 정리, 전달, 클로저 조립 태스크 |
+Gate verdict는 `gate-results.json`의 `runs` 배열에 immutable object로 append된다. 재시도는 새 run으로 누적되며 이전 run은 덮어쓰지 않는다.
 
 ---
 
-## 4. 에이전트 상호작용
+## 5. Agent slot과 책임
 
-> 참조: `protocol/01_AGENT_TYPES_AND_AUTHORITY.md`
+> 참조: `protocol/01_AGENTS_AND_AUTHORITY.md`
 
-Geas는 권한 슬롯(Authority Slots)과 전문가 슬롯(Specialist Slots) 2계층 구조로 역할을 조직한다. 물리적 에이전트 하나가 여러 슬롯을 담당할 수 있으나, 산출물에서 역할 분리를 유지해야 한다.
+Slot은 역할 자리다. 구현체는 concrete agent type으로 매핑하지만 프로토콜 의미는 slot 이름으로 읽는다. 한 concrete agent가 여러 slot을 맡을 수 있으나 역할 전환은 명시적으로 드러나야 한다.
 
 ```mermaid
 flowchart TB
-    subgraph Authority["권한 슬롯 (Authority Slots)"]
-        direction TB
-        OA["Orchestrator\n(orchestration_authority)\n\n미션 제어, 라우팅,\n시퀀싱, 복구, 메모리"]
-        PA["Decision Maker\n(product_authority)\n\n제품 수락, 트레이드오프,\n최종 판정 (pass/iterate/escalate)"]
-        DA["Design Authority\n(design_authority)\n\n구조적 일관성,\n계약 승인, 방법론 리뷰"]
-        CH["Challenger\n(challenger)\n\n적대적 챌린지,\n숨겨진 위험 탐지"]
+    subgraph Authority["Authority slot"]
+        O["orchestrator<br/>task 상태 관리<br/>closure decision<br/>memory update"]
+        DM["decision-maker<br/>mission final verdict<br/>중간 scope 내 task 승인<br/>standard 선승인"]
+        DA["design-authority<br/>mission design<br/>task 분해<br/>gap 작성"]
+        CH["challenger<br/>반대 의견<br/>deliberation 참여<br/>(full_depth 필수)"]
     end
 
-    subgraph Specialist["전문가 슬롯 (Specialist Slots)"]
-        direction TB
-        IMP["Implementer\n1차 산출물 생산"]
-        QS["Quality Specialist\n인수 기준 검증"]
-        RS["Risk Specialist\n도메인 위험 평가"]
-        OS["Operations Specialist\n전달/배포 준비"]
-        CS["Communication Specialist\n문서/사용자 콘텐츠"]
+    subgraph Specialist["Specialist slot"]
+        IM["implementer<br/>구현 + self-check<br/>implementation evidence"]
+        V["verifier<br/>독립 검증<br/>verification evidence"]
+        RA["risk-assessor<br/>risk review"]
+        OP["operator<br/>operational review"]
+        CM["communicator<br/>docs review"]
     end
-
-    %% 권한 흐름
-    OA -->|"태스크 분해/라우팅\n미션 페이즈 선택"| IMP
-    OA -->|"투표 라운드 소집\n클로저 패킷 조립"| PA
-    OA -->|"계약 리뷰 요청\n설계 가이드 요청"| DA
-    OA -->|"챌린저 리뷰 요청\n(high/critical 필수)"| CH
-
-    DA -->|"구현 계약 승인/거부\n구조 리뷰"| IMP
-    DA -->|"설계 피드백"| QS
-
-    IMP -->|"자체점검 제출\n에비던스 생산"| QS
-    IMP -->|"에비던스 생산"| DA
-
-    QS -->|"테스트 결과\n인수 기준 검증"| OA
-    RS -->|"위험 평가\n보안 리뷰"| OA
-    OS -->|"운영 준비 확인"| OA
-    CS -->|"문서 완전성 리뷰"| OA
-
-    CH -->|"챌린지 결과\n(차단/비차단)"| PA
-
-    PA -->|"최종 판정"| OA
-
-    %% 스타일
-    style OA fill:#2c3e50,color:#fff
-    style PA fill:#8e44ad,color:#fff
-    style DA fill:#2980b9,color:#fff
-    style CH fill:#c0392b,color:#fff
-    style IMP fill:#27ae60,color:#fff
-    style QS fill:#16a085,color:#fff
-    style RS fill:#d35400,color:#fff
-    style OS fill:#7f8c8d,color:#fff
-    style CS fill:#f39c12,color:#fff
 ```
 
-### 의사결정 경계
+Evidence kind와 slot의 기본 연결:
 
-| 의사결정 | 주 소유자 | 비고 |
-|----------|----------|------|
-| 미션 페이즈 선택 | Orchestrator | 미션 의도, 모드, 현재 에비던스 기반 |
-| 태스크 분해/라우팅 | Orchestrator | 대규모 작업 시 Design Authority 자문 |
-| 디자인 브리프 승인 | Decision Maker | full_depth 시 Design Authority 리뷰 필수 |
-| 구현 계약 승인 | Design Authority 주도 리뷰어셋 | 도메인 전문가 서명 포함 가능 |
-| 에비던스 게이트 판정 | 게이트 실행기 | 객관적 메커니즘 |
-| 최종 판정 | Decision Maker | 클로저 패킷 기반 |
+| kind | 주 생산자 |
+|---|---|
+| `implementation` | `implementer` |
+| `review` | `risk-assessor`, `operator`, `communicator`, `challenger` |
+| `verification` | `verifier` |
+| `closure` | `orchestrator` |
 
 ---
 
-## 5. 파이프라인 실행 흐름
+## 6. Artifact 관계
 
-> 참조: `pipeline.md` (per-task pipeline reference)
+> 참조: `protocol/08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md`
 
-documentation 종류(task_kind) 태스크의 파이프라인 실행 흐름이다. design, design_guide, implementation(워크트리 격리), integration 단계가 생략된다.
+Mission-level과 task-level artifact가 계층으로 쌓인다. Append-only 로그(phase-reviews, mission-verdicts, gate-results, deliberations, evidence)는 이전 entry를 덮어쓰지 않고 array에 새 entry를 추가한다.
 
 ```mermaid
-flowchart TD
-    TaskStart["태스크 시작\n- TaskContract 읽기\n- 의존성 확인\n- ready 전환"]
-
-    IC["1. 구현 계약\n(Implementation Contract)\n\n워커가 행동 계획 작성\nQA + Design Authority 승인"]
-
-    Impl["2. 구현\n(Implementation)\n\n직접 편집 (워크트리 격리 없음)\n문서 작성/수정"]
-
-    SC["3. 자체점검\n(Worker Self-Check)\n\n신뢰도(1-5), 알려진 위험,\n미테스트 경로, 요약"]
-
-    subgraph Parallel["병렬 실행 가능"]
-        direction LR
-        SR["4a. 전문가 리뷰\n(Specialist Review)\n\nDesign Authority가\n구현 리뷰"]
-        TEST["4b. 테스팅\n(Testing)\n\nQuality Specialist가\n인수 기준 검증"]
+flowchart LR
+    subgraph Mission["Mission-level"]
+        MS["mission-spec<br/>(spec.json)"]
+        MD["mission-design<br/>(mission-design.md)"]
+        MState["mission-state"]
+        PR["phase-reviews<br/>(append)"]
+        MDel["deliberations<br/>(mission-level, append)"]
+        MV["mission-verdicts<br/>(append)"]
+        D["debts"]
+        G["gap"]
+        MU["memory-update"]
     end
 
-    Reviewed["reviewed 전환\n(4a + 4b 모두 완료 후)"]
+    subgraph Task["Task-level (task_id별)"]
+        TC["task-contract"]
+        IC["implementation-contract"]
+        SC["self-check"]
+        TDel["deliberations<br/>(task-level, append)"]
+        TE["evidence/{agent}<br/>(entries append)"]
+        GR["gate-results<br/>(runs append)"]
+        TS["task-state"]
+    end
 
-    EG["5. 에비던스 게이트\n(Evidence Gate)\n\nTier 0: 사전검사\nTier 1: 생략/축소 (artifact_only)\nTier 2: 계약/루브릭 검증"]
+    MS --> MD --> TC
+    TC --> IC --> SC
+    SC --> TE
+    TE --> GR
+    TE --> PR
+    PR --> MV
 
-    EGResult{게이트 결과}
-
-    VFL["verify-fix 루프\n(retry_budget 소모)"]
-
-    CP["6. 클로저 패킷 조립\n(Closure Packet)\n\nchange_summary, reviews[],\nopen_risks, debt_items"]
-
-    CHL{"7. 챌린저 리뷰\n(risk_level 기반)"}
-
-    CHLRun["챌린저 리뷰 실행\n최소 1건 실질적 챌린지 필수"]
-
-    FV["8. 최종 판정\n(Final Verdict)\n\nproduct-authority가\npass / iterate / escalate"]
-
-    FVResult{판정 결과}
-
-    Retro["9. 회고\n(Retrospective)\n\nwhat_went_well, what_broke,\nrule_candidates, memory_candidates"]
-
-    Mem["10. 메모리 추출\n(Memory Extraction)\n\n규칙 갱신, 에이전트 메모리 반영"]
-
-    Resolve["11. 완료\n(Resolve)\n\npassed 전환"]
-
-    TaskStart --> IC
-    IC -->|"승인됨"| Impl
-    IC -->|"거부됨"| IC
-    Impl -->|"implementing 전환"| SC
-    SC --> Parallel
-    SR --> Reviewed
-    TEST --> Reviewed
-    Reviewed --> EG
-
-    EG --> EGResult
-    EGResult -->|"pass"| CP
-    EGResult -->|"fail"| VFL
-    EGResult -->|"block"| TaskBlocked["blocked 전환"]
-    EGResult -->|"error"| ErrorResolve["원인 해결 후 재실행"]
-    VFL --> EG
-
-    CP --> CHL
-    CHL -->|"low 위험: 생략"| FV
-    CHL -->|"high/critical: 필수"| CHLRun
-    CHLRun -->|"비차단"| FV
-    CHLRun -->|"차단 우려"| VoteRound["투표 라운드"]
-    VoteRound -->|"ship"| FV
-    VoteRound -->|"iterate/escalate"| Rewind["되감기/에스컬레이션"]
-
-    FV --> FVResult
-    FVResult -->|"pass"| Retro
-    FVResult -->|"iterate"| IterRewind["복원 대상으로 되감기\n(retry_budget 미소모)"]
-    FVResult -->|"escalate"| Escalate["에스컬레이션"]
-
-    Retro --> Mem --> Resolve
-
-    style TaskStart fill:#34495e,color:#fff
-    style Resolve fill:#27ae60,color:#fff
-    style TaskBlocked fill:#f39c12,color:#fff
-    style Escalate fill:#e74c3c,color:#fff
+    TE --> D
+    TE --> G
+    TE --> MU
+    D --> MV
+    G --> MV
+    MU --> MV
 ```
 
-### documentation 태스크 생략 규칙
-
-| 단계 | 상태 |
-|------|------|
-| design | 생략 |
-| design_guide | 생략 |
-| implementation (워크트리 격리) | 생략 (직접 편집) |
-| integration | 생략 |
-| implementation_contract ~ resolve | 필수 (생략 불가) |
-
-### 절대 생략 불가 단계
-
-다음 단계는 task_kind에 관계없이 반드시 실행해야 한다:
-
-- implementation_contract
-- self_check
-- specialist_review
-- testing
-- evidence_gate
-- closure_packet
-- final_verdict
-- retrospective
-- memory_extraction
-- resolve
+Consolidating phase에서 Orchestrator가 task evidence의 `debt_candidates`·`memory_suggestions`·`gap_signals`를 읽고 `debts.json`, `memory-update.json`을 작성한다. Design Authority는 `gap.json`을 작성한다. Decision Maker는 이들을 모두 읽고 mission verdict를 내린다.
