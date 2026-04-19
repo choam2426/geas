@@ -1,34 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "GEAS Mission State",
-  "description": "Mission-scoped runtime index. Captures which phase, task, and batch this mission is in so execution can resume without rebuilding contracts or evidence.",
+  "description": "Mission-scoped runtime index. Points to which phase the mission is in and which tasks are currently executing within it.",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "status",
-    "mission_id"
+    "mission_id",
+    "phase"
   ],
   "properties": {
-    "status": {
-      "type": "string",
-      "enum": [
-        "initialized",
-        "in_progress",
-        "complete"
-      ],
-      "description": "Overall progress of this mission's current session."
-    },
     "mission_id": {
       "type": "string",
       "pattern": "^mission-([0-9]{3}|[0-9]{8}-[a-zA-Z0-9]{8})$",
       "description": "Mission ID matching the enclosing mission directory."
-    },
-    "mission": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "description": "Human-readable mission statement copied from the current mission spec."
     },
     "phase": {
       "type": [
@@ -45,69 +29,13 @@
       ],
       "description": "Current phase within the mission."
     },
-    "current_task_id": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "description": "ID of the task currently being executed."
-    },
-    "completed_tasks": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "IDs of tasks that have been closed within this mission."
-    },
-    "session_latest_path": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "description": "Path to the human-readable session summary used for post-compact recovery."
-    },
-    "recovery_class": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "enum": [
-        "post_compact_resume",
-        "warm_session_resume",
-        "interrupted_subagent_resume",
-        "dirty_state_recovery",
-        "manual_repair_required",
-        null
-      ],
-      "description": "Recovery class from the last session recovery. Null if the session started clean."
-    },
-    "scheduler_state": {
-      "type": "string",
-      "enum": [
-        "active",
-        "idle",
-        "paused"
-      ],
-      "default": "active",
-      "description": "Implementation-reported execution state for this mission's runtime loop."
-    },
-    "parallel_batch": {
-      "type": [
-        "array",
-        "null"
-      ],
-      "items": {
-        "type": "string"
-      },
-      "description": "Task IDs being executed in the current parallel batch within this mission. Null when running sequentially."
-    },
-    "completed_in_batch": {
+    "active_tasks": {
       "type": "array",
       "items": {
         "type": "string"
       },
       "default": [],
-      "description": "Task IDs resolved within the current parallel batch."
+      "description": "Task IDs currently executing. A single-element array denotes sequential execution; multiple elements denote a parallel batch; an empty array denotes no task in flight."
     },
     "created_at": {
       "type": "string",
