@@ -139,7 +139,7 @@ flowchart TD
     Start(["Gate 시작<br/>(task = reviewed)"])
 
     T0["Tier 0<br/>필수 artifact + 필수 reviewer<br/>evidence 제출 여부"]
-    T1["Tier 1<br/>verification_plan이 명시한<br/>반복 가능한 기계 검증"]
+    T1["Tier 1<br/>verification_plan이 명시한<br/>반복 가능한 객관 검증<br/>(자동/수동 무관)"]
     T2["Tier 2<br/>reviewer verdict 집계<br/>+ contract 대조"]
 
     Out0["gate = Tier 0 결과<br/>(fail/block/error)"]
