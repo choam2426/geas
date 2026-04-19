@@ -1,20 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Geas Evidence",
-  "description": "Unified schema for task-level evidence artifacts. The evidence_kind field discriminates between implementation, review, verification, and closure records; kind-specific required fields and verdict enums are enforced via allOf conditionals.",
+  "description": "Unified schema for task-level evidence artifacts. One file per agent per task holds an append-only array of evidence entries. Each entry's evidence_kind discriminates between implementation, review, verification, and closure records; kind-specific required fields and verdict enums are enforced via allOf conditionals on each entry.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "mission_id",
     "task_id",
     "agent",
-    "evidence_kind",
-    "summary",
-    "artifacts",
-    "memory_suggestions",
-    "debt_candidates",
-    "gap_signals",
-    "revision_ref",
+    "entries",
     "created_at",
     "updated_at"
   ],
@@ -30,176 +24,14 @@
     "agent": {
       "type": "string",
       "minLength": 1,
-      "description": "Concrete agent or agent type that produced this evidence."
+      "description": "Concrete agent or agent type that produced this evidence file."
     },
-    "evidence_kind": {
-      "type": "string",
-      "enum": [
-        "implementation",
-        "review",
-        "verification",
-        "closure"
-      ]
-    },
-    "summary": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Core judgment or change summary for this evidence."
-    },
-    "artifacts": {
+    "entries": {
       "type": "array",
+      "description": "Append-only evidence entries in the order they were produced. Each entry is an immutable snapshot; revisions are appended as new entries and may reference a prior entry via revision_ref.",
       "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "description": "Files, outputs, or results examined or produced. Empty array if none."
-    },
-    "memory_suggestions": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "description": "Candidate memory entries for doc 06 consolidation. Empty array if none."
-    },
-    "debt_candidates": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/debtCandidate"
-      },
-      "description": "Candidate debt items for doc 07 consolidation. Empty array if none."
-    },
-    "gap_signals": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/gapSignal"
-      },
-      "description": "Scope/expectation gap signals for doc 07 consolidation. Empty array if none."
-    },
-    "revision_ref": {
-      "oneOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "string",
-          "minLength": 1
-        }
-      ],
-      "description": "Reference to a prior evidence file if this is a re-work. Null for first iteration."
-    },
-    "verdict": {
-      "type": "string",
-      "enum": [
-        "approved",
-        "changes_requested",
-        "blocked",
-        "escalated",
-        "cancelled"
-      ],
-      "description": "Outcome verdict. Enum narrowed per evidence_kind via allOf."
-    },
-    "concerns": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "description": "Specific concerns or issues raised. Required for review and verification evidence. Empty array if none."
-    },
-    "rationale": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Overall reasoning for the verdict. Required for review, verification, challenge, and closure evidence."
-    },
-    "scope_examined": {
-      "type": "string",
-      "minLength": 1,
-      "description": "What the reviewer/verifier actually examined. Required for review and verification evidence. Markdown allowed."
-    },
-    "methods_used": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "description": "Concrete methods, tools, or procedures applied. Required for review and verification evidence."
-    },
-    "scope_excluded": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "description": "Scope intentionally left out, with reasons. Required for review and verification evidence. Empty array if nothing was excluded."
-    },
-    "criteria_results": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/criterionResult"
-      },
-      "description": "Per-criterion verification results. Required for verification evidence."
-    },
-    "rewind_target": {
-      "oneOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "string",
-          "enum": [
-            "ready",
-            "implementing",
-            "reviewed"
-          ]
-        }
-      ],
-      "description": "State to revert to when closure verdict is changes_requested. Null otherwise. Required field for closure evidence."
-    },
-    "superseded_by": {
-      "oneOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "string",
-          "pattern": "^task-[0-9]{3}$"
-        }
-      ],
-      "description": "Replacement task id when closure verdict is cancelled due to a replacement contract. Null otherwise. Required field for closure evidence."
-    },
-    "what_went_well": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "description": "Aspects of the task that worked as intended. Required for closure evidence. Empty array if none worth noting."
-    },
-    "what_broke": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "description": "Things that failed or required unplanned effort during the task. Required for closure evidence. Empty array if none."
-    },
-    "what_was_surprising": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "description": "Unexpected outcomes or discoveries during the task. Required for closure evidence. Empty array if none."
-    },
-    "next_time_guidance": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "description": "Concrete advice for similar future tasks. Required for closure evidence. Empty array if none."
+        "$ref": "#/$defs/entry"
+      }
     },
     "created_at": {
       "type": "string",
@@ -210,106 +42,301 @@
       "format": "date-time"
     }
   },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "evidence_kind": {
-            "const": "review"
-          }
-        },
-        "required": [
-          "evidence_kind"
-        ]
-      },
-      "then": {
-        "required": [
-          "verdict",
-          "concerns",
-          "rationale",
-          "scope_examined",
-          "methods_used",
-          "scope_excluded"
-        ],
-        "properties": {
-          "verdict": {
-            "enum": [
-              "approved",
-              "changes_requested",
-              "blocked"
-            ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "evidence_kind": {
-            "const": "verification"
-          }
-        },
-        "required": [
-          "evidence_kind"
-        ]
-      },
-      "then": {
-        "required": [
-          "verdict",
-          "concerns",
-          "rationale",
-          "scope_examined",
-          "methods_used",
-          "scope_excluded",
-          "criteria_results"
-        ],
-        "properties": {
-          "verdict": {
-            "enum": [
-              "approved",
-              "changes_requested",
-              "blocked"
-            ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "evidence_kind": {
-            "const": "closure"
-          }
-        },
-        "required": [
-          "evidence_kind"
-        ]
-      },
-      "then": {
-        "required": [
-          "verdict",
-          "rationale",
-          "rewind_target",
-          "superseded_by",
-          "what_went_well",
-          "what_broke",
-          "what_was_surprising",
-          "next_time_guidance"
-        ],
-        "properties": {
-          "verdict": {
-            "enum": [
-              "approved",
-              "changes_requested",
-              "escalated",
-              "cancelled"
-            ]
-          }
-        }
-      }
-    }
-  ],
   "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entry_id",
+        "evidence_kind",
+        "summary",
+        "artifacts",
+        "memory_suggestions",
+        "debt_candidates",
+        "gap_signals",
+        "revision_ref",
+        "created_at"
+      ],
+      "properties": {
+        "entry_id": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Monotonically increasing id within this file, starting at 1."
+        },
+        "evidence_kind": {
+          "type": "string",
+          "enum": [
+            "implementation",
+            "review",
+            "verification",
+            "closure"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Core judgment or change summary for this entry."
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Files, outputs, or results examined or produced. Empty array if none."
+        },
+        "memory_suggestions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Candidate memory entries for doc 06 consolidation. Empty array if none."
+        },
+        "debt_candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/debtCandidate"
+          },
+          "description": "Candidate debt items for doc 07 consolidation. Empty array if none."
+        },
+        "gap_signals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/gapSignal"
+          },
+          "description": "Scope/expectation gap signals for doc 07 consolidation. Empty array if none."
+        },
+        "revision_ref": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ],
+          "description": "entry_id of a prior entry in this same file that this entry revises. Null for first iteration or for entries that are not revisions."
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "approved",
+            "changes_requested",
+            "blocked",
+            "escalated",
+            "cancelled"
+          ],
+          "description": "Outcome verdict. Enum narrowed per evidence_kind via allOf."
+        },
+        "concerns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Specific concerns or issues raised. Required for review and verification entries. Empty array if none."
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Overall reasoning for the verdict. Required for review, verification, and closure entries."
+        },
+        "scope_examined": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What the reviewer/verifier actually examined. Required for review and verification entries. Markdown allowed."
+        },
+        "methods_used": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Concrete methods, tools, or procedures applied. Required for review and verification entries."
+        },
+        "scope_excluded": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Scope intentionally left out, with reasons. Required for review and verification entries. Empty array if nothing was excluded."
+        },
+        "criteria_results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/criterionResult"
+          },
+          "description": "Per-criterion verification results. Required for verification entries."
+        },
+        "rewind_target": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "ready",
+                "implementing",
+                "reviewed"
+              ]
+            }
+          ],
+          "description": "State to revert to when closure verdict is changes_requested. Null otherwise. Required field for closure entries."
+        },
+        "superseded_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^task-[0-9]{3}$"
+            }
+          ],
+          "description": "Replacement task id when closure verdict is cancelled due to a replacement contract. Null otherwise. Required field for closure entries."
+        },
+        "what_went_well": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Aspects of the task that worked as intended. Required for closure entries. Empty array if none worth noting."
+        },
+        "what_broke": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Things that failed or required unplanned effort during the task. Required for closure entries. Empty array if none."
+        },
+        "what_was_surprising": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Unexpected outcomes or discoveries during the task. Required for closure entries. Empty array if none."
+        },
+        "next_time_guidance": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Concrete advice for similar future tasks. Required for closure entries. Empty array if none."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_kind": {
+                "const": "review"
+              }
+            },
+            "required": [
+              "evidence_kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "verdict",
+              "concerns",
+              "rationale",
+              "scope_examined",
+              "methods_used",
+              "scope_excluded"
+            ],
+            "properties": {
+              "verdict": {
+                "enum": [
+                  "approved",
+                  "changes_requested",
+                  "blocked"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "evidence_kind": {
+                "const": "verification"
+              }
+            },
+            "required": [
+              "evidence_kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "verdict",
+              "concerns",
+              "rationale",
+              "scope_examined",
+              "methods_used",
+              "scope_excluded",
+              "criteria_results"
+            ],
+            "properties": {
+              "verdict": {
+                "enum": [
+                  "approved",
+                  "changes_requested",
+                  "blocked"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "evidence_kind": {
+                "const": "closure"
+              }
+            },
+            "required": [
+              "evidence_kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "verdict",
+              "rationale",
+              "rewind_target",
+              "superseded_by",
+              "what_went_well",
+              "what_broke",
+              "what_was_surprising",
+              "next_time_guidance"
+            ],
+            "properties": {
+              "verdict": {
+                "enum": [
+                  "approved",
+                  "changes_requested",
+                  "escalated",
+                  "cancelled"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
     "debtCandidate": {
       "type": "object",
       "additionalProperties": false,

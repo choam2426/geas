@@ -42,7 +42,9 @@
         "title",
         "description",
         "status",
-        "introduced_by"
+        "introduced_by",
+        "resolved_by",
+        "resolution_rationale"
       ],
       "properties": {
         "debt_id": {
@@ -105,6 +107,44 @@
             "resolved",
             "dropped"
           ]
+        },
+        "resolved_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "mission_id",
+                "task_id"
+              ],
+              "properties": {
+                "mission_id": {
+                  "type": "string",
+                  "pattern": "^mission-[0-9]{8}-[a-zA-Z0-9]{8}$"
+                },
+                "task_id": {
+                  "type": "string",
+                  "pattern": "^task-[0-9]{3}$"
+                }
+              }
+            }
+          ],
+          "description": "Mission and task where this debt was resolved or dropped. Null while status is open."
+        },
+        "resolution_rationale": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1
+            }
+          ],
+          "description": "Reasoning for the status change to resolved or dropped, including the evidence or context that justifies it. Null while status is open."
         }
       }
     }

@@ -1,80 +1,40 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Geas Deliberation Record",
-  "description": "Structured multi-party judgment over a proposal. Used at both task level and mission level; level is encoded in the 'level' field.",
+  "title": "Geas Deliberations",
+  "description": "Append-only log of structured multi-party judgments for a single scope. Used at both task level and mission level; one file per scope (mission-level or per-task) whose entries all share the file's level.",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "level",
     "mission_id",
-    "proposal_summary",
-    "votes",
-    "result",
+    "level",
+    "entries",
     "created_at",
     "updated_at"
   ],
   "properties": {
+    "mission_id": {
+      "type": "string",
+      "pattern": "^mission-[0-9]{8}-[a-zA-Z0-9]{8}$"
+    },
     "level": {
       "type": "string",
       "enum": [
         "mission",
         "task"
-      ]
-    },
-    "mission_id": {
-      "type": "string",
-      "pattern": "^mission-[0-9]{8}-[a-zA-Z0-9]{8}$"
+      ],
+      "description": "Scope level of every entry in this file. Mission-level files live at missions/{mission_id}/deliberations.json; task-level files live at missions/{mission_id}/tasks/{task_id}/deliberations.json."
     },
     "task_id": {
       "type": "string",
       "pattern": "^task-[0-9]{3}$",
       "description": "Task identifier within the mission. Required when level is 'task'."
     },
-    "proposal_summary": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Short summary of the question under deliberation."
-    },
-    "votes": {
+    "entries": {
       "type": "array",
-      "minItems": 2,
+      "description": "Deliberation records in the order they were produced. Each entry is an immutable snapshot.",
       "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "voter",
-          "vote",
-          "rationale"
-        ],
-        "properties": {
-          "voter": {
-            "type": "string",
-            "description": "Agent type of the voter."
-          },
-          "vote": {
-            "type": "string",
-            "enum": [
-              "agree",
-              "disagree",
-              "escalate"
-            ]
-          },
-          "rationale": {
-            "type": "string",
-            "minLength": 1
-          }
-        }
+        "$ref": "#/$defs/entry"
       }
-    },
-    "result": {
-      "type": "string",
-      "enum": [
-        "agree",
-        "disagree",
-        "escalate",
-        "inconclusive"
-      ],
-      "description": "Outcome of the deliberation. 'inconclusive' means the deliberation did not produce a valid judgment (e.g. insufficient participants)."
     },
     "created_at": {
       "type": "string",
@@ -99,5 +59,80 @@
     "required": [
       "task_id"
     ]
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proposal_summary",
+        "votes",
+        "result",
+        "created_at"
+      ],
+      "properties": {
+        "proposal_summary": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Short summary of the question under deliberation."
+        },
+        "votes": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "voter",
+              "vote",
+              "rationale"
+            ],
+            "properties": {
+              "voter": {
+                "type": "string",
+                "enum": [
+                  "orchestrator",
+                  "decision-maker",
+                  "design-authority",
+                  "challenger",
+                  "implementer",
+                  "verifier",
+                  "risk-assessor",
+                  "operator",
+                  "communicator"
+                ],
+                "description": "Slot of the voter."
+              },
+              "vote": {
+                "type": "string",
+                "enum": [
+                  "agree",
+                  "disagree",
+                  "escalate"
+                ]
+              },
+              "rationale": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "result": {
+          "type": "string",
+          "enum": [
+            "agree",
+            "disagree",
+            "escalate",
+            "inconclusive"
+          ],
+          "description": "Outcome of the deliberation. 'inconclusive' means the deliberation did not produce a valid judgment (e.g. insufficient participants)."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
   }
 }

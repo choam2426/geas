@@ -27,12 +27,20 @@ Debt와 gap은 비슷해 보여도 다르다. 둘을 분리해서 기록하고 f
 | `title`, `description` | 사람이 읽는 제목과 서술 |
 | `status` | open / resolved / dropped |
 | `introduced_by` | `{mission_id, task_id}` — 이 debt가 처음 관측된 mission과 task. carry-forward는 이전 mission을 가리킴 |
+| `resolved_by` | `{mission_id, task_id}` — status를 resolved나 dropped로 바꾼 시점의 mission과 task. status가 open이면 null |
+| `resolution_rationale` | status 변경의 근거 서술. 해결 근거가 된 task, evidence, 맥락을 담는다. status가 open이면 null |
 
 ### debt를 올리는 기준
 
 - 지금 종결하더라도 다음 phase나 다음 mission에서 다시 다뤄야 한다.
 - `kind` 중 하나로 분명히 설명된다 (단순 "개선하고 싶음"은 debt가 아니다).
 - 단순한 취향 차이가 아니라 실제 비용을 만든다.
+
+### status 전환 규칙
+
+- 이전 mission에서 `open`으로 넘어온 carry-forward debt는 현재 mission의 debts.json에 같은 `debt_id`로 포함되며, 아직 해소되지 않았으면 `status: open`을 유지한다.
+- 현재 mission에서 해소됐다고 판단하면 `status: resolved`, 더 이상 debt로 다룰 가치가 없다고 판단하면 `status: dropped`로 기록하고 `resolved_by`와 `resolution_rationale`을 채운다.
+- 원 mission의 debts.json은 immutable로 두며 상태 변경은 현재 mission의 debts.json에서만 이루어진다.
 
 ## Gap
 
@@ -48,6 +56,12 @@ Gap은 scope와 delivery 사이의 차이를 정리한다. Scope 요약은 missi
 | `partially_delivered` | 일부만 전달된 항목 |
 | `not_delivered` | 전달되지 않은 항목. 의도적 cut 여부는 항목 서술에 인라인으로 표시한다 (예: "X (의도적 cut: 시간 부족)") |
 | `unexpected_additions` | 계획에 없었지만 추가된 항목 |
+
+### debt와 gap의 관계
+
+gap은 실행 후 관찰된 scope 대 delivery 차이를 정리하는 기록이고, debt는 그 중 미래 작업으로 이어가기로 결정한 항목을 공식 등록하는 기록이다. 같은 현상이 gap과 debt에 동시에 나타날 수 있다. gap은 "무엇이 일어났는가"를, debt는 "무엇을 이어갈 것인가"를 답한다.
+
+debt kind `verification_gap`은 검증 자체를 완료하지 못한 공백을 의미하며, scope 안에 있었지만 검증 절차를 끝내지 못한 경우 등록한다. gap의 `partially_delivered`는 scope 중 일부만 달성된 항목을 가리키며 검증 완료 여부와는 무관하다. 한 항목이 "일부만 전달됐고 그마저도 검증을 못 했다"면 gap의 `partially_delivered`와 debt의 `verification_gap`에 각각 기록된다.
 
 ## 입력과 확정의 구분
 

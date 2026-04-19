@@ -33,7 +33,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Task IDs currently executing. A single-element array denotes sequential execution; multiple elements denote a parallel batch; an empty array denotes no task in flight."
+      "description": "Task IDs whose lifecycle state is implementing, reviewed, or verified (i.e. not yet terminated as passed/cancelled/escalated and not paused as blocked). A single-element array denotes sequential execution; multiple elements denote a parallel batch; an empty array denotes no open task in flight."
     },
     "created_at": {
       "type": "string",
