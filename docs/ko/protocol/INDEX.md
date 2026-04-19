@@ -11,7 +11,6 @@
 - `06_MEMORY.md` — shared memory, agent memory, memory update, retrieval, rollback
 - `07_DEBT_AND_GAP.md` — debts, gap, mission-level 부족분 정리
 - `08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md` — artifact, 경로, schema, owner 문서 연결
-- `09_ENFORCEMENT_CONFORMANCE_AND_METRICS.md` — enforcement, conformance, health signal, metrics
 
 ## 읽기 순서
 
@@ -37,4 +36,3 @@
 1. `03_TASK_LIFECYCLE_AND_EVIDENCE.md`
 2. `05_RUNTIME_STATE_AND_RECOVERY.md`
 3. `08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md`
-4. `09_ENFORCEMENT_CONFORMANCE_AND_METRICS.md`

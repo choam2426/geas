@@ -48,16 +48,6 @@ artifact를 읽을 때는 다음 순서를 따른다.
 | shared memory | `.geas/memory/shared.md` | markdown | doc 06 |
 | agent memory | `.geas/memory/agents/{agent}.md` | markdown | doc 06 |
 
-## Auxiliary Schemas
-
-아래 schema는 core owner 문서를 직접 대표하지는 않지만, runtime이나 enforcement를 보조하는 구조다.
-
-| schema | 역할 |
-|---|---|
-| `lock-manifest.schema.json` | 병렬 조율 구현체가 별도 lock 상태를 serialize할 때 쓰는 보조 schema |
-| `health-check.schema.json` | enforcement/observability 계층의 health signal 직렬화 (doc 09) |
-| `policy-override.schema.json` | 일시적 rule override 직렬화 (doc 09) |
-
 ## Canonical `.geas/` Layout
 
 ```text

@@ -58,7 +58,7 @@ src/
 
 docs/
 ├── protocol/                # English canonical (11 docs, pending sync to new structure)
-├── schemas/                 # 23 JSON Schema (draft 2020-12, self-contained, no external $ref)
+├── schemas/                 # 19 JSON Schema (draft 2020-12, self-contained, no external $ref)
 ├── architecture/DESIGN.md
 └── reference/               # AGENTS.md, SKILLS.md, HOOKS.md, DASHBOARD.md
 
@@ -117,7 +117,7 @@ Key CLI commands:
 
 ### Protocol quick reference
 
-Korean protocol is the current canonical structure (10 docs, 00–09). English protocol at `docs/protocol/` still follows the old 11-doc layout (00–10) and is pending sync.
+Korean protocol is the current canonical structure (9 docs, 00–08). English protocol at `docs/protocol/` still follows the older layout and is pending sync.
 
 | Topic | Korean | English (pending sync) |
 |-------|--------|-----------------------|
@@ -126,8 +126,7 @@ Korean protocol is the current canonical structure (10 docs, 00–09). English p
 | Missions, phases, final verdict | `ko/protocol/02` | `protocol/02`, `protocol/05` (partial) |
 | Task lifecycle, evidence, gate, closure | `ko/protocol/03` | `protocol/03`, `protocol/05` (partial) |
 | Baseline, workspace, parallelism | `ko/protocol/04` | `protocol/04` |
-| Runtime, checkpoints, recovery | `ko/protocol/05` | `protocol/06` |
-| Memory and rules | `ko/protocol/06` | `protocol/07` |
+| Runtime state, recovery | `ko/protocol/05` | `protocol/06` |
+| Memory | `ko/protocol/06` | `protocol/07` |
 | Debt and gap | `ko/protocol/07` | `protocol/08` |
 | Runtime artifacts, schemas, paths | `ko/protocol/08` | `protocol/09` |
-| Enforcement, conformance, metrics | `ko/protocol/09` | `protocol/10` |
