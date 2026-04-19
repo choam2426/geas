@@ -15,7 +15,7 @@ Debt와 gap은 비슷해 보여도 다르다. 둘을 분리해서 기록하고 f
 
 ## Debts
 
-정규 JSON artifact는 `.geas/missions/{mission_id}/consolidation/debts.json`이고, 정확한 구조는 `debts.schema.json`이 관리한다.
+정규 JSON artifact는 `.geas/missions/{mission_id}/consolidation/debts.json`이고, 정확한 구조는 `debts.schema.json`이 관리한다. Consolidating phase에서 Orchestrator가 작성한다. 모든 task의 evidence에 남은 `debt_candidates`와 이전 mission에서 넘어온 open debt를 함께 보고 공식 등록 여부를 판단한다.
 
 이 목록은 이번 mission의 consolidating phase가 공식 등록한 debt 항목을 담는다. 이전 mission에서 open 상태로 넘어온 carry-forward debt도 여기에 포함될 수 있다. 각 item은 다음을 담는다.
 
@@ -34,7 +34,7 @@ Debt와 gap은 비슷해 보여도 다르다. 둘을 분리해서 기록하고 f
 
 ## Gap
 
-정규 JSON artifact는 `.geas/missions/{mission_id}/consolidation/gap.json`이고, 정확한 구조는 `gap.schema.json`이 관리한다.
+정규 JSON artifact는 `.geas/missions/{mission_id}/consolidation/gap.json`이고, 정확한 구조는 `gap.schema.json`이 관리한다. Consolidating phase에서 Design Authority가 scope closure 판단의 산출물로 작성한다.
 
 Gap은 scope와 delivery 사이의 차이를 정리한다. Scope 요약은 mission spec 원문이 아니라 "실행 후 실제로 반영된 scope"를 서술한다. 실행 중 scope가 drift했다면 그 drift가 여기 드러난다.
 

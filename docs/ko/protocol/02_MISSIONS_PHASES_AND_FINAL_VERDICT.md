@@ -136,7 +136,7 @@ Polishing은 "예쁘게 마무리"하는 단계라기보다, 미션 수준에서
 
 **산출물**: gap, debts, memory 입력, mission final verdict, 마지막 phase review.
 
-**Slot별 책임**: Orchestrator가 종결 근거를 정리한다. Design Authority가 scope closure를 점검한다. Decision Maker가 mission final verdict를 내린다.
+**Slot별 책임**: Orchestrator가 종결 근거와 debts를 정리한다. Design Authority가 scope closure를 점검하고 gap을 작성한다. Decision Maker가 mission final verdict를 내린다.
 
 **Phase gate 확인 사항**: debt와 gap이 정리되었는지, 다음 작업으로 넘길 항목이 드러나는지, final verdict 판단 근거가 충분한지.
 
