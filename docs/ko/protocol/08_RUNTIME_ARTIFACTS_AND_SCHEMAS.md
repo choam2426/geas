@@ -37,8 +37,8 @@ artifact를 읽을 때는 다음 순서를 따른다.
 | memory update | `.geas/missions/{mission_id}/consolidation/memory-update.json` | `docs/schemas/memory-update.schema.json` | doc 06 |
 | shared memory | `.geas/memory/shared.md` | markdown | doc 06 |
 | agent memory | `.geas/memory/agents/{agent}.md` | markdown | doc 06 |
-| debt register | `.geas/missions/{mission_id}/consolidation/debt-register.json` | `docs/schemas/debt-register.schema.json` | doc 07 |
-| gap assessment | `.geas/missions/{mission_id}/consolidation/gap-assessment.json` | `docs/schemas/gap-assessment.schema.json` | doc 07 |
+| debts | `.geas/missions/{mission_id}/consolidation/debts.json` | `docs/schemas/debts.schema.json` | doc 07 |
+| gap | `.geas/missions/{mission_id}/consolidation/gap.json` | `docs/schemas/gap.schema.json` | doc 07 |
 
 ## Auxiliary Schemas
 
@@ -69,8 +69,8 @@ artifact를 읽을 때는 다음 순서를 따른다.
       *.json
     consolidation/
       memory-update.json
-      debt-register.json
-      gap-assessment.json
+      debts.json
+      gap.json
     tasks/{task_id}/
       contract.json
       implementation-contract.json

@@ -134,7 +134,7 @@ Polishing은 "예쁘게 마무리"하는 단계라기보다, 미션 수준에서
 
 **목적**: mission을 종결하기 전에 남길 것과 넘길 것을 확정한다.
 
-**산출물**: gap assessment, debt register, rules/memory 입력, mission final verdict, 마지막 phase review.
+**산출물**: gap, debts, memory 입력, mission final verdict, 마지막 phase review.
 
 **Slot별 책임**: Orchestrator가 종결 근거를 정리한다. Design Authority가 scope closure를 점검한다. Decision Maker가 mission final verdict를 내린다.
 
@@ -170,8 +170,8 @@ Mission final verdict는 다음 근거를 함께 본다.
 
 - 승인된 mission spec과 mission design
 - 마지막 phase review
-- gap assessment
-- debt register
+- gap
+- debts
 - carry-forward 항목
 - 필요하면 mission-level deliberation 기록
 

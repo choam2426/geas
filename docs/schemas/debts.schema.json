@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "DebtRegister",
-  "description": "Mission-level debt register. Captures outstanding burdens that this mission intentionally carries forward.",
+  "title": "Debts",
+  "description": "Mission-level list of outstanding burdens this mission intentionally carries forward. May also include open debt items carried over from prior missions.",
   "type": "object",
   "additionalProperties": false,
   "required": [

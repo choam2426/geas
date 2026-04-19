@@ -211,7 +211,7 @@ Self-check는 review를 대신하지 않는다. reviewer가 어디부터 볼지 
 
 ## Task-level Retrospective Signals
 
-Task는 자체적으로 rules, debt register, gap assessment를 확정하지 않는다. Task evidence는 "이 문제가 있었다"를 드러내는 신호만 남기고, "어떻게 처리할지"는 미션 종결 단계가 확정한다. 공식 rules/memory는 doc 06이, 공식 debt register와 gap assessment는 doc 07이 owner다.
+Task는 자체적으로 memory, debts, gap을 확정하지 않는다. Task evidence는 "이 문제가 있었다"를 드러내는 신호만 남기고, "어떻게 처리할지"는 consolidating phase가 확정한다. 공식 memory는 doc 06이, 공식 debts와 gap은 doc 07이 owner다.
 
 Task가 남기는 신호는 다음과 같다.
 

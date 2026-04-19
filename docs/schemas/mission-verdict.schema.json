@@ -42,10 +42,10 @@
         "last_phase_review": {
           "type": "string"
         },
-        "gap_assessment": {
+        "gap": {
           "type": "string"
         },
-        "debt_register": {
+        "debts": {
           "type": "string"
         },
         "deliberations": {

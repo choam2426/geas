@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "GapAssessment",
-  "description": "Mission-level assessment of the difference between committed scope and actual delivery. Narrative scope summaries describe the scope as actually reflected in delivery, which may drift from the original mission spec.",
+  "title": "Gap",
+  "description": "Mission-level record of the difference between committed scope and actual delivery. Narrative scope summaries describe the scope as actually reflected in delivery, which may drift from the original mission spec.",
   "type": "object",
   "additionalProperties": false,
   "required": [
