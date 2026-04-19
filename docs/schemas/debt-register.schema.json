@@ -1,21 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "DebtRegister",
+  "description": "Mission-level debt register. Captures outstanding burdens that this mission intentionally carries forward.",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "scope",
     "items"
   ],
   "properties": {
-    "scope": {
-      "type": "string",
-      "enum": [
-        "task",
-        "phase",
-        "mission"
-      ]
-    },
     "items": {
       "type": "array",
       "items": {
@@ -31,7 +23,8 @@
         ],
         "properties": {
           "debt_id": {
-            "type": "string"
+            "type": "string",
+            "description": "Stable identifier for this debt item."
           },
           "severity": {
             "type": "string",
@@ -55,23 +48,21 @@
             ]
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "introduced_by_task_id": {
-            "type": "string"
-          },
-          "owner_type": {
-            "type": "string"
+            "type": "string",
+            "description": "Task in which this debt was first observed."
           },
           "status": {
             "type": "string",
             "enum": [
               "open",
-              "accepted",
-              "scheduled",
               "resolved",
               "dropped"
             ]
@@ -82,69 +73,15 @@
               "polishing",
               "consolidating",
               "future"
-            ]
+            ],
+            "description": "Earliest phase in which this debt is expected to be revisited."
           }
         }
       }
     },
-    "rollup_by_severity": {
-      "type": "object",
-      "properties": {
-        "low": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "normal": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "high": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "critical": {
-          "type": "integer",
-          "minimum": 0
-        }
-      },
-      "additionalProperties": false
-    },
-    "rollup_by_kind": {
-      "type": "object",
-      "properties": {
-        "output_quality": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "verification_gap": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "structural": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "risk": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "process": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "documentation": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "operations": {
-          "type": "integer",
-          "minimum": 0
-        }
-      },
-      "additionalProperties": false
-    },
     "created_at": {
-      "type": "string"
+      "type": "string",
+      "format": "date-time"
     },
     "updated_at": {
       "type": "string",

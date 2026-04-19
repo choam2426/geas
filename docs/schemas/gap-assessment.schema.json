@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "GapAssessment",
+  "description": "Mission-level assessment of the difference between committed scope and actual delivery. Narrative scope summaries describe the scope as actually reflected in delivery, which may drift from the original mission spec.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -10,17 +11,18 @@
     "partially_delivered",
     "not_delivered",
     "intentional_cuts",
-    "unexpected_additions",
-    "recommended_followups"
+    "unexpected_additions"
   ],
   "properties": {
     "scope_in_summary": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "Summary of in-scope work as actually reflected in delivery."
     },
     "scope_out_summary": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "description": "Summary of out-of-scope work as actually reflected in delivery."
     },
     "fully_delivered": {
       "type": "array",
@@ -52,11 +54,13 @@
         "type": "string"
       }
     },
-    "recommended_followups": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
     }
   }
 }
