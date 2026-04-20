@@ -1,205 +1,220 @@
 ---
 name: intake
-description: Mission intake gate — collaborative exploration to freeze a mission spec. One question at a time, section-by-section approval.
+description: >
+  Specifying-phase mission intake — collaborative exploration that freezes
+  the mission spec and produces the initial task set. One question at a
+  time; section-by-section approval.
 ---
 
-# Intake Gate
+# Intake (specifying phase)
 
-Before any mission execution, run this gate to freeze the mission specification.
+You are driving the specifying phase of a Geas mission. The purpose is
+to turn a natural-language request into (1) an approved mission spec,
+(2) an approved mission design, and (3) an approved initial task set —
+then hand off to building.
 
-## Purpose
-
-Missions arrive as natural language with hidden assumptions, ambiguous scope, and implicit constraints. This gate surfaces those gaps through collaborative exploration and produces an immutable mission spec file (`.geas/missions/{mission_id}/spec.json`) before the team starts building.
-
-## Inputs
-
-- **Raw mission description** — natural language from the user describing what they want to build
-- **Project context** — existing codebase structure, `.geas/rules.md` conventions (if available)
-- **Domain profile hint** — user's indication of work type (software, research, etc.)
+Protocol reference: `docs/ko/protocol/02` §specifying. Schema reference:
+`docs/schemas/mission-spec.schema.json`.
 
 ---
 
-## Process
+## Operating principle
 
-### Step 1: Assess Scope
+Mission spec is immutable after the user approves it. Every question
+you ask should lead toward something the user will be willing to sign
+off on as a fixed contract. If you do not know, ask. Do not invent.
 
-Read the raw mission. Determine if it's too large for a single spec:
-- If the mission describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately
-- Propose decomposition: what are the independent pieces, how do they relate, what order to build?
-- Then brainstorm the first sub-project through the normal intake flow
+---
 
-### Step 2: Explore Requirements
+## Step 1 — Size the request
 
-Ask the user questions to surface hidden assumptions. Use the AskUserQuestion tool.
+Read the raw mission. Decide:
+
+- **Single mission?** If the request fits one mission spec, continue.
+- **Too large?** If the user is describing multiple independent
+  subsystems, say so. Propose a decomposition (what is one mission,
+  what is another, which order). Then run this intake for the first
+  mission.
+
+---
+
+## Step 2 — Pick the operating mode (mandatory)
+
+Ask the user explicitly. Do not infer. The three modes in protocol 02
+are:
+
+| mode          | use when                                                          |
+|---|---|
+| `lightweight` | scope is clear, existing patterns apply, low risk                 |
+| `standard`    | moderate scope, some architectural choices, normal risk (default) |
+| `full_depth`  | multiple viable approaches, cross-module impact, or high risk     |
+
+Recommend one based on what you can read off the request, explain why,
+and ask.
+
+---
+
+## Step 3 — Explore requirements, one question at a time
+
+Use the AskUserQuestion tool with single-select options whenever you
+can. The checklist to cover:
+
+1. Scope boundary — what is in, what is out
+2. Target user / consumer of the outcome
+3. Definition of done — the one-sentence success criterion
+4. Acceptance criteria — at least three observable, falsifiable items
+   derived from definition of done
+5. Constraints — technical, business, or temporal
+6. Affected surfaces — existing files, systems, contracts this will
+   touch
+7. Risks — things the user can already see that could go wrong
 
 Rules:
-- **One question at a time** — do not batch questions
-- **Multiple choice preferred** — easier for the user than open-ended
-- **Target unchecked items only** — track a mental checklist: mission, acceptance_criteria, scope_out, target_user, constraints. Only ask about items not yet addressed.
-- Never ask questions whose answers are obvious from the mission text
-- Stop when all checklist items are satisfied — no fixed question limit
+- One question at a time. Do not batch.
+- Prefer multiple-choice over open-ended. Multiple-choice lowers the
+  user's load and gives you cleaner answers.
+- Skip items that are unambiguous in the raw request.
+- Stop when every checklist item is settled.
+- If the user says "just build it", respect that: fill best-effort
+  values, note the spec as intake-skipped in its description, and move
+  on.
 
-Question categories:
-1. **Domain profile** (optional hint): "What type of work is this?" (software development / research / mixed / other). Sets default agent preferences but does not restrict agent selection — the orchestrator picks the best agent per task regardless of profile.
-2. **Mission mode** (MANDATORY — must always be asked): Present the three mode options with a recommendation based on scope assessment:
-   - **lightweight**: Clear scope, existing patterns apply, low ambiguity. Fastest execution.
-   - **standard**: Moderate scope, some architectural decisions, normal risk. Balanced depth.
-   - **full_depth**: Multiple valid approaches, cross-module impact, or significant risk. Maximum rigor, includes vote round.
-   Recommend one based on what you know so far. Example: "Based on the scope, I recommend **standard** mode. Which mode would you like?"
-   This question must not be skipped or inferred — always ask explicitly.
-3. **Scope boundary**: "You mentioned X — does that include Y?" (with options)
-4. **User definition**: "Who primarily uses this?" (with persona options)
-5. **Constraint surfacing**: "Any tech stack or platform preferences?" (with common options)
-6. **Success criteria**: "How will you know this is done? What must work on day one?"
-7. **Anti-scope**: "What should this explicitly NOT do?" (with related-but-excluded options)
-8. **Risk surfacing**: "What could go wrong? Any areas of uncertainty?"
-9. **Affected surfaces**: "What existing areas/files/systems will this touch?"
+---
 
-If the user says "just build it" at any point — respect that, set `readiness_override: true`, fill best-effort values for unchecked items, and proceed.
+## Step 4 — Approve section by section
 
-### Step 3: Propose Approaches
+Before writing the spec, get the user's explicit OK on each section.
+Present one at a time:
 
-When requirements are clear enough, present 2-3 scope/approach options:
-- Lead with the recommended option and explain why
-- Include trade-offs for each
-- Example format:
-  ```
-  Option A (recommended): CLI-only with SQLite — simple, fast, self-contained
-  Option B: CLI + REST API — extensible but more complexity
-  Option C: TUI with ratatui — richer UX but harder to test
-  ```
-- Let the user choose direction before finalizing the mission spec
+1. "Name: `{…}`. Does this capture the mission?"
+2. "Description: `{…}`. Sound right?"
+3. "Scope — in: `[…]`, out: `[…]`. Any changes?"
+4. "Definition of done: `{…}`. Correct?"
+5. "Acceptance criteria: `[…]`. Anything missing or to remove?"
+6. "Constraints: `[…]`. Confirmed?"
+7. "Risks: `[…]`. Seeing any others?"
 
-### Step 4: Build Mission Spec Section by Section
+When all sections are approved, move to the CLI call.
 
-Present each section to the user and get explicit approval before moving on:
+---
 
-1. **Mission**: "Mission: '{refined mission statement}'. Does this capture your intent?"
-2. **Scope IN**: "These features are IN scope: [list]. Correct?"
-3. **Scope OUT**: "These are explicitly OUT of scope: [list]. Anything to add or remove?"
-4. **Acceptance Criteria**: "Done when: [numbered list]. These are the success criteria. Correct?"
-5. **Target User**: "Primary user: '{persona}'. Correct?"
-6. **Constraints**: "Constraints: [list]. Anything else?"
+## Step 5 — Create the mission spec
 
-As each section is approved, mark it in the completeness checklist.
+Build a JSON payload that matches `mission-spec.schema.json`:
 
-### Step 5: Verify Completeness and Freeze Mission Spec
+```json
+{
+  "name": "<approved name>",
+  "description": "<approved description>",
+  "mode": "<lightweight|standard|full_depth>",
+  "definition_of_done": "<one sentence>",
+  "scope": { "in": ["..."], "out": ["..."] },
+  "acceptance_criteria": ["...", "...", "..."],
+  "constraints": ["..."],
+  "affected_surfaces": ["..."],
+  "risks": ["..."]
+}
+```
 
-Check the completeness checklist — all items must be true:
-- `mission`: approved
-- `domain_profile`: selected or omitted (optional — sets default agent preferences)
-- `mode`: selected (lightweight / standard / full_depth)
-- `done_when`: approved (one-sentence success definition)
-- `acceptance_criteria`: approved (>= 3 items)
-- `scope_in`: approved (>= 1 item)
-- `scope_out`: approved (>= 1 item)
-- `target_user`: approved
-- `constraints`: approved
-- `affected_surfaces`: identified
+The CLI injects `id`, `user_approved: false`, `created_at`, and
+`updated_at`. Do not set them.
 
-Create the mission directory structure. The CLI auto-generates the mission ID and returns it:
+Run:
+
 ```bash
-Bash("geas mission create")
+geas mission create <<'EOF'
+{ ... }
+EOF
 ```
-The response includes `mission_id` (e.g., `mission-20260407-x7Kq9mPv`). Use this ID for all subsequent commands.
 
-Write the mission spec via CLI with schema validation:
+The response contains the generated `mission_id`. Use it for every
+following command.
+
+Show the user a single summary block of what was written (name, mode,
+scope in/out, DoD, acceptance criteria) and ask for one final
+confirmation. When they agree:
+
 ```bash
-Bash("geas mission write-spec --id {mission_id} <<'EOF'\n<spec_json>\nEOF")
-```
-The CLI validates the spec against the schema automatically. Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `created_at`) are auto-injected by the CLI — agents do not need to provide them. Run `geas schema template mission-spec` for the full template with all required content fields.
-
-**Mission-spec schema fields (exact names required):**
-- `scope`: nested object with `in` (string array) and `out` (string array) — NOT flat `scope_in`/`scope_out`
-- `risk_notes`: string array (not `risks`)
-- `affected_surfaces`: string array, top-level (not inside `scope`)
-- `constraints`, `assumptions`, `ambiguities`: string arrays
-
-Always include the `source` field:
-- `"full_intake"` — complete Socratic exploration with user
-- `"quick_intake"` — user skipped detailed intake
-- `"existing_project"` — auto-generated for existing project onboarding
-
-Show the user a detailed mission briefing:
-```
-═══════════════════════════════════════════════════
-  MISSION SPEC — {mission_id}
-═══════════════════════════════════════════════════
-
-  Mission:        <refined mission statement>
-  Done when:      <one-sentence success definition>
-  Domain:         <domain_profile>
-  Mode:           <lightweight | standard | full_depth>
-  Target user:    <who>
-
-─── SCOPE ─────────────────────────────────────────
-
-  IN:
-    • <feature/capability 1>
-    • <feature/capability 2>
-    • ...
-
-  OUT:
-    • <explicitly excluded 1>
-    • <explicitly excluded 2>
-    • ...
-
-─── ACCEPTANCE CRITERIA ───────────────────────────
-
-    1. <observable, falsifiable criterion>
-    2. <observable, falsifiable criterion>
-    3. <observable, falsifiable criterion>
-    ...
-
-─── CONSTRAINTS ───────────────────────────────────
-
-    • <technical or business constraint>
-    • ...
-
-─── AFFECTED SURFACES ─────────────────────────────
-
-    • <area/path/system expected to be touched>
-    • ...
-
-─── RISK NOTES ────────────────────────────────────
-
-    • <initial risk observation>
-    • ...
-    (none identified = "No significant risks identified at intake")
-
-─── ASSUMPTIONS ───────────────────────────────────
-
-    • <confirmed assumption>
-    • ...
-
-─── AMBIGUITIES ───────────────────────────────────
-
-    • <deferred ambiguity + rationale>
-    • ...
-    (none = "All ambiguities resolved during intake")
-
-═══════════════════════════════════════════════════
+geas mission approve --mission <mission_id>
 ```
 
-Ask: "Does this capture your intent? Any changes before we start?"
-If confirmed → mission spec is frozen. Proceed to execution.
-If changes → update and re-confirm.
+After this call, the mission spec is immutable.
 
-## Lightweight Variant
+---
 
-For lightweight missions (adding a feature to an existing project):
-1. Skip Step 3 (approach proposals) — the approach is constrained by existing codebase
-2. Step 2 limited to 1-2 questions focused on:
-   - What exactly does this feature do?
-   - What existing code does it touch?
-   - What should NOT change?
-3. Produce a lighter mission spec with emphasis on scope_in (the specific feature), scope_out (existing functionality that must not change), and constraints (existing tech stack)
+## Step 6 — Mission design
 
-## Output
+The mission design (`mission-design.md`) is written next. For
+`lightweight`, write it yourself (orchestrator = design-authority is
+acceptable in this mode). For `standard` / `full_depth`, spawn the
+`design-authority` sub-agent (`plugin/agents/authority/design-authority.md`)
+with the approved mission spec as input.
 
-- **Every mission** produces `.geas/missions/{mission_id}/spec.json` — both new and existing projects.
-- **New product**: full intake → `.geas/missions/{mission_id}/spec.json` with `source: "full_intake"`
-- **Existing project (first geas usage)**: minimal intake → `.geas/missions/{mission_id}/spec.json` with `source: "existing_project"`
-- **Existing project (subsequent missions)**: lightweight intake → `.geas/missions/{mission_id}/spec.json` with `source: "quick_intake"` or `"full_intake"`
-- **Format**: JSON validated by the CLI automatically
-- **Immutability**: Once confirmed, the mission spec should not be modified during execution. If scope must change, trigger a vote round for scope change instead.
+The design must contain every required section listed in protocol 02
+(Strategy, Architecture & Integration, Task Breakdown Rationale,
+Verification Plan, Key Design Decisions, Assumptions, Unknowns, Risks,
+Failure Modes, Migration / Rollout). Sections that do not apply say
+`해당 없음 ({reason})`.
+
+Mode-specific review chain before user approval:
+- `lightweight`: straight to user approval.
+- `standard`: decision-maker review, then user approval.
+- `full_depth`: decision-maker + challenger + 1 specialist
+  deliberation (mission-level), then user approval.
+
+The CLI commands for deliberation arrive with G4. For now, capture the
+decision-maker / challenger review as conversation that the user
+explicitly signs off on.
+
+---
+
+## Step 7 — Initial task set
+
+Write the initial task-contract files under
+`.geas/missions/{mission_id}/tasks/{task_id}/contract.json` (G3 ships
+the task-compiler skill that automates this). The approval chain is
+the same as mission design — decision-maker reviews for `standard`,
+deliberation for `full_depth`, then user approval.
+
+Each approved task contract has `approved_by` set. That is the gate
+condition the phase advance checks.
+
+---
+
+## Step 8 — Close specifying
+
+When mission spec is approved + mission design approved + at least one
+approved task contract exists:
+
+1. Append a phase-review:
+
+   ```bash
+   geas phase-review append --mission <mission_id> <<'EOF'
+   {
+     "mission_phase": "specifying",
+     "status": "passed",
+     "summary": "...",
+     "next_phase": "building"
+   }
+   EOF
+   ```
+
+2. Advance the phase:
+
+   ```bash
+   geas mission-state update --mission <mission_id> --phase building
+   ```
+
+Return control to the mission skill.
+
+---
+
+## Notes
+
+- The CLI validates every payload against its schema. If it rejects,
+  the hint tells you which field is off. Fix and retry; do not
+  bypass.
+- Intake artefacts (spec, state, empty wrappers) live under
+  `.geas/missions/{mission_id}/`. The CLI creates the directory and
+  wrappers on `mission create`.
+- You never write directly to `.geas/`. Always go through the CLI.
