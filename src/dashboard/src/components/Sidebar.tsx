@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { RefreshCw, X, AlertTriangle, AlertCircle, Plus, History, ChevronsLeft, ChevronsRight } from "lucide-react";
+import * as geas from "../lib/geasClient";
 import type { ProjectSummary } from "../types";
 import { phaseColors } from "../colors";
 import PhaseBadge from "./PhaseBadge";
@@ -67,7 +67,8 @@ export default function Sidebar({
   function handleRemove(e: React.MouseEvent, path: string, name: string) {
     e.stopPropagation();
     if (window.confirm(`Remove "${name}" from the dashboard?`)) {
-      invoke("remove_project", { path })
+      geas
+        .removeProject(path)
         .then(() => onRemoveProject(path))
         .catch((err) => console.error("Failed to remove project:", err));
     }

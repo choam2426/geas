@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import * as geas from "../lib/geasClient";
 import { ArrowLeft, Archive, Clock, FileText } from "lucide-react";
 import type { MissionSummary } from "../types";
 import PhaseBadge from "./PhaseBadge";
@@ -33,9 +33,7 @@ export default function MissionHistory({
       setLoading(true);
       setError(null);
       try {
-        const result = await invoke<MissionSummary[]>("get_mission_history", {
-          path: projectPath,
-        });
+        const result = await geas.getMissionHistory(projectPath);
         if (!cancelled) {
           setMissions(result);
         }

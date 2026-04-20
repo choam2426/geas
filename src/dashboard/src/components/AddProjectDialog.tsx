@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import * as geas from "../lib/geasClient";
 import type { ProjectEntry } from "../types";
 
 interface AddProjectDialogProps {
@@ -32,9 +32,7 @@ export default function AddProjectDialog({
     setError(null);
     setSubmitting(true);
     try {
-      const entry = await invoke<ProjectEntry>("add_project", {
-        path: trimmed,
-      });
+      const entry = await geas.addProject(trimmed);
       onAdded(entry);
     } catch (err) {
       setError(String(err));
