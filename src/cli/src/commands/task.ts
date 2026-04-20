@@ -43,6 +43,7 @@ import {
   missionStatePath,
   selfCheckPath,
   taskContractPath,
+  taskDeliberationsPath,
   taskDir,
   taskStatePath,
   tasksDir,
@@ -221,6 +222,23 @@ function registerTaskDraft(task: Command): void {
         state,
         tmpDir(root),
       );
+
+      // Initialise empty task-level deliberations wrapper per CLI.md §14.1.
+      const delibPath = taskDeliberationsPath(root, opts.mission, taskId);
+      if (!exists(delibPath)) {
+        atomicWriteJson(
+          delibPath,
+          {
+            mission_id: opts.mission,
+            task_id: taskId,
+            level: 'task',
+            entries: [],
+            created_at: ts,
+            updated_at: ts,
+          },
+          tmpDir(root),
+        );
+      }
 
       recordEvent(root, {
         kind: 'task_drafted',

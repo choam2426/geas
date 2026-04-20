@@ -12143,6 +12143,21 @@ function registerTaskDraft(task) {
       state,
       tmpDir(root)
     );
+    const delibPath = taskDeliberationsPath(root, opts.mission, taskId);
+    if (!exists(delibPath)) {
+      atomicWriteJson(
+        delibPath,
+        {
+          mission_id: opts.mission,
+          task_id: taskId,
+          level: "task",
+          entries: [],
+          created_at: ts,
+          updated_at: ts
+        },
+        tmpDir(root)
+      );
+    }
     recordEvent(root, {
       kind: "task_drafted",
       actor: "cli:auto",
