@@ -42,3 +42,30 @@ export function readStdinJson(): unknown {
     throw new StdinError(`invalid JSON on stdin: ${msg}`);
   }
 }
+
+/**
+ * Read raw UTF-8 text from stdin, preserving whitespace and newlines.
+ * Strips a leading BOM if present. Throws StdinError if stdin is
+ * interactive or the payload is empty after BOM removal.
+ *
+ * Used by write commands whose payload is free-form markdown (e.g.
+ * `geas memory shared-set`, `geas memory agent-set`) rather than JSON.
+ * Content is written to disk byte-equivalent to the input (no trim).
+ */
+export function readStdinText(): string {
+  if (process.stdin.isTTY === true) {
+    throw new StdinError('stdin is an interactive terminal (no content provided)');
+  }
+  let raw: string;
+  try {
+    raw = fs.readFileSync(0, 'utf-8');
+  } catch (err) {
+    const e = err as NodeJS.ErrnoException;
+    throw new StdinError(`failed to read stdin: ${e.code ?? 'unknown'}`);
+  }
+  if (raw.charCodeAt(0) === 0xfeff) raw = raw.slice(1);
+  if (raw.length === 0) {
+    throw new StdinError('stdin was empty');
+  }
+  return raw;
+}

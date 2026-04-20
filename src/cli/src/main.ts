@@ -3,7 +3,7 @@
  *
  * G1 ships the foundation command set: setup, context, schema, state.
  * G2 adds mission; G3 adds task; G4 adds evidence / self-check /
- * deliberation / gate.
+ * deliberation / gate; G5 adds memory (shared.md + agents/{type}.md).
  *
  * This module is pure wiring — no business logic lives here.
  */
@@ -19,8 +19,9 @@ import { registerEvidenceCommands } from './commands/evidence';
 import { registerSelfCheckCommands } from './commands/self-check';
 import { registerDeliberationCommands } from './commands/deliberation';
 import { registerGateCommands } from './commands/gate';
+import { registerMemoryCommands } from './commands/memory';
 
-const VERSION = '0.9.0';
+const VERSION = '0.10.0';
 
 export function run(): void {
   const program = new Command();
@@ -40,6 +41,7 @@ export function run(): void {
   registerSelfCheckCommands(program);
   registerDeliberationCommands(program);
   registerGateCommands(program);
+  registerMemoryCommands(program);
 
   program.parse(process.argv);
 }

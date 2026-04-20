@@ -959,7 +959,7 @@ var require_command = __commonJS({
   "node_modules/commander/lib/command.js"(exports2) {
     var EventEmitter = require("node:events").EventEmitter;
     var childProcess = require("node:child_process");
-    var path11 = require("node:path");
+    var path12 = require("node:path");
     var fs8 = require("node:fs");
     var process2 = require("node:process");
     var { Argument: Argument2, humanReadableArgName } = require_argument();
@@ -1892,9 +1892,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
         let launchWithNode = false;
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
         function findFile(baseDir, baseName) {
-          const localBin = path11.resolve(baseDir, baseName);
+          const localBin = path12.resolve(baseDir, baseName);
           if (fs8.existsSync(localBin)) return localBin;
-          if (sourceExt.includes(path11.extname(baseName))) return void 0;
+          if (sourceExt.includes(path12.extname(baseName))) return void 0;
           const foundExt = sourceExt.find(
             (ext) => fs8.existsSync(`${localBin}${ext}`)
           );
@@ -1912,17 +1912,17 @@ Expecting one of '${allowedValues.join("', '")}'`);
           } catch (err2) {
             resolvedScriptPath = this._scriptPath;
           }
-          executableDir = path11.resolve(
-            path11.dirname(resolvedScriptPath),
+          executableDir = path12.resolve(
+            path12.dirname(resolvedScriptPath),
             executableDir
           );
         }
         if (executableDir) {
           let localFile = findFile(executableDir, executableFile);
           if (!localFile && !subcommand._executableFile && this._scriptPath) {
-            const legacyName = path11.basename(
+            const legacyName = path12.basename(
               this._scriptPath,
-              path11.extname(this._scriptPath)
+              path12.extname(this._scriptPath)
             );
             if (legacyName !== this._name) {
               localFile = findFile(
@@ -1933,7 +1933,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
           }
           executableFile = localFile || executableFile;
         }
-        launchWithNode = sourceExt.includes(path11.extname(executableFile));
+        launchWithNode = sourceExt.includes(path12.extname(executableFile));
         let proc;
         if (process2.platform !== "win32") {
           if (launchWithNode) {
@@ -2773,7 +2773,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @return {Command}
        */
       nameFromFilename(filename) {
-        this._name = path11.basename(filename, path11.extname(filename));
+        this._name = path12.basename(filename, path12.extname(filename));
         return this;
       }
       /**
@@ -2787,9 +2787,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @param {string} [path]
        * @return {(string|null|Command)}
        */
-      executableDir(path12) {
-        if (path12 === void 0) return this._executableDir;
-        this._executableDir = path12;
+      executableDir(path13) {
+        if (path13 === void 0) return this._executableDir;
+        this._executableDir = path13;
         return this;
       }
       /**
@@ -6212,8 +6212,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path11) {
-      let input = path11;
+    function removeDotSegments(path12) {
+      let input = path12;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -6412,8 +6412,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path11, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path11 && path11 !== "/" ? path11 : void 0;
+        const [path12, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path12 && path12 !== "/" ? path12 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -6578,49 +6578,49 @@ var require_fast_uri = __commonJS({
       schemelessOptions.skipEscape = true;
       return serialize(resolved, schemelessOptions);
     }
-    function resolveComponent(base, relative8, options, skipNormalization) {
+    function resolveComponent(base, relative9, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
         base = parse(serialize(base, options), options);
-        relative8 = parse(serialize(relative8, options), options);
+        relative9 = parse(serialize(relative9, options), options);
       }
       options = options || {};
-      if (!options.tolerant && relative8.scheme) {
-        target.scheme = relative8.scheme;
-        target.userinfo = relative8.userinfo;
-        target.host = relative8.host;
-        target.port = relative8.port;
-        target.path = removeDotSegments(relative8.path || "");
-        target.query = relative8.query;
+      if (!options.tolerant && relative9.scheme) {
+        target.scheme = relative9.scheme;
+        target.userinfo = relative9.userinfo;
+        target.host = relative9.host;
+        target.port = relative9.port;
+        target.path = removeDotSegments(relative9.path || "");
+        target.query = relative9.query;
       } else {
-        if (relative8.userinfo !== void 0 || relative8.host !== void 0 || relative8.port !== void 0) {
-          target.userinfo = relative8.userinfo;
-          target.host = relative8.host;
-          target.port = relative8.port;
-          target.path = removeDotSegments(relative8.path || "");
-          target.query = relative8.query;
+        if (relative9.userinfo !== void 0 || relative9.host !== void 0 || relative9.port !== void 0) {
+          target.userinfo = relative9.userinfo;
+          target.host = relative9.host;
+          target.port = relative9.port;
+          target.path = removeDotSegments(relative9.path || "");
+          target.query = relative9.query;
         } else {
-          if (!relative8.path) {
+          if (!relative9.path) {
             target.path = base.path;
-            if (relative8.query !== void 0) {
-              target.query = relative8.query;
+            if (relative9.query !== void 0) {
+              target.query = relative9.query;
             } else {
               target.query = base.query;
             }
           } else {
-            if (relative8.path[0] === "/") {
-              target.path = removeDotSegments(relative8.path);
+            if (relative9.path[0] === "/") {
+              target.path = removeDotSegments(relative9.path);
             } else {
               if ((base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0) && !base.path) {
-                target.path = "/" + relative8.path;
+                target.path = "/" + relative9.path;
               } else if (!base.path) {
-                target.path = relative8.path;
+                target.path = relative9.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative8.path;
+                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative9.path;
               }
               target.path = removeDotSegments(target.path);
             }
-            target.query = relative8.query;
+            target.query = relative9.query;
           }
           target.userinfo = base.userinfo;
           target.host = base.host;
@@ -6628,7 +6628,7 @@ var require_fast_uri = __commonJS({
         }
         target.scheme = base.scheme;
       }
-      target.fragment = relative8.fragment;
+      target.fragment = relative9.fragment;
       return target;
     }
     function equal(uriA, uriB, options) {
@@ -10752,6 +10752,9 @@ function sharedMemoryPath(projectRoot) {
 function agentsMemoryDir(projectRoot) {
   return path2.join(memoryDir(projectRoot), "agents");
 }
+function agentMemoryPath(projectRoot, agent) {
+  return path2.join(agentsMemoryDir(projectRoot), `${agent}.md`);
+}
 function missionsDir(projectRoot) {
   return path2.join(geasDir(projectRoot), "missions");
 }
@@ -11052,6 +11055,23 @@ function readStdinJson() {
     const msg = e instanceof Error ? e.message : String(e);
     throw new StdinError(`invalid JSON on stdin: ${msg}`);
   }
+}
+function readStdinText() {
+  if (process.stdin.isTTY === true) {
+    throw new StdinError("stdin is an interactive terminal (no content provided)");
+  }
+  let raw;
+  try {
+    raw = fs4.readFileSync(0, "utf-8");
+  } catch (err2) {
+    const e = err2;
+    throw new StdinError(`failed to read stdin: ${e.code ?? "unknown"}`);
+  }
+  if (raw.charCodeAt(0) === 65279) raw = raw.slice(1);
+  if (raw.length === 0) {
+    throw new StdinError("stdin was empty");
+  }
+  return raw;
 }
 
 // src/lib/schema.ts
@@ -13207,8 +13227,126 @@ function registerGateCommands(program2) {
   registerGateRun(g);
 }
 
+// src/commands/memory.ts
+var path11 = __toESM(require("path"));
+function slashPath7(p) {
+  return p.replace(/\\/g, "/");
+}
+function needProjectRoot8() {
+  const root = findProjectRoot(process.cwd());
+  if (!root) {
+    emit(
+      err(
+        "missing_artifact",
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+      )
+    );
+  }
+  return root;
+}
+var SLOT_IDS = /* @__PURE__ */ new Set([
+  "orchestrator",
+  "decision-maker",
+  "design-authority",
+  "challenger",
+  "implementer",
+  "verifier",
+  "risk-assessor",
+  "operator",
+  "communicator"
+]);
+function readContentFromStdin() {
+  try {
+    return readStdinText();
+  } catch (e) {
+    if (e instanceof StdinError) {
+      emit(err("invalid_argument", e.message));
+    }
+    throw e;
+  }
+}
+function registerSharedSet(mem) {
+  mem.command("shared-set").description(
+    "Replace `.geas/memory/shared.md` with markdown read from stdin (atomic write)."
+  ).action(() => {
+    const root = needProjectRoot8();
+    const content = readContentFromStdin();
+    const targetPath = sharedMemoryPath(root);
+    atomicWrite(targetPath, content, tmpDir(root));
+    recordEvent(root, {
+      kind: "memory_shared_set",
+      actor: "cli:auto",
+      payload: {
+        artifact: slashPath7(path11.relative(root, targetPath)),
+        bytes: Buffer.byteLength(content, "utf-8")
+      }
+    });
+    emit(
+      ok({
+        path: slashPath7(targetPath),
+        scope: "shared",
+        bytes: Buffer.byteLength(content, "utf-8")
+      })
+    );
+  });
+}
+function registerAgentSet(mem) {
+  mem.command("agent-set").description(
+    "Replace `.geas/memory/agents/{agent}.md` with markdown read from stdin. `--agent` must be a concrete agent type (kebab-case), not a slot id."
+  ).requiredOption(
+    "--agent <agent_type>",
+    "Concrete agent type (kebab-case). Slot ids (implementer, verifier, challenger, decision-maker, design-authority, orchestrator, risk-assessor, operator, communicator) are rejected."
+  ).action((opts) => {
+    const agent = opts.agent;
+    if (!isValidAgentOrSlot(agent)) {
+      emit(
+        err(
+          "invalid_argument",
+          `invalid --agent '${agent}' (expected kebab-case: ${"^[a-z0-9][a-z0-9-]*$"})`
+        )
+      );
+    }
+    if (SLOT_IDS.has(agent)) {
+      emit(
+        err(
+          "invalid_argument",
+          `--agent '${agent}' names a protocol slot, not a concrete agent type. Agent memory is namespaced by concrete agent type (protocol 06 \xA7Agent Memory). For authority slots where the slot and the concrete type happen to share a name, pass the concrete type explicitly.`,
+          { slot_ids: [...SLOT_IDS] }
+        )
+      );
+    }
+    const root = needProjectRoot8();
+    const content = readContentFromStdin();
+    ensureDir(agentsMemoryDir(root));
+    const targetPath = agentMemoryPath(root, agent);
+    atomicWrite(targetPath, content, tmpDir(root));
+    recordEvent(root, {
+      kind: "memory_agent_set",
+      actor: "cli:auto",
+      payload: {
+        artifact: slashPath7(path11.relative(root, targetPath)),
+        agent,
+        bytes: Buffer.byteLength(content, "utf-8")
+      }
+    });
+    emit(
+      ok({
+        path: slashPath7(targetPath),
+        scope: "agent",
+        agent,
+        bytes: Buffer.byteLength(content, "utf-8")
+      })
+    );
+  });
+}
+function registerMemoryCommands(program2) {
+  const mem = program2.command("memory").description("Memory markdown writers (shared.md and agents/{type}.md).");
+  registerSharedSet(mem);
+  registerAgentSet(mem);
+}
+
 // src/main.ts
-var VERSION = "0.9.0";
+var VERSION = "0.10.0";
 function run() {
   const program2 = new Command();
   program2.name("geas").description("Geas CLI \u2014 atomic actuator for .geas/ runtime artifacts").version(VERSION);
@@ -13222,6 +13360,7 @@ function run() {
   registerSelfCheckCommands(program2);
   registerDeliberationCommands(program2);
   registerGateCommands(program2);
+  registerMemoryCommands(program2);
   program2.parse(process.argv);
 }
 
