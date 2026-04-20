@@ -1,127 +1,291 @@
 /**
- * Path normalization and resolution for the Geas CLI.
- * Every path that enters the CLI gets normalized here.
+ * Centralized `.geas/` path builders.
  *
- * Windows backslashes are converted to forward slashes for consistency.
- * Paths are always resolved to absolute before use.
+ * All on-disk paths used by the CLI are computed here. Paths match the
+ * registry in `docs/ko/protocol/08` (Runtime Artifacts and Schemas) and
+ * the `.geas/` tree described in `docs/ko/architecture/CLI.md`.
+ *
+ * Layout (relative to the project root that contains `.geas/`):
+ *
+ *   .geas/
+ *     config.json
+ *     debts.json
+ *     events.jsonl
+ *     candidates.json
+ *     memory/
+ *       shared.md
+ *       agents/
+ *         {agent}.md
+ *     missions/
+ *       {mission_id}/
+ *         spec.json
+ *         mission-design.md
+ *         mission-state.json
+ *         phase-reviews.json
+ *         mission-verdicts.json
+ *         deliberations.json
+ *         consolidation/
+ *           candidates.json
+ *           gap.json
+ *           memory-update.json
+ *         tasks/
+ *           {task_id}/
+ *             contract.json
+ *             task-state.json
+ *             implementation-contract.json
+ *             self-check.json
+ *             deliberations.json
+ *             gate-results.json
+ *             evidence/
+ *               {agent}.{slot}.json
+ *     .tmp/
+ *       (used by fs-atomic)
+ *
+ * This module only assembles paths; it does NOT enforce existence.
  */
 
 import * as path from 'path';
 import * as fs from 'fs';
-import { execSync } from 'child_process';
 
 /**
- * Normalize a path: resolve to absolute, convert backslashes to forward slashes.
+ * Normalize a path to absolute + forward-slash form.
+ * Used by callers that format paths for JSON output or logs.
  */
 export function normalizePath(p: string): string {
   return path.resolve(p).replace(/\\/g, '/');
 }
 
 /**
- * Resolve the .geas/ directory.
+ * Resolve `.geas/` from a project root. The root must be the directory
+ * that contains `.geas/`. This module does NOT walk parents; callers
+ * decide where the project root is (typically process.cwd()).
  *
- * Always resolves to the MAIN repository's .geas/, never a worktree copy.
- * Uses `git rev-parse --git-common-dir` to find the main repo root,
- * which works correctly in both worktrees and the main checkout.
- *
- * Resolution order:
- * 1. Find main repo root via git (--git-common-dir parent)
- * 2. Check {main_repo_root}/.geas/
- * 3. Fallback: check cwd/.geas/ (for non-git usage or --cwd override)
- * 4. If still not found, throw error
+ * @param projectRoot - Absolute path to the directory that contains `.geas/`.
+ * @returns Absolute path to `.geas/` (not verified to exist).
  */
-export function resolveGeasDir(cwd?: string): string {
-  const base = cwd ?? process.cwd();
-
-  // 1. Find main repo root via git
-  try {
-    const gitCommonDir = execSync('git rev-parse --git-common-dir', {
-      cwd: base,
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    }).trim();
-
-    // --git-common-dir returns the path to the shared .git directory.
-    // The main repo root is its parent.
-    const mainRepoRoot = path.resolve(base, gitCommonDir, '..');
-    const gitBased = path.resolve(mainRepoRoot, '.geas');
-    if (fs.existsSync(gitBased)) {
-      return normalizePath(gitBased);
-    }
-  } catch {
-    // Not in a git repo — fall through to direct check
-  }
-
-  // 2. Fallback: direct check (non-git or --cwd override)
-  const direct = path.resolve(base, '.geas');
-  if (fs.existsSync(direct)) {
-    return normalizePath(direct);
-  }
-
-  const err = new Error(
-    `.geas/ directory not found at ${normalizePath(direct)} (also checked git main repo root)`
-  );
-  (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
-  throw err;
+export function geasDir(projectRoot: string): string {
+  return path.join(projectRoot, '.geas');
 }
 
 /**
- * Resolve a mission directory: .geas/missions/<missionId>/
- * Verifies the directory exists.
- *
- * @throws Error with FILE_ERROR code if mission directory does not exist.
+ * Resolve the project root by looking for `.geas/` at the given cwd.
+ * Does NOT walk parents. Returns null if `.geas/` is not present.
  */
-export function resolveMissionDir(
-  geasDir: string,
-  missionId: string
+export function findProjectRoot(cwd: string): string | null {
+  const candidate = path.join(cwd, '.geas');
+  return fs.existsSync(candidate) ? cwd : null;
+}
+
+// ── Top-level project artifacts ────────────────────────────────────────
+
+export function configPath(projectRoot: string): string {
+  return path.join(geasDir(projectRoot), 'config.json');
+}
+
+export function debtsPath(projectRoot: string): string {
+  return path.join(geasDir(projectRoot), 'debts.json');
+}
+
+export function eventsPath(projectRoot: string): string {
+  return path.join(geasDir(projectRoot), 'events.jsonl');
+}
+
+export function candidatesPath(projectRoot: string): string {
+  return path.join(geasDir(projectRoot), 'candidates.json');
+}
+
+export function tmpDir(projectRoot: string): string {
+  return path.join(geasDir(projectRoot), '.tmp');
+}
+
+// ── Memory ──────────────────────────────────────────────────────────────
+
+export function memoryDir(projectRoot: string): string {
+  return path.join(geasDir(projectRoot), 'memory');
+}
+
+export function sharedMemoryPath(projectRoot: string): string {
+  return path.join(memoryDir(projectRoot), 'shared.md');
+}
+
+export function agentsMemoryDir(projectRoot: string): string {
+  return path.join(memoryDir(projectRoot), 'agents');
+}
+
+export function agentMemoryPath(projectRoot: string, agent: string): string {
+  return path.join(agentsMemoryDir(projectRoot), `${agent}.md`);
+}
+
+// ── Missions ────────────────────────────────────────────────────────────
+
+export function missionsDir(projectRoot: string): string {
+  return path.join(geasDir(projectRoot), 'missions');
+}
+
+export function missionDir(projectRoot: string, missionId: string): string {
+  return path.join(missionsDir(projectRoot), missionId);
+}
+
+export function missionSpecPath(projectRoot: string, missionId: string): string {
+  return path.join(missionDir(projectRoot, missionId), 'spec.json');
+}
+
+export function missionDesignPath(projectRoot: string, missionId: string): string {
+  return path.join(missionDir(projectRoot, missionId), 'mission-design.md');
+}
+
+export function missionStatePath(projectRoot: string, missionId: string): string {
+  return path.join(missionDir(projectRoot, missionId), 'mission-state.json');
+}
+
+export function phaseReviewsPath(projectRoot: string, missionId: string): string {
+  return path.join(missionDir(projectRoot, missionId), 'phase-reviews.json');
+}
+
+export function missionVerdictsPath(projectRoot: string, missionId: string): string {
+  return path.join(missionDir(projectRoot, missionId), 'mission-verdicts.json');
+}
+
+export function missionDeliberationsPath(
+  projectRoot: string,
+  missionId: string,
 ): string {
-  const missionDir = path.resolve(geasDir, 'missions', missionId);
-  if (!fs.existsSync(missionDir)) {
-    const err = new Error(
-      `Mission directory not found: ${normalizePath(missionDir)}`
-    );
-    (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
-    throw err;
-  }
-  return normalizePath(missionDir);
+  return path.join(missionDir(projectRoot, missionId), 'deliberations.json');
+}
+
+export function consolidationDir(projectRoot: string, missionId: string): string {
+  return path.join(missionDir(projectRoot, missionId), 'consolidation');
+}
+
+export function missionCandidatesPath(
+  projectRoot: string,
+  missionId: string,
+): string {
+  return path.join(consolidationDir(projectRoot, missionId), 'candidates.json');
+}
+
+export function gapPath(projectRoot: string, missionId: string): string {
+  return path.join(consolidationDir(projectRoot, missionId), 'gap.json');
+}
+
+export function memoryUpdatePath(projectRoot: string, missionId: string): string {
+  return path.join(consolidationDir(projectRoot, missionId), 'memory-update.json');
+}
+
+// ── Tasks ───────────────────────────────────────────────────────────────
+
+export function tasksDir(projectRoot: string, missionId: string): string {
+  return path.join(missionDir(projectRoot, missionId), 'tasks');
+}
+
+export function taskDir(
+  projectRoot: string,
+  missionId: string,
+  taskId: string,
+): string {
+  return path.join(tasksDir(projectRoot, missionId), taskId);
+}
+
+export function taskContractPath(
+  projectRoot: string,
+  missionId: string,
+  taskId: string,
+): string {
+  return path.join(taskDir(projectRoot, missionId, taskId), 'contract.json');
+}
+
+export function taskStatePath(
+  projectRoot: string,
+  missionId: string,
+  taskId: string,
+): string {
+  return path.join(taskDir(projectRoot, missionId, taskId), 'task-state.json');
+}
+
+export function implementationContractPath(
+  projectRoot: string,
+  missionId: string,
+  taskId: string,
+): string {
+  return path.join(
+    taskDir(projectRoot, missionId, taskId),
+    'implementation-contract.json',
+  );
+}
+
+export function selfCheckPath(
+  projectRoot: string,
+  missionId: string,
+  taskId: string,
+): string {
+  return path.join(taskDir(projectRoot, missionId, taskId), 'self-check.json');
+}
+
+export function taskDeliberationsPath(
+  projectRoot: string,
+  missionId: string,
+  taskId: string,
+): string {
+  return path.join(taskDir(projectRoot, missionId, taskId), 'deliberations.json');
+}
+
+export function gateResultsPath(
+  projectRoot: string,
+  missionId: string,
+  taskId: string,
+): string {
+  return path.join(taskDir(projectRoot, missionId, taskId), 'gate-results.json');
+}
+
+export function evidenceDir(
+  projectRoot: string,
+  missionId: string,
+  taskId: string,
+): string {
+  return path.join(taskDir(projectRoot, missionId, taskId), 'evidence');
+}
+
+export function evidenceFilePath(
+  projectRoot: string,
+  missionId: string,
+  taskId: string,
+  agent: string,
+  slot: string,
+): string {
+  return path.join(evidenceDir(projectRoot, missionId, taskId), `${agent}.${slot}.json`);
+}
+
+// ── Identifier validation ──────────────────────────────────────────────
+
+export const MISSION_ID_RE = /^mission-[0-9]{8}-[a-zA-Z0-9]{8}$/;
+export const TASK_ID_RE = /^task-[0-9]{3}$/;
+/** Agent and slot names used in filenames: kebab/alphanumeric. */
+export const AGENT_SLOT_RE = /^[a-z0-9][a-z0-9-]*$/;
+
+export function isValidMissionId(id: string): boolean {
+  return MISSION_ID_RE.test(id);
+}
+
+export function isValidTaskId(id: string): boolean {
+  return TASK_ID_RE.test(id);
+}
+
+export function isValidAgentOrSlot(id: string): boolean {
+  return AGENT_SLOT_RE.test(id);
 }
 
 /**
- * Compute a relative path from cwd, with forward slashes.
- * Matches geas-hooks.js relPath behavior.
- */
-export function relPath(filePath: string, cwd: string): string {
-  return path.relative(cwd, filePath).replace(/\\/g, '/');
-}
-
-/**
- * Validate that an identifier (missionId, taskId) contains only safe characters.
- * Rejects path traversal attempts like "../" or special characters.
- */
-const SAFE_ID_RE = /^[A-Za-z0-9_-]+$/;
-
-export function validateIdentifier(id: string, label: string): void {
-  if (!SAFE_ID_RE.test(id)) {
-    const err = new Error(
-      `Invalid ${label}: "${id}". Only alphanumeric, underscore, and hyphen are allowed.`,
-    );
-    (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
-    throw err;
-  }
-}
-
-/**
- * Verify that a resolved path is contained within the expected base directory.
- * Prevents path traversal attacks.
+ * Assert a resolved path stays inside a base directory. Rejects path
+ * traversal even if the input is crafted to include `..` segments.
  */
 export function assertContainedIn(resolvedPath: string, baseDir: string): void {
-  const normalizedBase = path.resolve(baseDir) + path.sep;
-  const normalizedPath = path.resolve(resolvedPath);
-  if (!normalizedPath.startsWith(normalizedBase) && normalizedPath !== path.resolve(baseDir)) {
+  const base = path.resolve(baseDir) + path.sep;
+  const full = path.resolve(resolvedPath);
+  if (!full.startsWith(base) && full !== path.resolve(baseDir)) {
     const err = new Error(
       `Path "${resolvedPath}" escapes base directory "${baseDir}"`,
     );
-    (err as NodeJS.ErrnoException).code = 'FILE_ERROR';
+    (err as NodeJS.ErrnoException).code = 'path_traversal';
     throw err;
   }
 }
