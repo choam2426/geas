@@ -723,7 +723,7 @@ Deliberation entry는 **결과가 확정된 상태로만** append된다. "열린
 ```
 
 - **`actor: "cli:auto"`** 이벤트는 반드시 선행 orchestrator/user 의도 이벤트(`prior_event`)와 체인 연결되어야 한다.
-- **Cross-reference 양방향**: artifact(gate_result, closure, deliberation entry 등)에서 event_id 역참조 가능해야 하며 event의 `payload`가 artifact 참조를 포함해야 한다.
+- **Artifact 참조는 단방향 (events → artifact)**: 쓰기를 동반하는 이벤트는 `payload`에 영향 받은 artifact 경로와 식별자를 담는다 (예: `{ "artifact": "tasks/task-001/evidence/implementer.json", "entry_id": 3 }`). 프로토콜 artifact 쪽에는 역방향 event_id 참조를 두지 않는다 — artifact schema는 `additionalProperties: false`로 닫혀 있고, events.jsonl은 구현체 보조 로그라 artifact 계약을 오염시키지 않는 게 원칙이다. 특정 artifact에 어떤 이벤트가 영향을 줬는지 알고 싶으면 events.jsonl에서 해당 경로로 grep한다.
 - **Rollback**: 자동 전이 취소 시 기존 이벤트를 삭제·수정하지 않고 역방향 이벤트를 append한다 (`kind: "transition_reversed"` 등, `invalidates: evt-<seq>`).
 - 이벤트 기록 실패 시 해당 명령 자체가 `io_error`로 실패 — 부작용을 남기지 않는다.
 
