@@ -1,111 +1,53 @@
 ---
 name: setup
-description: First-time setup — initialize .geas/ runtime directory, generate config files.
+description: First-time setup — initialize the .geas/ runtime tree via `geas setup`.
 ---
 
 # Setup
 
-orchestration-authority should invoke this automatically on the first natural-language request in a new project.
+Call `geas setup` once at the project root. The command bootstraps the
+`.geas/` tree described in protocol doc 08 (Runtime Artifacts and
+Schemas) and is a safe no-op on re-run.
 
-Users should not need to run setup manually unless they are troubleshooting.
+## When to invoke
 
-## Inputs
+- First turn in a fresh project, before any mission is created.
+- The orchestrator may also invoke this defensively when `.geas/` is
+  missing — setup will leave existing files alone.
 
-- **Project directory** — the repository root where `.geas/` will be initialized
-- **Existing codebase** (optional) — configuration files (package.json, go.mod, etc.) for stack detection
+## Command
+
+```bash
+geas setup
+```
+
+`geas setup` creates the following structure in the current working
+directory:
+
+```
+.geas/
+  config.json
+  debts.json
+  events.jsonl
+  candidates.json
+  memory/
+    shared.md
+    agents/
+  missions/
+  .tmp/
+```
+
+Existing files are preserved. The response lists which paths were
+created and which already existed.
+
 ## Output
 
-- **`.geas/` directory** — initialized with `state/`, `memory/agents/`, `recovery/` subdirectories
-- **`.geas/state/run.json`** — initial run state (version 1.0, status initialized)
-- **`.geas/state/health-check.json`** — initial health check with all 8 signals
-- **`.geas/rules.md`** — project-wide rules with detected code conventions
-- **`.gitignore`** — updated to include `.geas/` entry
+Standard envelope: `{ "ok": true, "data": { project_root, geas_dir,
+created[], existed[] } }`.
 
----
+## Follow-up
 
-## Steps
-
-### Phase 0: Verify CLI
-
-The `geas` command is pre-bundled and available via PATH. Verify it works:
-
-```bash
-geas --version
-```
-
-If this fails, the plugin is not installed correctly. Reinstall the geas plugin.
-
-### Phase A: Initialize `.geas/` Runtime Directory
-
-Bootstrap the entire `.geas/` directory structure and initial `run.json` via CLI:
-
-```bash
-geas state init
-```
-
-This single command creates:
-- `.geas/state/` directory with `run.json` (version 1.0, status initialized)
-- `.geas/memory/agents/` directory
-- `.geas/recovery/` directory
-
-If `run.json` already exists, the command is a safe no-op.
-
-Then generate the initial health check via CLI:
-```bash
-geas health generate
-```
-The CLI creates `.geas/state/health-check.json` with all 8 signals computed from current state.
-
-Then ask the user whether `.geas/` should be added to `.gitignore`:
-- If the user wants it gitignored (default recommendation): append `.geas/` to `.gitignore` (create the file if it doesn't exist)
-- If the user wants `.geas/` tracked in git: skip this step
-
-After initialization, all state updates use the CLI:
-```bash
-geas state update --field status --value in_progress
-geas state update --field phase --value specifying
-```
-
-The CLI enforces schema validation on the RunState.
-
-### Phase A-1.5: Codebase Discovery
-
-Phase A also includes codebase discovery — scan project structure, detect stack, and populate the Code section of `.geas/rules.md`.
-
-1. Scan project root for configuration files (package.json, go.mod, pyproject.toml, Cargo.toml, Makefile, etc.)
-2. Detect the project stack (language, framework, package manager, test runner)
-3. Read existing build/lint/test commands from configuration files
-4. Pass detected conventions to the `geas memory init-rules --code-section` flag during Phase A-2, or if rules.md was already created, use `geas policy-managing` to update. Conventions to detect:
-   - Build commands
-   - Lint commands
-   - Test commands
-   - Dev server start command
-   - Project structure notes
-
-If the project is empty (no source files yet), write a minimal Code section noting that commands will be populated as the project develops.
-
-### Phase A-2: Generate `.geas/rules.md`
-
-Create `.geas/rules.md` via CLI — the shared rules that ALL agents must follow:
-
-```bash
-geas memory init-rules
-```
-
-This creates `rules.md` with the standard agent rules (evidence CLI usage, scope enforcement). If `rules.md` already exists, the command is a safe no-op.
-
-If codebase discovery (Phase A-1.5) detected project conventions, append them to the Code section by passing the `--code-section` flag:
-
-```bash
-geas memory init-rules --code-section "- Build: npm run build\n- Test: npm test\n- Lint: npm run lint"
-```
-
-### Phase B: Report Results
-
-```
-Setup complete:
-- .geas/: initialized (state, memory/agents, recovery)
-- Mission directories will be created by intake when the mission starts.
-
-Ready! Stay in Claude and describe your mission in natural language.
-```
+After setup, the orchestrator moves on to mission intake. Nothing in
+this skill reaches beyond `geas setup` — policy-override, rules.md,
+lock-manifest, health-check, and recovery packets are no longer part of
+the v3 protocol.
