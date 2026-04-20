@@ -47,30 +47,34 @@ CLI가 책임지는 일은 여섯이다.
 
 | 명령 | 연산 | 대상 artifact |
 |---|---|---|
-| `geas mission create` | create | `missions/{id}/spec.json` |
+| `geas mission create` | create | `missions/{id}/spec.json` + mission 디렉토리 scaffold (§14.1) |
+| `geas mission create --carry-from <mission_id>` | create | 위와 동일 + 이전 mission의 open debt carry-forward (§14.2) |
 | `geas mission design-set` | set | `missions/{id}/mission-design.md` |
-| `geas mission-state update` | update | `missions/{id}/mission-state.json` |
+| `geas mission-state update` | update | `missions/{id}/mission-state.json`. `--phase` 전이는 §14.3 참조 |
 | `geas phase-review append` | append | `missions/{id}/phase-reviews.json` |
 | `geas mission-verdict append` | append | `missions/{id}/mission-verdicts.json` |
 | `geas deliberation append --level mission` | append | `missions/{id}/deliberations.json` |
+| `geas deliberation close --level mission` | — | 현재 열려 있는 deliberation을 결과 확정 (§14.4) |
 | `geas debt register` | register | `missions/{id}/consolidation/debts.json` |
 | `geas debt update-status` | update | `missions/{id}/consolidation/debts.json` |
 | `geas gap set` | set | `missions/{id}/consolidation/gap.json` |
 | `geas memory-update set` | set | `missions/{id}/consolidation/memory-update.json` |
+| `geas consolidation scaffold` | read | 모든 task evidence의 candidates 수집해 `consolidation/candidates.json` 생성 (§14.5) |
 
 ### Task-level 명령
 
 | 명령 | 연산 | 대상 artifact |
 |---|---|---|
-| `geas task draft` | create | `tasks/{id}/contract.json` |
+| `geas task draft` | create | `tasks/{id}/contract.json` + task 디렉토리 scaffold (§14.1) |
 | `geas task approve` | update | `contract.approved_by` |
 | `geas task transition` | update | `task-state.json` (lifecycle 전이) |
 | `geas task-state update` | update | `task-state.json` (active_agent, iterations) |
 | `geas impl-contract set` | set | `tasks/{id}/implementation-contract.json` |
 | `geas self-check set` | set | `tasks/{id}/self-check.json` |
-| `geas evidence append` | append | `tasks/{id}/evidence/{agent}.json` |
-| `geas gate run` | run | `tasks/{id}/gate-results.json` |
+| `geas evidence append` | append | `tasks/{id}/evidence/{slot}.json` |
+| `geas gate run` | run | `tasks/{id}/gate-results.json`. 응답에 `suggested_next_transition` 힌트 포함 (§14.6) |
 | `geas deliberation append --level task` | append | `tasks/{id}/deliberations.json` |
+| `geas deliberation close --level task` | — | 현재 열려 있는 deliberation을 결과 확정 (§14.4) |
 
 ### Memory 명령
 
@@ -85,7 +89,8 @@ CLI가 책임지는 일은 여섯이다.
 |---|---|
 | `geas schema list` | 사용 가능한 schema 목록 JSON 반환 |
 | `geas schema template <type>` | 해당 schema의 필수 필드 골격 JSON 반환 |
-| `geas resume` | 현재 mission/task 상태를 agent가 소비할 context JSON으로 반환 |
+| `geas status` | 활성 mission의 phase, active_tasks 각각의 상태, pending 작업을 structured JSON으로 반환 (§14.7) |
+| `geas resume` | 현재 mission/task 상태를 agent가 소비할 context JSON으로 반환 (session bootstrap용) |
 | `geas validate` | `.geas/` 전체를 schema로 검증한 결과 JSON 반환 |
 | `geas setup` | 프로젝트에 `.geas/` 초기화 |
 | `geas event log --kind <k> --payload <json>` | `events.jsonl`에 append |
@@ -504,3 +509,173 @@ CLI는 다음을 절대 수행하지 않는다.
 - 쓰기 실패를 부분 성공으로 보고
 
 CLI가 이 원칙 중 하나를 어기는 변경을 포함한다면 그건 버그가 아니라 프로토콜 위반이다.
+
+## 14. 자동화 동작
+
+CLI는 atomic 단일 파일 쓰기가 기본이지만, 아래 범위 내에서 **확장된 부작용**을 갖는 자동화를 수행한다. 각 자동화는 orchestrator의 반복 호출을 줄이되 (a) 의미적 판단은 건드리지 않고 (b) 모든 부작용이 `events.jsonl`에 기록되며 (c) 실패 시 partial 상태 없이 명확히 reported 된다.
+
+### 14.1 Scaffold 자동 생성
+
+`mission create`와 `task draft`는 단일 파일 쓰기 이상의 디렉토리 scaffold를 수행한다.
+
+**`mission create` 부작용**:
+- `.geas/missions/{mission_id}/spec.json` 작성 (주 artifact)
+- `.geas/missions/{mission_id}/mission-state.json` 초기화 (`phase: specifying`, `active_tasks: []`)
+- 빈 wrapper 초기화: `phase-reviews.json` (`reviews: []`), `deliberations.json` (`level: mission`, `entries: []`), `mission-verdicts.json` (`verdicts: []`)
+- 디렉토리 생성: `tasks/`, `consolidation/`
+
+**`task draft` 부작용**:
+- `.geas/missions/{mission_id}/tasks/{task_id}/contract.json` 작성
+- `task-state.json` 초기화 (`active_agent: null`, `verify_fix_iterations: 0`)
+- 디렉토리 생성: `evidence/`, `deliberations.json` (`level: task`, `entries: []`)
+
+모든 scaffold 동작은 idempotent — 이미 존재하면 no-op. 빈 wrapper 파일은 schema 유효(빈 배열 허용)하므로 검증 통과.
+
+### 14.2 Carry-forward
+
+`geas mission create --carry-from <source_mission_id>` 추가 부작용:
+- 새 mission의 `spec.json`에 `inherited_debt: [...]` 필드 기록 (source mission의 open debt id 목록 snapshot)
+- 새 mission의 `consolidation/debts.json`에 source의 `status: open` 항목을 그대로 복사 (`introduced_by`·`resolved_by`·`resolution_rationale` 유지)
+- `events.jsonl`에 `{kind: "debt_carried", from_mission, to_mission, items: [...], actor: "cli:auto"}` append
+
+`source_mission_id`가 존재하지 않거나 `.geas/missions/` 밖이면 `missing_artifact` 반환.
+
+### 14.3 Phase 전이 강화
+
+`geas mission-state update --phase <phase>`는 phase에 따라 추가 검증·전이를 수행한다.
+
+**`--phase building`**:
+- `mission-state.phase`를 `building`으로 갱신하기 전 각 drafted task의 `approved_by`를 확인.
+- `approved_by != null`인 drafted task를 일괄 ready로 전이 시도.
+- 응답은 per-task 결과:
+  ```json
+  {
+    "ok": true,
+    "path": ".geas/missions/{mid}/mission-state.json",
+    "bulk_transitions": {
+      "success": ["task-001", "task-002"],
+      "skipped": [{"task_id": "task-003", "reason": "approved_by is null"}],
+      "failed":  [{"task_id": "task-004", "reason": "dependency not passed"}]
+    }
+  }
+  ```
+- 각 per-task 전이는 독립 atomic write. 일부 실패해도 mission-state는 건드리지 않음 (phase 전이는 모든 전이 성공 시에만 확정, 아니면 `guard_failed` 반환).
+
+**`--phase consolidating`**:
+- 모든 task의 `status`가 `passed` / `cancelled` / `escalated` 중 하나인지 검증.
+- 미종결 task가 있으면 `guard_failed` + `unresolved_tasks: [...]` 반환.
+
+**기타 phase 전이**: 단순 phase 갱신 + phase-reviews 마지막 entry의 `next_phase`와 일치하는지 guard.
+
+### 14.4 Deliberation close
+
+`geas deliberation close --level mission|task [--task <id>]`:
+- 해당 scope의 deliberations.json 중 가장 최근 entry의 voter 집합이 요구 조건(mission 기준 3+ voter, task 기준 2+ voter)을 충족하는지 확인.
+- 조건 충족 시 entry의 `result` 필드를 투표 결과로 확정 (agree 과반 → agree, disagree 과반 → disagree, escalate가 하나라도 있으면 escalate, 그 외 inconclusive).
+- `events.jsonl`에 `{kind: "deliberation_closed", level, result, actor: "cli:auto"}` append.
+- 조건 미충족 시 `guard_failed` 반환 (누락 voter 명시).
+
+자동화의 목적은 **voter 집계 산수 제거**다 — result 판단 자체는 voter들의 vote 집합이 결정.
+
+### 14.5 Consolidation scaffold
+
+`geas consolidation scaffold`:
+- 현재 mission의 모든 task evidence 파일을 훑어 `debt_candidates`, `memory_suggestions`, `gap_signals`을 수집.
+- `.geas/missions/{mid}/consolidation/candidates.json` 생성 (덮어쓰기 허용):
+  ```json
+  {
+    "mission_id": "...",
+    "collected_at": "...",
+    "debt_candidates": [{"source_task": "task-001", "source_entry": 3, ...}, ...],
+    "memory_suggestions": [...],
+    "gap_signals": [...]
+  }
+  ```
+- Schema 검증 대상이 아님 (`candidates.json`은 지원용 파일). `geas validate`는 건너뜀.
+- Orchestrator는 `candidates.json`을 Read tool로 보고 `debts.json`·`gap.json`·`memory-update.json`을 별도 `register`/`set` 명령으로 작성. Candidates → 공식 승격은 자동화 없음.
+
+### 14.6 Gate 결과 힌트
+
+`geas gate run` 응답에 `suggested_next_transition` 필드 포함:
+
+```json
+{
+  "ok": true,
+  "path": ".geas/missions/{mid}/tasks/{tid}/gate-results.json",
+  "ids": { "gate_run_id": "gate-2" },
+  "suggested_next_transition": {
+    "verdict": "pass",
+    "target_state": "verified",
+    "command": "geas task transition --task task-001 --to verified"
+  }
+}
+```
+
+- `verdict`에 따른 target:
+  - `pass` → `verified`
+  - `block` → `blocked`
+  - `fail` → null (orchestrator가 rewind 대상 결정)
+  - `error` → null (원인 해소 후 재실행)
+- CLI는 **자동 전이하지 않는다**. orchestrator가 hint를 보고 별도 `task transition` 호출.
+
+### 14.7 Status
+
+`geas status [--mission <mission_id>]`:
+- 기본은 현재 활성 mission (`mission-state.phase != complete`).
+- 응답:
+  ```json
+  {
+    "ok": true,
+    "mission_id": "...",
+    "phase": "building",
+    "active_tasks": [
+      {"task_id": "task-001", "status": "implementing", "active_agent": "implementer"},
+      {"task_id": "task-002", "status": "reviewed", "pending_gate": true}
+    ],
+    "pending": {
+      "drafted_unapproved": ["task-003"],
+      "blocked": [],
+      "escalated": []
+    },
+    "phase_progress": {
+      "tasks_total": 5, "passed": 2, "in_flight": 2, "terminated": 1
+    }
+  }
+  ```
+- 순수 조회 — 쓰기 없음.
+
+### 14.8 Events 로깅 강제
+
+자동화가 붙은 모든 명령은 `events.jsonl`에 이벤트를 append한다. 이벤트 스키마:
+
+```json
+{
+  "event_id": "evt-<seq>",
+  "kind": "<enum>",
+  "actor": "cli:auto" | "orchestrator" | "user" | "decision_maker",
+  "triggered_by": {"type": "command", "ref": "geas mission-state update --phase building"},
+  "prior_event": "evt-<seq>",
+  "payload": { ... },
+  "created_at": "<ISO 8601 UTC>"
+}
+```
+
+- **`actor: "cli:auto"`** 이벤트는 반드시 선행 orchestrator/user 의도 이벤트(`prior_event`)와 체인 연결되어야 한다.
+- **Cross-reference 양방향**: artifact(gate_result, closure, deliberation entry 등)에서 event_id 역참조 가능해야 하며 event의 `payload`가 artifact 참조를 포함해야 한다.
+- **Rollback**: 자동 전이 취소 시 기존 이벤트를 삭제·수정하지 않고 역방향 이벤트를 append한다 (`kind: "transition_reversed"` 등, `invalidates: evt-<seq>`).
+- 이벤트 기록 실패 시 해당 명령 자체가 `io_error`로 실패 — 부작용을 남기지 않는다.
+
+### 14.9 자동화 안 함 (수동 유지)
+
+다음은 orchestrator의 명시적 호출이 필요하며 CLI가 자동화하지 않는다.
+
+- `task transition --to blocked/cancelled/escalated`: 이유 명시 필수
+- `task transition --to ready/implementing/reviewed` (from `blocked`): 복귀 지점 판단
+- `changes_requested` closure 이후 rewind target 지정
+- `gate run` 이후 `verified` 전이 (§14.6의 hint만 제공)
+- `evidence append` 이후 lifecycle 전이 (closure 포함 — evidence 쓰기와 전이 쓰기를 분리)
+- `mission-verdict append`: decision-maker 전용 판단
+- `debt update-status`: status 변경의 의미적 판단
+- `consolidation/candidates.json`에서 공식 `debts.json`·`gap.json`·`memory-update.json`으로 승격
+
+이 분리 원칙은 "CLI는 형식·구조·deterministic 집계만, 판단은 orchestrator와 agent"라는 §2의 전제를 유지한다.

@@ -112,7 +112,7 @@ CLI는 `.geas/` 아래 모든 쓰기가 통과해야 하는 단일 actuator다. 
 │   ├── shared.md
 │   └── agents/
 │       └── {agent}.md
-└── events.jsonl                              # (선택) 감사 로그
+└── events.jsonl                              # append-only 감사 로그 (필수)
 ```
 
 ### 파일 owner 매트릭스
