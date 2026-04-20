@@ -49,12 +49,12 @@ Geas는 두 층으로 구성된다.
 
 | 계층 | 역할 | 교체 가능 |
 |---|---|---|
-| Protocol + Schemas | 프로토콜 문서와 JSON 스키마. 모든 artifact 구조와 상태 규칙의 정본 | 불가 |
-| Runtime State | `.geas/` 디렉토리 포맷. 파일 위치·이름·append 규칙 | 불가 |
-| CLI (`geas`) | `.geas/` 단일 쓰기 통로. schema 검증 + 타임스탬프 + atomic rename | 불가 |
-| Agent Roster | slot 별 역할 정의 + 도메인 프로필(concrete agent 매핑) | 가능 |
-| Skill | 프로토콜 단계를 agent에게 실행시키는 prompt·절차 | 가능 |
 | Client Adapter | 각 agent 런타임이 skill·agent·CLI를 bind하는 얇은 층 | 가능 |
+| Skill | 프로토콜 단계를 agent에게 실행시키는 prompt·절차 | 가능 |
+| Agent Roster | slot 별 역할 정의 + 도메인 프로필(concrete agent 매핑) | 가능 |
+| CLI (`geas`) | `.geas/` 단일 쓰기 통로. schema 검증 + 타임스탬프 + atomic rename | 불가 |
+| Runtime State | `.geas/` 디렉토리 포맷. 파일 위치·이름·append 규칙 | 불가 |
+| Protocol + Schemas | 프로토콜 문서와 JSON 스키마. 모든 artifact 구조와 상태 규칙의 정본 | 불가 |
 
 교체 가능한 계층 중 하나를 바꿔도 아래 계층이 그대로면 프로토콜 충실성은 유지된다. 예: agent roster에 새 specialist를 추가하거나 skill prompt 문구를 고쳐도 CLI와 프로토콜은 영향 없다.
 
