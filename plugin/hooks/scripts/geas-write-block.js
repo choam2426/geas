@@ -64,8 +64,8 @@ if (isGeasPath) {
     reason:
       '[Geas] BLOCKED: Direct Write/Edit to .geas/ is not allowed. ' +
       'All .geas/ file modifications must use geas CLI commands. ' +
-      'Examples: geas state init, geas state update, geas memory init-rules, ' +
-      'geas evidence add, geas task transition. ' +
+      'Examples: geas mission create, geas task draft, geas evidence append, ' +
+      'geas memory shared-set, geas debt register, geas event log. ' +
       'Use Bash tool to invoke CLI commands instead.'
   };
   process.stdout.write(JSON.stringify(result) + '\n');

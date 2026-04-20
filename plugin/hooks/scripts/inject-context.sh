@@ -1,6 +1,15 @@
 #!/bin/bash
-# inject-context.sh — SubagentStart hook
-# Injects rules.md + policy overrides + per-agent memory into every sub-agent's context.
+# inject-context.sh — SubagentStart hook (Geas v3)
+#
+# Injects shared memory + per-agent memory into a sub-agent's initial
+# context. No other state is injected — mission / task context flows
+# through the orchestrator's explicit TaskContract, not through hooks.
+#
+# The canonical v3 memory surface is .geas/memory/shared.md plus
+# .geas/memory/agents/{agent}.md.
+#
+# Input (stdin): Claude Code hook payload JSON { cwd, agent_type, ... }.
+# Output (stdout): { "additionalContext": "..." } or nothing.
 set -euo pipefail
 _RAW_DIR="$(cd "$(dirname "$0")" && pwd)"
 HOOK_DIR="$(cygpath -m "$_RAW_DIR" 2>/dev/null || echo "$_RAW_DIR")"
@@ -16,30 +25,17 @@ if (!fs.existsSync(geas)) process.exit(0);
 
 const parts = [];
 
-// Inject rules.md
-const rulesPath = path.join(geas, 'rules.md');
-if (!h.exists(rulesPath)) {
-  process.stderr.write('[geas] Warning: .geas/ exists but rules.md not found. Run /geas:setup to initialize.\n');
-}
-if (h.exists(rulesPath)) {
-  const content = fs.readFileSync(rulesPath, 'utf8').trim();
+// Inject shared memory (applies to all agents).
+const sharedPath = path.join(geas, 'memory', 'shared.md');
+if (h.exists(sharedPath)) {
+  const content = fs.readFileSync(sharedPath, 'utf8').trim();
   if (content) {
-    parts.push('--- PROJECT RULES (.geas/rules.md) ---');
+    parts.push('--- SHARED MEMORY (.geas/memory/shared.md) ---');
     parts.push(content);
   }
 }
 
-// Inject active policy overrides
-const ov = h.readJson(path.join(geas, 'state', 'policy-overrides.json'));
-if (ov) {
-  const active = (ov.overrides || []).filter(o => !o.expired);
-  if (active.length) {
-    parts.push('--- ACTIVE POLICY OVERRIDES (.geas/state/policy-overrides.json) ---');
-    active.forEach(o => parts.push('- ' + (o.rule_id||'?') + ': ' + (o.action||'?') + ' (reason: ' + (o.reason||'?') + ', expires: ' + (o.expires_at||'?') + ')'));
-  }
-}
-
-// Inject per-agent memory
+// Inject per-agent memory if we know the agent type.
 if (agentType) {
   const memPath = path.join(geas, 'memory', 'agents', agentType + '.md');
   if (h.exists(memPath)) {
