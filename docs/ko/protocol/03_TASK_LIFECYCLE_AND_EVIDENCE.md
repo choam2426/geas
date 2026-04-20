@@ -179,6 +179,8 @@ Tier 2에서는 reviewer verdict를 집계한다. 기본 규칙은 다음과 같
 
 Task-level deliberation은 review, verification, challenge 사이의 충돌을 명시적으로 풀어야 할 때 남기는 심의 기록이다. 정확한 구조는 `deliberation.schema.json`이 관리하며, 같은 schema가 mission-level deliberation에도 쓰인다. 한 task의 모든 심의는 `deliberations.json` 단일 파일의 `entries` 배열에 시간 순으로 append된다. 파일 최상위의 `level` 필드가 `task`로 고정되고 `task_id`도 함께 기록된다.
 
+Deliberation entry는 voter들의 vote와 최종 `result`가 모두 확정된 상태로만 append한다. 진행 중인 심의 상태는 artifact에 남기지 않는다. 이 규약은 mission-level deliberation과 동일하며 append-only 불변성을 유지하기 위한 것이다.
+
 Task-level deliberation은 보통 다음 때 열린다.
 
 - required reviewer 사이의 verdict가 충돌할 때

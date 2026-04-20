@@ -54,7 +54,6 @@ CLI가 책임지는 일은 여섯이다.
 | `geas phase-review append` | append | `missions/{id}/phase-reviews.json` |
 | `geas mission-verdict append` | append | `missions/{id}/mission-verdicts.json` |
 | `geas deliberation append --level mission` | append | `missions/{id}/deliberations.json` |
-| `geas deliberation close --level mission` | — | 현재 열려 있는 deliberation을 결과 확정 (§14.4) |
 | `geas debt register` | register | `missions/{id}/consolidation/debts.json` |
 | `geas debt update-status` | update | `missions/{id}/consolidation/debts.json` |
 | `geas gap set` | set | `missions/{id}/consolidation/gap.json` |
@@ -74,7 +73,6 @@ CLI가 책임지는 일은 여섯이다.
 | `geas evidence append` | append | `tasks/{id}/evidence/{slot}.json` |
 | `geas gate run` | run | `tasks/{id}/gate-results.json`. 응답에 `suggested_next_transition` 힌트 포함 (§14.6) |
 | `geas deliberation append --level task` | append | `tasks/{id}/deliberations.json` |
-| `geas deliberation close --level task` | — | 현재 열려 있는 deliberation을 결과 확정 (§14.4) |
 
 ### Memory 명령
 
@@ -615,15 +613,15 @@ CLI는 atomic 단일 파일 쓰기가 기본이지만, 아래 범위 내에서 *
 
 **기타 phase 전이**: 단순 phase 갱신 + phase-reviews 마지막 entry의 `next_phase`와 일치하는지 guard.
 
-### 14.4 Deliberation close
+### 14.4 Deliberation append 검증
 
-`geas deliberation close --level mission|task [--task <id>]`:
-- 해당 scope의 deliberations.json 중 가장 최근 entry의 voter 집합이 요구 조건(mission 기준 3+ voter, task 기준 2+ voter)을 충족하는지 확인.
-- 조건 충족 시 entry의 `result` 필드를 투표 결과로 확정 (agree 과반 → agree, disagree 과반 → disagree, escalate가 하나라도 있으면 escalate, 그 외 inconclusive).
-- `events.jsonl`에 `{kind: "deliberation_closed", level, result, actor: "cli:auto"}` append.
-- 조건 미충족 시 `guard_failed` 반환 (누락 voter 명시).
+`geas deliberation append --level mission|task [--task <id>]`는 append 시 다음을 검증한다.
 
-자동화의 목적은 **voter 집계 산수 제거**다 — result 판단 자체는 voter들의 vote 집합이 결정.
+- Voter 집합이 요구 조건(mission 기준 3+ voter, task 기준 2+ voter)을 충족하는지.
+- `result` 필드가 voter들의 vote 집합과 일관되는지 (agree 과반 → agree, disagree 과반 → disagree, escalate가 하나라도 있으면 escalate, 그 외 inconclusive).
+- 조건 미충족 시 `guard_failed` 반환 (누락 voter 또는 result 불일치 명시).
+
+Deliberation entry는 **결과가 확정된 상태로만** append된다. "열린 심의"는 파일에 기록되지 않고 orchestrator/agent 맥락 안에서만 추적된다. 이 모델은 append-only 계약을 유지한다 — 한 번 기록된 entry는 수정되지 않는다.
 
 ### 14.5 Consolidation scaffold
 
