@@ -959,8 +959,8 @@ var require_command = __commonJS({
   "node_modules/commander/lib/command.js"(exports2) {
     var EventEmitter = require("node:events").EventEmitter;
     var childProcess = require("node:child_process");
-    var path7 = require("node:path");
-    var fs7 = require("node:fs");
+    var path11 = require("node:path");
+    var fs8 = require("node:fs");
     var process2 = require("node:process");
     var { Argument: Argument2, humanReadableArgName } = require_argument();
     var { CommanderError: CommanderError2 } = require_error();
@@ -1892,11 +1892,11 @@ Expecting one of '${allowedValues.join("', '")}'`);
         let launchWithNode = false;
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
         function findFile(baseDir, baseName) {
-          const localBin = path7.resolve(baseDir, baseName);
-          if (fs7.existsSync(localBin)) return localBin;
-          if (sourceExt.includes(path7.extname(baseName))) return void 0;
+          const localBin = path11.resolve(baseDir, baseName);
+          if (fs8.existsSync(localBin)) return localBin;
+          if (sourceExt.includes(path11.extname(baseName))) return void 0;
           const foundExt = sourceExt.find(
-            (ext) => fs7.existsSync(`${localBin}${ext}`)
+            (ext) => fs8.existsSync(`${localBin}${ext}`)
           );
           if (foundExt) return `${localBin}${foundExt}`;
           return void 0;
@@ -1908,21 +1908,21 @@ Expecting one of '${allowedValues.join("', '")}'`);
         if (this._scriptPath) {
           let resolvedScriptPath;
           try {
-            resolvedScriptPath = fs7.realpathSync(this._scriptPath);
+            resolvedScriptPath = fs8.realpathSync(this._scriptPath);
           } catch (err2) {
             resolvedScriptPath = this._scriptPath;
           }
-          executableDir = path7.resolve(
-            path7.dirname(resolvedScriptPath),
+          executableDir = path11.resolve(
+            path11.dirname(resolvedScriptPath),
             executableDir
           );
         }
         if (executableDir) {
           let localFile = findFile(executableDir, executableFile);
           if (!localFile && !subcommand._executableFile && this._scriptPath) {
-            const legacyName = path7.basename(
+            const legacyName = path11.basename(
               this._scriptPath,
-              path7.extname(this._scriptPath)
+              path11.extname(this._scriptPath)
             );
             if (legacyName !== this._name) {
               localFile = findFile(
@@ -1933,7 +1933,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
           }
           executableFile = localFile || executableFile;
         }
-        launchWithNode = sourceExt.includes(path7.extname(executableFile));
+        launchWithNode = sourceExt.includes(path11.extname(executableFile));
         let proc;
         if (process2.platform !== "win32") {
           if (launchWithNode) {
@@ -2773,7 +2773,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @return {Command}
        */
       nameFromFilename(filename) {
-        this._name = path7.basename(filename, path7.extname(filename));
+        this._name = path11.basename(filename, path11.extname(filename));
         return this;
       }
       /**
@@ -2787,9 +2787,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @param {string} [path]
        * @return {(string|null|Command)}
        */
-      executableDir(path8) {
-        if (path8 === void 0) return this._executableDir;
-        this._executableDir = path8;
+      executableDir(path12) {
+        if (path12 === void 0) return this._executableDir;
+        this._executableDir = path12;
         return this;
       }
       /**
@@ -6212,8 +6212,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path7) {
-      let input = path7;
+    function removeDotSegments(path11) {
+      let input = path11;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -6412,8 +6412,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path7, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path7 && path7 !== "/" ? path7 : void 0;
+        const [path11, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path11 && path11 !== "/" ? path11 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -6578,49 +6578,49 @@ var require_fast_uri = __commonJS({
       schemelessOptions.skipEscape = true;
       return serialize(resolved, schemelessOptions);
     }
-    function resolveComponent(base, relative4, options, skipNormalization) {
+    function resolveComponent(base, relative8, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
         base = parse(serialize(base, options), options);
-        relative4 = parse(serialize(relative4, options), options);
+        relative8 = parse(serialize(relative8, options), options);
       }
       options = options || {};
-      if (!options.tolerant && relative4.scheme) {
-        target.scheme = relative4.scheme;
-        target.userinfo = relative4.userinfo;
-        target.host = relative4.host;
-        target.port = relative4.port;
-        target.path = removeDotSegments(relative4.path || "");
-        target.query = relative4.query;
+      if (!options.tolerant && relative8.scheme) {
+        target.scheme = relative8.scheme;
+        target.userinfo = relative8.userinfo;
+        target.host = relative8.host;
+        target.port = relative8.port;
+        target.path = removeDotSegments(relative8.path || "");
+        target.query = relative8.query;
       } else {
-        if (relative4.userinfo !== void 0 || relative4.host !== void 0 || relative4.port !== void 0) {
-          target.userinfo = relative4.userinfo;
-          target.host = relative4.host;
-          target.port = relative4.port;
-          target.path = removeDotSegments(relative4.path || "");
-          target.query = relative4.query;
+        if (relative8.userinfo !== void 0 || relative8.host !== void 0 || relative8.port !== void 0) {
+          target.userinfo = relative8.userinfo;
+          target.host = relative8.host;
+          target.port = relative8.port;
+          target.path = removeDotSegments(relative8.path || "");
+          target.query = relative8.query;
         } else {
-          if (!relative4.path) {
+          if (!relative8.path) {
             target.path = base.path;
-            if (relative4.query !== void 0) {
-              target.query = relative4.query;
+            if (relative8.query !== void 0) {
+              target.query = relative8.query;
             } else {
               target.query = base.query;
             }
           } else {
-            if (relative4.path[0] === "/") {
-              target.path = removeDotSegments(relative4.path);
+            if (relative8.path[0] === "/") {
+              target.path = removeDotSegments(relative8.path);
             } else {
               if ((base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0) && !base.path) {
-                target.path = "/" + relative4.path;
+                target.path = "/" + relative8.path;
               } else if (!base.path) {
-                target.path = relative4.path;
+                target.path = relative8.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative4.path;
+                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative8.path;
               }
               target.path = removeDotSegments(target.path);
             }
-            target.query = relative4.query;
+            target.query = relative8.query;
           }
           target.userinfo = base.userinfo;
           target.host = base.host;
@@ -6628,7 +6628,7 @@ var require_fast_uri = __commonJS({
         }
         target.scheme = base.scheme;
       }
-      target.fragment = relative4.fragment;
+      target.fragment = relative8.fragment;
       return target;
     }
     function equal(uriA, uriB, options) {
@@ -10599,12 +10599,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs7, exportName) {
+    function addFormats(ajv, list, fs8, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs7[f]);
+        ajv.addFormat(f, fs8[f]);
     }
     module2.exports = exports2 = formatsPlugin;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -10791,16 +10791,29 @@ function taskStatePath(projectRoot, missionId, taskId) {
 function selfCheckPath(projectRoot, missionId, taskId) {
   return path2.join(taskDir(projectRoot, missionId, taskId), "self-check.json");
 }
+function taskDeliberationsPath(projectRoot, missionId, taskId) {
+  return path2.join(taskDir(projectRoot, missionId, taskId), "deliberations.json");
+}
+function gateResultsPath(projectRoot, missionId, taskId) {
+  return path2.join(taskDir(projectRoot, missionId, taskId), "gate-results.json");
+}
 function evidenceDir(projectRoot, missionId, taskId) {
   return path2.join(taskDir(projectRoot, missionId, taskId), "evidence");
 }
+function evidenceFilePath(projectRoot, missionId, taskId, agent, slot) {
+  return path2.join(evidenceDir(projectRoot, missionId, taskId), `${agent}.${slot}.json`);
+}
 var MISSION_ID_RE = /^mission-[0-9]{8}-[a-zA-Z0-9]{8}$/;
 var TASK_ID_RE = /^task-[0-9]{3}$/;
+var AGENT_SLOT_RE = /^[a-z0-9][a-z0-9-]*$/;
 function isValidMissionId(id) {
   return MISSION_ID_RE.test(id);
 }
 function isValidTaskId(id) {
   return TASK_ID_RE.test(id);
+}
+function isValidAgentOrSlot(id) {
+  return AGENT_SLOT_RE.test(id);
 }
 
 // src/lib/envelope.ts
@@ -11386,12 +11399,12 @@ function canTransitionTaskState(from, to, hints) {
   if (from === "implementing" && to === "reviewed") {
     if (!hints.selfCheckExists) {
       return fail(
-        "implementing -> reviewed requires self-check.json to exist"
+        "implementing -> reviewed requires self-check.json to exist and validate against the self-check schema"
       );
     }
     if (!hints.reviewEvidenceExists) {
       return fail(
-        "implementing -> reviewed requires evidence files for every required review slot",
+        "implementing -> reviewed requires at least one review-kind evidence entry with a valid verdict for every required review slot",
         { missing_review_slots: hints.missingReviewSlots }
       );
     }
@@ -11400,7 +11413,7 @@ function canTransitionTaskState(from, to, hints) {
   if (from === "reviewed" && to === "verified") {
     if (!hints.verificationEvidenceExists) {
       return fail(
-        "reviewed -> verified requires a verification evidence file (gate-results run)"
+        "reviewed -> verified requires a gate-results run with verdict=pass and tier_2.status=pass"
       );
     }
     return pass();
@@ -11408,7 +11421,7 @@ function canTransitionTaskState(from, to, hints) {
   if (from === "verified" && to === "passed") {
     if (!hints.closureApproved) {
       return fail(
-        "verified -> passed requires orchestrator closure evidence with verdict=approved"
+        "verified -> passed requires orchestrator closure evidence (evidence_kind=closure, verdict=approved) that validates against the evidence schema"
       );
     }
     return pass();
@@ -12319,29 +12332,49 @@ function collectTaskStateHints(root, missionId, taskId, contract) {
       }
     }
   }
-  const selfCheckExists = exists(selfCheckPath(root, missionId, taskId));
+  const selfCheckFilePath = selfCheckPath(root, missionId, taskId);
+  let selfCheckExists = false;
+  if (exists(selfCheckFilePath)) {
+    const selfCheckContent = readJsonFile(selfCheckFilePath);
+    if (selfCheckContent) {
+      const v = validate("self-check", selfCheckContent);
+      selfCheckExists = v.ok;
+    }
+  }
   const evDir = evidenceDir(root, missionId, taskId);
   const evidenceFiles = exists(evDir) ? fs6.readdirSync(evDir) : [];
   const missingReviewSlots = [];
   for (const slot of requiredReviewers) {
     const match = evidenceFiles.find((f) => f.endsWith(`.${slot}.json`));
-    if (!match) missingReviewSlots.push(slot);
+    if (!match) {
+      missingReviewSlots.push(slot);
+      continue;
+    }
+    const file = readJsonFile(
+      path6.join(evDir, match)
+    );
+    const hasReview = !!file && Array.isArray(file.entries) && file.entries.some(
+      (e) => e && e.evidence_kind === "review" && typeof e.verdict === "string" && ["approved", "changes_requested", "blocked"].includes(e.verdict)
+    );
+    if (!hasReview) missingReviewSlots.push(slot);
   }
   const reviewEvidenceExists = missingReviewSlots.length === 0;
-  const verifierFile = evidenceFiles.find((f) => f.endsWith(".verifier.json"));
-  const gateResults = readJsonFile(
-    path6.join(taskDir(root, missionId, taskId), "gate-results.json")
-  );
-  const verificationEvidenceExists = !!verifierFile || !!gateResults && Array.isArray(gateResults.runs) && gateResults.runs.length > 0;
+  const gateResultsFile = readJsonFile(path6.join(taskDir(root, missionId, taskId), "gate-results.json"));
+  let verificationEvidenceExists = false;
+  if (gateResultsFile && Array.isArray(gateResultsFile.runs) && gateResultsFile.runs.length > 0) {
+    const lastRun = gateResultsFile.runs[gateResultsFile.runs.length - 1];
+    if (lastRun && lastRun.verdict === "pass" && lastRun.tier_results?.tier_2?.status === "pass") {
+      verificationEvidenceExists = true;
+    }
+  }
   const orchClosurePath = path6.join(evDir, "orchestrator.orchestrator.json");
-  const closureFile = readJsonFile(
-    orchClosurePath
-  );
+  const closureFile = readJsonFile(orchClosurePath);
   let closureApproved = false;
   if (closureFile && Array.isArray(closureFile.entries) && closureFile.entries.length > 0) {
     const last = closureFile.entries[closureFile.entries.length - 1];
     if (last && last.evidence_kind === "closure" && last.verdict === "approved") {
-      closureApproved = true;
+      const vEv = validate("evidence", closureFile);
+      closureApproved = vEv.ok;
     }
   }
   const contractApproved = contract.approved_by !== null && contract.approved_by !== void 0;
@@ -12490,8 +12523,692 @@ function registerTaskCommands(program2) {
   registerTaskStateRead(task);
 }
 
+// src/commands/evidence.ts
+var fs7 = __toESM(require("fs"));
+var path7 = __toESM(require("path"));
+function nowUtc5() {
+  return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+function slashPath3(p) {
+  return p.replace(/\\/g, "/");
+}
+function needProjectRoot4() {
+  const root = findProjectRoot(process.cwd());
+  if (!root) {
+    emit(
+      err(
+        "missing_artifact",
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+      )
+    );
+  }
+  return root;
+}
+var SLOT_ENUM = /* @__PURE__ */ new Set([
+  "orchestrator",
+  "decision-maker",
+  "design-authority",
+  "challenger",
+  "implementer",
+  "verifier",
+  "risk-assessor",
+  "operator",
+  "communicator"
+]);
+function enforceAgentSlotIndependence(projectRoot, missionId, taskId, agent, slot) {
+  const dir = evidenceDir(projectRoot, missionId, taskId);
+  if (!exists(dir)) return null;
+  const targetBasename = `${agent}.${slot}.json`;
+  for (const file of fs7.readdirSync(dir)) {
+    if (!file.endsWith(".json")) continue;
+    if (file === targetBasename) continue;
+    const stripped = file.slice(0, -".json".length);
+    const lastDot = stripped.lastIndexOf(".");
+    if (lastDot < 0) continue;
+    const otherAgent = stripped.slice(0, lastDot);
+    const otherSlot = stripped.slice(lastDot + 1);
+    if (otherAgent !== agent) continue;
+    if (slot === "implementer" || otherSlot === "implementer") {
+      return {
+        ok: false,
+        reason: "agent-slot independence: implementer slot is exclusive \u2014 the same concrete agent may not hold implementer alongside any other slot on the same task (protocol 03 \xA7107)",
+        hints: { existing_file: file, requested_slot: slot, agent }
+      };
+    }
+  }
+  return null;
+}
+function resolveAgent(projectRoot, missionId, taskId, slot, explicitAgent) {
+  if (explicitAgent) return explicitAgent;
+  if (slot !== "implementer") return null;
+  const contract = readJsonFile(
+    taskContractPath(projectRoot, missionId, taskId)
+  );
+  if (!contract) return null;
+  const routing = contract.routing;
+  if (!routing) return null;
+  const pwt = routing.primary_worker_type;
+  return typeof pwt === "string" && pwt.length > 0 ? pwt : null;
+}
+function registerEvidenceAppend(ev) {
+  ev.command("append").description(
+    "Append an entry to `evidence/{agent}.{slot}.json` for a task. stdin: entry body (entry_id auto-assigned)."
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").requiredOption("--slot <slot>", "Protocol slot (e.g. implementer, verifier, risk-assessor, orchestrator, challenger, operator, communicator, design-authority, decision-maker)").option(
+    "--agent <agent>",
+    "Concrete agent type (defaults to routing.primary_worker_type when slot=implementer)"
+  ).action(
+    (opts) => {
+      if (!isValidMissionId(opts.mission)) {
+        emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+      }
+      if (!isValidTaskId(opts.task)) {
+        emit(err("invalid_argument", `invalid task id '${opts.task}'`));
+      }
+      if (!SLOT_ENUM.has(opts.slot)) {
+        emit(
+          err(
+            "invalid_argument",
+            `unknown slot '${opts.slot}' (allowed: ${[...SLOT_ENUM].join(", ")})`
+          )
+        );
+      }
+      const root = needProjectRoot4();
+      if (!exists(missionSpecPath(root, opts.mission))) {
+        emit(
+          err(
+            "missing_artifact",
+            `mission spec not found for ${opts.mission}; run 'geas mission create'`
+          )
+        );
+      }
+      if (!exists(taskContractPath(root, opts.mission, opts.task))) {
+        emit(
+          err(
+            "missing_artifact",
+            `task contract not found for ${opts.task}; run 'geas task draft'`
+          )
+        );
+      }
+      const agent = resolveAgent(
+        root,
+        opts.mission,
+        opts.task,
+        opts.slot,
+        opts.agent
+      );
+      if (!agent) {
+        emit(
+          err(
+            "invalid_argument",
+            `--agent is required for slot '${opts.slot}' (could not infer from task contract)`
+          )
+        );
+      }
+      if (!isValidAgentOrSlot(agent)) {
+        emit(
+          err(
+            "invalid_argument",
+            `invalid agent identifier '${agent}' (expected kebab-case)`
+          )
+        );
+      }
+      let payload;
+      try {
+        payload = readStdinJson();
+      } catch (e) {
+        if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+        throw e;
+      }
+      if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+        emit(
+          err(
+            "invalid_argument",
+            "evidence append expects a JSON object on stdin (one entry body)"
+          )
+        );
+      }
+      const clash = enforceAgentSlotIndependence(
+        root,
+        opts.mission,
+        opts.task,
+        agent,
+        opts.slot
+      );
+      if (clash) {
+        emit(err("guard_failed", clash.reason, clash.hints));
+      }
+      const filePath = evidenceFilePath(
+        root,
+        opts.mission,
+        opts.task,
+        agent,
+        opts.slot
+      );
+      const existing = readJsonFile(filePath);
+      const ts = nowUtc5();
+      const entry = { ...payload };
+      delete entry.entry_id;
+      delete entry.created_at;
+      if (entry.artifacts === void 0) entry.artifacts = [];
+      if (entry.memory_suggestions === void 0) entry.memory_suggestions = [];
+      if (entry.debt_candidates === void 0) entry.debt_candidates = [];
+      if (entry.gap_signals === void 0) entry.gap_signals = [];
+      if (entry.revision_ref === void 0) entry.revision_ref = null;
+      const nextId = existing && Array.isArray(existing.entries) ? existing.entries.length + 1 : 1;
+      entry.entry_id = nextId;
+      entry.created_at = ts;
+      const merged = {
+        mission_id: opts.mission,
+        task_id: opts.task,
+        agent,
+        slot: opts.slot,
+        entries: existing && Array.isArray(existing.entries) ? [...existing.entries, entry] : [entry],
+        created_at: existing?.created_at ?? ts,
+        updated_at: ts
+      };
+      const v = validate("evidence", merged);
+      if (!v.ok) {
+        emit(
+          err(
+            "schema_validation_failed",
+            "evidence schema validation failed",
+            v.errors
+          )
+        );
+      }
+      ensureDir(path7.dirname(filePath));
+      atomicWriteJson(filePath, merged, tmpDir(root));
+      recordEvent(root, {
+        kind: "evidence_appended",
+        actor: "cli:auto",
+        payload: {
+          mission_id: opts.mission,
+          task_id: opts.task,
+          artifact: slashPath3(path7.relative(root, filePath)),
+          agent,
+          slot: opts.slot,
+          entry_id: nextId,
+          evidence_kind: entry.evidence_kind
+        }
+      });
+      emit(
+        ok({
+          path: slashPath3(filePath),
+          ids: {
+            mission_id: opts.mission,
+            task_id: opts.task,
+            entry_id: nextId
+          },
+          agent,
+          slot: opts.slot,
+          file: merged
+        })
+      );
+    }
+  );
+}
+function registerEvidenceCommands(program2) {
+  const ev = program2.command("evidence").description("Append-only task evidence (evidence/{agent}.{slot}.json).");
+  registerEvidenceAppend(ev);
+}
+
+// src/commands/self-check.ts
+var path8 = __toESM(require("path"));
+function nowUtc6() {
+  return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+function slashPath4(p) {
+  return p.replace(/\\/g, "/");
+}
+function needProjectRoot5() {
+  const root = findProjectRoot(process.cwd());
+  if (!root) {
+    emit(
+      err(
+        "missing_artifact",
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+      )
+    );
+  }
+  return root;
+}
+function registerSelfCheckCommands(program2) {
+  const sc = program2.command("self-check").description("Implementer self-check artifact (self-check.json) commands.");
+  sc.command("set").description(
+    "Write self-check.json for a task (stdin: content fields). Rejects overwrite \u2014 self-check is written once."
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    if (!isValidTaskId(opts.task)) {
+      emit(err("invalid_argument", `invalid task id '${opts.task}'`));
+    }
+    const root = needProjectRoot5();
+    if (!exists(missionSpecPath(root, opts.mission))) {
+      emit(
+        err(
+          "missing_artifact",
+          `mission spec not found for ${opts.mission}`
+        )
+      );
+    }
+    if (!exists(taskContractPath(root, opts.mission, opts.task))) {
+      emit(
+        err(
+          "missing_artifact",
+          `task contract not found for ${opts.task}`
+        )
+      );
+    }
+    const p = selfCheckPath(root, opts.mission, opts.task);
+    if (exists(p)) {
+      emit(
+        err(
+          "path_collision",
+          `self-check.json already exists at ${slashPath4(p)} \u2014 self-check is written once`
+        )
+      );
+    }
+    let payload;
+    try {
+      payload = readStdinJson();
+    } catch (e) {
+      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      throw e;
+    }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      emit(
+        err(
+          "invalid_argument",
+          "self-check set expects a JSON object on stdin"
+        )
+      );
+    }
+    if (payload.reviewer_focus === void 0) payload.reviewer_focus = [];
+    if (payload.known_risks === void 0) payload.known_risks = [];
+    if (payload.deviations_from_plan === void 0) {
+      payload.deviations_from_plan = [];
+    }
+    if (payload.gap_signals === void 0) payload.gap_signals = [];
+    const ts = nowUtc6();
+    payload.mission_id = opts.mission;
+    payload.task_id = opts.task;
+    payload.created_at = ts;
+    payload.updated_at = ts;
+    const v = validate("self-check", payload);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "self-check schema validation failed",
+          v.errors
+        )
+      );
+    }
+    ensureDir(path8.dirname(p));
+    const existing = readJsonFile(p);
+    if (existing) {
+      emit(
+        err(
+          "path_collision",
+          `self-check.json already exists at ${slashPath4(p)}`
+        )
+      );
+    }
+    atomicWriteJson(p, payload, tmpDir(root));
+    recordEvent(root, {
+      kind: "self_check_set",
+      actor: "cli:auto",
+      payload: {
+        mission_id: opts.mission,
+        task_id: opts.task,
+        artifact: slashPath4(path8.relative(root, p))
+      }
+    });
+    emit(
+      ok({
+        path: slashPath4(p),
+        ids: { mission_id: opts.mission, task_id: opts.task },
+        self_check: payload
+      })
+    );
+  });
+}
+
+// src/commands/deliberation.ts
+var path9 = __toESM(require("path"));
+function nowUtc7() {
+  return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+function slashPath5(p) {
+  return p.replace(/\\/g, "/");
+}
+function needProjectRoot6() {
+  const root = findProjectRoot(process.cwd());
+  if (!root) {
+    emit(
+      err(
+        "missing_artifact",
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+      )
+    );
+  }
+  return root;
+}
+function aggregateExpected(votes) {
+  if (!Array.isArray(votes) || votes.length < 2) return "inconclusive";
+  let agree = 0, disagree = 0, escalate = 0;
+  for (const v of votes) {
+    if (v && v.vote === "escalate") escalate++;
+    else if (v && v.vote === "agree") agree++;
+    else if (v && v.vote === "disagree") disagree++;
+  }
+  if (escalate > 0) return "escalate";
+  if (agree > disagree) return "agree";
+  if (disagree > agree) return "disagree";
+  return "inconclusive";
+}
+function registerDeliberationAppend(cmd) {
+  cmd.command("append").description(
+    "Append a deliberation entry. Requires mission mode = full_depth."
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--level <level>", '"mission" or "task"').option("--task <id>", "Task ID (required when --level task)").action(
+    (opts) => {
+      if (!isValidMissionId(opts.mission)) {
+        emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+      }
+      if (opts.level !== "mission" && opts.level !== "task") {
+        emit(err("invalid_argument", `--level must be 'mission' or 'task'`));
+      }
+      if (opts.level === "task") {
+        if (!opts.task || !isValidTaskId(opts.task)) {
+          emit(
+            err(
+              "invalid_argument",
+              "--task <id> is required when --level is task"
+            )
+          );
+        }
+      } else if (opts.task) {
+        emit(
+          err(
+            "invalid_argument",
+            "--task must not be set when --level is mission"
+          )
+        );
+      }
+      const root = needProjectRoot6();
+      const spec = readJsonFile(
+        missionSpecPath(root, opts.mission)
+      );
+      if (!spec) {
+        emit(
+          err(
+            "missing_artifact",
+            `mission spec not found for ${opts.mission}`
+          )
+        );
+      }
+      const mode = typeof spec.mode === "string" ? spec.mode : "";
+      if (mode !== "full_depth") {
+        emit(
+          err(
+            "guard_failed",
+            `deliberation is only permitted when mission mode is 'full_depth' (mission '${opts.mission}' mode is '${mode || "unset"}')`,
+            { mission_mode: mode || null, required_mode: "full_depth" }
+          )
+        );
+      }
+      let payload;
+      try {
+        payload = readStdinJson();
+      } catch (e) {
+        if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+        throw e;
+      }
+      if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+        emit(
+          err(
+            "invalid_argument",
+            "deliberation append expects a JSON object on stdin"
+          )
+        );
+      }
+      delete payload.created_at;
+      payload.created_at = nowUtc7();
+      const votes = Array.isArray(payload.votes) ? payload.votes : [];
+      const expectedResult = aggregateExpected(votes);
+      const providedResult = typeof payload.result === "string" ? payload.result : "";
+      if (providedResult !== expectedResult) {
+        emit(
+          err(
+            "guard_failed",
+            `deliberation result '${providedResult || "(unset)"}' is inconsistent with votes; expected '${expectedResult}' per protocol 03 aggregation rule`,
+            {
+              expected_result: expectedResult,
+              provided_result: providedResult || null
+            }
+          )
+        );
+      }
+      const filePath = opts.level === "mission" ? missionDeliberationsPath(root, opts.mission) : taskDeliberationsPath(root, opts.mission, opts.task);
+      const existing = readJsonFile(filePath);
+      const ts = nowUtc7();
+      const merged = {
+        mission_id: opts.mission,
+        level: opts.level,
+        ...opts.level === "task" ? { task_id: opts.task } : {},
+        entries: existing && Array.isArray(existing.entries) ? [...existing.entries, payload] : [payload],
+        created_at: existing?.created_at ?? ts,
+        updated_at: ts
+      };
+      const v = validate("deliberation", merged);
+      if (!v.ok) {
+        emit(
+          err(
+            "schema_validation_failed",
+            "deliberation schema validation failed",
+            v.errors
+          )
+        );
+      }
+      ensureDir(path9.dirname(filePath));
+      atomicWriteJson(filePath, merged, tmpDir(root));
+      recordEvent(root, {
+        kind: "deliberation_appended",
+        actor: "cli:auto",
+        payload: {
+          mission_id: opts.mission,
+          task_id: opts.task ?? null,
+          level: opts.level,
+          artifact: slashPath5(path9.relative(root, filePath)),
+          result: expectedResult
+        }
+      });
+      emit(
+        ok({
+          path: slashPath5(filePath),
+          ids: {
+            mission_id: opts.mission,
+            task_id: opts.task ?? null
+          },
+          level: opts.level,
+          result: expectedResult,
+          entries_count: merged.entries.length
+        })
+      );
+    }
+  );
+}
+function registerDeliberationCommands(program2) {
+  const d = program2.command("deliberation").description(
+    "Append-only deliberation log. Mission or task level. Requires full_depth mode."
+  );
+  registerDeliberationAppend(d);
+}
+
+// src/commands/gate.ts
+var path10 = __toESM(require("path"));
+function nowUtc8() {
+  return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+function slashPath6(p) {
+  return p.replace(/\\/g, "/");
+}
+function needProjectRoot7() {
+  const root = findProjectRoot(process.cwd());
+  if (!root) {
+    emit(
+      err(
+        "missing_artifact",
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+      )
+    );
+  }
+  return root;
+}
+function overallFromTiers(tier0, tier1, tier2) {
+  for (const s of [tier0, tier1, tier2]) {
+    if (s === "error") return "error";
+    if (s === "block") return "block";
+    if (s === "fail") return "fail";
+  }
+  return "pass";
+}
+function registerGateRun(cmd) {
+  cmd.command("run").description(
+    "Record an evidence gate run. stdin: tier_results body. Auto-assigns gate_run_id and derives overall verdict."
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    if (!isValidTaskId(opts.task)) {
+      emit(err("invalid_argument", `invalid task id '${opts.task}'`));
+    }
+    const root = needProjectRoot7();
+    if (!exists(missionSpecPath(root, opts.mission))) {
+      emit(
+        err(
+          "missing_artifact",
+          `mission spec not found for ${opts.mission}`
+        )
+      );
+    }
+    if (!exists(taskContractPath(root, opts.mission, opts.task))) {
+      emit(
+        err("missing_artifact", `task contract not found for ${opts.task}`)
+      );
+    }
+    let payload;
+    try {
+      payload = readStdinJson();
+    } catch (e) {
+      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      throw e;
+    }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      emit(
+        err(
+          "invalid_argument",
+          "gate run expects a JSON object on stdin"
+        )
+      );
+    }
+    const tierResults = payload.tier_results ?? void 0;
+    if (!tierResults) {
+      emit(
+        err(
+          "invalid_argument",
+          "gate run payload must contain `tier_results` with tier_0, tier_1, tier_2"
+        )
+      );
+    }
+    const t0 = tierResults.tier_0?.status;
+    const t1 = tierResults.tier_1?.status;
+    const t2 = tierResults.tier_2?.status;
+    if (!t0 || !t1 || !t2) {
+      emit(
+        err(
+          "invalid_argument",
+          "tier_results must include tier_0, tier_1, tier_2 each with a status"
+        )
+      );
+    }
+    const overall = overallFromTiers(t0, t1, t2);
+    const filePath = gateResultsPath(root, opts.mission, opts.task);
+    const existing = readJsonFile(filePath);
+    const nextRunN = existing && Array.isArray(existing.runs) ? existing.runs.length + 1 : 1;
+    const gateRunId = `gate-${nextRunN}`;
+    const ts = nowUtc8();
+    const run2 = {
+      gate_run_id: gateRunId,
+      verdict: overall,
+      tier_results: tierResults,
+      created_at: ts
+    };
+    const merged = {
+      mission_id: opts.mission,
+      task_id: opts.task,
+      runs: existing && Array.isArray(existing.runs) ? [...existing.runs, run2] : [run2],
+      created_at: existing?.created_at ?? ts,
+      updated_at: ts
+    };
+    const v = validate("gate-results", merged);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "gate-results schema validation failed",
+          v.errors
+        )
+      );
+    }
+    ensureDir(path10.dirname(filePath));
+    atomicWriteJson(filePath, merged, tmpDir(root));
+    recordEvent(root, {
+      kind: "gate_run_recorded",
+      actor: "cli:auto",
+      payload: {
+        mission_id: opts.mission,
+        task_id: opts.task,
+        artifact: slashPath6(path10.relative(root, filePath)),
+        gate_run_id: gateRunId,
+        verdict: overall
+      }
+    });
+    let suggested = {
+      verdict: overall,
+      target_state: null,
+      command: null
+    };
+    if (overall === "pass") {
+      suggested.target_state = "verified";
+      suggested.command = `geas task transition --mission ${opts.mission} --task ${opts.task} --to verified`;
+    } else if (overall === "block") {
+      suggested.target_state = "blocked";
+      suggested.command = `geas task transition --mission ${opts.mission} --task ${opts.task} --to blocked`;
+    }
+    emit(
+      ok({
+        path: slashPath6(filePath),
+        ids: {
+          mission_id: opts.mission,
+          task_id: opts.task,
+          gate_run_id: gateRunId
+        },
+        verdict: overall,
+        suggested_next_transition: suggested,
+        runs_count: merged.runs.length
+      })
+    );
+  });
+}
+function registerGateCommands(program2) {
+  const g = program2.command("gate").description("Evidence gate run recording (gate-results.json).");
+  registerGateRun(g);
+}
+
 // src/main.ts
-var VERSION = "0.8.0";
+var VERSION = "0.9.0";
 function run() {
   const program2 = new Command();
   program2.name("geas").description("Geas CLI \u2014 atomic actuator for .geas/ runtime artifacts").version(VERSION);
@@ -12501,6 +13218,10 @@ function run() {
   registerStateCommands(program2);
   registerMissionCommands(program2);
   registerTaskCommands(program2);
+  registerEvidenceCommands(program2);
+  registerSelfCheckCommands(program2);
+  registerDeliberationCommands(program2);
+  registerGateCommands(program2);
   program2.parse(process.argv);
 }
 

@@ -87,52 +87,113 @@ function taskDir(dir, taskId) {
 }
 
 function writeSelfCheckStub(dir, taskId) {
-  const p = path.join(taskDir(dir, taskId), 'self-check.json');
-  // G3 only checks file existence; schema validation lands in G4.
-  fs.writeFileSync(p, JSON.stringify({ stub: true }, null, 2) + '\n');
+  // G4: self-check guard validates against the self-check schema.
+  const body = {
+    completed_work: 'stub implementation for test',
+    reviewer_focus: [],
+    known_risks: [],
+    deviations_from_plan: [],
+    gap_signals: [],
+  };
+  const res = runCli(
+    ['self-check', 'set', '--mission', MID, '--task', taskId],
+    { cwd: dir, input: JSON.stringify(body) },
+  );
+  if (res.status !== 0) {
+    throw new Error(
+      `self-check set failed: ${res.stderr}\n${res.stdout}`,
+    );
+  }
 }
 
 function writeReviewEvidenceStub(dir, taskId, agent, slot) {
-  const evDir = path.join(taskDir(dir, taskId), 'evidence');
-  fs.mkdirSync(evDir, { recursive: true });
-  const p = path.join(evDir, `${agent}.${slot}.json`);
-  fs.writeFileSync(
-    p,
-    JSON.stringify({ stub: true, agent, slot, entries: [] }, null, 2) + '\n',
+  // G4: review evidence must have at least one review-kind entry with a
+  // valid verdict.
+  const body = {
+    evidence_kind: 'review',
+    summary: `stub review from ${agent}`,
+    verdict: 'approved',
+    concerns: [],
+    rationale: 'stub review for test',
+    scope_examined: 'stub scope',
+    methods_used: ['stub method'],
+    scope_excluded: [],
+  };
+  const res = runCli(
+    [
+      'evidence',
+      'append',
+      '--mission',
+      MID,
+      '--task',
+      taskId,
+      '--agent',
+      agent,
+      '--slot',
+      slot,
+    ],
+    { cwd: dir, input: JSON.stringify(body) },
   );
+  if (res.status !== 0) {
+    throw new Error(
+      `evidence append (${agent}.${slot}) failed: ${res.stderr}\n${res.stdout}`,
+    );
+  }
 }
 
-function writeVerificationEvidenceStub(dir, taskId, agent = 'qa-engineer') {
-  writeReviewEvidenceStub(dir, taskId, agent, 'verifier');
+function writeVerificationEvidenceStub(dir, taskId) {
+  // G4: reviewed -> verified now requires a gate-results run with
+  // verdict=pass and tier_2.status=pass. We keep the name for
+  // compatibility with existing tests but route through the gate command.
+  const body = {
+    tier_results: {
+      tier_0: { status: 'pass', details: 'stub tier 0' },
+      tier_1: { status: 'pass', details: 'stub tier 1' },
+      tier_2: { status: 'pass', details: 'stub tier 2' },
+    },
+  };
+  const res = runCli(
+    ['gate', 'run', '--mission', MID, '--task', taskId],
+    { cwd: dir, input: JSON.stringify(body) },
+  );
+  if (res.status !== 0) {
+    throw new Error(`gate run failed: ${res.stderr}\n${res.stdout}`);
+  }
 }
 
 function writeClosureApproved(dir, taskId) {
-  const evDir = path.join(taskDir(dir, taskId), 'evidence');
-  fs.mkdirSync(evDir, { recursive: true });
-  const p = path.join(evDir, 'orchestrator.orchestrator.json');
+  // G4: closure evidence is an entry with evidence_kind=closure and
+  // verdict=approved in evidence/orchestrator.orchestrator.json.
   const body = {
-    mission_id: MID,
-    task_id: taskId,
-    agent: 'orchestrator',
-    slot: 'orchestrator',
-    entries: [
-      {
-        entry_id: 1,
-        evidence_kind: 'closure',
-        verdict: 'approved',
-        summary: 'G3 test closure stub',
-        artifacts: [],
-        memory_suggestions: [],
-        debt_candidates: [],
-        gap_signals: [],
-        revision_ref: null,
-        created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-      },
-    ],
-    created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-    updated_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+    evidence_kind: 'closure',
+    summary: 'G3 test closure stub',
+    verdict: 'approved',
+    rationale: 'all acceptance criteria satisfied',
+    what_went_well: [],
+    what_broke: [],
+    what_was_surprising: [],
+    next_time_guidance: [],
   };
-  fs.writeFileSync(p, JSON.stringify(body, null, 2) + '\n');
+  const res = runCli(
+    [
+      'evidence',
+      'append',
+      '--mission',
+      MID,
+      '--task',
+      taskId,
+      '--agent',
+      'orchestrator',
+      '--slot',
+      'orchestrator',
+    ],
+    { cwd: dir, input: JSON.stringify(body) },
+  );
+  if (res.status !== 0) {
+    throw new Error(
+      `closure evidence append failed: ${res.stderr}\n${res.stdout}`,
+    );
+  }
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────

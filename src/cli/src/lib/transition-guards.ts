@@ -371,30 +371,33 @@ export interface TaskStateHints {
    */
   conflictingSurfaces: string[];
   /**
-   * Whether self-check.json exists (G3 stub check — G4 upgrades to
-   * schema + content validation).
+   * Whether self-check.json exists AND validates against the self-check
+   * schema. G4 tightens the G3 file-presence stub to full schema validation.
    */
   selfCheckExists: boolean;
   /**
-   * Whether each required review slot has an evidence file present.
-   * G3 checks file presence only; G4 validates entry kind/verdict.
+   * Whether each required review slot has at least one evidence entry
+   * with `evidence_kind=review` and a valid reviewer verdict
+   * (approved / changes_requested / blocked). File presence alone is not
+   * sufficient — the entry content is inspected.
    */
   reviewEvidenceExists: boolean;
   /**
-   * Names of required review slots that have no evidence file yet.
-   * Used only for diagnostics.
+   * Names of required review slots that have no valid review evidence
+   * entry yet. Used only for diagnostics.
    */
   missingReviewSlots: string[];
   /**
-   * Whether a verification evidence file exists (reviewed -> verified).
-   * G3 = file presence; G4 checks verdict.
+   * Whether the latest gate-results run has `verdict=pass` and
+   * `tier_results.tier_2.status=pass`. A verifier evidence file alone is
+   * not sufficient — the gate must have actually run with a pass verdict.
    */
   verificationEvidenceExists: boolean;
   /**
-   * Whether the orchestrator closure evidence file exists and its last
-   * entry is a closure entry with verdict === 'approved'. Required for
-   * verified -> passed and escalated -> passed. G3 performs a simple
-   * file-presence check with a TODO(G4) for verdict inspection.
+   * Whether the orchestrator closure evidence file exists, its last entry
+   * is a closure entry with `verdict=approved`, and the file validates
+   * against the evidence schema. Required for verified -> passed and
+   * escalated -> passed.
    */
   closureApproved: boolean;
 }
@@ -478,40 +481,40 @@ export function canTransitionTaskState(
     return pass();
   }
 
-  // ── implementing -> reviewed: self-check + each required reviewer slot
-  // TODO(G4): tighten to schema + verdict validation. G3 is file-presence only.
+  // ── implementing -> reviewed: schema-valid self-check + at least one
+  // valid review entry per required reviewer slot.
   if (from === 'implementing' && to === 'reviewed') {
     if (!hints.selfCheckExists) {
       return fail(
-        'implementing -> reviewed requires self-check.json to exist',
+        'implementing -> reviewed requires self-check.json to exist and validate against the self-check schema',
       );
     }
     if (!hints.reviewEvidenceExists) {
       return fail(
-        'implementing -> reviewed requires evidence files for every required review slot',
+        'implementing -> reviewed requires at least one review-kind evidence entry with a valid verdict for every required review slot',
         { missing_review_slots: hints.missingReviewSlots },
       );
     }
     return pass();
   }
 
-  // ── reviewed -> verified: verification evidence file exists.
-  // TODO(G4): tighten to gate-results last run verdict === pass.
+  // ── reviewed -> verified: gate-results last run verdict=pass with
+  // tier_2.status=pass.
   if (from === 'reviewed' && to === 'verified') {
     if (!hints.verificationEvidenceExists) {
       return fail(
-        'reviewed -> verified requires a verification evidence file (gate-results run)',
+        'reviewed -> verified requires a gate-results run with verdict=pass and tier_2.status=pass',
       );
     }
     return pass();
   }
 
-  // ── verified -> passed: closure evidence with verdict === approved.
-  // TODO(G4): read closure entry verdict directly.
+  // ── verified -> passed: schema-valid closure evidence with
+  // verdict=approved.
   if (from === 'verified' && to === 'passed') {
     if (!hints.closureApproved) {
       return fail(
-        'verified -> passed requires orchestrator closure evidence with verdict=approved',
+        'verified -> passed requires orchestrator closure evidence (evidence_kind=closure, verdict=approved) that validates against the evidence schema',
       );
     }
     return pass();

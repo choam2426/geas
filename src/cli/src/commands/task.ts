@@ -555,49 +555,102 @@ function collectTaskStateHints(
     }
   }
 
-  const selfCheckExists = exists(selfCheckPath(root, missionId, taskId));
+  // G4: verdict-aware self-check — file must exist AND validate.
+  const selfCheckFilePath = selfCheckPath(root, missionId, taskId);
+  let selfCheckExists = false;
+  if (exists(selfCheckFilePath)) {
+    const selfCheckContent = readJsonFile<Record<string, unknown>>(selfCheckFilePath);
+    if (selfCheckContent) {
+      const v = validate('self-check', selfCheckContent);
+      selfCheckExists = v.ok;
+    }
+  }
 
-  // Review evidence: for each required review slot, is there an evidence
-  // file under evidence/ whose name matches `*.{slot}.json`?
+  // Review evidence: for each required review slot, there must be at least
+  // one `*.{slot}.json` file AND the latest entry in that file must be a
+  // `review`-kind entry with a verdict (approved / changes_requested /
+  // blocked). Presence of the file alone is no longer sufficient.
+  //
+  // Note: this guard only checks that the REQUIRED review slots have at
+  // least one valid review entry present. The gate verdict (pass/fail/block)
+  // is what `gate run` computes and the `reviewed -> verified` transition
+  // consults (gate verdict = pass). We do not reject `implementing ->
+  // reviewed` just because a reviewer said `changes_requested` — that's
+  // recorded, and the orchestrator later re-enters implementing via the
+  // `reviewed -> implementing` loop.
   const evDir = evidenceDir(root, missionId, taskId);
   const evidenceFiles = exists(evDir) ? fs.readdirSync(evDir) : [];
   const missingReviewSlots: string[] = [];
   for (const slot of requiredReviewers) {
     const match = evidenceFiles.find((f) => f.endsWith(`.${slot}.json`));
-    if (!match) missingReviewSlots.push(slot);
+    if (!match) {
+      missingReviewSlots.push(slot);
+      continue;
+    }
+    const file = readJsonFile<{ entries?: Array<Record<string, unknown>> }>(
+      path.join(evDir, match),
+    );
+    const hasReview =
+      !!file &&
+      Array.isArray(file.entries) &&
+      file.entries.some(
+        (e) =>
+          e &&
+          e.evidence_kind === 'review' &&
+          typeof e.verdict === 'string' &&
+          ['approved', 'changes_requested', 'blocked'].includes(e.verdict as string),
+      );
+    if (!hasReview) missingReviewSlots.push(slot);
   }
   const reviewEvidenceExists = missingReviewSlots.length === 0;
 
-  // Verification evidence: any `*.verifier.json` file under evidence/,
-  // OR a gate-results.json with at least one run. G3 stubs this as
-  // "a verifier slot file exists OR gate-results.json exists".
-  const verifierFile = evidenceFiles.find((f) => f.endsWith('.verifier.json'));
-  const gateResults = readJsonFile<{ runs?: unknown[] }>(
-    path.join(taskDir(root, missionId, taskId), 'gate-results.json'),
-  );
-  const verificationEvidenceExists =
-    !!verifierFile ||
-    (!!gateResults &&
-      Array.isArray(gateResults.runs) &&
-      gateResults.runs.length > 0);
+  // Verification evidence: gate-results.json last run must have
+  // verdict=pass AND tier_2 status=pass. Verifier evidence file existence
+  // alone is no longer enough.
+  const gateResultsFile = readJsonFile<{
+    runs?: Array<{
+      verdict?: string;
+      tier_results?: { tier_2?: { status?: string } };
+    }>;
+  }>(path.join(taskDir(root, missionId, taskId), 'gate-results.json'));
+  let verificationEvidenceExists = false;
+  if (
+    gateResultsFile &&
+    Array.isArray(gateResultsFile.runs) &&
+    gateResultsFile.runs.length > 0
+  ) {
+    const lastRun = gateResultsFile.runs[gateResultsFile.runs.length - 1];
+    if (
+      lastRun &&
+      lastRun.verdict === 'pass' &&
+      lastRun.tier_results?.tier_2?.status === 'pass'
+    ) {
+      verificationEvidenceExists = true;
+    }
+  }
 
-  // Closure: orchestrator.orchestrator.json with at least one entry whose
-  // evidence_kind === 'closure' and verdict === 'approved'. G3 can read
-  // the file; G4 upgrades to schema validation.
-  // TODO(G4): tighten to full closure entry schema validation.
+  // Closure: orchestrator.orchestrator.json with its LAST entry a closure
+  // entry with verdict=approved, AND the file must validate against the
+  // evidence schema (G4 tightening).
   const orchClosurePath = path.join(evDir, 'orchestrator.orchestrator.json');
-  const closureFile = readJsonFile<{ entries?: Array<Record<string, unknown>> }>(
-    orchClosurePath,
-  );
+  const closureFile = readJsonFile<{
+    entries?: Array<Record<string, unknown>>;
+  }>(orchClosurePath);
   let closureApproved = false;
-  if (closureFile && Array.isArray(closureFile.entries) && closureFile.entries.length > 0) {
+  if (
+    closureFile &&
+    Array.isArray(closureFile.entries) &&
+    closureFile.entries.length > 0
+  ) {
     const last = closureFile.entries[closureFile.entries.length - 1];
     if (
       last &&
       last.evidence_kind === 'closure' &&
       last.verdict === 'approved'
     ) {
-      closureApproved = true;
+      // Full schema validation of the closure evidence file.
+      const vEv = validate('evidence', closureFile);
+      closureApproved = vEv.ok;
     }
   }
 
