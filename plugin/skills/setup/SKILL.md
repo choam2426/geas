@@ -48,6 +48,6 @@ created[], existed[] } }`.
 ## Follow-up
 
 After setup, the orchestrator moves on to mission intake. Nothing in
-this skill reaches beyond `geas setup` — policy-override, rules.md,
-lock-manifest, health-check, and recovery packets are no longer part of
-the v3 protocol.
+this skill reaches beyond `geas setup`; the v3 `.geas/` tree is fixed
+by protocol 08 and contains no legacy policy, lock, or recovery
+artifacts.

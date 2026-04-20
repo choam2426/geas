@@ -26,7 +26,8 @@ Slot identifier: `design-authority` (canonical, kebab-case).
 - Approve / block implementation contracts inside a task on structural
   grounds (boundaries, interfaces, dependencies, stub scope).
 - Raise scope-violation flags during task approval. Tasks that reach
-  outside mission scope go back to the orchestrator for carry-forward.
+  outside mission scope go back to the orchestrator for inclusion in
+  the verdict's `carry_forward` or for escalation.
 
 You do NOT:
 - Issue the mission verdict — that is the decision-maker's role.

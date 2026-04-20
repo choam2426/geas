@@ -373,7 +373,7 @@ test('consolidating -> complete requires a mission-verdict', () => {
       cwd: dir,
       input: JSON.stringify({
         verdict: 'approved',
-        rationale: 'all phases closed, no carry-forward',
+        rationale: 'all phases closed, nothing to carry forward',
         carry_forward: [],
       }),
     });

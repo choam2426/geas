@@ -78,8 +78,8 @@ closing phase-review when all mission-scope tasks are terminated.
 
 Phase-gate checks for building:
 - every task is `passed`, `cancelled`, or `escalated` — or the
-  phase-review's `summary` explicitly accepts remaining work as a new
-  task or carry-forward
+  phase-review's `summary` explicitly accepts remaining work by handing
+  it off to the consolidating phase for gap/debt capture
 
 Append a phase-review with `mission_phase: building`,
 `status: passed`, `next_phase: polishing`, then
@@ -88,8 +88,8 @@ Append a phase-review with `mission_phase: building`,
 ### 3. Polishing
 
 Purpose: look at the mission-level integration, not task-level.
-Identify structural gaps that need another task, or mark them as debts
-or gap entries.
+Identify structural gaps that need another task, or mark them for
+capture as debts or gap entries during consolidating.
 
 If polishing surfaces new tasks, write their contracts, get them
 approved by the decision-maker (scope-in only — mission spec is
@@ -105,16 +105,74 @@ Purpose: finalize `debts`, `gap`, and `memory-update` entries; get the
 decision-maker's mission verdict.
 
 Steps:
-1. `geas consolidation scaffold --mission <id>` (will arrive with G6) —
-   gathers candidates from evidence. Until then, aggregate manually.
-2. Write `debts`, `gap.json`, `memory-update.json` (G5/G6).
-3. Decision-maker issues the verdict via
+
+1. **Scaffold candidates.** Run
+   `geas consolidation scaffold --mission <id>` to collect
+   `debt_candidates`, `memory_suggestions`, and `gap_signals` from
+   every task's evidence into `missions/{id}/consolidation/candidates.json`.
+   This file is a scratch cache, not schema-validated; the orchestrator
+   reads it to decide which candidates get promoted.
+2. **Triage debts.** For each `debt_candidate` worth promoting:
+   - Call `geas debt register` with stdin:
+     ```json
+     {
+       "severity": "low|normal|high|critical",
+       "kind": "output_quality|verification_gap|structural|risk|process|documentation|operations",
+       "title": "...",
+       "description": "...",
+       "introduced_by": {"mission_id": "<this mission>", "task_id": "<source task>"}
+     }
+     ```
+   - The CLI assigns `debt_id` (project-level monotonic) and sets
+     `status: open`. `debts.json` is project-level; it accumulates across
+     missions, with each entry tracing to its origin task.
+   - For previously-open debts that this mission closed, call
+     `geas debt update-status --debt <id>` with stdin:
+     ```json
+     {
+       "status": "resolved",
+       "resolved_by": {"mission_id": "<this mission>", "task_id": "<resolving task>"},
+       "resolution_rationale": "..."
+     }
+     ```
+     (or `"status": "dropped"` with the same shape when a debt is no
+     longer worth tracking).
+3. **Write gap.** Design Authority writes the mission's scope-vs-delivery
+   record via `geas gap set --mission <id>`. Body fields:
+   `scope_in_summary`, `scope_out_summary`, `fully_delivered`,
+   `partially_delivered`, `not_delivered`, `unexpected_additions`. This
+   is the drift record — note intentional cuts inline (e.g., `"X
+   (intentionally cut: time)"`). Compute gap closure ratio as
+   `|fully_delivered| / (|fully_delivered| + |partially_delivered| +
+   |not_delivered|)` and include it in the phase-review summary.
+4. **Update memory.** Invoke `/geas:memorizing` to produce the markdown
+   edits and change log:
+   - `geas memory shared-set` writes `memory/shared.md` atomically.
+   - `geas memory agent-set --agent <type>` writes each changed
+     `memory/agents/{type}.md`.
+   - `geas memory-update set --mission <id>` records the semantic change
+     log (`added`/`modified`/`removed` with `memory_id`, `reason`,
+     `evidence_refs`). This pairs with the markdown writes.
+5. **Mission verdict.** Decision-maker issues the verdict via
    `geas mission-verdict append --mission <id>` with
    `verdict: approved | changes_requested | escalated | cancelled`.
-4. Append the final phase-review with `mission_phase: consolidating`,
-   `status: passed`, `next_phase: complete`.
-5. `geas mission-state update --phase complete` — the CLI guard checks
+6. **Close the phase.** Append the final phase-review with
+   `mission_phase: consolidating`, `status: passed`,
+   `next_phase: complete`, then
+   `geas mission-state update --phase complete`. The CLI guard checks
    that a mission-verdict exists.
+
+Triage heuristics (salvaged from v1/v2 reporting patterns):
+
+- Debt register prioritization — surface high-severity and
+  `verification_gap`-kind candidates first; document why each is kept
+  open at mission close.
+- Gap vs debt split — `partially_delivered` items always land in
+  `gap.json`; the decision whether they also become new debts is a
+  separate judgment (debt captures "what we commit to carry forward",
+  gap captures "what actually shipped").
+- Gap closure ratio — a low ratio this mission is a signal to the
+  decision-maker, not an automatic block.
 
 ---
 
@@ -141,6 +199,7 @@ verifies those requirements at the gate.
 | All phases         | `geas mission state --mission <id>`, `geas context`                             |
 | Phase end          | `geas phase-review append --mission <id>` (stdin JSON entry)                    |
 | Phase advance      | `geas mission-state update --mission <id> --phase <p>`                          |
+| Consolidating      | `geas consolidation scaffold --mission <id>`, `geas debt register`, `geas debt update-status --debt <id>`, `geas gap set --mission <id>`, `geas memory-update set --mission <id>` |
 | Mission closure    | `geas mission-verdict append --mission <id>` (stdin JSON entry)                 |
 
 Refer to `docs/ko/architecture/CLI.md` §14 for the full automation

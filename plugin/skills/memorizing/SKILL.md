@@ -140,8 +140,28 @@ These are signals, not automatic writes. The orchestrator still decides before c
 
 ---
 
+## 10. Debt harvest handoff
+
+Consolidating retrospectives often surface **operational debt** alongside memory candidates — a failure mode severe enough to track at the project level, a structural weakness that needs a future mission, a verification coverage gap. Memory is the wrong home for these; they belong in the project-level debts ledger.
+
+When a retrospective candidate looks like debt, not memory, hand it to the mission orchestrator with a debt-shaped payload instead of trying to record it as a memory entry:
+
+```json
+{
+  "severity": "low|normal|high|critical",
+  "kind": "output_quality|verification_gap|structural|risk|process|documentation|operations",
+  "title": "<short label>",
+  "description": "<full context, including which closure evidence raised it>",
+  "introduced_by": {"mission_id": "<this mission>", "task_id": "<source task>"}
+}
+```
+
+The orchestrator pipes that payload into `geas debt register`. The CLI assigns `debt_id` (project-level monotonic), sets `status: open`, and records origin via `introduced_by` (protocol 07). Later missions can resolve or drop the entry via `geas debt update-status --debt <id>`.
+
+Classification cue — if the candidate describes **what the project should remember going forward**, it's memory. If it describes **what the project owes itself in terms of unresolved work**, it's debt. Both can come out of the same retrospective; the orchestrator routes each candidate to the right writer.
+
 ## What this skill does NOT do
 
-- It does not create, modify, or delete debts. That lives in G6 (`skills/policy-managing` was removed in v2 → v3; debt maintenance is `skills/mission` consolidating phase input into `debts.json`).
-- It does not emit events directly. The `memory_shared_set` and `memory_agent_set` events are appended by the CLI automatically.
+- It does not call `geas debt register` directly. It surfaces debt-shaped candidates; the orchestrator (mission skill, consolidating phase) performs the CLI call so debt triage and gap writing stay in one place.
+- It does not emit events directly. The `memory_shared_set`, `memory_agent_set`, and `memory_update_set` events are appended by the CLI automatically.
 - It does not manage policy overrides — there are none in v3.

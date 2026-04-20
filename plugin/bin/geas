@@ -959,7 +959,7 @@ var require_command = __commonJS({
   "node_modules/commander/lib/command.js"(exports2) {
     var EventEmitter = require("node:events").EventEmitter;
     var childProcess = require("node:child_process");
-    var path12 = require("node:path");
+    var path15 = require("node:path");
     var fs8 = require("node:fs");
     var process2 = require("node:process");
     var { Argument: Argument2, humanReadableArgName } = require_argument();
@@ -1892,9 +1892,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
         let launchWithNode = false;
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
         function findFile(baseDir, baseName) {
-          const localBin = path12.resolve(baseDir, baseName);
+          const localBin = path15.resolve(baseDir, baseName);
           if (fs8.existsSync(localBin)) return localBin;
-          if (sourceExt.includes(path12.extname(baseName))) return void 0;
+          if (sourceExt.includes(path15.extname(baseName))) return void 0;
           const foundExt = sourceExt.find(
             (ext) => fs8.existsSync(`${localBin}${ext}`)
           );
@@ -1912,17 +1912,17 @@ Expecting one of '${allowedValues.join("', '")}'`);
           } catch (err2) {
             resolvedScriptPath = this._scriptPath;
           }
-          executableDir = path12.resolve(
-            path12.dirname(resolvedScriptPath),
+          executableDir = path15.resolve(
+            path15.dirname(resolvedScriptPath),
             executableDir
           );
         }
         if (executableDir) {
           let localFile = findFile(executableDir, executableFile);
           if (!localFile && !subcommand._executableFile && this._scriptPath) {
-            const legacyName = path12.basename(
+            const legacyName = path15.basename(
               this._scriptPath,
-              path12.extname(this._scriptPath)
+              path15.extname(this._scriptPath)
             );
             if (legacyName !== this._name) {
               localFile = findFile(
@@ -1933,7 +1933,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
           }
           executableFile = localFile || executableFile;
         }
-        launchWithNode = sourceExt.includes(path12.extname(executableFile));
+        launchWithNode = sourceExt.includes(path15.extname(executableFile));
         let proc;
         if (process2.platform !== "win32") {
           if (launchWithNode) {
@@ -2773,7 +2773,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @return {Command}
        */
       nameFromFilename(filename) {
-        this._name = path12.basename(filename, path12.extname(filename));
+        this._name = path15.basename(filename, path15.extname(filename));
         return this;
       }
       /**
@@ -2787,9 +2787,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @param {string} [path]
        * @return {(string|null|Command)}
        */
-      executableDir(path13) {
-        if (path13 === void 0) return this._executableDir;
-        this._executableDir = path13;
+      executableDir(path16) {
+        if (path16 === void 0) return this._executableDir;
+        this._executableDir = path16;
         return this;
       }
       /**
@@ -6212,8 +6212,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path12) {
-      let input = path12;
+    function removeDotSegments(path15) {
+      let input = path15;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -6412,8 +6412,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path12, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path12 && path12 !== "/" ? path12 : void 0;
+        const [path15, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path15 && path15 !== "/" ? path15 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -6578,49 +6578,49 @@ var require_fast_uri = __commonJS({
       schemelessOptions.skipEscape = true;
       return serialize(resolved, schemelessOptions);
     }
-    function resolveComponent(base, relative9, options, skipNormalization) {
+    function resolveComponent(base, relative12, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
         base = parse(serialize(base, options), options);
-        relative9 = parse(serialize(relative9, options), options);
+        relative12 = parse(serialize(relative12, options), options);
       }
       options = options || {};
-      if (!options.tolerant && relative9.scheme) {
-        target.scheme = relative9.scheme;
-        target.userinfo = relative9.userinfo;
-        target.host = relative9.host;
-        target.port = relative9.port;
-        target.path = removeDotSegments(relative9.path || "");
-        target.query = relative9.query;
+      if (!options.tolerant && relative12.scheme) {
+        target.scheme = relative12.scheme;
+        target.userinfo = relative12.userinfo;
+        target.host = relative12.host;
+        target.port = relative12.port;
+        target.path = removeDotSegments(relative12.path || "");
+        target.query = relative12.query;
       } else {
-        if (relative9.userinfo !== void 0 || relative9.host !== void 0 || relative9.port !== void 0) {
-          target.userinfo = relative9.userinfo;
-          target.host = relative9.host;
-          target.port = relative9.port;
-          target.path = removeDotSegments(relative9.path || "");
-          target.query = relative9.query;
+        if (relative12.userinfo !== void 0 || relative12.host !== void 0 || relative12.port !== void 0) {
+          target.userinfo = relative12.userinfo;
+          target.host = relative12.host;
+          target.port = relative12.port;
+          target.path = removeDotSegments(relative12.path || "");
+          target.query = relative12.query;
         } else {
-          if (!relative9.path) {
+          if (!relative12.path) {
             target.path = base.path;
-            if (relative9.query !== void 0) {
-              target.query = relative9.query;
+            if (relative12.query !== void 0) {
+              target.query = relative12.query;
             } else {
               target.query = base.query;
             }
           } else {
-            if (relative9.path[0] === "/") {
-              target.path = removeDotSegments(relative9.path);
+            if (relative12.path[0] === "/") {
+              target.path = removeDotSegments(relative12.path);
             } else {
               if ((base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0) && !base.path) {
-                target.path = "/" + relative9.path;
+                target.path = "/" + relative12.path;
               } else if (!base.path) {
-                target.path = relative9.path;
+                target.path = relative12.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative9.path;
+                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative12.path;
               }
               target.path = removeDotSegments(target.path);
             }
-            target.query = relative9.query;
+            target.query = relative12.query;
           }
           target.userinfo = base.userinfo;
           target.host = base.host;
@@ -6628,7 +6628,7 @@ var require_fast_uri = __commonJS({
         }
         target.scheme = base.scheme;
       }
-      target.fragment = relative9.fragment;
+      target.fragment = relative12.fragment;
       return target;
     }
     function equal(uriA, uriB, options) {
@@ -10779,6 +10779,12 @@ function missionDeliberationsPath(projectRoot, missionId) {
 function consolidationDir(projectRoot, missionId) {
   return path2.join(missionDir(projectRoot, missionId), "consolidation");
 }
+function gapPath(projectRoot, missionId) {
+  return path2.join(consolidationDir(projectRoot, missionId), "gap.json");
+}
+function memoryUpdatePath(projectRoot, missionId) {
+  return path2.join(consolidationDir(projectRoot, missionId), "memory-update.json");
+}
 function tasksDir(projectRoot, missionId) {
   return path2.join(missionDir(projectRoot, missionId), "tasks");
 }
@@ -13345,8 +13351,584 @@ function registerMemoryCommands(program2) {
   registerAgentSet(mem);
 }
 
+// src/commands/debt.ts
+var path12 = __toESM(require("path"));
+function nowUtc9() {
+  return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+function slashPath8(p) {
+  return p.replace(/\\/g, "/");
+}
+function needProjectRoot9() {
+  const root = findProjectRoot(process.cwd());
+  if (!root) {
+    emit(
+      err(
+        "missing_artifact",
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+      )
+    );
+  }
+  return root;
+}
+var SEVERITY_ENUM = /* @__PURE__ */ new Set(["low", "normal", "high", "critical"]);
+var KIND_ENUM = /* @__PURE__ */ new Set([
+  "output_quality",
+  "verification_gap",
+  "structural",
+  "risk",
+  "process",
+  "documentation",
+  "operations"
+]);
+var STATUS_ENUM = /* @__PURE__ */ new Set(["open", "resolved", "dropped"]);
+var DEBT_ID_RE = /^debt-[0-9]{3}$/;
+function loadLedger(root) {
+  const p = debtsPath(root);
+  const current = readJsonFile(p);
+  if (current && Array.isArray(current.entries)) {
+    return current;
+  }
+  const ts = nowUtc9();
+  return { entries: [], created_at: ts, updated_at: ts };
+}
+function nextDebtId(entries) {
+  let max = 0;
+  for (const e of entries) {
+    const id = typeof e.debt_id === "string" ? e.debt_id : "";
+    const m = DEBT_ID_RE.exec(id);
+    if (!m) continue;
+    const n = parseInt(id.slice("debt-".length), 10);
+    if (Number.isFinite(n) && n > max) max = n;
+  }
+  const next = max + 1;
+  return `debt-${next.toString().padStart(3, "0")}`;
+}
+function registerRegister(debt) {
+  debt.command("register").description(
+    "Append a new entry to `.geas/debts.json` (project-level). stdin: debt body (debt_id auto-assigned, status forced to open)."
+  ).action(() => {
+    const root = needProjectRoot9();
+    let payload;
+    try {
+      payload = readStdinJson();
+    } catch (e) {
+      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      throw e;
+    }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      emit(
+        err(
+          "invalid_argument",
+          "debt register expects a JSON object on stdin (one entry body)"
+        )
+      );
+    }
+    const introduced = payload.introduced_by;
+    if (!introduced || typeof introduced !== "object" || typeof introduced.mission_id !== "string" || typeof introduced.task_id !== "string") {
+      emit(
+        err(
+          "invalid_argument",
+          "introduced_by is required with mission_id and task_id (project-level ledger traces each debt back to its origin mission/task)"
+        )
+      );
+    }
+    if (!isValidMissionId(introduced.mission_id)) {
+      emit(
+        err(
+          "invalid_argument",
+          `invalid introduced_by.mission_id '${introduced.mission_id}'`
+        )
+      );
+    }
+    if (!isValidTaskId(introduced.task_id)) {
+      emit(
+        err(
+          "invalid_argument",
+          `invalid introduced_by.task_id '${introduced.task_id}'`
+        )
+      );
+    }
+    if (typeof payload.severity !== "string" || !SEVERITY_ENUM.has(payload.severity)) {
+      emit(
+        err(
+          "invalid_argument",
+          `severity must be one of ${[...SEVERITY_ENUM].join(", ")}`
+        )
+      );
+    }
+    if (typeof payload.kind !== "string" || !KIND_ENUM.has(payload.kind)) {
+      emit(
+        err(
+          "invalid_argument",
+          `kind must be one of ${[...KIND_ENUM].join(", ")}`
+        )
+      );
+    }
+    const ledger = loadLedger(root);
+    const debtId = nextDebtId(ledger.entries);
+    const entry = {
+      debt_id: debtId,
+      severity: payload.severity,
+      kind: payload.kind,
+      title: payload.title,
+      description: payload.description,
+      status: "open",
+      introduced_by: {
+        mission_id: introduced.mission_id,
+        task_id: introduced.task_id
+      },
+      resolved_by: null,
+      resolution_rationale: null
+    };
+    const ts = nowUtc9();
+    const next = {
+      entries: [...ledger.entries, entry],
+      created_at: ledger.created_at || ts,
+      updated_at: ts
+    };
+    const v = validate("debts", next);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "debts schema validation failed",
+          v.errors
+        )
+      );
+    }
+    const target = debtsPath(root);
+    ensureDir(path12.dirname(target));
+    atomicWriteJson(target, next, tmpDir(root));
+    recordEvent(root, {
+      kind: "debt_registered",
+      actor: "cli:auto",
+      payload: {
+        artifact: slashPath8(path12.relative(root, target)),
+        debt_id: debtId,
+        mission_id: introduced.mission_id,
+        task_id: introduced.task_id,
+        severity: payload.severity,
+        kind: payload.kind
+      }
+    });
+    emit(
+      ok({
+        path: slashPath8(target),
+        ids: { debt_id: debtId },
+        entry
+      })
+    );
+  });
+}
+function registerUpdateStatus(debt) {
+  debt.command("update-status").description(
+    "Update status + resolved_by + resolution_rationale on an existing debt entry. stdin: { status, resolved_by, resolution_rationale }."
+  ).requiredOption("--debt <id>", "Debt ID (debt-NNN)").action((opts) => {
+    if (!DEBT_ID_RE.test(opts.debt)) {
+      emit(
+        err(
+          "invalid_argument",
+          `invalid debt id '${opts.debt}' (expected ^debt-[0-9]{3}$)`
+        )
+      );
+    }
+    const root = needProjectRoot9();
+    let payload;
+    try {
+      payload = readStdinJson();
+    } catch (e) {
+      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      throw e;
+    }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      emit(
+        err(
+          "invalid_argument",
+          "debt update-status expects a JSON object on stdin"
+        )
+      );
+    }
+    const allowedKeys = /* @__PURE__ */ new Set(["status", "resolved_by", "resolution_rationale"]);
+    for (const k of Object.keys(payload)) {
+      if (!allowedKeys.has(k)) {
+        emit(
+          err(
+            "append_only_violation",
+            `debt update-status only accepts status, resolved_by, resolution_rationale \u2014 got '${k}'`,
+            { field: k }
+          )
+        );
+      }
+    }
+    if (typeof payload.status !== "string" || !STATUS_ENUM.has(payload.status)) {
+      emit(
+        err(
+          "invalid_argument",
+          `status must be one of ${[...STATUS_ENUM].join(", ")}`
+        )
+      );
+    }
+    if (payload.status === "open") {
+      if (payload.resolved_by !== void 0 && payload.resolved_by !== null) {
+        emit(
+          err(
+            "invalid_argument",
+            "resolved_by must be null when status is open"
+          )
+        );
+      }
+      if (payload.resolution_rationale !== void 0 && payload.resolution_rationale !== null) {
+        emit(
+          err(
+            "invalid_argument",
+            "resolution_rationale must be null when status is open"
+          )
+        );
+      }
+    } else {
+      const rb = payload.resolved_by;
+      if (!rb || typeof rb !== "object" || typeof rb.mission_id !== "string" || typeof rb.task_id !== "string") {
+        emit(
+          err(
+            "invalid_argument",
+            "resolved_by must include mission_id and task_id when status is resolved or dropped"
+          )
+        );
+      }
+      if (!isValidMissionId(rb.mission_id)) {
+        emit(
+          err(
+            "invalid_argument",
+            `invalid resolved_by.mission_id '${rb.mission_id}'`
+          )
+        );
+      }
+      if (!isValidTaskId(rb.task_id)) {
+        emit(
+          err(
+            "invalid_argument",
+            `invalid resolved_by.task_id '${rb.task_id}'`
+          )
+        );
+      }
+      if (typeof payload.resolution_rationale !== "string" || payload.resolution_rationale.length === 0) {
+        emit(
+          err(
+            "invalid_argument",
+            "resolution_rationale is required (non-empty string) when status is resolved or dropped"
+          )
+        );
+      }
+    }
+    const ledger = loadLedger(root);
+    const idx = ledger.entries.findIndex(
+      (e) => e.debt_id === opts.debt
+    );
+    if (idx < 0) {
+      emit(
+        err(
+          "missing_artifact",
+          `debt '${opts.debt}' not found in ledger`,
+          { debt_id: opts.debt }
+        )
+      );
+    }
+    const before = ledger.entries[idx];
+    const updated = {
+      ...before,
+      status: payload.status,
+      resolved_by: payload.status === "open" ? null : {
+        mission_id: payload.resolved_by.mission_id,
+        task_id: payload.resolved_by.task_id
+      },
+      resolution_rationale: payload.status === "open" ? null : payload.resolution_rationale
+    };
+    const ts = nowUtc9();
+    const nextEntries = ledger.entries.slice();
+    nextEntries[idx] = updated;
+    const next = {
+      entries: nextEntries,
+      created_at: ledger.created_at,
+      updated_at: ts
+    };
+    const v = validate("debts", next);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "debts schema validation failed",
+          v.errors
+        )
+      );
+    }
+    const target = debtsPath(root);
+    ensureDir(path12.dirname(target));
+    atomicWriteJson(target, next, tmpDir(root));
+    recordEvent(root, {
+      kind: "debt_status_updated",
+      actor: "cli:auto",
+      payload: {
+        artifact: slashPath8(path12.relative(root, target)),
+        debt_id: opts.debt,
+        from_status: before.status,
+        to_status: payload.status
+      }
+    });
+    emit(
+      ok({
+        path: slashPath8(target),
+        ids: { debt_id: opts.debt },
+        entry: updated
+      })
+    );
+  });
+}
+function registerList(debt) {
+  debt.command("list").description(
+    "Read-only query over `.geas/debts.json`. Filters on --status and/or --mission (matches introduced_by.mission_id OR resolved_by.mission_id)."
+  ).option("--status <status>", "Filter by status (open|resolved|dropped)").option("--mission <id>", "Filter by mission (matches origin or resolution)").action((opts) => {
+    if (opts.status !== void 0 && !STATUS_ENUM.has(opts.status)) {
+      emit(
+        err(
+          "invalid_argument",
+          `--status must be one of ${[...STATUS_ENUM].join(", ")}`
+        )
+      );
+    }
+    if (opts.mission !== void 0 && !isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    const root = needProjectRoot9();
+    const ledger = loadLedger(root);
+    let entries = ledger.entries.slice();
+    if (opts.status) {
+      entries = entries.filter(
+        (e) => e.status === opts.status
+      );
+    }
+    if (opts.mission) {
+      const m = opts.mission;
+      entries = entries.filter((e) => {
+        const ib = e.introduced_by;
+        const rb = e.resolved_by;
+        if (ib && ib.mission_id === m) return true;
+        if (rb && rb.mission_id === m) return true;
+        return false;
+      });
+    }
+    const counts = { open: 0, resolved: 0, dropped: 0 };
+    for (const e of entries) {
+      const s = e.status ?? "";
+      if (counts[s] !== void 0) counts[s]++;
+    }
+    emit(
+      ok({
+        path: slashPath8(debtsPath(root)),
+        total: entries.length,
+        counts,
+        entries
+      })
+    );
+  });
+}
+function registerDebtCommands(program2) {
+  const debt = program2.command("debt").description(
+    "Project-level debts ledger (.geas/debts.json) \u2014 register, update-status, list."
+  );
+  registerRegister(debt);
+  registerUpdateStatus(debt);
+  registerList(debt);
+}
+
+// src/commands/gap.ts
+var path13 = __toESM(require("path"));
+function nowUtc10() {
+  return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+function slashPath9(p) {
+  return p.replace(/\\/g, "/");
+}
+function needProjectRoot10() {
+  const root = findProjectRoot(process.cwd());
+  if (!root) {
+    emit(
+      err(
+        "missing_artifact",
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+      )
+    );
+  }
+  return root;
+}
+function registerGapCommands(program2) {
+  const gap = program2.command("gap").description(
+    "Mission-level gap artifact (missions/{id}/consolidation/gap.json)."
+  );
+  gap.command("set").description(
+    "Write gap.json for a mission (full-replace, stdin: gap body). Allowed during consolidating phase."
+  ).requiredOption("--mission <id>", "Mission ID").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    const root = needProjectRoot10();
+    if (!exists(missionSpecPath(root, opts.mission))) {
+      emit(
+        err(
+          "missing_artifact",
+          `mission spec not found for ${opts.mission}`
+        )
+      );
+    }
+    let payload;
+    try {
+      payload = readStdinJson();
+    } catch (e) {
+      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      throw e;
+    }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      emit(
+        err("invalid_argument", "gap set expects a JSON object on stdin")
+      );
+    }
+    if (payload.fully_delivered === void 0) payload.fully_delivered = [];
+    if (payload.partially_delivered === void 0) payload.partially_delivered = [];
+    if (payload.not_delivered === void 0) payload.not_delivered = [];
+    if (payload.unexpected_additions === void 0) payload.unexpected_additions = [];
+    const target = gapPath(root, opts.mission);
+    const existing = readJsonFile(target);
+    const ts = nowUtc10();
+    payload.mission_id = opts.mission;
+    payload.created_at = existing?.created_at ?? ts;
+    payload.updated_at = ts;
+    const v = validate("gap", payload);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "gap schema validation failed",
+          v.errors
+        )
+      );
+    }
+    ensureDir(path13.dirname(target));
+    atomicWriteJson(target, payload, tmpDir(root));
+    recordEvent(root, {
+      kind: "gap_set",
+      actor: "cli:auto",
+      payload: {
+        mission_id: opts.mission,
+        artifact: slashPath9(path13.relative(root, target))
+      }
+    });
+    emit(
+      ok({
+        path: slashPath9(target),
+        ids: { mission_id: opts.mission },
+        gap: payload
+      })
+    );
+  });
+}
+
+// src/commands/memory-update.ts
+var path14 = __toESM(require("path"));
+function nowUtc11() {
+  return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+function slashPath10(p) {
+  return p.replace(/\\/g, "/");
+}
+function needProjectRoot11() {
+  const root = findProjectRoot(process.cwd());
+  if (!root) {
+    emit(
+      err(
+        "missing_artifact",
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+      )
+    );
+  }
+  return root;
+}
+function emptySharedBlock() {
+  return { added: [], modified: [], removed: [] };
+}
+function registerMemoryUpdateCommands(program2) {
+  const mu = program2.command("memory-update").description(
+    "Mission consolidation memory change log (missions/{id}/consolidation/memory-update.json)."
+  );
+  mu.command("set").description(
+    "Write memory-update.json for a mission (full-replace, stdin: body). Records what shared + agent memory changed this mission."
+  ).requiredOption("--mission <id>", "Mission ID").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    const root = needProjectRoot11();
+    if (!exists(missionSpecPath(root, opts.mission))) {
+      emit(
+        err(
+          "missing_artifact",
+          `mission spec not found for ${opts.mission}`
+        )
+      );
+    }
+    let payload;
+    try {
+      payload = readStdinJson();
+    } catch (e) {
+      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      throw e;
+    }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      emit(
+        err(
+          "invalid_argument",
+          "memory-update set expects a JSON object on stdin"
+        )
+      );
+    }
+    if (payload.shared === void 0) payload.shared = emptySharedBlock();
+    if (payload.agents === void 0) payload.agents = [];
+    const target = memoryUpdatePath(root, opts.mission);
+    const existing = readJsonFile(target);
+    const ts = nowUtc11();
+    payload.mission_id = opts.mission;
+    payload.created_at = existing?.created_at ?? ts;
+    payload.updated_at = ts;
+    const v = validate("memory-update", payload);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "memory-update schema validation failed",
+          v.errors
+        )
+      );
+    }
+    ensureDir(path14.dirname(target));
+    atomicWriteJson(target, payload, tmpDir(root));
+    recordEvent(root, {
+      kind: "memory_update_set",
+      actor: "cli:auto",
+      payload: {
+        mission_id: opts.mission,
+        artifact: slashPath10(path14.relative(root, target))
+      }
+    });
+    emit(
+      ok({
+        path: slashPath10(target),
+        ids: { mission_id: opts.mission },
+        memory_update: payload
+      })
+    );
+  });
+}
+
 // src/main.ts
-var VERSION = "0.10.0";
+var VERSION = "0.11.0";
 function run() {
   const program2 = new Command();
   program2.name("geas").description("Geas CLI \u2014 atomic actuator for .geas/ runtime artifacts").version(VERSION);
@@ -13361,6 +13943,9 @@ function run() {
   registerDeliberationCommands(program2);
   registerGateCommands(program2);
   registerMemoryCommands(program2);
+  registerDebtCommands(program2);
+  registerGapCommands(program2);
+  registerMemoryUpdateCommands(program2);
   program2.parse(process.argv);
 }
 

@@ -52,8 +52,8 @@ Order of evaluation:
 2. **Was out-of-scope respected?** Scope creep is a blocker unless
    the added work came through the proper approval chain.
 3. **Was the design faithfully executed?** Gaps between design and
-   delivery must be either closed, debt-registered, or named in
-   carry-forward.
+   delivery must be either closed, debt-registered, or listed in the
+   verdict's `carry_forward`.
 4. **Are there unresolved blocking concerns from specialists,
    design-authority, or challenger?** A blocking concern that was
    neither resolved nor explicitly accepted at mission level is a
@@ -83,8 +83,9 @@ The CLI enforces that this update moves the contract into a state
 where `task transition --to ready` can fire (doc 03).
 
 Tasks that step outside mission scope are not yours to approve —
-mission spec is immutable. Tell the orchestrator to either register a
-carry-forward for a future mission or escalate.
+mission spec is immutable. Tell the orchestrator to either note the
+item in the verdict's `carry_forward` (so a future mission can pick
+it up) or escalate.
 
 ## Anti-patterns
 
