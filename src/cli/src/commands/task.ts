@@ -749,18 +749,10 @@ function registerTaskDepsAdd(task: Command): void {
         );
       }
       atomicWriteJson(cPath, contract, tmpDir(root));
-
-      recordEvent(root, {
-        kind: 'task_deps_added',
-        actor: 'cli:auto',
-        payload: {
-          mission_id: opts.mission,
-          task_id: opts.task,
-          artifact: slashPath(cPath),
-          added,
-          dependencies: next,
-        },
-      });
+      // Automation-scope discipline: appending deps is a single-field
+      // mutation on an existing artifact — tracked via contract.json
+      // updated_at. Protocol waypoints (task_drafted, task_approved,
+      // task_state_changed) cover the lifecycle signals.
 
       emit(
         ok({

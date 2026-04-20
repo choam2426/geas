@@ -4,7 +4,8 @@
  * G1 ships the foundation command set: setup, context, schema, state.
  * G2 adds mission; G3 adds task; G4 adds evidence / self-check /
  * deliberation / gate; G5 adds memory (shared.md + agents/{type}.md);
- * G6 adds debt / gap / memory-update (consolidation artifacts).
+ * G6 adds debt / gap / memory-update (consolidation artifacts); G7
+ * adds event (explicit events.jsonl append).
  *
  * This module is pure wiring — no business logic lives here.
  */
@@ -24,8 +25,9 @@ import { registerMemoryCommands } from './commands/memory';
 import { registerDebtCommands } from './commands/debt';
 import { registerGapCommands } from './commands/gap';
 import { registerMemoryUpdateCommands } from './commands/memory-update';
+import { registerEventCommands } from './commands/event';
 
-const VERSION = '0.11.0';
+const VERSION = '0.12.0';
 
 export function run(): void {
   const program = new Command();
@@ -49,6 +51,7 @@ export function run(): void {
   registerDebtCommands(program);
   registerGapCommands(program);
   registerMemoryUpdateCommands(program);
+  registerEventCommands(program);
 
   program.parse(process.argv);
 }

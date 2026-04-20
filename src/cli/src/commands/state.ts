@@ -14,7 +14,7 @@
  */
 
 import type { Command } from 'commander';
-import { emit, err, ok, recordEvent } from '../lib/envelope';
+import { emit, err, ok } from '../lib/envelope';
 import { readJsonFile, atomicWriteJson, ensureDir } from '../lib/fs-atomic';
 import * as path from 'path';
 import {
@@ -88,11 +88,9 @@ export function registerStateCommands(program: Command): void {
       }
       ensureDir(path.dirname(p));
       atomicWriteJson(p, payload, tmpDir(root));
-      recordEvent(root, {
-        kind: 'mission_state_set',
-        actor: 'cli:auto',
-        payload: { mission_id: opts.mission, artifact: p.replace(/\\/g, '/') },
-      });
+      // Automation-scope discipline: raw state-set is a low-level
+      // primitive; protocol-level transitions (e.g. mission phase
+      // advance) emit their own event. No event here.
       emit(ok({ path: p.replace(/\\/g, '/'), state: payload }));
     });
 
@@ -141,11 +139,9 @@ export function registerStateCommands(program: Command): void {
       }
       ensureDir(path.dirname(p));
       atomicWriteJson(p, payload, tmpDir(root));
-      recordEvent(root, {
-        kind: 'task_state_set',
-        actor: 'cli:auto',
-        payload: { mission_id: opts.mission, task_id: opts.task, artifact: p.replace(/\\/g, '/') },
-      });
+      // Automation-scope discipline: raw state-set is a low-level
+      // primitive; lifecycle transitions (e.g. task state transition)
+      // emit their own event. No event here.
       emit(ok({ path: p.replace(/\\/g, '/'), state: payload }));
     });
 }

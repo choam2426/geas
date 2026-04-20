@@ -960,7 +960,7 @@ var require_command = __commonJS({
     var EventEmitter = require("node:events").EventEmitter;
     var childProcess = require("node:child_process");
     var path15 = require("node:path");
-    var fs8 = require("node:fs");
+    var fs9 = require("node:fs");
     var process2 = require("node:process");
     var { Argument: Argument2, humanReadableArgName } = require_argument();
     var { CommanderError: CommanderError2 } = require_error();
@@ -1893,10 +1893,10 @@ Expecting one of '${allowedValues.join("', '")}'`);
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
         function findFile(baseDir, baseName) {
           const localBin = path15.resolve(baseDir, baseName);
-          if (fs8.existsSync(localBin)) return localBin;
+          if (fs9.existsSync(localBin)) return localBin;
           if (sourceExt.includes(path15.extname(baseName))) return void 0;
           const foundExt = sourceExt.find(
-            (ext) => fs8.existsSync(`${localBin}${ext}`)
+            (ext) => fs9.existsSync(`${localBin}${ext}`)
           );
           if (foundExt) return `${localBin}${foundExt}`;
           return void 0;
@@ -1908,7 +1908,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
         if (this._scriptPath) {
           let resolvedScriptPath;
           try {
-            resolvedScriptPath = fs8.realpathSync(this._scriptPath);
+            resolvedScriptPath = fs9.realpathSync(this._scriptPath);
           } catch (err2) {
             resolvedScriptPath = this._scriptPath;
           }
@@ -10599,12 +10599,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs8, exportName) {
+    function addFormats(ajv, list, fs9, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs8[f]);
+        ajv.addFormat(f, fs9[f]);
     }
     module2.exports = exports2 = formatsPlugin;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -10717,6 +10717,9 @@ function appendJsonl(filePath, entry) {
 function exists(filePath) {
   return fs.existsSync(filePath);
 }
+
+// src/lib/envelope.ts
+var fs3 = __toESM(require("fs"));
 
 // src/lib/paths.ts
 var path2 = __toESM(require("path"));
@@ -10847,13 +10850,64 @@ function emit(envelope) {
   if (envelope.ok) process.exit(0);
   process.exit(EXIT_CODES[envelope.error.code] ?? 1);
 }
-function recordEvent(projectRoot, event) {
-  const enriched = {
-    created_at: (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z"),
-    ...event
-  };
+var SLOT_ACTORS = [
+  "decision-maker",
+  "orchestrator",
+  "design-authority",
+  "challenger",
+  "implementer",
+  "verifier",
+  "risk-assessor",
+  "operator",
+  "communicator"
+];
+var SPECIAL_ACTORS = ["user", "cli:auto"];
+var SLOT_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+function isValidActor(value) {
+  if (typeof value !== "string" || value.length === 0) return false;
+  if (SPECIAL_ACTORS.includes(value)) return true;
+  if (SLOT_ACTORS.includes(value)) return true;
+  return SLOT_RE.test(value);
+}
+function nextEntryId(filePath) {
   try {
-    appendJsonl(eventsPath(projectRoot), enriched);
+    if (!fs3.existsSync(filePath)) return 1;
+    const content = fs3.readFileSync(filePath, "utf-8");
+    if (!content) return 1;
+    const lines = content.split("\n").filter((l) => l.length > 0);
+    let maxId = 0;
+    for (const line of lines) {
+      try {
+        const parsed = JSON.parse(line);
+        if (parsed && typeof parsed.entry_id === "number" && parsed.entry_id > maxId) {
+          maxId = parsed.entry_id;
+        }
+      } catch {
+      }
+    }
+    return maxId + 1;
+  } catch {
+    return 1;
+  }
+}
+function recordEvent(projectRoot, event) {
+  try {
+    const filePath = eventsPath(projectRoot);
+    const kind = typeof event.kind === "string" ? event.kind : void 0;
+    const actor = event.actor;
+    if (!kind) return;
+    if (!isValidActor(actor)) return;
+    const { entry_id: _ignoredId, created_at: _ignoredTs, ...rest } = event;
+    void _ignoredId;
+    void _ignoredTs;
+    const entry = {
+      entry_id: nextEntryId(filePath),
+      kind,
+      actor,
+      created_at: (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z"),
+      ...rest
+    };
+    appendJsonl(filePath, entry);
   } catch {
   }
 }
@@ -10933,7 +10987,7 @@ function relToRoot(root, target) {
 }
 
 // src/commands/context.ts
-var fs3 = __toESM(require("fs"));
+var fs4 = __toESM(require("fs"));
 function registerContextCommand(program2) {
   program2.command("context").description("Print a JSON summary of the current .geas/ state").action(() => {
     const root = findProjectRoot(process.cwd());
@@ -10948,10 +11002,10 @@ function registerContextCommand(program2) {
     const projectRoot = root;
     const missions = [];
     const mDir = missionsDir(projectRoot);
-    if (fs3.existsSync(mDir)) {
-      for (const entry of fs3.readdirSync(mDir)) {
+    if (fs4.existsSync(mDir)) {
+      for (const entry of fs4.readdirSync(mDir)) {
         const full = `${mDir}/${entry}`;
-        if (!fs3.statSync(full).isDirectory()) continue;
+        if (!fs4.statSync(full).isDirectory()) continue;
         const statePath = missionStatePath(projectRoot, entry);
         const state = readJsonFile(statePath);
         missions.push({
@@ -11032,7 +11086,7 @@ function registerSchemaCommands(program2) {
 var path4 = __toESM(require("path"));
 
 // src/lib/input.ts
-var fs4 = __toESM(require("fs"));
+var fs5 = __toESM(require("fs"));
 var StdinError = class extends Error {
   constructor(message) {
     super(message);
@@ -11045,7 +11099,7 @@ function readStdinJson() {
   }
   let raw;
   try {
-    raw = fs4.readFileSync(0, "utf-8");
+    raw = fs5.readFileSync(0, "utf-8");
   } catch (err2) {
     const e = err2;
     throw new StdinError(`failed to read stdin: ${e.code ?? "unknown"}`);
@@ -11068,7 +11122,7 @@ function readStdinText() {
   }
   let raw;
   try {
-    raw = fs4.readFileSync(0, "utf-8");
+    raw = fs5.readFileSync(0, "utf-8");
   } catch (err2) {
     const e = err2;
     throw new StdinError(`failed to read stdin: ${e.code ?? "unknown"}`);
@@ -11166,11 +11220,6 @@ function registerStateCommands(program2) {
     }
     ensureDir(path4.dirname(p));
     atomicWriteJson(p, payload, tmpDir(root));
-    recordEvent(root, {
-      kind: "mission_state_set",
-      actor: "cli:auto",
-      payload: { mission_id: opts.mission, artifact: p.replace(/\\/g, "/") }
-    });
     emit(ok({ path: p.replace(/\\/g, "/"), state: payload }));
   });
   state.command("task-get").description("Print task-state.json for a task").requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").action((opts) => {
@@ -11206,18 +11255,13 @@ function registerStateCommands(program2) {
     }
     ensureDir(path4.dirname(p));
     atomicWriteJson(p, payload, tmpDir(root));
-    recordEvent(root, {
-      kind: "task_state_set",
-      actor: "cli:auto",
-      payload: { mission_id: opts.mission, task_id: opts.task, artifact: p.replace(/\\/g, "/") }
-    });
     emit(ok({ path: p.replace(/\\/g, "/"), state: payload }));
   });
 }
 
 // src/commands/mission.ts
 var crypto2 = __toESM(require("crypto"));
-var fs5 = __toESM(require("fs"));
+var fs6 = __toESM(require("fs"));
 var path5 = __toESM(require("path"));
 
 // src/lib/transition-guards.ts
@@ -11503,7 +11547,7 @@ function countApprovedTasks(projectRoot, missionId) {
   const tDir = tasksDir(projectRoot, missionId);
   if (!exists(tDir)) return 0;
   let count = 0;
-  for (const entry of fs5.readdirSync(tDir)) {
+  for (const entry of fs6.readdirSync(tDir)) {
     const contractPath = path5.join(tDir, entry, "contract.json");
     if (!exists(contractPath)) continue;
     const contract = readJsonFile(contractPath);
@@ -11518,7 +11562,7 @@ function countOpenTasks(projectRoot, missionId) {
   if (!exists(tDir)) return 0;
   const TERMINATED = /* @__PURE__ */ new Set(["passed", "cancelled", "escalated"]);
   let count = 0;
-  for (const entry of fs5.readdirSync(tDir)) {
+  for (const entry of fs6.readdirSync(tDir)) {
     const statePath = path5.join(tDir, entry, "task-state.json");
     if (!exists(statePath)) {
       if (exists(path5.join(tDir, entry, "contract.json"))) count++;
@@ -11966,7 +12010,7 @@ function registerMissionCommands(program2) {
 }
 
 // src/commands/task.ts
-var fs6 = __toESM(require("fs"));
+var fs7 = __toESM(require("fs"));
 var path6 = __toESM(require("path"));
 function nowUtc4() {
   return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -12008,7 +12052,7 @@ function generateTaskId(root, missionId) {
   const tDir = tasksDir(root, missionId);
   let maxN = 0;
   if (exists(tDir)) {
-    for (const entry of fs6.readdirSync(tDir)) {
+    for (const entry of fs7.readdirSync(tDir)) {
       const m = /^task-([0-9]{3})$/.exec(entry);
       if (m) {
         const n = parseInt(m[1], 10);
@@ -12341,7 +12385,7 @@ function collectTaskStateHints(root, missionId, taskId, contract) {
   const tDir = tasksDir(root, missionId);
   if (exists(tDir) && surfaces.length > 0) {
     const mySurf = new Set(surfaces);
-    for (const entry of fs6.readdirSync(tDir)) {
+    for (const entry of fs7.readdirSync(tDir)) {
       if (entry === taskId) continue;
       const otherState = readJsonFile(
         taskStatePath(root, missionId, entry)
@@ -12368,7 +12412,7 @@ function collectTaskStateHints(root, missionId, taskId, contract) {
     }
   }
   const evDir = evidenceDir(root, missionId, taskId);
-  const evidenceFiles = exists(evDir) ? fs6.readdirSync(evDir) : [];
+  const evidenceFiles = exists(evDir) ? fs7.readdirSync(evDir) : [];
   const missingReviewSlots = [];
   for (const slot of requiredReviewers) {
     const match = evidenceFiles.find((f) => f.endsWith(`.${slot}.json`));
@@ -12480,17 +12524,6 @@ function registerTaskDepsAdd(task) {
       );
     }
     atomicWriteJson(cPath, contract, tmpDir(root));
-    recordEvent(root, {
-      kind: "task_deps_added",
-      actor: "cli:auto",
-      payload: {
-        mission_id: opts.mission,
-        task_id: opts.task,
-        artifact: slashPath2(cPath),
-        added,
-        dependencies: next
-      }
-    });
     emit(
       ok({
         path: slashPath2(cPath),
@@ -12550,7 +12583,7 @@ function registerTaskCommands(program2) {
 }
 
 // src/commands/evidence.ts
-var fs7 = __toESM(require("fs"));
+var fs8 = __toESM(require("fs"));
 var path7 = __toESM(require("path"));
 function nowUtc5() {
   return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -12585,7 +12618,7 @@ function enforceAgentSlotIndependence(projectRoot, missionId, taskId, agent, slo
   const dir = evidenceDir(projectRoot, missionId, taskId);
   if (!exists(dir)) return null;
   const targetBasename = `${agent}.${slot}.json`;
-  for (const file of fs7.readdirSync(dir)) {
+  for (const file of fs8.readdirSync(dir)) {
     if (!file.endsWith(".json")) continue;
     if (file === targetBasename) continue;
     const stripped = file.slice(0, -".json".length);
@@ -13927,8 +13960,59 @@ function registerMemoryUpdateCommands(program2) {
   });
 }
 
+// src/commands/event.ts
+function needProjectRoot12() {
+  const root = findProjectRoot(process.cwd());
+  if (!root) {
+    emit(
+      err(
+        "missing_artifact",
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+      )
+    );
+  }
+  return root;
+}
+function registerEventCommands(program2) {
+  const event = program2.command("event").description("Append entries to .geas/events.jsonl (automation-only audit log).");
+  event.command("log").description(
+    "Append a single event (stdin: JSON object with kind + actor, optional mission_id, task_id, ref, payload). CLI assigns entry_id and created_at."
+  ).action(() => {
+    const root = needProjectRoot12();
+    let payload;
+    try {
+      payload = readStdinJson();
+    } catch (e) {
+      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      throw e;
+    }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      emit(err("invalid_argument", "event log expects a JSON object on stdin"));
+    }
+    if (typeof payload.kind !== "string" || payload.kind.length === 0) {
+      emit(err("invalid_argument", "event.kind is required (non-empty string)"));
+    }
+    if (!isValidActor(payload.actor)) {
+      emit(
+        err(
+          "invalid_argument",
+          `event.actor must be a slot id (kebab-case), 'user', or 'cli:auto'; got ${JSON.stringify(payload.actor)}`
+        )
+      );
+    }
+    recordEvent(root, payload);
+    emit(
+      ok({
+        path: ".geas/events.jsonl",
+        kind: payload.kind,
+        actor: payload.actor
+      })
+    );
+  });
+}
+
 // src/main.ts
-var VERSION = "0.11.0";
+var VERSION = "0.12.0";
 function run() {
   const program2 = new Command();
   program2.name("geas").description("Geas CLI \u2014 atomic actuator for .geas/ runtime artifacts").version(VERSION);
@@ -13946,6 +14030,7 @@ function run() {
   registerDebtCommands(program2);
   registerGapCommands(program2);
   registerMemoryUpdateCommands(program2);
+  registerEventCommands(program2);
   program2.parse(process.argv);
 }
 

@@ -9,6 +9,13 @@
  * Write-path commands (mutations) additionally append an event to
  * `.geas/events.jsonl` via recordEvent(). Read-only commands do not.
  *
+ * Event scope (automation-only per DESIGN.md + CLI.md §14.7):
+ *   events.jsonl records protocol waypoints — state transitions,
+ *   approvals, and artifact appends. Single-artifact full-replaces
+ *   (tracked by created_at / updated_at on the artifact itself) and
+ *   low-level raw state setters do NOT emit events. See scope audit
+ *   in G7 plan.
+ *
  * Exit codes follow CLI.md §5:
  *   0 success
  *   1 invalid_argument / internal_error
@@ -17,6 +24,9 @@
  *   4 io_error
  *   5 append_only_violation
  */
+
+import * as fs from 'fs';
+import * as path from 'path';
 
 import { appendJsonl } from './fs-atomic';
 import { eventsPath } from './paths';
@@ -78,23 +88,138 @@ export function emit(envelope: Envelope): never {
   process.exit(EXIT_CODES[envelope.error.code] ?? 1);
 }
 
+// ── Event log ─────────────────────────────────────────────────────────
+
+/**
+ * Valid actor values for events.jsonl entries:
+ *   - kebab-case slot identifiers from the protocol (orchestrator,
+ *     decision-maker, design-authority, challenger, implementer,
+ *     verifier, risk-assessor, operator, communicator)
+ *   - `user` — a human decision reflected into the log
+ *   - `cli:auto` — the CLI itself; the `:` is a namespace prefix
+ *     exception documented in CLI.md §14.7 because events.jsonl is an
+ *     implementation aux log, not a canonical protocol artifact.
+ */
+const SLOT_ACTORS = [
+  'decision-maker',
+  'orchestrator',
+  'design-authority',
+  'challenger',
+  'implementer',
+  'verifier',
+  'risk-assessor',
+  'operator',
+  'communicator',
+];
+const SPECIAL_ACTORS = ['user', 'cli:auto'];
+
+/** Loose kebab-case check for slot ids. */
+const SLOT_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+
+export function isValidActor(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length === 0) return false;
+  if (SPECIAL_ACTORS.includes(value)) return true;
+  if (SLOT_ACTORS.includes(value)) return true;
+  // Accept any kebab-case slot id (protocol v3 uses kebab-case slot ids).
+  return SLOT_RE.test(value);
+}
+
+/**
+ * Compute the next entry_id by scanning the tail of events.jsonl. The
+ * file is append-only so the last valid JSON line carries the highest
+ * entry_id. Missing file → starts at 1. Failure to read → starts at 1
+ * (best-effort; event logging never rolls back the caller).
+ */
+function nextEntryId(filePath: string): number {
+  try {
+    if (!fs.existsSync(filePath)) return 1;
+    const content = fs.readFileSync(filePath, 'utf-8');
+    if (!content) return 1;
+    const lines = content.split('\n').filter((l) => l.length > 0);
+    let maxId = 0;
+    for (const line of lines) {
+      try {
+        const parsed = JSON.parse(line);
+        if (parsed && typeof parsed.entry_id === 'number' && parsed.entry_id > maxId) {
+          maxId = parsed.entry_id;
+        }
+      } catch {
+        // skip malformed lines
+      }
+    }
+    return maxId + 1;
+  } catch {
+    return 1;
+  }
+}
+
+export interface RecordEventInput {
+  kind: string;
+  actor: string;
+  /** Optional — mission this event scopes to. */
+  mission_id?: string;
+  /** Optional — task this event scopes to. */
+  task_id?: string;
+  /** Optional — implementation-dependent payload. */
+  payload?: Record<string, unknown>;
+  /** Optional — artifact path the event references (one-way link). */
+  ref?: string;
+}
+
 /**
  * Append a single event to `.geas/events.jsonl`. Intended for mutation
- * commands that want to log an automation-scope event. Never throws —
- * I/O failure is swallowed so that event logging cannot roll back the
- * primary write (protocol 08 / CLI.md §14.7).
+ * commands that log protocol-level waypoints (state transitions,
+ * approvals, artifact appends). The CLI owns:
+ *
+ *   - `entry_id` — monotonic, 1-based, assigned by scanning the file.
+ *   - `created_at` — server-assigned ISO 8601 UTC; any caller-supplied
+ *     timestamp is ignored.
+ *
+ * Never throws — I/O failure is swallowed so that event logging cannot
+ * roll back the primary atomic write. Invalid `actor` values are
+ * rejected silently (event is dropped, caller continues). This
+ * preserves the automation-only guarantee in DESIGN.md.
  */
 export function recordEvent(
   projectRoot: string,
-  event: Record<string, unknown>,
+  event: RecordEventInput | Record<string, unknown>,
 ): void {
-  const enriched = {
-    created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-    ...event,
-  };
   try {
-    appendJsonl(eventsPath(projectRoot), enriched);
+    const filePath = eventsPath(projectRoot);
+    const kind = typeof (event as RecordEventInput).kind === 'string'
+      ? (event as RecordEventInput).kind
+      : undefined;
+    const actor = (event as RecordEventInput).actor;
+    if (!kind) return;
+    if (!isValidActor(actor)) return;
+
+    // Assemble deterministic field order; strip any caller timestamp /
+    // entry_id so only the CLI can set them.
+    const { entry_id: _ignoredId, created_at: _ignoredTs, ...rest } = event as Record<
+      string,
+      unknown
+    >;
+    void _ignoredId;
+    void _ignoredTs;
+
+    const entry: Record<string, unknown> = {
+      entry_id: nextEntryId(filePath),
+      kind,
+      actor,
+      created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+      ...rest,
+    };
+    appendJsonl(filePath, entry);
   } catch {
     // Best-effort: never fail the command for event logging.
   }
+}
+
+/**
+ * Internal helper exported for tests — returns the absolute path to
+ * events.jsonl for a project root. Re-exports the builder so test
+ * modules don't need to depend on paths.ts directly.
+ */
+export function eventsFilePath(projectRoot: string): string {
+  return path.resolve(eventsPath(projectRoot));
 }
