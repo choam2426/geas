@@ -98,18 +98,13 @@
           "items": {
             "type": "string",
             "enum": [
-              "orchestrator",
-              "decision-maker",
-              "design-authority",
               "challenger",
-              "implementer",
-              "verifier",
               "risk-assessor",
               "operator",
               "communicator"
             ]
           },
-          "description": "Reviewer slots required for this task. Concrete reviewer types are resolved at runtime by the orchestrator using the mission's domain profile."
+          "description": "Review slots required for this task. Enum is restricted to slots that produce review-kind evidence: challenger (adversarial review) and the three specialist review slots. Verifier is always required for every task (implicit) and does not appear here — its evidence is verification-kind, not review-kind. Reviewer concrete types are resolved at runtime by the orchestrator using the mission's domain profile."
         }
       }
     },
