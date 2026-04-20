@@ -211,3 +211,324 @@ export function canAdvanceMissionPhase(
 
   return pass();
 }
+
+// ── Task lifecycle FSM ────────────────────────────────────────────────
+//
+// Task lifecycle — protocol doc 03. Nine states total:
+//
+//   drafted, ready, implementing, reviewed, verified, passed,
+//   blocked, escalated, cancelled
+//
+// Main forward path:
+//
+//   drafted -> ready -> implementing -> reviewed -> verified -> passed
+//
+// blocked / escalated / cancelled branches may be entered from active
+// states. blocked is recoverable (back to ready / implementing /
+// reviewed); escalated routes to passed (if upward decision approves)
+// or back to ready/implementing/reviewed (if upward decision asks for
+// changes). passed / cancelled are terminal. escalated is a holding
+// state awaiting upward judgment, but once reached, the only exits are
+// the ones above.
+//
+// `reviewed -> implementing` is the changes_requested loop: the gate
+// or closure decision asked for changes and the orchestrator re-enters
+// implementing. Each such re-entry increments verify_fix_iterations.
+
+export type TaskState =
+  | 'drafted'
+  | 'ready'
+  | 'implementing'
+  | 'reviewed'
+  | 'verified'
+  | 'passed'
+  | 'blocked'
+  | 'escalated'
+  | 'cancelled';
+
+export const TASK_STATES: readonly TaskState[] = [
+  'drafted',
+  'ready',
+  'implementing',
+  'reviewed',
+  'verified',
+  'passed',
+  'blocked',
+  'escalated',
+  'cancelled',
+] as const;
+
+/**
+ * Canonical set of allowed task transitions. Keep in sync with protocol
+ * doc 03 transition table.
+ *
+ * Main path:
+ *   drafted -> ready -> implementing -> reviewed -> verified -> passed
+ *
+ * Changes-requested loop from reviewed back into implementing. The
+ * `verify -> implementing` edge is NOT present (protocol 03): a failed
+ * gate returns the task to reviewed (re-review) or implementing via
+ * orchestrator restoration, and the concrete restoration is decided by
+ * the orchestrator. We model:
+ *   reviewed -> implementing  (changes_requested fix loop)
+ *   verified -> reviewed      (gate re-run requested)
+ * both of which exist in protocol 03's prose ("Orchestrator가 이유에
+ * 맞는 작업 상태로 되돌린다").
+ *
+ * blocked branch:
+ *   implementing, reviewed, verified -> blocked
+ *   blocked -> ready | implementing | reviewed
+ *
+ * escalated branch:
+ *   blocked, verified -> escalated
+ *   escalated -> passed | ready | implementing | reviewed
+ *
+ * cancel: any non-terminal state -> cancelled.
+ * passed and cancelled are terminal; escalated is exited only through
+ * the edges above.
+ */
+export const TASK_TRANSITIONS: ReadonlySet<string> = new Set([
+  // Forward main path
+  'drafted->ready',
+  'ready->implementing',
+  'implementing->reviewed',
+  'reviewed->verified',
+  'verified->passed',
+
+  // Changes-requested loop
+  'reviewed->implementing',
+  'verified->reviewed',
+
+  // Blocked entry
+  'implementing->blocked',
+  'reviewed->blocked',
+  'verified->blocked',
+
+  // Blocked exit (unblock)
+  'blocked->ready',
+  'blocked->implementing',
+  'blocked->reviewed',
+
+  // Escalation entry
+  'blocked->escalated',
+  'verified->escalated',
+
+  // Escalation exit (upward verdict)
+  'escalated->passed',
+  'escalated->ready',
+  'escalated->implementing',
+  'escalated->reviewed',
+
+  // Cancel from any non-terminal state
+  'drafted->cancelled',
+  'ready->cancelled',
+  'implementing->cancelled',
+  'reviewed->cancelled',
+  'verified->cancelled',
+  'blocked->cancelled',
+  'escalated->cancelled',
+]);
+
+export function isValidTaskState(v: unknown): v is TaskState {
+  return typeof v === 'string' && (TASK_STATES as readonly string[]).includes(v);
+}
+
+/**
+ * Hints a caller supplies describing the task's artifact situation.
+ * The guard uses these (rather than re-reading files) so callers can
+ * compose the check from state they already have.
+ *
+ * Evidence-driven checks (implementing -> reviewed, reviewed ->
+ * verified, verified -> passed) are delegated to G4. G3 only models
+ * whether the minimum marker files exist (e.g. self-check.json,
+ * closure evidence file). G4 tightens these into evidence.schema
+ * validation and verdict inspection.
+ */
+export interface TaskStateHints {
+  /**
+   * Whether the task contract has been approved (approved_by non-null).
+   * Required to leave drafted -> ready.
+   */
+  contractApproved: boolean;
+  /**
+   * Whether every task in `dependencies` has status === 'passed'.
+   * Empty deps count as satisfied. Required for ready -> implementing.
+   */
+  dependenciesSatisfied: boolean;
+  /**
+   * List of dependency task ids that are not yet passed. Used only for
+   * diagnostic hints when dependenciesSatisfied is false.
+   */
+  unsatisfiedDependencies: string[];
+  /**
+   * Whether no other task in the same mission currently holds the
+   * implementer slot on an overlapping surface. Required for ready ->
+   * implementing and blocked -> implementing. G4 may tighten this.
+   */
+  noSurfaceConflict: boolean;
+  /**
+   * Surface overlaps that blocked the transition (for hint payload).
+   */
+  conflictingSurfaces: string[];
+  /**
+   * Whether self-check.json exists (G3 stub check — G4 upgrades to
+   * schema + content validation).
+   */
+  selfCheckExists: boolean;
+  /**
+   * Whether each required review slot has an evidence file present.
+   * G3 checks file presence only; G4 validates entry kind/verdict.
+   */
+  reviewEvidenceExists: boolean;
+  /**
+   * Names of required review slots that have no evidence file yet.
+   * Used only for diagnostics.
+   */
+  missingReviewSlots: string[];
+  /**
+   * Whether a verification evidence file exists (reviewed -> verified).
+   * G3 = file presence; G4 checks verdict.
+   */
+  verificationEvidenceExists: boolean;
+  /**
+   * Whether the orchestrator closure evidence file exists and its last
+   * entry is a closure entry with verdict === 'approved'. Required for
+   * verified -> passed and escalated -> passed. G3 performs a simple
+   * file-presence check with a TODO(G4) for verdict inspection.
+   */
+  closureApproved: boolean;
+}
+
+/**
+ * Check whether a task can transition from `from` to `to` given the
+ * supplied artifact situation. Returns GuardPass/GuardFail.
+ *
+ * Terminal states (passed, cancelled) reject all transitions. escalated
+ * permits only the four exits defined in TASK_TRANSITIONS.
+ */
+export function canTransitionTaskState(
+  from: string,
+  to: string,
+  hints: TaskStateHints,
+): GuardResult {
+  if (!isValidTaskState(from)) {
+    return fail(`unknown source state '${from}'`);
+  }
+  if (!isValidTaskState(to)) {
+    return fail(`unknown target state '${to}'`);
+  }
+  if (from === to) {
+    return fail(`task state already '${from}' — no-op transition not allowed`);
+  }
+  if (from === 'passed' || from === 'cancelled') {
+    return fail(`task is in terminal state '${from}' — no further transitions permitted`);
+  }
+  if (!isKnownTransition(TASK_TRANSITIONS, from, to)) {
+    return fail(`transition ${from} -> ${to} is not permitted`, {
+      allowed_transitions: Array.from(TASK_TRANSITIONS).sort(),
+    });
+  }
+
+  // ── drafted -> ready: contract must be approved
+  if (from === 'drafted' && to === 'ready') {
+    if (!hints.contractApproved) {
+      return fail(
+        "task contract is not approved; call `geas task approve` first",
+      );
+    }
+    return pass();
+  }
+
+  // ── ready -> implementing: dependencies passed + no surface conflict
+  if (from === 'ready' && to === 'implementing') {
+    if (!hints.dependenciesSatisfied) {
+      return fail(
+        'ready -> implementing requires every dependency task to be in `passed`',
+        { unsatisfied_dependencies: hints.unsatisfiedDependencies },
+      );
+    }
+    if (!hints.noSurfaceConflict) {
+      return fail(
+        'another active task overlaps the surface allowlist; only one implementer per surface is permitted',
+        { conflicting_surfaces: hints.conflictingSurfaces },
+      );
+    }
+    return pass();
+  }
+
+  // ── blocked -> implementing: same surface-conflict guard as ready
+  if (from === 'blocked' && to === 'implementing') {
+    if (!hints.noSurfaceConflict) {
+      return fail(
+        'another active task overlaps the surface allowlist; cannot unblock into implementing',
+        { conflicting_surfaces: hints.conflictingSurfaces },
+      );
+    }
+    return pass();
+  }
+
+  // ── escalated -> implementing: same surface-conflict guard
+  if (from === 'escalated' && to === 'implementing') {
+    if (!hints.noSurfaceConflict) {
+      return fail(
+        'another active task overlaps the surface allowlist; cannot re-enter implementing from escalated',
+        { conflicting_surfaces: hints.conflictingSurfaces },
+      );
+    }
+    return pass();
+  }
+
+  // ── implementing -> reviewed: self-check + each required reviewer slot
+  // TODO(G4): tighten to schema + verdict validation. G3 is file-presence only.
+  if (from === 'implementing' && to === 'reviewed') {
+    if (!hints.selfCheckExists) {
+      return fail(
+        'implementing -> reviewed requires self-check.json to exist',
+      );
+    }
+    if (!hints.reviewEvidenceExists) {
+      return fail(
+        'implementing -> reviewed requires evidence files for every required review slot',
+        { missing_review_slots: hints.missingReviewSlots },
+      );
+    }
+    return pass();
+  }
+
+  // ── reviewed -> verified: verification evidence file exists.
+  // TODO(G4): tighten to gate-results last run verdict === pass.
+  if (from === 'reviewed' && to === 'verified') {
+    if (!hints.verificationEvidenceExists) {
+      return fail(
+        'reviewed -> verified requires a verification evidence file (gate-results run)',
+      );
+    }
+    return pass();
+  }
+
+  // ── verified -> passed: closure evidence with verdict === approved.
+  // TODO(G4): read closure entry verdict directly.
+  if (from === 'verified' && to === 'passed') {
+    if (!hints.closureApproved) {
+      return fail(
+        'verified -> passed requires orchestrator closure evidence with verdict=approved',
+      );
+    }
+    return pass();
+  }
+
+  // ── escalated -> passed: closure evidence approved (same as verified->passed)
+  if (from === 'escalated' && to === 'passed') {
+    if (!hints.closureApproved) {
+      return fail(
+        'escalated -> passed requires orchestrator closure evidence with verdict=approved',
+      );
+    }
+    return pass();
+  }
+
+  // All other edges (to blocked / cancelled / escalated / changes-requested
+  // loops / reviewed restoration) are unconditional per protocol 03 once
+  // the transition is in the known table.
+  return pass();
+}

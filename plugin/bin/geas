@@ -959,8 +959,8 @@ var require_command = __commonJS({
   "node_modules/commander/lib/command.js"(exports2) {
     var EventEmitter = require("node:events").EventEmitter;
     var childProcess = require("node:child_process");
-    var path6 = require("node:path");
-    var fs6 = require("node:fs");
+    var path7 = require("node:path");
+    var fs7 = require("node:fs");
     var process2 = require("node:process");
     var { Argument: Argument2, humanReadableArgName } = require_argument();
     var { CommanderError: CommanderError2 } = require_error();
@@ -1892,11 +1892,11 @@ Expecting one of '${allowedValues.join("', '")}'`);
         let launchWithNode = false;
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
         function findFile(baseDir, baseName) {
-          const localBin = path6.resolve(baseDir, baseName);
-          if (fs6.existsSync(localBin)) return localBin;
-          if (sourceExt.includes(path6.extname(baseName))) return void 0;
+          const localBin = path7.resolve(baseDir, baseName);
+          if (fs7.existsSync(localBin)) return localBin;
+          if (sourceExt.includes(path7.extname(baseName))) return void 0;
           const foundExt = sourceExt.find(
-            (ext) => fs6.existsSync(`${localBin}${ext}`)
+            (ext) => fs7.existsSync(`${localBin}${ext}`)
           );
           if (foundExt) return `${localBin}${foundExt}`;
           return void 0;
@@ -1908,21 +1908,21 @@ Expecting one of '${allowedValues.join("', '")}'`);
         if (this._scriptPath) {
           let resolvedScriptPath;
           try {
-            resolvedScriptPath = fs6.realpathSync(this._scriptPath);
+            resolvedScriptPath = fs7.realpathSync(this._scriptPath);
           } catch (err2) {
             resolvedScriptPath = this._scriptPath;
           }
-          executableDir = path6.resolve(
-            path6.dirname(resolvedScriptPath),
+          executableDir = path7.resolve(
+            path7.dirname(resolvedScriptPath),
             executableDir
           );
         }
         if (executableDir) {
           let localFile = findFile(executableDir, executableFile);
           if (!localFile && !subcommand._executableFile && this._scriptPath) {
-            const legacyName = path6.basename(
+            const legacyName = path7.basename(
               this._scriptPath,
-              path6.extname(this._scriptPath)
+              path7.extname(this._scriptPath)
             );
             if (legacyName !== this._name) {
               localFile = findFile(
@@ -1933,7 +1933,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
           }
           executableFile = localFile || executableFile;
         }
-        launchWithNode = sourceExt.includes(path6.extname(executableFile));
+        launchWithNode = sourceExt.includes(path7.extname(executableFile));
         let proc;
         if (process2.platform !== "win32") {
           if (launchWithNode) {
@@ -2773,7 +2773,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @return {Command}
        */
       nameFromFilename(filename) {
-        this._name = path6.basename(filename, path6.extname(filename));
+        this._name = path7.basename(filename, path7.extname(filename));
         return this;
       }
       /**
@@ -2787,9 +2787,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @param {string} [path]
        * @return {(string|null|Command)}
        */
-      executableDir(path7) {
-        if (path7 === void 0) return this._executableDir;
-        this._executableDir = path7;
+      executableDir(path8) {
+        if (path8 === void 0) return this._executableDir;
+        this._executableDir = path8;
         return this;
       }
       /**
@@ -6212,8 +6212,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path6) {
-      let input = path6;
+    function removeDotSegments(path7) {
+      let input = path7;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -6412,8 +6412,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path6, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path6 && path6 !== "/" ? path6 : void 0;
+        const [path7, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path7 && path7 !== "/" ? path7 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -6578,49 +6578,49 @@ var require_fast_uri = __commonJS({
       schemelessOptions.skipEscape = true;
       return serialize(resolved, schemelessOptions);
     }
-    function resolveComponent(base, relative3, options, skipNormalization) {
+    function resolveComponent(base, relative4, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
         base = parse(serialize(base, options), options);
-        relative3 = parse(serialize(relative3, options), options);
+        relative4 = parse(serialize(relative4, options), options);
       }
       options = options || {};
-      if (!options.tolerant && relative3.scheme) {
-        target.scheme = relative3.scheme;
-        target.userinfo = relative3.userinfo;
-        target.host = relative3.host;
-        target.port = relative3.port;
-        target.path = removeDotSegments(relative3.path || "");
-        target.query = relative3.query;
+      if (!options.tolerant && relative4.scheme) {
+        target.scheme = relative4.scheme;
+        target.userinfo = relative4.userinfo;
+        target.host = relative4.host;
+        target.port = relative4.port;
+        target.path = removeDotSegments(relative4.path || "");
+        target.query = relative4.query;
       } else {
-        if (relative3.userinfo !== void 0 || relative3.host !== void 0 || relative3.port !== void 0) {
-          target.userinfo = relative3.userinfo;
-          target.host = relative3.host;
-          target.port = relative3.port;
-          target.path = removeDotSegments(relative3.path || "");
-          target.query = relative3.query;
+        if (relative4.userinfo !== void 0 || relative4.host !== void 0 || relative4.port !== void 0) {
+          target.userinfo = relative4.userinfo;
+          target.host = relative4.host;
+          target.port = relative4.port;
+          target.path = removeDotSegments(relative4.path || "");
+          target.query = relative4.query;
         } else {
-          if (!relative3.path) {
+          if (!relative4.path) {
             target.path = base.path;
-            if (relative3.query !== void 0) {
-              target.query = relative3.query;
+            if (relative4.query !== void 0) {
+              target.query = relative4.query;
             } else {
               target.query = base.query;
             }
           } else {
-            if (relative3.path[0] === "/") {
-              target.path = removeDotSegments(relative3.path);
+            if (relative4.path[0] === "/") {
+              target.path = removeDotSegments(relative4.path);
             } else {
               if ((base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0) && !base.path) {
-                target.path = "/" + relative3.path;
+                target.path = "/" + relative4.path;
               } else if (!base.path) {
-                target.path = relative3.path;
+                target.path = relative4.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative3.path;
+                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative4.path;
               }
               target.path = removeDotSegments(target.path);
             }
-            target.query = relative3.query;
+            target.query = relative4.query;
           }
           target.userinfo = base.userinfo;
           target.host = base.host;
@@ -6628,7 +6628,7 @@ var require_fast_uri = __commonJS({
         }
         target.scheme = base.scheme;
       }
-      target.fragment = relative3.fragment;
+      target.fragment = relative4.fragment;
       return target;
     }
     function equal(uriA, uriB, options) {
@@ -10599,12 +10599,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs6, exportName) {
+    function addFormats(ajv, list, fs7, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs6[f]);
+        ajv.addFormat(f, fs7[f]);
     }
     module2.exports = exports2 = formatsPlugin;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -10782,8 +10782,17 @@ function tasksDir(projectRoot, missionId) {
 function taskDir(projectRoot, missionId, taskId) {
   return path2.join(tasksDir(projectRoot, missionId), taskId);
 }
+function taskContractPath(projectRoot, missionId, taskId) {
+  return path2.join(taskDir(projectRoot, missionId, taskId), "contract.json");
+}
 function taskStatePath(projectRoot, missionId, taskId) {
   return path2.join(taskDir(projectRoot, missionId, taskId), "task-state.json");
+}
+function selfCheckPath(projectRoot, missionId, taskId) {
+  return path2.join(taskDir(projectRoot, missionId, taskId), "self-check.json");
+}
+function evidenceDir(projectRoot, missionId, taskId) {
+  return path2.join(taskDir(projectRoot, missionId, taskId), "evidence");
 }
 var MISSION_ID_RE = /^mission-[0-9]{8}-[a-zA-Z0-9]{8}$/;
 var TASK_ID_RE = /^task-[0-9]{3}$/;
@@ -11263,6 +11272,154 @@ function canAdvanceMissionPhase(from, to, hints) {
         { open_task_count: hints.openTaskCount }
       );
     }
+  }
+  return pass();
+}
+var TASK_STATES = [
+  "drafted",
+  "ready",
+  "implementing",
+  "reviewed",
+  "verified",
+  "passed",
+  "blocked",
+  "escalated",
+  "cancelled"
+];
+var TASK_TRANSITIONS = /* @__PURE__ */ new Set([
+  // Forward main path
+  "drafted->ready",
+  "ready->implementing",
+  "implementing->reviewed",
+  "reviewed->verified",
+  "verified->passed",
+  // Changes-requested loop
+  "reviewed->implementing",
+  "verified->reviewed",
+  // Blocked entry
+  "implementing->blocked",
+  "reviewed->blocked",
+  "verified->blocked",
+  // Blocked exit (unblock)
+  "blocked->ready",
+  "blocked->implementing",
+  "blocked->reviewed",
+  // Escalation entry
+  "blocked->escalated",
+  "verified->escalated",
+  // Escalation exit (upward verdict)
+  "escalated->passed",
+  "escalated->ready",
+  "escalated->implementing",
+  "escalated->reviewed",
+  // Cancel from any non-terminal state
+  "drafted->cancelled",
+  "ready->cancelled",
+  "implementing->cancelled",
+  "reviewed->cancelled",
+  "verified->cancelled",
+  "blocked->cancelled",
+  "escalated->cancelled"
+]);
+function isValidTaskState(v) {
+  return typeof v === "string" && TASK_STATES.includes(v);
+}
+function canTransitionTaskState(from, to, hints) {
+  if (!isValidTaskState(from)) {
+    return fail(`unknown source state '${from}'`);
+  }
+  if (!isValidTaskState(to)) {
+    return fail(`unknown target state '${to}'`);
+  }
+  if (from === to) {
+    return fail(`task state already '${from}' \u2014 no-op transition not allowed`);
+  }
+  if (from === "passed" || from === "cancelled") {
+    return fail(`task is in terminal state '${from}' \u2014 no further transitions permitted`);
+  }
+  if (!isKnownTransition(TASK_TRANSITIONS, from, to)) {
+    return fail(`transition ${from} -> ${to} is not permitted`, {
+      allowed_transitions: Array.from(TASK_TRANSITIONS).sort()
+    });
+  }
+  if (from === "drafted" && to === "ready") {
+    if (!hints.contractApproved) {
+      return fail(
+        "task contract is not approved; call `geas task approve` first"
+      );
+    }
+    return pass();
+  }
+  if (from === "ready" && to === "implementing") {
+    if (!hints.dependenciesSatisfied) {
+      return fail(
+        "ready -> implementing requires every dependency task to be in `passed`",
+        { unsatisfied_dependencies: hints.unsatisfiedDependencies }
+      );
+    }
+    if (!hints.noSurfaceConflict) {
+      return fail(
+        "another active task overlaps the surface allowlist; only one implementer per surface is permitted",
+        { conflicting_surfaces: hints.conflictingSurfaces }
+      );
+    }
+    return pass();
+  }
+  if (from === "blocked" && to === "implementing") {
+    if (!hints.noSurfaceConflict) {
+      return fail(
+        "another active task overlaps the surface allowlist; cannot unblock into implementing",
+        { conflicting_surfaces: hints.conflictingSurfaces }
+      );
+    }
+    return pass();
+  }
+  if (from === "escalated" && to === "implementing") {
+    if (!hints.noSurfaceConflict) {
+      return fail(
+        "another active task overlaps the surface allowlist; cannot re-enter implementing from escalated",
+        { conflicting_surfaces: hints.conflictingSurfaces }
+      );
+    }
+    return pass();
+  }
+  if (from === "implementing" && to === "reviewed") {
+    if (!hints.selfCheckExists) {
+      return fail(
+        "implementing -> reviewed requires self-check.json to exist"
+      );
+    }
+    if (!hints.reviewEvidenceExists) {
+      return fail(
+        "implementing -> reviewed requires evidence files for every required review slot",
+        { missing_review_slots: hints.missingReviewSlots }
+      );
+    }
+    return pass();
+  }
+  if (from === "reviewed" && to === "verified") {
+    if (!hints.verificationEvidenceExists) {
+      return fail(
+        "reviewed -> verified requires a verification evidence file (gate-results run)"
+      );
+    }
+    return pass();
+  }
+  if (from === "verified" && to === "passed") {
+    if (!hints.closureApproved) {
+      return fail(
+        "verified -> passed requires orchestrator closure evidence with verdict=approved"
+      );
+    }
+    return pass();
+  }
+  if (from === "escalated" && to === "passed") {
+    if (!hints.closureApproved) {
+      return fail(
+        "escalated -> passed requires orchestrator closure evidence with verdict=approved"
+      );
+    }
+    return pass();
   }
   return pass();
 }
@@ -11769,6 +11926,570 @@ function registerMissionCommands(program2) {
   registerMissionVerdictAppend(program2);
 }
 
+// src/commands/task.ts
+var fs6 = __toESM(require("fs"));
+var path6 = __toESM(require("path"));
+function nowUtc4() {
+  return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+function slashPath2(p) {
+  return p.replace(/\\/g, "/");
+}
+function needProjectRoot3() {
+  const root = findProjectRoot(process.cwd());
+  if (!root) {
+    emit(
+      err(
+        "missing_artifact",
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+      )
+    );
+  }
+  return root;
+}
+function needMissionSpec(root, missionId) {
+  const spec = readJsonFile(
+    missionSpecPath(root, missionId)
+  );
+  if (!spec) {
+    emit(
+      err(
+        "missing_artifact",
+        `mission spec not found for ${missionId}; run 'geas mission create' first`
+      )
+    );
+  }
+  return spec;
+}
+function generateTaskId(root, missionId) {
+  const override = process.env.GEAS_MOCK_TASK_ID;
+  if (override && /^task-[0-9]{3}$/.test(override)) {
+    return override;
+  }
+  const tDir = tasksDir(root, missionId);
+  let maxN = 0;
+  if (exists(tDir)) {
+    for (const entry of fs6.readdirSync(tDir)) {
+      const m = /^task-([0-9]{3})$/.exec(entry);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (n > maxN) maxN = n;
+      }
+    }
+  }
+  const next = (maxN + 1).toString().padStart(3, "0");
+  return `task-${next}`;
+}
+function registerTaskDraft(task) {
+  task.command("draft").description(
+    "Create a task contract under a mission (stdin: contract content). Writes contract.json + task-state.json (drafted)."
+  ).requiredOption("--mission <id>", "Mission ID").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    const root = needProjectRoot3();
+    const spec = needMissionSpec(root, opts.mission);
+    void spec;
+    let payload;
+    try {
+      payload = readStdinJson();
+    } catch (e) {
+      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      throw e;
+    }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      emit(err("invalid_argument", "task draft expects a JSON object on stdin"));
+    }
+    const providedId = typeof payload.task_id === "string" ? payload.task_id : void 0;
+    const taskId = providedId ?? generateTaskId(root, opts.mission);
+    if (!isValidTaskId(taskId)) {
+      emit(err("invalid_argument", `invalid task id '${taskId}'`));
+    }
+    payload.task_id = taskId;
+    payload.mission_id = opts.mission;
+    if (payload.approved_by === void 0) payload.approved_by = null;
+    if (payload.supersedes === void 0) payload.supersedes = null;
+    if (payload.dependencies === void 0) payload.dependencies = [];
+    if (payload.surfaces === void 0) payload.surfaces = [];
+    const ts = nowUtc4();
+    payload.created_at = ts;
+    payload.updated_at = ts;
+    const contractPath = taskContractPath(root, opts.mission, taskId);
+    if (exists(contractPath)) {
+      emit(
+        err(
+          "path_collision",
+          `task contract already exists at ${slashPath2(contractPath)}`
+        )
+      );
+    }
+    const v = validate("task-contract", payload);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "task-contract schema validation failed",
+          v.errors
+        )
+      );
+    }
+    ensureDir(taskDir(root, opts.mission, taskId));
+    ensureDir(evidenceDir(root, opts.mission, taskId));
+    atomicWriteJson(contractPath, payload, tmpDir(root));
+    const state = {
+      mission_id: opts.mission,
+      task_id: taskId,
+      status: "drafted",
+      active_agent: null,
+      verify_fix_iterations: 0,
+      created_at: ts,
+      updated_at: ts
+    };
+    const vs = validate("task-state", state);
+    if (!vs.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "task-state schema validation failed on initialization",
+          vs.errors
+        )
+      );
+    }
+    atomicWriteJson(
+      taskStatePath(root, opts.mission, taskId),
+      state,
+      tmpDir(root)
+    );
+    recordEvent(root, {
+      kind: "task_drafted",
+      actor: "cli:auto",
+      payload: {
+        mission_id: opts.mission,
+        task_id: taskId,
+        artifact: slashPath2(path6.relative(root, contractPath))
+      }
+    });
+    emit(
+      ok({
+        path: slashPath2(contractPath),
+        ids: { mission_id: opts.mission, task_id: taskId },
+        contract: payload,
+        state
+      })
+    );
+  });
+}
+function registerTaskApprove(task) {
+  task.command("approve").description(
+    "Approve a task contract (sets approved_by) and move task-state drafted -> ready."
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").option(
+    "--by <actor>",
+    'Approver identity: "user" (default) or "decision-maker"',
+    "user"
+  ).action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    if (!isValidTaskId(opts.task)) {
+      emit(err("invalid_argument", `invalid task id '${opts.task}'`));
+    }
+    if (opts.by !== "user" && opts.by !== "decision-maker") {
+      emit(
+        err(
+          "invalid_argument",
+          `--by must be 'user' or 'decision-maker' (got '${opts.by}')`
+        )
+      );
+    }
+    const root = needProjectRoot3();
+    const cPath = taskContractPath(root, opts.mission, opts.task);
+    const contract = readJsonFile(cPath);
+    if (!contract) {
+      emit(
+        err(
+          "missing_artifact",
+          `task contract not found at ${slashPath2(cPath)}`
+        )
+      );
+      return;
+    }
+    const sPath = taskStatePath(root, opts.mission, opts.task);
+    const state = readJsonFile(sPath);
+    if (!state) {
+      emit(
+        err("missing_artifact", `task-state.json not found for ${opts.task}`)
+      );
+      return;
+    }
+    const wasAlreadyApproved = contract.approved_by !== null && contract.approved_by !== void 0;
+    const wasAlreadyReady = state.status === "ready";
+    const ts = nowUtc4();
+    contract.approved_by = opts.by;
+    contract.updated_at = ts;
+    const vC = validate("task-contract", contract);
+    if (!vC.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "task-contract schema validation failed after setting approved_by",
+          vC.errors
+        )
+      );
+    }
+    let stateChanged = false;
+    if (state.status === "drafted") {
+      const guardHints = makeApproveHints();
+      const guard = canTransitionTaskState("drafted", "ready", guardHints);
+      if (!guard.ok) {
+        emit(err("guard_failed", guard.reason, guard.hints));
+      }
+      state.status = "ready";
+      state.updated_at = ts;
+      if (!state.created_at) state.created_at = ts;
+      const vS = validate("task-state", state);
+      if (!vS.ok) {
+        emit(
+          err(
+            "schema_validation_failed",
+            "task-state schema validation failed after approve transition",
+            vS.errors
+          )
+        );
+      }
+      stateChanged = true;
+    }
+    atomicWriteJson(cPath, contract, tmpDir(root));
+    if (stateChanged) {
+      atomicWriteJson(sPath, state, tmpDir(root));
+    }
+    recordEvent(root, {
+      kind: "task_approved",
+      actor: opts.by,
+      payload: {
+        mission_id: opts.mission,
+        task_id: opts.task,
+        artifact: slashPath2(cPath),
+        already_approved: wasAlreadyApproved && wasAlreadyReady
+      }
+    });
+    emit(
+      ok({
+        path: slashPath2(cPath),
+        ids: { mission_id: opts.mission, task_id: opts.task },
+        already_approved: wasAlreadyApproved && wasAlreadyReady,
+        contract,
+        state
+      })
+    );
+  });
+}
+function makeApproveHints() {
+  return {
+    contractApproved: true,
+    dependenciesSatisfied: true,
+    unsatisfiedDependencies: [],
+    noSurfaceConflict: true,
+    conflictingSurfaces: [],
+    selfCheckExists: false,
+    reviewEvidenceExists: false,
+    missingReviewSlots: [],
+    verificationEvidenceExists: false,
+    closureApproved: false
+  };
+}
+function registerTaskTransition(task) {
+  task.command("transition").description(
+    "Transition a task through the 9-state FSM. Guards per protocol doc 03."
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").requiredOption("--to <state>", "Target task-state status").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    if (!isValidTaskId(opts.task)) {
+      emit(err("invalid_argument", `invalid task id '${opts.task}'`));
+    }
+    if (!isValidTaskState(opts.to)) {
+      emit(err("invalid_argument", `unknown task state '${opts.to}'`));
+    }
+    const root = needProjectRoot3();
+    const cPath = taskContractPath(root, opts.mission, opts.task);
+    const contract = readJsonFile(cPath);
+    if (!contract) {
+      emit(
+        err(
+          "missing_artifact",
+          `task contract not found for ${opts.task}`
+        )
+      );
+      return;
+    }
+    const sPath = taskStatePath(root, opts.mission, opts.task);
+    const state = readJsonFile(sPath);
+    if (!state) {
+      emit(err("missing_artifact", `task-state.json not found for ${opts.task}`));
+      return;
+    }
+    const from = String(state.status);
+    const to = opts.to;
+    const hints = collectTaskStateHints(
+      root,
+      opts.mission,
+      opts.task,
+      contract
+    );
+    const guard = canTransitionTaskState(from, to, hints);
+    if (!guard.ok) {
+      emit(err("guard_failed", guard.reason, guard.hints));
+    }
+    const ts = nowUtc4();
+    state.status = to;
+    state.updated_at = ts;
+    if (!state.created_at) state.created_at = ts;
+    state.mission_id = opts.mission;
+    state.task_id = opts.task;
+    if (from === "reviewed" && to === "implementing") {
+      const current = typeof state.verify_fix_iterations === "number" ? state.verify_fix_iterations : 0;
+      state.verify_fix_iterations = current + 1;
+    }
+    const vS = validate("task-state", state);
+    if (!vS.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "task-state schema validation failed after transition",
+          vS.errors
+        )
+      );
+    }
+    atomicWriteJson(sPath, state, tmpDir(root));
+    recordEvent(root, {
+      kind: "task_state_changed",
+      actor: "cli:auto",
+      payload: {
+        mission_id: opts.mission,
+        task_id: opts.task,
+        artifact: slashPath2(sPath),
+        from,
+        to,
+        verify_fix_iterations: state.verify_fix_iterations
+      }
+    });
+    emit(
+      ok({
+        path: slashPath2(sPath),
+        ids: { mission_id: opts.mission, task_id: opts.task },
+        transition: { from, to },
+        state
+      })
+    );
+  });
+}
+function collectTaskStateHints(root, missionId, taskId, contract) {
+  const deps = Array.isArray(contract.dependencies) ? contract.dependencies : [];
+  const surfaces = Array.isArray(contract.surfaces) ? contract.surfaces : [];
+  const routing = contract.routing ?? {};
+  const requiredReviewers = Array.isArray(routing.required_reviewers) ? routing.required_reviewers : [];
+  const unsatisfied = [];
+  for (const depId of deps) {
+    const depState = readJsonFile(
+      taskStatePath(root, missionId, depId)
+    );
+    const status = depState && typeof depState.status === "string" ? depState.status : null;
+    if (status !== "passed") {
+      unsatisfied.push(depId);
+    }
+  }
+  const conflictingSurfaces = [];
+  const tDir = tasksDir(root, missionId);
+  if (exists(tDir) && surfaces.length > 0) {
+    const mySurf = new Set(surfaces);
+    for (const entry of fs6.readdirSync(tDir)) {
+      if (entry === taskId) continue;
+      const otherState = readJsonFile(
+        taskStatePath(root, missionId, entry)
+      );
+      if (!otherState || otherState.status !== "implementing") continue;
+      const otherContract = readJsonFile(
+        taskContractPath(root, missionId, entry)
+      );
+      const otherSurf = Array.isArray(otherContract?.surfaces) ? otherContract.surfaces : [];
+      for (const s of otherSurf) {
+        if (mySurf.has(s) && !conflictingSurfaces.includes(s)) {
+          conflictingSurfaces.push(s);
+        }
+      }
+    }
+  }
+  const selfCheckExists = exists(selfCheckPath(root, missionId, taskId));
+  const evDir = evidenceDir(root, missionId, taskId);
+  const evidenceFiles = exists(evDir) ? fs6.readdirSync(evDir) : [];
+  const missingReviewSlots = [];
+  for (const slot of requiredReviewers) {
+    const match = evidenceFiles.find((f) => f.endsWith(`.${slot}.json`));
+    if (!match) missingReviewSlots.push(slot);
+  }
+  const reviewEvidenceExists = missingReviewSlots.length === 0;
+  const verifierFile = evidenceFiles.find((f) => f.endsWith(".verifier.json"));
+  const gateResults = readJsonFile(
+    path6.join(taskDir(root, missionId, taskId), "gate-results.json")
+  );
+  const verificationEvidenceExists = !!verifierFile || !!gateResults && Array.isArray(gateResults.runs) && gateResults.runs.length > 0;
+  const orchClosurePath = path6.join(evDir, "orchestrator.orchestrator.json");
+  const closureFile = readJsonFile(
+    orchClosurePath
+  );
+  let closureApproved = false;
+  if (closureFile && Array.isArray(closureFile.entries) && closureFile.entries.length > 0) {
+    const last = closureFile.entries[closureFile.entries.length - 1];
+    if (last && last.evidence_kind === "closure" && last.verdict === "approved") {
+      closureApproved = true;
+    }
+  }
+  const contractApproved = contract.approved_by !== null && contract.approved_by !== void 0;
+  return {
+    contractApproved,
+    dependenciesSatisfied: unsatisfied.length === 0,
+    unsatisfiedDependencies: unsatisfied,
+    noSurfaceConflict: conflictingSurfaces.length === 0,
+    conflictingSurfaces,
+    selfCheckExists,
+    reviewEvidenceExists,
+    missingReviewSlots,
+    verificationEvidenceExists,
+    closureApproved
+  };
+}
+function registerTaskDepsAdd(task) {
+  const deps = task.command("deps").description("Dependency manipulation for a task contract");
+  deps.command("add").description(
+    "Append dependency task ids to contract.dependencies (duplicates ignored)."
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").requiredOption("--deps <ids>", "Comma-separated task ids to add").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    if (!isValidTaskId(opts.task)) {
+      emit(err("invalid_argument", `invalid task id '${opts.task}'`));
+    }
+    const parts = opts.deps.split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length === 0) {
+      emit(err("invalid_argument", "--deps requires at least one task id"));
+    }
+    for (const p of parts) {
+      if (!isValidTaskId(p)) {
+        emit(err("invalid_argument", `invalid task id in --deps: '${p}'`));
+      }
+      if (p === opts.task) {
+        emit(
+          err(
+            "invalid_argument",
+            `task '${opts.task}' cannot depend on itself`
+          )
+        );
+      }
+    }
+    const root = needProjectRoot3();
+    const cPath = taskContractPath(root, opts.mission, opts.task);
+    const contract = readJsonFile(cPath);
+    if (!contract) {
+      emit(
+        err(
+          "missing_artifact",
+          `task contract not found for ${opts.task}`
+        )
+      );
+      return;
+    }
+    const existing = Array.isArray(contract.dependencies) ? contract.dependencies : [];
+    const seen = new Set(existing);
+    const added = [];
+    for (const p of parts) {
+      if (!seen.has(p)) {
+        seen.add(p);
+        added.push(p);
+      }
+    }
+    const next = [...existing, ...added];
+    contract.dependencies = next;
+    contract.updated_at = nowUtc4();
+    const v = validate("task-contract", contract);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "task-contract schema validation failed after dependency merge",
+          v.errors
+        )
+      );
+    }
+    atomicWriteJson(cPath, contract, tmpDir(root));
+    recordEvent(root, {
+      kind: "task_deps_added",
+      actor: "cli:auto",
+      payload: {
+        mission_id: opts.mission,
+        task_id: opts.task,
+        artifact: slashPath2(cPath),
+        added,
+        dependencies: next
+      }
+    });
+    emit(
+      ok({
+        path: slashPath2(cPath),
+        ids: { mission_id: opts.mission, task_id: opts.task },
+        added,
+        dependencies: next
+      })
+    );
+  });
+}
+function registerTaskStateRead(task) {
+  task.command("state").description("Summarize task contract + task-state (read-only).").requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    if (!isValidTaskId(opts.task)) {
+      emit(err("invalid_argument", `invalid task id '${opts.task}'`));
+    }
+    const root = needProjectRoot3();
+    const contract = readJsonFile(
+      taskContractPath(root, opts.mission, opts.task)
+    );
+    if (!contract) {
+      emit(
+        err("missing_artifact", `task contract not found for ${opts.task}`)
+      );
+      return;
+    }
+    const state = readJsonFile(
+      taskStatePath(root, opts.mission, opts.task)
+    );
+    emit(
+      ok({
+        mission_id: opts.mission,
+        task_id: opts.task,
+        status: typeof state?.status === "string" ? state.status : null,
+        verify_fix_iterations: typeof state?.verify_fix_iterations === "number" ? state.verify_fix_iterations : 0,
+        approved_by: contract.approved_by === null || contract.approved_by === void 0 ? null : String(contract.approved_by),
+        dependencies: Array.isArray(contract.dependencies) ? contract.dependencies : [],
+        surfaces: Array.isArray(contract.surfaces) ? contract.surfaces : [],
+        risk_level: typeof contract.risk_level === "string" ? contract.risk_level : null,
+        primary_worker_type: contract.routing && typeof contract.routing.primary_worker_type === "string" ? contract.routing.primary_worker_type : null
+      })
+    );
+    void missionStatePath;
+  });
+}
+function registerTaskCommands(program2) {
+  const task = program2.command("task").description(
+    "Task-level artifact commands (draft, approve, transition, deps, state)"
+  );
+  registerTaskDraft(task);
+  registerTaskApprove(task);
+  registerTaskTransition(task);
+  registerTaskDepsAdd(task);
+  registerTaskStateRead(task);
+}
+
 // src/main.ts
 var VERSION = "0.8.0";
 function run() {
@@ -11779,6 +12500,7 @@ function run() {
   registerSchemaCommands(program2);
   registerStateCommands(program2);
   registerMissionCommands(program2);
+  registerTaskCommands(program2);
   program2.parse(process.argv);
 }
 
