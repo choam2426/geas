@@ -1,318 +1,121 @@
 ---
 name: evidence-gate
-description: Evidence Gate v2 — Tier 0 (Precheck) + Tier 1 (Mechanical) + Tier 2 (Contract+Rubric). Returns pass/fail/block/error.
+description: Evidence Gate — Tier 0 (precheck) + Tier 1 (objective verification per verification_plan) + Tier 2 (reviewer verdict aggregation). Produces a gate-results run with verdict pass/fail/block/error.
 ---
 
 # Evidence Gate
 
-Objective verification of whether a worker's output meets the TaskContract requirements. The gate verdict is strictly objective — it answers "does this meet the contract?" with one of four verdicts: **pass**, **fail**, **block**, or **error**.
+Objective check of whether a task's evidence is sufficient to close. The gate answers "may this task move toward `passed`?" with one of four verdicts:
 
-`iterate` is NOT a gate verdict. Product judgment happens in the Final Verdict, which is a separate pipeline step.
+- `pass` — closure decision can proceed.
+- `fail` — rework is needed; not a blocker.
+- `block` — a structural prerequisite is missing; cannot close in current shape.
+- `error` — the gate itself could not run cleanly; re-run after resolving the cause.
+
+Gate verdicts are distinct from reviewer verdicts (`approved` / `changes_requested` / `blocked`). Reviewers state their finding inside review evidence; the gate combines those plus objective checks into a single outcome.
+
+## When to Run
+
+Orchestrator invokes this skill after every required reviewer has written review evidence and any verifier has written verification evidence. Gate is re-runnable — each run appends a new record to `gate-results.json`.
 
 ## Inputs
 
-1. **TaskContract** — read from `.geas/missions/{mission_id}/tasks/{task-id}/contract.json`
-2. **Worker Self-Check** — read from record.json `self_check` section (`.geas/missions/{mission_id}/tasks/{task-id}/record.json`)
-3. **Specialist Reviews** — read from `.geas/missions/{mission_id}/tasks/{task-id}/evidence/`. Naming: `{agent-type}.json` per agent
-4. **Integration Result** — merge status from worktree integration
+1. **Task contract** — `.geas/missions/{mission_id}/tasks/{task_id}/contract.json`.
+2. **Self-check** — `.geas/missions/{mission_id}/tasks/{task_id}/self-check.json`.
+3. **Reviewer evidence** — every `*.{slot}.json` under `evidence/` for slots named in `routing.required_reviewers`.
+4. **Verifier evidence** — `*.verifier.json` file if any, or equivalent verification record.
+5. **Prior gate runs** — `gate-results.json` (if present) to inform iteration count.
 
-**Evidence schema fields by role:**
-- All roles: `version`, `agent`, `task_id`, `role`, `summary`
-- `implementer`: + `files_changed[]`, optional `commit`
-- `reviewer`: + `verdict` (approved|changes_requested|blocked), `concerns[]`
-- `tester`: + `verdict` (pass|fail|block|error), `criteria_results[]` (items: `criterion`, `passed`, optional `details`)
-- `authority`: + `verdict`, `rationale`
-- Optional for all: `rubric_scores[]` (items: `dimension`, `score` (1-5), optional `rationale`)
-5. **Gate profile** — determines which tiers to run (see below)
+## Tiers
 
-## Gate Profiles
+Gate runs Tier 0 → Tier 1 → Tier 2 in order. A non-pass status in any tier short-circuits the remaining tiers and becomes the overall verdict.
 
-| gate_profile | Tier 0 | Tier 1 | Tier 2 | Description |
-|---|---|---|---|---|
-| `implementation_change` | Run | Run | Run | Standard task involving implementation changes |
-| `artifact_only` | Run | Conditional (run if eval_commands exist) | Run (rubric only, no build/test) | Tasks without code changes such as documentation or design |
-| `closure_ready` | Run | Skip | Simplified (completeness check only) | Final cleanup tasks such as release or config |
+### Tier 0 — Precheck
 
----
+Confirms that the gate has the inputs it needs before any heavier work:
 
-## Tier 0 — Precheck
+1. `self-check.json` exists and validates against its schema.
+2. For every slot in `routing.required_reviewers`: at least one evidence file `*.{slot}.json` exists AND has a review-kind entry with a valid verdict (approved / changes_requested / blocked).
+3. Task state is `reviewed`. Tier 0 running on tasks still in `implementing` is an `error`.
+4. `base_snapshot` still corresponds to the real workspace baseline.
 
-Verify that all prerequisites are in place before running expensive checks.
+**Failure modes**:
 
-### Checks
+- Missing required artifact (self-check or reviewer evidence) → `block`.
+- Task-state ineligibility → `error`.
+- Base snapshot mismatch → `block`.
 
-1. **Required artifacts existence**
-   - record.json must contain a `self_check` section (`.geas/missions/{mission_id}/tasks/{task-id}/record.json`)
-   - Specialist reviews must exist in `tasks/{task-id}/evidence/` (per the task's required reviewer set)
-   - Integration result must be recorded (for `implementation_change` profile)
+### Tier 1 — Objective verification
 
-2. **Task state eligibility**
-   - `implementation_change` profile: task must be in `integrated` state
-   - `artifact_only` profile: task must be in `reviewed` state
-   - `closure_ready` profile: task must be in `reviewed` or `integrated` state
+Executes the procedure the contract's `verification_plan` describes. The plan may be automated (scripts, test runs) or a fixed manual procedure; either way, the same inputs produce the same result regardless of who runs it.
 
-3. **Baseline check**
-   - For `implementation_change`: verify `base_snapshot` ancestry — the integration branch must contain the declared base snapshot
+Produces a `verifier` evidence entry (kind `verification`) whose `criteria_results` list maps each acceptance criterion to pass/fail with concrete details. If `verification_plan` is not executable as written (ambiguous, references missing tooling), the tier status is `error` and the plan itself needs revision.
 
-4. **Required reviewer presence**
-   - All agent types listed in the task's required reviewer set must have submitted reviews
+**Failure modes**:
 
-### On Tier 0 Failure
+- One or more acceptance criteria fail objectively → `fail`.
+- Verification procedure cannot be run as written → `error`.
+- Procedure discovers a structural block (e.g. runtime refuses to start due to missing config owned outside this task) → `block`.
 
-- **Missing required artifact**: verdict = `block`. Does NOT consume retry_budget. Gate re-entry not allowed until the artifact is created.
-- **Task state ineligible**: verdict = `error`. The orchestration-authority inspects and corrects the state.
-- **Baseline mismatch**: verdict = `block`. Re-enter after performing revalidation.
-- **Missing required reviewer**: verdict = `block`. Does NOT consume retry_budget.
+### Tier 2 — Reviewer verdict aggregation
 
-**Stop** — do not proceed to Tier 1 or Tier 2.
+Reads the verdict field from every required reviewer's latest review entry and combines per protocol 03 §168:
 
----
+- any `blocked` reviewer verdict → tier status `block`.
+- else any `changes_requested` → tier status `fail`.
+- else all `approved` → tier status `pass`.
 
-## Tier 1 — Mechanical
+If two reviewers disagree on incompatible grounds and the orchestrator judges the conflict cannot be resolved by aggregation, open a task-level deliberation BEFORE recording the gate run. Use the `vote-round` skill (thin wrapper over `geas deliberation append`). The deliberation result then informs Tier 2.
 
-Run the eval commands from the TaskContract and check results.
+Challenger evidence (slot `challenger`) counts as a reviewer verdict for this tier when challenger was required (risk_level ≥ high).
 
-**Skip and narrowing conditions**:
-- `closure_ready` profile: **skip** unconditionally. Record as `{"status": "skipped", "details": "closure_ready profile — Tier 1 skipped"}`.
-- `artifact_only` profile with `eval_commands` present: **run** Tier 1 normally (proceed to Procedure below).
-- `artifact_only` profile with no `eval_commands`: **narrow** (do not run). Record as `{"status": "narrowed", "details": "artifact_only profile with no eval_commands — Tier 1 narrowed"}`.
+## Recording the gate run
 
-> **"narrowed" vs "skipped"**: "skipped" means the profile never runs this tier by design. "narrowed" means the profile can run this tier, but the current task lacks the inputs needed (e.g., no eval_commands), so the tier is conditionally omitted.
+Assemble tier statuses and call the CLI:
 
-### Procedure
-
-1. Read `eval_commands` from the TaskContract
-2. Run each command:
-   ```bash
-   # Run each eval_command from the TaskContract
-   {eval_command_1}
-   {eval_command_2}
-   ...
-   ```
-3. Record results:
-   - **pass**: command exits 0
-   - **fail**: command exits non-zero (capture error output)
-
-**Stop on first failure** — no point running contract checks if the code doesn't build.
-
-> **Important:** You MUST execute eval_commands and record the results. Do not assume "pass". If no commands exist, record as `{"status": "skipped", "details": "No eval_commands configured"}`. Having commands but not running them is a gate violation.
-
-If previous evidence already contains `verify_results`, compare them against a fresh run. Trust the fresh run.
-
----
-
-## Tier 2 — Contract + Rubric
-
-Multi-part evaluation of contract compliance and quality.
-
-**For `closure_ready` profile**: only run Part A (completeness check). Skip Parts B, C, D.
-
-### Part A: Acceptance Criteria
-
-For each criterion in `acceptance_criteria`:
-1. Read the worker's evidence (summary, files_changed, criteria_results if present)
-2. Assess whether the criterion is met:
-   - If the worker provided `criteria_results` -> verify their self-assessment
-   - If not -> infer from the evidence (files changed, test results, code inspection)
-3. Record: `{ "criterion": "...", "met": true/false, "evidence": "..." }`
-
-**All criteria must be met** to proceed to Part B.
-
-### Part B: Scope Violation Check
-
-Compare files changed against the task's `scope.surfaces`:
-1. Read `scope.surfaces` from the TaskContract (or implementation contract)
-2. List all files modified by the worker
-3. Flag any file outside `scope.surfaces` as a potential scope violation
-4. Minor scope violations (e.g., shared config files): record as warning
-5. Major scope violations (touching unrelated modules): Tier 2 fails
-
-### Part C: Known Risk Handling
-
-The primary source of known risks is `self_check.known_risks` from record.json, supplemented by the implementation contract's `edge_cases`. Verify that each item has been handled:
-- **Mitigated**: evidence shows the risk was addressed
-- **Accepted with rationale**: explicit rationale recorded for accepting the risk
-- **Deferred to debt**: recorded in the debt register
-
-Any `known_risk` with no handling status -> Tier 2 fails.
-
-### Part D: Rubric Scoring
-
-Read the `rubric` array from the TaskContract. For each dimension:
-
-1. Identify the evaluator's evidence:
-   - `design-authority` review evidence -> `output_quality` score
-   - `quality_specialist` evidence -> `core_interaction`, `output_completeness`, `regression_safety` scores
-   - `quality_specialist` or `communication_specialist` evidence -> `ux_clarity`, `visual_coherence` scores (UI-sensitive tasks)
-2. Read the evaluator's `rubric_scores` from their review
-3. Compare each score against the dimension's `threshold`
-
-#### Default Dimensions
-
-| dimension | evaluator | default threshold |
-|---|---|---:|
-| `core_interaction` | `quality_specialist` | 3 |
-| `output_completeness` | `quality_specialist` | 4 |
-| `output_quality` | `design-authority` | 4 |
-| `regression_safety` | `quality_specialist` | 4 |
-
-UI-sensitive tasks add:
-
-| dimension | evaluator | default threshold |
-|---|---|---:|
-| `ux_clarity` | `quality_specialist` or `communication_specialist` | 3 |
-| `visual_coherence` | `quality_specialist` or `communication_specialist` | 3 |
-
-#### Low Confidence Threshold Adjustment
-
-Read `confidence` from record.json `self_check` section. If `confidence` <= 2, add +1 to **every** rubric dimension threshold.
-
-Example: if confidence is 2, thresholds become: `core_interaction` 3->4, `output_completeness` 4->5, `output_quality` 4->5, `regression_safety` 4->5.
-
-#### Stub Check
-
-If `possible_stubs[]` from the record.json `self_check` section is non-empty:
-1. Verify those locations are not left as stubs
-2. If confirmed stubs exist: `output_completeness` is capped at a maximum of 2
-3. If confirmed stub count exceeds the stub cap: gate immediately returns `block`
-
-Default stub cap by `risk_level`:
-
-| risk_level | stub cap |
-|---|---:|
-| `low` | 3 |
-| `normal` | 2 |
-| `high` | 0 |
-| `critical` | 0 |
-
-#### Rubric Result
-
-Record rubric results:
-```json
-{
-  "rubric_scores": [
-    { "dimension": "core_interaction", "score": 4, "threshold": 3, "passed": true },
-    { "dimension": "output_quality", "score": 3, "threshold": 4, "passed": false }
-  ],
-  "blocking_dimensions": ["output_quality"]
-}
-```
-
-**All rubric dimensions must meet their threshold** for Tier 2 to pass. The `blocking_dimensions` list tells the verify-fix-loop exactly what to target.
-
-### Self-Check Consumption Paths
-
-The `self_check` section from record.json is consumed at 6 points in the pipeline:
-
-| # | Path | Consumer | self_check field | Action |
-|---|------|----------|-----------------|--------|
-| 1 | Review focus | Specialist reviewers | `known_risks`, `untested_paths` | Prioritize review of flagged areas |
-| 2 | QA verification plan | Quality specialist | `untested_paths` | Focus testing on declared untested paths |
-| 3 | Stub verification | Evidence Gate (Tier 2) | `possible_stubs` | Cap `output_completeness` if stubs confirmed |
-| 4 | Threshold tightening | Evidence Gate (Tier 2) | `confidence` | Add +1 to all thresholds if confidence <= 2 |
-| 5 | Debt extraction | Retrospective | `untested_paths`, `known_risks` | Feed to `debt_candidates` |
-| 6 | Memory extraction | Memory extraction step | `known_risks`, `untested_paths` | Feed to agent `memory_candidates` |
-
-Ignoring the self_check while still collecting it is non-conformant review theater (Doc 05).
-
----
-
-## `fail` vs `block` Distinction
-
-- **`fail`**: implementation quality issue. Can be fixed via the verify-fix-loop. Consumes 1 from `retry_budget`.
-- **`block`**: structural prerequisite not met. Cannot be resolved by modifying the implementation alone. Does NOT consume `retry_budget`. Re-enter the gate after resolving the blocking cause.
-
-Conditions that produce `block`:
-- Tier 0: missing required artifact, baseline mismatch, missing required reviewer
-- Tier 2: stub cap exceeded, required specialist review missing
-
----
-
-## Gate Error Handling
-
-If the gate verdict is `error`:
-- `retry_budget` is NOT consumed
-- The orchestration-authority resolves the cause and re-runs the gate
-- If the same cause produces `error` 3 consecutive times, the task transitions to `blocked` and the cause is recorded
-
----
-
-## Output
-
-Write gate result to record.json via CLI:
 ```bash
-Bash("geas task record add --task {task-id} --section gate_result < <gate_result_json_file>")
-```
-
-Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `created_at`) are auto-injected by the CLI — agents only need to provide the content fields below.
-
-```json
+geas gate run --mission {mission_id} --task {task_id} <<'EOF'
 {
-  "task_id": "{task-id}",
-  "gate_profile": "implementation_change",
-  "verdict": "pass",
   "tier_results": {
-    "tier_0": { "status": "pass", "details": "All prerequisites verified" },
-    "tier_1": { "status": "pass", "details": "All eval_commands passed" },
-    "tier_2": { "status": "pass", "details": "All criteria met, rubric passed" }
-  },
-  "rubric_scores": [
-    { "dimension": "core_interaction", "score": 4, "threshold": 3, "passed": true },
-    { "dimension": "output_completeness", "score": 4, "threshold": 4, "passed": true },
-    { "dimension": "output_quality", "score": 4, "threshold": 4, "passed": true },
-    { "dimension": "regression_safety", "score": 5, "threshold": 4, "passed": true }
-  ],
-  "blocking_dimensions": [],
-  "retry_budget_before": 3,
-  "retry_budget_after": 3
+    "tier_0": {"status": "pass", "details": "self-check + reviewer evidence present"},
+    "tier_1": {"status": "pass", "details": "verification_plan ran clean; 4/4 criteria met"},
+    "tier_2": {"status": "pass", "details": "challenger approved, risk-assessor approved"}
+  }
 }
+EOF
 ```
 
-Also log a detailed event via CLI:
-```bash
-Bash("geas event log --type gate_result --task {task-id} --data '{\"result\":\"pass\",\"gate_profile\":\"implementation_change\",\"tier_results\":{\"tier_0\":{\"status\":\"pass\"},\"tier_1\":{\"status\":\"pass\"},\"tier_2\":{\"status\":\"pass\"}},\"blocking_dimensions\":[]}'")
-```
+The CLI:
 
----
+- assigns `gate_run_id` (`gate-1`, `gate-2`, ...).
+- derives overall verdict from tier statuses (any non-pass short-circuits; otherwise pass).
+- appends the new run to `gate-results.json`.
+- returns `suggested_next_transition` in the envelope (CLI.md §14.5) but does NOT auto-transition. Orchestrator calls `geas task transition` separately.
 
-## On Pass
+## Verdict interpretation
 
-1. Update TaskContract status: `Bash("geas task transition --mission {mission_id} --id {task-id} --to verified")`
-2. Log the gate_result event (see Output above)
-3. Return to the pipeline — next step is **Closure Packet assembly**, then **Critical Reviewer Challenge**, then **Final Verdict**
+| verdict | Budget impact | Next action |
+|---|---|---|
+| `pass` | none | Orchestrator writes closure evidence, then `task transition --to verified` (then `--to passed` once closure is approved). |
+| `fail` | Consumes one `verify_fix_iterations` slot | Orchestrator moves the task back to `implementing` via `task transition --to implementing` and spawns the implementer with the failing criteria. Use `verify-fix-loop` skill. |
+| `block` | No budget consumed | Orchestrator moves task to `blocked` and records the blocking cause. Task cannot re-gate until the block is resolved upstream. |
+| `error` | No budget consumed | Orchestrator resolves the cause (missing tooling, contract ambiguity, snapshot drift) and re-runs the gate. If the same error repeats three times, move the task to `blocked`. |
 
-## On Fail
+## Self-check reuse
 
-1. Decrement `retry_budget` (`retry_budget_after` = `retry_budget_before` - 1)
-2. If retries remain:
-   - Invoke `/verify-fix-loop` with the failure details
-   - The fix loop dispatches the worker with failure context
-   - After fix, re-run the gate
-3. If retries exhausted:
-   - Follow the `escalation_policy`:
-     - `"design-authority-review"`: spawn the `design-authority` for architectural review, write a DecisionRecord
-     - `"product-authority-decision"`: spawn the `product-authority` for a strategic decision (continue/cut/pivot)
-     - `"pivot"`: invoke `/geas:vote-round`
-   - Update TaskContract status: `Bash("geas task transition --mission {mission_id} --id {task-id} --to escalated")`
-   - Write a DecisionRecord via CLI: `Bash("geas decision write --mission {mission_id} <<'EOF'\n<decision_json>\nEOF")`
+The implementer's `self-check.json` contributes to gate judgment at three points:
 
-## On Block
+| Tier | self-check field | Effect |
+|---|---|---|
+| Tier 0 | (existence + schema) | Precheck fails without a valid self-check. |
+| Tier 1 | `reviewer_focus`, `known_risks` | Verification plan covers the paths the implementer flagged. |
+| Tier 2 | `deviations_from_plan`, `gap_signals` | Reviewers weigh these when stating their verdict; feeds `debt_candidates` / `gap_signals` in their review entries. |
 
-1. Do NOT decrement `retry_budget` (`retry_budget_after` = `retry_budget_before`)
-2. Record the blocking cause in the gate result
-3. Task cannot re-enter the gate until the blocking cause is resolved
-4. The orchestration-authority is responsible for resolving the block
+Collecting self-check without consuming it is non-conformant.
 
----
+## Boundaries
 
-## Decision Records
-
-When the gate results in an escalation or significant decision, write a DecisionRecord:
-
-Write the DecisionRecord via CLI (the CLI creates the decisions directory automatically):
-```bash
-Bash("geas decision write --mission {mission_id} <<'EOF'\n<decision_record_json>\nEOF")
-```
-The CLI enforces schema validation on the decision record.
-
-This creates a durable record of WHY a decision was made, not just WHAT happened.
+- The gate never modifies the task contract.
+- The gate never writes new reviewer evidence — it only reads what reviewers already produced.
+- Orchestrator, not the gate, decides rewind target on fail/block. Suggested transition in the response is a hint, not an instruction.
+- Gate runs are append-only: each re-run appends to `runs`, earlier runs are preserved for audit.

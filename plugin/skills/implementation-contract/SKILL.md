@@ -1,130 +1,113 @@
 ---
 name: implementation-contract
-description: Pre-implementation agreement — worker proposes concrete action plan, quality-specialist and design-authority approve before implementation begins. Prevents wasted implementation cycles from misunderstood requirements.
+description: Pre-implementation agreement — the implementer proposes a concrete plan, reviewers approve before any code is written. Prevents wasted cycles caused by misunderstood requirements.
 ---
 
 # Implementation Contract
 
-Worker and reviewers agree on "what done looks like" before any code is written.
+Before an `implementing` state entry, the implementer states "what I will do" and the key reviewers agree to it. This catches scope/requirement mismatches before they become rework.
 
 ## When to Use
 
-Orchestrator invokes this skill after Design Guide (design-authority) and before Implementation, for every task.
-
-## Purpose
-
-Eliminates the waste cycle: "worker misunderstands requirement → builds wrong thing → quality verification catches it → rework." The worker reads the ContextPacket (including communication_specialist's design and design-authority's design guide), then explicitly states what they plan to do and how they'll prove it's done. quality-specialist and design-authority approve before implementation begins.
+Orchestrator invokes this skill right after the task transitions `ready`. It runs once per task, before the first evidence write. Amendments during implementation are handled by the same skill (see Amendment Flow below).
 
 ## Inputs
 
-1. **TaskContract** — from `.geas/missions/{mission_id}/tasks/{task-id}/contract.json`
-2. **ContextPacket** — the worker's packet at `.geas/missions/{mission_id}/tasks/{task-id}/packets/{worker}.md`
-3. **Prior evidence** — communication_specialist design, design-authority design guide (if available)
+1. **Task contract** — `.geas/missions/{mission_id}/tasks/{task_id}/contract.json` (goal, acceptance criteria, surfaces, verification_plan, risk_level).
+2. **Mission spec and mission-design** — for project-wide context the implementer must honor.
+3. **Memory** — `.geas/memory/shared.md`, `.geas/memory/agents/{agent_type}.md` (prior lessons).
+4. **Supersede chain** — if `supersedes` is non-null, read the prior task's closure evidence to avoid repeating the same mistake.
 
-## Process
+## Artifact
 
-### Step 1: Worker Drafts Contract
-
-Spawn the assigned worker to read their ContextPacket and write a contract:
-
-```
-Agent(agent: "{worker}", prompt: "Read .geas/missions/{mission_id}/tasks/{task-id}/packets/{worker}.md and .geas/missions/{mission_id}/tasks/{task-id}/contract.json. Before implementing, write your implementation contract via CLI. Run: geas task record add --task {task-id} --section implementation_contract --set planned_actions=... (or pipe a JSON body via stdin: `geas task record add --task {task-id} --section implementation_contract <<'EOF'\n<contract_json>\nEOF`, or redirect from a file: `< path/to/contract.json`). Required fields:
-- planned_actions: concrete steps you will take (required)
-- non_goals: what you explicitly will NOT do (required)
-- edge_cases: edge cases you plan to handle (recommended)
-- state_transitions: state changes your implementation introduces (recommended)
-- demo_steps: step-by-step procedure to verify your work is complete (recommended)
-Set status to 'draft'.")
-```
-
-Verify that `record.json` now contains the `implementation_contract` section.
-
-### Step 2: quality-specialist Reviews
-
-Spawn quality-specialist to review the contract from a quality verification perspective:
+The approved plan lives at:
 
 ```
-Agent(agent: "quality-specialist", prompt: "Read the implementation_contract section from .geas/missions/{mission_id}/tasks/{task-id}/record.json and .geas/missions/{mission_id}/tasks/{task-id}/contract.json. Review this implementation contract per your Review Protocols.
-Write your assessment. If acceptable, approve. If not, list specific concerns.")
+.geas/missions/{mission_id}/tasks/{task_id}/implementation-contract.json
 ```
 
-### Step 3: design-authority Reviews
+Schema: `implementation-contract` — `summary`, `rationale`, `change_scope`, `planned_actions`, `non_goals`, `alternatives_considered`, `assumptions`, `open_questions`.
 
-Spawn design-authority to review the contract from a technical perspective:
+## Flow
 
-```
-Agent(agent: "design-authority", prompt: "Read the implementation_contract section from .geas/missions/{mission_id}/tasks/{task-id}/record.json, .geas/missions/{mission_id}/tasks/{task-id}/contract.json, and any prior design guide at .geas/missions/{mission_id}/tasks/{task-id}/evidence/design-authority.json. Review this implementation contract per your Review Protocols.
-Write your assessment. If acceptable, approve. If not, list specific concerns.")
-```
+### Step 1 — Implementer drafts
 
-### Step 4: Resolve
+Spawn the primary worker (from `routing.primary_worker_type`) with the task contract and mission context. The implementer returns a JSON object that populates the implementation-contract schema.
 
-- **Both approve** → Update contract status to `"approved"`, set `approved_by`. Proceed to Implementation.
-- **Revision requested** → Return concerns to worker. Worker updates contract and resubmits. Allow 1 revision cycle, then design-authority makes final call.
+Contract body must be honest about:
 
-## Output
+- **planned_actions** — concrete steps, specific enough that a reviewer can inspect them.
+- **change_scope** — files/surfaces/modules that will change (must stay inside `contract.surfaces`).
+- **non_goals** — things the implementer explicitly will NOT do, even if tempting.
+- **open_questions** — every ambiguity the implementer has, not a sanitized subset.
 
-Write the contract to record.json via CLI:
+The orchestrator runs the CLI:
+
 ```bash
-Bash("geas task record add --task {task-id} --section implementation_contract < <contract_json_file>")
+geas impl-contract set --mission {mission_id} --task {task_id} <<'EOF'
+<implementation_contract_json>
+EOF
 ```
-The CLI enforces schema validation and auto-manages timestamps.
 
-Log the event via CLI:
+(Note: `impl-contract set` is the canonical CLI surface per CLI.md §3; the current bundle exposes `self-check set` and `evidence append` separately. Implementers writing the contract through orchestrator tooling should use the CLI surface registered for this purpose.)
+
+### Step 2 — Reviewer concurrence
+
+For each slot in `routing.required_reviewers`, spawn the concrete agent and ask: "read the implementation contract above, state whether it would satisfy the task contract you just inspected. Record your view as a review-kind evidence entry."
+
+Each reviewer writes evidence under their slot:
+
 ```bash
-Bash("geas event log --type implementation_contract --task {task-id} --data '{\"status\":\"approved|revision_requested\"}'")
+geas evidence append --mission {mission_id} --task {task_id} \
+    --agent {concrete_agent} --slot {slot} <<'EOF'
+{
+  "evidence_kind": "review",
+  "summary": "implementation-contract review",
+  "verdict": "approved" | "changes_requested" | "blocked",
+  "concerns": [...],
+  "rationale": "...",
+  "scope_examined": "implementation-contract.json",
+  "methods_used": ["read contract", "mapped to acceptance criteria"],
+  "scope_excluded": []
+}
+EOF
 ```
+
+The CLI enforces agent-slot independence: whoever takes `implementer` on this task cannot also hold a reviewer or verifier slot here. If the same concrete agent covers multiple reviewer slots (e.g. security-engineer as both `risk-assessor` and `operator`), they write separate evidence files per slot.
+
+### Step 3 — Resolve
+
+- **All reviewers `approved`** → orchestrator moves the task to `implementing` (`geas task transition --to implementing`). The implementer may now write code and append an `implementation`-kind evidence entry.
+- **Any `changes_requested`** → return the concerns to the implementer. They update the implementation-contract and resubmit. One revision cycle is the default budget.
+- **Any `blocked`** → the plan as stated cannot proceed. The orchestrator either (a) escalates to decision-maker if the block is structural, or (b) opens a task-level deliberation if reviewers disagree on whether the plan is workable.
+
+### Step 4 — First evidence entry
+
+Once the implementation-contract is approved and the task enters `implementing`, the implementer writes their first evidence entry (kind `implementation`) referencing what they actually did. The self-check follows at the end of the implementation phase (see `self-check set`).
 
 ## Amendment Flow
 
-After the implementation contract is approved and implementation begins, circumstances may require changes to the approved contract. This is the **amendment flow** — it handles material changes without restarting the full contract process.
+Approved contract + discovered reality mismatch → amend rather than restart. Material changes that trigger amendment:
 
-### When to Amend
+1. The plan needs to touch something outside `change_scope`.
+2. An acceptance criterion reveals itself as wrong or underspecified.
+3. `risk_level` rose because of what the implementer found.
+4. A new external dependency appears.
+5. An item from `non_goals` must come in-scope to satisfy an acceptance criterion.
 
-A material change triggers the amendment flow when ANY of these occur during implementation:
-1. Paths outside `scope.surfaces` are changed
-2. Acceptance criteria are added or modified
-3. `risk_level` increases
-4. A new external dependency is introduced
-5. A `non_goals` item enters scope
+### Process
 
-### Amendment Process
+1. Implementer pauses coding.
+2. Implementer appends a new implementation-kind evidence entry with the amendment details (summary = "amendment proposal", revision_ref pointing at the prior implementation entry).
+3. Risk-assessor (and design-authority if structural) review the amendment via a new review-kind evidence entry.
+4. On approval, implementer resumes. On rejection, task may need to enter `blocked` or escalate.
 
-**Step 1: Worker Identifies Change**
-
-The worker detects a material change and stops implementation until the amendment is approved.
-
-**Step 2: Worker Drafts Amendment**
-
-The worker records the amendment to the `implementation_contract` section's `amendments` array:
-```bash
-Bash("geas task record add --task {task-id} --section implementation_contract --set amendments='[{\"rationale\":\"why the change is needed\",\"changed_fields\":[\"field1\",\"field2\"],\"scope_delta\":\"what expanded or narrowed\",\"approved_by\":\"design-authority\"}]'")
-```
-
-**Step 3: Design-Authority Re-Approves**
-
-Spawn design-authority to review the amendment. Amendments are scope/design decisions, so DA is the appropriate reviewer:
-
-```
-Agent(agent: "design-authority", prompt: "Read the implementation_contract section (including amendments) from .geas/missions/{mission_id}/tasks/{task-id}/record.json and .geas/missions/{mission_id}/tasks/{task-id}/contract.json. Review the latest amendment: evaluate the rationale, assess scope delta impact, and verify changed_fields are justified. Approve or request revision.")
-```
-
-**Step 4: Resume Implementation**
-
-After DA approval, the worker resumes. All subsequent ContextPackets must reflect the amended contract.
-
-### Amendment Rules
-
-- Amendments are only valid during the `"implementing"` state
-- Each amendment appends to the `amendments` array (does not overwrite prior entries)
-- Material changes after approval require amendment before continuing implementation
-- When in doubt, flag for DA review rather than self-adjudicating materiality
+Amendments never overwrite prior entries — everything append-only. The evidence history shows the full plan trajectory for anyone reading later.
 
 ## Rules
 
-1. **Every implementation task gets a contract** — no skipping even for "simple" tasks
-2. **Workers must be honest about non_goals** — undeclared scope is the top source of rework
-3. **demo_steps must cover every acceptance criterion** — if a criterion has no demo step, the contract is incomplete
-4. **One revision cycle maximum** — after that, design-authority decides and we move forward
-5. **Contract does not replace TaskContract** — it supplements it with the worker's concrete plan
-6. **Material changes after approval require amendment** — unrecorded contract drift is non-conformant
+1. Every task gets an implementation-contract. No skipping for "simple" tasks — the friction of stating the plan catches the ambiguity that causes rework.
+2. `non_goals` is mandatory content, not a courtesy. Undeclared scope is the top source of "why did you also change that file" review cycles.
+3. `open_questions` must be stated plainly. Implementers silently picking an interpretation of an ambiguous requirement is the anti-pattern this skill exists to prevent.
+4. One revision cycle default. If reviewers still disagree after one round, escalate to task-level deliberation rather than loop again.
+5. Amendments during `implementing` require reviewer concurrence BEFORE resuming code changes.
