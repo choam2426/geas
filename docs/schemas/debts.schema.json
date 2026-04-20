@@ -1,20 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Geas Debts",
-  "description": "Mission-level list of outstanding burdens this mission intentionally carries forward. May also include open debt items carried over from prior missions.",
+  "description": "Project-level ledger of outstanding burdens that span all missions in this project. Each entry records its origin (introduced_by) and resolution (resolved_by) as mission/task references. Lives at .geas/debts.json.",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "mission_id",
     "entries",
     "created_at",
     "updated_at"
   ],
   "properties": {
-    "mission_id": {
-      "type": "string",
-      "pattern": "^mission-[0-9]{8}-[a-zA-Z0-9]{8}$"
-    },
     "entries": {
       "type": "array",
       "description": "Registered debt entries. Empty array if this mission registered no debts.",

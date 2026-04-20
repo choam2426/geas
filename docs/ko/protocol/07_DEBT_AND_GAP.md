@@ -15,9 +15,11 @@ Debt와 gap은 비슷해 보여도 다르다. 둘을 분리해서 기록하고 f
 
 ## Debts
 
-정규 JSON artifact는 `.geas/missions/{mission_id}/consolidation/debts.json`이고, 정확한 구조는 `debts.schema.json`이 관리한다. Consolidating phase에서 Orchestrator가 작성한다. 모든 task의 evidence에 남은 `debt_candidates`와 이전 mission에서 넘어온 open debt를 함께 보고 공식 등록 여부를 판단한다.
+정규 JSON artifact는 `.geas/debts.json`이고, 정확한 구조는 `debts.schema.json`이 관리한다. Debts는 **프로젝트 레벨 ledger**다. 특정 mission에 속하지 않고 프로젝트 생애 전반에 걸쳐 유지되며, 각 entry가 자기 origin mission과 resolution mission을 스스로 참조한다.
 
-이 목록은 이번 mission의 consolidating phase가 공식 등록한 debt 항목을 담는다. 이전 mission에서 open 상태로 넘어온 carry-forward debt도 여기에 포함될 수 있다. 각 item은 다음 필드를 고정한다.
+Orchestrator는 consolidating phase에서 이 ledger를 갱신한다 — 이번 mission의 task evidence에 남은 `debt_candidates`를 검토해 신규 debt를 register하고, 이번 mission에서 해소하거나 버린 기존 open debt의 status를 update한다. Ledger 자체는 consolidating 밖에서도 읽을 수 있다. "프로젝트에 지금 어떤 open debt이 있는가"는 이 파일 한 번 조회로 답한다.
+
+각 entry는 다음 필드를 고정한다.
 
 | 필드 | 의미 |
 |---|---|
@@ -26,7 +28,7 @@ Debt와 gap은 비슷해 보여도 다르다. 둘을 분리해서 기록하고 f
 | `kind` | schema enum 중 하나 |
 | `title`, `description` | 사람이 읽는 제목과 서술 |
 | `status` | open / resolved / dropped |
-| `introduced_by` | `{mission_id, task_id}` — 이 debt가 처음 관측된 mission과 task. carry-forward는 이전 mission을 가리킴 |
+| `introduced_by` | `{mission_id, task_id}` — 이 debt가 처음 관측된 mission과 task |
 | `resolved_by` | `{mission_id, task_id}` — status를 resolved나 dropped로 바꾼 시점의 mission과 task. status가 open이면 null |
 | `resolution_rationale` | status 변경의 근거 서술. 해결 근거가 된 task, evidence, 맥락을 담는다. status가 open이면 null |
 
@@ -38,9 +40,9 @@ Debt와 gap은 비슷해 보여도 다르다. 둘을 분리해서 기록하고 f
 
 ### status 전환 규칙
 
-- 이전 mission에서 `open`으로 넘어온 carry-forward debt는 현재 mission의 debts.json에 같은 `debt_id`로 포함되며, 아직 해소되지 않았으면 `status: open`을 유지한다.
-- 현재 mission에서 해소됐다고 판단하면 `status: resolved`, 더 이상 debt로 다룰 가치가 없다고 판단하면 `status: dropped`로 기록하고 `resolved_by`와 `resolution_rationale`을 채운다.
-- 원 mission의 debts.json은 immutable로 두며 상태 변경은 현재 mission의 debts.json에서만 이루어진다.
+- 신규 debt는 `debt register`로 `status: open`으로 ledger에 append한다.
+- Mission이 어떤 open debt을 해소했다고 판단하면 `status: resolved`, 더 이상 debt로 다룰 가치가 없다고 판단하면 `status: dropped`로 `debt update-status`를 호출하고 `resolved_by`와 `resolution_rationale`을 채운다.
+- Ledger 자체는 단일 파일이므로 한 debt의 상태 이력은 그 entry의 현재 status로만 표현된다. 과거 상태 변천 기록이 필요하면 `events.jsonl`에서 해당 `debt_id`를 조회한다.
 
 ## Gap
 
