@@ -13,7 +13,7 @@ Memory는 두 scope로 나뉘어 저장된다.
 | scope | 경로 | 역할 |
 |---|---|---|
 | shared | `.geas/memory/shared.md` | 팀 전체가 따라야 하는 규칙, 관례, 금지, 기본 절차 |
-| agent | `.geas/memory/agents/{agent}.md` | 특정 역할이나 agent가 참고할 개인화된 교훈 |
+| agent | `.geas/memory/agents/{agent_type}.md` | 특정 agent type이 참고할 개인화된 교훈. Namespace는 concrete agent type 이름이다 — authority는 slot 이름과 동일(예: `decision-maker.md`), specialist는 도메인 프로필이 정한 concrete type(예: `software-engineer.md`) |
 
 Shared memory는 규범적이다. 반복 가능한 행동 기준으로 쓰이며, enforcement나 review에서 근거로 인용된다. Agent memory는 조언적이다. 역할별 판단을 돕지만, 새 mission의 contract나 evidence와 충돌하면 쉽게 버릴 수 있다.
 
@@ -31,7 +31,7 @@ Shared memory에는 일회성 상황 설명보다 반복 가능한 행동 기준
 
 ## Agent Memory
 
-Agent memory (`.geas/memory/agents/{agent}.md`)는 특정 slot이나 concrete agent가 다음 mission에서도 참고할 수 있는 역할별 메모다.
+Agent memory (`.geas/memory/agents/{agent_type}.md`)는 특정 **concrete agent type**이 다음 mission에서도 참고할 수 있는 메모다. Namespace 키는 agent type 이름이다. Authority slot은 단일 agent로 구성되므로 slot 이름이 곧 type 이름이다 (예: `challenger.md`). Specialist slot은 mission spec의 `domain_profile`이 정한 concrete type 이름을 쓴다 (예: `software-engineer.md`, `security-engineer.md`). Slot 이름은 memory namespace로 쓰지 않는다 — 같은 specialist slot을 도메인별로 다른 concrete type이 맡을 수 있기 때문에 slot 단위로 누적하면 도메인별 학습이 뒤섞인다.
 
 좋은 agent memory는 다음 특징을 가진다.
 
@@ -39,7 +39,7 @@ Agent memory (`.geas/memory/agents/{agent}.md`)는 특정 slot이나 concrete ag
 - 역할에 맞는 판단 포인트를 짧게 요약한다.
 - 새 mission의 contract나 evidence와 충돌하면 쉽게 버릴 수 있다.
 
-Agent memory도 shared memory와 동일하게 consolidating phase에서 Orchestrator가 승격 판단을 내리고, 그 결과를 `memory-update.json`의 `agents` 섹션에 기록한다.
+Agent memory도 shared memory와 동일하게 consolidating phase에서 Orchestrator가 승격 판단을 내리고, 그 결과를 `memory-update.json`의 `agents` 섹션에 기록한다. `agents` 배열의 각 entry `agent` 키는 concrete type 이름을 쓴다.
 
 ## Memory Update
 
@@ -48,11 +48,11 @@ Agent memory도 shared memory와 동일하게 consolidating phase에서 Orchestr
 memory-update.json은 두 섹션을 가진다.
 
 - `shared` — `memory/shared.md`에 가한 변경 (added / modified / removed)
-- `agents` — agent별 `memory/agents/{agent}.md` 변경. 변경 있는 agent만 배열에 포함
+- `agents` — agent type별 `memory/agents/{agent_type}.md` 변경. 변경 있는 agent type만 배열에 포함
 
 각 added·modified 항목은 `memory_id`, `reason`, 변경 근거가 된 `evidence_refs`를 남긴다. removed 항목은 `memory_id`와 `reason`만 남긴다. 제안됐지만 반영되지 않은 변경은 memory-update.json에 들어가지 않는다. 반영 여부 자체를 논의해야 할 만큼 비중이 큰 제안이라면 deliberation에 남기고, 거기에서 결론이 나면 그 결론만 memory-update.json에 반영한다.
 
-Orchestrator가 consolidating phase에서 작성한다. task evidence의 `memory_suggestions`와 closure evidence의 회고 필드를 입력으로 받아, 각 후보를 (1) shared로 승격, (2) 특정 agent memory로 승격, (3) 버림 중에서 결정하고, 승격된 결과만 이 artifact에 기록한다.
+Orchestrator가 consolidating phase에서 작성한다. task evidence의 `memory_suggestions`와 closure evidence의 회고 필드를 입력으로 받아, 각 후보를 (1) shared로 승격, (2) 특정 agent type memory로 승격, (3) 버림 중에서 결정하고, 승격된 결과만 이 artifact에 기록한다.
 
 ### shared memory 후보가 되는 기준
 
