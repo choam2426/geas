@@ -256,7 +256,7 @@ CLI가 자동으로 채워야 하는 값:
 - 최상위 `created_at` (create 연산에서만)
 - 최상위 `updated_at` (모든 쓰기 연산)
 - 각 append entry의 `created_at`
-- `entry_id` (evidence·deliberation entries 연번), `gate_run_id` (gate-results 연번)
+- `entry_id` (evidence entries 연번), `gate_run_id` (gate-results 연번). Deliberation entry는 stable id를 갖지 않으며 순서는 `entries` 배열 위치로 결정된다.
 - 최초 생성에서 `mission_id`·`task_id` 검증 및 경로에 반영
 
 Agent가 이 필드를 payload에 넣어 보내도 CLI가 덮어쓴다. 이것이 타임스탬프·id의 단일 진실원을 유지하는 유일한 방법이다.
@@ -416,7 +416,6 @@ CLI가 자동 생성하는 id 목록:
 | `debt_id` | `^debt-[0-9]{3}$` | `debt register`가 project-level `debts.entries`에서 max(번호) + 1로 생성 |
 | `gate_run_id` | `^gate-[0-9]+$` | `gate run`이 해당 task의 gate-results.runs에서 max(번호) + 1로 생성 |
 | `entry_id` (evidence) | integer ≥ 1 | `evidence append`가 해당 `(agent, slot)` 파일의 entries에서 max + 1로 생성 |
-| `entry_id` (deliberation) | integer ≥ 1 | `deliberation append`가 해당 deliberations.entries에서 max + 1로 생성 |
 
 Agent가 payload에 id를 포함해도 CLI가 무시하고 자체 생성 값을 넣는다. 이것이 id 충돌과 위조를 원천 차단한다.
 
