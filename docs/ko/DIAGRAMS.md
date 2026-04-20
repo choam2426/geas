@@ -235,7 +235,7 @@ flowchart LR
         IC["implementation-contract"]
         SC["self-check"]
         TDel["deliberations<br/>(task-level, append)"]
-        TE["evidence/{agent}<br/>(entries append)"]
+        TE["evidence/{agent}.{slot}<br/>(entries append)"]
         GR["gate-results<br/>(runs append)"]
         TS["task-state"]
     end

@@ -1,13 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Geas Evidence",
-  "description": "Unified schema for task-level evidence artifacts. One file per agent per task holds an append-only array of evidence entries. Each entry's evidence_kind discriminates between implementation, review, verification, and closure records; kind-specific required fields and verdict enums are enforced via allOf conditionals on each entry.",
+  "description": "Unified schema for task-level evidence artifacts. One file per (agent, slot) pair per task holds an append-only array of evidence entries. File lives at evidence/{agent}.{slot}.json. Each entry's evidence_kind discriminates between implementation, review, verification, and closure records; kind-specific required fields and verdict enums are enforced via allOf conditionals on each entry.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "mission_id",
     "task_id",
     "agent",
+    "slot",
     "entries",
     "created_at",
     "updated_at"
@@ -24,7 +25,22 @@
     "agent": {
       "type": "string",
       "minLength": 1,
-      "description": "Concrete agent or agent type that produced this evidence file."
+      "description": "Concrete agent type that produced this evidence file. For authority slots this equals the slot name (decision-maker, design-authority, challenger); for specialist slots this is the domain profile's concrete type (e.g. software-engineer, security-engineer)."
+    },
+    "slot": {
+      "type": "string",
+      "enum": [
+        "orchestrator",
+        "decision-maker",
+        "design-authority",
+        "challenger",
+        "implementer",
+        "verifier",
+        "risk-assessor",
+        "operator",
+        "communicator"
+      ],
+      "description": "Protocol slot that this agent is playing in this task. The path is evidence/{agent}.{slot}.json; a single agent may have multiple such files in one task when it plays multiple non-implementer slots."
     },
     "entries": {
       "type": "array",

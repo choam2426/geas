@@ -127,11 +127,11 @@ CLI는 `.geas/` 아래 모든 쓰기를 통과시키는 단일 actuator, 즉 유
 │               ├── gate-results.json         # append (runs[])
 │               ├── deliberations.json        # append (entries[], level=task)
 │               └── evidence/
-│                   └── {agent}.json          # append (entries[])
+│                   └── {agent}.{slot}.json   # append (entries[]) — (agent, slot) pair per file
 └── memory/
     ├── shared.md
     └── agents/
-        └── {agent}.md
+        └── {agent_type}.md
 ```
 
 `.geas/`는 두 계층으로 구성된다. **프로토콜 artifact**(각 schema가 관리하는 spec·contract·state·log 파일들)는 계약의 일부이며 `geas validate`의 검증 대상이다. **구현체 보조 파일**은 `.geas/` 안에 공존하지만 schema 검증 대상이 아니고 프로토콜 계약에 포함되지 않는다. `geas validate`는 프로토콜 artifact만 검사한다. 위 트리에서 특별 주석이 붙지 않은 파일은 전부 프로토콜 artifact다.
@@ -163,7 +163,7 @@ CLI는 `.geas/` 아래 모든 쓰기를 통과시키는 단일 actuator, 즉 유
 | `task-state.json` | orchestrator | lifecycle 전이·agent 활성화 시 |
 | `gate-results.json` | orchestrator | 각 gate run 후 |
 | `deliberations.json` (task) | orchestrator | deliberation 완료 후 |
-| `evidence/{agent}.json` | 해당 agent | 자기 evidence 제출 시 |
+| `evidence/{agent}.{slot}.json` | 해당 agent | 자기 evidence 제출 시 (한 agent가 여러 slot을 겸임하면 slot별로 파일 분리) |
 
 `contract.approved_by`는 파일이 아닌 task-contract 안의 필드다. orchestrator가 `geas task approve --by user|decision_maker`를 호출해 값을 세팅한다. `user` 승인은 orchestrator가 사용자 대화로 확인한 뒤 대필하는 형식이고, `decision_maker` 승인은 스폰된 decision-maker의 판단을 orchestrator가 전달하는 형식이다. 어느 쪽이든 실제 CLI 호출은 orchestrator가 수행한다.
 
@@ -177,7 +177,7 @@ CLI는 `.geas/` 아래 모든 쓰기를 통과시키는 단일 actuator, 즉 유
 - `mission-verdicts.verdicts`
 - `gate-results.runs`
 - `deliberations.entries`
-- `evidence/{agent}.entries`
+- `evidence/{agent}.{slot}.entries`
 
 CLI는 이 규칙을 강제한다 — append 외 연산은 거부한다. 이는 감사 가능성의 기초다.
 

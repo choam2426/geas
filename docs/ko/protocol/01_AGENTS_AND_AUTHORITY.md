@@ -109,7 +109,7 @@ Specialist slot은 도메인 전반에 공통으로 쓰는 최소 분류다. 구
 
 ## 공통 운영 원칙
 
-- 한 concrete agent가 여러 slot을 맡을 수는 있지만, 역할 전환은 명시적으로 드러나야 한다.
+- 한 concrete agent가 여러 slot을 맡을 수는 있으며, 한 task 안에서도 reviewer/verifier 계열 slot을 겸임할 수 있다. 단 `implementer` slot은 exclusive다 — task 안에서 implementer를 맡은 agent는 같은 task에서 다른 slot을 맡을 수 없다 (자기 작업을 자기가 검증·리뷰하는 것 금지). 역할 전환은 evidence 경로(`evidence/{agent}.{slot}.json`)로 명시적으로 드러난다.
 - authority slot은 missing specialist work를 대체해서는 안 된다.
 - specialist review가 빠졌는데 closure나 final verdict로 우회해서는 안 된다.
 - task 단위 evidence, gate, deliberation, closure는 doc 03이 owner다.

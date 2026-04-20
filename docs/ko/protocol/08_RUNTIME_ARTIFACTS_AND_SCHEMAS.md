@@ -43,7 +43,7 @@ schema 경로는 모두 `docs/schemas/` 아래에 있으므로 아래 표에는 
 | implementation contract | `.geas/missions/{mission_id}/tasks/{task_id}/implementation-contract.json` | `implementation-contract.schema.json` | doc 03 |
 | implementer self-check | `.geas/missions/{mission_id}/tasks/{task_id}/self-check.json` | `self-check.schema.json` | doc 03 |
 | task-level deliberations | `.geas/missions/{mission_id}/tasks/{task_id}/deliberations.json` | `deliberation.schema.json` (파일의 `entries` 배열에 append) | doc 03 |
-| evidence | `.geas/missions/{mission_id}/tasks/{task_id}/evidence/{agent}.json` | `evidence.schema.json` (파일의 `entries` 배열에 append, 각 entry의 `evidence_kind`로 branch) | doc 03 |
+| evidence | `.geas/missions/{mission_id}/tasks/{task_id}/evidence/{agent}.{slot}.json` | `evidence.schema.json` (파일의 `entries` 배열에 append, 각 entry의 `evidence_kind`로 branch) | doc 03 |
 | gate results | `.geas/missions/{mission_id}/tasks/{task_id}/gate-results.json` | `gate-results.schema.json` | doc 03 |
 | task state | `.geas/missions/{mission_id}/tasks/{task_id}/task-state.json` | `task-state.schema.json` | doc 05 |
 
