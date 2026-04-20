@@ -51,6 +51,8 @@ mission spec은 다음 필드를 고정한다.
 
 mission spec은 대화나 토론을 통해 사용자 요청을 구체화한 결과여야 한다. 미션이 크거나 모호할수록 `risks`와 `constraints`를 숨기지 않고 드러내야 한다. 실행 중 발견되는 assumption이나 해결해야 할 unknown 사항은 mission design에서 풀어 쓴다.
 
+Mission spec은 사용자 승인 이후 immutable이다. scope를 넓히거나 definition of done이 바뀌어야 한다면 현재 mission을 escalate하거나 새 mission으로 시작한다. `specifying`으로의 phase 역행은 허용하지 않는다.
+
 ### Mission Design
 
 Mission design(`mission-design.md`)은 승인된 mission spec을 실제 구현 계획으로 풀어 쓴 문서다. Design Authority가 작성하고 Decision Maker가 승인한다. 미션의 "어떻게"를 담는 기준선으로, 접근·설계 결정·검증 계획·리스크·실패 모드를 한곳에 정리한다.
@@ -129,7 +131,7 @@ Specifying의 승인 순서는 고정한다.
 
 Building에서 Decision Maker가 task별 final verdict를 반복해서 내리지는 않는다. task를 종결하는 판단은 Orchestrator의 task closure decision으로 처리하고, Decision Maker는 mission 수준 판단에 집중한다.
 
-Building이나 polishing에서 새 task contract가 추가될 때 승인 주체는 현재 mission scope 내인지에 따라 갈린다. 현재 mission scope 안에 들어오는 task는 Decision Maker가 승인하며 task contract의 `approved_by`는 `decision_maker`로 기록한다. 현재 scope 밖이라면 먼저 mission spec을 확장해 사용자 승인을 받아야 하며, 그 후 새 task는 `approved_by`를 `user` 또는 scope 확장 이후의 `decision_maker`로 둔다.
+Building이나 polishing에서 새 task contract가 추가될 때 승인 주체는 현재 mission scope 내인지에 따라 갈린다. 현재 mission scope 안에 들어오는 task는 Decision Maker가 승인하며 task contract의 `approved_by`는 `decision_maker`로 기록한다. 현재 scope 밖 작업은 이 mission 안에서 처리하지 않는다 — mission spec은 immutable이므로, 사용자가 scope를 넓히고 싶다면 이 mission을 escalate하거나 후속 mission을 새로 생성해 carry-forward로 연결한다.
 
 ### `polishing`
 

@@ -79,7 +79,7 @@ flowchart TD
     F3 --> G
 ```
 
-Task contract의 `approved_by` 필드에는 최종 승인 주체가 기록된다 (`user` 또는 `decision_maker`; 초기 task 집합은 `user`). Building/polishing 중 추가되는 scope 내 task는 `decision_maker` 승인만으로 ready 전이 가능하고, scope 밖이라면 mission spec을 확장해 사용자 재승인이 선행되어야 한다.
+Task contract의 `approved_by` 필드에는 최종 승인 주체가 기록된다 (`user` 또는 `decision_maker`; 초기 task 집합은 `user`). Building/polishing 중 추가되는 scope 내 task는 `decision_maker` 승인만으로 ready 전이 가능하다. Scope 밖 작업은 이 mission 안에서 처리하지 않으며, 사용자가 scope를 넓히려면 현재 mission을 escalate하거나 후속 mission을 새로 생성한다.
 
 ---
 
