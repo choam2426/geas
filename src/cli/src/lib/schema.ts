@@ -1,17 +1,18 @@
 /**
- * Schema validation via Ajv.
+ * JSON Schema validation helpers using Ajv (draft 2020-12).
  *
- * Schemas are embedded at build time — no filesystem reads at runtime.
- * Ajv is lazily initialized to save ~40ms on --help and read-only commands.
+ * Schemas are loaded from schemas-embedded.ts (regenerated from
+ * docs/schemas). Ajv and validators are lazily constructed to keep
+ * --help and read-only commands fast.
  */
 
-import type Ajv from 'ajv';
-import type { ValidateFunction } from 'ajv';
-import { DEFS_SCHEMA, SCHEMAS } from './schemas-embedded';
+import type Ajv from 'ajv/dist/2020';
+import type { ErrorObject, ValidateFunction } from 'ajv';
+import { SCHEMAS } from './schemas-embedded';
 
 export interface ValidationResult {
-  valid: boolean;
-  errors: unknown[] | null;
+  ok: boolean;
+  errors: ErrorObject[] | null;
 }
 
 let ajvInstance: Ajv | null = null;
@@ -19,51 +20,51 @@ const validatorCache = new Map<string, ValidateFunction>();
 
 function getAjv(): Ajv {
   if (ajvInstance) return ajvInstance;
-
-  const AjvClass = require('ajv').default || require('ajv');
+  /* eslint-disable @typescript-eslint/no-require-imports */
+  const AjvClass = require('ajv/dist/2020').default || require('ajv/dist/2020');
+  const addFormatsMod = require('ajv-formats');
+  const addFormats = addFormatsMod.default || addFormatsMod;
+  /* eslint-enable */
   ajvInstance = new AjvClass({
     allErrors: true,
     strict: false,
     allowUnionTypes: true,
-    validateSchema: false,
   }) as Ajv;
-
-  ajvInstance.addSchema(DEFS_SCHEMA, '_defs.schema.json');
+  try {
+    addFormats(ajvInstance);
+  } catch {
+    // ajv-formats may be absent in some environments; ignore — the
+    // `format` keyword is advisory in draft 2020-12 when no format
+    // implementations are registered.
+  }
   return ajvInstance;
 }
 
-export function getValidator(schemaName: string): ValidateFunction {
-  const cached = validatorCache.get(schemaName);
+export function getSchema(name: string): unknown | undefined {
+  return SCHEMAS[name];
+}
+
+export function listSchemas(): string[] {
+  return Object.keys(SCHEMAS).sort();
+}
+
+function getValidator(name: string): ValidateFunction {
+  const cached = validatorCache.get(name);
   if (cached) return cached;
-
-  const ajv = getAjv();
-  const schema = SCHEMAS[schemaName];
-
+  const schema = SCHEMAS[name];
   if (!schema) {
-    throw new Error(`Schema not found: ${schemaName} (available: ${Object.keys(SCHEMAS).join(', ')})`);
+    throw new Error(
+      `Unknown schema: ${name} (available: ${Object.keys(SCHEMAS).join(', ')})`,
+    );
   }
-
+  const ajv = getAjv();
   const validator = ajv.compile(schema);
-  validatorCache.set(schemaName, validator);
+  validatorCache.set(name, validator);
   return validator;
 }
 
-/**
- * Return the raw schema object for a given schema name.
- * Returns undefined if the schema is not found.
- */
-export function getSchemaObject(schemaName: string): unknown | undefined {
-  return SCHEMAS[schemaName];
-}
-
-export function validate(
-  schemaName: string,
-  data: unknown
-): ValidationResult {
-  const validator = getValidator(schemaName);
-  const valid = validator(data) as boolean;
-  return {
-    valid,
-    errors: valid ? null : (validator.errors ?? null),
-  };
+export function validate(name: string, data: unknown): ValidationResult {
+  const validator = getValidator(name);
+  const ok = validator(data) as boolean;
+  return { ok, errors: ok ? null : (validator.errors ?? null) };
 }
