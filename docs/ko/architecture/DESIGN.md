@@ -103,7 +103,7 @@ CLI는 `.geas/` 아래 모든 쓰기를 통과시키는 단일 actuator, 즉 유
 
 ```
 .geas/
-├── config.json                               # 구현체 보조 — 루트 식별 + delegate 설정 (validate 대상 아님)
+├── config.json                               # 구현체 보조 — runtime root 식별 (validate 대상 아님)
 ├── events.jsonl                              # 구현체 보조 — 필수 감사 로그 (append-only)
 ├── debts.json                                # project-level ledger (cross-mission)
 ├── missions/
@@ -138,8 +138,8 @@ CLI는 `.geas/` 아래 모든 쓰기를 통과시키는 단일 actuator, 즉 유
 
 현재 구현체 보조 파일은 셋이다.
 
-- `config.json`: `geas setup`이 생성하는 CLI control file이다. Canonical root에서는 `root_id`와 `canonical_root`를, delegate root에서는 `delegate_to`를 담아 루트 식별과 worktree 위임을 가능하게 한다. 프로토콜 artifact는 아니지만 구현체가 필수로 유지하며, 상세 shape와 루트 해석 규칙은 CLI.md §13이 owner다.
-- `events.jsonl`: CLI가 모든 쓰기 명령 수행 시 자동으로 append하는 감사 로그. 프로토콜 artifact가 아니지만 구현체가 필수로 유지한다. 각 줄은 독립 JSON object(`kind`, `actor`, `triggered_by`, `prior_event`, `created_at` 등)다. 런타임 경계 이벤트를 기록하는 구현체라면 SessionStart·SessionEnd 같은 항목도 여기에 append할 수 있다. 상세 shape는 CLI.md §14.7 참조.
+- `config.json`: `geas setup`이 생성하는 CLI control file이다. 공통 계약에서 고정되는 것은 `root_id`를 통해 이 디렉토리가 Geas runtime root임을 식별한다는 점이다. 프로토콜 artifact는 아니지만 구현체가 필수로 유지하며, 상세 shape와 경로 해석 규칙은 CLI.md §13이 owner다.
+- `events.jsonl`: CLI가 **자동화·부수효과가 있는 명령**(phase 전이의 bulk transition, consolidation scaffold, debt carry, deliberation guard 등 여러 artifact에 걸치는 복합 동작)을 수행할 때 append하는 감사 로그. 단순 single-artifact write는 해당 artifact의 `created_at`·`updated_at`으로 추적이 충분하므로 별도 이벤트를 남기지 않는다. 프로토콜 artifact는 아니지만 구현체가 필수로 유지한다. 각 줄은 독립 JSON object(`kind`, `actor`, `triggered_by`, `prior_event`, `created_at` 등)다. 런타임 경계 이벤트를 기록하는 구현체라면 SessionStart·SessionEnd 같은 항목도 여기에 append할 수 있다. 기록 대상과 shape의 owner는 CLI.md §14.7.
 - `consolidation/candidates.json`: `geas consolidation scaffold`(CLI.md §14.4)가 현재 mission의 모든 task evidence에서 `debt_candidates`·`memory_suggestions`·`gap_signals`를 집계한 임시 파일. Orchestrator가 이 한 파일만 읽어 project `debts.json`·mission `gap.json`·mission `memory-update.json`으로 승격한다. Stale 주의 — scaffold 실행 후 task evidence가 추가·변경되면 `candidates.json`은 그 변경을 반영하지 않는다. Orchestrator는 승격 직전에 `scaffold`를 다시 실행해 최신 집계를 얻어야 한다.
 
 ### 파일 owner 매트릭스
