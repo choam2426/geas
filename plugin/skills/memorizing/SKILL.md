@@ -1,160 +1,147 @@
 ---
 name: memorizing
-description: Memory management — extract learnings from retrospectives, update rules.md and agent memory notes. 2-file model for simplicity and directness.
+description: Memory maintenance — turns task-level memory_suggestions and closure retrospective fields into updates to shared.md and agents/{type}.md via `geas memory shared-set` / `agent-set`. Full-replace semantics (not patch).
 ---
 
 # Memorizing
 
-Manages project memory through two files: `.geas/rules.md` (project-wide rules) and `.geas/memory/agents/{agent}.md` (agent-specific notes). Orchestrator invokes this skill after retrospective (per-task extraction) and during Evolving (batch review).
+Consolidating-phase skill. Converts the current mission's memory candidates into concrete edits of `.geas/memory/shared.md` (project-wide) and `.geas/memory/agents/{agent_type}.md` (per concrete agent type). Writes happen through the CLI, which owns atomic replace; this skill owns the semantic decisions.
+
+See protocol 06 for the canonical model. This file only describes the workflow on top of it.
 
 ## Inputs
 
-- **record.json `retrospective` section** — contains `memory_candidates[]` from per-task retrospective
-- **`.geas/rules.md`** — current project-wide rules (for deduplication)
-- **`.geas/memory/agents/*.md`** — current agent notes (for deduplication)
-- **Task ID** — source task for tracing extracted learnings
+- Per-task evidence `memory_suggestions[]` collected across the mission (from `evidence/{agent}.{slot}.json` entries).
+- Closure evidence retrospective fields (`what_went_well`, `what_broke`, `what_was_surprising`, `next_time_guidance`) from each task's `orchestrator.orchestrator.json` closure entry.
+- Current content of `.geas/memory/shared.md` and each `.geas/memory/agents/{agent_type}.md` already on disk.
 
-## Output
+## Outputs
 
-- **Updated `.geas/rules.md`** — new or strengthened project-wide rules (with `[DRAFT]` prefix until promoted)
-- **Updated `.geas/memory/agents/{agent}.md`** — new or strengthened agent-specific notes
-- **Event log entries** — `memory_extracted`, `memory_reviewed`, or `memory_cleanup` events in `events.jsonl`
+- Replaced `.geas/memory/shared.md` (when shared memory changed).
+- Replaced `.geas/memory/agents/{agent_type}.md` files (one write per changed agent type).
+- A separate `memory-update set` call by the orchestrator that records the semantic change log (`added` / `modified` / `removed` per section with `memory_id`, `reason`, `evidence_refs`). The CLI does not auto-sync markdown with the change log — that pairing is this skill's responsibility.
+
+## When to run
+
+- Consolidating phase of every mission (primary).
+- Also appropriate at mission spec time when picking up an abandoned mission, to confirm memory has not drifted out from under the contract.
+
+Do not run during building or polishing; per-task memory_suggestions are captured in evidence but promotion waits for consolidating (salvage pattern #5).
 
 ---
 
-## When to Use
+## 1. Collect candidates
 
-- **Per-task**: After retrospective completes, extract learnings from `memory_candidates[]` in the retrospective section of record.json
-- **Evolving phase**: Batch review of rules.md and agent notes — trim stale content, resolve contradictions
-- **Wrap-Up**: Inline extraction for single-task executions
-- **Session start**: Review rules.md for staleness
+Read the mission's task evidence once. For each entry:
 
-## Memory Files
+- Pull `memory_suggestions[]`. Each suggestion already carries the originating agent and enough context to place it.
+- Pull closure retrospective text. Parse it as additional candidate input — but keep the underlying evidence reference so it can be cited in `memory-update.json`.
 
+Build a flat candidate list with the fields: `source_task`, `source_agent`, `source_slot`, `evidence_ref`, `text`, optional `targeted_agent_type`.
+
+## 2. Classify each candidate (shared vs. agent-specific)
+
+For every candidate, decide whether it belongs in shared memory or in a specific agent type's memory. Salvage pattern #2 — the classification guide:
+
+| Signal in the candidate | Target |
+|---|---|
+| Reusable project convention / coding standard / repo-wide rule | `shared.md` |
+| Failure mode that would have tripped any agent on this project | `shared.md` |
+| Architecture decision or invariant | `shared.md` |
+| Role-specific heuristic (tied to what the agent type does, not the project) | `agents/{agent_type}.md` |
+| Tool or workflow tip for one agent type | `agents/{agent_type}.md` |
+| Domain expertise for one specialist concrete type | `agents/{agent_type}.md` |
+
+When unsure, prefer the narrower scope — an agent memory entry is cheaper to retract than a shared rule. Candidates that belong in neither are dropped and not recorded in `memory-update.json` (protocol 06 §Memory Update).
+
+Agent target **must be a concrete agent type** — the kebab-case name from the mission's `domain_profile` (e.g., `software-engineer`, `security-engineer`), or the slot name itself only for single-agent authority slots where slot and concrete type happen to match (e.g., `challenger`, `decision-maker`). `--agent` rejects raw slot ids (see `geas memory agent-set --help`).
+
+## 3. Deduplicate against existing memory
+
+Salvage pattern #4. Before adding an entry:
+
+1. Read the current target file (`.geas/memory/shared.md` or `.geas/memory/agents/{type}.md`).
+2. Compare the new candidate against existing entries by meaning (not substring).
+3. If a semantically-overlapping entry already exists:
+   - Stronger evidence → `modified`: rewrite the existing entry body, keep the `memory_id`, add the new source to its citation line.
+   - Same strength, no new nuance → drop the candidate.
+4. If no overlap exists: `added`.
+
+## 4. Mark new entries as `[DRAFT]` until the phase review confirms them
+
+Salvage pattern #3. Newly added entries (both scopes) start with a `[DRAFT]` prefix on the item heading. Drafts:
+
+- Still ship in the updated `shared.md` / `agents/{type}.md` so that subsequent mission reading picks them up.
+- Are explicitly listed for the phase-review reviewers to promote, modify, or drop.
+- Promoted in the same consolidating phase once the reviewers sign off (salvage pattern #5) — the `[DRAFT]` prefix is removed in the final replace-write.
+
+Single-session skip: if the candidate comes from 2+ independent tasks already and the orchestrator is confident, the entry can skip the `[DRAFT]` prefix. Record the basis in `memory-update.json`'s `reason`.
+
+## 5. Resolve contradictions explicitly
+
+Salvage pattern #7. When a new candidate contradicts an existing entry, pick one:
+
+- **Replace** — the new candidate supersedes the old. Emit a `removed` row for the old `memory_id` with the reason, and an `added` row for the new one whose `reason` references the removed id.
+- **Amend** — both are partially right. Emit a `modified` row combining the refined wording.
+- **Retain both with scope clarification** — add scope qualifiers to both entries. Emit one `modified` row per entry.
+
+Silent override is not allowed. If reviewers cannot decide, escalate to a deliberation (scope = the mission's consolidating phase) and implement the deliberation outcome, not the skill's default.
+
+## 6. Build the edited markdown bodies
+
+For each scope that has changes:
+
+1. Read the current file once.
+2. Apply add / modify / remove edits in memory.
+3. Keep stable `memory_id` labels on each heading (so future passes can cite them).
+4. Sort / group is up to project convention — protocol 06 does not enforce a layout.
+
+Do not edit files whose scope had no changes. Empty changes skip the write entirely.
+
+## 7. Write the updated markdown via CLI
+
+For shared memory:
+
+```bash
+cat new-shared.md | geas memory shared-set
 ```
-.geas/
-├── rules.md              # Project-wide rules ALL agents follow
-└── memory/
-    └── agents/           # Per-agent memory notes
-        ├── software-engineer.md
-        ├── design-authority.md
-        ├── quality-specialist.md
-        └── ...
+
+For each changed agent type:
+
+```bash
+cat new-software-engineer.md | geas memory agent-set --agent software-engineer
 ```
 
-**Two states only**: `draft` (proposed, not yet reviewed) and `active` (reviewed and applied). Draft items are appended with a `[DRAFT]` prefix in rules.md or agent notes. After review, the prefix is removed.
+The CLI replaces the file atomically. `--agent` must be the concrete type; raw slot ids are rejected by the CLI.
 
-## 1. Extract Learnings
+## 8. Record the semantic change log
 
-Input: record.json `retrospective` section → `memory_candidates[]`
+Immediately after the markdown writes succeed, the orchestrator calls:
 
-For each candidate string in `memory_candidates[]`:
+```bash
+cat memory-update.json | geas memory-update set \
+  --mission <mission_id>
+```
 
-1. Classify the learning:
-   - **Project-wide rule** — applies to all agents (conventions, patterns, failure lessons, architecture decisions)
-   - **Agent-specific note** — applies to a specific agent type (workflow tips, domain expertise, role-specific patterns)
+to record `added` / `modified` / `removed` entries per scope with `memory_id`, `reason`, `evidence_refs`. The CLI writes the JSON artifact; the pairing of markdown + change-log is this skill's contract (CLI.md §14.8).
 
-2. Determine the target:
-   - Project-wide → append to `.geas/rules.md`
-   - Agent-specific → append to `.geas/memory/agents/{agent}.md`
+If the `memory-update set` call fails after the markdown already changed, re-run it with a corrected body. Do not roll back the markdown edits silently — that would leave memory-update.json unable to cite the real state.
 
-3. Write the learning:
+## 9. Automatic extraction triggers (retrospective flow)
 
-   **For rules.md** (use Write tool to append):
-   ```markdown
-   ## [DRAFT] {Short title}
-   {Learning description from retrospective}
-   Source: task-{task-id}
-   ```
+Salvage pattern #6. Close a task with extra scrutiny when any of these fire, and carry the surfaced items into this skill at consolidating time:
 
-   **For agent notes** (use CLI):
-   ```bash
-   Bash("geas memory agent-note --agent {agent-name} --add '[DRAFT] {learning description}'")
-   ```
+- Same failure class observed in 2+ tasks this mission → add a shared candidate, skip `[DRAFT]` only if evidence is strong.
+- Same reviewer concern raised in 2+ tasks → shared candidate.
+- Self-check `confidence <= 2` for the same `task_kind` in 2+ tasks → agent-type candidate targeted at the worker's concrete agent type.
+- Surprise field populated in closure retrospective → at minimum a `[DRAFT]` candidate in the relevant scope.
 
-4. Log the event:
-   ```bash
-   Bash("geas event log --type memory_extracted --data '{\"target\":\"rules.md|agents/{agent}.md\",\"source_task\":\"{task-id}\"}'")
-   ```
+These are signals, not automatic writes. The orchestrator still decides before calling the CLI.
 
-### Classification Guide
+---
 
-| Pattern | Target | Section in rules.md |
-|---------|--------|-------------------|
-| Failure/bug pattern | rules.md | `## Failure Lessons` |
-| Architecture decision | rules.md | `## Architecture` |
-| Security finding | rules.md | `## Security` |
-| Project convention | rules.md | `## Code` |
-| Build/test approach | rules.md | `## Code` |
-| Agent workflow tip | agents/{agent}.md | — |
-| Agent-specific learning | agents/{agent}.md | — |
-| Role-specific pattern | agents/{agent}.md | — |
+## What this skill does NOT do
 
-### Automatic Extraction Triggers
-
-Check during retrospective review:
-- Same failure class repeats 2+ times across tasks → auto-extract to rules.md
-- Same reviewer concern across 2+ tasks → auto-extract to rules.md
-- `confidence <= 2` in record.json `self_check` repeats 2+ times for same `task_kind` → auto-extract to relevant agent note
-
-## 2. Deduplication
-
-Before adding a new entry:
-
-1. Read `.geas/rules.md` (or the target agent note)
-2. Compare the candidate against existing entries
-3. **If semantically similar rule exists**: strengthen the existing rule with the new evidence instead of adding a duplicate. Append the task reference.
-4. **If no match**: proceed with new entry
-
-## 3. Review and Promotion
-
-### Per-task (inline)
-
-After extraction, `orchestration-authority` reviews each `[DRAFT]` item:
-- **Promote**: Remove `[DRAFT]` prefix — the rule is now active
-- **Reject**: Remove the entry entirely
-- **Defer**: Keep as `[DRAFT]` for batch review during Evolving
-
-### Evolving phase (batch)
-
-During the Evolving phase, review all `[DRAFT]` items across both files:
-
-1. Read `.geas/rules.md` — find all `[DRAFT]` entries
-2. Read all `.geas/memory/agents/*.md` — find all `[DRAFT]` entries
-3. For each draft:
-   - Has supporting evidence from 2+ tasks → promote (remove `[DRAFT]`)
-   - Single-task evidence but clearly useful → promote
-   - No longer relevant or contradicted → remove
-4. Log promotions/removals:
-   ```bash
-   Bash("geas event log --type memory_reviewed --data '{\"promoted\":N,\"removed\":N}'")
-   ```
-
-## 4. Staleness Detection
-
-Run during Evolving phase or at session start:
-
-1. Read `.geas/rules.md` — check for rules that may be outdated
-2. Read `.geas/memory/agents/*.md` — check for stale notes
-3. Indicators of staleness:
-   - Rule references files/paths that no longer exist
-   - Rule contradicts current project conventions
-   - Agent note references deprecated patterns
-4. Remove or update stale entries
-5. Log: `Bash("geas event log --type memory_cleanup --data '{\"stale_removed\":N}'")` 
-
-## 5. Contradiction Resolution
-
-When rules in `.geas/rules.md` contradict each other:
-
-1. Identify the conflicting rules
-2. Determine which has more supporting evidence (more task references)
-3. Keep the stronger rule, remove or revise the weaker one
-4. If unclear, `orchestration-authority` makes the call
-5. Log the resolution
-
-## Conflict Resolution Priority
-
-When rules conflict: **rules.md** > **agent-specific notes**
-
-Rules.md is the single source of truth for project-wide behavior. Agent notes supplement but never override rules.md.
+- It does not create, modify, or delete debts. That lives in G6 (`skills/policy-managing` was removed in v2 → v3; debt maintenance is `skills/mission` consolidating phase input into `debts.json`).
+- It does not emit events directly. The `memory_shared_set` and `memory_agent_set` events are appended by the CLI automatically.
+- It does not manage policy overrides — there are none in v3.

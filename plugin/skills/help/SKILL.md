@@ -37,7 +37,7 @@ You MUST output the full content of this skill file (from "Available Commands" o
 | `/geas:evidence-gate` | Tier 0/1/2 verification of task evidence. Returns pass/fail/block/error. |
 | `/geas:verify-fix-loop` | Bounded fix-verify cycle with retry budget. |
 | `/geas:vote-round` | Structured agent voting on proposals. |
-| `/geas:memorizing` | Extract learnings, update rules.md and agent memory notes. |
+| `/geas:memorizing` | Promote mission learnings into `.geas/memory/shared.md` and per-agent-type memory files. |
 | `/geas:scheduling` | Parallel task batch construction and scheduling. |
 | `/geas:policy-managing` | Manage rules.md overrides with expiry and audit history. |
 | `/geas:reporting` | Health signals, status briefing, debt/gap dashboard. |
@@ -95,7 +95,7 @@ Geas uses a **slot-based agent model**. The contract engine defines abstract rol
 - **Agents are templates, not identity** -- the 14-agent team is one configuration; the contract engine works with any setup
 - **Evidence over declaration** -- "agent says done" is never enough; the Evidence Gate must verify
 - **Contract-driven** -- every task has a TaskContract with scope, acceptance criteria, and evaluation commands
-- **Memory persists** -- agents learn across sessions through rules.md and agent memory notes
+- **Memory persists** -- agents learn across sessions through `.geas/memory/shared.md` (project-wide) and `.geas/memory/agents/{agent_type}.md` (per concrete agent type)
 
 ### Multi-Agent Process
 
@@ -119,6 +119,6 @@ Geas uses a **slot-based agent model**. The contract engine defines abstract rol
 
 - **TaskContract**: Machine-readable work agreement with scope, acceptance criteria, and eval commands
 - **Evidence Gate**: 3-tier verification (Tier 0 precheck, Tier 1 mechanical, Tier 2 contract+rubric)
-- **rules.md**: Shared conventions all agents follow, updated through the memory system
+- **memory**: Conventions all agents follow live in `.geas/memory/shared.md` (project-wide) and `.geas/memory/agents/{agent_type}.md` (per concrete agent type); updated by `/geas:memorizing` during the consolidating phase
 - **.geas/ directory**: Runtime state directory (gitignored). All writes go through the CLI.
 - **CLI-only writes**: All `.geas/` file modifications must use `geas` CLI commands, never direct Write/Edit
