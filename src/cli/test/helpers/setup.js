@@ -49,7 +49,7 @@ function runCli(args, opts = {}) {
     cwd,
     input: input ?? undefined,
     encoding: 'utf-8',
-    env: { ...process.env },
+    env: { ...process.env, ...(opts.env ?? {}) },
   });
 
   let json = null;
