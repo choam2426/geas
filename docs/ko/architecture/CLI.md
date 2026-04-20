@@ -93,12 +93,27 @@ CLI가 책임지는 일은 여섯이다.
 
 ### JSON payload 전달
 
-JSON이 필요한 명령은 두 통로 중 하나로 받는다.
+JSON payload는 **stdin으로만** 받는다. 플래그 없음.
 
-- `--json '<inline-json>'` — 짧은 payload용 인라인.
-- `--json-file <path>` — 긴 payload용 파일 참조. 파일은 UTF-8 JSON이어야 한다.
+```bash
+# heredoc
+geas evidence append --task task-001 --agent implementer <<'EOF'
+{
+  "evidence_kind": "implementation",
+  "summary": "..."
+}
+EOF
 
-둘 다 주면 `--json`이 우선하고 `--json-file`은 무시된다. 둘 다 없으면 입력 누락으로 실패한다 (그 명령이 payload를 요구하는 경우).
+# 파이프
+cat payload.json | geas mission create
+
+# echo
+echo '{"name": "..."}' | geas mission create
+```
+
+CLI는 stdin이 TTY가 아니면 UTF-8 JSON으로 해석한다. Payload가 필요한 명령인데 stdin이 비어 있거나 TTY면 입력 누락으로 실패한다. JSON 파싱 실패는 `invalid_argument`.
+
+Shell escaping을 피하려면 heredoc 또는 파일 경유 파이프가 가장 안전하다.
 
 ### 식별자 인자
 
@@ -192,7 +207,7 @@ Skill·agent는 주로 JSON의 `ok` 필드로 판단하고, 종료 코드는 쉘
 모든 쓰기 명령은 다음 6단계를 순서대로 통과한다. 하나라도 실패하면 이후 단계는 실행되지 않고 `.geas/`는 건드리지 않는다.
 
 ```
-1. parse            --json / --json-file 로드
+1. parse            stdin에서 JSON payload 로드
 2. schema validate  해당 artifact schema로 ajv 검증
 3. guard check      필요한 경우 선행 artifact 읽어 조건 평가
 4. inject           timestamp · id · entry_id 자동 주입
@@ -202,7 +217,7 @@ Skill·agent는 주로 JSON의 `ok` 필드로 판단하고, 종료 코드는 쉘
 
 ### 6.1 Parse
 
-`--json`·`--json-file`에서 payload를 로드한다. JSON 파싱 실패면 `invalid_argument` (종료 코드 1).
+stdin에서 payload를 로드한다. stdin이 TTY거나 비어 있는데 payload가 필요한 명령이면 `invalid_argument` (종료 코드 1). JSON 파싱 실패도 같음.
 
 ### 6.2 Schema validate
 
