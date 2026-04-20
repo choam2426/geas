@@ -268,8 +268,10 @@ Task가 남기는 신호는 다음과 같다.
 
 - `memory_suggestions` (evidence 공통 필드) — learning 후보 (doc 06이 받음)
 - `debt_candidates` (evidence 공통 필드) — 기술 부채 후보 (doc 07이 받음)
-- `gap_signals` (evidence 공통 필드와 self-check) — 범위/기대 차이 신호 (doc 07이 받음)
+- `gap_signals` (evidence 공통 필드) — 범위/기대 차이 신호 (doc 07이 받음)
 - closure evidence의 회고 필드 (`what_went_well`, `what_broke`, `what_was_surprising`, `next_time_guidance`) — Orchestrator가 task 종결 시점에 self-check, 각 evidence, gate 결과, deliberation을 종합해 기록
+
+`self-check.json`의 `gap_signals`는 implementer가 구현 중 빠르게 남기는 **원시 문자열 flag**다. Evidence의 구조화된 `gap_signals`(`kind` + `summary`)와 shape이 다르며, 직접 consolidation 입력으로 승격되지 않는다. Orchestrator가 closure evidence를 작성할 때 self-check의 flag 중 의미 있는 것을 **구조화된 형태로 closure evidence에 재기록**하고, 그 결과가 consolidation candidates 집계의 대상이 된다. 즉 consolidation의 자동 집계는 evidence 쪽 필드만 훑는다.
 
 ## 취소 규칙
 
