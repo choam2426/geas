@@ -673,6 +673,7 @@ Deliberation entry는 **결과가 확정된 상태로만** append된다. "열린
 }
 ```
 
+- **`actor` namespace**: slot identifier(`orchestrator`, `decision-maker` 등 kebab-case)와 비-slot 주체(`user`, `cli:auto`)를 함께 담는다. `cli:auto`의 `:`은 구현체 namespace prefix이며 프로토콜의 slot id naming convention 예외다 — events.jsonl이 프로토콜 artifact가 아닌 구현체 보조 로그라서 허용되는 변형이다.
 - **`actor: "cli:auto"`** 이벤트는 반드시 선행 orchestrator/user 의도 이벤트(`prior_event`)와 체인 연결되어야 한다.
 - **Artifact 참조는 단방향 (events → artifact)**: 쓰기를 동반하는 이벤트는 `payload`에 영향 받은 artifact 경로와 식별자를 담는다 (예: `{ "artifact": "tasks/task-001/evidence/software-engineer.implementer.json", "entry_id": 3 }`). 프로토콜 artifact 쪽에는 역방향 event_id 참조를 두지 않는다 — artifact schema는 `additionalProperties: false`로 닫혀 있고, events.jsonl은 구현체 보조 로그라 artifact 계약을 오염시키지 않는 게 원칙이다. 특정 artifact에 어떤 이벤트가 영향을 줬는지 알고 싶으면 events.jsonl에서 해당 경로로 grep한다.
 - **Rollback**: 자동 전이 취소 시 기존 이벤트를 삭제·수정하지 않고 역방향 이벤트를 append한다 (`kind: "transition_reversed"` 등, `invalidates: evt-<seq>`).
