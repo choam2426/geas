@@ -44,7 +44,7 @@ Task state는 이 task의 lifecycle status, 지금 어떤 agent로 실행 중인
 |---|---|
 | `mission_id`, `task_id` | 경로와 정합 확인용 식별자 |
 | `status` | 현재 task의 lifecycle 단계. 9-state 기계의 현재 상태 (drafted / ready / implementing / reviewed / verified / passed / blocked / escalated / cancelled) |
-| `active_agent` | 작업 중인 agent (없으면 null) |
+| `active_agent` | 작업 중인 agent의 concrete type (없으면 null). evidence 파일의 `agent` 필드와 동일한 namespace를 쓴다. 한 agent가 여러 slot을 겸임하는 경우 어느 slot 작업 중인지는 이 필드가 아니라 어느 `evidence/{agent}.{slot}.json`에 append되는지로 드러난다 |
 | `verify_fix_iterations` | 이 task의 검증-수정 반복 횟수. Orchestrator가 closure evidence를 `changes_requested`로 남겨 rewind할 때마다 1 증가 |
 | `created_at`, `updated_at` | 생성·갱신 시각 |
 

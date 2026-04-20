@@ -47,7 +47,7 @@
           "minLength": 1
         }
       ],
-      "description": "Agent currently executing on this task. Null when no agent is active."
+      "description": "Agent currently executing on this task. Concrete agent type — matches the 'agent' field of evidence files. For authority slots this equals the slot name (decision-maker, etc.); for specialist slots this is the domain profile's concrete type (e.g. software-engineer). Null when no agent is active. If the agent holds multiple slots in this task, which slot is in progress is reflected in which evidence/{agent}.{slot}.json is being appended, not in this field."
     },
     "verify_fix_iterations": {
       "type": "integer",
