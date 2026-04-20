@@ -1,423 +1,206 @@
 # Hooks Reference
 
-Geas hooks are shell scripts that the Claude Code runtime executes automatically at defined lifecycle events. They enforce governance invariants, inject agent context, and record telemetry — without requiring the orchestrator to remember to call them.
+Hooks are Claude Code runtime scripts that the harness executes at defined lifecycle events. Geas uses them to surface `.geas/` state at session start, inject memory into sub-agents, and block raw writes into the runtime tree. Hooks are best-effort — if a hook fails or is absent, the mission still proceeds. The canonical runtime tree is owned by the `geas` CLI; hooks only observe and surface state.
 
 Configuration: `plugin/hooks/hooks.json`
 Scripts: `plugin/hooks/scripts/`
-Shared library: `plugin/hooks/scripts/lib/geas-hooks.js`
+Shared helper: `plugin/hooks/scripts/lib/geas-hooks.js`
+
+For the broader automation story (what `.geas/events.jsonl` records, and which CLI commands emit events), see `architecture/CLI.md` §14.7 and `architecture/DESIGN.md`.
 
 ---
 
-## Hook Inventory
+## 1. Hook Inventory
 
-10 hook scripts + 1 shared helper library (`geas-hooks.js`) across 6 lifecycle events.
+Three scripts across three lifecycle events. The v3 surface is intentionally small — v2 hooks for checkpoint, policy protection, packet staleness, integration lock, restore, and cost tallying were removed in G7 because each wrote outside the `.geas/` registry or duplicated CLI-owned concerns.
 
 | # | Event | Matcher | Script | Purpose |
-|---|-------|---------|--------|---------|
-| 1 | SessionStart | (all) | session-init.sh | Session initialization + memory review cadence |
-| 2 | SubagentStart | (all) | inject-context.sh | Inject rules and agent memory into sub-agent |
-| 3 | PreToolUse | Write\|Edit | geas-write-block.js | Block direct Write/Edit to .geas/ paths |
-| 4 | PreToolUse | Write | checkpoint-pre-write.sh | Backup run.json before write (two-phase checkpoint) |
-| 5 | PostToolUse | Write\|Edit | protect-geas-state.sh | Scope guard, timestamp injection, spec freeze warning |
-| 6 | PostToolUse | Write\|Edit | checkpoint-post-write.sh | Cleanup pending checkpoint after write |
-| 7 | PostToolUse | Write\|Edit | packet-stale-check.sh | Warn on stale context packets |
-| 8 | PostToolUse | Bash | integration-lane-check.sh | Warn on merge without integration lock |
-| 9 | Stop | (all) | calculate-cost.sh | Token usage summary |
-| 10 | PostCompact | (all) | restore-context.sh | Restore state after context compaction |
+|---|---|---|---|---|
+| 1 | `SessionStart` | (all) | `session-init.sh` | Print a one-line context summary from `.geas/` state to stderr. |
+| 2 | `SubagentStart` | (all) | `inject-context.sh` | Inject shared memory and per-agent memory into the new sub-agent's context. |
+| 3 | `PreToolUse` | `Write|Edit` | `geas-write-block.js` | Block any direct `Write` / `Edit` tool call that targets `.geas/`. |
+
+Deleted in G7 (do not re-add without re-opening the migration-strategy design):
+
+- `calculate-cost.sh` (Stop) — token-usage tallying was outside the `.geas/` registry.
+- `checkpoint-pre-write.sh`, `checkpoint-post-write.sh` (PreToolUse / PostToolUse Write on `run.json`) — v2-only two-phase checkpoint for a file that no longer exists.
+- `packet-stale-check.sh` (PostToolUse Write|Edit) — checked a v2 "context packet" concept not present in v3.
+- `protect-geas-state.sh` (PostToolUse Write|Edit) — overlapped with `geas-write-block.js` (PreToolUse) and did the same job weaker.
+- `integration-lane-check.sh` (PostToolUse Bash) — warned about merges without an integration lock; v3 has no lock-manifest surface.
+- `restore-context.sh` (PostCompact) — restored context from v2-only `run.json`.
 
 ---
 
-## Hook Lifecycle
-
-The following diagram shows the order in which hooks fire during a typical Geas session.
+## 2. Hook Lifecycle
 
 ```
 Session begins
 │
-├─► SessionStart       → session-init.sh
-│     Check .geas/ state, inject rules.md context,
-│     warn about memory entries past review_after date
+├─► SessionStart              → session-init.sh
+│     Read .geas/ state, print a one-line summary to stderr
+│     (missions count + latest + phase; memory; open debts).
+│     No writes.
 │
-│   [For each sub-agent spawned]
+│   [For each sub-agent the orchestrator spawns]
 │   │
-│   ├─► SubagentStart  → inject-context.sh
-│   │     Inject rules.md + policy overrides + agent memory into sub-agent context
+│   ├─► SubagentStart         → inject-context.sh
+│   │     Read .geas/memory/shared.md + agents/{type}.md.
+│   │     Emit { "additionalContext": "..." } to stdout.
 │   │
 │   │   [Before each Write or Edit tool call]
 │   │   │
-│   │   ├─► PreToolUse (Write|Edit) → geas-write-block.js
-│   │   │     Block direct writes to .geas/ paths (CLI-only enforcement)
-│   │   │
-│   │   [Before each Write tool call to run.json]
-│   │   │
-│   │   ├─► PreToolUse (Write) → checkpoint-pre-write.sh
-│   │   │     Backup run.json before overwrite (two-phase checkpoint)
-│   │   │
-│   │   [After each Write or Edit tool call]
-│   │   │
-│   │   ├─► PostToolUse (Write|Edit) → protect-geas-state.sh
-│   │   │     Timestamp injection, scope path warning, mission spec freeze guard
-│   │   │
-│   │   ├─► PostToolUse (Write|Edit) → checkpoint-post-write.sh
-│   │   │     Remove pending checkpoint backup after successful write
-│   │   │
-│   │   └─► PostToolUse (Write|Edit) → packet-stale-check.sh
-│   │         Warn if context packets may be stale after session recovery
-│   │
-│   │   [After each Bash tool call]
-│   │   │
-│   │   └─► PostToolUse (Bash) → integration-lane-check.sh
-│   │         Warn if git merge/rebase runs without integration lock
-│   │
-│   │   [Context compaction fires]
-│   │   │
-│   │   └─► PostCompact → restore-context.sh
-│   │         Re-inject run.json state, session context, L0 anti-forgetting
-│
-Session ends
-│
-└─► Stop               → calculate-cost.sh
-      Token usage summary
+│   │   ├─► PreToolUse        → geas-write-block.js
+│   │   │     If file_path is under .geas/, emit a "decision":"block"
+│   │   │     JSON with an error message directing to the CLI.
+│   │   │     Otherwise exit 0 silently.
 ```
 
----
-
-## Hook Details
-
-### Hook 1 — session-init.sh
-
-| Field | Value |
-|---|---|
-| Event | `SessionStart` |
-| Script | `plugin/hooks/scripts/session-init.sh` |
-| Blocking | No (exits 0 in all cases) |
-| Timeout | 10 s |
-
-Runs once when a Claude Code session starts. Combines session initialization with memory review cadence checking (previously a separate hook).
-
-**Session initialization:**
-
-1. Reads `cwd` from the hook input JSON. If `cwd` is absent, exits immediately.
-2. Checks for `.geas/` directory. If absent, exits silently (non-Geas project).
-3. Checks for `.geas/state/run.json`. If missing, prints a warning and exits.
-4. Loads session state from run.json and prints a resume summary to stderr:
-   ```
-   [Geas] Session resumed. Mission: <mission> | Phase: <phase> | Status: <status> | Tasks completed: <N>
-   ```
-5. Creates `.geas/rules.md` if it does not exist, using a built-in template.
-
-**Agent memory check** (integrated):
-
-6. Checks `.geas/memory/agents/` for agent note files.
-7. Reports count of agent memory files found.
+There are no `PostToolUse`, `Stop`, or `PostCompact` hooks in v3.
 
 ---
 
-### Hook 2 — inject-context.sh
+## 3. Per-hook Details
 
-| Field | Value |
-|---|---|
-| Event | `SubagentStart` |
-| Script | `plugin/hooks/scripts/inject-context.sh` |
-| Blocking | No (exits 0 in all cases) |
-| Timeout | 10 s |
+### 3.1 `SessionStart` — `session-init.sh`
 
-Fires every time a sub-agent is spawned. Injects project-wide rules and per-agent memory into the sub-agent's starting context.
+**When it runs.** Every session start.
 
-1. Reads `cwd` and `agent_type` from the hook input JSON. Strips plugin prefix (e.g., `geas:software-engineer` → `software-engineer`).
-2. Checks for `.geas/` directory. If absent, exits silently.
-3. Reads `.geas/rules.md` and includes it under `--- PROJECT RULES (.geas/rules.md) ---`.
-4. Reads `.geas/state/policy-overrides.json`. Filters for active (non-expired) overrides and injects them as `--- ACTIVE POLICY OVERRIDES ---` with rule_id, action, reason, and expires_at for each override.
-5. Reads `.geas/memory/agents/<agent_name>.md` if it exists and includes it under `--- YOUR MEMORY ---`.
-6. Outputs `{"additionalContext": "..."}` on stdout for the runtime to merge into the sub-agent's system context.
+**Reads.**
+- `.geas/missions/` — counts entries matching `mission-*` and finds the lexicographically latest one to read its phase.
+- `.geas/missions/{latest}/mission-state.json` — `mission_phase` field, if present.
+- `.geas/memory/shared.md` — existence only.
+- `.geas/memory/agents/` — counts `*.md` files.
+- `.geas/debts.json` — counts entries with `status == "open"`.
 
-**Conditions:** Skips if `cwd` is empty or `.geas/` does not exist. Outputs nothing if no rules.md, policy overrides, or memory file is found.
+**Writes.** None. Read-only.
 
----
+**Output.** A single `[Geas]` line to stderr summarizing the state, e.g.:
 
-### Hook 3 — geas-write-block.js
-
-| Field | Value |
-|---|---|
-| Event | `PreToolUse` |
-| Matcher | `Write\|Edit` |
-| Script | `plugin/hooks/scripts/geas-write-block.js` |
-| Blocking | Yes (exits 2 to block `.geas/` writes) |
-| Timeout | 10 s |
-
-Fires before every `Write` or `Edit` tool call. Blocks direct file modifications to `.geas/` paths, enforcing the CLI-only manipulation rule.
-
-1. Reads the hook input JSON and extracts `file_path`.
-2. Checks if the target path contains `.geas/`. If not, exits 0 (allow).
-3. If the target is inside `.geas/`, outputs `{"decision":"block","reason":"..."}` and exits 2 (block).
-
-All `.geas/` file modifications must go through the `geas` CLI, which auto-manages timestamps and enforces schema validation.
-
----
-
-### Hook 4 — checkpoint-pre-write.sh
-
-| Field | Value |
-|---|---|
-| Event | `PreToolUse` |
-| Matcher | `Write` |
-| Script | `plugin/hooks/scripts/checkpoint-pre-write.sh` |
-| Blocking | No (exits 0 in all cases) |
-| Timeout | 10 s |
-
-Fires before every `Write` tool call. Implements the first half of a two-phase checkpoint for `run.json`.
-
-1. Checks if the write target is `.geas/state/run.json`. All other writes are ignored.
-2. Copies `run.json` to `_checkpoint_pending` as a backup.
-
-Works in tandem with `checkpoint-post-write.sh` (Hook 6).
-
-**Conditions:** Only acts on writes to `.geas/state/run.json`. Skips if `run.json` does not exist yet.
-
----
-
-### Hook 5 — protect-geas-state.sh
-
-| Field | Value |
-|---|---|
-| Event | `PostToolUse` |
-| Matcher | `Write\|Edit` |
-| Script | `plugin/hooks/scripts/protect-geas-state.sh` |
-| Blocking | No (exits 0 in all cases) |
-| Timeout | 10 s |
-
-Fires after every `Write` or `Edit` tool call. Three responsibilities:
-
-**1. Scope path warning**
-
-Reads the current task's `scope.surfaces` allowlist from the task file. If the written file does not match any glob pattern, prints:
 ```
-[Geas] WARNING: Write to <rel_path> outside scope.surfaces in <task_id>
-```
-Paths inside `.geas/` itself are always exempt.
-
-**2. Automatic timestamp injection**
-
-For files matching `*/.geas/*.json`, injects a real UTC timestamp into `created_at` when the field is absent, empty, or contains a dummy value.
-
-**3. Mission spec freeze guard**
-
-If the written file matches `*/.geas/missions/*/spec.json`, prints:
-```
-[Geas] WARNING: Mission spec was modified. Mission specs should be frozen after intake. Use a vote round for scope changes.
+[Geas] Session resumed. Missions: 3 | latest: mission-20260420-ab12cd34 (building) | Memory: shared=yes, agent notes=2 | Open debts: 1
 ```
 
----
+If `.geas/` is missing or the summary is empty, the script exits silently.
 
-### Hook 6 — checkpoint-post-write.sh
+**Failure handling.** Best-effort. Any I/O or parse error is swallowed; the session continues without a summary line.
 
-| Field | Value |
-|---|---|
-| Event | `PostToolUse` |
-| Matcher | `Write\|Edit` |
-| Script | `plugin/hooks/scripts/checkpoint-post-write.sh` |
-| Blocking | No (exits 0 in all cases) |
-| Timeout | 10 s |
+### 3.2 `SubagentStart` — `inject-context.sh`
 
-Fires after every `Write` or `Edit`. Implements the second half of the two-phase checkpoint.
+**When it runs.** Every time the harness spawns a sub-agent.
 
-1. Checks if the write target is `.geas/state/run.json`. All other writes are ignored.
-2. Removes `.geas/state/_checkpoint_pending` if it exists, confirming the write completed successfully.
+**Reads.**
+- `.geas/memory/shared.md` — full body (injected for every sub-agent).
+- `.geas/memory/agents/{agent_type}.md` — injected only when the harness supplies an `agent_type` for the sub-agent and the matching file exists.
 
-Works in tandem with `checkpoint-pre-write.sh` (Hook 4).
+The hook intentionally does not inject mission or task context. Mission / task context flows through the orchestrator's explicit TaskContract and agent prompt, not through hooks.
 
----
+**Writes.** None.
 
-### Hook 7 — packet-stale-check.sh
-
-| Field | Value |
-|---|---|
-| Event | `PostToolUse` |
-| Matcher | `Write\|Edit` |
-| Script | `plugin/hooks/scripts/packet-stale-check.sh` |
-| Blocking | No (exits 0 in all cases) |
-| Timeout | 10 s |
-
-Fires after every `Write` or `Edit` to `run.json`.
-
-1. Checks if `recovery_class` is set (indicating a recovered session).
-2. Checks for existing context packets for the current task.
-3. Warns if packets exist in a recovered session:
-   ```
-   Warning: STALE PACKETS: Session recovered (<recovery_class>). Context packets for <task_id> may be stale.
-   ```
-
-**Conditions:** Only activates for writes to `.geas/state/run.json`. Skips if no `current_task_id` is set or no packets exist.
-
----
-
-### Hook 8 — integration-lane-check.sh
-
-| Field | Value |
-|---|---|
-| Event | `PostToolUse` |
-| Matcher | `Bash` |
-| Script | `plugin/hooks/scripts/integration-lane-check.sh` |
-| Blocking | No (exits 0 in all cases) |
-| Timeout | 10 s |
-
-Fires after every `Bash` tool call. Enforces the single-flight integration lane rule.
-
-1. Checks if the Bash command contains `git merge` or `git rebase`. All other commands are ignored.
-2. Reads `.geas/state/locks.json` and looks for a held `integration` lock.
-3. Warns if no integration lock is held:
-   ```
-   INTEGRATION LANE: No integration_lock held. Acquire integration_lock before merging.
-   ```
-
----
-
-### Hook 9 — calculate-cost.sh
-
-| Field | Value |
-|---|---|
-| Event | `Stop` |
-| Script | `plugin/hooks/scripts/calculate-cost.sh` |
-| Blocking | No (exits 0 in all cases) |
-| Timeout | 30 s |
-
-Fires at session end. Parses sub-agent session JSONL files from `~/.claude/projects/` to produce a token usage summary.
-
-1. Locates the Claude project directory by normalizing `cwd` into the project hash format.
-2. Finds the most recently modified session directory.
-3. Parses all sub-agent JSONL files. Accumulates `input_tokens`, `output_tokens`, `cache_creation_input_tokens`, and `cache_read_input_tokens`.
-4. Reads agent type from `.meta.json` sidecar files.
-5. Writes `.geas/state/token-summary.json` with the full breakdown (totals, per-agent, timestamp).
-6. Prints a summary line to stderr:
-   ```
-   [Geas] Token summary: input=N output=N agents=N
-   ```
-
-**Conditions:** Skips if `.geas/` does not exist or the Claude project directory cannot be found.
-
----
-
-### Hook 10 — restore-context.sh
-
-| Field | Value |
-|---|---|
-| Event | `PostCompact` |
-| Script | `plugin/hooks/scripts/restore-context.sh` |
-| Blocking | No (exits 0 in all cases) |
-| Timeout | 10 s |
-
-Fires whenever the Claude Code runtime compacts the context window. Re-injects critical state so the orchestrator does not lose track of the current position.
-
-1. Builds a context block from `run.json`: Phase, Status, Mission, Current task ID, Completed tasks (last 5).
-2. Includes checkpoint data if present: pipeline step, agent in flight, remaining steps, and NEXT STEP (highlighted).
-3. Includes recovery class if present.
-4. Includes the current task contract (goal + acceptance criteria) if a task is active.
-5. Reads `.geas/state/session-latest.md` and injects it as a `--- SESSION CONTEXT ---` section.
-6. Reads the current task's `record.json` closure section for `open_risks` array.
-7. Includes the first 30 lines of `.geas/rules.md` as `--- KEY RULES ---`.
-8. Includes agent memory file count as `--- MEMORY STATE ---`.
-9. Outputs an `## L0 ANTI-FORGETTING` section with 7 always-preserved items:
-   - Phase and status
-   - Focus task and goal
-   - Rewind reason (recovery class or clean session)
-   - Required next artifact (from remaining_steps)
-   - Open risks (from record.json closure)
-   - Recovery outcome
-   - Active rules count + agent memory file count
-10. Outputs `{"additionalContext": "..."}` on stdout.
-
-**Conditions:** Skips if `cwd` is empty or `.geas/state/run.json` does not exist.
-
----
-
-## Shared Library — geas-hooks.js
-
-Path: `plugin/hooks/scripts/lib/geas-hooks.js`
-
-All hook scripts use this shared Node.js module for common operations. Utility functions:
-
-| Function | Description |
-|---|---|
-| `parseInput()` | Read stdin JSON, extract `cwd`, `filePath`, `agentType`, `command` |
-| `geasDir(cwd)` | Return `.geas/` path for a given working directory |
-| `readJson(path)` | Parse a JSON file, return `null` on error |
-| `writeJson(path, data)` | Write JSON with 2-space indent, creates parent directories |
-| `appendJsonl(path, obj)` | Append one JSON line to a JSONL file |
-| `warn(msg)` | Print `[Geas] WARNING: <msg>` to stderr |
-| `info(msg)` | Print `[Geas] <msg>` to stderr |
-| `fnmatch(str, pattern)` | Glob matching with `*` and `?` |
-| `matchScope(rel, paths)` | Check if a relative path matches any scope.surfaces entry |
-| `outputContext(ctx)` | Output `{"additionalContext": "..."}` to stdout |
-| `exists(path)` | Check if a file exists |
-| `relPath(filePath, cwd)` | Get relative path normalized to forward slashes |
-
----
-
-## Customizing Hooks
-
-Hooks are declared in `plugin/hooks/hooks.json`. The schema is:
+**Output.** JSON on stdout:
 
 ```json
-{
-  "hooks": {
-    "<EventName>": [
-      {
-        "matcher": "<tool_name_regex_or_empty>",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "<absolute_path_or_env_var_path>",
-            "timeout": 10
-          }
-        ]
-      }
-    ]
-  }
-}
+{ "additionalContext": "--- SHARED MEMORY ... ---\n\n...\n\n--- YOUR MEMORY ... ---\n\n..." }
 ```
 
-**Key fields:**
+Or nothing if neither memory source has content.
 
-| Field | Description |
-|---|---|
-| `EventName` | One of: `SessionStart`, `PreToolUse`, `PostToolUse`, `SubagentStart`, `SubagentStop`, `PostCompact`, `Stop` |
-| `matcher` | For `PreToolUse`/`PostToolUse`: a pipe-separated regex of tool names (e.g., `Write\|Edit`). Empty string matches all. |
-| `command` | Shell command to run. `${CLAUDE_PLUGIN_ROOT}` resolves to the plugin directory. |
-| `timeout` | Maximum seconds before the hook is killed. |
+**Failure handling.** Best-effort. If `.geas/` is missing or memory files are unreadable, the hook exits without emitting context; the sub-agent starts with whatever the orchestrator supplied.
 
-**To add a new hook:**
+### 3.3 `PreToolUse` (`Write|Edit`) — `geas-write-block.js`
 
-1. Write a script in `plugin/hooks/scripts/`.
-2. Make it executable (`chmod +x`).
-3. Add an entry to `hooks.json` under the appropriate event.
-4. The script receives the hook payload as JSON on stdin. Output `{"additionalContext": "..."}` on stdout to inject context (SubagentStart and PostCompact only).
+**When it runs.** Before every `Write` or `Edit` tool call.
 
-**Exit code conventions:**
+**Reads.** The hook input payload on stdin: `cwd` and `tool_input.file_path`.
 
-| Code | Effect |
-|---|---|
-| 0 | Success, continue |
-| 1 | Error (logged, but does not block) |
-| 2 | Block (only meaningful for `Stop` hooks) |
+**Writes.** None to disk.
 
-For related protocol details on runtime validation and recovery, see `protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md`, `protocol/05_RUNTIME_STATE_AND_RECOVERY.md`, `protocol/08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md`, and `architecture/CLI.md`.
+**Decision.**
+- If `file_path` resolves to a path under `.geas/` (relative to `cwd` or by substring match on the normalized absolute path), emit a JSON decision on stdout and exit 0:
+  ```json
+  {
+    "decision": "block",
+    "reason": "[Geas] BLOCKED: Direct Write/Edit to .geas/ is not allowed. All .geas/ file modifications must use geas CLI commands. Examples: geas mission create, geas task draft, geas evidence append, geas memory shared-set, geas debt register, geas event log. Use Bash tool to invoke CLI commands instead."
+  }
+  ```
+- Otherwise exit 0 silently (allow).
+
+**Failure handling.** Any stdin / parse error results in exit 0 (allow). The hook fails open — a broken hook must not prevent legitimate edits outside `.geas/`. The CLI itself is the authoritative barrier; the hook is an early warning.
 
 ---
 
-## State Files Referenced by Hooks
+## 4. Events and Hook Boundary
 
-| Path | Used by |
+`events.jsonl` is a separate channel from hooks. Hooks run inside the Claude Code harness and never write to `.geas/events.jsonl`. Events are emitted exclusively by the `geas` CLI when it performs a protocol waypoint (mission creation, task transition, evidence append, etc.). See `architecture/CLI.md` §14.7 for the full contract.
+
+### 4.1 Automation-only scope
+
+`events.jsonl` is automation-only: every entry corresponds to a CLI waypoint. Hooks do not contribute entries; user-side messages do not, either. If an operator needs to mark something the CLI did not observe directly, they use `geas event log` — which goes through the CLI, not through a hook.
+
+### 4.2 Event kinds emitted by the CLI
+
+| Kind | Emitter |
 |---|---|
-| `.geas/state/run.json` | session-init, restore-context, protect-geas-state, checkpoint-pre-write, checkpoint-post-write, packet-stale-check |
-| `.geas/state/_checkpoint_pending` | checkpoint-pre-write (creates), checkpoint-post-write (removes) |
-| `.geas/memory/agents/*.md` | session-init (count check), inject-context, restore-context |
-| `.geas/state/locks.json` | integration-lane-check |
-| `.geas/rules.md` | session-init (creates), inject-context (reads), restore-context (reads) |
-| `.geas/missions/<mid>/tasks/<tid>/contract.json` | protect-geas-state (scope check), restore-context (goal + criteria) |
-| `.geas/missions/<mid>/tasks/<tid>/packets/*.md` | packet-stale-check (staleness check) |
-| `.geas/missions/<mid>/tasks/<tid>/record.json` | restore-context (reads closure.open_risks) |
-| `.geas/missions/<mid>/spec.json` | protect-geas-state (freeze guard) |
-| `.geas/state/policy-overrides.json` | inject-context |
-| `.geas/state/session-latest.md` | restore-context |
-| `.geas/state/token-summary.json` | calculate-cost (writes) |
-| `.geas/state/events.jsonl` | (event logging via CLI) |
+| `mission_created` | `geas mission create` |
+| `mission_approved` | `geas mission approve` |
+| `mission_phase_advanced` | `geas mission-state update --phase` |
+| `phase_review_appended` | `geas phase-review append` |
+| `mission_verdict_appended` | `geas mission-verdict append` |
+| `task_drafted` | `geas task draft` |
+| `task_approved` | `geas task approve` |
+| `task_state_changed` | `geas task transition` |
+| `self_check_set` | `geas self-check set` |
+| `evidence_appended` | `geas evidence append` |
+| `gate_run_recorded` | `geas gate run` |
+| `deliberation_appended` | `geas deliberation append` |
+| `debt_registered` | `geas debt register` |
+| `debt_status_updated` | `geas debt update-status` |
+| `gap_set` | `geas gap set` |
+| `memory_update_set` | `geas memory-update set` |
+| `memory_shared_set` | `geas memory shared-set` |
+| `memory_agent_set` | `geas memory agent-set` |
+| user-supplied `kind` | `geas event log` |
+
+### 4.3 Actor namespace
+
+The `actor` field on each event accepts three kinds of values:
+
+1. **Slot identifiers (kebab-case)** — any slot id defined by the protocol: `orchestrator`, `decision-maker`, `design-authority`, `challenger`, `implementer`, `verifier`, `risk-assessor`, `operator`, `communicator`, plus any concrete slot the domain profile defines.
+2. **`user`** — a human decision captured in the log.
+3. **`cli:auto`** — the CLI itself, when it auto-emits an event during a waypoint the user / orchestrator triggered.
+
+The `:` in `cli:auto` is an intentional exception to the kebab-case slot-id convention. This exception applies only to events.jsonl (not to any protocol artifact), because events.jsonl is an implementation aux log, not a canonical protocol artifact. See `architecture/CLI.md` §14.7.
+
+### 4.4 Best-effort semantics
+
+Event writes never roll back their originating CLI command. If events.jsonl cannot be written (disk full, permission error), the CLI still returns `ok` on the waypoint. This mirrors the hook failure policy — telemetry is secondary to the primary write.
+
+---
+
+## 5. Extending Hooks
+
+A project that wants additional lifecycle behavior on top of Geas can add its own hook scripts without modifying the plugin's `hooks.json`. The Claude Code harness merges user-level `settings.json` hooks with the plugin's hooks; both fire.
+
+**Where to put user hooks.**
+- User-level: `~/.claude/settings.json`.
+- Project-level: `.claude/settings.json` in the project root.
+
+**Naming conventions for clarity.**
+- Prefix custom script names with the project or organization (`myorg-session-note.sh`) to avoid confusion with the Geas scripts.
+- Keep the three v3 Geas scripts untouched. Do not add logic to `session-init.sh`, `inject-context.sh`, or `geas-write-block.js` — upstream changes will overwrite them.
+
+**Rules for well-behaved custom hooks.**
+
+1. **Read-only on `.geas/`**. Never write to `.geas/` from a hook. If you need to record something, shell out to `geas event log`.
+2. **Fail open**. Exit 0 when the hook cannot complete its job, unless blocking is the point (as with `geas-write-block.js`).
+3. **No long-running work**. The harness enforces a timeout; keep the hook under a second.
+4. **Respect the `.geas/` block**. A custom `Write|Edit` hook that targets `.geas/` will be blocked by `geas-write-block.js` before the harness reaches it. Route writes through the CLI.
+
+---
+
+## 6. Cross-references
+
+- `architecture/CLI.md` §14.7 — events.jsonl contract, event kinds, actor namespace.
+- `architecture/DESIGN.md` — how automation, hooks, and the CLI relate.
+- `SKILLS.md` — which skills invoke which CLI commands.
+- `plugin/hooks/hooks.json` — the current registration.
+- `plugin/hooks/scripts/` — the script bodies themselves.
