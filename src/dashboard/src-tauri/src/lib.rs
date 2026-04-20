@@ -15,24 +15,37 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::get_project_summary,
-            commands::get_project_tasks,
-            commands::get_project_debt,
-            commands::get_mission_history,
-            commands::get_mission_spec,
-            commands::get_mission_summary,
-            commands::get_project_rules,
-            commands::get_mission_events,
-            commands::get_project_memories,
-            commands::get_task_detail,
-            commands::get_health_check,
-            commands::get_design_brief,
-            commands::get_vote_rounds,
-            commands::get_phase_reviews,
-            commands::get_gap_assessment,
+            // Project registry
             commands::list_projects,
             commands::add_project,
             commands::remove_project,
+            // Project-level
+            commands::get_project_summary,
+            commands::get_debts,
+            commands::get_events,
+            // Mission-level
+            commands::get_mission_history,
+            commands::get_mission_detail,
+            commands::get_mission_design,
+            commands::get_phase_reviews,
+            commands::get_mission_verdicts,
+            commands::get_mission_deliberations,
+            commands::get_gap,
+            commands::get_memory_update,
+            commands::get_candidates,
+            // Task-level
+            commands::list_tasks,
+            commands::get_task_detail,
+            commands::list_evidence_files,
+            commands::read_evidence_file,
+            commands::get_self_check,
+            commands::get_gate_results,
+            commands::get_implementation_contract,
+            commands::get_task_deliberations,
+            // Memory
+            commands::get_shared_memory,
+            commands::list_agent_memories,
+            commands::get_agent_memory,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
