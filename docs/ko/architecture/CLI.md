@@ -711,7 +711,7 @@ Deliberation entry는 **결과가 확정된 상태로만** append된다. "열린
 {
   "event_id": "evt-<seq>",
   "kind": "<enum>",
-  "actor": "cli:auto" | "orchestrator" | "user" | "decision_maker",
+  "actor": "cli:auto" | "orchestrator" | "user" | "decision-maker",
   "triggered_by": {"type": "command", "ref": "geas mission-state update --phase building"},
   "prior_event": "evt-<seq>",
   "payload": { ... },

@@ -131,7 +131,7 @@ Specifying의 승인 순서는 고정한다.
 
 Building에서 Decision Maker가 task별 final verdict를 반복해서 내리지는 않는다. task를 종결하는 판단은 Orchestrator의 task closure decision으로 처리하고, Decision Maker는 mission 수준 판단에 집중한다.
 
-Building이나 polishing에서 새 task contract가 추가될 때 승인 주체는 현재 mission scope 내인지에 따라 갈린다. 현재 mission scope 안에 들어오는 task는 Decision Maker가 승인하며 task contract의 `approved_by`는 `decision_maker`로 기록한다. 현재 scope 밖 작업은 이 mission 안에서 처리하지 않는다 — mission spec은 immutable이므로, 사용자가 scope를 넓히고 싶다면 이 mission을 escalate하거나 후속 mission을 새로 생성해 carry-forward로 연결한다.
+Building이나 polishing에서 새 task contract가 추가될 때 승인 주체는 현재 mission scope 내인지에 따라 갈린다. 현재 mission scope 안에 들어오는 task는 Decision Maker가 승인하며 task contract의 `approved_by`는 `decision-maker`로 기록한다. 현재 scope 밖 작업은 이 mission 안에서 처리하지 않는다 — mission spec은 immutable이므로, 사용자가 scope를 넓히고 싶다면 이 mission을 escalate하거나 후속 mission을 새로 생성해 carry-forward로 연결한다.
 
 ### `polishing`
 

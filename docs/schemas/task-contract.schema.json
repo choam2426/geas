@@ -67,8 +67,8 @@
     },
     "approved_by": {
       "type": ["string", "null"],
-      "enum": ["user", "decision_maker", null],
-      "description": "Who approved this task contract as ready to enter execution. null means not yet approved. 'user' is required for the initial task set and for any task outside the current mission scope. 'decision_maker' is allowed for mid-mission tasks added within the current mission scope."
+      "enum": ["user", "decision-maker", null],
+      "description": "Who approved this task contract as ready to enter execution. null means not yet approved. 'user' is required for the initial task set and for any task outside the current mission scope. 'decision-maker' is allowed for mid-mission tasks added within the current mission scope."
     },
     "surfaces": {
       "type": "array",

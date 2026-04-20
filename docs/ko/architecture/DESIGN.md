@@ -165,7 +165,7 @@ CLI는 `.geas/` 아래 모든 쓰기를 통과시키는 단일 actuator, 즉 유
 | `deliberations.json` (task) | orchestrator | deliberation 완료 후 |
 | `evidence/{agent}.{slot}.json` | 해당 agent | 자기 evidence 제출 시 (한 agent가 여러 slot을 겸임하면 slot별로 파일 분리) |
 
-`contract.approved_by`는 파일이 아닌 task-contract 안의 필드다. orchestrator가 `geas task approve --by user|decision_maker`를 호출해 값을 세팅한다. `user` 승인은 orchestrator가 사용자 대화로 확인한 뒤 대필하는 형식이고, `decision_maker` 승인은 스폰된 decision-maker의 판단을 orchestrator가 전달하는 형식이다. 어느 쪽이든 실제 CLI 호출은 orchestrator가 수행한다.
+`contract.approved_by`는 파일이 아닌 task-contract 안의 필드다. orchestrator가 `geas task approve --by user|decision-maker`를 호출해 값을 세팅한다. `user` 승인은 orchestrator가 사용자 대화로 확인한 뒤 대필하는 형식이고, `decision-maker` 승인은 스폰된 decision-maker의 판단을 orchestrator가 전달하는 형식이다. 어느 쪽이든 실제 CLI 호출은 orchestrator가 수행한다.
 
 `mission-verdicts.json`은 이와 다르다. 스폰된 decision-maker subagent가 미션 artifact를 모두 읽은 뒤 직접 `geas mission-verdict append`를 호출한다. Subagent의 tool 호출을 허용하지 않는 런타임에서는 decision-maker가 판단 결과를 orchestrator에 반환하고 orchestrator가 CLI를 대신 호출하는 proxy 모델로 degrade한다. 어느 모델이든 semantic author는 decision-maker다.
 
