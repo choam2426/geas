@@ -83,8 +83,7 @@
       "additionalProperties": false,
       "required": [
         "primary_worker_type",
-        "required_reviewer_slots",
-        "required_reviewer_types"
+        "required_reviewers"
       ],
       "properties": {
         "primary_worker_type": {
@@ -93,7 +92,7 @@
           "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
           "description": "Concrete implementation-specific worker type. Primary worker is always the implementer slot; this field records which concrete implementer handles the task."
         },
-        "required_reviewer_slots": {
+        "required_reviewers": {
           "type": "array",
           "minItems": 1,
           "items": {
@@ -110,17 +109,7 @@
               "communicator"
             ]
           },
-          "description": "Final reviewer slots chosen by the orchestrator after considering risk, surfaces, and mission context."
-        },
-        "required_reviewer_types": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "string",
-            "minLength": 1,
-            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
-          },
-          "description": "Concrete reviewer types resolved from required_reviewer_slots by the implementation."
+          "description": "Reviewer slots required for this task. Concrete reviewer types are resolved at runtime by the orchestrator using the mission's domain profile."
         }
       }
     },
