@@ -1,12 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Geas Task State",
-  "description": "Task-scoped runtime index. Points to which agent is currently executing this task and how many verify-fix iterations have been consumed. Distinct from the task contract's 'status' field, which is the lifecycle state.",
+  "description": "Task-scoped runtime state. Holds the lifecycle status, which agent is currently executing this task, and how many verify-fix iterations have been consumed. The task contract holds intent and approval; runtime state lives here.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "mission_id",
     "task_id",
+    "status",
     "active_agent",
     "verify_fix_iterations",
     "created_at",
@@ -20,6 +21,21 @@
     "task_id": {
       "type": "string",
       "pattern": "^task-[0-9]{3}$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "drafted",
+        "ready",
+        "implementing",
+        "reviewed",
+        "verified",
+        "passed",
+        "blocked",
+        "escalated",
+        "cancelled"
+      ],
+      "description": "Current lifecycle status for the task. Transitions are guarded by the CLI; see protocol doc 03 for the state machine."
     },
     "active_agent": {
       "oneOf": [
