@@ -1,252 +1,158 @@
 ---
 name: task-compiler
-description: Compile a user story into a TaskContract — a machine-readable work agreement with verifiable acceptance criteria, scope boundaries, and eval commands.
+description: Compile a mission slice into a v3 task contract and create it through the CLI. Produces contract.json plus a drafted task-state.json ready for approval.
 ---
 
 # Task Compiler
 
-Transforms a user story (or feature description) into a structured TaskContract that workers execute against.
+Transform a slice of mission scope into a task contract that routes to a concrete implementer and enumerates reviewer slots, surfaces, dependencies, and the baseline snapshot the work starts from.
 
 ## When to Use
 
-Invoked during:
-- **4-phase mission**: after Specifying creates issues, compile each into a TaskContract
-- **Lightweight mission**: compile the single feature into a TaskContract
+- **specifying phase** — after the mission spec is approved, compile each planned task before entering building.
+- **mid-mission, within current scope** — decision-maker may approve compiled contracts while building is in flight. User approval is required for tasks outside the current mission scope.
 
 ## Inputs
 
-You need these before compiling:
+- **Mission spec** — `.geas/missions/{mission_id}/spec.json` (mode, scope, acceptance criteria, risks).
+- **Mission design** — `.geas/missions/{mission_id}/mission-design.md` when present; holds architecture decisions the spec referenced.
+- **Shared memory** — `.geas/memory/shared.md` for project conventions that constrain surfaces or routing.
+- **Existing task contracts** — `.geas/missions/{mission_id}/tasks/*/contract.json` to discover dependency ids and avoid scope collisions.
 
-1. **User story or feature description** — what needs to be built
-2. **Mission spec** — read from `.geas/missions/{mission_id}/spec.json` for mission-level context
-3. **Design-brief** — read from `.geas/missions/{mission_id}/design-brief.json` for approach context and architecture decisions
-4. **Architecture context** — from `.geas/rules.md`
-5. **Existing task contracts** — check `.geas/missions/{mission_id}/tasks/` for dependencies
+## Compilation Steps
 
-## Compilation Process
+### 1. Assign a task id
 
-### Step 1: Determine Task Identity
+The CLI auto-generates `task-NNN` (mission-local max+1). You may pass `task_id` explicitly; the CLI validates the pattern and rejects collisions with an existing contract.
 
-- Generate a sequential ID: `task-001`, `task-002`, etc.
-- Check `.geas/missions/{mission_id}/tasks/` for existing contracts to avoid ID collision
-- Title should be actionable: "[Backend] User authentication API", "[Frontend] Login form"
+### 2. Write `title` and `goal`
 
-### Step 2: Classify the Task
+- `title` — short human label, one line. Mention the surface family: "[schema] rev-range consolidation format", "[docs/KO] rewrite 03 evidence section".
+- `goal` — single sentence stating the outcome. The test: a reviewer who reads the goal can decide whether any candidate change satisfies it.
 
-Determine the four classification fields based on the task nature:
+Goal phrasing: name the observable change, not the activity. "Build a lockless batch scheduler that rejects overlapping surfaces" is a goal. "Improve scheduling" is not.
 
-**`task_kind`** — what type of work this is:
+### 3. Classify `risk_level`
 
-| Signal | task_kind |
-|--------|-----------|
-| Writing or modifying application code | `implementation` |
-| Writing documentation, README, guides | `documentation` |
-| CI/CD, environment, infrastructure files | `configuration` |
-| UI/UX wireframes, design specs | `design` |
-| Security review, code audit, compliance check | `review` |
-| Research, data gathering, feasibility study | `analysis` |
-| Version bump, changelog, deployment | `delivery` |
-
-**`risk_level`** — how much damage a failure could cause:
+One of `low`, `normal`, `high`, `critical`. Use the failure-cost test — how hard is recovery if this task ships wrong?
 
 | Signal | risk_level |
-|--------|-----------|
-| Isolated change, easy to revert | `low` |
-| Normal feature work | `normal` |
-| Touches auth, payments, shared infra, or cross-module | `high` |
-| Data migration, security-critical, or breaking API change | `critical` |
+|---|---|
+| Reversible with a single edit | `low` |
+| Ordinary feature or doc change | `normal` |
+| Touches a contract other tasks depend on (schema, public API, shared surface) | `high` |
+| Data migration, authority boundary, or mission-level commitment | `critical` |
 
-#### Risk Signals
+`critical` tasks run solo — the scheduling skill never batches them with peers.
 
-- `low`: Isolated change, single file, no dependencies, easily reversible
-- `normal`: Multi-file change within existing architecture
-- `high`: Architecture change, schema migration, public API change, or refactoring that touches >50% of source files
-- `critical`: Data migration, security-sensitive, or irreversible change
+### 4. List `acceptance_criteria`
 
-**`gate_profile`** — what verification strategy applies:
+An array of observable, yes/no criteria. At least one item. Each criterion names the dimension it evaluates (correctness, scope boundary, regression safety, etc.) — reviewers need the dimension to write useful evidence.
 
-| Signal | gate_profile |
-|--------|-------------|
-| Produces implementation that must build/test/lint | `implementation_change` |
-| Produces docs, designs, or config only (no build) | `artifact_only` |
-| Wrap-up task: changelog, release notes, final packaging | `closure_ready` |
+### 5. Write `verification_plan`
 
-**`vote_round_policy`** — when to trigger a vote round:
+Prose (markdown permitted) describing how this task will be verified. Both automated and manual checks belong here. Do not encode them as an executable command list — v3 verification lives in the gate skill and reviewer evidence, not in a per-task command vector.
 
-| Signal | vote_round_policy |
-|--------|-------------------|
-| Routine work, clear requirements | `never` |
-| Ambiguous scope or multiple valid approaches | `auto` |
-| Architecture decision, breaking change, or cross-team impact | `always` |
+Examples of useful prose:
+- "Run the full `node --test` suite under `src/cli/`. Expect 27 prior tests green plus the new g3-task file."
+- "Inspect the resulting `contract.json` against `docs/schemas/task-contract.schema.json` — no additional properties."
 
-#### Decision Tree
+### 6. Declare `surfaces`
 
-1. Does the task involve architecture decisions (new patterns, stack changes, structural reorganization)? → `always`
-2. Does the task touch 3+ files with cross-cutting changes? → `auto`
-3. Is it a focused change within existing patterns? → `never`
+An allowlist of reviewer-readable surface strings: filenames, directory roots, documents, or named environments that the task may touch. Scheduling uses the allowlist to detect overlap with other in-flight tasks; only one task may hold implementer on any given surface at a time.
 
-When in doubt, prefer `auto` over `never`.
+Be specific:
+- `src/cli/src/commands/task.ts`
+- `plugin/skills/task-compiler/SKILL.md`
+- `docs/schemas/task-contract.schema.json`
 
-### Step 3: Define the Goal
+Avoid broad roots like `src/` or `docs/` unless the task genuinely rewrites the tree.
 
-Write a single sentence stating the verifiable outcome.
-- Good: "Create a REST API endpoint POST /api/auth/login that accepts email+password and returns a JWT"
-- Bad: "Implement authentication" (too vague to verify)
+### 7. Fill `routing`
 
-### Step 4: Define Routing
+- `primary_worker_type` — concrete implementer agent type, kebab-case (e.g. `software-engineer`, `platform-engineer`). Must be a real agent file under `plugin/agents/<family>/`. The primary worker occupies the implementer slot for this task.
+- `required_reviewers` — array from the four review-producing slots:
+  - `challenger` — adversarial review. Mandatory when `risk_level` >= `high`.
+  - `risk-assessor` — security / safety review.
+  - `operator` — deployment, runtime, ops review.
+  - `communicator` — docs, user-facing language, comms.
 
-Assign a primary worker type and required reviewer types using the agentType enum.
+Verifier is implicit for every task and does not appear here. Concrete reviewer agent types are resolved by the orchestrator at dispatch time.
 
-| Task Nature | primary_worker_type | required_reviewer_types |
-|-------------|-------------------|------------------------|
-| Frontend UI | `software-engineer` | `design-authority`, `qa-engineer` |
-| Backend API / Database | `software-engineer` | `design-authority`, `qa-engineer` |
-| Design spec | `technical-writer` | `design-authority` |
-| DevOps / deployment | `platform-engineer` | `design-authority`, `security-engineer` |
-| Documentation | `technical-writer` | `design-authority` |
-| Full-stack feature | `software-engineer` (primary) | `design-authority`, `qa-engineer` |
-| Security audit | `security-engineer` | `design-authority`, `qa-engineer` |
+### 8. Capture `base_snapshot`
 
-Always include at least one reviewer type. For `high` or `critical` risk_level, add `security-engineer` to required_reviewer_types if not already present.
+Record the baseline the task starts from. Format is implementation-specific; a git commit sha is the common case:
 
-### Step 5: Define Scope
-
-Define the paths the task IS allowed to touch (allowlist):
-- **`scope.surfaces`**: files and directories the worker may create or modify
-  - Be specific: `src/components/auth/`, `src/api/auth/`, `tests/auth/`
-  - Include test directories relevant to the task
-  - Do NOT include `.geas/`, `plugin/`, or unrelated modules
-
-Workers must not modify files outside `scope.surfaces`. Scope compliance is verified during code review and evidence gate.
-
-### Step 6: Define Acceptance Criteria
-
-Inherit from the mission spec and refine for this specific task:
-- Each criterion must be verifiable (yes/no answer)
-- Minimum 3 criteria per task
-- Include functional, edge case, and integration criteria
-
-Example:
-```json
-[
-  "POST /api/auth/login returns 200 with valid JWT for correct credentials",
-  "POST /api/auth/login returns 401 for incorrect password",
-  "JWT contains user ID and email in payload",
-  "Password is never logged or returned in responses"
-]
-```
-
-### Step 7: Set Eval Commands
-
-Read build/lint/test commands from `.geas/rules.md`. If rules.md has a Build Commands or Code section, use those exact commands.
-
-If rules.md has no build commands, detect from the project's configuration files (package.json scripts, Makefile targets, pyproject.toml tool sections, etc.) and set appropriate commands.
-
-If no commands are configured yet, set eval_commands to what the project should have based on its stack — the implementation worker will configure them.
-
-### Step 8: Set Retry Budget
-
-Determine the initial retry_budget from the gate_profile:
-
-| gate_profile | initial retry_budget |
-|-------------|---------------------|
-| `implementation_change` | 3 |
-| `artifact_only` | 3 |
-| `closure_ready` | 2 |
-
-Then apply risk_level adjustment:
-- `high`: reduce by 1
-- `critical`: reduce by 1
-- Minimum value is always **1**
-
-Examples:
-- `implementation_change` + `normal` = 3
-- `implementation_change` + `high` = 2
-- `closure_ready` + `critical` = 1
-
-### Step 9: Check Dependencies
-
-Look at existing TaskContracts in `.geas/missions/{mission_id}/tasks/`:
-- If this task needs another task's output (e.g., frontend needs backend API) → add to `dependencies`
-- If this task blocks others → note for scheduling
-
-### Step 10: Capture Base Snapshot
-
-Run `git rev-parse HEAD` to get the current commit hash. Record this as `base_snapshot`. This anchors the task to a known repository state and is used for staleness detection during integration.
-
-### Step 11: Generate Rubric
-
-Assign quality rubric dimensions based on task type. Every task gets the base dimensions; UI tasks get additional ones.
-
-**Base dimensions (all tasks):**
-
-| Dimension | Default Threshold |
-|-----------|-------------------|
-| `core_interaction` | 3 |
-| `output_completeness` | 4 |
-| `output_quality` | 4 |
-| `regression_safety` | 4 |
-
-**Additional dimensions (when `primary_worker_type` is `implementer` with UI focus or `communication_specialist`, or task has UI component):**
-
-| Dimension | Default Threshold |
-|-----------|-------------------|
-| `ux_clarity` | 3 |
-| `visual_coherence` | 3 |
-
-Write the rubric as an object with a `dimensions` array. The orchestration-authority or the user may adjust thresholds for specific tasks.
-
-## Output
-
-Write the TaskContract via CLI (the CLI creates the tasks directory automatically and enforces schema validation):
 ```bash
-Bash("geas task create --mission {mission_id} <<'EOF'\n<task_contract_json>\nEOF")
+git rev-parse HEAD
 ```
 
-Envelope fields (`version`, `artifact_type`, `artifact_id`, `producer_type`, `created_at`) are auto-injected by the CLI — agents only need to provide the content fields below. Run `geas schema template task-contract` for the full template.
+Protocol 04 requires baseline snapshots on every task so the scheduling skill can detect staleness before a batch starts.
 
-Example output (content fields only — envelope is auto-injected):
-```json
+### 9. Declare `dependencies`
+
+Array of task ids that must reach `passed` before this task may leave `ready`. Empty array when there are no dependencies. The CLI enforces this on `task transition --to implementing`.
+
+### 10. Set `supersedes`
+
+`null` for ordinary new tasks. Set to a previously `cancelled` task id when this contract replaces that one (protocol 03 cancellation rules).
+
+### 11. Leave `approved_by` null
+
+Drafted contracts have `approved_by: null`. Approval is a separate step — `geas task approve` flips it to `user` (default) or `decision-maker` (for mid-mission additions within the current scope) and advances the task-state from `drafted` to `ready`.
+
+## Writing the contract
+
+```bash
+geas task draft --mission {mission_id} <<'EOF'
 {
-  "task_id": "task-003",
-  "title": "[Frontend] Login form with email/password",
-  "goal": "Create a login form component that submits to POST /api/auth/login and handles success/error states",
-  "task_kind": "implementation",
+  "title": "...",
+  "goal": "...",
   "risk_level": "normal",
-  "gate_profile": "implementation_change",
-  "vote_round_policy": "never",
-  "acceptance_criteria": [
-    "Login form renders with email and password fields",
-    "Form validates email format before submission",
-    "Successful login redirects to dashboard",
-    "Failed login shows error message without exposing server details",
-    "Form is accessible (labels, focus management, aria attributes)"
-  ],
-  "eval_commands": ["{build command from conventions}", "{lint command}", "{test command}"],
-  "rubric": {
-    "dimensions": [
-      { "name": "core_interaction", "threshold": 3 },
-      { "name": "output_completeness", "threshold": 4 },
-      { "name": "output_quality", "threshold": 4 },
-      { "name": "regression_safety", "threshold": 4 },
-      { "name": "ux_clarity", "threshold": 3 },
-      { "name": "visual_coherence", "threshold": 3 }
-    ]
-  },
-  "retry_budget": 3,
-  "scope": {
-    "surfaces": ["src/components/auth/", "src/styles/auth/", "tests/components/auth/"]
-  },
+  "acceptance_criteria": ["..."],
+  "verification_plan": "...",
+  "surfaces": ["..."],
   "routing": {
     "primary_worker_type": "software-engineer",
-    "required_reviewer_types": ["design-authority", "qa-engineer"]
+    "required_reviewers": ["challenger"]
   },
-  "base_snapshot": "a1b2c3d4e5f6...",
-  "status": "drafted"
+  "base_snapshot": "<git sha or equivalent>",
+  "dependencies": [],
+  "supersedes": null
 }
+EOF
 ```
 
-After writing, log the event via CLI:
+The CLI injects `mission_id`, `task_id`, `created_at`, `updated_at`, defaults `approved_by` to `null`, validates the payload against `task-contract.schema.json`, and writes both `contract.json` and a drafted `task-state.json`.
+
+## Approval
+
 ```bash
-Bash("geas event log --type task_compiled --task task-003 --data '{\"title\":\"[Frontend] Login form\"}'")
+geas task approve --mission {mission_id} --task {task_id} --by user
 ```
+
+`--by user` is the default. Use `--by decision-maker` for mid-mission tasks that stay inside the current mission scope. Approve moves `task-state.status` from `drafted` to `ready` and sets `contract.approved_by`.
+
+## Dependencies added after draft
+
+```bash
+geas task deps add --mission {mission_id} --task {task_id} --deps task-002,task-003
+```
+
+The CLI merges the new ids, deduplicates, validates, and writes. Removing dependencies is out of scope for G3 (open the issue in the nonblocking queue if you need it).
+
+## Output contract
+
+The successful `task draft` envelope includes:
+
+- `path` — absolute forward-slash path to `contract.json`
+- `ids.mission_id`, `ids.task_id`
+- `contract` — the validated, CLI-injected contract body
+- `state` — the drafted task-state
+
+## Boundaries
+
+- Do not write `task-state.json` directly. The task-state is CLI-managed; skills invoke `task approve` and `task transition` instead of editing the file.
+- Do not produce eval command arrays. Verification lives in `verification_plan` prose plus the gate skill.
+- Do not set `status` in the contract payload — status is a runtime state field on `task-state.json`, not a contract field.
+- Do not invoke this skill for tasks that belong to a mission outside the current scope — route the user to `intake` first to expand the mission spec, then decide whether to draft a new task here or open a fresh mission.

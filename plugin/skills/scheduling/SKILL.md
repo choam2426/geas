@@ -1,189 +1,101 @@
 ---
 name: scheduling
-description: >
-  Protocol for orchestrator to manage multiple tasks simultaneously.
-  Defines batch construction, pipeline interleaving, checkpoint management, and recovery.
-  Task-level parallelism only. Step-level parallelism is defined in the execution pipeline.
+description: Construct parallel task batches under the v3 baseline workspace rules. Selects ready tasks, detects surface conflicts, enforces critical-risk solo execution, and only then dispatches implementers.
 ---
 
 # Scheduling
 
-This skill is a protocol document — the orchestrator reads it and executes directly. There is no separate scheduling agent.
+Protocol document for the orchestrator. There is no separate scheduling agent. The orchestrator reads this skill and applies it directly before dispatching any implementer.
 
-The orchestrator assigns multiple tasks to run simultaneously. Each task progresses through its pipeline sequentially (as defined in the execution pipeline). The orchestrator interleaves agent spawns across tasks, spawning agents for different tasks in the same message when possible.
-
----
+Task-level parallelism only. Step-level parallelism inside a single task is governed by protocol 03 and 04, not by this skill.
 
 ## Inputs
 
-- **Task files** — all tasks in `.geas/missions/{mission_id}/tasks/` with their status, dependencies, and scope surfaces
-- **`.geas/state/run.json`** — current run state including checkpoint and batch tracking
-- **Lock state** — current lock holdings for path, interface, and resource conflicts
-- **Integration branch tip** — for staleness checking against `base_snapshot`
+- All contracts under `.geas/missions/{mission_id}/tasks/*/contract.json`.
+- All task states under `.geas/missions/{mission_id}/tasks/*/task-state.json`.
+- Current mission mode and phase from `.geas/missions/{mission_id}/spec.json` + `mission-state.json`.
+- The project's baseline reference the contracts recorded in `base_snapshot` (typically the integration branch tip — the implementation of "is this snapshot stale" lives outside this skill).
 
 ## Output
 
-- **Batch assignment** — list of 2-4 tasks eligible for parallel execution
-- **Lock acquisitions** — path/interface locks acquired per batch task via CLI
-- **Updated checkpoint** — `run.json` updated with `parallel_batch` and `completed_in_batch`
-- **Event log entries** — `task_started`, `task_resolved` events per batch task
+- An ordered batch of task ids that may transition to `implementing` now. The orchestrator dispatches them using `geas task transition --to implementing` in sequence (each guard-checked).
+- A list of tasks deferred to the next batch, each with a deferral reason (dependency not `passed`, surface conflict, critical-risk solo rule, baseline stale).
 
----
+## Batch Construction
 
-## Preconditions
+Follow the steps in order. Each step narrows the candidate set.
 
-- Worktree isolation must be available (git repo initialized). If unavailable, fall back to sequential execution (batch size 1).
-- All batch tasks use `isolation: "worktree"` for implementation steps.
+### 1. Seed candidates
 
----
+Every task whose `task-state.status == ready`. Ignore terminal states (`passed`, `cancelled`), waiting states (`drafted`), and in-progress states (`implementing`, `reviewed`, `verified`).
 
-## 1. Batch Construction
+### 2. Dependency gate
 
-When the orchestrator reaches a point where new tasks could start (Phase 2 entry, or after a task/batch resolves):
+For each candidate, every id in `contract.dependencies` must have `task-state.status == passed`. Drop candidates with unmet dependencies. The CLI also enforces this on `task transition --to implementing` — this step is the orchestrator-level early rejection so no wasted dispatch occurs.
 
-1. Read all task files in `.geas/missions/{mission_id}/tasks/`.
-2. Filter: `status == "ready"` AND every ID in `depends_on` has a task file with `status == "passed"`.
-3. **Staleness check per task**: For each candidate, compare `base_snapshot` with `tip(integration_branch)`.
-   - If `base_snapshot == tip`: eligible
-   - If `base_snapshot != tip`: run revalidation procedure
-     - `clean_sync`: eligible (update base_snapshot first)
-     - `review_sync`: eligible (flag for re-review after implementation)
-     - `replan_required` or `blocking_conflict`: **exclude from batch**. Rewind or block as appropriate. Log event via `geas event log --type revalidation`.
-4. **Lock conflict check**: For each pair of candidate tasks in the batch:
-   - Compare their `scope.surfaces` — if any paths overlap, they have a path lock conflict. Remove the later task (by ID order) from the batch.
-   - If either task touches API contracts that the other also touches, they have an interface lock conflict. Remove the later task.
-   - If both tasks use the same shared resource, they have a resource lock conflict. Remove the later task.
+### 3. Baseline staleness check
 
-After filtering, the batch contains only tasks that can safely run in parallel.
+For each candidate, compare `contract.base_snapshot` against the current baseline reference. The contract format permits any string, but the convention is a git commit sha.
 
-5. **Risk-level concurrency filter**: For each remaining candidate:
-   - Read `risk_level` from its task contract
-   - If `risk_level` is `critical`: verify ALL four independence conditions from `building.md` Risk-Level Gating against every other task in the candidate batch. If any condition fails, remove the critical task from this batch (it runs solo next cycle).
-   - If `risk_level` is `high`: keep in batch (challenger review is enforced at the gate step, not at scheduling)
-   - If `risk_level` is `normal` or `low`, or absent: no additional filtering
+- If equal: candidate proceeds.
+- If different but the diff is in surfaces unrelated to the candidate's `surfaces`: candidate proceeds; the stale baseline is harmless for this task.
+- If different and the diff overlaps the candidate's surfaces: candidate is deferred with reason `baseline_stale`. The orchestrator rebases the baseline or re-drafts the task before trying again.
 
-6. If 0-1 eligible: this protocol does not apply. The orchestrator runs the single task through the normal pipeline.
-7. If 2+ eligible: form a batch.
-   - **Max batch size: 4.** If more eligible, take the first 4 by task ID order. Remainder waits for next batch.
-   - Reason: worktree concurrency + context window limits.
+Staleness is a pre-dispatch check, not a post-hoc one. Running an implementer against a stale baseline wastes the retry budget.
 
----
+### 4. Surface conflict prevention
 
-## 2. Batch Start
+Maintain the invariant: at most one active task (state == `implementing`) per surface.
 
-For each task in the batch:
-1. Transition task status via CLI: `Bash("geas task transition --mission {mission_id} --id {task-id} --to implementing")`
-2. Acquire locks via CLI:
-   ```bash
-   Bash("geas lock acquire --task {task-id} --type path --targets '{comma_separated_paths}' --session {session-id}")
-   ```
-3. Log task_started event: `Bash("geas event log --type task_started --task {task-id}")`
+Compare each candidate's `surfaces` against:
+- surfaces held by currently `implementing` tasks in the same mission,
+- surfaces held by any other candidate already accepted into the current batch.
 
-Update checkpoint via CLI:
+Any overlap drops the candidate with reason `surface_conflict` (include the conflicting surface strings). The CLI's `ready -> implementing` guard enforces this again at dispatch time — treat the skill's check as a planning aid.
+
+Rule of thumb: the allowlist in `contract.surfaces` is the contract. If two tasks overlap on even one surface string, they do not run concurrently.
+
+### 5. Critical-risk solo rule
+
+Any candidate with `risk_level == critical` runs alone. If you add a `critical` task to the batch, remove all other candidates and defer them to the next cycle.
+
+Rationale: critical tasks land irreversible change (migrations, authority boundaries). Orchestrator attention and reviewer capacity should not be split.
+
+### 6. Batch size cap
+
+Limit the final batch to at most 4 tasks. If more candidates survive, pick by `task_id` ascending (deterministic ordering) and defer the rest. The cap reflects orchestrator attention + reviewer concurrency, not a hard CLI constraint.
+
+## Dispatch
+
+For each task in the final batch:
+
 ```bash
-Bash("geas state checkpoint set --step batch_active --agent null --batch task-003,task-009")
+geas task transition --mission {mission_id} --task {task_id} --to implementing
 ```
 
-Note: during batch execution, `remaining_steps` is empty at the batch level. Each task's pipeline progress is tracked by the orchestrator internally (in context) and by evidence file presence.
+The CLI guard re-checks:
+- task-state currently `ready` (or `blocked` if you are unblocking),
+- every dependency in `passed`,
+- no surface conflict with existing `implementing` tasks.
 
----
+A guard failure here means your candidate filter missed a constraint. Treat it as a scheduling bug, not a CLI bug.
 
-## 3. Pipeline Interleaving
+Once the transition succeeds, spawn the implementer agent for that task. The implementer writes evidence under the task's evidence directory and signals completion through its own evidence file (G4 defines the closure path).
 
-The orchestrator manages each task's pipeline independently:
+## Recovery
 
-- Each task follows the per-task pipeline defined in `mission/references/pipeline.md`.
-- **Independent progression:** When an agent returns for task A, the orchestrator spawns task A's next step immediately. It does NOT wait for other tasks to reach the same step.
-- **Parallel spawning:** The orchestrator MAY spawn agents for different tasks in the same message (parallel tool calls). Example: `Agent(implementer, "implement task-003")` and `Agent(implementer, "implement task-009")` in one message.
-- **Step groups:** Within a single task, the orchestrator also applies step group rules from the execution pipeline (e.g., spawning design-authority + quality-specialist simultaneously for the same task).
-- **All mandatory steps apply:** Implementation contract, code review, testing, challenger challenge, product-authority verdict, retrospective, and resolve are mandatory for every task in the batch. Do NOT skip any because of parallelism.
+When a session resumes and implementing tasks exist, do not re-dispatch. The task is still in the implementer's hands until either:
+- its implementer produces implementation evidence plus self-check, and the orchestrator transitions it to `reviewed`;
+- a block or escalation lands it in `blocked` / `escalated`.
 
-**Checkpoint during batch:** Before each agent spawn, update `last_updated` in run.json. `agent_in_flight` stays `null` during batches (multiple agents active). The authoritative progress record is the evidence files and task file statuses.
+If a task is stuck in `implementing` without progress (no recent evidence, no self-check), the orchestrator may transition it to `blocked` and investigate. The transition guard accepts `* -> blocked` unconditionally; the rationale belongs in the later closure evidence.
 
----
+## Lightweight / Standard / Full-depth
 
-## 4. Per-Task Completion
+Operating mode adjusts reviewer counts and gate strictness inside `evidence-gate`, not here. This skill produces the same kind of batch regardless of mode. One gotcha: lightweight missions typically draft fewer tasks, so most batches will be size 1. That is not a bug.
 
-When a task's pipeline finishes (orchestrator commits, retro done):
+## Non-goals
 
-1. Transition task: `Bash("geas task transition --mission {mission_id} --id {task-id} --to passed")` **No exceptions.**
-2. Update run state: `Bash("geas state update --field completed_in_batch --value '<updated_json_array>'")`
-3. Update run state: `Bash("geas state update --field completed_tasks --value '<updated_json_array>'")`
-4. Log: `Bash("geas event log --type task_resolved --task {task-id}")`
-
-If other tasks in the batch are still running, the orchestrator continues managing them.
-
----
-
-## 5. Batch Complete
-
-When `completed_in_batch` contains all IDs from `parallel_batch`:
-
-1. Clear checkpoint: `Bash("geas state checkpoint clear")`
-2. Return to section 1 — scan for next eligible batch.
-3. If no eligible tasks remain: the execution phase is complete.
-
----
-
-## 6. Recovery
-
-When a session resumes and run.json has `parallel_batch` set (non-null):
-
-1. Read `parallel_batch` and `completed_in_batch`.
-2. Compute remaining: tasks in `parallel_batch` but not in `completed_in_batch`.
-3. For each remaining task, check evidence:
-   - record.json contains both `verdict` and `retrospective` sections → task is complete. Set task file status to `"passed"`, add to `completed_in_batch`.
-   - record.json contains `verdict` section but no `retrospective` section → resume from retrospective step only.
-   - Neither exists → re-execute the full pipeline for this task.
-4. Update run.json with corrected `completed_in_batch`.
-5. Continue with section 3 for any remaining tasks.
-
----
-
-## Safe Parallel Conditions
-
-All of the following must be satisfied for two tasks to run in parallel (per doc 04):
-
-1. No path lock conflict (checked in batch construction)
-2. No interface lock conflict (checked in batch construction)
-3. No shared mutable resource contention (`.geas/state/run.json`, `.geas/rules.md`, project-wide config)
-4. Both are independent tasks within the building phase
-5. Both are non-speculative
-6. Risk-level concurrency gate passed (critical tasks require explicit independence proof per `building.md` Risk-Level Gating)
-
-### Unsafe Parallel Combinations (always rejected)
-
-- Both tasks modify the same API contract
-- Concurrent modification of auth / payment / migration / release paths
-- Both change the same shared fixture or environment
-- Both redefine the same docs+code contract
-
----
-
-## Speculative Execution (conditions documented, dispatch deferred)
-
-Speculative execution MAY be allowed when ALL of the following are true:
-- Task has `risk_level = low`
-- The predecessor task (dependency) is in `reviewed` or later state
-- The predecessor's worker self-check `confidence` is 4 or above
-- At most 1 speculative task is running concurrently
-
-Speculative execution is PROHIBITED for:
-- Tasks with `risk_level` of `normal`, `high`, or `critical`
-- Tasks touching: public API, migration, auth/security, deploy/release, high-risk refactor
-
-**Note:** Actual speculative dispatch is deferred to Phase 6. This section documents the conditions only. The scheduler currently treats all tasks as non-speculative.
-
----
-
-## Pause / Park / Preemption
-
-`paused` and `parked` are scheduler execution flags, not task states. The task's state (doc 03) does not change.
-
-- **`paused`**: short suspension. On resume: baseline check only. If `base_snapshot` is 10+ commits behind `tip(integration_branch)`, run full revalidation.
-- **`parked`**: longer hold. On resume: mandatory revalidation. Parking reason must be recorded in `run.json`.
-- **Hotfix preemption**: hotfixes may preempt regular tasks. A preemption record must be left with: preempted `task_id`, preemption reason, task state at preemption time.
-
-### Deadlock Handling
-
-If two tasks hold mutually conflicting locks, the state transitions to `manual_repair_required`. No automatic resolution is attempted. The orchestration-authority or a human operator must intervene to release a lock or rewind a task.
+- No speculative scheduling in v3. A task does not enter `implementing` before its dependencies pass. If you want early preparation, draft a separate low-risk task with an empty dependency list.
+- No global path lock manifest. The `surfaces` allowlist on each contract is the only concurrency contract; the skill enforces it by pairwise comparison.
+- No hotfix preemption machinery. A hotfix is just a new task; the orchestrator may cancel in-flight tasks explicitly via `task transition --to cancelled` and then draft and approve the hotfix task.
