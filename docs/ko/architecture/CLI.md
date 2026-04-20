@@ -242,7 +242,7 @@ Artifact 별로 연결된 JSON Schema로 ajv 검증. 실패 시 6.7의 hints를 
 ### 6.3 Guard check
 
 해당 명령이 전이나 참조 무결성을 요구할 때 선행 artifact를 읽어 조건을 본다. 예:
-- `task transition --to ready`: `contract.approved_by != null` + phase gate pass 확인
+- `task transition --to ready`: `contract.approved_by != null`. Mid-mission에 추가된 scope 내 task는 이 조건만 충족하면 바로 ready로 들어간다. 초기 task 집합은 specifying → building phase 전이 시점의 bulk transition(§14.2)으로 ready 처리되고, `task transition --to ready`를 따로 호출하지 않는다.
 - `task transition --to implementing`: 모든 dependency task가 `passed` 상태인지 확인
 - `task transition --to verified`: `gate-results.runs` 마지막 run verdict가 `pass`인지 확인
 - `task transition --to passed`: 해당 task에 orchestrator closure entry가 verdict=approved로 존재하는지 확인
