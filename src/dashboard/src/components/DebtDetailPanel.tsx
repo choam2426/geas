@@ -1,109 +1,110 @@
 import { useState, useEffect, useMemo } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
-import type { DebtInfo, DebtItem } from "../types";
+import * as geas from "../lib/geasClient";
+import type { DebtEntry } from "../types";
 import { severityColors, severityOrder, debtStatusColors } from "../colors";
 import DebtDetailModal from "./DebtDetailModal";
+import { useProjectRefresh } from "../contexts/ProjectRefreshContext";
 
 interface DebtDetailPanelProps {
   projectPath: string;
   projectName: string;
-  missionId?: string | null;
   onBack: () => void;
 }
 
 type SeverityFilter = "critical" | "high" | "normal" | "low";
-type StatusFilter = "all" | "open" | "resolved";
+type StatusFilter = "all" | "open" | "resolved" | "dropped";
 
 export default function DebtDetailPanel({
   projectPath,
   projectName,
-  missionId,
   onBack,
 }: DebtDetailPanelProps) {
-  const [debt, setDebt] = useState<DebtInfo | null>(null);
+  const [entries, setEntries] = useState<DebtEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [severityFilters, setSeverityFilters] = useState<Set<SeverityFilter>>(
-    new Set()
+    new Set(),
   );
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [selectedDebt, setSelectedDebt] = useState<DebtItem | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
+  const [selectedDebt, setSelectedDebt] = useState<DebtEntry | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const debts = await geas.getDebts(projectPath);
+      setEntries(debts?.entries ?? []);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        if (!missionId) {
-          setDebt({ total: 0, by_severity: { low: 0, normal: 0, high: 0, critical: 0 }, by_kind: { output_quality: 0, verification_gap: 0, structural: 0, risk: 0, process: 0, documentation: 0, operations: 0 }, items: [] });
-          setLoading(false);
-          return;
-        }
-        const params = { path: projectPath, mission_id: missionId };
-        const result = await invoke<DebtInfo>("get_project_debt", params);
-        if (!cancelled) {
-          setDebt(result);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(String(err));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    load();
+    (async () => {
+      await load();
+      if (cancelled) return;
+    })();
     return () => {
       cancelled = true;
     };
-  }, [projectPath, missionId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectPath]);
+
+  const refreshKey = useProjectRefresh(projectPath);
+  useEffect(() => {
+    if (refreshKey === 0) return;
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
 
   function toggleSeverity(sev: SeverityFilter) {
     setSeverityFilters((prev) => {
       const next = new Set(prev);
-      if (next.has(sev)) {
-        next.delete(sev);
-      } else {
-        next.add(sev);
-      }
+      if (next.has(sev)) next.delete(sev);
+      else next.add(sev);
       return next;
     });
   }
 
+  const bySeverity = useMemo(() => {
+    const counts = { low: 0, normal: 0, high: 0, critical: 0 };
+    for (const e of entries) {
+      if (e.status !== "open") continue;
+      const s = e.severity as keyof typeof counts;
+      if (s in counts) counts[s] += 1;
+    }
+    return counts;
+  }, [entries]);
+
+  const byKind = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const e of entries) {
+      if (e.status !== "open") continue;
+      if (!e.kind) continue;
+      map[e.kind] = (map[e.kind] ?? 0) + 1;
+    }
+    return map;
+  }, [entries]);
+
   const filteredItems = useMemo(() => {
-    if (!debt) return [];
-    let items = debt.items;
-
-    // Severity filter: if any selected, filter to those; if none, show all
+    let items = entries;
     if (severityFilters.size > 0) {
-      items = items.filter((item) =>
-        severityFilters.has(item.severity as SeverityFilter)
+      items = items.filter((e) =>
+        severityFilters.has(e.severity as SeverityFilter),
       );
     }
-
-    // Status filter
-    if (statusFilter === "open") {
-      items = items.filter(
-        (item) => !item.status || item.status === "open" || item.status === "accepted"
-      );
-    } else if (statusFilter === "resolved") {
-      items = items.filter(
-        (item) => item.status === "resolved" || item.status === "mitigated"
-      );
+    if (statusFilter !== "all") {
+      items = items.filter((e) => e.status === statusFilter);
     }
-
     return items;
-  }, [debt, severityFilters, statusFilter]);
+  }, [entries, severityFilters, statusFilter]);
 
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-      {/* Header */}
       <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-border-default shrink-0">
         <button
           onClick={onBack}
@@ -116,7 +117,6 @@ export default function DebtDetailPanel({
         </h1>
       </div>
 
-      {/* Content */}
       {loading ? (
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-3xl">
@@ -142,31 +142,30 @@ export default function DebtDetailPanel({
       ) : error ? (
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
-            <p className="text-status-red text-sm mb-2">
-              Failed to load debt data
-            </p>
+            <p className="text-status-red text-sm mb-2">Failed to load debts</p>
             <p className="text-text-muted text-xs">{error}</p>
           </div>
         </div>
-      ) : !debt || debt.total === 0 ? (
+      ) : entries.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
           <div className="text-center">
             <div className="mb-3 flex justify-center opacity-30">
               <ShieldCheck size={40} />
             </div>
-            <span className="text-text-muted text-sm">No debt items -- looking clean</span>
+            <span className="text-text-muted text-sm">
+              No debts registered yet
+            </span>
           </div>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto p-4 md:p-6">
           <div className="max-w-3xl">
-            {/* Severity filter pills */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <span className="text-xs text-text-muted mr-1">Severity:</span>
               {severityOrder.map((sev) => {
                 const active = severityFilters.has(sev);
                 const colors = severityColors[sev] ?? severityColors.normal;
-                const count = debt.by_severity[sev];
+                const count = bySeverity[sev as keyof typeof bySeverity];
                 return (
                   <button
                     key={sev}
@@ -184,47 +183,43 @@ export default function DebtDetailPanel({
               })}
             </div>
 
-            {/* Kind breakdown */}
-            {debt.by_kind && (
+            {Object.keys(byKind).length > 0 && (
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <span className="text-xs text-text-muted mr-1">Kind:</span>
-                {Object.entries(debt.by_kind)
-                  .filter(([, count]) => (count as number) > 0)
-                  .map(([kind, count]) => (
-                    <span
-                      key={kind}
-                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-bg-elevated text-text-secondary"
-                    >
-                      {(count as number)} {kind.replace(/_/g, " ")}
-                    </span>
-                  ))}
+                {Object.entries(byKind).map(([kind, count]) => (
+                  <span
+                    key={kind}
+                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-bg-elevated text-text-secondary"
+                  >
+                    {count} {kind.replace(/_/g, " ")}
+                  </span>
+                ))}
               </div>
             )}
 
-            {/* Status filter */}
             <div className="flex items-center gap-2 mb-4">
               <span className="text-xs text-text-muted mr-1">Status:</span>
-              {(["all", "open", "resolved"] as StatusFilter[]).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className={`px-2.5 py-1 rounded-md text-xs cursor-pointer transition-all duration-150 capitalize ${
-                    statusFilter === s
-                      ? "bg-bg-elevated text-text-primary font-medium"
-                      : "text-text-muted hover:text-text-secondary hover:bg-bg-elevated/50"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
+              {(["all", "open", "resolved", "dropped"] as StatusFilter[]).map(
+                (s) => (
+                  <button
+                    key={s}
+                    onClick={() => setStatusFilter(s)}
+                    className={`px-2.5 py-1 rounded-md text-xs cursor-pointer transition-all duration-150 capitalize ${
+                      statusFilter === s
+                        ? "bg-bg-elevated text-text-primary font-medium"
+                        : "text-text-muted hover:text-text-secondary hover:bg-bg-elevated/50"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ),
+              )}
             </div>
 
-            {/* Item count */}
             <p className="text-xs text-text-muted mb-3">
-              {filteredItems.length} of {debt.items.length} items
+              {filteredItems.length} of {entries.length} items
             </p>
 
-            {/* Item list */}
             <div className="space-y-2">
               {filteredItems.length === 0 ? (
                 <p className="text-sm text-text-muted py-4 text-center">
@@ -232,7 +227,11 @@ export default function DebtDetailPanel({
                 </p>
               ) : (
                 filteredItems.map((item) => (
-                  <DebtItemCard key={item.debt_id} item={item} onClick={() => setSelectedDebt(item)} />
+                  <DebtItemCard
+                    key={item.debt_id}
+                    item={item}
+                    onClick={() => setSelectedDebt(item)}
+                  />
                 ))
               )}
             </div>
@@ -241,14 +240,24 @@ export default function DebtDetailPanel({
       )}
 
       {selectedDebt && (
-        <DebtDetailModal debt={selectedDebt} onClose={() => setSelectedDebt(null)} />
+        <DebtDetailModal
+          debt={selectedDebt}
+          onClose={() => setSelectedDebt(null)}
+        />
       )}
     </div>
   );
 }
 
-function DebtItemCard({ item, onClick }: { item: DebtItem; onClick?: () => void }) {
-  const sevColors = severityColors[item.severity] ?? severityColors.normal;
+function DebtItemCard({
+  item,
+  onClick,
+}: {
+  item: DebtEntry;
+  onClick?: () => void;
+}) {
+  const sevColors =
+    severityColors[item.severity ?? ""] ?? severityColors.normal;
   const stColors = item.status
     ? debtStatusColors[item.status] ?? debtStatusColors.open
     : null;
@@ -259,14 +268,23 @@ function DebtItemCard({ item, onClick }: { item: DebtItem; onClick?: () => void 
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
-      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
     >
       <div className="flex items-start gap-2 mb-1.5">
         <span
           className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shrink-0 mt-0.5"
           style={{ backgroundColor: sevColors.bg, color: sevColors.text }}
         >
-          {item.severity}
+          {item.severity ?? "unknown"}
         </span>
         {item.kind && (
           <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shrink-0 mt-0.5 bg-bg-elevated text-text-muted">
@@ -284,7 +302,7 @@ function DebtItemCard({ item, onClick }: { item: DebtItem; onClick?: () => void 
       </div>
 
       <h3 className="text-sm font-medium text-text-primary mb-1">
-        {item.title}
+        {item.title ?? "(untitled)"}
       </h3>
 
       {item.description && (
@@ -293,10 +311,18 @@ function DebtItemCard({ item, onClick }: { item: DebtItem; onClick?: () => void 
         </p>
       )}
 
-      <div className="flex items-center gap-3 text-[11px] text-text-muted">
+      <div className="flex items-center gap-3 text-[11px] text-text-muted flex-wrap">
         <span>{item.debt_id}</span>
-        {item.introduced_by_task_id && (
-          <span>from {item.introduced_by_task_id}</span>
+        {item.introduced_by?.task_id && (
+          <span>from {item.introduced_by.task_id}</span>
+        )}
+        {item.introduced_by?.mission_id && (
+          <span className="truncate max-w-[200px]">
+            mission {item.introduced_by.mission_id}
+          </span>
+        )}
+        {item.resolved_by?.task_id && (
+          <span>resolved by {item.resolved_by.task_id}</span>
         )}
       </div>
     </div>

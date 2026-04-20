@@ -1,8 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { ArrowLeft, Clock, ChevronLeft, ChevronRight, Code2, Palette, TestTube, Shield, Package, Settings } from "lucide-react";
-import { useProjectRefresh } from "../contexts/ProjectRefreshContext";
+import {
+  ArrowLeft,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+  Bot,
+} from "lucide-react";
+import * as geas from "../lib/geasClient";
 import type { EventsPage, EventEntry } from "../types";
+import { useProjectRefresh } from "../contexts/ProjectRefreshContext";
 
 interface TimelineViewProps {
   projectPath: string;
@@ -10,30 +16,10 @@ interface TimelineViewProps {
   onBack: () => void;
 }
 
-const AGENT_CONFIG: Record<string, { icon: typeof Code2; color: string; bg: string }> = {
-  "software-engineer": { icon: Code2, color: "text-status-blue", bg: "bg-status-blue/15" },
-  "design-authority": { icon: Palette, color: "text-purple-400", bg: "bg-purple-400/15" },
-  "qa-engineer": { icon: TestTube, color: "text-status-green", bg: "bg-status-green/15" },
-  "challenger": { icon: Shield, color: "text-status-red", bg: "bg-status-red/15" },
-  "product-authority": { icon: Package, color: "text-status-amber", bg: "bg-status-amber/15" },
-  "orchestration-authority": { icon: Settings, color: "text-text-muted", bg: "bg-text-muted/15" },
-};
-
-const EVENT_COLORS: Record<string, string> = {
-  task_started: "bg-status-blue/20 text-status-blue",
-  task_resolved: "bg-status-green/20 text-status-green",
-  step_complete: "bg-bg-elevated text-text-secondary",
-  gate_result: "bg-status-amber/20 text-status-amber",
-  phase_complete: "bg-purple-400/20 text-purple-400",
-  mission_started: "bg-status-blue/20 text-status-blue",
-  task_compiled: "bg-bg-elevated text-text-secondary",
-  implementation_contract: "bg-bg-elevated text-text-secondary",
-  vote_round: "bg-status-amber/20 text-status-amber",
-};
-
 const PAGE_SIZE = 50;
 
-function formatTimestamp(ts: string): string {
+function formatTimestamp(ts: string | null): string {
+  if (!ts) return "—";
   try {
     const date = new Date(ts);
     const now = new Date();
@@ -43,53 +29,65 @@ function formatTimestamp(ts: string): string {
     if (diffMin < 60) return `${diffMin}m ago`;
     const diffHr = Math.floor(diffMin / 60);
     if (diffHr < 24) return `${diffHr}h ago`;
-    return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return (
+      date.toLocaleDateString() +
+      " " +
+      date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    );
   } catch {
     return ts;
   }
 }
 
-function AgentBadge({ agent }: { agent: string }) {
-  const config = AGENT_CONFIG[agent] ?? { icon: Settings, color: "text-text-muted", bg: "bg-bg-elevated" };
-  const Icon = config.icon;
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${config.bg} ${config.color}`}>
-      <Icon size={12} />
-      {agent}
-    </span>
-  );
+function actorClass(actor: string | null | undefined): string {
+  if (!actor) return "bg-bg-elevated text-text-secondary";
+  if (actor === "cli:auto") return "bg-purple-400/20 text-purple-400";
+  if (actor === "user") return "bg-status-blue/20 text-status-blue";
+  if (actor === "orchestrator") return "bg-status-amber/20 text-status-amber";
+  if (actor === "decision-maker") return "bg-status-green/20 text-status-green";
+  return "bg-bg-elevated text-text-secondary";
 }
 
-export default function TimelineView({ projectPath, missionId, onBack }: TimelineViewProps) {
+export default function TimelineView({
+  projectPath,
+  missionId,
+  onBack,
+}: TimelineViewProps) {
   const [data, setData] = useState<EventsPage | null>(null);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  const fetchEvents = useCallback(async (p: number) => {
-    setLoading(true);
-    try {
-      const result = await invoke<EventsPage>("get_mission_events", {
-        path: projectPath,
-        mission_id: missionId ?? null,
-        event_type: null,
-        page: p,
-        page_size: PAGE_SIZE,
-      });
-      setData(result);
-    } catch (err) {
-      console.error("Failed to fetch events:", err);
-      setData({ events: [], total_count: 0, page: p, page_size: PAGE_SIZE });
-    } finally {
-      setLoading(false);
-    }
-  }, [projectPath, missionId]);
+  const fetchEvents = useCallback(
+    async (p: number) => {
+      setLoading(true);
+      try {
+        const result = await geas.getEvents({
+          path: projectPath,
+          mission_id: missionId ?? null,
+          page: p,
+          page_size: PAGE_SIZE,
+        });
+        setData(result);
+      } catch (err) {
+        console.error("Failed to fetch events:", err);
+        setData({
+          events: [],
+          total_count: 0,
+          page: p,
+          page_size: PAGE_SIZE,
+        });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [projectPath, missionId],
+  );
 
   useEffect(() => {
     fetchEvents(0);
     setPage(0);
   }, [fetchEvents]);
 
-  // Auto-refresh: react to centralized project-changed events
   const pageRef = useRef(page);
   pageRef.current = page;
   const refreshKey = useProjectRefresh(projectPath);
@@ -118,7 +116,6 @@ export default function TimelineView({ projectPath, missionId, onBack }: Timelin
 
   return (
     <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
-      {/* Header */}
       <div className="flex items-center gap-3 px-6 py-4 border-b border-border-default shrink-0">
         <button
           onClick={onBack}
@@ -129,14 +126,15 @@ export default function TimelineView({ projectPath, missionId, onBack }: Timelin
         </button>
         <Clock size={20} className="text-accent" />
         <h1 className="text-lg font-semibold text-text-primary">
-          {missionId ? `Timeline — ${missionId}` : "Project Timeline"}
+          {missionId ? `Events — ${missionId}` : "Project events"}
         </h1>
         {data && (
-          <span className="text-xs text-text-muted ml-auto">{data.total_count} events</span>
+          <span className="text-xs text-text-muted ml-auto">
+            {data.total_count} events
+          </span>
         )}
       </div>
 
-      {/* Timeline */}
       <div className="flex-1 overflow-auto p-6">
         {loading && !data ? (
           <div className="space-y-4 animate-pulse">
@@ -158,13 +156,15 @@ export default function TimelineView({ projectPath, missionId, onBack }: Timelin
         ) : (
           <div className="space-y-1 max-w-3xl">
             {data.events.map((event, i) => (
-              <EventRow key={`${event.timestamp}-${i}`} event={event} />
+              <EventRow
+                key={`${event.event_id ?? event.created_at}-${i}`}
+                event={event}
+              />
             ))}
           </div>
         )}
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-4 px-6 py-3 border-t border-border-default shrink-0">
           <button
@@ -191,34 +191,53 @@ export default function TimelineView({ projectPath, missionId, onBack }: Timelin
 }
 
 function EventRow({ event }: { event: EventEntry }) {
-  const eventColor = EVENT_COLORS[event.event_type] ?? "bg-bg-elevated text-text-secondary";
+  const payload = event.payload ?? {};
+  const taskId = typeof payload["task_id"] === "string" ? (payload["task_id"] as string) : null;
+  const missionId =
+    typeof payload["mission_id"] === "string" ? (payload["mission_id"] as string) : null;
+  const summary =
+    typeof payload["summary"] === "string"
+      ? (payload["summary"] as string)
+      : typeof payload["message"] === "string"
+        ? (payload["message"] as string)
+        : null;
 
   return (
     <div className="flex items-start gap-3 py-2 px-3 rounded-md hover:bg-bg-elevated/50 transition-colors group">
-      {/* Timeline dot */}
       <div className="w-2 h-2 rounded-full bg-border-default mt-2 shrink-0 group-hover:bg-accent transition-colors" />
-
-      {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className={`px-2 py-0.5 rounded text-xs font-medium ${eventColor}`}>
-            {event.event_type}
+          <span className="px-2 py-0.5 rounded text-xs font-medium bg-bg-elevated text-text-secondary">
+            {event.kind ?? "(unknown)"}
           </span>
-          {event.task_id && (
-            <span className="px-1.5 py-0.5 rounded text-xs bg-bg-elevated text-text-secondary">
-              {event.task_id}
+          {event.actor && (
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${actorClass(event.actor)}`}
+            >
+              {event.actor === "cli:auto" && <Bot size={10} />}
+              {event.actor}
             </span>
           )}
-          {event.agent && <AgentBadge agent={event.agent} />}
+          {taskId && (
+            <span className="px-1.5 py-0.5 rounded text-xs bg-bg-elevated text-text-secondary">
+              {taskId}
+            </span>
+          )}
+          {missionId && (
+            <span className="px-1.5 py-0.5 rounded text-xs bg-bg-elevated/50 text-text-muted truncate max-w-[200px]">
+              {missionId}
+            </span>
+          )}
         </div>
-        {event.message && (
-          <p className="text-sm text-text-secondary mt-0.5">{event.message}</p>
+        {summary && (
+          <p className="text-sm text-text-secondary mt-0.5">{summary}</p>
+        )}
+        {event.event_id && (
+          <p className="text-[10px] text-text-muted mt-0.5">{event.event_id}</p>
         )}
       </div>
-
-      {/* Timestamp */}
       <span className="text-xs text-text-muted shrink-0 mt-0.5">
-        {formatTimestamp(event.timestamp)}
+        {formatTimestamp(event.created_at)}
       </span>
     </div>
   );
