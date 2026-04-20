@@ -959,8 +959,8 @@ var require_command = __commonJS({
   "node_modules/commander/lib/command.js"(exports2) {
     var EventEmitter = require("node:events").EventEmitter;
     var childProcess = require("node:child_process");
-    var path5 = require("node:path");
-    var fs5 = require("node:fs");
+    var path6 = require("node:path");
+    var fs6 = require("node:fs");
     var process2 = require("node:process");
     var { Argument: Argument2, humanReadableArgName } = require_argument();
     var { CommanderError: CommanderError2 } = require_error();
@@ -1892,11 +1892,11 @@ Expecting one of '${allowedValues.join("', '")}'`);
         let launchWithNode = false;
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
         function findFile(baseDir, baseName) {
-          const localBin = path5.resolve(baseDir, baseName);
-          if (fs5.existsSync(localBin)) return localBin;
-          if (sourceExt.includes(path5.extname(baseName))) return void 0;
+          const localBin = path6.resolve(baseDir, baseName);
+          if (fs6.existsSync(localBin)) return localBin;
+          if (sourceExt.includes(path6.extname(baseName))) return void 0;
           const foundExt = sourceExt.find(
-            (ext) => fs5.existsSync(`${localBin}${ext}`)
+            (ext) => fs6.existsSync(`${localBin}${ext}`)
           );
           if (foundExt) return `${localBin}${foundExt}`;
           return void 0;
@@ -1908,21 +1908,21 @@ Expecting one of '${allowedValues.join("', '")}'`);
         if (this._scriptPath) {
           let resolvedScriptPath;
           try {
-            resolvedScriptPath = fs5.realpathSync(this._scriptPath);
+            resolvedScriptPath = fs6.realpathSync(this._scriptPath);
           } catch (err2) {
             resolvedScriptPath = this._scriptPath;
           }
-          executableDir = path5.resolve(
-            path5.dirname(resolvedScriptPath),
+          executableDir = path6.resolve(
+            path6.dirname(resolvedScriptPath),
             executableDir
           );
         }
         if (executableDir) {
           let localFile = findFile(executableDir, executableFile);
           if (!localFile && !subcommand._executableFile && this._scriptPath) {
-            const legacyName = path5.basename(
+            const legacyName = path6.basename(
               this._scriptPath,
-              path5.extname(this._scriptPath)
+              path6.extname(this._scriptPath)
             );
             if (legacyName !== this._name) {
               localFile = findFile(
@@ -1933,7 +1933,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
           }
           executableFile = localFile || executableFile;
         }
-        launchWithNode = sourceExt.includes(path5.extname(executableFile));
+        launchWithNode = sourceExt.includes(path6.extname(executableFile));
         let proc;
         if (process2.platform !== "win32") {
           if (launchWithNode) {
@@ -2773,7 +2773,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @return {Command}
        */
       nameFromFilename(filename) {
-        this._name = path5.basename(filename, path5.extname(filename));
+        this._name = path6.basename(filename, path6.extname(filename));
         return this;
       }
       /**
@@ -2787,9 +2787,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @param {string} [path]
        * @return {(string|null|Command)}
        */
-      executableDir(path6) {
-        if (path6 === void 0) return this._executableDir;
-        this._executableDir = path6;
+      executableDir(path7) {
+        if (path7 === void 0) return this._executableDir;
+        this._executableDir = path7;
         return this;
       }
       /**
@@ -6212,8 +6212,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path5) {
-      let input = path5;
+    function removeDotSegments(path6) {
+      let input = path6;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -6412,8 +6412,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path5, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path5 && path5 !== "/" ? path5 : void 0;
+        const [path6, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path6 && path6 !== "/" ? path6 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -6578,49 +6578,49 @@ var require_fast_uri = __commonJS({
       schemelessOptions.skipEscape = true;
       return serialize(resolved, schemelessOptions);
     }
-    function resolveComponent(base, relative2, options, skipNormalization) {
+    function resolveComponent(base, relative3, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
         base = parse(serialize(base, options), options);
-        relative2 = parse(serialize(relative2, options), options);
+        relative3 = parse(serialize(relative3, options), options);
       }
       options = options || {};
-      if (!options.tolerant && relative2.scheme) {
-        target.scheme = relative2.scheme;
-        target.userinfo = relative2.userinfo;
-        target.host = relative2.host;
-        target.port = relative2.port;
-        target.path = removeDotSegments(relative2.path || "");
-        target.query = relative2.query;
+      if (!options.tolerant && relative3.scheme) {
+        target.scheme = relative3.scheme;
+        target.userinfo = relative3.userinfo;
+        target.host = relative3.host;
+        target.port = relative3.port;
+        target.path = removeDotSegments(relative3.path || "");
+        target.query = relative3.query;
       } else {
-        if (relative2.userinfo !== void 0 || relative2.host !== void 0 || relative2.port !== void 0) {
-          target.userinfo = relative2.userinfo;
-          target.host = relative2.host;
-          target.port = relative2.port;
-          target.path = removeDotSegments(relative2.path || "");
-          target.query = relative2.query;
+        if (relative3.userinfo !== void 0 || relative3.host !== void 0 || relative3.port !== void 0) {
+          target.userinfo = relative3.userinfo;
+          target.host = relative3.host;
+          target.port = relative3.port;
+          target.path = removeDotSegments(relative3.path || "");
+          target.query = relative3.query;
         } else {
-          if (!relative2.path) {
+          if (!relative3.path) {
             target.path = base.path;
-            if (relative2.query !== void 0) {
-              target.query = relative2.query;
+            if (relative3.query !== void 0) {
+              target.query = relative3.query;
             } else {
               target.query = base.query;
             }
           } else {
-            if (relative2.path[0] === "/") {
-              target.path = removeDotSegments(relative2.path);
+            if (relative3.path[0] === "/") {
+              target.path = removeDotSegments(relative3.path);
             } else {
               if ((base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0) && !base.path) {
-                target.path = "/" + relative2.path;
+                target.path = "/" + relative3.path;
               } else if (!base.path) {
-                target.path = relative2.path;
+                target.path = relative3.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative2.path;
+                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative3.path;
               }
               target.path = removeDotSegments(target.path);
             }
-            target.query = relative2.query;
+            target.query = relative3.query;
           }
           target.userinfo = base.userinfo;
           target.host = base.host;
@@ -6628,7 +6628,7 @@ var require_fast_uri = __commonJS({
         }
         target.scheme = base.scheme;
       }
-      target.fragment = relative2.fragment;
+      target.fragment = relative3.fragment;
       return target;
     }
     function equal(uriA, uriB, options) {
@@ -10599,12 +10599,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs5, exportName) {
+    function addFormats(ajv, list, fs6, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs5[f]);
+        ajv.addFormat(f, fs6[f]);
     }
     module2.exports = exports2 = formatsPlugin;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -10758,8 +10758,23 @@ function missionsDir(projectRoot) {
 function missionDir(projectRoot, missionId) {
   return path2.join(missionsDir(projectRoot), missionId);
 }
+function missionSpecPath(projectRoot, missionId) {
+  return path2.join(missionDir(projectRoot, missionId), "spec.json");
+}
 function missionStatePath(projectRoot, missionId) {
   return path2.join(missionDir(projectRoot, missionId), "mission-state.json");
+}
+function phaseReviewsPath(projectRoot, missionId) {
+  return path2.join(missionDir(projectRoot, missionId), "phase-reviews.json");
+}
+function missionVerdictsPath(projectRoot, missionId) {
+  return path2.join(missionDir(projectRoot, missionId), "mission-verdicts.json");
+}
+function missionDeliberationsPath(projectRoot, missionId) {
+  return path2.join(missionDir(projectRoot, missionId), "deliberations.json");
+}
+function consolidationDir(projectRoot, missionId) {
+  return path2.join(missionDir(projectRoot, missionId), "consolidation");
 }
 function tasksDir(projectRoot, missionId) {
   return path2.join(missionDir(projectRoot, missionId), "tasks");
@@ -11152,6 +11167,608 @@ function registerStateCommands(program2) {
   });
 }
 
+// src/commands/mission.ts
+var crypto2 = __toESM(require("crypto"));
+var fs5 = __toESM(require("fs"));
+var path5 = __toESM(require("path"));
+
+// src/lib/transition-guards.ts
+function pass() {
+  return { ok: true };
+}
+function fail(reason, hints) {
+  return hints !== void 0 ? { ok: false, reason, hints } : { ok: false, reason };
+}
+function isKnownTransition(table, from, to) {
+  return table.has(`${from}->${to}`);
+}
+var MISSION_PHASES = [
+  "specifying",
+  "building",
+  "polishing",
+  "consolidating",
+  "complete"
+];
+var MISSION_PHASE_TRANSITIONS = /* @__PURE__ */ new Set([
+  // Forward path
+  "specifying->building",
+  "building->polishing",
+  "polishing->consolidating",
+  "consolidating->complete",
+  // Allowed rollbacks (after a passed phase-review whose next_phase matches)
+  "polishing->building",
+  "consolidating->polishing",
+  "consolidating->building"
+]);
+function isValidMissionPhase(v) {
+  return typeof v === "string" && MISSION_PHASES.includes(v);
+}
+function canAdvanceMissionPhase(from, to, hints) {
+  if (!isValidMissionPhase(from)) {
+    return fail(`unknown source phase '${from}'`);
+  }
+  if (!isValidMissionPhase(to)) {
+    return fail(`unknown target phase '${to}'`);
+  }
+  if (from === to) {
+    return fail(`phase already '${from}' \u2014 no-op transition not allowed`);
+  }
+  if (from === "complete") {
+    return fail(`mission phase is 'complete' \u2014 terminal, no further transitions`);
+  }
+  if (!isKnownTransition(MISSION_PHASE_TRANSITIONS, from, to)) {
+    return fail(
+      `transition ${from} -> ${to} is not permitted`,
+      { allowed_transitions: Array.from(MISSION_PHASE_TRANSITIONS).sort() }
+    );
+  }
+  if (from === "specifying" && to === "building") {
+    if (!hints.specApproved) {
+      return fail(
+        "mission spec is not user-approved; run `geas mission approve` first"
+      );
+    }
+    if (hints.approvedTaskCount < 1) {
+      return fail(
+        "building requires at least one approved task-contract (approved_by non-null)"
+      );
+    }
+    return pass();
+  }
+  if (!hints.priorPhaseReviewPassedToTarget) {
+    return fail(
+      `phase-review for ending phase '${from}' with next_phase='${to}' is required`,
+      { hint: "append a phase-review with status=passed and next_phase matching the target" }
+    );
+  }
+  if (to === "complete") {
+    if (!hints.missionVerdictExists) {
+      return fail(
+        "completing a mission requires an appended mission-verdict"
+      );
+    }
+  }
+  if (from === "building" && to === "polishing") {
+    if (hints.openTaskCount > 0) {
+      return fail(
+        "building -> polishing requires all mission tasks to be terminated (passed/cancelled/escalated)",
+        { open_task_count: hints.openTaskCount }
+      );
+    }
+  }
+  if (from === "polishing" && to === "consolidating") {
+    if (hints.openTaskCount > 0) {
+      return fail(
+        "polishing -> consolidating requires all mission tasks to be terminated",
+        { open_task_count: hints.openTaskCount }
+      );
+    }
+  }
+  return pass();
+}
+
+// src/commands/mission.ts
+function nowUtc3() {
+  return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+function needProjectRoot2() {
+  const root = findProjectRoot(process.cwd());
+  if (!root) {
+    emit(
+      err(
+        "missing_artifact",
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+      )
+    );
+  }
+  return root;
+}
+function slashPath(p) {
+  return p.replace(/\\/g, "/");
+}
+function generateMissionId() {
+  const override = process.env.GEAS_MOCK_MISSION_ID;
+  if (override && /^mission-[0-9]{8}-[a-zA-Z0-9]{8}$/.test(override)) {
+    return override;
+  }
+  const d = /* @__PURE__ */ new Date();
+  const yyyy = d.getUTCFullYear().toString().padStart(4, "0");
+  const mm = (d.getUTCMonth() + 1).toString().padStart(2, "0");
+  const dd = d.getUTCDate().toString().padStart(2, "0");
+  const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const bytes = crypto2.randomBytes(8);
+  let suffix = "";
+  for (let i = 0; i < 8; i++) {
+    suffix += alphabet[bytes[i] % alphabet.length];
+  }
+  return `mission-${yyyy}${mm}${dd}-${suffix}`;
+}
+function countApprovedTasks(projectRoot, missionId) {
+  const tDir = tasksDir(projectRoot, missionId);
+  if (!exists(tDir)) return 0;
+  let count = 0;
+  for (const entry of fs5.readdirSync(tDir)) {
+    const contractPath = path5.join(tDir, entry, "contract.json");
+    if (!exists(contractPath)) continue;
+    const contract = readJsonFile(contractPath);
+    if (contract && contract.approved_by != null && contract.approved_by !== "") {
+      count++;
+    }
+  }
+  return count;
+}
+function countOpenTasks(projectRoot, missionId) {
+  const tDir = tasksDir(projectRoot, missionId);
+  if (!exists(tDir)) return 0;
+  const TERMINATED = /* @__PURE__ */ new Set(["passed", "cancelled", "escalated"]);
+  let count = 0;
+  for (const entry of fs5.readdirSync(tDir)) {
+    const statePath = path5.join(tDir, entry, "task-state.json");
+    if (!exists(statePath)) {
+      if (exists(path5.join(tDir, entry, "contract.json"))) count++;
+      continue;
+    }
+    const state = readJsonFile(statePath);
+    const status = typeof state?.status === "string" ? state.status : null;
+    if (!status || !TERMINATED.has(status)) count++;
+  }
+  return count;
+}
+function latestPassedPhaseReview(projectRoot, missionId) {
+  const p = phaseReviewsPath(projectRoot, missionId);
+  const data = readJsonFile(p);
+  if (!data || !Array.isArray(data.reviews)) return null;
+  for (let i = data.reviews.length - 1; i >= 0; i--) {
+    const r = data.reviews[i];
+    if (r.status === "passed") {
+      return {
+        mission_phase: String(r.mission_phase),
+        next_phase: typeof r.next_phase === "string" ? r.next_phase : void 0
+      };
+    }
+  }
+  return null;
+}
+function missionVerdictExists(projectRoot, missionId) {
+  const p = missionVerdictsPath(projectRoot, missionId);
+  const data = readJsonFile(p);
+  return !!data && Array.isArray(data.verdicts) && data.verdicts.length > 0;
+}
+function registerMissionCreate(mission) {
+  mission.command("create").description(
+    "Create a new mission from stdin JSON (spec fields); scaffolds the mission tree."
+  ).action(() => {
+    const root = needProjectRoot2();
+    let payload;
+    try {
+      payload = readStdinJson();
+    } catch (e) {
+      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      throw e;
+    }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      emit(err("invalid_argument", "mission create expects a JSON object on stdin"));
+    }
+    const providedId = typeof payload.id === "string" ? payload.id : void 0;
+    const missionId = providedId ?? generateMissionId();
+    if (!isValidMissionId(missionId)) {
+      emit(err("invalid_argument", `invalid mission id '${missionId}'`));
+    }
+    payload.id = missionId;
+    if (payload.user_approved === void 0) payload.user_approved = false;
+    const ts = nowUtc3();
+    payload.created_at = ts;
+    payload.updated_at = ts;
+    const specPath = missionSpecPath(root, missionId);
+    if (exists(specPath)) {
+      emit(
+        err(
+          "path_collision",
+          `mission spec already exists at ${slashPath(specPath)}`
+        )
+      );
+    }
+    const v = validate("mission-spec", payload);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "mission-spec schema validation failed",
+          v.errors
+        )
+      );
+    }
+    ensureDir(missionDir(root, missionId));
+    atomicWriteJson(specPath, payload, tmpDir(root));
+    const statePath = missionStatePath(root, missionId);
+    const state = {
+      mission_id: missionId,
+      phase: "specifying",
+      active_tasks: [],
+      created_at: ts,
+      updated_at: ts
+    };
+    atomicWriteJson(statePath, state, tmpDir(root));
+    const prPath = phaseReviewsPath(root, missionId);
+    if (!exists(prPath)) {
+      atomicWriteJson(
+        prPath,
+        { mission_id: missionId, reviews: [], created_at: ts, updated_at: ts },
+        tmpDir(root)
+      );
+    }
+    const mvPath = missionVerdictsPath(root, missionId);
+    if (!exists(mvPath)) {
+      atomicWriteJson(
+        mvPath,
+        { mission_id: missionId, verdicts: [], created_at: ts, updated_at: ts },
+        tmpDir(root)
+      );
+    }
+    const delibPath = missionDeliberationsPath(root, missionId);
+    if (!exists(delibPath)) {
+      atomicWriteJson(
+        delibPath,
+        {
+          mission_id: missionId,
+          level: "mission",
+          entries: [],
+          created_at: ts,
+          updated_at: ts
+        },
+        tmpDir(root)
+      );
+    }
+    ensureDir(tasksDir(root, missionId));
+    ensureDir(consolidationDir(root, missionId));
+    recordEvent(root, {
+      kind: "mission_created",
+      actor: "cli:auto",
+      payload: {
+        mission_id: missionId,
+        artifact: slashPath(path5.relative(root, specPath)),
+        user_approved: Boolean(payload.user_approved)
+      }
+    });
+    emit(
+      ok({
+        path: slashPath(specPath),
+        ids: { mission_id: missionId },
+        spec: payload,
+        state
+      })
+    );
+  });
+}
+function registerMissionApprove(mission) {
+  mission.command("approve").description("Mark the mission spec as user_approved. Idempotent no-op if already approved.").requiredOption("--mission <id>", "Mission ID").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    const root = needProjectRoot2();
+    const specPath = missionSpecPath(root, opts.mission);
+    const spec = readJsonFile(specPath);
+    if (!spec) {
+      emit(
+        err(
+          "missing_artifact",
+          `mission spec not found for ${opts.mission} at ${slashPath(specPath)}`
+        )
+      );
+      return;
+    }
+    if (spec.user_approved === true) {
+      emit(
+        ok({
+          path: slashPath(specPath),
+          ids: { mission_id: opts.mission },
+          already_approved: true
+        })
+      );
+      return;
+    }
+    spec.user_approved = true;
+    spec.updated_at = nowUtc3();
+    const v = validate("mission-spec", spec);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "mission-spec schema validation failed after setting user_approved",
+          v.errors
+        )
+      );
+    }
+    atomicWriteJson(specPath, spec, tmpDir(root));
+    recordEvent(root, {
+      kind: "mission_approved",
+      actor: "user",
+      payload: { mission_id: opts.mission, artifact: slashPath(specPath) }
+    });
+    emit(
+      ok({
+        path: slashPath(specPath),
+        ids: { mission_id: opts.mission },
+        already_approved: false,
+        spec
+      })
+    );
+  });
+}
+function registerMissionStateRead(mission) {
+  mission.command("state").description("Summarize mission spec + phase + task counts (read-only).").requiredOption("--mission <id>", "Mission ID").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    const root = needProjectRoot2();
+    const spec = readJsonFile(
+      missionSpecPath(root, opts.mission)
+    );
+    if (!spec) {
+      emit(err("missing_artifact", `mission spec not found for ${opts.mission}`));
+      return;
+    }
+    const state = readJsonFile(
+      missionStatePath(root, opts.mission)
+    );
+    const approvedTasks = countApprovedTasks(root, opts.mission);
+    const openTasks = countOpenTasks(root, opts.mission);
+    emit(
+      ok({
+        mission_id: opts.mission,
+        phase: typeof state?.phase === "string" ? state.phase : null,
+        user_approved: spec.user_approved === true,
+        mode: typeof spec.mode === "string" ? spec.mode : null,
+        name: typeof spec.name === "string" ? spec.name : null,
+        approved_task_count: approvedTasks,
+        open_task_count: openTasks,
+        active_tasks: Array.isArray(state?.active_tasks) ? state.active_tasks : []
+      })
+    );
+  });
+}
+function registerMissionStateUpdatePhase(program2) {
+  const msu = program2.command("mission-state").description("mission-state.json update operations (phase transitions, bookkeeping)");
+  msu.command("update").description(
+    "Update the mission-state (phase transition). Phase-guards live in lib/transition-guards."
+  ).requiredOption("--mission <id>", "Mission ID").option("--phase <phase>", "Target mission phase").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    if (!opts.phase) {
+      emit(
+        err(
+          "invalid_argument",
+          "mission-state update requires --phase <phase>"
+        )
+      );
+      return;
+    }
+    if (!isValidMissionPhase(opts.phase)) {
+      emit(err("invalid_argument", `unknown phase '${opts.phase}'`));
+    }
+    const root = needProjectRoot2();
+    const statePath = missionStatePath(root, opts.mission);
+    const state = readJsonFile(statePath);
+    if (!state) {
+      emit(
+        err(
+          "missing_artifact",
+          `mission-state.json not found for ${opts.mission}`
+        )
+      );
+      return;
+    }
+    const spec = readJsonFile(
+      missionSpecPath(root, opts.mission)
+    );
+    if (!spec) {
+      emit(err("missing_artifact", `mission spec not found for ${opts.mission}`));
+      return;
+    }
+    const from = String(state.phase);
+    const to = opts.phase;
+    const latestReview = latestPassedPhaseReview(root, opts.mission);
+    const priorPhaseReviewPassedToTarget = latestReview !== null && latestReview.mission_phase === from && latestReview.next_phase === to;
+    const hints = {
+      specApproved: spec.user_approved === true,
+      approvedTaskCount: countApprovedTasks(root, opts.mission),
+      openTaskCount: countOpenTasks(root, opts.mission),
+      priorPhaseReviewPassedToTarget,
+      missionVerdictExists: missionVerdictExists(root, opts.mission)
+    };
+    const guard = canAdvanceMissionPhase(from, to, hints);
+    if (!guard.ok) {
+      emit(err("guard_failed", guard.reason, guard.hints));
+    }
+    const ts = nowUtc3();
+    state.phase = to;
+    state.updated_at = ts;
+    if (!state.created_at) state.created_at = ts;
+    state.mission_id = opts.mission;
+    const v = validate("mission-state", state);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "mission-state schema validation failed",
+          v.errors
+        )
+      );
+    }
+    atomicWriteJson(statePath, state, tmpDir(root));
+    recordEvent(root, {
+      kind: "mission_phase_advanced",
+      actor: "cli:auto",
+      payload: {
+        mission_id: opts.mission,
+        artifact: slashPath(statePath),
+        from,
+        to
+      }
+    });
+    emit(
+      ok({
+        path: slashPath(statePath),
+        ids: { mission_id: opts.mission },
+        phase: { from, to },
+        state
+      })
+    );
+  });
+}
+function registerPhaseReviewAppend(program2) {
+  const pr = program2.command("phase-review").description("phase-reviews.json append operation (mission phase gate records)");
+  pr.command("append").description("Append a phase-review entry (stdin JSON). Mission-scoped.").requiredOption("--mission <id>", "Mission ID").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    const root = needProjectRoot2();
+    let entry;
+    try {
+      entry = readStdinJson();
+    } catch (e) {
+      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      throw e;
+    }
+    const ts = nowUtc3();
+    entry.created_at = ts;
+    const p = phaseReviewsPath(root, opts.mission);
+    const wrapper = readJsonFile(p) ?? {
+      mission_id: opts.mission,
+      reviews: [],
+      created_at: ts,
+      updated_at: ts
+    };
+    if (!Array.isArray(wrapper.reviews)) wrapper.reviews = [];
+    const updated = {
+      mission_id: opts.mission,
+      reviews: [...wrapper.reviews, entry],
+      created_at: wrapper.created_at ?? ts,
+      updated_at: ts
+    };
+    const v = validate("phase-reviews", updated);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "phase-reviews schema validation failed",
+          v.errors
+        )
+      );
+    }
+    atomicWriteJson(p, updated, tmpDir(root));
+    recordEvent(root, {
+      kind: "phase_review_appended",
+      actor: "cli:auto",
+      payload: {
+        mission_id: opts.mission,
+        artifact: slashPath(p),
+        mission_phase: entry.mission_phase,
+        status: entry.status,
+        next_phase: entry.next_phase
+      }
+    });
+    emit(
+      ok({
+        path: slashPath(p),
+        ids: { mission_id: opts.mission, entry_index: updated.reviews.length - 1 },
+        entry
+      })
+    );
+  });
+}
+function registerMissionVerdictAppend(program2) {
+  const mv = program2.command("mission-verdict").description("mission-verdicts.json append operation (Decision Maker closure)");
+  mv.command("append").description("Append a mission-verdict entry (stdin JSON).").requiredOption("--mission <id>", "Mission ID").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    const root = needProjectRoot2();
+    let entry;
+    try {
+      entry = readStdinJson();
+    } catch (e) {
+      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      throw e;
+    }
+    const ts = nowUtc3();
+    entry.created_at = ts;
+    const p = missionVerdictsPath(root, opts.mission);
+    const wrapper = readJsonFile(p) ?? {
+      mission_id: opts.mission,
+      verdicts: [],
+      created_at: ts
+    };
+    if (!Array.isArray(wrapper.verdicts)) wrapper.verdicts = [];
+    const updated = {
+      mission_id: opts.mission,
+      verdicts: [...wrapper.verdicts, entry],
+      created_at: wrapper.created_at ?? ts,
+      updated_at: ts
+    };
+    const v = validate("mission-verdicts", updated);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "mission-verdicts schema validation failed",
+          v.errors
+        )
+      );
+    }
+    atomicWriteJson(p, updated, tmpDir(root));
+    recordEvent(root, {
+      kind: "mission_verdict_appended",
+      actor: "decision-maker",
+      payload: {
+        mission_id: opts.mission,
+        artifact: slashPath(p),
+        verdict: entry.verdict
+      }
+    });
+    emit(
+      ok({
+        path: slashPath(p),
+        ids: {
+          mission_id: opts.mission,
+          entry_index: updated.verdicts.length - 1
+        },
+        entry
+      })
+    );
+  });
+}
+function registerMissionCommands(program2) {
+  const mission = program2.command("mission").description("Mission-level artifact commands (spec, approve, state summary)");
+  registerMissionCreate(mission);
+  registerMissionApprove(mission);
+  registerMissionStateRead(mission);
+  registerMissionStateUpdatePhase(program2);
+  registerPhaseReviewAppend(program2);
+  registerMissionVerdictAppend(program2);
+}
+
 // src/main.ts
 var VERSION = "0.8.0";
 function run() {
@@ -11161,6 +11778,7 @@ function run() {
   registerContextCommand(program2);
   registerSchemaCommands(program2);
   registerStateCommands(program2);
+  registerMissionCommands(program2);
   program2.parse(process.argv);
 }
 

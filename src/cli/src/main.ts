@@ -12,6 +12,7 @@ import { registerSetupCommand } from './commands/setup';
 import { registerContextCommand } from './commands/context';
 import { registerSchemaCommands } from './commands/schema';
 import { registerStateCommands } from './commands/state';
+import { registerMissionCommands } from './commands/mission';
 
 const VERSION = '0.8.0';
 
@@ -27,6 +28,7 @@ export function run(): void {
   registerContextCommand(program);
   registerSchemaCommands(program);
   registerStateCommands(program);
+  registerMissionCommands(program);
 
   program.parse(process.argv);
 }
