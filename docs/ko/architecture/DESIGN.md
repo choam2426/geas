@@ -284,7 +284,7 @@ description: >                    # 필수. 3인칭, 1024자 이내
 
 - **Tool-agnostic**: skill 본문은 특정 언어·프레임워크·패키지 매니저를 가정하지 않는다. 도구 선택은 task contract의 `verification_plan`과 프로젝트 관례가 결정한다.
 - **CLI 지시만**: `.geas/` 쓰기는 반드시 CLI 명령으로 지시한다. "이 JSON을 이 경로에 저장해" 같은 직접 쓰기 지시 금지.
-- **Schema template 선조회**: 새 artifact를 만들 때 `geas schema template <type>`을 먼저 불러 필수 필드 골격을 받는다.
+- **Payload shape 내재**: skill이 생성하는 각 artifact의 payload shape을 skill 본문에 포함한다. 단 **agent가 채울 필드만** — CLI가 자동으로 주입하는 필드(`created_at`, `updated_at`, `entry_id`, `gate_run_id`, `mission_id`, `task_id`, `root_id` 등)와 플래그·경로에서 유추되는 필드는 skill 본문에서 생략한다. 이 덕에 agent가 매 호출마다 `geas schema template`을 조회할 필요가 없다. Shape가 본문에 없거나 agent가 확신이 없을 때만 template을 fallback으로 호출한다.
 - **Error hint 소비**: CLI 실패 시 `hints`를 읽어 누락 필드를 보충하고 재시도.
 - **500줄 이하 + 1-level references**: 초과하면 `references/`로 분리, 중첩 링크 금지.
 - **체크리스트 패턴**: 다단계 절차는 체크리스트로 제시해 agent가 진행 상황을 추적하도록 유도.
@@ -292,7 +292,7 @@ description: >                    # 필수. 3인칭, 1024자 이내
 
 ### 유틸리티 skill
 
-핵심 12 skill 외 프로젝트 편의를 위한 skill 허용. `execution`·`slot` 필드는 동일하게 필요.
+핵심 12 skill 외 프로젝트 편의를 위한 skill 허용. Frontmatter와 디렉토리 규약은 핵심 skill과 동일(name·description 필수). 실행 주체와 slot 매핑은 skill 명세 테이블의 확장 행으로 추가 문서화.
 
 - `/setup` — 프로젝트에 `.geas/` 초기화 (main_session, orchestrator)
 - `/help` — skill·명령 탐색 안내 (main_session, orchestrator)
