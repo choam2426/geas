@@ -244,11 +244,9 @@ description: >                    # 필수. 3인칭, 1024자 이내
 # 절차
 체크리스트 형태로 작성한다. 단계마다 호출할 CLI 명령과 분기 조건 포함.
 
-```
 진행:
 - [ ] 1. ...
 - [ ] 2. ...
-```
 
 # 호출하는 CLI 명령
 이 skill이 사용하는 `geas ...` 명령 목록.
@@ -352,18 +350,16 @@ Agent 파일은 클라이언트 런타임마다 실제 포맷이 다르다(Claud
 ```yaml
 ---
 name: decision-maker        # 필수. slot 이름과 동일 (authority) 또는 concrete agent 이름 (specialist)
-slot: decision-maker        # 필수. 이 agent가 맡는 protocol slot
 description: >              # 필수. 3인칭, 언제 이 agent가 쓰이는지
   Issues mission final verdicts, approves mid-mission scope-inside tasks,
   and pre-approves mission design in standard mode.
-domain: null                # authority는 null. specialist는 도메인 이름 (software, research 등)
 ---
 
 # Role body
 이 agent의 system prompt 본문. slot 책임, 권한 경계, 기본 stance, 어떤 skill을 실행할 때 어떤 자세인지.
 ```
 
-`name`·`slot`·`description`·`domain` 네 필드는 필수. 본문은 자유 markdown. Adapter는 이 core를 각 런타임의 네이티브 agent 선언으로 변환한다. Agent 파일 사이에 cross-reference나 런타임 도구(`allowed_tools` 등)는 adapter별 rewrap 때 추가한다 — portable core에는 넣지 않는다.
+`name`과 `description` 두 필드만 필수. 본문은 자유 markdown. 이 agent가 맡는 slot과 도메인은 파일 경로(`agents/authority/{slot}.md` 또는 `agents/specialist/{domain}/{slot}.md`)로 결정되므로 frontmatter에 중복 기재하지 않는다. Adapter는 경로에서 slot·domain을 읽어 필요 시 네이티브 포맷에 추가한다. Agent 파일 사이에 cross-reference나 런타임 도구(`allowed_tools` 등)는 adapter별 rewrap 때 추가한다 — portable core에는 넣지 않는다.
 
 ### 도메인 프로필
 
