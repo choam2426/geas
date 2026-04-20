@@ -1,374 +1,258 @@
 # Geas Protocol Diagrams
 
-This document visualizes the core flows of the Geas protocol using Mermaid diagrams. Each diagram references its corresponding protocol document number.
+This document presents the core flows defined by the Geas protocol (`docs/protocol/`, 9 docs) and the JSON schemas (`docs/schemas/`, 14 schemas) as Mermaid diagrams. Each diagram names its source document at the top.
 
 ## Table of Contents
 
-1. [Mission Lifecycle](#1-mission-lifecycle)
-2. [Task State Machine](#2-task-state-machine)
-3. [Evidence Gate Flow](#3-evidence-gate-flow)
-4. [Agent Interactions](#4-agent-interactions)
-5. [Pipeline Execution Flow](#5-pipeline-execution-flow)
+1. [Mission Phase Flow](#1-mission-phase-flow)
+2. [Specifying Approval Flow](#2-specifying-approval-flow)
+3. [Task Lifecycle](#3-task-lifecycle)
+4. [Evidence Gate](#4-evidence-gate)
+5. [Agent Slots and Responsibilities](#5-agent-slots-and-responsibilities)
+6. [Artifact Relationships](#6-artifact-relationships)
 
 ---
 
-## 1. Mission Lifecycle
+## 1. Mission Phase Flow
 
-> Reference: `protocol/02_MODES_MISSIONS_AND_RUNTIME.md`
+> Reference: [protocol/02_MISSIONS_PHASES_AND_FINAL_VERDICT.md](protocol/02_MISSIONS_PHASES_AND_FINAL_VERDICT.md)
 
-A mission passes through 4 phases in order. A phase gate exists at each transition, and all required artifacts must be satisfied before entering the next phase.
+A mission moves through four phases in sequence and ends in `complete`. Each phase ends with a phase gate, and the next phase opens only when the phase review is `passed`. Limited rollback is allowed only from polishing and consolidating; returning to specifying is not allowed.
 
 ```mermaid
 flowchart LR
-    subgraph Phase_Flow["Mission Phase Flow"]
-        direction LR
-        S["1. Specifying"]
-        B["2. Building"]
-        P["3. Polishing"]
-        E["4. Evolving"]
-        C["Complete"]
-    end
+    S["specifying"]
+    B["building"]
+    P["polishing"]
+    CS["consolidating"]
+    C(["complete"])
 
-    S -->|"Phase Gate 1\n- spec.json\n- design-brief.json (approved)\n- At least 1 task contract"| B
-    B -->|"Phase Gate 2\n- All tasks passed/cancelled\n- gap-assessment-building.json"| P
-    P -->|"Phase Gate 3\n- gap-assessment-polishing.json\n- debt-register.json\n- No blocked/escalated tasks"| E
-    E -->|"Phase Gate 4\n- gap-assessment-evolving.json\n- mission-summary.md"| C
+    S -->|phase review passed| B
+    B -->|phase review passed| P
+    P -->|phase review passed<br/>no additional tasks| CS
+    CS -->|mission verdict<br/>approved / cancelled| C
 
-    style S fill:#4a90d9,color:#fff
-    style B fill:#e67e22,color:#fff
-    style P fill:#27ae60,color:#fff
-    style E fill:#8e44ad,color:#fff
-    style C fill:#2c3e50,color:#fff
+    P -.->|new task required<br/>rollback| B
+    CS -.->|closeout incomplete<br/>rollback| P
+    CS -.->|new task execution required<br/>rollback| B
 ```
 
-### Key Activities by Phase
-
-| Phase | Key Activities | Primary Artifacts |
-|-------|---------------|-------------------|
-| Specifying | Requirements normalization, scope finalization, task decomposition | Mission spec, design brief, task contracts |
-| Building | Core value path implementation, task closure cycles | Implementation contracts, gate results, closure packets, final verdicts |
-| Polishing | Delivery hardening, specialist slot reviews | Specialist reviews, debt register updates |
-| Evolving | Lesson extraction, debt cleanup, memory system updates | Gap assessments, rule updates, mission summary |
+A mission verdict is one of `approved`, `changes_requested`, `escalated`, or `cancelled`. When the verdict is `changes_requested` or `escalated`, additional work is performed and a new verdict is appended to the array. `cancelled` is terminal. If the mission is abandoned before spec approval, it goes straight to `complete` without entering consolidating.
 
 ---
 
-## 2. Task State Machine
+## 2. Specifying Approval Flow
 
-> Reference: `protocol/03_TASK_MODEL_AND_LIFECYCLE.md`
+> Reference: [protocol/02_MISSIONS_PHASES_AND_FINAL_VERDICT.md](protocol/02_MISSIONS_PHASES_AND_FINAL_VERDICT.md) (`Operating mode requirements` + `specifying` phase)
 
-A task has 7 primary states and 3 auxiliary states. Each transition has required preconditions, and states cannot be skipped.
+The mission spec is always approved by the user alone. The mission design and the initial set of task contracts follow different approval paths depending on the operating mode.
+
+```mermaid
+flowchart TD
+    A["Orchestrator drafts<br/>the mission spec through user dialogue"]
+    B["User approval<br/>(mission spec)"]
+    C["Design Authority drafts<br/>the mission design"]
+    D{mission mode?}
+    D1["User approval"]
+    D2["Decision Maker review<br/>then user approval"]
+    D3["Deliberation<br/>DM + Challenger + 1 specialist<br/>then user approval"]
+    E["Design Authority drafts<br/>the initial task contract set"]
+    F{mission mode?}
+    F1["User approval"]
+    F2["Decision Maker review<br/>then user approval"]
+    F3["Deliberation<br/>DM + Challenger + 1 specialist<br/>then user approval"]
+    G(["Enter building phase"])
+
+    A --> B --> C --> D
+    D -->|lightweight| D1
+    D -->|standard| D2
+    D -->|full_depth| D3
+    D1 --> E
+    D2 --> E
+    D3 --> E
+    E --> F
+    F -->|lightweight| F1
+    F -->|standard| F2
+    F -->|full_depth| F3
+    F1 --> G
+    F2 --> G
+    F3 --> G
+```
+
+The `approved_by` field on a task contract records the final approver (`user` or `decision-maker`; the initial task set uses `user`). In-scope tasks added during building or polishing may move to `ready` with Decision Maker approval alone. Work outside the mission scope is not handled within the current mission. If the user wants to expand scope, they must either escalate the current mission or open a follow-up mission.
+
+---
+
+## 3. Task Lifecycle
+
+> Reference: [protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md](protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md)
+
+A task has six primary states (`drafted` -> `ready` -> `implementing` -> `reviewed` -> `verified` -> `passed`) and three held or terminal states (`blocked`, `escalated`, `cancelled`). `blocked` and `escalated` are temporary; once resolved, the task returns to the appropriate point in the lifecycle or terminates.
 
 ```mermaid
 stateDiagram-v2
     [*] --> drafted
+    drafted --> ready: approved_by set<br/>+ phase gate
+    ready --> implementing: dependency tasks passed<br/>+ baseline valid
+    implementing --> reviewed: self-check + required<br/>reviewer evidence submitted
+    reviewed --> verified: evidence gate passed
+    verified --> passed: closure approved
 
-    drafted --> ready : contract.json exists
+    implementing --> blocked: blocking reason
+    reviewed --> blocked: blocking reason
+    verified --> blocked: blocking reason
+    blocked --> ready: blocking cause resolved
+    blocked --> implementing: blocking cause resolved
+    blocked --> reviewed: blocking cause resolved
 
-    ready --> implementing : Implementation contract approved\n(implementation_contract.status=approved)
+    blocked --> escalated: higher-level judgment required
+    verified --> escalated: higher-level judgment required
+    escalated --> passed: higher-level approved<br/>(escalated from verified)
+    escalated --> ready: higher-level changes_requested
+    escalated --> implementing: higher-level changes_requested
+    escalated --> reviewed: higher-level changes_requested
 
-    implementing --> reviewed : Self-check complete +\nimplementer evidence
-
-    reviewed --> integrated : Gate result pass +\nreviewer/tester evidence
-
-    integrated --> verified : Evidence gate passed\n(post-integration verification)
-
-    verified --> passed : Final verdict pass +\nclosure + retrospective +\nchallenge_review (high/critical)
+    drafted --> cancelled
+    ready --> cancelled
+    implementing --> cancelled
+    reviewed --> cancelled
+    verified --> cancelled
+    blocked --> cancelled
+    escalated --> cancelled
 
     passed --> [*]
-
-    %% Rewind paths
-    integrated --> implementing : Gate failure\n(verify-fix loop)
-    integrated --> reviewed : Integration failure/mismatch
-    verified --> ready : Final verdict iterate\n(explicit restore target)
-    verified --> implementing : Final verdict iterate
-    verified --> reviewed : Final verdict iterate
-
-    %% Auxiliary states
-    state "blocked\n(cannot proceed)" as blocked
-    state "escalated\n(insufficient authority)" as escalated
-    state "cancelled\n(work cancelled)" as cancelled
-
-    ready --> blocked : External/structural impediment
-    implementing --> blocked : External/structural impediment
-    reviewed --> blocked : External/structural impediment
-    integrated --> blocked : External/structural impediment
-
-    ready --> escalated : Authority boundary reached
-    implementing --> escalated : Authority boundary reached
-
-    ready --> cancelled : Explicit cancellation (reason recorded)
-    implementing --> cancelled : Explicit cancellation (reason recorded)
-
-    blocked --> ready : Blocking cause resolved +\nrevalidation passed
-    escalated --> ready : Escalation resolved +\ndeliberate re-entry
+    cancelled --> [*]
 ```
 
-### Representative Paths
-
-| Path | State Flow |
-|------|-----------|
-| Normal path | drafted -> ready -> implementing -> reviewed -> integrated -> verified -> passed |
-| Verify-fix path | integrated(fail) -> implementing -> reviewed -> integrated -> verified -> passed |
-| Product-iterate path | verified -> iterate -> implementing/reviewed -> ... -> verified -> passed |
+A closure verdict is one of `approved`, `changes_requested`, `escalated`, or `cancelled`. `changes_requested` is a rewind, and the Orchestrator records both the restore target and the rationale. When a task ends as `cancelled` and is replaced by another contract, the new task contract points back through its `supersedes` field.
 
 ---
 
-## 3. Evidence Gate Flow
+## 4. Evidence Gate
 
-> Reference: `protocol/05_GATE_VOTE_AND_FINAL_VERDICT.md`
+> Reference: [protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md](protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md) (`Evidence Gate` section)
 
-The Evidence Gate is a 3-tier (Tier 0/1/2) verification mechanism. The gate, vote round, and final verdict must always remain separate.
+The Evidence Gate runs in order from Tier 0 to Tier 1 to Tier 2. At any tier, `fail`, `block`, or `error` immediately becomes the verdict for the whole gate. Tier 2 aggregates reviewer verdicts.
 
 ```mermaid
 flowchart TD
-    Start["Gate Start"]
+    Start(["Gate start<br/>(task = reviewed)"])
 
-    subgraph Tier0["Tier 0 - Precheck"]
-        T0_1["Required artifacts exist"]
-        T0_2["Task state eligibility"]
-        T0_3["Baseline/integration prerequisites"]
-        T0_4["Required review set exists"]
-        T0_5["Worker self-check exists"]
-    end
+    T0["Tier 0<br/>required artifacts + required reviewer<br/>evidence submitted?"]
+    T1["Tier 1<br/>repeatable objective verification<br/>defined by verification_plan<br/>(automated or manual)"]
+    T2["Tier 2<br/>aggregate reviewer verdicts<br/>+ compare against contract"]
 
-    subgraph Tier1["Tier 1 - Mechanical Verification"]
-        T1_1["Run repeatable checks\n(build, lint, test, type-check, etc.)"]
-        T1_2["Record execution results\n(command, exit status, timestamp)"]
-    end
+    Out0["gate = Tier 0 result<br/>(fail/block/error)"]
+    Out1["gate = Tier 1 result<br/>(fail/block/error)"]
+    OutPass(["gate pass<br/>-> task verified"])
+    OutFail["gate fail"]
+    OutBlock["gate block"]
 
-    subgraph Tier2["Tier 2 - Contract + Rubric Verification"]
-        T2_1["Acceptance criteria satisfied"]
-        T2_2["Scope violation check"]
-        T2_3["Known risk handling status"]
-        T2_4["Review findings addressed"]
-        T2_5["Rubric score evaluation\n(per-dimension thresholds)"]
-        T2_6["Stub/placeholder verification"]
-    end
+    Delib{"Verdicts hard to reconcile?"}
+    DelibRun["task-level deliberation"]
 
-    Start --> T0_1
-    T0_1 --> T0_2 --> T0_3 --> T0_4 --> T0_5
+    Start --> T0
+    T0 -->|pass| T1
+    T0 -->|otherwise| Out0
 
-    T0_5 -->|"All passed"| T1_1
-    T1_1 --> T1_2
+    T1 -->|pass| T2
+    T1 -->|otherwise| Out1
 
-    T1_2 -->|"Checks passed"| T2_1
-    T2_1 --> T2_2 --> T2_3 --> T2_4 --> T2_5 --> T2_6
+    T2 --> Delib
+    Delib -->|yes| DelibRun
+    DelibRun --> T2
+    Delib -->|no| Agg["Aggregate<br/>if any blocked -> block<br/>if any changes_requested<br/>and none blocked -> fail<br/>if all approved -> pass"]
 
-    %% Result branches
-    T0_5 -->|"Artifact missing"| BLOCK["block\n(structural precondition not met)"]
-    T0_5 -->|"Ineligible state"| ERROR["error\n(gate execution itself failed)"]
-    T1_2 -->|"Check failed"| FAIL["fail\n(implementation/verification quality issue)"]
-    T2_6 -->|"Criteria not met"| FAIL
-    T2_6 -->|"All satisfied"| PASS["pass\n(gate passed)"]
-
-    PASS --> Closure["Closure Packet Assembly"]
-    FAIL --> Rewind["Rewind\n(consume 1 retry_budget)"]
-    BLOCK --> Blocked["Transition task to blocked"]
-    ERROR --> Resolve["Resolve cause and re-run"]
-
-    Closure --> Challenge{"Challenger Review\n(required for high/critical)"}
-    Challenge -->|"No blocking concerns"| Verdict["Final Verdict\n(product-authority)"]
-    Challenge -->|"Blocking concerns"| VoteRound["Vote Round\n(readiness_round)"]
-    VoteRound -->|"ship"| Verdict
-    VoteRound -->|"iterate"| Rewind2["Rewind and rework"]
-    VoteRound -->|"escalate"| Escalated["Task escalated"]
-
-    Verdict -->|"pass"| Done["Task passed"]
-    Verdict -->|"iterate"| Rewind3["Designate restore target and rework\n(retry_budget not consumed)"]
-    Verdict -->|"escalate"| Escalated2["Escalation to user"]
-
-    style PASS fill:#27ae60,color:#fff
-    style FAIL fill:#e74c3c,color:#fff
-    style BLOCK fill:#f39c12,color:#fff
-    style ERROR fill:#95a5a6,color:#fff
-    style Done fill:#27ae60,color:#fff
+    Agg -->|pass| OutPass
+    Agg -->|fail| OutFail
+    Agg -->|block| OutBlock
 ```
 
-### Gate Profile Coverage
-
-| Gate Profile | Tier 0 | Tier 1 | Tier 2 | When Used |
-|-------------|--------|--------|--------|-----------|
-| implementation_change | Run | Run | Run | Standard tasks with implementation changes |
-| artifact_only | Run | Skip/reduced | Run | Documentation, design, review, analysis work |
-| closure_ready | Run | Optional | Simplified | Cleanup, delivery, closure assembly tasks |
+The gate verdict is appended as an immutable object in the `runs` array of `gate-results.json`. Retries accumulate as new runs; earlier runs are never overwritten.
 
 ---
 
-## 4. Agent Interactions
+## 5. Agent Slots and Responsibilities
 
-> Reference: `protocol/01_AGENT_TYPES_AND_AUTHORITY.md`
+> Reference: [protocol/01_AGENTS_AND_AUTHORITY.md](protocol/01_AGENTS_AND_AUTHORITY.md)
 
-Geas organizes roles into a two-tier structure: Authority Slots and Specialist Slots. A single physical agent may fill multiple slots, but role separation must be maintained in artifacts.
+A slot is a protocol role, not an implementation identity. Implementations map slots to concrete agent types, but the protocol is always read in terms of slot names. One concrete agent may cover multiple slots, but the role switch must be explicit.
 
 ```mermaid
 flowchart TB
-    subgraph Authority["Authority Slots"]
-        direction TB
-        OA["Orchestrator\n(orchestration_authority)\n\nMission control, routing,\nsequencing, recovery, memory"]
-        PA["Decision Maker\n(product_authority)\n\nProduct acceptance, trade-offs,\nfinal verdict (pass/iterate/escalate)"]
-        DA["Design Authority\n(design_authority)\n\nStructural consistency,\ncontract approval, methodology review"]
-        CH["Challenger\n(challenger)\n\nAdversarial challenge,\nhidden risk detection"]
+    subgraph Authority["Authority slots"]
+        O["orchestrator<br/>task state management<br/>closure decisions<br/>memory updates"]
+        DM["decision-maker<br/>mission final verdict<br/>in-scope task approval<br/>standard reviews"]
+        DA["design-authority<br/>mission design<br/>task decomposition<br/>gap authoring"]
+        CH["challenger<br/>counterarguments<br/>deliberation participant<br/>(required in full_depth)"]
     end
 
-    subgraph Specialist["Specialist Slots"]
-        direction TB
-        IMP["Implementer\nPrimary artifact production"]
-        QS["Quality Specialist\nAcceptance criteria verification"]
-        RS["Risk Specialist\nDomain risk assessment"]
-        OS["Operations Specialist\nDelivery/deployment readiness"]
-        CS["Communication Specialist\nDocumentation/user content"]
+    subgraph Specialist["Specialist slots"]
+        IM["implementer<br/>implementation + self-check<br/>implementation evidence"]
+        V["verifier<br/>independent verification<br/>verification evidence"]
+        RA["risk-assessor<br/>risk review"]
+        OP["operator<br/>operational review"]
+        CM["communicator<br/>documentation review"]
     end
-
-    %% Authority flows
-    OA -->|"Task decomposition/routing\nMission phase selection"| IMP
-    OA -->|"Convene vote round\nClosure packet assembly"| PA
-    OA -->|"Request contract review\nRequest design guidance"| DA
-    OA -->|"Request challenger review\n(required for high/critical)"| CH
-
-    DA -->|"Implementation contract approve/reject\nStructural review"| IMP
-    DA -->|"Design feedback"| QS
-
-    IMP -->|"Submit self-check\nProduce evidence"| QS
-    IMP -->|"Produce evidence"| DA
-
-    QS -->|"Test results\nAcceptance criteria verification"| OA
-    RS -->|"Risk assessment\nSecurity review"| OA
-    OS -->|"Operational readiness confirmation"| OA
-    CS -->|"Documentation completeness review"| OA
-
-    CH -->|"Challenge results\n(blocking/non-blocking)"| PA
-
-    PA -->|"Final verdict"| OA
-
-    %% Styles
-    style OA fill:#2c3e50,color:#fff
-    style PA fill:#8e44ad,color:#fff
-    style DA fill:#2980b9,color:#fff
-    style CH fill:#c0392b,color:#fff
-    style IMP fill:#27ae60,color:#fff
-    style QS fill:#16a085,color:#fff
-    style RS fill:#d35400,color:#fff
-    style OS fill:#7f8c8d,color:#fff
-    style CS fill:#f39c12,color:#fff
 ```
 
-### Decision Boundaries
+Default ownership by evidence kind:
 
-| Decision | Primary Owner | Notes |
-|----------|--------------|-------|
-| Mission phase selection | Orchestrator | Based on mission intent, mode, and current evidence |
-| Task decomposition/routing | Orchestrator | Design Authority consulted for large-scale work |
-| Design brief approval | Decision Maker | Design Authority review required for full_depth |
-| Implementation contract approval | Design Authority-led reviewer set | May include domain expert signatures |
-| Evidence gate verdict | Gate executor | Objective mechanism |
-| Final verdict | Decision Maker | Based on closure packet |
+| kind | Primary producer |
+|---|---|
+| `implementation` | `implementer` |
+| `review` | `risk-assessor`, `operator`, `communicator`, `challenger` |
+| `verification` | `verifier` |
+| `closure` | `orchestrator` |
 
 ---
 
-## 5. Pipeline Execution Flow
+## 6. Artifact Relationships
 
-> Reference: `pipeline.md` (per-task pipeline reference)
+> Reference: [protocol/08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md](protocol/08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md)
 
-This shows the pipeline execution flow for a documentation task (task_kind). The design, design_guide, implementation (worktree isolation), and integration steps are skipped.
+Mission-level and task-level artifacts accumulate as a hierarchy. Append-only logs (`phase-reviews`, `mission-verdicts`, `gate-results`, `deliberations`, `evidence`) never overwrite prior entries; they append new array items.
 
 ```mermaid
-flowchart TD
-    TaskStart["Task Start\n- Read TaskContract\n- Check dependencies\n- Transition to ready"]
-
-    IC["1. Implementation Contract\n\nWorker writes action plan\nQA + Design Authority approve"]
-
-    Impl["2. Implementation\n\nDirect editing (no worktree isolation)\nWrite/modify documentation"]
-
-    SC["3. Worker Self-Check\n\nConfidence (1-5), known risks,\nuntested paths, summary"]
-
-    subgraph Parallel["Can Run in Parallel"]
-        direction LR
-        SR["4a. Specialist Review\n\nDesign Authority\nreviews implementation"]
-        TEST["4b. Testing\n\nQuality Specialist\nverifies acceptance criteria"]
+flowchart LR
+    subgraph Project["Project-level"]
+        D["debts<br/>(cross-mission ledger)"]
     end
 
-    Reviewed["Transition to reviewed\n(after both 4a + 4b complete)"]
+    subgraph Mission["Mission-level"]
+        MS["mission-spec<br/>(spec.json)"]
+        MD["mission-design<br/>(mission-design.md)"]
+        MState["mission-state"]
+        PR["phase-reviews<br/>(append)"]
+        MDel["deliberations<br/>(mission-level, append)"]
+        MV["mission-verdicts<br/>(append)"]
+        G["gap"]
+        MU["memory-update"]
+    end
 
-    EG["5. Evidence Gate\n\nTier 0: Precheck\nTier 1: Skip/reduced (artifact_only)\nTier 2: Contract/rubric verification"]
+    subgraph Task["Task-level (per task_id)"]
+        TC["task-contract"]
+        IC["implementation-contract"]
+        SC["self-check"]
+        TDel["deliberations<br/>(task-level, append)"]
+        TE["evidence/{agent}.{slot}<br/>(entries append)"]
+        GR["gate-results<br/>(runs append)"]
+        TS["task-state"]
+    end
 
-    EGResult{Gate Result}
+    MS --> MD --> TC
+    TC --> IC --> SC
+    SC --> TE
+    TE --> GR
+    TE --> PR
+    PR --> MV
 
-    VFL["Verify-fix loop\n(consume retry_budget)"]
-
-    CP["6. Closure Packet Assembly\n\nchange_summary, reviews[],\nopen_risks, debt_items"]
-
-    CHL{"7. Challenger Review\n(based on risk_level)"}
-
-    CHLRun["Run challenger review\nAt least 1 substantive challenge required"]
-
-    FV["8. Final Verdict\n\nproduct-authority decides\npass / iterate / escalate"]
-
-    FVResult{Verdict Result}
-
-    Retro["9. Retrospective\n\nwhat_went_well, what_broke,\nrule_candidates, memory_candidates"]
-
-    Mem["10. Memory Extraction\n\nRule updates, agent memory updates"]
-
-    Resolve["11. Complete\n\nTransition to passed"]
-
-    TaskStart --> IC
-    IC -->|"Approved"| Impl
-    IC -->|"Rejected"| IC
-    Impl -->|"Transition to implementing"| SC
-    SC --> Parallel
-    SR --> Reviewed
-    TEST --> Reviewed
-    Reviewed --> EG
-
-    EG --> EGResult
-    EGResult -->|"pass"| CP
-    EGResult -->|"fail"| VFL
-    EGResult -->|"block"| TaskBlocked["Transition to blocked"]
-    EGResult -->|"error"| ErrorResolve["Resolve cause and re-run"]
-    VFL --> EG
-
-    CP --> CHL
-    CHL -->|"low risk: skip"| FV
-    CHL -->|"high/critical: required"| CHLRun
-    CHLRun -->|"Non-blocking"| FV
-    CHLRun -->|"Blocking concerns"| VoteRound["Vote Round"]
-    VoteRound -->|"ship"| FV
-    VoteRound -->|"iterate/escalate"| Rewind["Rewind/Escalation"]
-
-    FV --> FVResult
-    FVResult -->|"pass"| Retro
-    FVResult -->|"iterate"| IterRewind["Rewind to restore target\n(retry_budget not consumed)"]
-    FVResult -->|"escalate"| Escalate["Escalation"]
-
-    Retro --> Mem --> Resolve
-
-    style TaskStart fill:#34495e,color:#fff
-    style Resolve fill:#27ae60,color:#fff
-    style TaskBlocked fill:#f39c12,color:#fff
-    style Escalate fill:#e74c3c,color:#fff
+    TE --> D
+    TE --> G
+    TE --> MU
+    D --> MV
+    G --> MV
+    MU --> MV
 ```
 
-### Documentation Task Skip Rules
-
-| Step | Status |
-|------|--------|
-| design | Skipped |
-| design_guide | Skipped |
-| implementation (worktree isolation) | Skipped (direct editing) |
-| integration | Skipped |
-| implementation_contract through resolve | Required (cannot be skipped) |
-
-### Steps That Can Never Be Skipped
-
-The following steps must always be executed regardless of task_kind:
-
-- implementation_contract
-- self_check
-- specialist_review
-- testing
-- evidence_gate
-- closure_packet
-- final_verdict
-- retrospective
-- memory_extraction
-- resolve
+During consolidating, the Orchestrator reads `debt_candidates`, `memory_suggestions`, and `gap_signals` from task evidence, updates the project-level `debts.json` (registering new items and updating the status of debts touched in the mission), and writes the mission-level `memory-update.json`. The Design Authority writes the mission-level `gap.json`. The Decision Maker reads all of them before issuing the mission verdict.

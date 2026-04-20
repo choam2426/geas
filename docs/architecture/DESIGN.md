@@ -1,371 +1,456 @@
-# Geas Architecture
+# Geas Implementation Design
+
+This document defines the shared architecture contract that Geas implementations must follow so the Geas protocol (`docs/protocol/`, 9 docs) can run consistently across multiple agent clients such as Claude Code, Codex, and opencode. It is written for implementers building or porting Geas on top of one or more agent clients.
+
+The meaning of protocol rules, states, and artifacts lives in the protocol documents and schemas, not here. This document covers only the parts implementations must keep aligned in order to realize that protocol the same way, plus the places where implementation-specific variation is allowed.
 
 ## 1. Overview
 
-Geas is a governance protocol for multi-agent AI teams. Any group of AI agents working on a structured task — software development, research, content creation — can operate under Geas to produce governed, traceable, verified results that improve over time.
+### What It Is
 
-### The Problem
+At a high level, Geas has two layers.
 
-When multiple AI agents collaborate without structure, three things go wrong:
+1. **Protocol**: the immutable contract. It defines what must happen and what shape each artifact must have. See `docs/protocol/` (9 docs) and `docs/schemas/` (14 schemas).
+2. **Implementation Architecture Contract**: the shared architecture contract required for multiple agent clients to execute that protocol consistently. That is the subject of this document.
 
-1. **No one verifies.** The agent says "done" and everyone moves on. There is no independent check that the work actually meets its contract.
-2. **No one remembers.** Each session starts from zero. Lessons from past failures, successful patterns, and accumulated judgment are lost.
-3. **No one governs.** Decisions happen implicitly. There is no record of who decided what, under what authority, or based on what evidence.
+This document covers the second layer. At the top level, Geas is divided into the Protocol and the Implementation Architecture Contract. Within the implementation contract, the design is further decomposed into the six layers described in Section 3.
 
-### The Solution
+The Protocol is the top-level immutable contract. If the protocol changes, this document and individual implementations must be redesigned to match it, never the other way around.
 
-Geas introduces a **Contract Engine** — a set of domain-agnostic skills that enforce a governed pipeline for every unit of work:
+### Design Goals
 
-- A **task contract** defines what will be done, how it will be verified, and who will review it.
-- An **evidence gate** independently verifies that the work meets its contract. "Done" means "evidence proves it."
-- A **closure packet** assembles the full story — implementation, reviews, gate results, risks — for a final product verdict.
-- A **memory system** captures lessons and feeds them back into future work through rules and agent memory.
+- **Protocol fidelity**: implementations execute the protocol's states, transitions, and artifacts exactly as defined.
+- **Client neutrality**: the same protocol runs the same way across multiple agent runtimes such as Claude Code, Codex, and opencode.
+- **Single write path**: all writes under `.geas/` go through one CLI, enforcing schema validation and atomic rename.
+- **Observability**: artifacts alone are enough to reconstruct where a mission stands and who made which judgment.
+- **Implementation-specific variation within shared invariants**: client adapters, skills, and agent rosters may vary by implementation so long as they respect the shared contract, while the protocol, runtime state, and CLI contract stay fixed.
 
-The Contract Engine is tool-agnostic and domain-agnostic. It does not know whether agents are writing code, running experiments, or drafting content. It only knows: was there a contract, was it verified, and what did the team learn?
+### Key Terms
 
-### Design Philosophy (4 Pillars)
+Before the main sections, here are the terms used most often. See the referenced sections for the full definitions.
 
-Every design decision must answer: **"Does this make the process more governed, traceable, verifiable, or capable of learning?"**
+- **Slot**: a protocol role position (`orchestrator`, `decision-maker`, `design-authority`, `challenger`, `implementer`, `verifier`, `risk-assessor`, `operator`, `communicator`). See Section 8.
+- **Concrete agent type**: an identity from the implementation catalog that can be bound to a specialist slot. Examples: `software-engineer`, `platform-engineer`. See Section 8.
+- **Skill**: a prompt plus procedure that causes an agent to execute one step of the protocol. See Section 7.
+- **Main session (`main_session`)**: the client session that talks directly to the user. It plays the `orchestrator` role. See Section 8.
+- **Spawn**: the act of launching another slot from the main session in a separate agent execution context. See Section 9.
+- **Client adapter**: the thin layer that binds shared skills, shared agents, and the CLI to a specific agent runtime. See Section 9.
 
-| Pillar | What it guarantees |
-|---|---|
-| **Governance** | Every decision follows a defined procedure with explicit authority |
-| **Traceability** | Every action is recorded and auditable after the fact |
-| **Verification** | Every deliverable is verified against its contract — not against an agent's claim |
-| **Evolution** | The team improves across sessions through retrospectives, rules, memory, and debt tracking |
+## 2. Design Principles
 
-> For the concrete protocol bindings and design principles behind the 4 Pillars, see `protocol/00_PROTOCOL_FOUNDATIONS.md`.
+1. **Protocol as north star** - skills, CLI behavior, and agents change to match protocol changes; the reverse never happens. The protocol docs and schemas are the source of truth when anything conflicts.
+2. **CLI-only writes** - no write under `.geas/` bypasses the CLI. This rule is the same for every runtime. The concrete enforcement mechanism and enforcement strength may vary by adapter and must be documented in the adapter docs.
+3. **Evidence over declaration** - even if an agent says the work is done, the state does not transition until the evidence files exist. Transition guards read artifacts, not claims.
+4. **Slot != type != runtime persona** - a slot is a role position, a specialist concrete type is an implementation-catalog identity, and the actual runtime persona is the execution mechanism beneath that. One concrete type may bind to multiple slots, and one slot may be filled by different concrete types over time.
+5. **Tool-agnostic skills** - a skill body does not hard-code a language, framework, or package manager. Concrete tool choice belongs to the task contract (`verification_plan`) and project conventions.
+6. **Append-only where provable** - judgment logs that may include retries or re-decisions accumulate only by append, never by replacement. Auditing depends on retaining the trace of earlier decisions.
+7. **Self-describing artifacts** - every artifact includes `mission_id`, and every task-level artifact also includes `task_id`. Ownership must remain clear even if a file is detached from its path.
+8. **Explicit replaceable layers** - the design declares which layers are replaceable and which are invariant so implementers do not blur the boundary. See Section 3.
 
----
+## 3. Layer Structure
 
-## 2. Four-Layer Architecture
-
-Geas separates concerns into four layers. The key insight: **only the contract engine needs to be stable.** Everything above and below it can be swapped without breaking the governance model.
+The implementation contract is decomposed into six layers. Lower layers are shared invariants; higher layers allow more implementation-specific variation.
 
 ```
-┌───────────────────────────┐
-│  Collaboration Surface    │  Dashboard, CLI, chat, IDE — how humans interact
-├───────────────────────────┤
-│  Agent Teams              │  Domain profiles fill specialist slots with concrete agents
-├───────────────────────────┤
-│  Contract Engine          │  12 core skills — the immutable governance pipeline
-├───────────────────────────┤
-│  Tool Adapters            │  File I/O, shell, MCP servers — how agents act on the world
-└───────────────────────────┘
+┌─ Client Adapter      ── client-specific (Claude Code / Codex / opencode)
+├─ Skill               ── shared: execution prompts for each protocol step
+├─ Agent Roster        ── shared: slot semantics + concrete agent type catalog
+├─ CLI (geas)          ── shared: write actuator for .geas/
+├─ Runtime State       ── shared: .geas/ directory format
+└─ Protocol + Schemas  ── immutable core
 ```
 
-> For a visual diagram of agent interactions within this architecture, see [DIAGRAMS.md — Agent Interactions](../ko/DIAGRAMS.md#4-에이전트-상호작용).
-
-| Layer | Why it exists | Replaceable? |
+| Layer | Role | Variation allowed? |
 |---|---|---|
-| **Collaboration Surface** | Decouples the human experience from the agent workflow. A team using a dashboard and a team using a CLI both get the same governance guarantees. | Yes |
-| **Agent Teams** | Decouples expertise from process. The Contract Engine does not care whether the quality specialist is a `qa_engineer` or a `methodology_reviewer` — it only cares that the quality slot produced a review. | Yes |
-| **Contract Engine** | The invariant core. 12 skills that enforce the task lifecycle: intake, compilation, contracts, gates, verification, voting, memory, scheduling, setup, policy, and reporting. | **No** |
-| **Tool Adapters** | Decouples agent capabilities from agent identity. An agent that uses `git` and an agent that uses a version-control API both satisfy the same contract. | Yes |
+| Client Adapter | Thin layer that lets each agent runtime bind skills, agents, and the CLI | Yes |
+| Skill | Prompts and procedures that let agents execute protocol steps. Step responsibilities and required artifacts are fixed. | Yes |
+| Agent Roster | Realizes protocol-defined slot semantics through a concrete agent type catalog and per-task binding strategy | Yes |
+| CLI (`geas`) | The single write path into `.geas/`. Reads and writes Runtime State while enforcing schema validation, timestamp injection, atomic rename, and append-only rules | Shared invariant |
+| Runtime State | The `.geas/` directory format. Defines which artifacts exist where and the file-level rules around them | Shared invariant |
+| Protocol + Schemas | Protocol docs and JSON schemas. The source of truth for artifact structure and state rules | Highest-level invariant |
 
-### Domain Profiles and Slot Resolution
+Differences in the Client Adapter, Skill, and Agent Roster layers are allowed only so long as they do not violate lower-layer contracts. For example, an implementation may add a new specialist to the roster or adjust the wording of a skill prompt, but it may not bypass the CLI contract, change the Runtime State format, or redefine artifact meaning.
 
-Agent Teams are organized by **domain profile**. Each profile maps abstract specialist slots to concrete agent types:
+## 4. Protocol + Schemas Layer
 
-```
-Mission spec: { "domain_profile": "software" }
-    ↓
-Orchestrator reads profiles.json
-    ↓
-quality_specialist → qa_engineer → Agent(agent: "qa-engineer", ...)
-```
-
-The Contract Engine references only slot names (`implementer`, `quality_specialist`, `risk_specialist`, `operations_specialist`, `communication_specialist`). The Orchestrator resolves these to concrete agents at runtime. This is why the same 12 core skills work for software, research, or any future domain.
-
-> For agent types, authority rules, and routing, see `protocol/01_AGENT_TYPES_AND_AUTHORITY.md`.
-
----
-
-## 3. Execution Model
-
-### Why Four Phases
-
-Every mission follows the same four phases, regardless of scale. A single feature gets a lightweight pass; a full product gets the full treatment. The phases exist because rushing to implementation without specifying causes scope drift, and shipping without polishing causes debt accumulation.
-
-```
-Specifying ──→ Building ──→ Polishing ──→ Evolving ──→ Close
-   │              │             │              │
- gate 1        gate 2        gate 3        gate 4
-```
-
-> For a visual diagram of the mission lifecycle and phase gates, see [DIAGRAMS.md — Mission Lifecycle](../ko/DIAGRAMS.md#1-미션-라이프사이클).
-
-| Phase | Purpose | Exit condition |
-|---|---|---|
-| **Specifying** | Define WHAT and WHY. Produce mission spec, design brief, and task list. Architecture review required. | User-approved spec + design brief + compiled tasks |
-| **Building** | Execute tasks through the per-task pipeline. Each task follows: contract → implement → review → gate → verdict. | All tasks passed or explicitly deferred |
-| **Polishing** | Address debt, documentation gaps, and quality issues discovered during building. | Debt triaged, gap assessment complete |
-| **Evolving** | Capture lessons. Retrospective, rules.md update, agent memory update, carry-forward backlog. | Evolution artifacts recorded, mission summary written |
-
-Scale adapts automatically: lightweight missions may compress phases, but the sequence never changes.
-
-> For details on missions and phases, see `protocol/02_MODES_MISSIONS_AND_RUNTIME.md`.
-
----
-
-## 4. Task Lifecycle
-
-A task is the only closure unit in the protocol. Nothing ships, completes, or counts as "done" except through a task reaching `passed`.
-
-### Why 7 States
-
-Each state represents a distinct checkpoint where different actors have responsibility. Collapsing states (e.g., merging review into implementation) would blur accountability. The 7-state model ensures that at any point, the system can answer: **who is responsible right now, and what must happen next?**
-
-```
-drafted → ready → implementing → reviewed → integrated → verified → passed
-```
-
-Auxiliary states: `blocked`, `escalated`, `cancelled`
-
-> For the full state machine diagram including rewind paths and auxiliary states, see [DIAGRAMS.md — Task State Machine](../ko/DIAGRAMS.md#2-태스크-상태머신).
-
-### Required Artifacts per Transition
-
-No transition happens without evidence. This is the core enforcement mechanism — state changes are artifact-gated, not claim-gated.
-
-Per-task artifacts are consolidated into a single `record.json` file with sections accumulated as the task progresses, plus an `evidence/` directory for specialist review artifacts.
-
-| Transition | Guard condition | What it proves |
-|---|---|---|
-| drafted → ready | `contract.json` with required fields (task_kind, risk_level, gate_profile, vote_round_policy, base_snapshot, rubric) | Scope, criteria, and routing are defined |
-| ready → implementing | `record.json:implementation_contract.status == "approved"` | Worker and reviewers agree on the plan |
-| implementing → reviewed | `record.json:self_check` + `evidence/` with implementer role | Work is done and self-assessed |
-| reviewed → integrated | `record.json:gate_result.verdict == "pass"` + `evidence/` with reviewer/tester role | Evidence gate confirms quality |
-| integrated → verified | (none — orchestrator merge is the gate) | Change merged into baseline |
-| verified → passed | `verdict.verdict == "pass"` + `gate_result` + `closure` (≥1 review) + `retrospective` + `challenge_review` (high/critical) | Decision Maker accepts, full record complete |
-
-> Full state machine, rewind rules, and retry budgets: `protocol/03_TASK_MODEL_AND_LIFECYCLE.md`.
-
----
-
-## 5. Verification Flow
-
-Verification is the heart of Geas. The protocol does not trust any agent's claim of completion — it requires independent evidence.
-
-```
-Implementation complete
-        │
-        ▼
-  Evidence Gate
-  ┌─────────────────────┐
-  │ Tier 0: Precheck    │──→ block (missing artifact, wrong state)
-  │ Tier 1: Mechanical  │──→ fail (repeatable checks failed)
-  │ Tier 2: Contract    │──→ fail (criteria unmet, rubric below threshold)
-  └─────────────────────┘
-        │ pass
-        ▼
-  Closure Packet assembly
-        │
-        ▼
-  Challenger Review (mandatory for high/critical risk)
-        │
-        ▼
-  Final Verdict (Decision Maker: pass / iterate / escalate)
-        │ pass
-        ▼
-     Resolved
-```
-
-> For a detailed flow diagram including gate profiles and vote round handling, see [DIAGRAMS.md — Evidence Gate Flow](../ko/DIAGRAMS.md#3-에비던스-게이트-플로우).
-
-### Gate Tiers
-
-| Tier | Question it answers | Examples |
-|---|---|---|
-| **Tier 0** (Precheck) | Is the task even eligible for gating? | Required artifacts exist, task state is valid, baseline is fresh |
-| **Tier 1** (Mechanical) | Do repeatable checks pass? | Software: build, lint, test. Research: citation validation, statistical reproducibility. Content: grammar, fact-check |
-| **Tier 2** (Contract + Rubric) | Does the work fulfill its contract? | Acceptance criteria met, rubric scores above threshold (1-5 scale), known risks addressed |
-
-### Gate Outcomes
-
-| Outcome | Meaning | Retry budget impact |
-|---|---|---|
-| `pass` | Verified — advance to closure | None |
-| `fail` | Quality issue — enter verify-fix loop | -1 |
-| `block` | Structural problem — cannot proceed | None |
-| `error` | Gate itself failed — investigate and re-run | None |
-
-### Final Verdict
-
-The gate says "evidence checks out." The Decision Maker says "the product should accept this." These are different judgments. A passing gate does not automatically mean ship — the Decision Maker evaluates the full closure packet including open risks, debt, and product fit.
-
-- `pass` — done, task reaches `passed`
-- `iterate` — verified but not good enough, rework needed (does not consume retry budget; 3 cumulative iterates trigger escalation)
-- `escalate` — beyond local authority, escalate to user
-
-> Full details: `protocol/05_GATE_VOTE_AND_FINAL_VERDICT.md`.
-
----
-
-## 6. Memory and Evolution
-
-### The Problem Memory Solves
-
-Without memory, every session starts from zero. The team makes the same mistakes, misses the same edge cases, and rediscovers the same patterns. Memory exists so that **past experience changes future behavior** — not as a knowledge base, but as a behavior modification mechanism.
-
-### How Memory Works
-
-Memory influences behavior through concrete surfaces:
-
-| Surface | Example |
-|---|---|
-| `rules.md` | "Auth endpoints must have rate limiting" — learned from a past gate failure |
-| Agent memory | `.geas/memory/agents/{type}.md` — role-specific guidance read at invocation |
-| Gate strictness | Tighter thresholds on surfaces with past failures |
-| Scheduling caution | Avoid parallel combinations that previously caused conflicts |
-
-### Memory Lifecycle
-
-Memory earns trust through evidence, not through persistence. A lesson is not true because someone said it — it is trusted because it was validated.
-
-```
-rules.md        — project-wide knowledge (conventions + learned rules)
-agents/{agent}.md — per-agent notes (role-specific lessons)
-```
-
-Memory is two files. `rules.md` holds all project knowledge and is injected into every agent context. Agent memory files hold role-specific notes and are injected into matching agents.
-
-### Evolution Loop
-
-After every completed task, the protocol extracts value:
-
-1. **Retrospective** — what worked, what broke, what surprised
-2. **Rule candidates** — patterns worth enforcing ("this type of failure keeps happening")
-3. **Memory capture** — lessons recorded and linked to evidence
-4. **Debt tracking** — compromises made visible and owned
-5. **Gap assessment** — promised scope vs. delivered scope, honestly compared
-
-The Evolving phase at mission end consolidates all of this. A mission that does not evolve is a mission that does not learn.
-
-> Memory system: `protocol/07`. Evolution loop: `protocol/11`.
-
----
-
-## 7. Context Loss Defense
-
-LLM sessions hit context limits. When compaction occurs, the orchestrator loses its working memory — current phase, active task, remaining steps, open risks. Without defense, the session resumes in a confused state and makes incorrect decisions.
-
-### Defense 1: Externalized State
-
-`run.json` stores the full pipeline position on disk: current phase, active task, `remaining_steps[]` array, checkpoint metadata. Even after total context loss, reading this file tells the orchestrator exactly where it is and what to do next.
-
-### Defense 2: Automatic Restoration
-
-The `PostCompact` hook fires after every compaction event. It reads `run.json`, `session-latest.md`, `rules.md`, and the active task contract, then re-injects them as L0 (never-drop) context. The orchestrator resumes with:
-
-- Current phase and task
-- Next pipeline step
-- Acceptance criteria and open risks
-- Active rules and memory state
-
-This is not a best-effort recovery — it is a protocol guarantee. The anti-forgetting layer ensures that compaction degrades context gracefully rather than catastrophically.
-
-> Full recovery model: `protocol/08_SESSION_RECOVERY_AND_RESUMABILITY.md`.
-
----
-
-## 8. Plugin Structure
-
-```
-plugin/
-├── plugin.json                # Manifest
-├── bin/
-│   └── geas                   # Pre-built CLI bundle (single file)
-├── skills/                    # 13 skills (12 core + 1 utility)
-│   ├── mission/               # Orchestrator: 4-phase pipeline, slot resolution
-│   ├── intake/                # Requirements gathering
-│   ├── task-compiler/         # Mission spec → TaskContracts
-│   ├── implementation-contract/
-│   ├── evidence-gate/         # Tier 0/1/2 verification
-│   ├── verify-fix-loop/
-│   ├── vote-round/            # Structured voting and decisions
-│   ├── memorizing/            # Memory lifecycle
-│   ├── scheduling/            # Parallel task scheduling
-│   ├── setup/                 # Project init + codebase discovery
-│   ├── policy-managing/       # Rules override management
-│   ├── reporting/             # Health signals, briefing, summaries
-│   └── help/                  # Usage guide (utility, not core engine)
-├── agents/
-│   ├── authority/             # 3 spawnable (product-authority, design-authority, challenger)
-│   ├── software/              # 5 specialists (software-engineer, qa-engineer, security-engineer, platform-engineer, technical-writer)
-│   └── research/              # 6 specialists (literature-analyst, research-analyst, methodology-reviewer, research-integrity-reviewer, research-engineer, research-writer)
-└── hooks/
-    ├── hooks.json             # 10 lifecycle hooks across 7 event types
-    └── scripts/               # Hook implementation scripts
-```
-
-> For a visual diagram of the complete per-task pipeline execution, see [DIAGRAMS.md — Pipeline Execution Flow](../ko/DIAGRAMS.md#5-파이프라인-실행-흐름).
-
-Agent details: `reference/AGENTS.md`. Skill details: `reference/SKILLS.md`. Hook details: `reference/HOOKS.md`.
-
----
-
-## 9. Runtime State (`.geas/`)
-
-`.geas/` is the per-project runtime directory. It is gitignored and created by the setup skill. All runtime artifacts — task contracts, evidence, memory, event logs — live here.
-
-```
-.geas/
-├── state/
-│   ├── run.json                    # Mission state, checkpoint, remaining_steps
-│   ├── locks.json                  # Lock manifest for parallelism
-│   ├── session-latest.md           # Latest session summary
-│   └── events.jsonl                # Append-only audit trail
-├── missions/{mission_id}/
-│   ├── spec.json                   # Mission spec (frozen after intake)
-│   ├── design-brief.json           # Design brief
-│   ├── decisions/                  # Vote round results
-│   ├── evolution/                  # Debt register, gap assessments, rules updates
-│   ├── phase-reviews/             # Phase transition reviews
-│   └── tasks/{task_id}/
-│       ├── contract.json           # Task contract (scope, criteria, routing)
-│       ├── record.json             # Accumulated per-task record (all sections)
-│       ├── packets/                # Context packets for workers
-│       └── evidence/               # Role-based agent evidence
-├── memory/
-│   └── agents/{type}.md            # Per-agent persistent memory
-├── recovery/                       # Recovery packets
-└── rules.md                        # Conventions + team rules (unified)
-```
-
-> Artifact schemas: `protocol/09_RUNTIME_ARTIFACTS_AND_SCHEMAS.md`.
-
----
-
-## 10. Tool-Agnostic Principle
-
-Core skills must not assume any specific tool, framework, or package manager. This is what makes the Contract Engine domain-agnostic — the same evidence gate works whether the project uses pytest or a citation validator.
-
-**How it works:** The setup skill detects project conventions during initialization and records them in `.geas/rules.md`. Skills read this file to know what commands to run. No skill definition needs to change when the project's stack changes.
-
-**Prohibited in core skills:** Hardcoded tool names, framework assumptions, default package managers.
-
-**Allowed:** References to `rules.md`, marker file detection (package.json, go.mod, pyproject.toml), multiple-alternative examples.
-
----
-
-## 11. Protocol Reference
-
-The protocol documents in `docs/protocol/` are canonical for all protocol-level rules. This document is an architecture overview — when in doubt, the protocol takes precedence.
+This document does not restate the protocol or schemas. Here, `Protocol` means the documents under `docs/protocol/` together with the JSON schemas under `docs/schemas/`. This section only points implementers to the canonical sources they must consult.
 
 | Topic | Document |
 |---|---|
-| Design principles, 4 Pillars | `00_PROTOCOL_FOUNDATIONS` |
-| Agent types, authority, routing | `01_AGENT_TYPES_AND_AUTHORITY` |
-| Mission phases, modes | `02_MODES_MISSIONS_AND_RUNTIME` |
-| Task lifecycle, state machine | `03_TASK_MODEL_AND_LIFECYCLE` |
-| Workspace, locks, parallelism | `04_BASELINE_WORKSPACE_SCHEDULER_AND_PARALLELISM` |
-| Gate, vote, verdict | `05_GATE_VOTE_AND_FINAL_VERDICT` |
-| Specialist evidence matrix | `06_SPECIALIST_EVIDENCE_MATRIX` |
-| Memory system | `07_MEMORY_SYSTEM_OVERVIEW` |
-| Session recovery | `08_SESSION_RECOVERY_AND_RESUMABILITY` |
-| Artifacts, schemas | `09_RUNTIME_ARTIFACTS_AND_SCHEMAS` |
-| Enforcement, metrics | `10_ENFORCEMENT_CONFORMANCE_AND_METRICS` |
-| Evolution, debt, gap loop | `11_EVOLUTION_DEBT_AND_GAP_LOOP` |
+| Design foundations, risk | [docs/protocol/00_PROTOCOL_FOUNDATIONS.md](../protocol/00_PROTOCOL_FOUNDATIONS.md) |
+| Agent slots, authority | [docs/protocol/01_AGENTS_AND_AUTHORITY.md](../protocol/01_AGENTS_AND_AUTHORITY.md) |
+| Mission phases, final verdict | [docs/protocol/02_MISSIONS_PHASES_AND_FINAL_VERDICT.md](../protocol/02_MISSIONS_PHASES_AND_FINAL_VERDICT.md) |
+| Task lifecycle, evidence, gate, closure | [docs/protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md](../protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md) |
+| Baseline, workspace, parallelism | [docs/protocol/04_BASELINE_WORKSPACE_AND_PARALLELISM.md](../protocol/04_BASELINE_WORKSPACE_AND_PARALLELISM.md) |
+| Runtime state, recovery | [docs/protocol/05_RUNTIME_STATE_AND_RECOVERY.md](../protocol/05_RUNTIME_STATE_AND_RECOVERY.md) |
+| Memory | [docs/protocol/06_MEMORY.md](../protocol/06_MEMORY.md) |
+| Debt, gap | [docs/protocol/07_DEBT_AND_GAP.md](../protocol/07_DEBT_AND_GAP.md) |
+| Artifact paths and schema registry | [docs/protocol/08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md](../protocol/08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md) |
 
-> For visual diagrams of all major protocol flows, see [DIAGRAMS.md](../ko/DIAGRAMS.md).
+The final source of truth for artifact structure is the `docs/schemas/*.schema.json` file linked by each protocol document. If this implementation contract conflicts with a protocol document or schema, the protocol document and schema win.
+
+Visual diagrams are in [docs/DIAGRAMS.md](../DIAGRAMS.md).
+
+## 5. CLI `geas`
+
+The CLI is the single actuator through which every write under `.geas/` must pass. Its core job is to enforce the formal invariants of Runtime State.
+
+That includes schema validation, timestamp and ID injection, atomic rename, append-only enforcement, and transition guards. The CLI may also provide agent-support features such as schema templates, but those are auxiliary capabilities around its primary role as the write gate.
+
+This document covers only the CLI's responsibility and boundary within the layer model. The internal contract for command layout, input/output conventions, the write pipeline, transition-guard logic, append-only verification, and ID generation is defined in [CLI.md](CLI.md).
+
+## 6. Runtime State `.geas/`
+
+```
+.geas/
+├── events.jsonl                              # implementation support - required audit log (append-only)
+├── debts.json                                # project-level ledger (cross-mission)
+├── missions/
+│   └── {mission_id}/
+│       ├── spec.json                         # mission-spec
+│       ├── mission-design.md                 # mission-design
+│       ├── mission-state.json                # mission-state
+│       ├── phase-reviews.json                # append (reviews[])
+│       ├── deliberations.json                # append (entries[], level=mission)
+│       ├── mission-verdicts.json             # append (verdicts[])
+│       ├── consolidation/
+│       │   ├── gap.json
+│       │   ├── memory-update.json
+│       │   └── candidates.json               # implementation support - aggregated task evidence (not validated)
+│       └── tasks/
+│           └── {task_id}/
+│               ├── contract.json             # task-contract
+│               ├── implementation-contract.json
+│               ├── self-check.json
+│               ├── task-state.json
+│               ├── gate-results.json         # append (runs[])
+│               ├── deliberations.json        # append (entries[], level=task)
+│               └── evidence/
+│                   └── {agent}.{slot}.json   # append (entries[]) - one file per (agent, slot) pair
+└── memory/
+    ├── shared.md
+    └── agents/
+        └── {agent_type}.md
+```
+
+`.geas/` has two layers. **Protocol artifacts** are the spec, contract, state, and log files governed by schemas; they are part of the contract and are validated by `geas validate`. **Implementation support files** live alongside them under `.geas/`, but are not part of the protocol contract and are not schema-validated. `geas validate` checks only protocol artifacts. In the tree above, every file without a special note is a protocol artifact.
+
+The current implementation support files are these two:
+
+- `events.jsonl`: an audit log appended by the CLI when it performs **automated commands with side effects** such as bulk phase transitions, consolidation scaffolding, debt carry-forward, or deliberation guards that touch multiple artifacts. Simple single-artifact writes are already traceable from the artifact's `created_at` and `updated_at`, so they do not produce separate events. `events.jsonl` is not a protocol artifact, but the implementation must maintain it. Each line is an independent JSON object (`kind`, `actor`, `triggered_by`, `prior_event`, `created_at`, and so on). If an implementation records runtime-boundary events, entries such as `SessionStart` and `SessionEnd` may be appended here as well. The owner of the logged shapes and rules is `CLI.md` Section 14.7.
+- `consolidation/candidates.json`: a **convenience aggregation** produced by `geas consolidation scaffold` (`CLI.md` Section 14.4), which collects `debt_candidates`, `memory_suggestions`, and `gap_signals` from all task evidence in the current mission. It is not the single authoritative input to promotion. The source signals still live in each task's evidence, closure, and deliberation artifacts. The Orchestrator may use this file as a starting point, but when judgment matters it must return to the source artifacts before promoting information into project `debts.json`, mission `gap.json`, or mission `memory-update.json`. It can also go stale: if task evidence changes after scaffolding runs, `candidates.json` does not update itself. The Orchestrator must rerun the scaffold immediately before promotion if it needs a fresh aggregate.
+
+### File Owner Matrix
+
+In this table, Writer means the slot or agent that owns the judgment and content of the artifact. The actual `geas` call may be proxied through the Orchestrator because of runtime limits, but the artifact's semantic owner does not change. `candidates.json` and `events.jsonl` are implementation support files, not protocol artifacts, so they are excluded from this matrix.
+
+| File | Writer | When written |
+|---|---|---|
+| `spec.json` | `orchestrator` | specifying |
+| `mission-design.md` | `design-authority` | specifying |
+| `mission-state.json` | `orchestrator` | when phase or active tasks change |
+| `phase-reviews.json` | `orchestrator` | after each phase-gate judgment |
+| `deliberations.json` (mission) | `orchestrator` | after each deliberation completes |
+| `mission-verdicts.json` | `decision-maker` | consolidating |
+| `debts.json` (project-level) | `orchestrator` | each mission's consolidating - register new debts and update the status of debts touched in the mission |
+| `gap.json` | `design-authority` | consolidating |
+| `memory-update.json` | `orchestrator` | consolidating |
+| `contract.json` | `design-authority` | when a drafted task is created |
+| `implementation-contract.json` | `implementer` | when entering implementing |
+| `self-check.json` | `implementer` | after implementation finishes |
+| `task-state.json` | `orchestrator` | on lifecycle transitions and active-agent changes |
+| `gate-results.json` | `orchestrator` | after each gate run |
+| `deliberations.json` (task) | `orchestrator` | after each deliberation completes |
+| `evidence/{agent}.{slot}.json` | that agent | when it submits its own evidence (if one agent fills multiple slots, the files are still split per slot) |
+
+`contract.approved_by` is a field inside the task contract, not a separate file. The Orchestrator sets it by calling `geas task approve --by user|decision-maker`. A `user` approval is written by the Orchestrator after confirming it through direct conversation with the user. A `decision-maker` approval is written by the Orchestrator after relaying the spawned Decision Maker's judgment. In either case, the actual CLI call is made by the Orchestrator.
+
+`mission-verdicts.json` is different. A spawned Decision Maker subagent reads the mission artifacts and then directly calls `geas mission-verdict append`. In runtimes that do not allow subagents to call tools, this degrades to a proxy model: the Decision Maker returns its judgment to the Orchestrator, and the Orchestrator performs the CLI call on its behalf. In both models, the semantic author is still the Decision Maker.
+
+### Append-Only Invariants
+
+These logs never allow prior items to be overwritten or deleted. Retries and re-decisions are appended as new items.
+
+- `phase-reviews.reviews`
+- `mission-verdicts.verdicts`
+- `gate-results.runs`
+- `deliberations.entries`
+- `evidence/{agent}.{slot}.entries`
+
+The CLI enforces this rule. Only append is allowed. This is the foundation of auditability.
+
+### Drift Principle
+
+If a state file (`mission-state.json`, `task-state.json`) disagrees with the actual artifacts, always trust the artifacts. State files are indexes, not authority claims. The detailed recovery procedure follows [docs/protocol/05_RUNTIME_STATE_AND_RECOVERY.md](../protocol/05_RUNTIME_STATE_AND_RECOVERY.md).
+
+## 7. Skill
+
+A skill is the agent-facing execution interface for a step in the protocol. It does not contain the full shared contract. It exposes only the procedures, branches, required outputs, and input fragments the agent needs for execution. Full schema text, CLI internals, and runtime enforcement remain the responsibility of the Protocol + Schemas layer and the CLI layer.
+
+So what stays fixed in the Skill layer is not runtime-specific wording or transport, but rather what each step must leave behind and how it relates to the CLI. If a skill changes, the reason should normally be a protocol change or an execution-contract adjustment, not a mere difference in how one runtime phrases things.
+
+### 7.1 What Stays Fixed Across Implementations
+
+- the core skill set and the protocol step each skill owns
+- the `main_session` versus `spawned` execution model and the main slot involved
+- prerequisite artifacts, required outputs, and the representative CLI calls they use
+- the input fragments the agent must fill in and the retry flow on failure
+- the execution rule that all `.geas/` writes go through the CLI only
+
+### 7.2 What Skills Do Not Need to Know
+
+- the full raw JSON schemas
+- internal CLI algorithms such as append-only verification, transition guards, or ID/timestamp injection
+- implementation details of root discovery, atomic writes, or validation internals
+- runtime-specific hook, middleware, or callback mechanisms
+
+These details may still be fixed in the shared contract, but they belong to the Protocol + Schemas, CLI, and Client Adapter layers, not to the Skill layer.
+
+### 7.3 Shared Source Format
+
+In the shared repo, the canonical source for each core skill lives at `skills/{name}/SKILL.md`. If supporting explanation is needed, it can live under `references/`; if executable code is needed, it can live under `scripts/`. This is less a protocol contract than a shared source format that lets multiple adapters reuse the same skill content.
+
+```
+skills/
+├── mission/
+│   ├── SKILL.md
+│   └── references/
+│       ├── spec-interview.md
+│       ├── design-review-prompts.md
+│       └── task-breakdown-patterns.md
+├── task-draft/
+│   └── SKILL.md
+├── task-implement/
+│   ├── SKILL.md
+│   └── references/
+│       └── risk-level-patterns.md
+├── task-review/
+│   ├── SKILL.md
+│   └── references/
+│       └── review-rubrics.md
+├── task-verify/
+│   └── SKILL.md
+├── gate-run/
+│   ├── SKILL.md
+│   └── references/
+│       └── tier-procedures.md
+├── task-close/
+│   └── SKILL.md
+├── deliberation/
+│   └── SKILL.md
+├── phase-review/
+│   └── SKILL.md
+├── mission-consolidate/
+│   └── SKILL.md
+├── mission-verdict/
+│   └── SKILL.md
+└── resume/
+    └── SKILL.md
+```
+
+Rules for this shared source format:
+
+- `SKILL.md` is required.
+- `references/` is a progressive-disclosure mechanism that keeps the main body short. `SKILL.md` remains the single entry point to the supporting material, and deep chains of nested links should be avoided.
+- All paths use forward slashes. Do not use Windows path notation.
+- If the body becomes too long, move procedures or patterns into `references/`.
+- If executable code is needed, a `scripts/` directory may be added.
+
+### 7.4 Minimum `SKILL.md` Structure
+
+`SKILL.md` consists of YAML frontmatter plus a Markdown body. The frontmatter exists so adapters can convert the shared source into runtime-specific formats using a stable minimum set of metadata.
+
+Required frontmatter fields:
+
+```yaml
+---
+name: mission                     # required; 64 chars max; lowercase letters, digits, and hyphens only
+description: >                    # required; third person; 1024 chars max
+  Runs the specifying phase - captures the mission spec, mission design,
+  and initial task contract set with user approvals. Triggers at mission
+  start before any building work.
+---
+```
+
+- `name` is the stable identifier. Keep one naming convention across the entire skill set.
+- `description` summarizes what the skill does and when it is used. Adapters may reuse it as help or registration metadata in their runtime.
+
+The single source of truth for a skill's execution actor (`main_session` vs `spawned`) and its slot is the Skill Contract table below. Because that mapping is a protocol-defined invariant, it is not duplicated inside individual skill files.
+
+The body should include only the information an agent needs to execute the step. At minimum, it should make the following visible:
+
+```markdown
+# Purpose
+One paragraph explaining which protocol step this skill owns.
+
+# Prerequisites
+- artifacts that must already exist before invocation
+- required task or mission state
+
+# Procedure
+Write this as a checklist. Include the CLI commands to call and the branching conditions.
+
+Progress:
+- [ ] 1. ...
+- [ ] 2. ...
+
+# CLI Commands Used
+The list of `geas ...` commands used by this skill.
+
+# Outputs
+Files created or updated under `.geas/` after execution.
+
+# Failure Handling
+- schema validation failure -> read hints and retry
+- guard failure -> identify the missing prerequisite
+- other exceptional cases
+```
+
+Do not duplicate CLI internals, the full raw schemas, or runtime-specific interception mechanisms here. A skill is an execution interface for agents, not the full implementation manual.
+
+### 7.5 Core Skill Contract
+
+| skill | `execution` | `slot` | Purpose | Primary CLI |
+|---|---|---|---|---|
+| `/mission` | `main_session` | `orchestrator` | Entry point for the specifying phase (mission creation and initial approvals) | `mission create`, `mission design-set`, `task draft`, `task approve`, `mission-state update` |
+| `/task-draft` | `main_session` | `orchestrator` (spawns `design-authority`) | Draft a mid-mission task contract | `task draft`, `task approve` |
+| `/task-implement` | `spawned` | `implementer` | Implement, self-check, and submit implementation evidence | `impl-contract set`, `self-check set`, `evidence append` |
+| `/task-review` | `spawned` | `risk-assessor` / `operator` / `communicator` / `challenger` | Submit review evidence | `evidence append` |
+| `/task-verify` | `spawned` | `verifier` | Run independent verification and submit verification evidence | `evidence append` |
+| `/gate-run` | `main_session` | `orchestrator` | Run the Tier 0 -> 1 -> 2 gate | `gate run`, `task transition` |
+| `/task-close` | `main_session` | `orchestrator` | Write closure evidence | `evidence append`, `task transition` |
+| `/deliberation` | `main_session` | `orchestrator` (spawns participant slots) | Multi-party deliberation | `deliberation append` |
+| `/phase-review` | `main_session` | `orchestrator` | Judge a phase gate | `phase-review append`, `mission-state update` |
+| `/mission-consolidate` | `main_session` | `orchestrator` (spawns `design-authority` for gap) | Produce debts, gap, and memory-update | `debt register`, `gap set`, `memory-update set` |
+| `/mission-verdict` | `main_session` | `orchestrator` (spawns `decision-maker`) | Mission final verdict | `mission-verdict append` |
+| `/resume` | `main_session` | `orchestrator` | Resume after context loss | `resume` |
+
+The core skill set and the step responsibility in each row are fixed parts of the shared contract. Slash-command naming, registration, and sentence style may vary across adapters, but the step ownership and artifact relationships in this table do not.
+
+### 7.6 Skill Conventions
+
+- **Tool-agnostic**: a skill body does not assume a particular language, framework, or package manager. Tool choice is determined by the task contract's `verification_plan` and project conventions.
+- **CLI instructions only**: every `.geas/` write is expressed as a CLI command. Direct-write instructions like "save this JSON to that path" are forbidden.
+- **Expose only agent-facing input fragments**: a skill shows the field fragments the agent actually has to fill in, not the entire artifact schema. Fields injected automatically by the CLI and the full schema structure remain the responsibility of other layers. Only when the skill cannot give the agent a confident input shape should it fall back to `geas schema template`.
+- **Feedback loop**: on CLI failure, read the response `hints` and retry. Quality-critical paths such as gate failures or schema validation failures are intentionally designed as run -> read hint -> fix -> retry loops.
+- **Preserve step contracts**: wording and examples may change, but prerequisites, required outputs, CLI relationships, and branch meanings must stay intact.
+- **Progressive disclosure**: move detailed patterns and examples into `references/`, keeping only the minimum execution procedure in the main body.
+- **Explain why, not only what**: write the reason behind a rule. When the agent must generalize beyond the exact text of the skill, the "why" becomes its basis for judgment.
+
+### 7.7 Utility Skills
+
+Skills added purely for project convenience are allowed alongside the core set. They keep the same frontmatter and directory conventions, but unlike the core skills, they are not protocol-mandated and may be added or removed per client.
+
+- `/setup` - initialize `.geas/` for the project (`main_session`, `orchestrator`)
+- `/help` - explain how to discover skills and commands (`main_session`, `orchestrator`)
+
+Utility skills must not replace the step responsibility of any core skill. If they are added, their execution actor and slot mapping should be documented so they cannot be mistaken for core skills.
+
+## 8. Agent Roster
+
+The Agent Roster is the layer that realizes the protocol's fixed slot semantics and authority boundaries using the current implementation's concrete agent type catalog and per-task binding strategy. The meaning of slots and authority boundaries is owned by [docs/protocol/01_AGENTS_AND_AUTHORITY.md](../protocol/01_AGENTS_AND_AUTHORITY.md). This section covers only how those fixed slots are exposed as agent definitions and how tasks bind them.
+
+### Slot-to-Agent Mapping
+
+The protocol defines nine slots. The Agent Roster provides fixed agent definitions for authority slots and a concrete agent type catalog for specialist slots. Which concrete type is bound to which specialist slot for a given task is determined jointly by the task contract's `routing` and the adapter.
+
+| slot | Role | Activation model | Domain variation |
+|---|---|---|---|
+| `orchestrator` | mission control, task transitions, closure evidence, user dialogue | main session (no agent file) | none |
+| `decision-maker` | mission final verdict, approval of in-scope mid-mission tasks, review of mission design and the initial task set in standard mode | `spawned` | none |
+| `design-authority` | mission design, task decomposition, gap authoring | `spawned` | none |
+| `challenger` | counterarguments, deliberation participation | `spawned` | none |
+| `implementer` | implementation, self-check, implementation evidence | `spawned` | domain-specific |
+| `verifier` | independent verification | `spawned` | domain-specific |
+| `risk-assessor` | risk review | `spawned` | domain-specific |
+| `operator` | operational review | `spawned` | domain-specific |
+| `communicator` | documentation and communication review | `spawned` | domain-specific |
+
+The Orchestrator does not exist as an agent file. The main session that talks directly with the user fills the `orchestrator` role. Main-session skills such as mission entry, gate run, task close, and phase review execute inside that session. Other slots are activated as needed using the chosen authority agent or specialist concrete type.
+
+Among the authority slots, the three non-Orchestrator roles (`decision-maker`, `design-authority`, `challenger`) use slot-fixed agent definitions independent of domain. The five specialist slots use the implementation's concrete agent type catalog, and task-specific routing decides which concrete type is bound to which slot.
+
+### Agent File Layout
+
+```
+agents/
+├── authority/
+│   ├── decision-maker.md
+│   ├── design-authority.md
+│   └── challenger.md
+└── specialist/
+    ├── software/
+    │   ├── software-engineer.md
+    │   ├── platform-engineer.md
+    │   ├── qa-engineer.md
+    │   ├── security-engineer.md
+    │   └── technical-writer.md
+    └── research/
+        ├── research-engineer.md
+        ├── evaluator.md
+        ├── research-operator.md
+        └── research-writer.md
+```
+
+### Agent File Format (Portable Core)
+
+The actual runtime format of agent files differs by client. In the shared repo, they use the following portable core, and each client adapter rewraps that into its own runtime-specific format. Here, authority files are the shared source for slot-fixed agent definitions, and specialist files are the shared source for concrete agent type definitions.
+
+```yaml
+---
+name: decision-maker        # required; slot name for authority agents, concrete type name for specialists
+description: >              # required; third person; explains when this agent is used
+  Issues mission final verdicts, approves mid-mission scope-inside tasks,
+  and pre-approves mission design in standard mode.
+---
+
+# Role body
+The system prompt body for this agent: slot responsibilities, authority
+boundaries, default stance, and the posture it should take when running
+its skills.
+```
+
+Only `name` and `description` are required. The body is free-form Markdown. For authority agent definitions, the slot is determined by the file path (`agents/authority/{slot}.md`). For specialist definitions, the domain and concrete type are determined by the file path (`agents/specialist/{domain}/{type}.md`), while the slot they bind to is decided at runtime by the task contract's `routing` and the adapter. Cross-references between agent files and runtime tool declarations such as `allowed_tools` are added during adapter-specific rewrapping.
+
+### Domain Profiles
+
+Domain profiles are an optional concept an implementation may use to organize its specialist concrete agent type catalog. Current protocol artifacts and schemas do not make this a required field in the mission spec. So one implementation may use explicit profiles, while another may skip them entirely and choose concrete types directly from the full catalog at task-routing time.
+
+If an implementation does use explicit domain profiles, the profile acts as a selection strategy for which specialist concrete agent types should be preferred by default in that mission. Even then, the skills, CLI, and protocol still behave the same. Only the default candidate set of available specialist concrete types changes.
+
+### Agent != Identity
+
+One concrete agent type may bind to different specialist slots depending on the task. For example, `platform-engineer` may work as the `implementer` on one task and as the `operator` on another. But the protocol always reads slot semantics first. Which concrete type filled the slot is reconstructed from the task contract's `routing`, the `evidence/{agent}.{slot}.json` path, and the `agent` and `slot` fields inside the artifact. When independence matters, such as `implementer` followed by `verifier`, the adapter must either enforce separate contexts or at minimum make the role separation visible in a way that remains auditable.
+
+## 9. Client Adapter
+
+The client adapter is the projection layer that makes shared skills, shared agents, and the CLI executable in a specific agent runtime. It does not reinterpret the meaning of the shared contract. Its job is to carry that contract through the runtime's own session model, agent model, and command transport.
+
+From the perspective of this design document, the adapter has five minimum responsibilities:
+
+- keep the main session in the `orchestrator` role
+- expose the shared skill source and shared agent source in the runtime's own format
+- bind authority slots and specialist concrete types according to the task contract's `routing`
+- map `spawned` execution onto separate runtime contexts or an equivalent mechanism
+- make the `geas` CLI and `.geas/` reads available inside the runtime
+
+Different runtimes may vary in session persistence, subagent mechanics, automatic interception points, and source transport format. Those differences may change execution strategy and enforcement strength, but they must never change protocol semantics or artifact meaning.
+
+In particular, automatic enforcement points such as blocking direct `.geas/` writes, restoring context, recording session boundaries, or detecting external edits may be stronger in some runtimes than in others. Some runtimes can block violations before they happen; others rely more on agent discipline and post-hoc checks.
+
+## 10. Extension Points
+
+- **Extend the specialist catalog** - an implementation may add new specialist concrete agent types, new combinations of types, or new task-specific binding strategies. In implementations using the shared source layout, these usually live under `agents/specialist/`.
+- **Add a new client adapter** - an implementation may add an adapter for another agent runtime. The key requirement is to satisfy the minimum responsibilities in Section 9, not to copy another implementation's session model or transport.
+- **Add new utility skills** - implementations may freely add project-convenience skills beyond the core set. Their names, registration model, and exposure format are implementation-specific, so long as they do not replace mandatory protocol-step skills.
+- **Add dashboards or observability tools** - read-only tools that consume `.geas/` artifacts are always allowed. Their storage location and observation model are implementation-specific. If they need to write, they do so through the CLI.
+
+## 11. Disallowed Changes
+
+- **Bypassing the protocol** - omitting or short-circuiting the states, transitions, or artifacts defined by the protocol.
+- **Bypassing the CLI for writes** - letting agents modify `.geas/` files directly with edit or write tools.
+- **Mutating append-only logs** - changing or deleting past review, verdict, run, or entry objects. Corrections are appended as new items instead.
+- **Forging slot identity** - allowing an agent to submit evidence under a slot name that is not the one it actually held.
+- **Redefining core skill meaning** - client-specific names or invocation patterns may differ, but the per-step responsibilities and output relationships must remain protocol-aligned.
+
+Client-specific mappings, current implementation status, and migration procedures live under `docs/reference/`. This document describes the target implementation structure independently of those materials.

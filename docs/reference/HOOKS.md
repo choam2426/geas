@@ -400,7 +400,7 @@ Hooks are declared in `plugin/hooks/hooks.json`. The schema is:
 | 1 | Error (logged, but does not block) |
 | 2 | Block (only meaningful for `Stop` hooks) |
 
-For protocol details on hook failure handling, conformance checking, and metrics collection, see `protocol/10_ENFORCEMENT_CONFORMANCE_AND_METRICS.md`.
+For related protocol details on runtime validation and recovery, see `protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md`, `protocol/05_RUNTIME_STATE_AND_RECOVERY.md`, `protocol/08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md`, and `architecture/CLI.md`.
 
 ---
 

@@ -400,7 +400,7 @@ Hook은 `plugin/hooks/hooks.json`에 선언한다. 스키마:
 | 1 | 오류 (기록되지만 차단하지 않음) |
 | 2 | 차단 (`Stop` hook에서만 유효) |
 
-Hook 실패 처리, 적합성 검사, 메트릭 수집에 대한 프로토콜 상세는 `protocol/10_ENFORCEMENT_CONFORMANCE_AND_METRICS.md`를 참조한다.
+Hook 실패 처리, 런타임 검증, 재개와 관련된 프로토콜 상세는 `protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md`, `protocol/05_RUNTIME_STATE_AND_RECOVERY.md`, `protocol/08_RUNTIME_ARTIFACTS_AND_SCHEMAS.md`, `architecture/CLI.md`를 참조한다.
 
 ---
 
