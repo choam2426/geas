@@ -624,9 +624,13 @@ CLI는 atomic 단일 파일 쓰기가 기본이지만, 아래 범위 내에서 *
 
 `geas deliberation append --level mission|task [--task <id>]`는 append 시 다음을 검증한다.
 
-- Voter 집합이 요구 조건(mission 기준 3+ voter, task 기준 2+ voter)을 충족하는지.
+- Voter 수가 schema 최소(`votes.minItems: 2`)를 충족하는지.
 - `result` 필드가 voter들의 vote 집합과 일관되는지 (agree 과반 → agree, disagree 과반 → disagree, escalate가 하나라도 있으면 escalate, 그 외 inconclusive).
 - 조건 미충족 시 `guard_failed` 반환 (누락 voter 또는 result 불일치 명시).
+
+Full_depth mission의 specifying phase에서 요구되는 3-voter + Challenger 포함 deliberation은 CLI가 append 시점에 강제하지 않는다. 이 요구는 phase review가 검증한다 (doc 02) — specifying phase를 closing할 때 phase-review guard가 해당 deliberation entry가 존재하고 voter 구성이 요건을 충족하는지 확인한다. CLI는 입력 schema 적합성만 본다.
+
+Orchestrator는 schema 최소 이상으로 voter 수를 자율적으로 늘릴 수 있다. 사안 무게가 커서 더 넓은 관점이 필요하다고 판단하면 추가 specialist를 voter로 포함시켜 deliberation을 구성한다. 이런 확장은 CLI의 별도 검증 없이 허용된다.
 
 Deliberation entry는 **결과가 확정된 상태로만** append된다. "열린 심의"는 파일에 기록되지 않고 orchestrator/agent 맥락 안에서만 추적된다. 이 모델은 append-only 계약을 유지한다 — 한 번 기록된 entry는 수정되지 않는다.
 

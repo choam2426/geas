@@ -186,7 +186,9 @@ Mission-level deliberation은 보통 다음 때 열린다.
 - `standard`: 위 세 상황 중 하나가 발생하면 엶. mission design과 초기 task contract 집합은 Decision Maker가 사용자 승인 전에 선승인한다.
 - `full_depth`: standard 규칙에 더해, 사용자가 mission design과 초기 task contract 집합을 승인하기 전에 각각 최소 한 번의 deliberation을 필수로 엶. 이 deliberation에는 Decision Maker, Challenger, 그리고 해당 미션 맥락에 맞는 specialist slot 한 명이 voter로 참여한다 (최소 3 voter). 이 deliberation이 통과하면 Decision Maker의 선승인도 그 결과로 간주한다.
 
-Challenger 참가는 lightweight와 standard에서는 선택이며, full_depth에서는 필수다. Voter slot이 artifact에 기록되므로 phase gate는 full_depth mission의 deliberation entry에 `voter: challenger`가 포함되는지 확인하고 누락 시 해당 phase를 통과시키지 않는다.
+Challenger 참가는 lightweight와 standard에서는 선택이며, full_depth에서는 필수다. Voter slot이 artifact에 기록되므로 phase gate는 full_depth mission의 deliberation entry에 `voter: challenger`가 포함되는지와 voter 수가 3 이상인지 확인하고 어느 하나라도 누락되면 해당 phase를 통과시키지 않는다. 이 3-voter + Challenger 요구는 phase review가 강제하며, CLI의 `deliberation append`는 schema 최소(2 voter) 이상이면 받아들인다 — 즉 요건 위반은 phase 종결 시점에 검출된다.
+
+Orchestrator는 이 최소 요건 이상으로 voter 수를 늘릴 재량을 갖는다. 사안 무게나 범위를 고려해 판단이 더 넓은 관점을 요구한다고 판단하면 추가 specialist를 voter로 포함시킨다. 어느 mode에서든 위에서 정의한 최소 요건은 동일하게 적용되고, 그 이상은 orchestrator의 판단에 맡긴다.
 
 Task를 종결하기 위한 deliberation은 doc 03이 owner다.
 
