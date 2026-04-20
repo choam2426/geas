@@ -54,12 +54,12 @@ flowchart TD
     C["Design Authority가 mission design 작성"]
     D{mission mode?}
     D1["사용자 승인"]
-    D2["Decision Maker 선승인<br/>→ 사용자 승인"]
+    D2["Decision Maker 리뷰<br/>→ 사용자 승인"]
     D3["Deliberation<br/>DM + Challenger + specialist 1명<br/>→ 사용자 승인"]
     E["Design Authority가<br/>초기 task contract 집합 작성"]
     F{mission mode?}
     F1["사용자 승인"]
-    F2["Decision Maker 선승인<br/>→ 사용자 승인"]
+    F2["Decision Maker 리뷰<br/>→ 사용자 승인"]
     F3["Deliberation<br/>DM + Challenger + specialist 1명<br/>→ 사용자 승인"]
     G(["building phase 진입"])
 
@@ -182,7 +182,7 @@ Slot은 역할 자리다. 구현체는 concrete agent type으로 매핑하지만
 flowchart TB
     subgraph Authority["Authority slot"]
         O["orchestrator<br/>task 상태 관리<br/>closure decision<br/>memory update"]
-        DM["decision-maker<br/>mission final verdict<br/>중간 scope 내 task 승인<br/>standard 선승인"]
+        DM["decision-maker<br/>mission final verdict<br/>중간 scope 내 task 승인<br/>standard 리뷰"]
         DA["design-authority<br/>mission design<br/>task 분해<br/>gap 작성"]
         CH["challenger<br/>반대 의견<br/>deliberation 참여<br/>(full_depth 필수)"]
     end
