@@ -96,9 +96,10 @@ CLI는 `.geas/` 아래 모든 쓰기가 통과해야 하는 단일 actuator다. 
 │       ├── deliberations.json                # append (entries[], level=mission)
 │       ├── mission-verdicts.json             # append (verdicts[])
 │       ├── consolidation/
-│       │   ├── debts.json
-│       │   ├── gap.json
-│       │   └── memory-update.json
+│       │   ├── debts.json                     # 프로토콜 artifact
+│       │   ├── gap.json                       # 프로토콜 artifact
+│       │   ├── memory-update.json             # 프로토콜 artifact
+│       │   └── candidates.json                # 구현체 보조 (validate 대상 아님)
 │       └── tasks/
 │           └── {task_id}/
 │               ├── contract.json             # task-contract
@@ -115,6 +116,8 @@ CLI는 `.geas/` 아래 모든 쓰기가 통과해야 하는 단일 actuator다. 
 │       └── {agent}.md
 └── events.jsonl                              # append-only 감사 로그 (필수)
 ```
+
+`.geas/`는 두 계층으로 구성된다. **프로토콜 artifact**(각 schema가 관리하는 spec·contract·state·log 파일들)는 계약의 일부이며 `geas validate`의 검증 대상이다. **구현체 보조 파일**(`consolidation/candidates.json`처럼 skill·CLI 자동화가 작업 편의를 위해 생성하는 파일)은 `.geas/` 안에 공존하지만 schema 검증 대상이 아니고 프로토콜 계약에 포함되지 않는다. `geas validate`는 프로토콜 artifact만 검사한다.
 
 ### 파일 owner 매트릭스
 

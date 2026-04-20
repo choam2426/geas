@@ -42,6 +42,7 @@ CLI가 책임지는 일은 여섯이다.
 | `register` | 식별자 있는 entry를 새로 추가 | debts |
 | `run` | 실행 + 결과 append (복합) | gate (tier 실행 결과를 runs에 append) |
 | `read` | 파일 읽기 또는 요약 출력 | schema template, resume |
+| `scaffold` | 구현체 보조 파일 생성 (프로토콜 artifact 아님 — validate 대상 아님) | consolidation candidates |
 
 ### Mission-level 명령
 
@@ -58,7 +59,7 @@ CLI가 책임지는 일은 여섯이다.
 | `geas debt update-status` | update | `missions/{id}/consolidation/debts.json` |
 | `geas gap set` | set | `missions/{id}/consolidation/gap.json` |
 | `geas memory-update set` | set | `missions/{id}/consolidation/memory-update.json` |
-| `geas consolidation scaffold` | read | 모든 task evidence의 candidates 수집해 `consolidation/candidates.json` 생성 (§14.5) |
+| `geas consolidation scaffold` | scaffold | 모든 task evidence의 candidates 수집해 `consolidation/candidates.json` 생성 (§14.5) |
 
 ### Task-level 명령
 
