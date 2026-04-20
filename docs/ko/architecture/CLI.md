@@ -363,25 +363,36 @@ Guard 실패 hints는 "무엇이 빠졌는가"를 구조화한다.
 - `deliberations.entries`
 - `evidence.entries`
 
+### 입력 shape
+
+Append 명령의 stdin payload는 **단일 entry object**다. 전체 wrapper(`{entries: [...]}` 또는 파일 최상위)를 보내지 않는다. 호출자는 entry 안쪽 필드만 채우고, CLI가 파일 로드·배열 append·timestamp 주입·파일 쓰기를 담당한다.
+
+```bash
+geas evidence append --task task-001 --agent implementer <<'EOF'
+{
+  "evidence_kind": "implementation",
+  "summary": "...",
+  "artifacts": [...]
+}
+EOF
+```
+
 ### 검증 알고리즘
 
 Append 명령이 호출되면:
 
 ```
-1. 기존 파일 로드 (없으면 최초 create와 동등 — entries=[payload], timestamps 주입)
-2. 기존 entries 배열 A와 새 payload의 entries B 비교
-3. B.length == A.length + 1 이어야 함
-4. B[0..A.length-1] 는 A와 byte-identical (추가된 부분 외 변경 금지)
-5. B[A.length] 는 새 entry — schema 검증, entry_id = max(existing) + 1, created_at 주입
-6. 통과 시 atomic write
+1. 기존 파일 로드 (없으면 빈 wrapper 초기화 — 최상위 메타 필드 + entries=[])
+2. stdin payload를 entry schema로 검증
+3. 새 entry에 CLI 주입 필드 추가 (entry_id = max(existing) + 1, created_at = 현재 UTC)
+4. 기존 entries 배열에 새 entry append
+5. 파일 최상위 updated_at 갱신
+6. atomic write (temp → fsync → rename)
 ```
 
-조건 위반이면 `append_only_violation` 반환. 예:
-- 기존 entry를 덮어썼음 (B[i] ≠ A[i] for i < A.length)
-- Entry를 삭제했음 (B.length ≤ A.length)
-- 여러 entry를 한 번에 추가 (B.length > A.length + 1)
+호출자가 보낸 payload에 `entry_id`, `created_at` 같은 CLI 주입 필드가 들어 있으면 CLI가 무시하고 자체 값으로 덮어쓴다 — id 충돌과 위조 방지.
 
-한 번에 여러 entry 추가는 금지 — 각 entry의 `created_at`을 CLI가 정확히 주입하려면 한 번에 하나여야 하고, 그래야 각 entry의 시간 순서가 실제 CLI 호출 순서와 일치한다.
+한 번에 여러 entry 추가는 불가능하다 (입력 shape 자체가 단일 entry). 배치가 필요하면 호출자가 반복 호출해야 하며, 이 경우 각 호출의 `created_at`이 실제 CLI 호출 순서와 일치한다.
 
 ### 예외
 
