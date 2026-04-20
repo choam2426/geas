@@ -86,6 +86,7 @@ CLI는 `.geas/` 아래 모든 쓰기가 통과해야 하는 단일 actuator다. 
 
 ```
 .geas/
+├── config.json                               # 루트 식별 + worktree delegate (CLI.md §13)
 ├── missions/
 │   └── {mission_id}/
 │       ├── spec.json                         # mission-spec
