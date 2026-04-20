@@ -420,7 +420,7 @@ description: >              # 필수. 3인칭, 언제 이 agent가 쓰이는지
 
 ### Agent ≠ 정체성
 
-하나의 concrete agent type이 task에 따라 서로 다른 specialist slot으로 바인딩될 수 있다. 예를 들어 `platform-engineer`가 어떤 task에서는 `implementer`, 다른 task에서는 `operator`로 일할 수 있다. 하지만 protocol이 읽는 것은 언제나 slot semantics이고, 어떤 concrete type이 그 slot을 수행했는지는 task contract의 `routing`과 `evidence/{agent}.json` 경로 및 내부 `agent` 필드로 복원된다. 독립성이 요구되는 경우(예: implementer 직후 verifier)는 adapter가 별도 컨텍스트를 강제하거나 최소한 role separation이 audit 가능하게 드러나도록 해야 한다.
+하나의 concrete agent type이 task에 따라 서로 다른 specialist slot으로 바인딩될 수 있다. 예를 들어 `platform-engineer`가 어떤 task에서는 `implementer`, 다른 task에서는 `operator`로 일할 수 있다. 하지만 protocol이 읽는 것은 언제나 slot semantics이고, 어떤 concrete type이 그 slot을 수행했는지는 task contract의 `routing`과 `evidence/{agent}.{slot}.json` 경로 및 내부 `agent`·`slot` 필드로 복원된다. 독립성이 요구되는 경우(예: implementer 직후 verifier)는 adapter가 별도 컨텍스트를 강제하거나 최소한 role separation이 audit 가능하게 드러나도록 해야 한다.
 
 ## 9. Client Adapter
 

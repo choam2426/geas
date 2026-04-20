@@ -12,7 +12,7 @@
   "properties": {
     "entries": {
       "type": "array",
-      "description": "Registered debt entries. Empty array if this mission registered no debts.",
+      "description": "Registered debt entries across all missions in this project. Empty array if no debt has been registered yet.",
       "items": {
         "$ref": "#/$defs/debtItem"
       }
@@ -93,7 +93,7 @@
               "pattern": "^task-[0-9]{3}$"
             }
           },
-          "description": "Mission and task where this debt was first observed. For carry-forward debts from prior missions, points to the originating mission/task."
+          "description": "Mission and task where this debt was first observed. Since the ledger is project-level, a debt introduced in a prior mission stays in the ledger and is visible to all subsequent missions until its status changes."
         },
         "status": {
           "type": "string",
