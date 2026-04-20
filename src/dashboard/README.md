@@ -1,6 +1,6 @@
 # Geas Dashboard
 
-Desktop application for monitoring [Geas](https://github.com/choam2426/geas)-managed projects. Displays mission progress, a task kanban board, and tech debt summaries by reading `.geas/` directories from registered projects. Built with Tauri v2, the app is read-only and never modifies project data.
+Desktop viewer for [Geas](https://github.com/choam2426/geas)-managed projects. Reads the v3 `.geas/` artifact tree and renders mission progress, task lifecycle, evidence gate status, debts, gap, memory, and events. Built with Tauri v2; the app is strictly read-only and never mutates project data.
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ Desktop application for monitoring [Geas](https://github.com/choam2426/geas)-man
 ## Getting Started
 
 ```bash
-cd dashboard
+cd src/dashboard
 npm install
 npm run tauri dev
 ```
@@ -29,60 +29,69 @@ Produces a native installer in `src-tauri/target/release/bundle/`.
 ## Project Structure
 
 ```
-dashboard/
-├── src/                    # React frontend (TypeScript)
-│   ├── main.tsx            # Entry point
-│   ├── App.tsx             # Root component, routing between views
-│   ├── types.ts            # Shared TypeScript types
-│   ├── colors.ts           # Shared color constants (severity, risk, phase)
-│   ├── index.css           # Tailwind CSS entry
+src/dashboard/
+├── src/                         # React frontend (TypeScript)
+│   ├── main.tsx                 # Entry point
+│   ├── App.tsx                  # Root component, routing between views
+│   ├── types.ts                 # v3 types mirroring Rust models
+│   ├── colors.ts                # Shared color constants (severity, risk, phase, status)
+│   ├── index.css                # Tailwind CSS entry
+│   ├── lib/
+│   │   └── geasClient.ts        # Typed Tauri invoke wrapper — single data-access point
 │   └── components/
-│       ├── Sidebar.tsx           # Project list sidebar (collapsible, responsive)
-│       ├── AddProjectDialog.tsx  # Project path registration dialog
-│       ├── ProjectOverview.tsx   # Mission status summary view
-│       ├── MissionHistory.tsx    # Browse past and active missions
-│       ├── KanbanBoard.tsx       # Task cards organized by state (responsive stacking)
-│       ├── TaskCard.tsx          # Individual task card
-│       ├── DebtPanel.tsx         # Tech debt severity breakdown (inline summary)
-│       ├── DebtDetailPanel.tsx   # Full debt list with severity/status filters
-│       ├── DebtDetailModal.tsx   # Debt item detail modal (focus-trapped, accessible)
-│       ├── PhaseBadge.tsx        # Mission phase indicator
-│       ├── DebtBadge.tsx         # Debt count indicator
-│       ├── ProgressBar.tsx       # Task progress visualization
-│       ├── EmptyState.tsx        # Empty data placeholder
-│       └── ErrorState.tsx        # Error/missing project placeholder
-├── src-tauri/              # Rust backend (Tauri v2)
+│       ├── Sidebar.tsx          # Project list sidebar (collapsible, responsive)
+│       ├── AddProjectDialog.tsx # Project path registration dialog
+│       ├── ProjectDashboard.tsx # Project summary + mission list
+│       ├── MissionHistory.tsx   # Mission browser
+│       ├── MissionDetailView.tsx# Mission spec + phase reviews + gap + consolidation packet
+│       ├── KanbanBoard.tsx      # 9-state task board
+│       ├── TaskCard.tsx         # Individual task card
+│       ├── TaskDetailModal.tsx  # Task detail + evidence gate status view
+│       ├── DebtDetailPanel.tsx  # Project-level debts table with filters
+│       ├── DebtDetailModal.tsx  # Debt item detail
+│       ├── MemoryBrowser.tsx    # shared.md + agent memory + memory-update changelog
+│       ├── TimelineView.tsx     # events.jsonl viewer
+│       ├── PhaseBadge.tsx       # Mission phase indicator
+│       ├── ProgressBar.tsx      # Task progress visualization
+│       ├── EmptyState.tsx       # Empty data placeholder
+│       └── ErrorState.tsx       # Error / missing project placeholder
+├── src-tauri/                   # Rust backend (Tauri v2)
 │   ├── src/
-│   │   ├── main.rs         # Tauri app entry point
-│   │   ├── lib.rs          # Plugin and command registration
-│   │   ├── config.rs       # App config persistence (project paths)
-│   │   ├── models.rs       # Rust structs mirroring .geas/ JSON schemas
-│   │   ├── watcher.rs      # File system watcher (notify crate, debounced)
+│   │   ├── main.rs              # Tauri app entry point
+│   │   ├── lib.rs               # Command registration
+│   │   ├── config.rs            # Registered-project persistence
+│   │   ├── models.rs            # Rust structs for v3 artifacts
+│   │   ├── watcher.rs           # Debounced file watcher on .geas/
 │   │   └── commands/
-│   │       └── mod.rs      # Tauri commands (filesystem reads)
+│   │       └── mod.rs           # Tauri commands (filesystem reads, per DASHBOARD.md)
 │   ├── Cargo.toml
-│   └── tauri.conf.json     # Tauri window and build configuration
+│   └── tauri.conf.json
 ├── package.json
 ├── vite.config.ts
 └── tsconfig.json
 ```
 
-## Features
+## Views (per `docs/reference/DASHBOARD.md`)
 
-- **Project registration** -- Add and remove local project paths through the UI. Paths persist across app restarts.
-- **Auto-refresh** -- The Rust backend watches `.geas/` directories for file changes and automatically refreshes project data. No manual reload needed.
-- **Mission overview** -- See mission name, current phase, task progress, debt count, and last activity time for each registered project.
-- **Mission history** -- Browse all missions for a project (past and active). Each mission card shows phase, task progress, and creation date. Selecting a mission opens its kanban board.
-- **Kanban board** -- View tasks organized by their 7 primary states (drafted, ready, implementing, reviewed, integrated, verified, passed) and 4 auxiliary states (blocked, escalated, cancelled, paused). Cards display title, assignee type, and risk level. Columns scroll horizontally on wider screens with reliable overflow handling.
-- **Parallel task display** -- When the orchestrator runs tasks in parallel, active batch members are highlighted with a green pulse indicator and completed-in-batch tasks show a checkmark. Single-task mode continues to display the agent name and pipeline step.
-- **SVG icons** -- UI elements use lucide-react SVG icons for a polished, consistent look.
-- **Debt tracking** -- Severity breakdown (low, normal, high, critical) per project from `debt-register.json`. The overview shows a summary; the debt detail panel provides a full item list with severity and status filters (all/open/resolved). Clicking any debt item opens a detail modal showing severity, kind, status, description, and the introducing task ID.
-- **Responsive layout** -- Sidebar collapses to a narrow icon strip on screens below 1024px and can be manually toggled. Kanban columns stack vertically on mobile and scroll horizontally on desktop. Padding and font sizes scale with breakpoints.
-- **Error handling** -- Graceful display when a registered project path is missing or has no `.geas/` directory.
+- **Mission overview** — `spec.json` + `mission-state.json` + `mission-design.md` + `mission-verdicts.json`.
+- **Task table / Kanban** — `tasks/*/contract.json` + `tasks/*/task-state.json` grouped by 9-state lifecycle (drafted, ready, implementing, reviewed, verified, passed, plus aux blocked / escalated / cancelled).
+- **Evidence gate status** — per-task view combining `contract.json` routing, `self-check.json`, `gate-results.json` latest run, and the `evidence/{agent}.{slot}.json` file index with required-reviewer slot coverage.
+- **Phase review history** — ordered entries of `phase-reviews.json`.
+- **Debt register** — project-level `.geas/debts.json`, filterable by severity and status.
+- **Gap signals** — `consolidation/gap.json` grouped by fully-delivered / partially-delivered / not-delivered / unexpected-additions.
+- **Memory panel** — `memory/shared.md` + `memory/agents/*.md` + the latest mission's `consolidation/memory-update.json` changelog.
+- **Events timeline** — `.geas/events.jsonl` with per-actor badges.
+- **Consolidation packet** — side-by-side of `consolidation/candidates.json` vs the promoted debt / gap / memory-update artifacts.
+
+All views degrade gracefully on missing or malformed artifacts (explicit empty states, never fatal).
+
+## Data Access
+
+Every frontend component imports the typed wrapper at `src/lib/geasClient.ts` instead of calling `invoke` directly. The Rust side exposes v3-aligned commands (`get_project_summary`, `get_mission_detail`, `list_tasks`, `get_task_detail`, `get_gate_results`, `read_evidence_file`, `get_debts`, `get_events`, `get_shared_memory`, and so on). The file watcher emits `geas://project-changed` debounced events on any change inside `.geas/`.
 
 ## Configuration
 
-App data (registered project paths and preferences) is stored as JSON in the OS-standard application data directory:
+App data (registered project paths) is stored as JSON in the OS-standard application data directory:
 
 | OS      | Location                                                    |
 |---------|-------------------------------------------------------------|
@@ -95,14 +104,15 @@ App data (registered project paths and preferences) is stored as JSON in the OS-
 | Layer    | Technology                                         |
 |----------|---------------------------------------------------|
 | Shell    | Tauri v2                                           |
-| Frontend | React 19, TypeScript 5, lucide-react               |
+| Frontend | React 19, TypeScript 5, lucide-react, react-markdown |
 | Bundler  | Vite 6                                             |
 | Styling  | Tailwind CSS v4                                    |
-| Font     | Inter via @fontsource (self-hosted, works offline) |
+| Font     | Inter via @fontsource (self-hosted)                |
 | Backend  | Rust (2021 edition), serde, notify, chrono         |
 
 ## Limitations
 
-- Read-only -- the app never writes to `.geas/` directories.
-- Dark theme only -- no light mode toggle.
+- Read-only — the dashboard never writes to `.geas/`.
+- Dark theme only.
 - No installer signing or distribution packaging.
+- Rust compile is validated by the user's local toolchain; the CI-visible check is the `vite build` step only.
