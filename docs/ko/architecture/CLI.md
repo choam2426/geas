@@ -553,7 +553,7 @@ CLI는 `--cwd`·`--project-root` 같은 override를 받지 않는다. 루트 변
 - Canonical config에만 존재, setup이 UUID v4를 생성.
 - 응답 JSON에 항상 포함되어 agent가 "어느 저장소에 썼는지" 확인 가능.
 - `canonical_root` 경로가 다른 프로젝트로 혼동되거나 두 `.geas/`가 같은 id를 가지면 `invalid_argument` 반환.
-- `mission create` 시 mission-spec의 `root_id` 필드에 snapshot되어 artifact가 어느 저장소에서 만들어졌는지 감사 가능.
+- Mission·task artifact에는 snapshot하지 않는다 — root 식별은 `config.json` 하나에서만 한다. 감사 용도로 root_id를 넣고 싶다면 `events.jsonl`의 이벤트 payload에 담는다.
 
 ### 불변 불가침
 
@@ -597,7 +597,6 @@ CLI는 atomic 단일 파일 쓰기가 기본이지만, 아래 범위 내에서 *
 ### 14.2 Carry-forward
 
 `geas mission create --carry-from <source_mission_id>` 추가 부작용:
-- 새 mission의 `spec.json`에 `inherited_debt: [...]` 필드 기록 (source mission의 open debt id 목록 snapshot)
 - 새 mission의 `consolidation/debts.json`에 source의 `status: open` 항목을 그대로 복사 (`introduced_by`·`resolved_by`·`resolution_rationale` 유지)
 - `events.jsonl`에 `{kind: "debt_carried", from_mission, to_mission, items: [...], actor: "cli:auto"}` append
 
