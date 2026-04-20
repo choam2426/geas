@@ -25,6 +25,7 @@ CLI가 책임지는 일은 여섯이다.
 - **상태 저장 없음.** CLI는 자체 상태를 저장하지 않는다. 매 호출이 독립적이고 재현 가능하다.
 - **멱등성 원칙.** 같은 입력으로 같은 `.geas/` 상태에 반복 호출하면 결과가 동일하다 (append 명령은 동일 entry가 이미 마지막에 있으면 no-op 반환).
 - **Skill/agent discipline.** CLI는 agent의 선의를 검증하지 않는다. 잘못된 JSON은 schema가 걸러내지만, "이 전이가 정당한가"의 의미적 판단은 skill과 agent의 책임이다. CLI는 형식과 전이 선행 조건만 본다.
+- **Skill이 payload shape의 primary guide.** 각 skill 본문이 그 skill이 만드는 payload의 구조(LLM이 채울 필드 + placeholder + enum 허용값)를 담는다. `geas schema template`은 skill이 shape을 제공하지 않거나 agent가 확신이 없을 때 쓰는 **fallback**이다. 이렇게 매 호출마다 template 조회를 안 해도 되게 설계해 turn-scoped runtime에서 token 비용을 줄인다.
 
 ## 3. 명령 체계
 
@@ -95,25 +96,30 @@ CLI가 책임지는 일은 여섯이다.
 
 JSON payload는 **stdin으로만** 받는다. 플래그 없음.
 
+**권장 패턴 — quoted heredoc**:
+
 ```bash
-# heredoc
 geas evidence append --task task-001 --agent implementer <<'EOF'
 {
   "evidence_kind": "implementation",
-  "summary": "..."
+  "summary": "$HOME 경로와 `backtick`이 있어도 안전"
 }
 EOF
-
-# 파이프
-cat payload.json | geas mission create
-
-# echo
-echo '{"name": "..."}' | geas mission create
 ```
 
-CLI는 stdin이 TTY가 아니면 UTF-8 JSON으로 해석한다. Payload가 필요한 명령인데 stdin이 비어 있거나 TTY면 입력 누락으로 실패한다. JSON 파싱 실패는 `invalid_argument`.
+`<<'EOF'`의 quoted delimiter(`'EOF'`)가 shell 변수 확장과 backtick 평가를 전부 차단한다. JSON 원문이 CLI에 그대로 전달된다. **`<<EOF`(unquoted)는 금지** — shell이 `$`·backtick을 치환해 JSON을 오염시킨다.
 
-Shell escaping을 피하려면 heredoc 또는 파일 경유 파이프가 가장 안전하다.
+대체 경로:
+
+```bash
+# 파일 경유
+cat payload.json | geas mission create
+
+# 짧은 payload + 내용에 single-quote 없으면 echo 가능
+echo '{"name": "Mission X"}' | geas mission create
+```
+
+CLI는 stdin이 TTY가 아니면 UTF-8 JSON으로 해석한다. Payload가 필요한 명령인데 stdin이 비어 있거나 TTY면 입력 누락으로 실패한다 (`invalid_argument`, 종료 코드 1). JSON 파싱 실패도 같음.
 
 ### 식별자 인자
 
@@ -406,23 +412,71 @@ Payload에 agent가 넣은 timestamp 값은 CLI가 덮어쓴다. `created_at`의
 
 ## 12. Template 생성
 
-`geas schema template <type>`는 해당 schema의 fill-in 골격 JSON을 반환한다.
+Template은 **fallback 도구**다 — skill 본문이 payload shape을 이미 담고 있다면 호출할 필요 없다. Skill에 shape이 없거나 agent가 확신 없을 때만 호출.
+
+### 호출 방식
+
+```
+geas schema template <type> --op <operation> [--kind <k>]
+```
+
+- `<type>`: schema 이름 (evidence, task-contract, mission-spec 등)
+- `--op`: 수행할 연산 (create, set, append, update, register, run). 같은 schema도 op에 따라 "agent가 채울 부분"이 다름.
+- `--kind`: allOf 분기가 있는 schema에서 분기 선택 (예: evidence의 `--kind review`/`verification`/`closure`).
+
+### 응답 형식 — 3분할
+
+```json
+{
+  "you_must_fill": {
+    "evidence_kind": "review",
+    "summary": "<REQUIRED: one-sentence summary>",
+    "verdict": "<enum: approved | changes_requested | blocked>",
+    "concerns": [],
+    "rationale": "<REQUIRED: markdown allowed>",
+    "scope_examined": "<REQUIRED: markdown allowed>",
+    "methods_used": ["<REQUIRED: at least 1>"],
+    "scope_excluded": [],
+    "artifacts": [],
+    "memory_suggestions": [],
+    "debt_candidates": [],
+    "gap_signals": [],
+    "revision_ref": null
+  },
+  "cli_auto_fills": [
+    "entry_id",
+    "created_at"
+  ],
+  "from_flags_or_path": [
+    { "field": "mission_id", "source": "project root" },
+    { "field": "task_id",    "source": "--task flag"   },
+    { "field": "agent",      "source": "--agent flag"  }
+  ]
+}
+```
+
+- `you_must_fill`: **agent가 stdin으로 제출해야 하는 JSON**. placeholder에 `<REQUIRED: ...>` 형식으로 힌트 제공. Agent는 placeholder를 실제 값으로 교체.
+- `cli_auto_fills`: CLI가 자동으로 채우는 필드 — agent가 포함해서 보내도 덮어씀. 참고용 목록.
+- `from_flags_or_path`: CLI 플래그나 프로젝트 경로에서 유추되는 필드 — agent는 JSON에 포함하지 않음.
 
 ### 생성 규칙
 
-- Schema의 `required` 필드만 포함.
-- `additionalProperties: false`인 object는 자식도 required 필드만 재귀 포함.
-- 기본값:
-  - `string` → `""` (minLength 있으면 `"___"` 등 placeholder)
-  - `integer`/`number` → `0`
-  - `boolean` → `false`
-  - `array` → `[]`
-  - `enum` → enum의 첫 값
-  - `oneOf`/`anyOf` → 첫 대안 기준으로 생성
-- `allOf`의 `if/then`은 evidence처럼 kind 분기가 있는 경우 `--kind`·`--role` 같은 sub-flag로 어느 분기를 채울지 선택 가능 (예: `schema template evidence --kind review`).
-- CLI가 자동 주입하는 필드(`created_at`, `updated_at`, `entry_id` 등)는 template에서 제외 — agent가 이 필드를 채워 보낼 필요 없음.
+- `you_must_fill`은 schema의 required 중 **CLI 자동/플래그 유추 제외**한 필드들만 포함.
+- 각 필드의 placeholder:
+  - `string` (minLength ≥1): `"<REQUIRED: 짧은 설명>"`
+  - `enum`: `"<enum: 값1 | 값2>"`
+  - `array` (minItems ≥1): `["<REQUIRED: at least N>"]`
+  - `array` (minItems = 0): `[]`
+  - `number`: `0`
+  - `boolean`: `false`
+  - `null`-허용 필드: `null`
+- `allOf` kind 분기가 있으면 `--kind` 값에 해당하는 분기의 required만 포함.
 
-Template은 참고용이므로 CLI가 나중에 실제 쓰기 시 schema 검증을 다시 수행한다. Template이 유효한 최소 payload를 돌려준다는 보장은 없다 (예: `minItems: 1`인 배열은 빈 배열로 생성되어 그대로 제출하면 검증 실패). Agent는 template을 받아 placeholder를 실제 값으로 채워야 한다.
+### 재호출 최소화
+
+동일 세션(persistent-main runtime)에서는 한 번 받아둔 응답을 agent가 기억해 재사용. Turn-scoped runtime이더라도 skill 본문에 shape이 있으면 template 호출이 아예 불필요.
+
+Template 응답의 `you_must_fill`을 그대로 제출해도 placeholder 때문에 schema 검증 실패할 수 있다 — agent는 placeholder를 실제 값으로 반드시 교체.
 
 ## 13. 경로 규약과 불변 불가침
 
