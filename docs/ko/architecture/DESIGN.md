@@ -103,7 +103,8 @@ CLI는 `.geas/` 아래 모든 쓰기를 통과시키는 단일 actuator, 즉 유
 
 ```
 .geas/
-├── config.json                               # 루트 식별 + worktree delegate (CLI.md §13)
+├── config.json                               # 구현체 보조 — 루트 식별 + delegate 설정 (validate 대상 아님)
+├── events.jsonl                              # 구현체 보조 — 필수 감사 로그 (append-only)
 ├── missions/
 │   └── {mission_id}/
 │       ├── spec.json                         # mission-spec
@@ -127,23 +128,23 @@ CLI는 `.geas/` 아래 모든 쓰기를 통과시키는 단일 actuator, 즉 유
 │               ├── deliberations.json        # append (entries[], level=task)
 │               └── evidence/
 │                   └── {agent}.json          # append (entries[])
-├── memory/
-│   ├── shared.md
-│   └── agents/
-│       └── {agent}.md
-└── events.jsonl                              # 구현체 보조 — 필수 감사 로그 (append-only)
+└── memory/
+    ├── shared.md
+    └── agents/
+        └── {agent}.md
 ```
 
 `.geas/`는 두 계층으로 구성된다. **프로토콜 artifact**(각 schema가 관리하는 spec·contract·state·log 파일들)는 계약의 일부이며 `geas validate`의 검증 대상이다. **구현체 보조 파일**은 `.geas/` 안에 공존하지만 schema 검증 대상이 아니고 프로토콜 계약에 포함되지 않는다. `geas validate`는 프로토콜 artifact만 검사한다. 위 트리에서 특별 주석이 붙지 않은 파일은 전부 프로토콜 artifact다.
 
-현재 구현체 보조 파일은 둘이다.
+현재 구현체 보조 파일은 셋이다.
 
-- `consolidation/candidates.json`: `geas consolidation scaffold`(CLI.md §14.5)가 현재 mission의 모든 task evidence에서 `debt_candidates`·`memory_suggestions`·`gap_signals`를 집계한 임시 파일. Orchestrator가 이 한 파일만 읽어 공식 `debts.json`·`gap.json`·`memory-update.json`으로 승격한다. Stale 주의 — scaffold 실행 후 task evidence가 추가·변경되면 `candidates.json`은 그 변경을 반영하지 않는다. Orchestrator는 승격 직전에 `scaffold`를 다시 실행해 최신 집계를 얻어야 한다.
+- `config.json`: `geas setup`이 생성하는 CLI control file이다. Canonical root에서는 `root_id`와 `canonical_root`를, delegate root에서는 `delegate_to`를 담아 루트 식별과 worktree 위임을 가능하게 한다. 프로토콜 artifact는 아니지만 구현체가 필수로 유지하며, 상세 shape와 루트 해석 규칙은 CLI.md §13이 owner다.
 - `events.jsonl`: CLI가 모든 쓰기 명령 수행 시 자동으로 append하는 감사 로그. 프로토콜 artifact가 아니지만 구현체가 필수로 유지한다. 각 줄은 독립 JSON object(`kind`, `actor`, `triggered_by`, `prior_event`, `created_at` 등)다. 런타임 경계 이벤트를 기록하는 구현체라면 SessionStart·SessionEnd 같은 항목도 여기에 append할 수 있다. 상세 shape는 CLI.md §14.8 참조.
+- `consolidation/candidates.json`: `geas consolidation scaffold`(CLI.md §14.5)가 현재 mission의 모든 task evidence에서 `debt_candidates`·`memory_suggestions`·`gap_signals`를 집계한 임시 파일. Orchestrator가 이 한 파일만 읽어 공식 `debts.json`·`gap.json`·`memory-update.json`으로 승격한다. Stale 주의 — scaffold 실행 후 task evidence가 추가·변경되면 `candidates.json`은 그 변경을 반영하지 않는다. Orchestrator는 승격 직전에 `scaffold`를 다시 실행해 최신 집계를 얻어야 한다.
 
 ### 파일 owner 매트릭스
 
-이 표의 Writer는 artifact의 판단과 내용을 소유하는 slot 또는 agent를 뜻한다. 실제 `geas` 호출은 런타임 제약에 따라 orchestrator가 proxy로 수행할 수 있지만, artifact의 semantic owner는 변하지 않는다.
+이 표의 Writer는 artifact의 판단과 내용을 소유하는 slot 또는 agent를 뜻한다. 실제 `geas` 호출은 런타임 제약에 따라 orchestrator가 proxy로 수행할 수 있지만, artifact의 semantic owner는 변하지 않는다. `config.json`·`candidates.json`·`events.jsonl`은 protocol artifact가 아닌 구현체 보조 파일이므로 이 매트릭스에서 제외한다.
 
 | 파일 | Writer | 쓰기 시점 |
 |---|---|---|
