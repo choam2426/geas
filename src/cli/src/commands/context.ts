@@ -1,78 +1,72 @@
 /**
- * Context command group — context packet write (legacy).
+ * `geas context` — read-only summary of the current project state.
  *
- * v4: Prefer `geas packet create` instead. This command is kept for
- * backward compatibility. Packets now live at
- * .geas/missions/{mid}/tasks/{tid}/packets/{agent}.{ext}.
+ * Reports:
+ *   project_root, geas_dir
+ *   missions[] — for each mission directory under `.geas/missions/`:
+ *     mission_id, phase, active_tasks (from mission-state.json when present)
+ *
+ * G1 ships a minimal view. G2 extends this with active mission selection
+ * and phase detail.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
 import type { Command } from 'commander';
-import { ensureDir } from '../lib/fs-atomic';
-import { resolveGeasDir, resolveMissionDir, validateIdentifier } from '../lib/paths';
-import { success, fileError } from '../lib/output';
-import { getCwd } from '../lib/cwd';
+import * as fs from 'fs';
+import {
+  findProjectRoot,
+  geasDir,
+  missionsDir,
+  missionStatePath,
+} from '../lib/paths';
+import { readJsonFile } from '../lib/fs-atomic';
+import { emit, err, ok } from '../lib/envelope';
 
-export function registerContextCommands(program: Command): void {
-  const cmd = program
+interface MissionSummary {
+  mission_id: string;
+  phase: string | null;
+  active_tasks: string[];
+}
+
+export function registerContextCommand(program: Command): void {
+  program
     .command('context')
-    .description('Context packet read/write');
-
-  // --- write ---
-  cmd
-    .command('write')
-    .description('Write a context packet file')
-    .requiredOption('--mission <mid>', 'Mission ID')
-    .requiredOption('--task <tid>', 'Task ID')
-    .requiredOption('--agent <name>', 'Agent type name (used as filename stem)')
-    .requiredOption('--data <content>', 'Packet content (string or JSON)')
-    .action((opts: { mission: string; task: string; agent: string; data: string }, cmd: Command) => {
-      try {
-        validateIdentifier(opts.mission, 'mission ID');
-        validateIdentifier(opts.task, 'task ID');
-        // Reject invalid agent names
-        if (!/^[a-zA-Z0-9_-]+$/.test(opts.agent)) {
-          fileError(opts.agent, 'validate', `Invalid agent name: "${opts.agent}". Only alphanumeric, underscore, and hyphen are allowed.`);
-          return;
-        }
-        const geasDir = resolveGeasDir(getCwd(cmd));
-        const missionDir = resolveMissionDir(geasDir, opts.mission);
-        const packetsDir = path.resolve(missionDir, 'tasks', opts.task, 'packets');
-        ensureDir(packetsDir);
-
-        // Detect if content is JSON or markdown
-        let ext: string;
-        let content: string;
-        try {
-          // Try parsing as JSON to determine format
-          const parsed = JSON.parse(opts.data);
-          content = JSON.stringify(parsed, null, 2) + '\n';
-          ext = '.json';
-        } catch {
-          // Not valid JSON, treat as markdown/text
-          content = opts.data;
-          ext = '.md';
-        }
-
-        const filePath = path.resolve(packetsDir, `${opts.agent}${ext}`);
-        ensureDir(path.dirname(filePath));
-        fs.writeFileSync(filePath, content, 'utf-8');
-
-        success({
-          ok: true,
-          mission_id: opts.mission,
-          task_id: opts.task,
-          agent: opts.agent,
-          format: ext === '.json' ? 'json' : 'markdown',
-          path: filePath,
-        });
-      } catch (err: unknown) {
-        fileError(
-          `tasks/${opts.task}/packets/${opts.agent}`,
-          'write',
-          (err as Error).message
+    .description('Print a JSON summary of the current .geas/ state')
+    .action(() => {
+      const root = findProjectRoot(process.cwd());
+      if (!root) {
+        emit(
+          err(
+            'missing_artifact',
+            `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`,
+          ),
         );
       }
+      const projectRoot = root as string;
+
+      const missions: MissionSummary[] = [];
+      const mDir = missionsDir(projectRoot);
+      if (fs.existsSync(mDir)) {
+        for (const entry of fs.readdirSync(mDir)) {
+          const full = `${mDir}/${entry}`;
+          if (!fs.statSync(full).isDirectory()) continue;
+          const statePath = missionStatePath(projectRoot, entry);
+          const state = readJsonFile<Record<string, unknown>>(statePath);
+          missions.push({
+            mission_id: entry,
+            phase: typeof state?.phase === 'string' ? (state.phase as string) : null,
+            active_tasks: Array.isArray(state?.active_tasks)
+              ? (state!.active_tasks as string[])
+              : [],
+          });
+        }
+      }
+
+      emit(
+        ok({
+          project_root: projectRoot.replace(/\\/g, '/'),
+          geas_dir: geasDir(projectRoot).replace(/\\/g, '/'),
+          missions,
+        }),
+      );
     });
 }

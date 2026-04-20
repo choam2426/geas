@@ -1,16 +1,18 @@
 {
   "name": "@geas/cli",
-  "version": "0.1.0",
-  "description": "CLI for Geas plugin — wraps all .geas/ file I/O into atomic commands",
+  "version": "0.8.0",
+  "description": "CLI actuator for the Geas .geas/ runtime tree (protocol v3)",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsc && node dist/check-field-policy.js",
+    "build": "tsc",
     "bundle": "node esbuild.config.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --test dist/test/schema-template.test.js dist/test/envelope.test.js dist/test/validation-hints.test.js dist/test/input.test.js dist/test/dry-run.test.js"
+    "schemas:regen": "node scripts/regen-schemas.mjs",
+    "test": "node --test"
   },
   "dependencies": {
     "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "commander": "^12.1.0"
   },
   "devDependencies": {

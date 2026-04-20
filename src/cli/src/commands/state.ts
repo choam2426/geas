@@ -1,297 +1,151 @@
 /**
- * State command group — run.json read/write, checkpoint management,
- * session-latest.md.
+ * `geas state` — low-level read/write for mission-state.json and
+ * task-state.json.
+ *
+ * G1 exposes a thin primitive: get/set the raw artifact. Phase- and
+ * lifecycle-aware transitions live on the `mission` and `task` commands
+ * (added in G2 and G3); this command does not enforce them.
+ *
+ * Subcommands:
+ *   geas state mission-get  --mission <id>
+ *   geas state mission-set  --mission <id>      (stdin JSON)
+ *   geas state task-get     --mission <id> --task <id>
+ *   geas state task-set     --mission <id> --task <id>  (stdin JSON)
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
 import type { Command } from 'commander';
-import { resolveGeasDir } from '../lib/paths';
-import { readJsonFile, atomicWriteJsonFile, ensureDir } from '../lib/fs-atomic';
-import { success, fileError } from '../lib/output';
-import { getCwd } from '../lib/cwd';
+import { emit, err, ok, recordEvent } from '../lib/envelope';
+import { readJsonFile, atomicWriteJson, ensureDir } from '../lib/fs-atomic';
+import * as path from 'path';
+import {
+  findProjectRoot,
+  isValidMissionId,
+  isValidTaskId,
+  missionStatePath,
+  taskStatePath,
+  tmpDir,
+} from '../lib/paths';
+import { readStdinJson, StdinError } from '../lib/input';
+import { validate } from '../lib/schema';
 
-/** Resolve the run.json path from the .geas/state directory. */
-function runJsonPath(geasDir: string): string {
-  return path.join(geasDir, 'state', 'run.json');
+function needProjectRoot(): string {
+  const root = findProjectRoot(process.cwd());
+  if (!root) {
+    emit(err('missing_artifact', `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`));
+  }
+  return root as string;
+}
+
+function nowUtc(): string {
+  return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
 export function registerStateCommands(program: Command): void {
-  const cmd = program
-    .command('state')
-    .description('Run state management (run.json, checkpoints)');
+  const state = program.command('state').description('Low-level mission/task state read and write');
 
-  // --- state init ---
-  cmd
-    .command('init')
-    .description('Bootstrap .geas/ directory structure and initial run.json')
-    .action(() => {
-      try {
-        const cwd = getCwd(cmd);
-        const geasDir = path.join(cwd, '.geas');
-
-        // Create directory structure
-        const dirs = [
-          path.join(geasDir, 'state'),
-          path.join(geasDir, 'memory', 'agents'),
-          path.join(geasDir, 'recovery'),
-        ];
-        for (const d of dirs) {
-          ensureDir(d);
-        }
-
-        const filePath = runJsonPath(geasDir);
-
-        // Do not overwrite if run.json already exists
-        if (fs.existsSync(filePath)) {
-          const existing = readJsonFile(filePath);
-          success({ action: 'skipped', reason: 'run.json already exists', data: existing });
-          return;
-        }
-
-        const now = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-        const initialState = {
-          version: '1.0',
-          status: 'initialized',
-          mission: null,
-          phase: null,
-          current_task_id: null,
-          completed_tasks: [],
-          decisions: [],
-          created_at: now,
-        };
-
-        fs.writeFileSync(filePath, JSON.stringify(initialState, null, 2) + '\n', 'utf-8');
-        success({ action: 'created', path: filePath.replace(/\\/g, '/'), data: initialState });
-      } catch (err: unknown) {
-        const e = err as NodeJS.ErrnoException;
-        fileError('.geas/state/run.json', 'init', e.message);
+  state
+    .command('mission-get')
+    .description('Print mission-state.json for a mission')
+    .requiredOption('--mission <id>', 'Mission ID')
+    .action((opts: { mission: string }) => {
+      if (!isValidMissionId(opts.mission)) {
+        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
       }
+      const root = needProjectRoot();
+      const p = missionStatePath(root, opts.mission);
+      const data = readJsonFile<Record<string, unknown>>(p);
+      if (!data) emit(err('missing_artifact', `mission-state.json not found for ${opts.mission}`));
+      emit(ok({ path: p.replace(/\\/g, '/'), state: data }));
     });
 
-  // --- state read ---
-  cmd
-    .command('read')
-    .description('Read current run state')
-    .action(() => {
-      try {
-        const geas = resolveGeasDir(getCwd(cmd));
-        const filePath = runJsonPath(geas);
-        const data = readJsonFile(filePath);
-        if (data === null) {
-          fileError(filePath, 'read', 'run.json not found');
-          return;
-        }
-        success(data);
-      } catch (err: unknown) {
-        const e = err as NodeJS.ErrnoException;
-        fileError('.geas/state/run.json', 'read', e.message);
+  state
+    .command('mission-set')
+    .description('Replace mission-state.json (stdin JSON; validated against mission-state schema)')
+    .requiredOption('--mission <id>', 'Mission ID')
+    .action((opts: { mission: string }) => {
+      if (!isValidMissionId(opts.mission)) {
+        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
       }
+      const root = needProjectRoot();
+      let payload: Record<string, unknown>;
+      try {
+        payload = readStdinJson() as Record<string, unknown>;
+      } catch (e) {
+        if (e instanceof StdinError) emit(err('invalid_argument', e.message));
+        throw e;
+      }
+      // Inject bookkeeping timestamps and mission_id.
+      const p = missionStatePath(root, opts.mission);
+      const existing = readJsonFile<Record<string, unknown>>(p);
+      const ts = nowUtc();
+      payload.mission_id = opts.mission;
+      payload.updated_at = ts;
+      payload.created_at = (existing?.created_at as string | undefined) ?? ts;
+
+      const v = validate('mission-state', payload);
+      if (!v.ok) {
+        emit(err('schema_validation_failed', 'mission-state schema validation failed', v.errors));
+      }
+      ensureDir(path.dirname(p));
+      atomicWriteJson(p, payload, tmpDir(root));
+      recordEvent(root, {
+        kind: 'mission_state_set',
+        actor: 'cli:auto',
+        payload: { mission_id: opts.mission, artifact: p.replace(/\\/g, '/') },
+      });
+      emit(ok({ path: p.replace(/\\/g, '/'), state: payload }));
     });
 
-  // --- state update ---
-  cmd
-    .command('update')
-    .description('Update a field in run.json atomically')
-    .requiredOption('--field <field>', 'Field name to update')
-    .requiredOption('--value <value>', 'New value (JSON-parsed if possible)')
-    .action((opts: { field: string; value: string }) => {
-      try {
-        const cwd = getCwd(cmd);
-        const geas = resolveGeasDir(cwd);
-        const filePath = runJsonPath(geas);
-        const data = readJsonFile<Record<string, unknown>>(filePath);
-        if (data === null) {
-          fileError(filePath, 'read', 'run.json not found');
-          return;
-        }
-
-        // Parse the value: try JSON first, fall back to string
-        let parsedValue: unknown;
-        try {
-          parsedValue = JSON.parse(opts.value);
-        } catch {
-          parsedValue = opts.value;
-        }
-
-        data[opts.field] = parsedValue;
-
-        // Auto-cleanup: when phase transitions to "complete", reset mission fields
-        if (opts.field === 'phase' && parsedValue === 'complete') {
-          data.mission_id = null;
-          data.mission = null;
-          data.completed_tasks = [];
-          data.current_task_id = null;
-        }
-
-        atomicWriteJsonFile(filePath, data, { cwd });
-
-        if (opts.field === 'phase' && parsedValue === 'complete') {
-          success({ updated: opts.field, value: parsedValue, auto_cleared: ['mission_id', 'mission', 'completed_tasks', 'current_task_id'] });
-        } else {
-          success({ updated: opts.field, value: parsedValue });
-        }
-      } catch (err: unknown) {
-        const e = err as NodeJS.ErrnoException;
-        fileError('.geas/state/run.json', 'update', e.message);
-      }
+  state
+    .command('task-get')
+    .description('Print task-state.json for a task')
+    .requiredOption('--mission <id>', 'Mission ID')
+    .requiredOption('--task <id>', 'Task ID')
+    .action((opts: { mission: string; task: string }) => {
+      if (!isValidMissionId(opts.mission)) emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+      if (!isValidTaskId(opts.task)) emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+      const root = needProjectRoot();
+      const p = taskStatePath(root, opts.mission, opts.task);
+      const data = readJsonFile<Record<string, unknown>>(p);
+      if (!data) emit(err('missing_artifact', `task-state.json not found for ${opts.task}`));
+      emit(ok({ path: p.replace(/\\/g, '/'), state: data }));
     });
 
-  // --- state checkpoint ---
-  const checkpoint = cmd
-    .command('checkpoint')
-    .description('Checkpoint management in run.json');
-
-  checkpoint
-    .command('set')
-    .description('Set checkpoint in run.json')
-    .requiredOption('--step <step>', 'Pipeline step name')
-    .requiredOption('--agent <agent>', 'Agent currently in flight')
-    .option('--retry-count <n>', 'Retry count', '0')
-    .option('--batch <tasks>', 'Parallel batch task IDs (comma-separated)')
-    .action(
-      (opts: {
-        step: string;
-        agent: string;
-        retryCount: string;
-        batch?: string;
-      }) => {
-        try {
-          const cwd = getCwd(cmd);
-          const geas = resolveGeasDir(cwd);
-          const filePath = runJsonPath(geas);
-          const data = readJsonFile<Record<string, unknown>>(filePath);
-          if (data === null) {
-            fileError(filePath, 'read', 'run.json not found');
-            return;
-          }
-
-          const existing =
-            (data.checkpoint as Record<string, unknown>) || {};
-          const now = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-
-          data.checkpoint = {
-            ...existing,
-            pipeline_step: opts.step,
-            agent_in_flight: opts.agent,
-            retry_count: parseInt(opts.retryCount, 10) || 0,
-            last_updated: now,
-            checkpoint_phase: 'committed',
-            ...(opts.batch !== undefined
-              ? {
-                  parallel_batch: opts.batch
-                    .split(',')
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                }
-              : {}),
-          };
-
-          atomicWriteJsonFile(filePath, data, { cwd });
-          success({ checkpoint: data.checkpoint });
-        } catch (err: unknown) {
-          const e = err as NodeJS.ErrnoException;
-          fileError('.geas/state/run.json', 'checkpoint set', e.message);
-        }
-      }
-    );
-
-  checkpoint
-    .command('clear')
-    .description('Clear checkpoint in run.json')
-    .action(() => {
+  state
+    .command('task-set')
+    .description('Replace task-state.json (stdin JSON; validated against task-state schema)')
+    .requiredOption('--mission <id>', 'Mission ID')
+    .requiredOption('--task <id>', 'Task ID')
+    .action((opts: { mission: string; task: string }) => {
+      if (!isValidMissionId(opts.mission)) emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+      if (!isValidTaskId(opts.task)) emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+      const root = needProjectRoot();
+      let payload: Record<string, unknown>;
       try {
-        const cwd = getCwd(cmd);
-        const geas = resolveGeasDir(cwd);
-        const filePath = runJsonPath(geas);
-        const data = readJsonFile<Record<string, unknown>>(filePath);
-        if (data === null) {
-          fileError(filePath, 'read', 'run.json not found');
-          return;
-        }
-
-        data.checkpoint = {
-          pipeline_step: null,
-          agent_in_flight: null,
-          pending_evidence: [],
-          retry_count: 0,
-          parallel_batch: null,
-          completed_in_batch: [],
-          remaining_steps: [],
-          last_updated: new Date()
-            .toISOString()
-            .replace(/\.\d{3}Z$/, 'Z'),
-          checkpoint_phase: 'committed',
-        };
-
-        atomicWriteJsonFile(filePath, data, { cwd });
-        success({ checkpoint: data.checkpoint });
-      } catch (err: unknown) {
-        const e = err as NodeJS.ErrnoException;
-        fileError('.geas/state/run.json', 'checkpoint clear', e.message);
+        payload = readStdinJson() as Record<string, unknown>;
+      } catch (e) {
+        if (e instanceof StdinError) emit(err('invalid_argument', e.message));
+        throw e;
       }
+      const p = taskStatePath(root, opts.mission, opts.task);
+      const existing = readJsonFile<Record<string, unknown>>(p);
+      const ts = nowUtc();
+      payload.mission_id = opts.mission;
+      payload.task_id = opts.task;
+      payload.updated_at = ts;
+      payload.created_at = (existing?.created_at as string | undefined) ?? ts;
+
+      const v = validate('task-state', payload);
+      if (!v.ok) {
+        emit(err('schema_validation_failed', 'task-state schema validation failed', v.errors));
+      }
+      ensureDir(path.dirname(p));
+      atomicWriteJson(p, payload, tmpDir(root));
+      recordEvent(root, {
+        kind: 'task_state_set',
+        actor: 'cli:auto',
+        payload: { mission_id: opts.mission, task_id: opts.task, artifact: p.replace(/\\/g, '/') },
+      });
+      emit(ok({ path: p.replace(/\\/g, '/'), state: payload }));
     });
-
-  // --- state session-update ---
-  cmd
-    .command('session-update')
-    .description(
-      'Write session-latest.md (reads JSON from stdin with phase, task, step info)'
-    )
-    .option('--phase <phase>', 'Current phase')
-    .option('--task <task>', 'Current task ID')
-    .option('--step <step>', 'Current pipeline step')
-    .option('--summary <text>', 'Summary text')
-    .action(
-      (opts: {
-        phase?: string;
-        task?: string;
-        step?: string;
-        summary?: string;
-      }) => {
-        try {
-          const geas = resolveGeasDir(getCwd(cmd));
-          const sessionPath = path.join(geas, 'state', 'session-latest.md');
-
-          // Build session-latest.md content
-          const now = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-          const lines: string[] = [
-            '# Session Latest',
-            '',
-            `**Updated**: ${now}`,
-          ];
-
-          if (opts.phase) {
-            lines.push(`**Phase**: ${opts.phase}`);
-          }
-          if (opts.task) {
-            lines.push(`**Current Task**: ${opts.task}`);
-          }
-          if (opts.step) {
-            lines.push(`**Pipeline Step**: ${opts.step}`);
-          }
-          if (opts.summary) {
-            lines.push('', '## Summary', '', opts.summary);
-          }
-
-          lines.push('');
-
-          ensureDir(path.dirname(sessionPath));
-          fs.writeFileSync(sessionPath, lines.join('\n'), 'utf-8');
-
-          success({
-            written: 'session-latest.md',
-            path: sessionPath.replace(/\\/g, '/'),
-          });
-        } catch (err: unknown) {
-          const e = err as NodeJS.ErrnoException;
-          fileError(
-            '.geas/state/session-latest.md',
-            'write',
-            e.message
-          );
-        }
-      }
-    );
-
 }

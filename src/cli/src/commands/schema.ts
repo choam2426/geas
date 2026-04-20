@@ -1,59 +1,46 @@
 /**
- * Schema command group — list available schemas, generate fill-in templates.
+ * `geas schema` — inspect embedded JSON schemas.
+ *
+ * Subcommands:
+ *   geas schema list              — list schema names
+ *   geas schema show <name>       — dump a single schema as JSON
+ *   geas schema dump              — dump all schemas as a { name: schema } map
  */
 
 import type { Command } from 'commander';
-import { listSchemas, generateTemplate, listRecordSections } from '../lib/schema-template';
-import { success } from '../lib/output';
-import type { TemplateOptions } from '../lib/schema-template';
+import { SCHEMAS, SCHEMA_NAMES } from '../lib/schemas-embedded';
+import { emit, err, ok } from '../lib/envelope';
 
 export function registerSchemaCommands(program: Command): void {
-  const schema = program.command('schema').description('Schema inspection utilities');
+  const schema = program.command('schema').description('Inspect embedded JSON schemas');
 
   schema
     .command('list')
-    .description('List all available schema types')
+    .description('List embedded schema names')
     .action(() => {
-      success(listSchemas());
+      emit(ok({ schemas: [...SCHEMA_NAMES].sort() }));
     });
 
   schema
-    .command('template <type>')
-    .description('Generate a fill-in JSON template for a schema type')
-    .option('--role <role>', 'Role variant (for evidence schema)')
-    .option('--strip-envelope', 'Remove auto-injected envelope/CLI fields (default: true)')
-    .option('--no-strip-envelope', 'Keep auto-injected envelope/CLI fields')
-    .option('--section <name>', 'Extract a record section sub-schema')
-    .option('--pretty', 'Pretty-print JSON output (default: false)')
-    .action((type: string, opts: { role?: string; stripEnvelope?: boolean; section?: string; pretty?: boolean }) => {
-      try {
-        const templateOpts: TemplateOptions = {
-          role: opts.role,
-          stripEnvelope: opts.stripEnvelope,
-          section: opts.section,
-          pretty: opts.pretty,
-        };
-        const template = generateTemplate(type, templateOpts);
-        if (opts.pretty) {
-          process.stdout.write(JSON.stringify(template, null, 2) + '\n');
-          process.exit(0);
-        } else {
-          success(template);
-        }
-      } catch (err) {
-        const msg = {
-          error: (err as Error).message,
-          code: 'SCHEMA_ERROR',
-        };
-        process.stderr.write(JSON.stringify(msg) + '\n');
-        process.exit(1);
+    .command('show <name>')
+    .description('Print a single embedded schema as JSON')
+    .action((name: string) => {
+      const s = SCHEMAS[name];
+      if (!s) {
+        emit(
+          err(
+            'invalid_argument',
+            `unknown schema '${name}'. Available: ${SCHEMA_NAMES.join(', ')}`,
+          ),
+        );
       }
+      emit(ok({ name, schema: s }));
     });
 
   schema
-    .command('sections')
-    .description('List valid record section names')
+    .command('dump')
+    .description('Dump every embedded schema as {name: schema}')
     .action(() => {
-      success(listRecordSections());
+      emit(ok({ schemas: SCHEMAS }));
     });
 }
