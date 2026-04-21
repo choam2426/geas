@@ -47,7 +47,7 @@ You have been spawned as the implementer for an approved task. Before writing co
    - `planned_actions` must be specific enough for a reviewer to inspect.
    - `non_goals` names things tempting but out of scope.
    - `open_questions` names every real ambiguity; do not silently pick an interpretation.
-   Record via the CLI surface the orchestrator registered for this purpose (currently `geas self-check set` captures the equivalent pre-work envelope; if `geas impl-contract set` is registered in this environment, use it).
+   Write it via `geas impl-contract set --mission <id> --task <id>` (stdin: the body). The CLI injects `mission_id` / `task_id` / timestamps and validates against `implementation-contract.schema`.
 3. **Wait for one-round reviewer concurrence.** The orchestrator spawns each reviewer in `routing.required_reviewers` to run `reviewing-task` against your plan. Each reviewer appends a review-kind evidence entry with verdict `approved` / `changes_requested` / `blocked`.
    - All `approved` → proceed to step 5.
    - Any `changes_requested` → go to step 4.
