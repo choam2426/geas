@@ -5964,7 +5964,7 @@ var require_compile = __commonJS({
       }
     }
     exports2.compileSchema = compileSchema;
-    function resolveRef(root, baseId, ref) {
+    function resolveRef2(root, baseId, ref) {
       var _a;
       ref = (0, resolve_1.resolveUrl)(this.opts.uriResolver, baseId, ref);
       const schOrFunc = root.refs[ref];
@@ -5981,7 +5981,7 @@ var require_compile = __commonJS({
         return;
       return root.refs[ref] = inlineOrCompile.call(this, _sch);
     }
-    exports2.resolveRef = resolveRef;
+    exports2.resolveRef = resolveRef2;
     function inlineOrCompile(sch) {
       if ((0, resolve_1.inlineRef)(sch.schema, this.opts.inlineRefs))
         return sch.schema;
@@ -11071,7 +11071,264 @@ var SCHEMA_NAMES = [
   "task-state"
 ];
 
+// src/lib/envelope-fields.ts
+var ENVELOPE_SPECS = [
+  {
+    schema: "mission-spec",
+    op: "create",
+    envelope: ["id", "user_approved", "created_at", "updated_at"],
+    hint: "geas mission create \u2014 CLI assigns id, forces user_approved=false, stamps timestamps."
+  },
+  {
+    schema: "mission-state",
+    op: "update",
+    envelope: ["mission_id", "updated_at"],
+    hint: "geas mission-state update --phase \u2014 CLI sets phase transition and refreshes updated_at."
+  },
+  {
+    schema: "task-contract",
+    op: "draft",
+    envelope: ["mission_id", "task_id", "created_at", "updated_at"],
+    hint: "geas task draft \u2014 CLI assigns task_id, injects mission_id + timestamps."
+  },
+  {
+    schema: "task-state",
+    op: "update",
+    envelope: ["mission_id", "task_id", "updated_at"],
+    hint: "geas task transition / state task-set \u2014 CLI refreshes updated_at on state change."
+  },
+  {
+    schema: "evidence",
+    op: "append",
+    envelope: ["entry_id", "created_at"],
+    hint: "geas evidence append \u2014 CLI assigns per-entry entry_id (monotonic) and created_at. Agent fills evidence_kind and kind-specific fields."
+  },
+  {
+    schema: "self-check",
+    op: "set",
+    envelope: ["mission_id", "task_id", "created_at", "updated_at"],
+    hint: "geas self-check set \u2014 CLI injects mission_id / task_id / timestamps. Written once per task."
+  },
+  {
+    schema: "deliberation",
+    op: "append",
+    envelope: ["created_at"],
+    hint: "geas deliberation append \u2014 CLI stamps per-entry created_at. Agent fills proposal_summary / votes / result."
+  },
+  {
+    schema: "gate-results",
+    op: "run",
+    envelope: ["gate_run_id", "created_at"],
+    hint: "geas gate run \u2014 CLI assigns gate_run_id (monotonic) and created_at on each run."
+  },
+  {
+    schema: "phase-reviews",
+    op: "append",
+    envelope: ["created_at"],
+    hint: "geas phase-review append \u2014 CLI stamps per-entry created_at."
+  },
+  {
+    schema: "mission-verdicts",
+    op: "append",
+    envelope: ["created_at"],
+    hint: "geas mission-verdict append \u2014 CLI stamps per-entry created_at."
+  },
+  {
+    schema: "implementation-contract",
+    op: "set",
+    envelope: ["mission_id", "task_id", "created_at", "updated_at"],
+    hint: "geas impl-contract set \u2014 CLI injects mission_id / task_id / timestamps. Full-replace."
+  },
+  {
+    schema: "memory-update",
+    op: "set",
+    envelope: ["mission_id", "created_at", "updated_at"],
+    hint: "geas memory-update set \u2014 CLI injects mission_id / timestamps. Full-replace."
+  },
+  {
+    schema: "gap",
+    op: "set",
+    envelope: ["mission_id", "created_at", "updated_at"],
+    hint: "geas gap set \u2014 CLI injects mission_id / timestamps. Full-replace."
+  },
+  {
+    schema: "debts",
+    op: "register",
+    envelope: ["debt_id", "status", "resolved_by", "resolution_rationale"],
+    hint: "geas debt register \u2014 CLI assigns debt_id (monotonic), forces status=open, resolved_by=null, resolution_rationale=null."
+  },
+  {
+    schema: "debts",
+    op: "update-status",
+    envelope: [],
+    hint: "geas debt update-status --debt \u2014 only status, resolved_by, resolution_rationale are accepted; the CLI rejects everything else."
+  }
+];
+function findSpec(schema, op) {
+  return ENVELOPE_SPECS.find((s) => s.schema === schema && s.op === op);
+}
+function supportedOpsForSchema(schema) {
+  return ENVELOPE_SPECS.filter((s) => s.schema === schema).map((s) => s.op);
+}
+function supportedSchemas() {
+  const seen = /* @__PURE__ */ new Set();
+  for (const s of ENVELOPE_SPECS) seen.add(s.schema);
+  return [...seen].sort();
+}
+
 // src/commands/schema.ts
+function resolveRef(root, ref) {
+  if (!ref.startsWith("#/")) return void 0;
+  const parts = ref.slice(2).split("/");
+  let cur = root;
+  for (const p of parts) {
+    if (!cur || typeof cur !== "object") return void 0;
+    cur = cur[p];
+  }
+  return cur;
+}
+function placeholderFor(prop, root) {
+  if (prop.$ref) {
+    const resolved = resolveRef(root, prop.$ref);
+    if (resolved) return placeholderFor(resolved, root);
+    return `<ref ${prop.$ref}>`;
+  }
+  if (Array.isArray(prop.oneOf) && prop.oneOf.length > 0) {
+    const nonNull = prop.oneOf.find((v) => v.type !== "null") ?? prop.oneOf[0];
+    return placeholderFor(nonNull, root);
+  }
+  if (Array.isArray(prop.anyOf) && prop.anyOf.length > 0) {
+    const nonNull = prop.anyOf.find((v) => v.type !== "null") ?? prop.anyOf[0];
+    return placeholderFor(nonNull, root);
+  }
+  if (Array.isArray(prop.enum) && prop.enum.length > 0) {
+    return `<enum: ${prop.enum.join(" | ")}>`;
+  }
+  if (prop.type === "array") {
+    const hint = [];
+    if (typeof prop.minItems === "number" && prop.minItems > 0) {
+      hint.push(`at least ${prop.minItems} item${prop.minItems === 1 ? "" : "s"}`);
+    }
+    if (prop.items) {
+      const exampleItem = placeholderFor(prop.items, root);
+      if (hint.length > 0) {
+        return [`<${hint.join(", ")}>`, exampleItem];
+      }
+      return [exampleItem];
+    }
+    return hint.length > 0 ? [`<${hint.join(", ")}>`] : [];
+  }
+  if (prop.type === "object" || prop.properties) {
+    const out = {};
+    const required = prop.required ?? [];
+    if (prop.properties) {
+      for (const k of required) {
+        const child = prop.properties[k];
+        if (!child) continue;
+        out[k] = placeholderFor(child, root);
+      }
+    }
+    return out;
+  }
+  if (prop.type === "string") {
+    if (prop.format === "date-time") {
+      return "<iso-8601 date-time (CLI may inject)>";
+    }
+    const desc = typeof prop.description === "string" ? prop.description : "";
+    if (desc.toLowerCase().includes("markdown")) {
+      return "<markdown allowed>";
+    }
+    if (desc.length > 80) {
+      return "<REQUIRED: " + desc.slice(0, 77).replace(/\s+/g, " ") + "...>";
+    }
+    if (desc.length > 0) {
+      return "<REQUIRED: " + desc.replace(/\s+/g, " ") + ">";
+    }
+    return "<REQUIRED: string>";
+  }
+  if (prop.type === "integer" || prop.type === "number") return 0;
+  if (prop.type === "boolean") return false;
+  if (prop.type === "null") return null;
+  return "<unknown>";
+}
+function allOfKinds(entryProp) {
+  if (!entryProp || !Array.isArray(entryProp.allOf)) return [];
+  const kinds = [];
+  for (const branch of entryProp.allOf) {
+    const ifProp = branch["if"];
+    if (!ifProp || !ifProp.properties) continue;
+    const disc = ifProp.properties["evidence_kind"];
+    if (disc && disc.const !== void 0) {
+      kinds.push(String(disc.const));
+    }
+  }
+  return kinds;
+}
+function allOfBranch(entryProp, kind) {
+  if (!entryProp || !Array.isArray(entryProp.allOf)) return void 0;
+  for (const branch of entryProp.allOf) {
+    const ifProp = branch["if"];
+    if (!ifProp || !ifProp.properties) continue;
+    const disc = ifProp.properties["evidence_kind"];
+    if (disc && disc.const === kind) {
+      return branch["then"];
+    }
+  }
+  return void 0;
+}
+function buildEvidenceTemplate(root, kind, envelope) {
+  const defs = root.$defs ?? {};
+  const entry = defs["entry"];
+  if (!entry) return { you_must_fill: {}, valid_kinds: [] };
+  const kinds = allOfKinds(entry);
+  if (!kinds.includes(kind)) {
+    return { you_must_fill: {}, valid_kinds: kinds };
+  }
+  const branch = allOfBranch(entry, kind);
+  const baseRequired = entry.required ?? [];
+  const branchRequired = branch?.required ?? [];
+  const required = [.../* @__PURE__ */ new Set([...baseRequired, ...branchRequired])];
+  const baseProps = entry.properties ?? {};
+  const branchProps = branch?.properties ?? {};
+  const out = {};
+  for (const k of required) {
+    if (envelope.includes(k)) continue;
+    const prop = branchProps[k] ?? baseProps[k];
+    if (!prop) continue;
+    if (k === "evidence_kind") {
+      out[k] = kind;
+      continue;
+    }
+    out[k] = placeholderFor(prop, root);
+  }
+  return { you_must_fill: out, valid_kinds: kinds };
+}
+function buildPlainTemplate(root, schemaName, op, envelope) {
+  const entryShapeByAppend = {
+    deliberation: "entry",
+    "phase-reviews": "review",
+    "mission-verdicts": "verdict",
+    "gate-results": "gateRun",
+    debts: "debtItem"
+  };
+  let target = root;
+  if ((op === "append" || op === "run" || op === "register") && entryShapeByAppend[schemaName]) {
+    const defName = entryShapeByAppend[schemaName];
+    const defs = root.$defs ?? {};
+    const inner = defs[defName];
+    if (inner) target = inner;
+  }
+  const required = target.required ?? [];
+  const properties = target.properties ?? {};
+  const out = {};
+  for (const k of required) {
+    if (envelope.includes(k)) continue;
+    const prop = properties[k];
+    if (!prop) continue;
+    out[k] = placeholderFor(prop, root);
+  }
+  return out;
+}
 function registerSchemaCommands(program2) {
   const schema = program2.command("schema").description("Inspect embedded JSON schemas");
   schema.command("list").description("List embedded schema names").action(() => {
@@ -11091,6 +11348,76 @@ function registerSchemaCommands(program2) {
   });
   schema.command("dump").description("Dump every embedded schema as {name: schema}").action(() => {
     emit(ok({ schemas: SCHEMAS }));
+  });
+  schema.command("template <name>").description(
+    "Emit an agent-facing write scaffold: { you_must_fill, cli_will_inject, notes }. --op selects the operation; --kind selects allOf variants (e.g. evidence_kind)."
+  ).requiredOption("--op <op>", "Operation (create|set|append|update|draft|register|update-status|run)").option("--kind <kind>", "Discriminator (e.g. review, verification, closure, implementation for evidence)").action((name, opts) => {
+    if (!SCHEMAS[name]) {
+      emit(
+        err(
+          "invalid_argument",
+          `unknown schema '${name}'. Available: ${SCHEMA_NAMES.join(", ")}`
+        )
+      );
+    }
+    const spec = findSpec(name, opts.op);
+    if (!spec) {
+      const validOps = supportedOpsForSchema(name);
+      const msg = validOps.length === 0 ? `schema '${name}' has no registered template ops. Supported schemas: ${supportedSchemas().join(", ")}` : `op '${opts.op}' is not registered for schema '${name}'. Valid ops: ${validOps.join(", ")}`;
+      emit(err("invalid_argument", msg, { schema: name, op: opts.op, valid_ops: validOps }));
+    }
+    const root = SCHEMAS[name];
+    let you_must_fill;
+    let valid_kinds = [];
+    if (name === "evidence" && opts.op === "append") {
+      const defs = root.$defs ?? {};
+      const entry = defs["entry"];
+      valid_kinds = allOfKinds(entry);
+      if (!opts.kind) {
+        emit(
+          err(
+            "invalid_argument",
+            `schema 'evidence' requires --kind (evidence_kind discriminator). Valid kinds: ${valid_kinds.join(", ")}`,
+            { valid_kinds }
+          )
+        );
+      }
+      if (!valid_kinds.includes(opts.kind)) {
+        emit(
+          err(
+            "invalid_argument",
+            `unknown kind '${opts.kind}' for schema 'evidence'. Valid kinds: ${valid_kinds.join(", ")}`,
+            { valid_kinds }
+          )
+        );
+      }
+      const built = buildEvidenceTemplate(
+        root,
+        opts.kind,
+        spec.envelope
+      );
+      you_must_fill = built.you_must_fill;
+    } else {
+      you_must_fill = buildPlainTemplate(
+        root,
+        name,
+        opts.op,
+        spec.envelope
+      );
+    }
+    emit(
+      ok({
+        you_must_fill,
+        cli_will_inject: [...spec.envelope],
+        notes: {
+          schema: name,
+          op: opts.op,
+          kind: opts.kind ?? null,
+          valid_kinds: valid_kinds.length > 0 ? valid_kinds : void 0,
+          example_hint: spec.hint ?? ""
+        }
+      })
+    );
   });
 }
 

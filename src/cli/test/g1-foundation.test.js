@@ -281,3 +281,267 @@ test('geas state mission-set rejects schema-invalid payloads', () => {
     cleanup();
   }
 });
+
+// ── schema template ──────────────────────────────────────────────────
+
+test('schema template mission-spec --op create returns required fields without envelope', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    const res = runCli(
+      ['schema', 'template', 'mission-spec', '--op', 'create'],
+      { cwd: dir },
+    );
+    assert.equal(res.status, 0, `schema template failed: ${res.stderr}`);
+    assert.equal(res.json.ok, true);
+    const fill = res.json.data.you_must_fill;
+    // Required agent-facing fields
+    for (const k of [
+      'mode',
+      'name',
+      'description',
+      'definition_of_done',
+      'scope',
+      'acceptance_criteria',
+      'constraints',
+      'affected_surfaces',
+      'risks',
+    ]) {
+      assert.ok(k in fill, `expected '${k}' in you_must_fill`);
+    }
+    // CLI-injected fields must NOT appear in you_must_fill
+    for (const k of ['id', 'user_approved', 'created_at', 'updated_at']) {
+      assert.ok(
+        !(k in fill),
+        `'${k}' is CLI-injected and should not be in you_must_fill`,
+      );
+    }
+    const inject = res.json.data.cli_will_inject;
+    assert.ok(Array.isArray(inject));
+    assert.deepEqual(
+      [...inject].sort(),
+      ['created_at', 'id', 'updated_at', 'user_approved'],
+    );
+    // mode is an enum — placeholder should show enum options
+    assert.match(String(fill.mode), /enum:/);
+  } finally {
+    cleanup();
+  }
+});
+
+test('schema template evidence --op append --kind review returns review-specific fields', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    const res = runCli(
+      ['schema', 'template', 'evidence', '--op', 'append', '--kind', 'review'],
+      { cwd: dir },
+    );
+    assert.equal(res.status, 0, `review template failed: ${res.stderr}`);
+    const fill = res.json.data.you_must_fill;
+    // entry_id and created_at are envelope-injected
+    assert.ok(!('entry_id' in fill));
+    assert.ok(!('created_at' in fill));
+    // evidence_kind is fixed to the --kind value
+    assert.equal(fill.evidence_kind, 'review');
+    // review branch requires these fields
+    for (const k of [
+      'verdict',
+      'concerns',
+      'rationale',
+      'scope_examined',
+      'methods_used',
+      'scope_excluded',
+    ]) {
+      assert.ok(k in fill, `expected '${k}' in review template`);
+    }
+    // review verdict enum is narrowed to approved/changes_requested/blocked
+    // and the placeholder must reflect that narrowing.
+    assert.match(String(fill.verdict), /enum: approved \| changes_requested \| blocked/);
+    assert.deepEqual(
+      [...res.json.data.cli_will_inject].sort(),
+      ['created_at', 'entry_id'],
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test('schema template evidence verification branch differs from review branch', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    const rv = runCli(
+      ['schema', 'template', 'evidence', '--op', 'append', '--kind', 'review'],
+      { cwd: dir },
+    );
+    const vv = runCli(
+      ['schema', 'template', 'evidence', '--op', 'append', '--kind', 'verification'],
+      { cwd: dir },
+    );
+    const cv = runCli(
+      ['schema', 'template', 'evidence', '--op', 'append', '--kind', 'closure'],
+      { cwd: dir },
+    );
+    assert.equal(rv.status, 0);
+    assert.equal(vv.status, 0);
+    assert.equal(cv.status, 0);
+    // verification adds criteria_results
+    assert.ok('criteria_results' in vv.json.data.you_must_fill);
+    assert.ok(!('criteria_results' in rv.json.data.you_must_fill));
+    // closure requires the retro fields and narrows verdict differently
+    for (const k of [
+      'what_went_well',
+      'what_broke',
+      'what_was_surprising',
+      'next_time_guidance',
+    ]) {
+      assert.ok(k in cv.json.data.you_must_fill);
+      assert.ok(!(k in rv.json.data.you_must_fill));
+    }
+    // closure verdict enum differs from review
+    assert.match(
+      String(cv.json.data.you_must_fill.verdict),
+      /enum: approved \| changes_requested \| escalated \| cancelled/,
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test('schema template evidence --op append rejects missing --kind', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    const res = runCli(
+      ['schema', 'template', 'evidence', '--op', 'append'],
+      { cwd: dir },
+    );
+    assert.notEqual(res.status, 0);
+    assert.equal(res.json.error.code, 'invalid_argument');
+    assert.match(res.json.error.message, /requires --kind/);
+    const hints = res.json.error.hints;
+    assert.ok(hints && Array.isArray(hints.valid_kinds));
+    // allOf branches are keyed on review / verification / closure
+    // (implementation has no kind-specific narrowing).
+    for (const k of ['review', 'verification', 'closure']) {
+      assert.ok(hints.valid_kinds.includes(k));
+    }
+  } finally {
+    cleanup();
+  }
+});
+
+test('schema template rejects unknown schema / op / kind', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    let res = runCli(
+      ['schema', 'template', 'not-a-schema', '--op', 'create'],
+      { cwd: dir },
+    );
+    assert.notEqual(res.status, 0);
+    assert.equal(res.json.error.code, 'invalid_argument');
+
+    res = runCli(
+      ['schema', 'template', 'mission-spec', '--op', 'nonsense'],
+      { cwd: dir },
+    );
+    assert.notEqual(res.status, 0);
+    assert.equal(res.json.error.code, 'invalid_argument');
+    assert.match(res.json.error.message, /not registered/);
+
+    res = runCli(
+      ['schema', 'template', 'evidence', '--op', 'append', '--kind', 'bogus'],
+      { cwd: dir },
+    );
+    assert.notEqual(res.status, 0);
+    assert.equal(res.json.error.code, 'invalid_argument');
+    assert.match(res.json.error.message, /unknown kind/);
+  } finally {
+    cleanup();
+  }
+});
+
+test('schema template task-contract --op draft enumerates agent-facing fields', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    const res = runCli(
+      ['schema', 'template', 'task-contract', '--op', 'draft'],
+      { cwd: dir },
+    );
+    assert.equal(res.status, 0, res.stderr);
+    const fill = res.json.data.you_must_fill;
+    // agent fills these
+    for (const k of [
+      'title',
+      'goal',
+      'risk_level',
+      'acceptance_criteria',
+      'verification_plan',
+      'routing',
+      'base_snapshot',
+    ]) {
+      assert.ok(k in fill, `expected '${k}' in task-contract draft template`);
+    }
+    // envelope
+    for (const k of ['mission_id', 'task_id', 'created_at', 'updated_at']) {
+      assert.ok(!(k in fill));
+      assert.ok(res.json.data.cli_will_inject.includes(k));
+    }
+    // routing is an object with nested required fields populated.
+    assert.equal(typeof fill.routing, 'object');
+    assert.ok('primary_worker_type' in fill.routing);
+    assert.ok('required_reviewers' in fill.routing);
+  } finally {
+    cleanup();
+  }
+});
+
+test('schema template implementation-contract --op set produces correct envelope', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    const res = runCli(
+      ['schema', 'template', 'implementation-contract', '--op', 'set'],
+      { cwd: dir },
+    );
+    assert.equal(res.status, 0, res.stderr);
+    const fill = res.json.data.you_must_fill;
+    // agent fills the plan content
+    for (const k of [
+      'summary',
+      'rationale',
+      'change_scope',
+      'planned_actions',
+    ]) {
+      assert.ok(k in fill);
+    }
+    // envelope
+    assert.deepEqual(
+      [...res.json.data.cli_will_inject].sort(),
+      ['created_at', 'mission_id', 'task_id', 'updated_at'],
+    );
+    assert.equal(res.json.data.notes.schema, 'implementation-contract');
+    assert.equal(res.json.data.notes.op, 'set');
+  } finally {
+    cleanup();
+  }
+});
+
+test('schema template debts --op register templates the debt entry shape', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    const res = runCli(
+      ['schema', 'template', 'debts', '--op', 'register'],
+      { cwd: dir },
+    );
+    assert.equal(res.status, 0, res.stderr);
+    const fill = res.json.data.you_must_fill;
+    // Agent fills these — debt_id/status/resolved_by/resolution_rationale
+    // are CLI-owned and must NOT appear.
+    for (const k of ['severity', 'kind', 'title', 'description', 'introduced_by']) {
+      assert.ok(k in fill, `expected '${k}' in debts register template`);
+    }
+    for (const k of ['debt_id', 'status', 'resolved_by', 'resolution_rationale']) {
+      assert.ok(!(k in fill), `'${k}' should not be in you_must_fill`);
+      assert.ok(res.json.data.cli_will_inject.includes(k));
+    }
+  } finally {
+    cleanup();
+  }
+});
