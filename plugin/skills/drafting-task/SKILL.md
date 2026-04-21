@@ -38,7 +38,26 @@ Transforms a slice of mission scope into a task contract routed to a concrete im
 7. **Fill `routing`.** `primary_worker_type` = concrete implementer agent type (kebab-case). `required_reviewers` picked from `challenger | risk-assessor | operator | communicator`. Challenger mandatory when `risk_level >= high`. Verifier is implicit. **Mission `mode` does NOT change task-level `required_reviewers`** — `full_depth` changes judgment depth via mission-level deliberation (see `convening-deliberation`), not by adding reviewers to every task. Picking reviewers based on mode instead of the task's actual risk and surfaces produces rubber-stamp reviews and pollutes the real dissent signal.
 8. **Capture `base_snapshot`.** Typically `git rev-parse HEAD`; any stable baseline id works.
 9. **Set `dependencies` and `supersedes`.** `dependencies` lists task ids that must reach `passed` before this leaves `ready`. `supersedes` is non-null only when replacing a cancelled task.
-10. **Submit draft + approval.** Run `geas task draft`. On response, show the user (or route to decision-maker for mid-mission in-scope). On confirmation, run `geas task approve --by user` (or `--by decision-maker`).
+10. **Submit draft.** Run `geas task draft`. The CLI assigns `task_id` and writes `contract.json` + a drafted `task-state.json`. Do not approve yet.
+11. **Render the task card.** Before requesting approval, output a structured card that covers every field the approval will lock in — not just title and goal. Approval commits to an immutable contract; a title-plus-goal summary turns approval into rubber-stamping.
+
+    ```
+    Task {id} — {title}
+    Goal: {one-line observable change}
+    Risk: {level}          Implementer: {primary_worker_type}
+    Surfaces: {list}
+    Reviewers: verifier (implicit){, other slots from required_reviewers}
+    Acceptance criteria:
+      1. ...
+      2. ...
+    Verification plan: {one- to three-line summary; reference the full text if long}
+    Dependencies: {task ids or "none"}
+    Base snapshot: {sha}
+    ```
+
+12. **Ask for approval (two-step with `AskUserQuestion`).** First call: header `Task {id}`, options `approve | revise | cancel`. If the user picks `revise`, follow up with a second `AskUserQuestion` whose options name the sections the user may change (≤4 per call; group by theme when more than four fields could be in play, for example: `content (goal, criteria, verification) | routing (reviewers, risk) | surfaces | dependencies`). "Other" is auto-appended to every call for edits that cross sections or don't match any label.
+13. **Handle revise.** A drafted contract is not yet immutable, but the CLI enforces immutability at `approve`. Treat the current draft as abandoned, call `geas task draft` again with the corrected payload, and re-render the card. Loop until the user returns `approve` at Step 12. Approve only after every surfaced concern is resolved.
+14. **Approve.** Run `geas task approve --mission <id> --task <id> --by user` (or `--by decision-maker` for mid-mission in-scope additions).
 
 CLI payload shape (task draft):
 
@@ -72,6 +91,7 @@ The CLI injects `mission_id`, `task_id`, `created_at`, `updated_at`; defaults `a
 | "Goal is `improve scheduling`" | That is an activity, not an observable outcome. Rewrite as an observable end-state a reviewer can grade. |
 | "Contract is wrong — let me edit `contract.json` to fix it" | Contracts are immutable on approval. Cancel the task and draft a replacement with `supersedes`. |
 | "Drop `verification_plan` — the gate will figure it out" | Tier 1 runs the plan; without it the gate returns `error`. |
+| "Just show the user title and goal — the rest is in the file if they care" | Approval locks the contract. Surfaces, routing, acceptance_criteria, verification_plan, risk_level, and dependencies are all part of the commitment. Hiding them behind a summary turns approval into rubber-stamping and is exactly how misrouted reviewers and oversized surface allowlists slip past review. |
 
 ## Invokes
 
@@ -108,4 +128,5 @@ The CLI injects `mission_id`, `task_id`, `created_at`, `updated_at`; defaults `a
 - Challenger is mandatory at `risk_level >= high`; verifier is implicit.
 - Mission `mode` does not change task-level `required_reviewers`. `full_depth` drives depth through mission-level deliberation, not by attaching challenger to every task.
 - Contract is immutable after approve; replace via `supersedes` if wrong.
+- Approval is section-scoped — render the full card (every locked field), not a title-plus-goal summary. Use a two-step `AskUserQuestion` (approve|revise|cancel → section picker) so the audit trail records which section drove each revision.
 - Tasks outside `spec.scope.in` are not drafted here — route back to the dispatcher.

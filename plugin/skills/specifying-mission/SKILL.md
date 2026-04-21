@@ -36,8 +36,16 @@ Drives the specifying phase end-to-end. Turns a natural-language request into an
 4. **Section-by-section approval.** Before the CLI call, confirm each section: name, description, scope in/out, DoD, acceptance_criteria, constraints, risks. `AskUserQuestion` accepts up to four questions in a single call, so batch related approvals (for example: name + description, or constraints + risks) instead of serial prose. Each question offers `approve | revise` with "Other" as the free-text escape for substantive edits.
 5. **Create + approve the mission spec.** Run `geas mission create` (payload shape below). Show the summary. On user confirm, run `geas mission approve`. Spec becomes immutable.
 6. **Author the mission design.** For `lightweight` the orchestrator may write `mission-design.md` directly via `geas mission design-set`. For `standard` ask decision-maker to review before user sign-off. For `full_depth` record a mission-level deliberation (via `convening-deliberation`) with challenger + decision-maker + ≥1 specialist before user approval.
-7. **Draft the initial task set.** For each planned task, delegate to `drafting-task`. Approve each via `geas task approve --by user` (or `--by decision-maker` for mid-mission in-scope additions).
-8. **Close the phase.** Append a specifying phase-review and return control. The dispatcher advances the phase.
+7. **Draft the initial task set.** Plan the decomposition, then for each planned task delegate to `drafting-task` to author the contract. `drafting-task` writes the draft and returns control here BEFORE approving — approval happens in Step 9, after the user has audited the decomposition.
+8. **Present the task-set overview.** Once every task in the initial set is drafted, render a decomposition table so the user audits the slicing itself before committing to individual contracts. Use `AskUserQuestion` (header: `Task set`) with options `approve-set | redecompose | drop-one`. "Other" covers targeted adjustments (split one, reorder, rename). Do not skip this step — set-level decomposition (which slices exist, which surfaces overlap, which dependencies form the order) is a separate audit from per-task contract fields, and collapsing the two hides scope errors behind card-level wording.
+
+    ```
+    | id | title | risk | surfaces (summary) | deps |
+    |----|-------|------|---------------------|------|
+    ```
+
+9. **Per-task approval.** Walk each drafted task in dependency order. `drafting-task` Step 11 renders the full card and Step 12 runs the section-scoped approval via `AskUserQuestion`. Approve via `geas task approve --by user` per `drafting-task` Step 14 (or `--by decision-maker` for mid-mission in-scope additions).
+10. **Close the phase.** Append a specifying phase-review and return control. The dispatcher advances the phase.
 
 CLI payload shape (mission create):
 
@@ -66,6 +74,7 @@ The CLI injects `id`, `user_approved=false`, `created_at`, `updated_at`.
 | "User sounded certain — skip section-by-section approval" | Section approval is the user's last chance to touch a soon-immutable contract. Skipping it bakes in misreads. |
 | "Spec approved — retroactively edit it because scope slipped" | The spec is immutable after approval. Use `drafting-task` for in-scope additions or start a new mission. |
 | "Just dump the whole intake as a prose block — it's faster" | Unstructured prose loses answers and invites the user to skim. `AskUserQuestion` forces a structured pick per question and keeps the audit trail clean. |
+| "Draft the tasks, list them in a bullet, get one 'approve' for the whole set" | The task set has two audit layers: decomposition (set-level — which slices exist, surface overlap, dependency order) and contract (per-task — routing, criteria, verification). Collapsing them loses the surface/dependency check and locks contracts the user never saw. Overview table first, then per-task card via `drafting-task`. |
 
 ## Invokes
 
@@ -106,4 +115,5 @@ Sub-skills invoked: `drafting-task` (per initial task), `convening-deliberation`
 - One question at a time for exploration; batch up to 4 questions in a single `AskUserQuestion` call when approvals are independent and related.
 - Section-by-section approval before CLI writes; immutable after approve.
 - At least one approved task contract must exist before the specifying phase-review.
+- Task set has two audit layers — decomposition (overview table, set-level) then contract (per-task card via `drafting-task`). Never collapse them into one approval.
 - Return control to the dispatcher after appending the phase-review — do not call `mission-state update --phase` from here.
