@@ -37,7 +37,7 @@ try {
       latestMission = entries[entries.length - 1];
       const statePath = path.join(missionsDir, latestMission, 'mission-state.json');
       const state = h.readJson(statePath);
-      if (state) latestPhase = state.mission_phase || null;
+      if (state) latestPhase = state.phase || null;
     }
   }
 } catch {}

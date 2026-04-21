@@ -66,7 +66,7 @@ v3에는 `PostToolUse`, `Stop`, `PostCompact` hook이 없다.
 
 **읽는 파일.**
 - `.geas/missions/` — `mission-*` 항목을 세고 사전식으로 가장 큰 id를 찾아 해당 mission의 phase를 읽는다.
-- `.geas/missions/{latest}/mission-state.json` — 존재하면 `mission_phase` 필드.
+- `.geas/missions/{latest}/mission-state.json` — 존재하면 `phase` 필드.
 - `.geas/memory/shared.md` — 존재 여부만 확인.
 - `.geas/memory/agents/` — `*.md` 파일 수.
 - `.geas/debts.json` — `status == "open"` entry 수.

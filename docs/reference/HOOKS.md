@@ -67,7 +67,7 @@ There are no `PostToolUse`, `Stop`, or `PostCompact` hooks in v3.
 
 **Reads.**
 - `.geas/missions/` — counts entries matching `mission-*` and finds the lexicographically latest one to read its phase.
-- `.geas/missions/{latest}/mission-state.json` — `mission_phase` field, if present.
+- `.geas/missions/{latest}/mission-state.json` — `phase` field, if present.
 - `.geas/memory/shared.md` — existence only.
 - `.geas/memory/agents/` — counts `*.md` files.
 - `.geas/debts.json` — counts entries with `status == "open"`.
