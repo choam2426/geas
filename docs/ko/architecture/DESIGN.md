@@ -310,22 +310,46 @@ CLI 내부 알고리즘, 전체 schema 원문, runtime별 interception 메커니
 
 ### 7.5 핵심 skill 계약
 
-| skill | `execution` | `slot` | 목적 | 주된 CLI |
-|---|---|---|---|---|
-| `/mission` | `main_session` | orchestrator | specifying phase 진입점 (mission 생성과 초기 승인) | `mission create`, `mission design-set`, `task draft`, `task approve`, `mission-state update` |
-| `/task-draft` | `main_session` | orchestrator (design-authority를 spawn) | 중간 task contract 작성 | `task draft`, `task approve` |
-| `/task-implement` | `spawned` | implementer | 구현 + self-check + implementation evidence | `impl-contract set`, `self-check set`, `evidence append` |
-| `/task-review` | `spawned` | risk-assessor / operator / communicator / challenger | review evidence 제출 | `evidence append` |
-| `/task-verify` | `spawned` | verifier | 독립 검증 + verification evidence | `evidence append` |
-| `/gate-run` | `main_session` | orchestrator | Tier 0 → 1 → 2 gate 실행 | `gate run`, `task transition` |
-| `/task-close` | `main_session` | orchestrator | closure evidence 작성 | `evidence append`, `task transition` |
-| `/deliberation` | `main_session` | orchestrator (참가 slot들을 spawn) | 다자 심의 | `deliberation append` |
-| `/phase-review` | `main_session` | orchestrator | phase gate 판정 | `phase-review append`, `mission-state update` |
-| `/mission-consolidate` | `main_session` | orchestrator (gap은 design-authority를 spawn) | debts·gap·memory-update | `debt register`, `gap set`, `memory-update set` |
-| `/mission-verdict` | `main_session` | orchestrator (decision-maker를 spawn) | mission final verdict | `mission-verdict append` |
-| `/resume` | `main_session` | orchestrator | context 유실 후 재개 | `resume` |
+Skill 층은 17개 skill로 구성된다. 사용자 진입점은 `mission` 하나이며, 나머지는 dispatcher가 조건에 따라 invoke하는 sub-skill이다.
 
-핵심 skill 집합과 각 행의 단계 책임은 공통 계약으로 고정된다. Slash command 이름, registration 방식, 문장 스타일은 adapter별로 달라질 수 있지만 이 표가 가리키는 단계 책임과 산출물 관계는 바뀌지 않는다.
+#### 사용자 호출 가능 (2)
+
+| skill | `execution` | 담당 slot | 목적 |
+|---|---|---|---|
+| `mission` | `main_session` | orchestrator | Mission dispatcher — bootstrap, state 점검, phase별 sub-skill dispatch, briefing |
+| `navigating-geas` | `main_session` | orchestrator | Skill 카탈로그·CLI·workflow 안내 |
+
+#### Mission lifecycle sub-skills (8, main_session)
+
+| skill | 담당 slot | dispatcher가 부르는 시점 | 주된 CLI |
+|---|---|---|---|
+| `specifying-mission` | orchestrator | specifying phase 진입, mission spec 미승인 | `mission create`, `mission approve`, `mission design-set` |
+| `drafting-task` | orchestrator (필요 시 design-authority 자문) | 초기 task set 작성 또는 mission 중간 task 필요 | `task draft`, `task approve`, `task deps add` |
+| `scheduling-work` | orchestrator | 승인된 task가 있고 dispatch 준비 | `task transition --to implementing` |
+| `running-gate` | orchestrator | required reviewer와 verifier evidence가 모두 도착 | `gate run`, `task transition` |
+| `closing-task` | orchestrator | gate pass 직후 | `evidence append --kind closure`, `task transition --to passed` |
+| `reviewing-phase` | orchestrator | 해당 phase scope의 task가 전부 종결 | `phase-review append`, `mission-state update --phase` |
+| `consolidating-mission` | orchestrator (gap에 design-authority spawn) | consolidating phase 진입 | `debt register`, `gap set`, `memory-update set`, `memory shared-set`, `memory agent-set` |
+| `verdicting-mission` | orchestrator (decision-maker spawn) | 모든 phase 종료 | `mission-verdict append` |
+
+#### Multi-party (1, main_session)
+
+| skill | 담당 slot | dispatcher가 부르는 시점 | 주된 CLI |
+|---|---|---|---|
+| `convening-deliberation` | orchestrator (voter spawn) | `mode == full_depth`에서 reviewer verdict 충돌, 구조적 이견, phase rollback | `deliberation append` |
+
+#### Spawned agent procedures (6, spawned)
+
+| skill | 담당 slot | spawn 시점 | 주된 CLI |
+|---|---|---|---|
+| `implementing-task` | implementer | 승인된 task가 dispatch됨 | `self-check set`, `evidence append --slot implementer` |
+| `reviewing-task` | challenger / risk-assessor / operator / communicator | 구현 evidence와 self-check 제출 후 | `evidence append --slot <reviewer>` |
+| `verifying-task` | verifier | reviewer concurrence 완료 후 | `evidence append --slot verifier` |
+| `deliberating-on-proposal` | 호출된 voter slot | `convening-deliberation`이 소집 | (직접 write 없음 — vote 반환) |
+| `designing-solution` | design-authority | mission design 작성, task 구조 review, gap 분석 | `mission design-set`, `evidence append --slot design-authority`, `gap set` |
+| `deciding-on-approval` | decision-maker | mission spec 승인, task 승인, phase-review, mission-verdict | `evidence append --slot decision-maker`, `task approve`, `phase-review append`, `mission-verdict append` |
+
+17개 skill의 단계 책임과 산출물 관계는 공통 계약으로 고정된다. Sub-skill은 `mission` dispatcher 외에는 invoke되지 않으며(sub-skill frontmatter에 `user-invocable: false`), 사용자 수동 호출과 Claude auto-trigger는 dispatcher 단독 결정 원칙을 깨지 않는 범위로 제한된다. Skill 이름과 문장 스타일은 adapter별로 달라질 수 있지만 이 표가 가리키는 단계 책임과 산출물 관계는 바뀌지 않는다.
 
 ### 7.6 Skill 규약
 
