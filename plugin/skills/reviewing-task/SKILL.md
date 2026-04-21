@@ -1,0 +1,117 @@
+---
+name: reviewing-task
+description: Invoked by a spawned reviewer (challenger, risk-assessor, operator, or communicator) after an implementer has appended implementation evidence and a self-check. Reads the task contract, implementation evidence, and self-check, then produces a review-kind evidence entry with verdict, concerns, scope_examined, and methods_used.
+user-invocable: false
+---
+
+# Reviewing Task
+
+## Overview
+
+You have been spawned as a reviewer for a task. Your slot's system prompt defines your stance (challenger = adversarial, risk-assessor = failure modes, operator = operability + runtime concerns, communicator = surfaces affecting humans). This skill captures the shared procedure; stance lives in your agent file, not here. You read the evidence in your lane, form a verdict, and append one review-kind evidence entry through the CLI.
+
+<HARD-GATE> You cannot also hold implementer or verifier on the same task — CLI enforces agent-slot independence. Review is evidence, not negotiation: record your view honestly, including dissent. A verdict of `approved` does not mean "no concerns"; it means "the concerns I have do not block acceptance".
+
+## When to Use
+
+- The orchestrator has spawned you as a reviewer after an implementer appended implementation evidence + self-check, or after an implementer proposed an implementation-contract plan (pre-implementation concurrence).
+- You were handed: your slot identity, the task's `mission_id` + `task_id`, and access to `.geas/`.
+- Do NOT run to "verify" — `verifying-task` is the verifier's procedure and executes `verification_plan`.
+- Do NOT run if you authored the implementation evidence you'd be reviewing.
+
+## Preconditions
+
+- `task-state.status == implementing` (pre-work plan concurrence) or `reviewed` (post-work review).
+- Task contract exists with `approved_by` set.
+- For post-work review: implementation-kind evidence entry and `self-check.json` exist.
+- For pre-work concurrence: implementation-contract payload exists (via the registered CLI surface).
+- You are not the implementer on this task (CLI enforces; stop if unsure).
+
+## Process
+
+1. **Read your inputs in order.**
+   - Task contract: `goal`, `acceptance_criteria`, `verification_plan`, `surfaces`, `routing`, `risk_level`, `dependencies`, `supersedes`.
+   - Implementation evidence (latest entry; walk back via `revision_ref` for trajectory).
+   - Self-check: `confidence`, per-criterion status, `surprises`, `remaining_risks`.
+   - Mission spec + mission design for project-wide constraints.
+   - Prior review entries on this task (to avoid duplicating concerns already raised and resolved).
+2. **Scope your review to your slot's lens.**
+   - challenger: adversarial — what would cause this to fail? where are the hidden assumptions?
+   - risk-assessor: failure modes — what happens when something goes wrong? are risks honest?
+   - operator: runtime + operability — can this be deployed, observed, rolled back?
+   - communicator: affects humans — are the surfaces visible to users consistent, safe, understandable?
+   Record exactly what you examined in `scope_examined`; if a criterion lives outside your slot's lens, state that in `scope_excluded`.
+3. **Choose a verdict.**
+   - `approved` — criteria are met within your lens; concerns (if any) are non-blocking and recorded honestly.
+   - `changes_requested` — specific corrections needed; each concern must cite a criterion or surface and suggest the correction.
+   - `blocked` — the plan or implementation as stated cannot proceed; structural issue, scope violation, dependency failure, etc.
+4. **Write the review-kind evidence entry** via CLI:
+   ```bash
+   geas evidence append --mission {mission_id} --task {task_id} \
+       --agent {your_concrete_agent} --slot {your_slot} <<'EOF'
+   {
+     "evidence_kind": "review",
+     "summary": "<one-line summary of your verdict>",
+     "verdict": "approved | changes_requested | blocked",
+     "concerns": [{"severity": "info|warn|blocker", "text": "..."}],
+     "rationale": "<why this verdict, citing artifacts>",
+     "scope_examined": "<what you actually inspected>",
+     "methods_used": ["read contract", "diff implementation", "..."],
+     "scope_excluded": "<what's out of your lens>"
+   }
+   EOF
+   ```
+5. **Return.** The orchestrator aggregates every required reviewer's verdict in Tier 2 of `running-gate`. You do not wait for other reviewers; you do not see their verdicts.
+
+## Red Flags
+
+| Excuse | Reality |
+|---|---|
+| "The implementer is senior — rubber-stamp approved" | Reviewer verdict is evidence, not deference. The gate reads your verdict as an independent signal. |
+| "I'll leave concerns out of `approved` entries to keep things clean" | Dissent is captured even on `approved`. Concerns are the audit substrate for memory extraction and phase-review. |
+| "I'll request changes on style issues while structural issues go unnamed" | Structural issues get `changes_requested` or `blocked`. Nitpicking style while ignoring structure is the classic review failure. |
+| "I'll examine beyond my slot's lens to be helpful" | Stay in lane. Cross-slot commentary blurs the audit; if another slot is missing a view, raise it to the orchestrator, don't absorb the slot. |
+| "I'll edit the implementation directly and mark approved" | Reviewers never edit. If you can fix it yourself, you are an implementer — and you cannot be both on this task. |
+| "I'll skip reading prior reviews to stay unbiased" | Prior reviews name resolved concerns; re-raising them wastes the verify-fix budget. |
+
+## Invokes
+
+| CLI command | Purpose |
+|---|---|
+| `geas evidence append --slot <your_slot> --agent <concrete> --mission <id> --task <id>` | Append one review-kind evidence entry with verdict + concerns. |
+
+Read-only helpers:
+| CLI command | Purpose |
+|---|---|
+| `geas evidence list --mission <id> --task <id>` | Walk prior evidence, including prior reviews. |
+| `geas mission state --mission <id>` | Confirm phase + approval state. |
+| `geas event query --mission <id> --task <id>` | Trace the task's transition history. |
+
+Sub-skills you do NOT invoke: none.
+
+## Outputs
+
+- One review-kind evidence entry per spawn, written to `.geas/missions/{mission_id}/tasks/{task_id}/evidence/*.{your_slot}.json`.
+- No other artifacts.
+
+## Failure Handling
+
+- **Implementation evidence missing** (post-work review): stop; return to orchestrator. Do not review absent work.
+- **Self-check missing or schema-invalid**: return to orchestrator with a note; the implementer must fix the self-check before Tier 0 passes.
+- **Criterion outside your slot's lens**: record `scope_excluded`; do not issue verdict over that criterion.
+- **Evidence of implementer-as-reviewer conflict**: refuse the review, return with note. CLI should have prevented the spawn.
+- **Base_snapshot drift**: raise as `blocked` with concern about snapshot mismatch; orchestrator re-bases.
+
+## Related Skills
+
+- **Invoked by**: `scheduling-work` (pre-work implementation-contract concurrence), `running-gate` verify-fix loop (post-revision re-review), orchestrator-direct (post-implementation first review).
+- **Invokes**: none.
+- **Do NOT invoke**: `verifying-task` (verifier runs it separately), `running-gate` (orchestrator aggregates verdicts), `implementing-task` (you're reviewing, not implementing).
+
+## Remember
+
+- Stay in your slot's lens; record `scope_excluded` for what you did not examine.
+- Verdict is evidence, not negotiation. Concerns are captured even on `approved`.
+- One entry per spawn; re-reviews after revisions are new entries.
+- You cannot also be implementer or verifier on this task.
+- Every writes goes through the CLI; no direct `.geas/` edits.
