@@ -1,47 +1,55 @@
 # Agents Reference
 
-Geas uses a **slot-based role architecture**. The contract engine defines abstract **slots** (decision_maker, design_authority, challenger, implementer, quality_specialist, risk_specialist, operations_specialist, communication_specialist). Domain **profiles** map each slot to a concrete agent type. This separation lets the same governance pipeline serve different domains — software engineering, research, or any future profile — without changing the contract engine.
+Geas uses a **slot-based role architecture**. The protocol defines abstract **slots**; concrete agent types declare which slot they fill in their frontmatter. This separation lets the same governance pipeline serve different domains — software engineering, research, or any future profile — without rewriting the contract layer.
 
-The **Orchestrator** (`orchestration_authority`) is the mission skill that coordinates phases, spawns agents, and manages task flow. It is not a spawnable agent and does not appear in profile definitions.
+**Canonical slot definitions:** [`docs/protocol/01_AGENTS_AND_AUTHORITY.md`](../protocol/01_AGENTS_AND_AUTHORITY.md)
+**Agent files:** `plugin/agents/`
 
-Canonical definitions: `docs/protocol/01_AGENT_TYPES_AND_AUTHORITY.md`
-Agent files: `plugin/agents/`
+## Slot Families
+
+**Authority (4 slots)** — orchestrator, decision-maker, design-authority, challenger. Always present regardless of domain.
+
+**Specialist (5 slots)** — implementer, verifier, risk-assessor, operator, communicator. Minimum shared classification across domains. A concrete profile fills each slot with a domain-appropriate agent type, and may have multiple concrete types mapped to the same slot (for example, two implementer types in the research profile).
+
+Slots are role positions. Evidence, review routing, and gate rules refer to slots — not concrete agent names — so the same pipeline works across domains.
+
+The **Orchestrator** is the mission skill (the main-session driver), not a spawnable agent. It coordinates phases, dispatches specialists, and records task closure decisions. It does not appear under `plugin/agents/`.
 
 ---
 
 ## Authority Agents
 
-Authority agents are **shared across all profiles**. They provide governance, structural review, and adversarial challenge regardless of the domain.
+Authority agents are shared across all profiles. They provide governance, structural review, and adversarial challenge regardless of the domain.
 
-| Agent Type | Slot | Model | Key Responsibility |
+| Agent | Slot | Model | Key Responsibility |
 |---|---|---|---|
-| [product-authority](#product-authority) | `decision_maker` | opus | Final verdict on task closure (pass / iterate / escalate) |
-| [design-authority](#design-authority) | `design_authority` | opus | Structural coherence, interface review, contract approval |
-| [challenger](#challenger) | `challenger` | opus | Adversarial pre-ship challenge, blocking concerns |
+| [decision-maker](#decision-maker) | `decision-maker` | opus | Mission-level approval and the final mission verdict |
+| [design-authority](#design-authority) | `design-authority` | opus | Mission design, structural review of contracts, gap analysis |
+| [challenger](#challenger) | `challenger` | opus | Adversarial review on high-risk tasks and mission-level deliberations |
 
-### product-authority
+### decision-maker
 
-The voice of user value. Makes the final call on whether work ships, iterates, or gets cut.
+The final judgment authority. Issues the mission verdict after reading the spec, design, task closures, gap analysis, and any deliberations.
 
-- **Authority:** Final verdict (pass/iterate/escalate), priority adjustments, scope definition (P0/P1/P2/OUT), trade-off resolution when specialist consensus fails.
-- **Judgment:** Reads all evidence before deciding. A passing gate does not automatically mean ship — product fit matters. Challenges over-engineering, scope creep, and features disguised as must-haves.
-- **Artifacts:** `record.json` verdict section
+- **Authority:** Mission-level approval checkpoints (scope-in task contracts during building, mission verdict at the end of consolidating). Resolves deliberations when participants disagree.
+- **Judgment:** Weighs whether acceptance criteria were met, whether gaps are acceptable, and whether residual risks are within mission scope. A passing evidence gate does not automatically mean the mission ships — product judgment is separate from objective verification.
+- **Artifacts:** `.geas/missions/{mission_id}/mission-verdicts.json`, deliberation verdicts.
 
 ### design-authority
 
-The guardian of structural coherence. Reviews boundaries, interfaces, dependencies, and maintainability.
+The guardian of structural coherence. Authors the mission design, structurally reviews task and implementation contracts, and assembles the mission's gap analysis during consolidating.
 
-- **Authority:** Structural review and approval of implementation contracts, interface and dependency decisions, blocking power when structural integrity is at risk.
-- **Judgment:** Evaluates whether the approach creates maintainable boundaries. Checks for brittle coupling, unsafe complexity, hidden dependencies. Stubs and placeholders must be explicitly bounded.
-- **Artifacts:** `tasks/{tid}/evidence/design-authority.json`, implementation contract approval
+- **Authority:** Writes the mission design during specifying. Structurally reviews task contracts and implementation contracts (verdict: approved / changes_requested / blocked). Writes the gap payload during consolidating.
+- **Judgment:** Boundaries, interfaces, dependencies, justified complexity, bounded stubs. Flags overlaps with in-flight tasks and surface contention.
+- **Artifacts:** `.geas/missions/{mission_id}/mission-design.md`, review-kind evidence under `tasks/{task_id}/evidence/design-authority.design-authority.json`, `consolidation/gap.json`.
 
 ### challenger
 
-The adversarial reviewer who asks "why might this be wrong?" while everyone else asks "is this correct?"
+The adversarial reviewer who asks "why might this still be wrong?" while everyone else asks "is this correct?"
 
-- **Authority:** Blocking power on high/critical risk tasks, mandatory pre-ship challenge for high/critical risk.
-- **Judgment:** Looks for hidden assumptions, overconfidence, fragile complexity, unexamined negative cases, scope leaks, trust boundary violations. Every challenge review must include at least one substantive concern.
-- **Artifacts:** `record.json` challenge_review section + `tasks/{tid}/evidence/challenger.json`
+- **Authority:** Review slot on high- and critical-risk tasks; mission-level deliberation participant under full_depth.
+- **Judgment:** Hidden assumptions, overconfidence, fragile complexity, unexamined negative cases, scope leaks, trust boundary violations. Every challenge review must include at least one substantive concern — empty approval is not allowed.
+- **Artifacts:** Review-kind evidence under `tasks/{task_id}/evidence/challenger.challenger.json`; deliberation evidence during mission-level deliberations.
 
 ---
 
@@ -49,33 +57,35 @@ The adversarial reviewer who asks "why might this be wrong?" while everyone else
 
 For software engineering missions. Defined in `plugin/agents/software/`.
 
-| Slot | Agent Type | Key Responsibility |
+| Slot | Agent | Key Responsibility |
 |---|---|---|
 | `implementer` | [software-engineer](#software-engineer) | Full-stack implementation (frontend, backend, design) |
-| `quality_specialist` | [qa-engineer](#qa-engineer) | Verification, acceptance criteria, rubric scoring |
-| `risk_specialist` | [security-engineer](#security-engineer) | Trust boundaries, attack surfaces, security assessment |
-| `operations_specialist` | [platform-engineer](#platform-engineer) | CI/CD, deployment, environment, operational readiness |
-| `communication_specialist` | [technical-writer](#technical-writer) | Documentation completeness, accuracy, audience fit |
+| `implementer` | [platform-engineer](#platform-engineer) | Infrastructure, deployment, environment, operational readiness |
+| `verifier` | [qa-engineer](#qa-engineer) | Independent acceptance verification |
+| `risk-assessor` | [security-engineer](#security-engineer) | Trust boundaries, attack surfaces, security assessment |
+| `communicator` | [technical-writer](#technical-writer) | Documentation completeness, accuracy, audience fit |
+
+The software profile has two `implementer` types. The orchestrator routes the task to the appropriate one based on its nature (feature code versus platform/operational work) and records the chosen type in `contract.routing.primary_worker_type`.
 
 ### software-engineer
 
 Full-stack implementer handling frontend, backend, and design implementation. Thinks in data flows, failure modes, user interactions, and system boundaries. Follows stack conventions, validates inputs, separates concerns. Submits honest self-checks.
 
+### platform-engineer
+
+Operational-backbone implementer. Handles deployment, CI/CD, environment setup, rollback capability, configuration drift, and operational visibility. Lives in the implementer slot because its output is still implementation work; review of operability concerns from other tasks comes via the `operator` review slot when explicitly required.
+
 ### qa-engineer
 
-Quality gatekeeper who verifies that what was built actually works. Starts from acceptance criteria, prioritizes negative paths, targets the worker's `untested_paths[]` and `possible_stubs[]`. Reports findings as rubric scores with specific evidence.
+Independent verifier who checks that what was built actually holds against the contract. Starts from acceptance criteria, prioritizes negative paths, targets the implementer's stated `known_risks` and untested areas. Evidence is `verification`-kind, not `review`-kind — every task has an implicit verifier regardless of `required_reviewers`.
 
 ### security-engineer
 
-Risk assessor focused on trust boundaries and attack surfaces. Maps trust boundaries, checks auth and authorization, inspects secret handling, evaluates injection surfaces and OWASP Top 10. Classifies findings by actual exploitability.
-
-### platform-engineer
-
-Operational backbone ensuring what gets built can be deployed, run, and maintained. Checks deployment implications, CI/CD impact, rollback capability, configuration drift, and operational visibility.
+Risk assessor focused on trust boundaries and attack surfaces. Maps trust boundaries, checks auth and authorization, inspects secret handling, evaluates injection surfaces and OWASP Top 10 classes. Classifies findings by actual exploitability.
 
 ### technical-writer
 
-Clarity specialist ensuring what gets built can be understood. Checks documentation impact, accuracy against implementation, audience fit, completeness for new features and breaking changes, and findability.
+Clarity specialist ensuring the deliverable can be understood. Checks documentation impact, accuracy against implementation, audience fit, completeness for new features and breaking changes, and findability.
 
 ---
 
@@ -83,24 +93,24 @@ Clarity specialist ensuring what gets built can be understood. Checks documentat
 
 For research and analysis missions. Defined in `plugin/agents/research/`.
 
-| Slot | Agent Type | Key Responsibility |
+| Slot | Agent | Key Responsibility |
 |---|---|---|
 | `implementer` | [literature-analyst](#literature-analyst) | Systematic literature search, source evaluation, synthesis |
 | `implementer` | [research-analyst](#research-analyst) | Experiment design, data analysis, reproducible evidence |
-| `quality_specialist` | [methodology-reviewer](#methodology-reviewer) | Methodological soundness, statistical validity, reproducibility |
-| `risk_specialist` | [research-integrity-reviewer](#research-integrity-reviewer) | Ethics, data privacy, bias, validity threats |
-| `operations_specialist` | [research-engineer](#research-engineer) | Data pipelines, compute resources, environment reproducibility |
-| `communication_specialist` | [research-writer](#research-writer) | Research documentation, citation accuracy, audience-appropriate writing |
+| `verifier` | [methodology-reviewer](#methodology-reviewer) | Methodological soundness, statistical validity, reproducibility |
+| `risk-assessor` | [research-integrity-reviewer](#research-integrity-reviewer) | Ethics, data privacy, bias, validity threats |
+| `operator` | [research-engineer](#research-engineer) | Data pipelines, compute resources, environment reproducibility |
+| `communicator` | [research-writer](#research-writer) | Research documentation, citation accuracy, audience-appropriate writing |
 
-Note: The research profile has two `implementer` types. The Orchestrator routes tasks to the appropriate implementer based on `task_kind` and scope.
+The research profile has two `implementer` types. The orchestrator routes tasks based on whether the work is a literature synthesis or hands-on experimental work.
 
 ### literature-analyst
 
-Systematic researcher who finds, evaluates, and synthesizes published knowledge. Prefers primary sources, assesses source credibility, identifies contradictions explicitly, notes knowledge gaps, and covers at least 3 independent sources for major claims.
+Systematic researcher who finds, evaluates, and synthesizes published knowledge. Prefers primary sources, assesses source credibility, identifies contradictions explicitly, notes knowledge gaps, and covers at least three independent sources for major claims.
 
 ### research-analyst
 
-Hands-on researcher who designs experiments, analyzes data, builds models, and runs simulations. Starts from clear falsifiable hypotheses, documents every transformation for reproducibility, reports negative results honestly, quantifies uncertainty.
+Hands-on researcher who designs experiments, analyzes data, builds models, and runs simulations. Starts from falsifiable hypotheses, documents every transformation for reproducibility, reports negative results honestly, quantifies uncertainty.
 
 ### methodology-reviewer
 
@@ -122,45 +132,45 @@ Communication specialist ensuring research findings are presented clearly and ac
 
 ## Slot Resolution
 
-The Orchestrator resolves abstract slots to concrete agent types at mission startup:
+Slots resolve to concrete agent types through two simple mechanisms:
 
-1. The mission spec declares `domain_profile` (e.g., `"software"`, `"research"`).
-2. The Orchestrator reads `profiles.json` (in `plugin/skills/mission/references/`) to get the slot-to-agent mapping for that profile.
-3. Authority agents (product-authority, design-authority, challenger) are shared across all profiles.
-4. When spawning an agent, the Orchestrator looks up the slot in the active profile and spawns the corresponding agent type.
+1. **Authority slots** map one-to-one to a single agent type. The slot name is the agent name: `decision-maker.md`, `design-authority.md`, `challenger.md`.
+2. **Specialist slots** are filled by agents whose frontmatter declares the slot and domain (for example, `slot: verifier`, `domain: software`). The orchestrator picks the concrete agent whose `domain` matches the mission's profile.
 
-This means the contract engine, evidence gate, and verification flow never reference specific agent types — they reference slots. A `quality_specialist` review works identically whether it comes from a qa-engineer or a methodology-reviewer.
+Evidence files encode both ends: `.geas/missions/{mission_id}/tasks/{task_id}/evidence/{agent}.{slot}.json`. `agent` is the concrete type (for example, `qa-engineer` or `design-authority`); `slot` is the protocol role (`verifier`, `design-authority`, `risk-assessor`, …). The pipeline routes and reads by slot; the filename records who actually held the slot for auditing.
+
+Orchestration logic references slots exclusively. A `verifier` review works identically whether it comes from a qa-engineer or a methodology-reviewer.
 
 ---
 
 ## Decision Boundary
 
-Who owns which decisions. See `protocol/01` for the full table.
+Who owns which decisions. See [`docs/protocol/01_AGENTS_AND_AUTHORITY.md`](../protocol/01_AGENTS_AND_AUTHORITY.md) for the full table.
 
 | Decision | Owner |
 |---|---|
 | Phase selection and task routing | Orchestrator (mission skill) |
-| Implementation approach | Implementer + design-authority |
-| Structural review | design-authority |
-| Evidence gate result | Gate runner / verifier |
+| Implementation approach (plan) | Implementer, with reviewer concurrence on the implementation contract |
+| Structural review of contracts | design-authority |
+| Evidence gate verdict | Gate runner (Tier 0 / Tier 1 / Tier 2 over existing evidence) |
 | Adversarial challenge | challenger |
-| Final closure verdict | product-authority |
-| Specialist conflict resolution | Vote round, then product-authority |
-| Durable memory promotion | Orchestrator + endorsing authority |
+| Task closure decision | Orchestrator, after evidence gate passes |
+| Mission verdict | decision-maker |
+| Specialist conflict resolution | Deliberation, resolved by decision-maker |
+| Durable memory promotion | Orchestrator, subject to authority endorsement during consolidating |
 
 ---
 
 ## Reviewer Routing
 
-Tasks are assigned reviewers based on `task_kind`, `risk_level`, `scope`, and `gate_profile`. The full algorithm is in `protocol/01`. Summary:
+The task contract's `routing` field fixes the reviewer composition for each task:
 
-1. **Default by task_kind** — each task kind has a default reviewer slot (e.g., `implementation` → design_authority, `documentation` → communication_specialist).
-2. **Risk escalation** — `high`/`critical` risk adds challenger and risk_specialist.
-3. **Scope signals** — affected surfaces and scope markers add relevant specialist slots.
-4. **Gate profile** — `closure_ready` requires quality_specialist.
-5. **Minimum guarantee** — every task has at least one reviewer whose type differs from the primary worker (design_authority as fallback).
+- `routing.primary_worker_type` — the concrete implementer type selected by the orchestrator at contract time.
+- `routing.required_reviewers` — a list of **review slots** (not agent names) drawn from a restricted enum: `challenger`, `risk-assessor`, `operator`, `communicator`.
 
-Routing uses **slot names**, not agent types. The active profile resolves slots to concrete agents.
+`verifier` is always required implicitly for every task and does not appear in `required_reviewers` — its evidence is `verification`-kind, not `review`-kind.
+
+Concrete reviewer types are resolved at dispatch time from the mission's domain profile. A `risk-assessor` review slot on a software mission dispatches to `security-engineer`; the same slot on a research mission dispatches to `research-integrity-reviewer`. The contract records slots so the same mission design is portable across profiles.
 
 ---
 
@@ -168,9 +178,9 @@ Routing uses **slot names**, not agent types. The active profile resolves slots 
 
 All spawnable agents share these operational constraints:
 
-- Spawned as sub-agents by the Orchestrator -- agents do not spawn other agents.
-- Do their work and return results to the Orchestrator.
-- Write evidence to the designated artifact path.
-- Follow the TaskContract and their context packet.
-- Base judgments on evidence, not assumptions.
-- Surface `memory_suggestions` for patterns worth remembering across sessions.
+- Agents are spawned as sub-agents by the orchestrator. Agents do not spawn other agents.
+- Agents do their work and return results to the orchestrator.
+- Agents write evidence only through the CLI; no agent touches `.geas/` directly.
+- Agents follow the task contract and their context briefing.
+- Agents base judgments on evidence, not assumptions.
+- Agents surface `memory_suggestions` on evidence entries for patterns worth remembering across sessions — promotion into memory is a separate decision owned by the orchestrator.
