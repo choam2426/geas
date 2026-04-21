@@ -100,8 +100,9 @@ You have been spawned as the implementer for an approved task. Before writing co
 
 | CLI command | Purpose |
 |---|---|
-| `geas self-check set --mission <id> --task <id>` | Record pre-work plan envelope (and end-of-work self-check). |
+| `geas impl-contract set --mission <id> --task <id>` | Record the pre-work implementation plan (initial + amendments). CLI injects envelope + validates against `implementation-contract.schema`. |
 | `geas evidence append --slot implementer --agent <concrete> --mission <id> --task <id>` | Append implementation-kind evidence (initial + revisions + amendments). |
+| `geas self-check set --mission <id> --task <id>` | Record the end-of-work self-check (confidence + per-criterion status). |
 | `geas task transition --to implementing` | Orchestrator-invoked; triggers CLI's `verify_fix_iterations` bookkeeping. |
 | `geas task transition --to reviewed` | Orchestrator-invoked once implementation evidence + self-check are present. |
 
