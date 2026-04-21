@@ -959,8 +959,8 @@ var require_command = __commonJS({
   "node_modules/commander/lib/command.js"(exports2) {
     var EventEmitter = require("node:events").EventEmitter;
     var childProcess = require("node:child_process");
-    var path15 = require("node:path");
-    var fs9 = require("node:fs");
+    var path16 = require("node:path");
+    var fs10 = require("node:fs");
     var process2 = require("node:process");
     var { Argument: Argument2, humanReadableArgName } = require_argument();
     var { CommanderError: CommanderError2 } = require_error();
@@ -1892,11 +1892,11 @@ Expecting one of '${allowedValues.join("', '")}'`);
         let launchWithNode = false;
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
         function findFile(baseDir, baseName) {
-          const localBin = path15.resolve(baseDir, baseName);
-          if (fs9.existsSync(localBin)) return localBin;
-          if (sourceExt.includes(path15.extname(baseName))) return void 0;
+          const localBin = path16.resolve(baseDir, baseName);
+          if (fs10.existsSync(localBin)) return localBin;
+          if (sourceExt.includes(path16.extname(baseName))) return void 0;
           const foundExt = sourceExt.find(
-            (ext) => fs9.existsSync(`${localBin}${ext}`)
+            (ext) => fs10.existsSync(`${localBin}${ext}`)
           );
           if (foundExt) return `${localBin}${foundExt}`;
           return void 0;
@@ -1908,21 +1908,21 @@ Expecting one of '${allowedValues.join("', '")}'`);
         if (this._scriptPath) {
           let resolvedScriptPath;
           try {
-            resolvedScriptPath = fs9.realpathSync(this._scriptPath);
+            resolvedScriptPath = fs10.realpathSync(this._scriptPath);
           } catch (err2) {
             resolvedScriptPath = this._scriptPath;
           }
-          executableDir = path15.resolve(
-            path15.dirname(resolvedScriptPath),
+          executableDir = path16.resolve(
+            path16.dirname(resolvedScriptPath),
             executableDir
           );
         }
         if (executableDir) {
           let localFile = findFile(executableDir, executableFile);
           if (!localFile && !subcommand._executableFile && this._scriptPath) {
-            const legacyName = path15.basename(
+            const legacyName = path16.basename(
               this._scriptPath,
-              path15.extname(this._scriptPath)
+              path16.extname(this._scriptPath)
             );
             if (legacyName !== this._name) {
               localFile = findFile(
@@ -1933,7 +1933,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
           }
           executableFile = localFile || executableFile;
         }
-        launchWithNode = sourceExt.includes(path15.extname(executableFile));
+        launchWithNode = sourceExt.includes(path16.extname(executableFile));
         let proc;
         if (process2.platform !== "win32") {
           if (launchWithNode) {
@@ -2773,7 +2773,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @return {Command}
        */
       nameFromFilename(filename) {
-        this._name = path15.basename(filename, path15.extname(filename));
+        this._name = path16.basename(filename, path16.extname(filename));
         return this;
       }
       /**
@@ -2787,9 +2787,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @param {string} [path]
        * @return {(string|null|Command)}
        */
-      executableDir(path16) {
-        if (path16 === void 0) return this._executableDir;
-        this._executableDir = path16;
+      executableDir(path17) {
+        if (path17 === void 0) return this._executableDir;
+        this._executableDir = path17;
         return this;
       }
       /**
@@ -6212,8 +6212,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path15) {
-      let input = path15;
+    function removeDotSegments(path16) {
+      let input = path16;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -6412,8 +6412,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path15, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path15 && path15 !== "/" ? path15 : void 0;
+        const [path16, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path16 && path16 !== "/" ? path16 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -6578,49 +6578,49 @@ var require_fast_uri = __commonJS({
       schemelessOptions.skipEscape = true;
       return serialize(resolved, schemelessOptions);
     }
-    function resolveComponent(base, relative12, options, skipNormalization) {
+    function resolveComponent(base, relative13, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
         base = parse(serialize(base, options), options);
-        relative12 = parse(serialize(relative12, options), options);
+        relative13 = parse(serialize(relative13, options), options);
       }
       options = options || {};
-      if (!options.tolerant && relative12.scheme) {
-        target.scheme = relative12.scheme;
-        target.userinfo = relative12.userinfo;
-        target.host = relative12.host;
-        target.port = relative12.port;
-        target.path = removeDotSegments(relative12.path || "");
-        target.query = relative12.query;
+      if (!options.tolerant && relative13.scheme) {
+        target.scheme = relative13.scheme;
+        target.userinfo = relative13.userinfo;
+        target.host = relative13.host;
+        target.port = relative13.port;
+        target.path = removeDotSegments(relative13.path || "");
+        target.query = relative13.query;
       } else {
-        if (relative12.userinfo !== void 0 || relative12.host !== void 0 || relative12.port !== void 0) {
-          target.userinfo = relative12.userinfo;
-          target.host = relative12.host;
-          target.port = relative12.port;
-          target.path = removeDotSegments(relative12.path || "");
-          target.query = relative12.query;
+        if (relative13.userinfo !== void 0 || relative13.host !== void 0 || relative13.port !== void 0) {
+          target.userinfo = relative13.userinfo;
+          target.host = relative13.host;
+          target.port = relative13.port;
+          target.path = removeDotSegments(relative13.path || "");
+          target.query = relative13.query;
         } else {
-          if (!relative12.path) {
+          if (!relative13.path) {
             target.path = base.path;
-            if (relative12.query !== void 0) {
-              target.query = relative12.query;
+            if (relative13.query !== void 0) {
+              target.query = relative13.query;
             } else {
               target.query = base.query;
             }
           } else {
-            if (relative12.path[0] === "/") {
-              target.path = removeDotSegments(relative12.path);
+            if (relative13.path[0] === "/") {
+              target.path = removeDotSegments(relative13.path);
             } else {
               if ((base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0) && !base.path) {
-                target.path = "/" + relative12.path;
+                target.path = "/" + relative13.path;
               } else if (!base.path) {
-                target.path = relative12.path;
+                target.path = relative13.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative12.path;
+                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative13.path;
               }
               target.path = removeDotSegments(target.path);
             }
-            target.query = relative12.query;
+            target.query = relative13.query;
           }
           target.userinfo = base.userinfo;
           target.host = base.host;
@@ -6628,7 +6628,7 @@ var require_fast_uri = __commonJS({
         }
         target.scheme = base.scheme;
       }
-      target.fragment = relative12.fragment;
+      target.fragment = relative13.fragment;
       return target;
     }
     function equal(uriA, uriB, options) {
@@ -10599,12 +10599,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs9, exportName) {
+    function addFormats(ajv, list, fs10, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs9[f]);
+        ajv.addFormat(f, fs10[f]);
     }
     module2.exports = exports2 = formatsPlugin;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -10784,6 +10784,9 @@ function missionDeliberationsPath(projectRoot, missionId) {
 }
 function consolidationDir(projectRoot, missionId) {
   return path2.join(missionDir(projectRoot, missionId), "consolidation");
+}
+function missionCandidatesPath(projectRoot, missionId) {
+  return path2.join(consolidationDir(projectRoot, missionId), "candidates.json");
 }
 function gapPath(projectRoot, missionId) {
   return path2.join(consolidationDir(projectRoot, missionId), "gap.json");
@@ -14113,6 +14116,173 @@ function registerEventCommands(program2) {
   });
 }
 
+// src/commands/consolidation.ts
+var fs9 = __toESM(require("fs"));
+var path15 = __toESM(require("path"));
+function nowUtc12() {
+  return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+function slashPath11(p) {
+  return p.replace(/\\/g, "/");
+}
+function needProjectRoot13() {
+  const root = findProjectRoot(process.cwd());
+  if (!root) {
+    emit(
+      err(
+        "missing_artifact",
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+      )
+    );
+  }
+  return root;
+}
+var SCAFFOLD_PHASES = /* @__PURE__ */ new Set(["polishing", "consolidating"]);
+function harvestFile(filePath, taskId, buckets) {
+  const body = readJsonFile(filePath);
+  if (!body || !Array.isArray(body.entries)) return;
+  for (const rawEntry of body.entries) {
+    if (!rawEntry || typeof rawEntry !== "object") continue;
+    const entry = rawEntry;
+    const entryId = typeof entry.entry_id === "number" ? entry.entry_id : void 0;
+    if (entryId === void 0) continue;
+    const dc = entry.debt_candidates;
+    if (Array.isArray(dc)) {
+      for (const item of dc) {
+        if (!item || typeof item !== "object") continue;
+        buckets.debt_candidates.push({
+          source_task_id: taskId,
+          source_evidence_entry_id: entryId,
+          ...item
+        });
+      }
+    }
+    const ms = entry.memory_suggestions;
+    if (Array.isArray(ms)) {
+      for (const item of ms) {
+        if (typeof item !== "string") continue;
+        buckets.memory_suggestions.push({
+          source_task_id: taskId,
+          source_evidence_entry_id: entryId,
+          suggestion: item
+        });
+      }
+    }
+    const gs = entry.gap_signals;
+    if (Array.isArray(gs)) {
+      for (const item of gs) {
+        if (!item || typeof item !== "object") continue;
+        buckets.gap_signals.push({
+          source_task_id: taskId,
+          source_evidence_entry_id: entryId,
+          ...item
+        });
+      }
+    }
+  }
+}
+function registerScaffold(root) {
+  root.command("scaffold").description(
+    "Harvest debt_candidate / memory_suggestion / gap_signals fields from every task evidence file under a mission into consolidation/candidates.json (convenience cache, not a protocol artifact)."
+  ).requiredOption("--mission <id>", "Mission ID").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    const projectRoot = needProjectRoot13();
+    if (!exists(missionSpecPath(projectRoot, opts.mission))) {
+      emit(
+        err(
+          "missing_artifact",
+          `mission spec not found for ${opts.mission}`
+        )
+      );
+    }
+    const state = readJsonFile(
+      missionStatePath(projectRoot, opts.mission)
+    );
+    if (!state) {
+      emit(
+        err(
+          "missing_artifact",
+          `mission-state.json not found for ${opts.mission}`
+        )
+      );
+    }
+    const phase = state.phase ?? "";
+    if (!SCAFFOLD_PHASES.has(phase)) {
+      emit(
+        err(
+          "guard_failed",
+          `consolidation scaffold requires mission phase polishing or consolidating (current: ${phase || "unknown"})`,
+          { phase, allowed: [...SCAFFOLD_PHASES] }
+        )
+      );
+    }
+    const buckets = {
+      debt_candidates: [],
+      memory_suggestions: [],
+      gap_signals: []
+    };
+    const tDir = tasksDir(projectRoot, opts.mission);
+    if (exists(tDir)) {
+      for (const taskDirName of fs9.readdirSync(tDir)) {
+        if (!/^task-[0-9]{3}$/.test(taskDirName)) continue;
+        const evDir = evidenceDir(projectRoot, opts.mission, taskDirName);
+        if (!exists(evDir)) continue;
+        for (const file of fs9.readdirSync(evDir)) {
+          if (!file.endsWith(".json")) continue;
+          const filePath = path15.join(evDir, file);
+          harvestFile(filePath, taskDirName, buckets);
+        }
+      }
+    }
+    const target = missionCandidatesPath(projectRoot, opts.mission);
+    const existing = readJsonFile(target);
+    const ts = nowUtc12();
+    const payload = {
+      mission_id: opts.mission,
+      debt_candidates: buckets.debt_candidates,
+      memory_suggestions: buckets.memory_suggestions,
+      gap_signals: buckets.gap_signals,
+      created_at: existing?.created_at ?? ts,
+      updated_at: ts
+    };
+    ensureDir(path15.dirname(target));
+    atomicWriteJson(target, payload, tmpDir(projectRoot));
+    recordEvent(projectRoot, {
+      kind: "consolidation_scaffolded",
+      actor: "cli:auto",
+      payload: {
+        mission_id: opts.mission,
+        artifact: slashPath11(path15.relative(projectRoot, target)),
+        counts: {
+          debt_candidates: buckets.debt_candidates.length,
+          memory_suggestions: buckets.memory_suggestions.length,
+          gap_signals: buckets.gap_signals.length
+        }
+      }
+    });
+    emit(
+      ok({
+        path: slashPath11(target),
+        ids: { mission_id: opts.mission },
+        counts: {
+          debt_candidates: buckets.debt_candidates.length,
+          memory_suggestions: buckets.memory_suggestions.length,
+          gap_signals: buckets.gap_signals.length
+        },
+        candidates: payload
+      })
+    );
+  });
+}
+function registerConsolidationCommands(program2) {
+  const root = program2.command("consolidation").description(
+    "Consolidation-phase scaffolding (convenience cache for consolidating phase)."
+  );
+  registerScaffold(root);
+}
+
 // src/main.ts
 var VERSION = "0.12.0";
 function run() {
@@ -14133,6 +14303,7 @@ function run() {
   registerGapCommands(program2);
   registerMemoryUpdateCommands(program2);
   registerEventCommands(program2);
+  registerConsolidationCommands(program2);
   program2.parse(process.argv);
 }
 
