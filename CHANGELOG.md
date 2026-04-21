@@ -4,6 +4,95 @@ All notable changes to this project are documented in this file.
 
 > **Note**: Tags were restructured in v0.5.1. Previous major versions (v1.x, v2.x) have been flattened to v0.x.y to reflect that the project is pre-1.0.
 
+## [2.0.0] — 2026-04-20
+
+**Major release — Protocol v3 clean rewrite + Skill layer redesign.**
+
+This release replaces the entire implementation stack (CLI, skills, agents, hooks, dashboard) with protocol v3 semantics. The v1/v2 artifact model, CLI surface, and skill catalog are removed in full. Existing `.geas/` directories from v1.x are not supported; start fresh.
+
+### BREAKING
+
+- **Protocol v3 replaces v1/v2.** 4-phase mission lifecycle (`specifying` / `building` / `polishing` / `consolidating` → `complete`), 9-state task lifecycle (`drafted` / `ready` / `implementing` / `reviewed` / `verified` / `passed` / `blocked` / `escalated` / `cancelled`), 3 operating modes (`lightweight` / `standard` / `full_depth`), slot-based agent model (4 authority + 5 specialist slots). 14 JSON Schemas replace the prior set.
+- **CLI command surface replaced.** All v1.x commands removed: `lock`, `packet`, `recovery`, `health`, `evolution`, `decision`, `retrospective-draft`, `advance`, `harvest-memory`, `check-artifacts`, `closure-assemble`, `revalidate`, positional `task create` / `task add-acceptance` / `task add-surface` / `task set-risk` / `evidence submit` / `task record`, `mission create TITLE --done-when`, `phase write`. New v3 commands: `setup`, `context`, `schema`, `state`, `mission create|approve|state`, `mission-state update`, `phase-review append`, `mission-verdict append`, `task draft|approve|transition|deps|state`, `evidence append`, `self-check set`, `gate run`, `deliberation append`, `memory shared-set|agent-set`, `debt register|update-status|list`, `gap set`, `memory-update set`, `event log`.
+- **Artifact paths replaced.** Per-mission at `.geas/missions/{mission_id}/`: `mission-spec.json`, `mission-state.json`, `phase-reviews.json`, `mission-verdicts.json`, `deliberations.json`, `consolidation/gap.json`, `consolidation/memory-update.json`, `tasks/{task_id}/{task-contract,task-state,self-check}.json`, `tasks/{task_id}/deliberations.json`, `tasks/{task_id}/gate-results.json`, `tasks/{task_id}/evidence/{agent}.{slot}.json`. Project-level: `.geas/debts.json` (append-only ledger, replaces mission-scoped carry-forward), `.geas/events.jsonl` (automation-only scope), `.geas/candidates.json`, `.geas/memory/{shared.md,agents/{agent_type}.md}`.
+- **Removed v2 concepts**: `rules.md`, `policy-override`, `lock-manifest`, `recovery-packet`, `decision-record`, `health-check`, `evolving` phase, mission-scoped carry-forward debt, `pipeline_step`, `run-state`, `scheduler_state`, `recovery_class`, `design-brief`, `checkpoint_phase`, `rules-update`.
+- **Skill catalog replaced (17 skills).** All 11 prior skills removed or rewritten. User-invocable surface narrowed to 2: `/mission` (dispatcher) and `/navigating-geas` (help). The other 15 are `user-invocable: false` sub-skills dispatched by `/mission`.
+- **Agent directory reorganized.** `plugin/agents/authority/product-authority.md` renamed to `decision-maker.md` (v3 slot name, kebab-case canonical). Specialist roles in `plugin/agents/software/` and `plugin/agents/research/` re-slotted: `qa-engineer` → verifier, `security-engineer` → risk-assessor, `technical-writer` → communicator, `methodology-reviewer` → verifier, `research-integrity-reviewer` → risk-assessor, `research-engineer` → operator, `research-writer` → communicator.
+- **Hook set trimmed.** `hooks.json` reduced to SessionStart + SubagentStart + PreToolUse. Deleted scripts: `calculate-cost.sh`, `checkpoint-pre-write.sh`, `checkpoint-post-write.sh`, `packet-stale-check.sh`, `protect-geas-state.sh`, `integration-lane-check.sh`, `restore-context.sh`.
+- **Reference docs restructured.** `docs/{ko/,}reference/CLI.md` deleted (CLI is internal plumbing, not user-facing). `SKILLS.md`, `HOOKS.md`, `DASHBOARD.md` rewritten for v3.
+- **Dashboard rebuilt.** Rust backend (`src/dashboard/src-tauri/`) models + commands + watcher replaced with v3 artifact readers. React frontend reads via a new `src/dashboard/src/lib/geasClient.ts` single wrapper. Deleted v2-only components: `RulesViewer`, `DebtPanel`, `DebtBadge`, `ProjectOverview`.
+
+### Added
+
+**CLI**
+- `src/cli/src/lib/` primitives: `fs-atomic` (temp+rename), `paths` (v3 `.geas/` tree builders), `schema` (Ajv draft 2020-12 + `ajv-formats`), `envelope` (`{ok, data, error}` + automation events.jsonl auto-append), `transition-guards` (mission 5-state + task 9-state FSMs, evidence-aware guards).
+- `lib/schemas-embedded.ts` auto-generated from `docs/schemas/*.schema.json`; hash-drift detection test.
+- Env mocks: `GEAS_MOCK_MISSION_ID`, `GEAS_MOCK_TASK_ID` for deterministic tests.
+- Evidence `(agent, slot)` uniqueness guard. Agent-slot independence enforced (implementer is exclusive; reviewer/verifier combinations allowed per protocol).
+- Deliberation mode guard: append permitted only when `mission-spec.mode == full_depth`.
+- Project-level debts.json with `mission_id` on every entry.
+- events.jsonl with CLI-injected `entry_id` and `timestamp`; actor enum (slot ids + `user` + `cli:auto`).
+
+**Tests**
+- `src/cli/test/` integration suite: `schema-drift`, `g1-foundation`, `g2-mission`, `g3-task`, `g4-evidence`, `g5-memory`, `g6-debt-gap`, `g7-events`, `e2e-phase1` (4 scenarios: main path + blocked + verify-fix + full_depth deliberation), `legacy-sweep` (14 retired terms). 109 tests total.
+- `test/helpers/setup.js` shared fixtures with `makeTempRoot`, `runCli`, `readArtifact`.
+
+**Skills (17 total)**
+- User-invocable: `mission` (dispatcher — bootstrap, state inspection, drift detection, phase-aware dispatch, briefing generation), `navigating-geas` (skill catalog + CLI + workflow guide).
+- Mission lifecycle: `specifying-mission`, `drafting-task`, `scheduling-work`, `running-gate`, `closing-task`, `reviewing-phase`, `consolidating-mission`, `verdicting-mission`.
+- Multi-party: `convening-deliberation` (spawns voters).
+- Spawned agent procedures: `implementing-task`, `reviewing-task`, `verifying-task`, `deliberating-on-proposal`, `designing-solution`, `deciding-on-approval`.
+- Every SKILL.md follows a 10-section template (Overview / When to Use / Preconditions / Process / Red Flags / Invokes / Outputs / Failure Handling / Related Skills / Remember), ≤200 lines body, ≥3 rationalization entries in Red Flags.
+- Korean briefing templates for current-status / task-completion / phase-transition / mission-verdict in `plugin/skills/mission/references/briefing-templates.md`.
+
+**Dashboard**
+- `src/dashboard/src/lib/geasClient.ts` — single Tauri `invoke` wrapper for all artifact reads.
+- New views: Evidence gate status, Phase review history, Gap signals summary, Consolidation packet view (in `MissionDetailView`).
+- Graceful degradation on missing/malformed artifacts.
+
+**Docs**
+- `docs/{ko/,}architecture/DESIGN.md §7.5` rewritten to enumerate the 17-skill catalog (user-invocable 2 / mission lifecycle 8 / multi-party 1 / spawned 6) with bilingual sync.
+- `docs/{ko/,}reference/{SKILLS,HOOKS,DASHBOARD}.md` rewritten for v3 surfaces with EN/KO structural parity.
+- Protocol v3 docs at `docs/{ko/,}protocol/00-08` and 14 schemas at `docs/schemas/` already synced prior; this release aligns the implementation.
+
+### Changed
+
+- **Evidence gate** — Tier 0/1/2 structure preserved, contents re-scoped to v3: Tier 0 = required artifact + required reviewer evidence presence, Tier 1 = `verification_plan` execution, Tier 2 = contract + reviewer-verdict judgment. Gate verdicts `pass|fail|block|error`; reviewer verdicts `approved|changes_requested|blocked` (separate layer).
+- **Task routing** — `routing.required_reviewers` narrowed to 4 review-producing slots (`challenger`, `risk-assessor`, `operator`, `communicator`). Verifier is implicit; `primary_worker_type` is a concrete agent type (kebab-case).
+- **Orchestration model** — single entry point `/mission`; no manual sub-skill invocation. Deterministic dispatch replaces auto-trigger routing.
+- **Identifiers unified to kebab-case** — `decision-maker` (not `decision_maker` or `product-authority`) across frontmatter, enums, and event actor namespace.
+- **Memory model** — `shared.md` (project-wide) + `agents/{agent_type}.md` (per concrete agent type). Writes via `geas memory shared-set` / `agent-set` with full-replace atomic semantics.
+- **Self-check and closure** — now first-class evidence: `self-check.json` (one per task, write-once), closure as `evidence/orchestrator.orchestrator.json` entry with `evidence_kind=closure`, `verdict=approved`.
+- **Task-state lifecycle** — status field moves from contract to runtime state (`task-state.json`). Contract remains immutable after approval.
+- **Mission spec immutability** — after `geas mission approve`, the spec is frozen. No amendment path; scope changes require a new mission.
+- `plugin/bin/geas` bundle regenerated. CLI version bumped through `0.9.0` → `0.10.0` → `0.11.0` → `0.12.0` as groups landed.
+- `plugin.json` version → `2.0.0`.
+
+### Removed
+
+- CLI commands: `lock`, `packet`, `recovery`, `health`, `evolution`, `decision`, and all v1.4-era positional shortcuts (`task create TITLE`, `task add-acceptance`, `task add-surface`, `task set-risk`, `evidence submit`, `task record`, `mission create TITLE --done-when`, `phase write`).
+- CLI lib files: `post-write-checks.ts`, `field-policy.ts`, `schema-template.ts`, `dry-run.ts`, `cwd.ts`, `output.ts`, `types.ts`, `check-field-policy.ts`.
+- Schemas: `health-check.schema.json`, `lock-manifest.schema.json`, `policy-override.schema.json`, `recovery-packet.schema.json`, `run-state.schema.json`, `record.schema.json`, `vote-round.schema.json` (replaced by 14 v3 schemas).
+- Skills: `evidence-gate`, `help`, `implementation-contract`, `intake`, `memorizing`, `policy-managing`, `reporting`, `scheduling`, `setup`, `task-compiler`, `verify-fix-loop`, `vote-round`.
+- Agents: `plugin/agents/authority/product-authority.md` (renamed to `decision-maker.md`).
+- Hooks: 7 legacy scripts listed above. `hooks.json` Stop and PostToolUse / PostCompact entries.
+- Reference docs: `docs/reference/CLI.md`, `docs/ko/reference/CLI.md`.
+- Prior DEBT-001 through DEBT-012 tracking comments — obsoleted by the clean rewrite; reopen as needed against the new artifact shapes.
+
+### Fixed
+
+- **`geas task draft` scaffold gap** — task-level `deliberations.json` wrapper was not created at draft time; now scaffolded identically to the mission-level wrapper (CLI.md §14.1 compliance).
+- **Guard tightening** — transition guards moved from file-presence stubs to real verdict-aware checks: `selfCheckExists` schema-validates; `reviewEvidenceExists` checks `evidence_kind=review` per required slot; `verificationEvidenceExists` requires gate-results last run `verdict=pass` and `tier_results.tier_2.status=pass`; `closureApproved` requires orchestrator closure evidence with `verdict=approved`.
+
+### Known Issues / follow-ups
+
+- **CLI gaps** documented in architecture/CLI.md but not yet registered: `geas status`, `geas validate`, `geas consolidation scaffold`, `geas schema template`, `geas mission design-set`, `geas impl-contract set`. Skills call these per the canonical contract; unregistered commands surface as CLI rejection at runtime.
+- **Rust compile for dashboard** not validated locally (no `cargo` in migration environment); user to run `cargo check` / `cargo build` on their machine.
+- **Dashboard Rust-side tests** removed with the v3 rewrite; replacement suite deferred.
+- **Skill lint automation** not yet in CI; checklist verified manually during this release.
+- **Skill pressure-test harness** (obra-style adversarial eval) not yet implemented.
+- **Local `main` is ~80 commits ahead of `origin/main`**; release push is a separate operation.
+
 ## [1.4.0] — 2026-04-15
 
 ### Added
