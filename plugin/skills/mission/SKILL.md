@@ -1,6 +1,7 @@
 ---
 name: mission
 description: Drives Geas missions end-to-end. Bootstraps the .geas/ tree if absent, inspects mission state, dispatches to the appropriate sub-skill per phase, and produces structured briefings at task completion, phase transition, and mission verdict. The single user entry point for mission work.
+user-invocable: true
 ---
 
 # Mission

@@ -1,6 +1,7 @@
 ---
 name: navigating-geas
 description: Explains the Geas skill catalog, the CLI surface, and how the mission dispatcher orchestrates multi-agent work. Invoked when the user asks how skills, commands, or workflow are structured.
+user-invocable: true
 ---
 
 # Navigating Geas
