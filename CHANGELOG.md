@@ -83,15 +83,19 @@ This release replaces the entire implementation stack (CLI, skills, agents, hook
 
 - **`geas task draft` scaffold gap** — task-level `deliberations.json` wrapper was not created at draft time; now scaffolded identically to the mission-level wrapper (CLI.md §14.1 compliance).
 - **Guard tightening** — transition guards moved from file-presence stubs to real verdict-aware checks: `selfCheckExists` schema-validates; `reviewEvidenceExists` checks `evidence_kind=review` per required slot; `verificationEvidenceExists` requires gate-results last run `verdict=pass` and `tier_results.tier_2.status=pass`; `closureApproved` requires orchestrator closure evidence with `verdict=approved`.
+- **`geas mission design-set`** (CLI.md §14.2) — registered. Writes `missions/{id}/mission-design.md` via atomic full-replace; guarded to specifying phase + approved spec.
+- **`geas consolidation scaffold`** (CLI.md §14.4) — registered. Walks all task evidence under a mission and writes `consolidation/candidates.json` with `debt_candidates`, `memory_suggestions`, `gap_signals` arrays; each item is stamped with `source_task_id` + `source_evidence_entry_id`. Convenience cache, not schema-validated. Guarded to polishing or consolidating phase.
+- **`geas impl-contract set`** (CLI.md §3 + §71) — registered. Writes `tasks/{id}/implementation-contract.json` with schema validation + envelope injection. Guarded to `ready` or `implementing` task state (pre-implementation agreement). Full-replace semantics.
+- **`geas schema template <type> --op <op> [--kind <k>]`** (CLI.md §12) — registered. Returns 3-part response (`you_must_fill` + `cli_will_inject` + `notes`) with op-aware envelope filtering; `--kind` selects the allOf branch for `evidence` (review / verification / closure). New `lib/envelope-fields.ts` maps `(schema, op)` pairs to envelope field lists.
 
 ### Known Issues / follow-ups
 
-- **CLI gaps** documented in architecture/CLI.md but not yet registered: `geas status`, `geas validate`, `geas consolidation scaffold`, `geas schema template`, `geas mission design-set`, `geas impl-contract set`. Skills call these per the canonical contract; unregistered commands surface as CLI rejection at runtime.
+- **CLI convenience gaps still open** (2 of the original 6): `geas status` (CLI.md §14.6) and `geas validate` (CLI.md §3). Dispatcher can compose status from `geas context` + `geas mission state` + `geas task state`; individual writes are already schema-validated, so `validate` is a debug/CI convenience. Neither blocks current skill flows.
 - **Rust compile for dashboard** not validated locally (no `cargo` in migration environment); user to run `cargo check` / `cargo build` on their machine.
 - **Dashboard Rust-side tests** removed with the v3 rewrite; replacement suite deferred.
 - **Skill lint automation** not yet in CI; checklist verified manually during this release.
 - **Skill pressure-test harness** (obra-style adversarial eval) not yet implemented.
-- **Local `main` is ~80 commits ahead of `origin/main`**; release push is a separate operation.
+- **Local `main` ahead of `origin/main`**; release push is a separate operation.
 
 ## [1.4.0] — 2026-04-15
 
