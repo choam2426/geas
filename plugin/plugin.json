@@ -1,6 +1,6 @@
 {
   "name": "geas",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "description": "A governance protocol that makes AI agents work as a professional team — contract-driven execution, evidence-based verification, and cross-session learning.",
   "author": {
     "name": "choam2426",
@@ -19,7 +19,7 @@
     "memory-system"
   ],
   "agents": [
-    "./agents/authority/product-authority.md",
+    "./agents/authority/decision-maker.md",
     "./agents/authority/design-authority.md",
     "./agents/authority/challenger.md",
     "./agents/software/software-engineer.md",

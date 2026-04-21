@@ -1,6 +1,6 @@
 {
   "name": "@geas/cli",
-  "version": "0.8.0",
+  "version": "0.12.0",
   "description": "CLI actuator for the Geas .geas/ runtime tree (protocol v3)",
   "main": "index.js",
   "scripts": {

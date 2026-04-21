@@ -10,7 +10,7 @@ try {
   if (e && e.code === 'MODULE_NOT_FOUND') {
     process.stderr.write(
       JSON.stringify({
-        error: 'CLI not built. Run: cd plugin/cli && npm run build',
+        error: 'CLI not built. Run: cd src/cli && npm run build',
         code: 'NOT_BUILT',
       }) + '\n'
     );
