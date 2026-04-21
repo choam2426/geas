@@ -959,7 +959,7 @@ var require_command = __commonJS({
   "node_modules/commander/lib/command.js"(exports2) {
     var EventEmitter = require("node:events").EventEmitter;
     var childProcess = require("node:child_process");
-    var path16 = require("node:path");
+    var path17 = require("node:path");
     var fs10 = require("node:fs");
     var process2 = require("node:process");
     var { Argument: Argument2, humanReadableArgName } = require_argument();
@@ -1892,9 +1892,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
         let launchWithNode = false;
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
         function findFile(baseDir, baseName) {
-          const localBin = path16.resolve(baseDir, baseName);
+          const localBin = path17.resolve(baseDir, baseName);
           if (fs10.existsSync(localBin)) return localBin;
-          if (sourceExt.includes(path16.extname(baseName))) return void 0;
+          if (sourceExt.includes(path17.extname(baseName))) return void 0;
           const foundExt = sourceExt.find(
             (ext) => fs10.existsSync(`${localBin}${ext}`)
           );
@@ -1912,17 +1912,17 @@ Expecting one of '${allowedValues.join("', '")}'`);
           } catch (err2) {
             resolvedScriptPath = this._scriptPath;
           }
-          executableDir = path16.resolve(
-            path16.dirname(resolvedScriptPath),
+          executableDir = path17.resolve(
+            path17.dirname(resolvedScriptPath),
             executableDir
           );
         }
         if (executableDir) {
           let localFile = findFile(executableDir, executableFile);
           if (!localFile && !subcommand._executableFile && this._scriptPath) {
-            const legacyName = path16.basename(
+            const legacyName = path17.basename(
               this._scriptPath,
-              path16.extname(this._scriptPath)
+              path17.extname(this._scriptPath)
             );
             if (legacyName !== this._name) {
               localFile = findFile(
@@ -1933,7 +1933,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
           }
           executableFile = localFile || executableFile;
         }
-        launchWithNode = sourceExt.includes(path16.extname(executableFile));
+        launchWithNode = sourceExt.includes(path17.extname(executableFile));
         let proc;
         if (process2.platform !== "win32") {
           if (launchWithNode) {
@@ -2773,7 +2773,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @return {Command}
        */
       nameFromFilename(filename) {
-        this._name = path16.basename(filename, path16.extname(filename));
+        this._name = path17.basename(filename, path17.extname(filename));
         return this;
       }
       /**
@@ -2787,9 +2787,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @param {string} [path]
        * @return {(string|null|Command)}
        */
-      executableDir(path17) {
-        if (path17 === void 0) return this._executableDir;
-        this._executableDir = path17;
+      executableDir(path18) {
+        if (path18 === void 0) return this._executableDir;
+        this._executableDir = path18;
         return this;
       }
       /**
@@ -6212,8 +6212,8 @@ var require_utils = __commonJS({
       }
       return ind;
     }
-    function removeDotSegments(path16) {
-      let input = path16;
+    function removeDotSegments(path17) {
+      let input = path17;
       const output = [];
       let nextSlash = -1;
       let len = 0;
@@ -6412,8 +6412,8 @@ var require_schemes = __commonJS({
         wsComponent.secure = void 0;
       }
       if (wsComponent.resourceName) {
-        const [path16, query] = wsComponent.resourceName.split("?");
-        wsComponent.path = path16 && path16 !== "/" ? path16 : void 0;
+        const [path17, query] = wsComponent.resourceName.split("?");
+        wsComponent.path = path17 && path17 !== "/" ? path17 : void 0;
         wsComponent.query = query;
         wsComponent.resourceName = void 0;
       }
@@ -6578,49 +6578,49 @@ var require_fast_uri = __commonJS({
       schemelessOptions.skipEscape = true;
       return serialize(resolved, schemelessOptions);
     }
-    function resolveComponent(base, relative13, options, skipNormalization) {
+    function resolveComponent(base, relative14, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
         base = parse(serialize(base, options), options);
-        relative13 = parse(serialize(relative13, options), options);
+        relative14 = parse(serialize(relative14, options), options);
       }
       options = options || {};
-      if (!options.tolerant && relative13.scheme) {
-        target.scheme = relative13.scheme;
-        target.userinfo = relative13.userinfo;
-        target.host = relative13.host;
-        target.port = relative13.port;
-        target.path = removeDotSegments(relative13.path || "");
-        target.query = relative13.query;
+      if (!options.tolerant && relative14.scheme) {
+        target.scheme = relative14.scheme;
+        target.userinfo = relative14.userinfo;
+        target.host = relative14.host;
+        target.port = relative14.port;
+        target.path = removeDotSegments(relative14.path || "");
+        target.query = relative14.query;
       } else {
-        if (relative13.userinfo !== void 0 || relative13.host !== void 0 || relative13.port !== void 0) {
-          target.userinfo = relative13.userinfo;
-          target.host = relative13.host;
-          target.port = relative13.port;
-          target.path = removeDotSegments(relative13.path || "");
-          target.query = relative13.query;
+        if (relative14.userinfo !== void 0 || relative14.host !== void 0 || relative14.port !== void 0) {
+          target.userinfo = relative14.userinfo;
+          target.host = relative14.host;
+          target.port = relative14.port;
+          target.path = removeDotSegments(relative14.path || "");
+          target.query = relative14.query;
         } else {
-          if (!relative13.path) {
+          if (!relative14.path) {
             target.path = base.path;
-            if (relative13.query !== void 0) {
-              target.query = relative13.query;
+            if (relative14.query !== void 0) {
+              target.query = relative14.query;
             } else {
               target.query = base.query;
             }
           } else {
-            if (relative13.path[0] === "/") {
-              target.path = removeDotSegments(relative13.path);
+            if (relative14.path[0] === "/") {
+              target.path = removeDotSegments(relative14.path);
             } else {
               if ((base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0) && !base.path) {
-                target.path = "/" + relative13.path;
+                target.path = "/" + relative14.path;
               } else if (!base.path) {
-                target.path = relative13.path;
+                target.path = relative14.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative13.path;
+                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative14.path;
               }
               target.path = removeDotSegments(target.path);
             }
-            target.query = relative13.query;
+            target.query = relative14.query;
           }
           target.userinfo = base.userinfo;
           target.host = base.host;
@@ -6628,7 +6628,7 @@ var require_fast_uri = __commonJS({
         }
         target.scheme = base.scheme;
       }
-      target.fragment = relative13.fragment;
+      target.fragment = relative14.fragment;
       return target;
     }
     function equal(uriA, uriB, options) {
@@ -10806,6 +10806,12 @@ function taskContractPath(projectRoot, missionId, taskId) {
 function taskStatePath(projectRoot, missionId, taskId) {
   return path2.join(taskDir(projectRoot, missionId, taskId), "task-state.json");
 }
+function implementationContractPath(projectRoot, missionId, taskId) {
+  return path2.join(
+    taskDir(projectRoot, missionId, taskId),
+    "implementation-contract.json"
+  );
+}
 function selfCheckPath(projectRoot, missionId, taskId) {
   return path2.join(taskDir(projectRoot, missionId, taskId), "self-check.json");
 }
@@ -14283,6 +14289,165 @@ function registerConsolidationCommands(program2) {
   registerScaffold(root);
 }
 
+// src/commands/impl-contract.ts
+var path16 = __toESM(require("path"));
+function nowUtc13() {
+  return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+function slashPath12(p) {
+  return p.replace(/\\/g, "/");
+}
+function needProjectRoot14() {
+  const root = findProjectRoot(process.cwd());
+  if (!root) {
+    emit(
+      err(
+        "missing_artifact",
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+      )
+    );
+  }
+  return root;
+}
+var IMPL_CONTRACT_WRITABLE_STATES = /* @__PURE__ */ new Set(["ready", "implementing"]);
+var ENVELOPE_FIELDS = ["mission_id", "task_id", "created_at", "updated_at"];
+function registerImplContractCommands(program2) {
+  const ic = program2.command("impl-contract").description(
+    "Pre-implementation agreement (implementation-contract.json) commands."
+  );
+  ic.command("set").description(
+    "Write implementation-contract.json for a task (full-replace, stdin: body). CLI injects mission_id / task_id / timestamps."
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    if (!isValidTaskId(opts.task)) {
+      emit(err("invalid_argument", `invalid task id '${opts.task}'`));
+    }
+    const root = needProjectRoot14();
+    const spec = readJsonFile(
+      missionSpecPath(root, opts.mission)
+    );
+    if (!spec) {
+      emit(
+        err(
+          "missing_artifact",
+          `mission spec not found for ${opts.mission}`
+        )
+      );
+    }
+    if (spec && spec.user_approved !== true) {
+      emit(
+        err(
+          "guard_failed",
+          `mission spec for ${opts.mission} is not user-approved; run 'geas mission approve' first`
+        )
+      );
+    }
+    const contract = readJsonFile(
+      taskContractPath(root, opts.mission, opts.task)
+    );
+    if (!contract) {
+      emit(
+        err(
+          "missing_artifact",
+          `task contract not found for ${opts.task}`
+        )
+      );
+    }
+    if (contract && contract.approved_by == null) {
+      emit(
+        err(
+          "guard_failed",
+          `task ${opts.task} is not approved; run 'geas task approve' first`
+        )
+      );
+    }
+    const state = readJsonFile(
+      taskStatePath(root, opts.mission, opts.task)
+    );
+    if (!state) {
+      emit(
+        err(
+          "missing_artifact",
+          `task-state.json not found for ${opts.task}`
+        )
+      );
+    }
+    const status = state.status ?? "";
+    if (!IMPL_CONTRACT_WRITABLE_STATES.has(status)) {
+      emit(
+        err(
+          "guard_failed",
+          `impl-contract set requires task state ready or implementing (current: ${status || "unknown"})`,
+          { current_status: status, allowed: [...IMPL_CONTRACT_WRITABLE_STATES] }
+        )
+      );
+    }
+    let payload;
+    try {
+      payload = readStdinJson();
+    } catch (e) {
+      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      throw e;
+    }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      emit(
+        err(
+          "invalid_argument",
+          "impl-contract set expects a JSON object on stdin"
+        )
+      );
+    }
+    for (const k of ENVELOPE_FIELDS) delete payload[k];
+    if (payload.non_goals === void 0) payload.non_goals = [];
+    if (payload.alternatives_considered === void 0) {
+      payload.alternatives_considered = [];
+    }
+    if (payload.assumptions === void 0) payload.assumptions = [];
+    if (payload.open_questions === void 0) payload.open_questions = [];
+    const target = implementationContractPath(
+      root,
+      opts.mission,
+      opts.task
+    );
+    const existing = readJsonFile(target);
+    const ts = nowUtc13();
+    payload.mission_id = opts.mission;
+    payload.task_id = opts.task;
+    payload.created_at = existing?.created_at ?? ts;
+    payload.updated_at = ts;
+    const v = validate("implementation-contract", payload);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "implementation-contract schema validation failed",
+          v.errors
+        )
+      );
+    }
+    ensureDir(path16.dirname(target));
+    atomicWriteJson(target, payload, tmpDir(root));
+    recordEvent(root, {
+      kind: "impl_contract_set",
+      actor: "cli:auto",
+      payload: {
+        mission_id: opts.mission,
+        task_id: opts.task,
+        artifact: slashPath12(path16.relative(root, target))
+      }
+    });
+    emit(
+      ok({
+        path: slashPath12(target),
+        ids: { mission_id: opts.mission, task_id: opts.task },
+        implementation_contract: payload
+      })
+    );
+  });
+}
+
 // src/main.ts
 var VERSION = "0.12.0";
 function run() {
@@ -14304,6 +14469,7 @@ function run() {
   registerMemoryUpdateCommands(program2);
   registerEventCommands(program2);
   registerConsolidationCommands(program2);
+  registerImplContractCommands(program2);
   program2.parse(process.argv);
 }
 

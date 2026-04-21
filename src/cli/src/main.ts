@@ -27,6 +27,7 @@ import { registerGapCommands } from './commands/gap';
 import { registerMemoryUpdateCommands } from './commands/memory-update';
 import { registerEventCommands } from './commands/event';
 import { registerConsolidationCommands } from './commands/consolidation';
+import { registerImplContractCommands } from './commands/impl-contract';
 
 const VERSION = '0.12.0';
 
@@ -54,6 +55,7 @@ export function run(): void {
   registerMemoryUpdateCommands(program);
   registerEventCommands(program);
   registerConsolidationCommands(program);
+  registerImplContractCommands(program);
 
   program.parse(process.argv);
 }
