@@ -31,9 +31,9 @@ Drives the specifying phase end-to-end. Turns a natural-language request into an
 ## Process
 
 1. **Size the request.** Decide: single mission or multi-mission? If multi, propose decomposition and run this skill against the first mission.
-2. **Select the mode (mandatory ask).** Explicitly ask the user to pick `lightweight | standard | full_depth`. Recommend one based on request signal (scope clarity, risk, cross-module impact) and state why. Do not infer silently.
-3. **Explore requirements, one question at a time.** Cover: scope boundary (in/out), target user, definition_of_done (one sentence), acceptance_criteria (≥3 observable/falsifiable), constraints, affected_surfaces, risks. Prefer multiple-choice. Skip unambiguous items. If user says "just build it", fill best-effort and note `intake-skipped` in the description.
-4. **Section-by-section approval.** Before the CLI call, confirm each section: name, description, scope in/out, DoD, acceptance_criteria, constraints, risks.
+2. **Select the mode (mandatory ask).** Explicitly ask the user to pick `lightweight | standard | full_depth`. Recommend one based on request signal (scope clarity, risk, cross-module impact) and state why in the question body. Use the `AskUserQuestion` tool with the three options (header: "Mode") so the choice is structured, not inferred from prose. Do not infer silently.
+3. **Explore requirements, one question at a time.** Cover: scope boundary (in/out), target user, definition_of_done (one sentence), acceptance_criteria (≥3 observable/falsifiable), constraints, affected_surfaces, risks. Use `AskUserQuestion` for every structured choice — it enforces one-at-a-time, surfaces 2–4 options with labels, and appends "Other" automatically for free-text escape. Skip unambiguous items. If user says "just build it", fill best-effort and note `intake-skipped` in the description.
+4. **Section-by-section approval.** Before the CLI call, confirm each section: name, description, scope in/out, DoD, acceptance_criteria, constraints, risks. `AskUserQuestion` accepts up to four questions in a single call, so batch related approvals (for example: name + description, or constraints + risks) instead of serial prose. Each question offers `approve | revise` with "Other" as the free-text escape for substantive edits.
 5. **Create + approve the mission spec.** Run `geas mission create` (payload shape below). Show the summary. On user confirm, run `geas mission approve`. Spec becomes immutable.
 6. **Author the mission design.** For `lightweight` the orchestrator may write `mission-design.md` directly via `geas mission design-set`. For `standard` ask decision-maker to review before user sign-off. For `full_depth` record a mission-level deliberation (via `convening-deliberation`) with challenger + decision-maker + ≥1 specialist before user approval.
 7. **Draft the initial task set.** For each planned task, delegate to `drafting-task`. Approve each via `geas task approve --by user` (or `--by decision-maker` for mid-mission in-scope additions).
@@ -65,6 +65,7 @@ The CLI injects `id`, `user_approved=false`, `created_at`, `updated_at`.
 | "Acceptance criteria repeat the DoD — drop them" | Acceptance criteria are the falsifiable tests reviewers measure against; DoD alone gives nothing to grade. |
 | "User sounded certain — skip section-by-section approval" | Section approval is the user's last chance to touch a soon-immutable contract. Skipping it bakes in misreads. |
 | "Spec approved — retroactively edit it because scope slipped" | The spec is immutable after approval. Use `drafting-task` for in-scope additions or start a new mission. |
+| "Just dump the whole intake as a prose block — it's faster" | Unstructured prose loses answers and invites the user to skim. `AskUserQuestion` forces a structured pick per question and keeps the audit trail clean. |
 
 ## Invokes
 
@@ -101,8 +102,8 @@ Sub-skills invoked: `drafting-task` (per initial task), `convening-deliberation`
 
 ## Remember
 
-- Mode selection is an explicit ask, never inferred.
-- One question at a time; prefer multiple-choice.
+- Mode selection is an explicit ask, never inferred. Use `AskUserQuestion` for it.
+- One question at a time for exploration; batch up to 4 questions in a single `AskUserQuestion` call when approvals are independent and related.
 - Section-by-section approval before CLI writes; immutable after approve.
 - At least one approved task contract must exist before the specifying phase-review.
 - Return control to the dispatcher after appending the phase-review — do not call `mission-state update --phase` from here.
