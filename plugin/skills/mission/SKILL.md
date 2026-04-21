@@ -1,217 +1,120 @@
 ---
 name: mission
-description: >
-  Geas orchestrator skill — drives a mission through specifying, building,
-  polishing, and consolidating. Runs in the main session (do NOT spawn it
-  as a sub-agent).
+description: Drives Geas missions end-to-end. Bootstraps the .geas/ tree if absent, inspects mission state, dispatches to the appropriate sub-skill per phase, and produces structured briefings at task completion, phase transition, and mission verdict. The single user entry point for mission work.
 ---
 
 # Mission
 
-You are the Geas orchestrator. You execute the mission flow directly in
-this session. There is no separate orchestrator agent to spawn.
+## Overview
 
-The source of truth is the protocol: `docs/ko/protocol/02` for phases and
-final verdict, `docs/ko/protocol/03` for tasks, `docs/ko/protocol/08` for
-the `.geas/` artifact registry. The CLI (`geas`) is the only writer to
-`.geas/`; every phase transition and artifact write goes through it.
+`mission` is the Geas dispatcher. It runs in the main session (never spawned), owns state inspection and briefing, and routes each invocation to the phase-appropriate sub-skill. Sub-skills perform the work and return; this dispatcher reconciles their output with `.geas/` state and continues or halts.
 
----
+<HARD-GATE> Sub-skills are orchestrated only by `mission`; do not invoke them elsewhere. The CLI (`geas`) is the sole writer to `.geas/`; no direct file edits.
 
-## Startup
+## When to Use
 
-1. Run `geas context` to see whether `.geas/` exists and which missions
-   are present. If `.geas/` is missing, run `/geas:setup` first.
-2. For an active mission, run `geas mission state --mission <id>` to see
-   the current phase, approval status, and task counts.
-3. Read `.geas/memory/shared.md` and, if present, the orchestrator's own
-   `.geas/memory/agents/orchestrator.md` (or, during phase reviews, the
-   relevant authority notes).
+- User invokes `/mission` to start, continue, or resume mission work.
+- User describes a task that is plausibly a new mission and `.geas/` is absent.
+- User asks "where are we?" on an existing mission.
+- Do NOT use for trivial single-file requests that clearly fit no mission (point this out and do the work directly with no spec).
+- Do NOT use to answer questions about the framework itself — use `navigating-geas`.
 
-## Trivial request bypass
+## Preconditions
 
-If the user request is obviously trivial — single file fix, one-line
-typo, clearly in-scope of an existing convention — skip the mission
-pipeline entirely. Say so, do the work directly, and return. No spec,
-no tasks, no evidence gate.
+None. The dispatcher handles `.geas/` bootstrap, so it is safe to call in a fresh project.
 
----
+## Process
 
-## 4-phase flow
+1. **Bootstrap check.**
+   - Run `geas context`. If `.geas/` is missing, run `geas setup`, then re-run `geas context`.
+   - `geas setup` is idempotent and preserves existing files; it lists created vs. existed paths.
+   - If the user request is trivial and no mission exists, tell the user you will bypass the mission pipeline, do the work directly, and return.
 
-The mission moves through four phases. Each phase ends with a
-phase-review appended to `phase-reviews.json`. The target `next_phase`
-on that review is what the next `mission-state update --phase` call
-will check.
+2. **State inspection.**
+   - For the active mission, run `geas mission state --mission <id>` to get phase, approval flags, task counts, and last event.
+   - Read `.geas/memory/shared.md` and, if present, `.geas/memory/agents/orchestrator.md`.
+   - Validate artifact consistency with state. If drift is detected (state claims a phase incompatible with existing phase-reviews, or references a mission spec that is missing), halt and surface a ⚠ block.
 
-### 1. Specifying
+3. **Current-status briefing.**
+   - Emit the Current-status template from `references/briefing-templates.md` (Korean).
+   - Always full briefing on a decision point (approval needed, drift, corruption); `--brief` flag otherwise honored.
 
-Purpose: turn the user request into an approved mission baseline and
-produce the initial task set.
+4. **Dispatch decision.** Map `(phase, state)` to a sub-skill:
 
-Run `/geas:intake` to drive the conversational flow. Intake produces
-the mission spec via `geas mission create` and gets user approval via
-`geas mission approve`. It also produces the initial task-contract files
-under `.geas/missions/{id}/tasks/*/contract.json` (G3 will supply the
-task-compiler skill; until then, intake writes contracts directly).
+   | Phase | State signal | Dispatch |
+   |---|---|---|
+   | specifying | no mission spec OR spec not yet user-approved | `specifying-mission` |
+   | specifying | spec approved, initial tasks not all approved | `drafting-task` (per task) |
+   | building | tasks ready with deps satisfied | `scheduling-work` |
+   | building | required reviewers + verifier evidence present for a task | `running-gate` |
+   | building | gate verdict pass on a task | `closing-task` |
+   | building | all mission-scope tasks terminal | `reviewing-phase` |
+   | polishing | new tasks needed | `drafting-task` then `scheduling-work` |
+   | polishing | integration clean | `reviewing-phase` |
+   | consolidating | entry | `consolidating-mission` |
+   | consolidating | candidates promoted, verdict pending | `verdicting-mission` |
+   | any | reviewer verdict conflict, structural challenge, or phase rollback in `full_depth` mode | `convening-deliberation` |
 
-Phase-gate checks for specifying:
-- mission spec `user_approved` is true
-- initial task-contract set exists and each contract has `approved_by`
-  set (mode governs who can approve: user in `lightweight`, decision-
-  maker in `standard` / `full_depth` after mission design is approved)
+   Anti-pattern: never advance phase without the matching phase-review; never invoke a sub-skill outside the table above.
 
-When the gate passes, append a phase-review with
-`mission_phase: specifying`, `status: passed`, `next_phase: building`,
-then `geas mission-state update --phase building`.
+5. **Post-dispatch briefing.** When a sub-skill returns, emit the appropriate template:
+   - Task completion (after `closing-task` or `running-gate` returning cancelled/escalated).
+   - Phase transition (after `reviewing-phase` followed by successful `mission-state update --phase`).
+   - Mission verdict (after `verdicting-mission`; requires user final confirmation before transitioning to `complete`).
 
-### 2. Building
+6. **Loop or return control.**
+   - If the next dispatch is automatic (next task in a batch, gate → closure), continue.
+   - If a user interaction point is reached (mission spec approval, phase-transition approval, mission-verdict final confirmation), return control with the appropriate briefing.
 
-Purpose: execute each approved task contract and accumulate evidence,
-closure, and task-level decisions.
+## User interaction points
 
-Per task, route by slot (primary worker + required reviewers) and
-escalate to mission-level deliberation when warranted. Task-level
-lifecycle details are G3's concern; the orchestrator role here is to
-keep `active_tasks` accurate in `mission-state.json` and to write the
-closing phase-review when all mission-scope tasks are terminated.
+- Bootstrap initialization: confirm Geas should set up `.geas/` in the current project.
+- Mission spec approval: surfaced by `specifying-mission`, confirmed in this dispatcher before the CLI approve call.
+- Phase-transition approval: on every phase boundary, user sees the transition briefing before the next dispatch.
+- Mission-verdict final confirmation: mandatory full briefing; user approves before `mission-state update --phase complete`.
 
-Phase-gate checks for building:
-- every task is `passed`, `cancelled`, or `escalated` — or the
-  phase-review's `summary` explicitly accepts remaining work by handing
-  it off to the consolidating phase for gap/debt capture
+## Red Flags
 
-Append a phase-review with `mission_phase: building`,
-`status: passed`, `next_phase: polishing`, then
-`geas mission-state update --phase polishing`.
-
-### 3. Polishing
-
-Purpose: look at the mission-level integration, not task-level.
-Identify structural gaps that need another task, or mark them for
-capture as debts or gap entries during consolidating.
-
-If polishing surfaces new tasks, write their contracts, get them
-approved by the decision-maker (scope-in only — mission spec is
-immutable), then append a phase-review with `next_phase: building` and
-return to building.
-
-When polishing is clean, append a phase-review with `next_phase:
-consolidating` and advance.
-
-### 4. Consolidating
-
-Purpose: finalize `debts`, `gap`, and `memory-update` entries; get the
-decision-maker's mission verdict.
-
-Steps:
-
-1. **Scaffold candidates.** Run
-   `geas consolidation scaffold --mission <id>` to collect
-   `debt_candidates`, `memory_suggestions`, and `gap_signals` from
-   every task's evidence into `missions/{id}/consolidation/candidates.json`.
-   This file is a scratch cache, not schema-validated; the orchestrator
-   reads it to decide which candidates get promoted.
-2. **Triage debts.** For each `debt_candidate` worth promoting:
-   - Call `geas debt register` with stdin:
-     ```json
-     {
-       "severity": "low|normal|high|critical",
-       "kind": "output_quality|verification_gap|structural|risk|process|documentation|operations",
-       "title": "...",
-       "description": "...",
-       "introduced_by": {"mission_id": "<this mission>", "task_id": "<source task>"}
-     }
-     ```
-   - The CLI assigns `debt_id` (project-level monotonic) and sets
-     `status: open`. `debts.json` is project-level; it accumulates across
-     missions, with each entry tracing to its origin task.
-   - For previously-open debts that this mission closed, call
-     `geas debt update-status --debt <id>` with stdin:
-     ```json
-     {
-       "status": "resolved",
-       "resolved_by": {"mission_id": "<this mission>", "task_id": "<resolving task>"},
-       "resolution_rationale": "..."
-     }
-     ```
-     (or `"status": "dropped"` with the same shape when a debt is no
-     longer worth tracking).
-3. **Write gap.** Design Authority writes the mission's scope-vs-delivery
-   record via `geas gap set --mission <id>`. Body fields:
-   `scope_in_summary`, `scope_out_summary`, `fully_delivered`,
-   `partially_delivered`, `not_delivered`, `unexpected_additions`. This
-   is the drift record — note intentional cuts inline (e.g., `"X
-   (intentionally cut: time)"`). Compute gap closure ratio as
-   `|fully_delivered| / (|fully_delivered| + |partially_delivered| +
-   |not_delivered|)` and include it in the phase-review summary.
-4. **Update memory.** Invoke `/geas:memorizing` to produce the markdown
-   edits and change log:
-   - `geas memory shared-set` writes `memory/shared.md` atomically.
-   - `geas memory agent-set --agent <type>` writes each changed
-     `memory/agents/{type}.md`.
-   - `geas memory-update set --mission <id>` records the semantic change
-     log (`added`/`modified`/`removed` with `memory_id`, `reason`,
-     `evidence_refs`). This pairs with the markdown writes.
-5. **Mission verdict.** Decision-maker issues the verdict via
-   `geas mission-verdict append --mission <id>` with
-   `verdict: approved | changes_requested | escalated | cancelled`.
-6. **Close the phase.** Append the final phase-review with
-   `mission_phase: consolidating`, `status: passed`,
-   `next_phase: complete`, then
-   `geas mission-state update --phase complete`. The CLI guard checks
-   that a mission-verdict exists.
-
-Triage heuristics (salvaged from v1/v2 reporting patterns):
-
-- Debt register prioritization — surface high-severity and
-  `verification_gap`-kind candidates first; document why each is kept
-  open at mission close.
-- Gap vs debt split — `partially_delivered` items always land in
-  `gap.json`; the decision whether they also become new debts is a
-  separate judgment (debt captures "what we commit to carry forward",
-  gap captures "what actually shipped").
-- Gap closure ratio — a low ratio this mission is a signal to the
-  decision-maker, not an automatic block.
-
----
-
-## Slot routing cheat sheet
-
-| Need                                 | Slot               | Agent file                        |
-|---|---|---|
-| Block structural/interface drift     | design-authority   | `plugin/agents/authority/design-authority.md` |
-| Issue mission verdict                | decision-maker     | `plugin/agents/authority/decision-maker.md`   |
-| Adversarial review (high/critical)   | challenger         | `plugin/agents/authority/challenger.md`       |
-| Task-level workers, reviewers, etc.  | (arrives in G3–G4) | —                                             |
-
-Operating-mode rules (protocol 02 §Mission Operating Mode) govern
-whether deliberation is required, how many voters, etc. Phase-review
-verifies those requirements at the gate.
-
----
-
-## CLI commands used in this phase
-
-| Phase              | Command                                                                          |
+| Excuse | Reality |
 |---|---|
-| Specifying         | `geas mission create`, `geas mission approve --mission <id>`                    |
-| All phases         | `geas mission state --mission <id>`, `geas context`                             |
-| Phase end          | `geas phase-review append --mission <id>` (stdin JSON entry)                    |
-| Phase advance      | `geas mission-state update --mission <id> --phase <p>`                          |
-| Consolidating      | `geas consolidation scaffold --mission <id>`, `geas debt register`, `geas debt update-status --debt <id>`, `geas gap set --mission <id>`, `geas memory-update set --mission <id>` |
-| Mission closure    | `geas mission-verdict append --mission <id>` (stdin JSON entry)                 |
+| "I already ran `geas mission state` last turn — skip inspection" | State inspection is per-invocation. Skipping it misses drift and stale artifact hints, which corrupt downstream dispatch. |
+| "The user said to continue — dispatch directly without briefing" | The current-status briefing is the user's only handle on what is about to happen. Skipping it hides dispatch intent. |
+| "Sub-skill X already does state checks — orchestrator can shortcut" | Dispatcher owns the cross-cutting view (drift, multiple tasks, phase boundaries). Sub-skills only see their slice. |
+| "This mission is small — edit `.geas/` by hand to save time" | The CLI is the only writer; direct edits break schemas, transition guards, and resume flows. |
 
-Refer to `docs/ko/architecture/CLI.md` §14 for the full automation
-contract (scaffolding, events logging, phase-guard behaviour).
+## Invokes
 
-## Anti-patterns
+| CLI command | Purpose |
+|---|---|
+| `geas context` | Detect `.geas/` presence and list known missions. |
+| `geas setup` | Bootstrap `.geas/` tree on first use. |
+| `geas mission state --mission <id>` | Per-invocation state inspection. |
+| `geas mission-state update --mission <id> --phase <p>` | Phase advance after sub-skill + user approval. |
+| `geas phase-review append --mission <id>` | Dispatched through `reviewing-phase`; dispatcher never writes evidence directly. |
 
-- Advancing phase without the matching phase-review entry (the CLI
-  will reject it with `guard_failed`).
-- Trying to rewrite mission spec after approval — it is immutable.
-  Escalate or start a new mission.
-- Treating task-level evidence as a substitute for mission-level
-  phase-review — they are different layers (protocol 02 vs 03).
-- Running `mission-verdict append` from anything other than the
-  decision-maker slot. The verdict is single-owner.
+Sub-skill dispatch — all 15 sub-skills are invoked conditionally per the dispatch table in Process step 4.
+
+## Outputs
+
+- Korean briefings to the user (current status, task completion, phase transition, mission verdict).
+- No direct `.geas/` writes. All artifact writes happen inside sub-skills that call the CLI.
+
+## Failure Handling
+
+- **Artifact drift** (state vs. artifacts mismatch): halt, surface ⚠ block in the current-status briefing, ask the user how to proceed. Do not auto-correct.
+- **State inspection error** (corrupt JSON, CLI throws): halt, report the raw error, escalate to the user. Do not retry silently.
+- **Sub-skill returns with unexpected state** (e.g., `running-gate` returns block): surface the block in the next briefing; re-enter dispatch on user approval only.
+- **CLI guard failure** (illegal transition): read the CLI hint, fix the missing precondition by re-dispatching the correct sub-skill, or halt if the precondition is a user decision.
+
+## Related Skills
+
+- **Invoked by**: user (`/mission`).
+- **Invokes** (15, conditional): `specifying-mission`, `drafting-task`, `scheduling-work`, `running-gate`, `closing-task`, `reviewing-phase`, `consolidating-mission`, `verdicting-mission`, `convening-deliberation`, `implementing-task`, `reviewing-task`, `verifying-task`, `deliberating-on-proposal`, `designing-solution`, `deciding-on-approval`.
+- **Do NOT invoke**: `reviewing-task`, `verifying-task`, `implementing-task`, `deliberating-on-proposal`, `designing-solution`, `deciding-on-approval` directly in the main session. These are spawned-agent skills; the dispatcher requests them through the dispatched main-session sub-skill (`scheduling-work`, `running-gate`, `convening-deliberation`, etc.), which spawns the concrete agent.
+
+## Remember
+
+- Bootstrap, inspect, brief, dispatch, brief, loop. No step is optional.
+- Dispatcher never writes to `.geas/`; sub-skills do, via CLI.
+- Mission spec is immutable after approval; scope changes are new missions or scope-in tasks.
+- Trivial requests bypass the mission pipeline entirely — say so, do it, return.
