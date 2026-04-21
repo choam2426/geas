@@ -1,225 +1,247 @@
 # Skills Reference
 
-Skills are the orchestrator's playbook. Each skill encodes a specific step of the Geas protocol (doc 02–07) as a prompt that can be read in-session and re-used across missions. Skills do not write `.geas/` directly — every write goes through the `geas` CLI. This reference describes the Phase 1 surface (v3): what skills exist, when each one runs, which CLI commands it invokes, and what it produces.
+Skills are the dispatcher's playbook. Each skill encodes one step of the Geas protocol as a prompt reused across missions. Skills never write `.geas/` directly — every write goes through the `geas` CLI. This reference describes the v3 skill surface: which skills exist, when each one runs, which CLI commands it invokes, and which artifacts it produces.
 
-For the authoritative CLI contract, see `architecture/CLI.md`. This file is a consumer view — it does not repeat the CLI reference.
-
----
-
-## 1. Skill Index
-
-All skills live under `plugin/skills/{name}/SKILL.md`. The orchestrator (`mission`) is the session entry point; the other skills are invoked from it at defined phase transitions. `help` is the only user-facing skill besides `mission`.
-
-| Skill | One-liner | Phase / trigger | User-invocable |
-|---|---|---|---|
-| `mission` | Drives the mission through specifying → building → polishing → consolidating. | Session entry point. | Yes — `/geas:mission` |
-| `intake` | Freezes a mission spec through section-by-section approval. | specifying phase (once per mission). | No |
-| `task-compiler` | Turns a scope slice into a TaskContract with verifiable acceptance criteria. | specifying (initial set) and mid-mission (in-scope additions). | No |
-| `implementation-contract` | Pre-implementation agreement — implementer proposes actions, reviewers approve. | Right after `ready`, before first evidence write. | No |
-| `scheduling` | Batches ready tasks for parallel execution under surface-conflict rules. | building phase when ≥2 tasks are ready. | No |
-| `evidence-gate` | Runs Tier 0 / Tier 1 / Tier 2 and records a `gate-results` run. | After all required reviewer and verifier evidence is written. | No |
-| `verify-fix-loop` | Bounded fix → re-verify loop driven by the last gate verdict. | Gate verdict is `fail`. | No |
-| `vote-round` | Convenes a deliberation and appends a single recorded vote entry. | full_depth missions only, when a task or mission needs collective judgment. | No |
-| `memorizing` | Rewrites `memory/shared.md` and `memory/agents/{type}.md` from task learnings. | consolidating phase. | No |
-| `setup` | Initializes `.geas/` at the project root. | First turn in a fresh project. | No (called by `mission`) |
-| `help` | Conversational explainer for geas usage. | Any time the user asks. | Yes — `/geas:help` |
-
-Removed in v3 (present in v2 docs, gone now): `policy-managing`, `reporting`. Rule overrides and health reporting are no longer skill-owned surfaces.
+Authoritative sources: the shared catalog in `architecture/DESIGN.md §7.5`, the full CLI contract in `architecture/CLI.md`, and the actual skill bodies under `plugin/skills/{name}/SKILL.md`. This file is a consumer-side index — it does not repeat the CLI reference or re-derive protocol semantics.
 
 ---
 
-## 2. Per-skill Details
+## 1. Overview
 
-### 2.1 `mission`
+The skill layer consists of 17 skills. Only two are user-invocable (`mission` and `navigating-geas`); the other 15 are dispatched by the `mission` main-session skill. Skills follow progressive disclosure: the frontmatter gives the trigger and CLI surface, the body holds execution procedure, and heavier patterns live under `references/`. The CLI is the sole writer to `.geas/`, so every "primary output" in this document is produced by the CLI command noted on the same row.
 
-**Purpose.** The orchestrator. Runs in the main session — never spawn as a sub-agent. Reads the protocol directly and drives each phase through its sub-skills.
-
-**When it runs.** Session entry, user invokes `/geas:mission`.
-
-**CLI it invokes.**
-- `geas setup` (if `.geas/` is missing) — via the `setup` skill.
-- `geas mission create`, `geas mission approve`, `geas mission state` — mission artifact ops.
-- `geas mission-state update --phase <phase>` — phase transitions.
-- `geas phase-review append`, `geas mission-verdict append` — phase gate and final verdict.
-- `geas task draft`, `geas task approve`, `geas task transition` — per task.
-- `geas gate run` — after reviewer evidence is complete.
-- `geas deliberation append --level mission|task` — via `vote-round`.
-- `geas debt register`, `geas debt update-status` — during polishing / consolidating.
-- `geas consolidation scaffold`, `geas gap set`, `geas memory-update set` — consolidating phase.
-- `geas context`, `geas status` — situational awareness.
-
-**Primary outputs.** Everything the mission produces — spec, design, task contracts, evidence chains, gate runs, verdicts, debts, gap, memory-update — all written through the CLI commands above.
-
-### 2.2 `intake`
-
-**Purpose.** Turn a natural-language request into an approved mission spec, an approved mission design, and an approved initial task set.
-
-**When it runs.** Specifying phase, driven by the orchestrator. Proceeds section by section, one question at a time.
-
-**CLI it invokes.**
-- `geas mission create` — writes `spec.json` (initial).
-- `geas mission design-set` — writes `mission-design.md` when the mission needs one.
-- `geas mission approve` — marks user-approved.
-- `geas task draft` — one call per initial task.
-
-**Primary outputs.** `missions/{mid}/spec.json`, optional `missions/{mid}/mission-design.md`, the first set of `tasks/{tid}/contract.json` in `drafted` state.
-
-### 2.3 `task-compiler`
-
-**Purpose.** Produce a single TaskContract from a slice of mission scope: routing (concrete implementer + required reviewer slots), surfaces, verification plan, dependencies, baseline snapshot.
-
-**When it runs.** During specifying for the initial task set, and mid-mission when the decision-maker approves an in-scope addition. User approval is required for out-of-scope additions (the decision-maker can only authorize within scope).
-
-**CLI it invokes.**
-- `geas task draft` — writes `contract.json` and initializes `task-state.json` (drafted).
-
-**Primary outputs.** `tasks/{tid}/contract.json` plus a scaffolded `tasks/{tid}/task-state.json` and evidence directory.
-
-### 2.4 `implementation-contract`
-
-**Purpose.** Catch scope / requirement mismatch before any code is written. Implementer drafts `planned_actions`, `edge_cases`, and `demo_steps`; the quality specialist and the design authority review them.
-
-**When it runs.** Immediately after `task transition --to ready` succeeds, before the first evidence append. Amendments during implementation use the same skill.
-
-**CLI it invokes.**
-- `geas evidence append --slot implementer` with `evidence_kind: plan-proposal` — the implementer's proposed actions.
-- `geas evidence append --slot reviewer` with `evidence_kind: review` — reviewer approvals.
-
-**Primary outputs.** Review-approved `plan-proposal` evidence entries under `tasks/{tid}/evidence/`.
-
-### 2.5 `scheduling`
-
-**Purpose.** Build parallel batches of `ready` tasks while honoring surface conflicts, critical-risk solo rules, and the baseline snapshot.
-
-**When it runs.** Building phase, when ≥2 tasks are in `ready`.
-
-**CLI it invokes.**
-- `geas task state`, `geas mission state` — read-only inspection.
-
-Scheduling is a batch decision. The orchestrator then dispatches implementers, and those implementers write through their own CLI calls.
-
-**Primary outputs.** The orchestrator's dispatch plan for the current batch. Nothing written to `.geas/`.
-
-### 2.6 `evidence-gate`
-
-**Purpose.** Objective gate over whether a task's evidence is sufficient to close. Emits one of `pass` / `fail` / `block` / `error`.
-
-**When it runs.** After every `contract.routing.required_reviewers` slot has an evidence file with ≥1 entry, and every verifier (if any) has run.
-
-**CLI it invokes.**
-- `geas gate run` — records the run in `gate-results.runs`. The response carries a `suggested_next_transition` hint; the orchestrator decides whether to follow it.
-
-**Primary outputs.** New entry in `tasks/{tid}/gate-results.json`.
-
-### 2.7 `verify-fix-loop`
-
-**Purpose.** Bounded fix → re-verify loop when the gate returns `fail`. Reads `verify_fix_iterations` from `task-state.json`, dispatches the implementer with concrete failure context, then re-runs `evidence-gate`. Budget exhaustion escalates.
-
-**When it runs.** The last `gate run` returned `verdict: fail`. Does not run on `block`, `error`, or `pass`.
-
-**CLI it invokes.**
-- `geas task-state update` — iteration bookkeeping.
-- `geas evidence append --slot implementer` with `evidence_kind: implementation` — new attempt.
-- `geas gate run` — re-runs the gate each iteration.
-- `geas task transition --to escalated` — on budget exhaustion.
-
-**Primary outputs.** New implementation evidence entries, new `gate-results.runs` entries, possibly an `escalated` transition.
-
-### 2.8 `vote-round`
-
-**Purpose.** Thin convening wrapper over `geas deliberation append`. Spawns the voters, collects their agree / disagree / escalate votes with rationale, and appends a single deliberation entry.
-
-**When it runs.** `mission.mode == full_depth` only — the CLI enforces this. Task-level triggers: conflicting reviewer verdicts, challenger objection, non-obvious rewind target. Mission-level triggers: per doc 02 (design forks, strategic decisions).
-
-**CLI it invokes.**
-- `geas deliberation append --level mission|task [--task <tid>]`.
-
-**Primary outputs.** One new entry in `deliberations.entries`. Challenger is a required voter.
-
-### 2.9 `memorizing`
-
-**Purpose.** Rewrite `memory/shared.md` and `memory/agents/{type}.md` from the mission's collected `memory_suggestions` and closure retrospectives. Full-replace semantics (not patch) — the skill composes the new file, the CLI atomically replaces it.
-
-**When it runs.** Consolidating phase.
-
-**CLI it invokes.**
-- `geas memory shared-set` — full replace of `memory/shared.md`.
-- `geas memory agent-set --agent <type>` — full replace of `memory/agents/{type}.md`.
-- `geas memory-update set` — writes the semantic changelog (markdown and changelog are paired per doc 07).
-
-**Primary outputs.** Rewritten memory markdown files and `missions/{mid}/consolidation/memory-update.json`.
-
-### 2.10 `setup`
-
-**Purpose.** Bootstrap the `.geas/` tree per doc 08. Idempotent; safe to re-run.
-
-**When it runs.** First turn in a fresh project. The orchestrator may invoke it defensively when `.geas/` is missing.
-
-**CLI it invokes.**
-- `geas setup` (only).
-
-**Primary outputs.** `.geas/` skeleton (empty `missions/`, `memory/`, `events.jsonl` header, etc.).
-
-### 2.11 `help`
-
-**Purpose.** Conversational explainer. Reads `.geas/` state if present and answers usage / concept questions in markdown.
-
-**When it runs.** User invokes `/geas:help`.
-
-**CLI it invokes.** None for writes. May call `geas context` or `geas status` to ground its answer.
-
-**Primary outputs.** Markdown response in chat only. No files written.
+Execution kinds:
+- `main_session` — runs in the main session with the user; the `mission` dispatcher is always main_session, and every mission-lifecycle + multi-party sub-skill runs in that same session.
+- `spawned` — the dispatcher spawns a sub-agent for one of the six spawned skills (implementer, reviewer, verifier, voter, design-authority, decision-maker); the sub-agent runs the skill, writes via CLI, and returns.
 
 ---
 
-## 3. Skill → CLI Map
+## 2. Skill Index
+
+| Skill | Group | Execution | User-invocable | One-line role |
+|---|---|---|---|---|
+| `mission` | A. Project utility | main_session | Yes (`/mission`) | Dispatcher and single user entry point — bootstrap, resume, phase-aware dispatch, briefings |
+| `navigating-geas` | A. Project utility | main_session | Yes (`/navigating-geas`) | Skill catalog + CLI + workflow guide; produces explanation only |
+| `specifying-mission` | B. Mission lifecycle | main_session | No | Drives specifying phase end-to-end: spec, design, initial task set, phase-review |
+| `drafting-task` | B. Mission lifecycle | main_session | No | Authors one task contract (initial set or mid-mission scope-in) and moves it to ready on approval |
+| `scheduling-work` | B. Mission lifecycle | main_session | No | Constructs a task-level parallel batch under surface-conflict rules and dispatches implementers |
+| `running-gate` | B. Mission lifecycle | main_session | No | Runs Tier 0/1/2 gate, aggregates reviewer verdicts, and drives the bounded verify-fix loop on fail |
+| `closing-task` | B. Mission lifecycle | main_session | No | Writes orchestrator closure evidence and transitions task-state from verified to passed |
+| `reviewing-phase` | B. Mission lifecycle | main_session | No | Appends a phase-review entry and advances mission-state phase |
+| `consolidating-mission` | B. Mission lifecycle | main_session | No | Promotes debt / gap / memory candidates in consolidating phase |
+| `verdicting-mission` | B. Mission lifecycle | main_session | No | Authors the mission-verdict entry; dispatcher transitions to complete after user confirmation |
+| `convening-deliberation` | C. Multi-party | main_session (spawns voters) | No | Full-depth multi-party judgment; spawns voters and records one deliberation entry |
+| `implementing-task` | D. Spawned agent | spawned | No | Spawned implementer: plan concurrence, implementation, implementation evidence + self-check |
+| `reviewing-task` | D. Spawned agent | spawned | No | Spawned reviewer (challenger / risk-assessor / operator / communicator) appends review-kind evidence |
+| `verifying-task` | D. Spawned agent | spawned | No | Spawned verifier runs the contract's verification_plan and appends verifier evidence |
+| `deliberating-on-proposal` | D. Spawned agent | spawned | No | Spawned voter returns one vote (agree / disagree / escalate) with rationale; no direct writes |
+| `designing-solution` | D. Spawned agent | spawned | No | Spawned design-authority: mission-design, contract structural review, gap analysis |
+| `deciding-on-approval` | D. Spawned agent | spawned | No | Spawned decision-maker: spec review, scope-in task approval, phase-review, mission-verdict |
+
+---
+
+## 3. Skills by group
+
+### 3.1 Project utility (2)
+
+#### `mission`
+
+The Geas dispatcher. Runs in the main session, never spawned. Bootstraps `.geas/` when absent, inspects state, and routes every invocation to the phase-appropriate sub-skill; reconciles each sub-skill's return with `.geas/` state before continuing or halting. The single user entry point for mission work.
+
+- Trigger — user invokes `/mission` (start, resume, or "where are we?"); dispatcher also handles `.geas/` bootstrap defensively.
+- Primary CLI — `geas setup`, `geas context`, `geas mission create|approve|state`, `geas mission-state update --phase`, `geas task draft|approve|transition`, `geas task deps add`, `geas gate run`, `geas phase-review append`, `geas mission-verdict append`, `geas debt register|update-status`, `geas gap set`, `geas memory-update set`, `geas memory shared-set|agent-set`, `geas deliberation append` (via `convening-deliberation`).
+- Primary outputs — every artifact the mission produces, through the sub-skills it dispatches.
+
+#### `navigating-geas`
+
+Map of the framework. Explains the skill catalog, the CLI surface, and how the `mission` dispatcher orchestrates multi-agent work so the user can pick the right entry point. Produces explanation only; never writes to `.geas/`.
+
+- Trigger — user asks what skills exist, what a skill does, how phases/slots/evidence fit together, or is orienting at project start.
+- Primary CLI — `geas context` (read-only), `geas schema list|show` (read-only) for grounding.
+- Primary outputs — markdown response in chat. No files written.
+
+### 3.2 Mission lifecycle sub-skills (8)
+
+#### `specifying-mission`
+
+Invoked by the mission dispatcher when `phase=specifying` and the mission spec has not yet been user-approved (or no mission exists). Drives one-question-at-a-time requirement gathering, produces an approved mission spec, an approved mission design, and an approved initial task set, then closes the specifying phase with a phase-review. Mission spec is immutable after user approval.
+
+- Trigger — `phase=specifying` and `spec.json` missing / `user_approved=false` / missing `mission-design.md` / no approved task yet.
+- Primary CLI — `geas mission create`, `geas mission design-set`, `geas mission approve`, `geas task draft`, `geas task approve`, `geas phase-review append`.
+- Primary outputs — `missions/{mid}/spec.json`, `missions/{mid}/mission-design.md`, the first approved `tasks/{tid}/contract.json` set, and the specifying-phase `phase-review` entry.
+
+#### `drafting-task`
+
+Invoked by the mission dispatcher when a task contract needs authoring — initial set during specifying, mid-mission scope-in within the approved spec, or replacement for a cancelled task. Produces a drafted contract routed to a concrete implementer with reviewer slots, surfaces, dependencies, and a baseline snapshot. Contracts are immutable on approval; amendments use cancel + draft-replacement.
+
+- Trigger — specifying phase initial-set authoring (called by `specifying-mission`); building/polishing mid-mission scope-in task; `supersedes` replacement for a cancelled task.
+- Primary CLI — `geas task draft`, `geas task approve`, `geas task deps add`.
+- Primary outputs — `tasks/{tid}/contract.json` (drafted → approved), scaffolded `tasks/{tid}/task-state.json`, evidence directory.
+
+#### `scheduling-work`
+
+Invoked by the mission dispatcher when one or more approved tasks have all dependencies satisfied and no active surface conflict. Constructs a task-level parallel batch, honoring `contract.surfaces` pairwise-overlap rules and critical-risk solo constraints, and dispatches implementers for the selected set. Scheduling is planning; the CLI re-enforces every constraint on `task transition --to implementing`.
+
+- Trigger — `phase=building` (or `polishing`) with ≥1 `ready` task whose dependencies are `passed`; session resume with no `implementing` tasks in flight.
+- Primary CLI — `geas task transition --to implementing`, plus read-only `geas task state` and `geas mission state` for batch inspection.
+- Primary outputs — the dispatch plan for the current batch; no new `.geas/` artifacts beyond the `implementing` transitions.
+
+#### `running-gate`
+
+Invoked by the mission dispatcher when all required reviewer slots and the verifier have appended evidence for a task. Runs the Tier 0/1/2 gate, aggregates reviewer verdicts, and on a `fail` verdict runs the bounded verify-fix loop (rewinding `reviewed → implementing` with `verify_fix_iterations` incremented) until `pass` or budget exhaustion. `fail` enters the loop; `block` / `error` / `pass` do not.
+
+- Trigger — `task-state.status == reviewed` with `self-check.json` valid, all `routing.required_reviewers` evidence files present, and verifier evidence present.
+- Primary CLI — `geas gate run`, `geas task transition` (to `implementing` for rewind or `escalated` on budget exhaustion), `geas evidence append --slot implementer` during fix iterations.
+- Primary outputs — new entries in `tasks/{tid}/gate-results.json`; rewound task-state transitions; additional implementation evidence entries on fix iterations.
+
+#### `closing-task`
+
+Invoked by the mission dispatcher when the gate has returned `verdict=pass` on a task in the `verified` state. Writes the orchestrator-authored closure evidence (slot = orchestrator, `verdict=approved`) with retrospective fields (what went well, what broke, surprises, next-time guidance), then transitions task-state from `verified → passed`. Closure is the only way to leave `verified`; retrospective fields feed consolidation.
+
+- Trigger — task in `task-state.status == verified` with a passing gate run; also used on re-entry after escalation resolution.
+- Primary CLI — `geas evidence append --kind closure`, `geas task transition --to passed`.
+- Primary outputs — closure-kind orchestrator evidence entry under `tasks/{tid}/evidence/`; `task-state.status = passed`.
+
+#### `reviewing-phase`
+
+Invoked by the mission dispatcher when every mission-scope task in the current phase has reached a terminal state (`passed`, `cancelled`, or `escalated`). Appends a phase-review entry with `status=passed` and `next_phase`, then advances `mission-state.phase` via CLI — the only way the CLI permits phase advancement.
+
+- Trigger — `specifying` / `building` / `polishing` completion with all mission-scope tasks terminal; full-depth specifying additionally requires a mission-level deliberation entry.
+- Primary CLI — `geas phase-review append`, `geas mission-state update --phase`.
+- Primary outputs — new entry in `missions/{mid}/phase-reviews.json`; `mission-state.phase` advanced.
+
+#### `consolidating-mission`
+
+Invoked by the mission dispatcher when `phase=consolidating` is entered. Scaffolds candidates from task evidence, promotes debt / memory / gap candidates, writes `memory-update.json` and `gap.json`, and replaces the memory markdowns (`shared.md` + per-agent `agents/{type}.md`). Memory markdown replace and `memory-update set` are paired by protocol.
+
+- Trigger — `phase=consolidating` entry; session resume into an in-progress consolidation with partial artifacts.
+- Primary CLI — `geas debt register`, `geas gap set`, `geas memory-update set`, `geas memory shared-set`, `geas memory agent-set`.
+- Primary outputs — `missions/{mid}/consolidation/gap.json`, `missions/{mid}/consolidation/memory-update.json`, appended entries in `debts.json`, rewritten `.geas/memory/shared.md` and `.geas/memory/agents/{type}.md`.
+
+#### `verdicting-mission`
+
+Invoked by the mission dispatcher when `consolidating-mission` has finished writing debt, gap, memory-update, and the memory markdowns. Spawns the decision-maker to author the mission-verdict entry. The `complete` transition is owned by the dispatcher and happens only after explicit user confirmation on the briefing.
+
+- Trigger — `phase=consolidating` with consolidation artifacts all present; all mission-scope tasks terminal; per-phase phase-reviews recorded.
+- Primary CLI — `geas mission-verdict append` (decision-maker authors via `deciding-on-approval`); `geas mission-state update --phase complete` after user confirmation.
+- Primary outputs — new entry in `missions/{mid}/mission-verdict.json`; `mission-state.phase = complete` on confirmation.
+
+### 3.3 Multi-party (1)
+
+#### `convening-deliberation`
+
+Invoked by the mission dispatcher when `mission.mode == full_depth` and a multi-party judgment is required. Thin convening wrapper over `geas deliberation append`: spawns voters, dispatches them independently (voters never see each other's votes before voting), collects their returns, and records one deliberation entry with the CLI-aggregated result. The CLI's aggregation rule is the source of truth; the skill never computes its own final judgment.
+
+- Trigger — task-level: conflicting reviewer verdicts on incompatible grounds, a challenger structural objection closure cannot adjudicate alone, or a non-obvious rewind target. Mission-level: full-depth specifying close requires documented agreement among ≥3 voters including challenger, or phase rollback is under consideration.
+- Primary CLI — `geas deliberation append --level mission|task`.
+- Primary outputs — one new entry in `deliberations.entries` (under `tasks/{tid}/deliberations.json` or `missions/{mid}/deliberations.json`). Challenger is a required voter whenever available.
+
+### 3.4 Spawned agent procedures (6)
+
+#### `implementing-task`
+
+Invoked by a spawned implementer after the dispatcher hands off an approved, dependency-satisfied task. Before writing code, the implementer states the concrete plan (planned_actions, edge_cases, demo_steps) and obtains one-round reviewer concurrence on the plan. Only after plan approval does the task transition to `implementing`. Closes out with one implementation-kind evidence entry plus the `self-check.json`. Same concrete agent cannot hold implementer and reviewer/verifier on the same task.
+
+- Trigger — `task-state.status == ready` on first run, or `implementing` on a verify-fix revision; `base_snapshot` still matches the real workspace.
+- Primary CLI — `geas self-check set`, `geas evidence append --slot implementer` (kinds `plan-proposal` for the contract and `implementation` for the final entry), `geas task transition --to implementing|reviewed`.
+- Primary outputs — implementation-kind evidence entry under `tasks/{tid}/evidence/`, plus `tasks/{tid}/self-check.json`. (The separate `impl-contract set` registration is on the non-blocking queue; today the plan concurrence is recorded through `evidence append --kind plan-proposal` + reviewer review entries.)
+
+#### `reviewing-task`
+
+Invoked by a spawned reviewer (challenger / risk-assessor / operator / communicator) after an implementer has appended implementation evidence plus `self-check.json` (post-work review) or after the implementer has proposed a plan (pre-work concurrence). Reads the evidence in the reviewer's lane, forms a verdict, and appends one review-kind evidence entry. Stance (adversarial / failure-modes / operability / human-surfaces) lives in the agent file; the shared procedure lives here.
+
+- Trigger — spawned as reviewer for a task in `implementing` (pre-work plan concurrence) or `reviewed` (post-work review); reviewer is not the implementer on this task.
+- Primary CLI — `geas evidence append --slot <reviewer slot>` with `evidence_kind: review`.
+- Primary outputs — review-kind evidence entry with `verdict`, `concerns`, `scope_examined`, `methods_used`.
+
+#### `verifying-task`
+
+Invoked by a spawned verifier after reviewers have returned concurrence (or alongside them in full-depth). Runs the task contract's `verification_plan` independently of the implementer and records one verification-kind evidence entry mapping every acceptance criterion to a pass/fail result with concrete details. Missing or ambiguous verification produces a gate `error`.
+
+- Trigger — `task-state.status == reviewed` (or `implementing` in profiles that run verifier concurrent with reviewers); at least one implementation-kind evidence entry exists; `base_snapshot` still matches.
+- Primary CLI — `geas evidence append --slot verifier` with `evidence_kind: verification`.
+- Primary outputs — verifier evidence entry with `criteria_results` covering every acceptance criterion.
+
+#### `deliberating-on-proposal`
+
+Invoked by a spawned voter during a deliberation. The voter reads the proposal text and supporting artifacts, forms an independent judgment from the assigned slot, and returns one vote (`agree` / `disagree` / `escalate`) with non-empty rationale and dissent notes. Voters do not see each other's votes before returning theirs.
+
+- Trigger — `convening-deliberation` dispatches the voter with proposal text, supporting artifact paths, and the voting slot identity.
+- Primary CLI — none (no direct writes). The convening skill collects returns and calls `geas deliberation append`.
+- Primary outputs — a vote object returned to the convening skill.
+
+#### `designing-solution`
+
+Invoked by a spawned design-authority at one of three moments — authoring the mission design, reviewing a task or implementation contract on structural grounds, or assembling the gap analysis during consolidating. Routes to the matching CLI surface per branch. Cannot hold design-authority and implementer on the same task.
+
+- Trigger — branch A (mission design authorship, spec `user_approved: true` and no `mission-design.md`); branch B (task / implementation contract structural review); branch C (gap analysis in `consolidating`).
+- Primary CLI — `geas mission design-set` (A), `geas evidence append --slot design-authority` with `evidence_kind: review` (B), `geas gap set` (C).
+- Primary outputs — `missions/{mid}/mission-design.md`, review-kind design-authority evidence, or `missions/{mid}/consolidation/gap.json`.
+
+#### `deciding-on-approval`
+
+Invoked by a spawned decision-maker at one of four moments — mission spec review (standard or full_depth), mid-mission scope-in task contract approval, phase-review verdict authoring, or mission-verdict authoring. Routes to the matching CLI surface per branch.
+
+- Trigger — branch A (mission spec review before user sign-off); branch B (building / polishing scope-in task approval); branch C (phase-review verdict authoring); branch D (mission verdict after consolidating completes).
+- Primary CLI — `geas evidence append --slot decision-maker` (A, spec review entries), `geas task approve` (B), `geas phase-review append` (C), `geas mission-verdict append` (D).
+- Primary outputs — review-kind decision-maker evidence, approved task contract, phase-review entry, or mission-verdict entry.
+
+---
+
+## 4. Skill → CLI Map
 
 Fast lookup. For command details (flags, JSON shape, failure modes), see `architecture/CLI.md`.
 
 | Skill | CLI commands (canonical) |
 |---|---|
-| `mission` | all mission-level + task-level + memory + debt + gap + memory-update + event + status + context |
-| `intake` | `mission create`, `mission design-set`, `mission approve`, `task draft` |
-| `task-compiler` | `task draft` |
-| `implementation-contract` | `evidence append` (plan-proposal, review) |
-| `scheduling` | `task state`, `mission state` (read-only) |
-| `evidence-gate` | `gate run` |
-| `verify-fix-loop` | `task-state update`, `evidence append`, `gate run`, `task transition --to escalated` |
-| `vote-round` | `deliberation append --level mission|task` |
-| `memorizing` | `memory shared-set`, `memory agent-set`, `memory-update set` |
-| `setup` | `setup` |
-| `help` | `context`, `status` (read-only) |
+| `mission` | all mission / task / evidence / gate / phase-review / mission-verdict / debt / gap / memory / memory-update / context surfaces (via the sub-skill it dispatches) |
+| `navigating-geas` | `context`, `schema list`, `schema show` (read-only) |
+| `specifying-mission` | `mission create`, `mission design-set`, `mission approve`, `task draft`, `task approve`, `phase-review append` |
+| `drafting-task` | `task draft`, `task approve`, `task deps add` |
+| `scheduling-work` | `task transition --to implementing`, `task state`, `mission state` |
+| `running-gate` | `gate run`, `task transition`, `evidence append --slot implementer` (fix iterations) |
+| `closing-task` | `evidence append --kind closure`, `task transition --to passed` |
+| `reviewing-phase` | `phase-review append`, `mission-state update --phase` |
+| `consolidating-mission` | `debt register`, `gap set`, `memory-update set`, `memory shared-set`, `memory agent-set` |
+| `verdicting-mission` | `mission-verdict append`, `mission-state update --phase complete` |
+| `convening-deliberation` | `deliberation append --level mission\|task` |
+| `implementing-task` | `self-check set`, `evidence append --slot implementer`, `task transition` |
+| `reviewing-task` | `evidence append --slot <reviewer slot>` |
+| `verifying-task` | `evidence append --slot verifier` |
+| `deliberating-on-proposal` | (none — returns a vote to the convener) |
+| `designing-solution` | `mission design-set`, `evidence append --slot design-authority`, `gap set` |
+| `deciding-on-approval` | `evidence append --slot decision-maker`, `task approve`, `phase-review append`, `mission-verdict append` |
 
 ---
 
-## 4. Troubleshooting — Read-only CLI for Users
+## 5. User-invocable Commands and Read-only CLI
 
-Most of the CLI is internal plumbing, invoked by skills. A handful of commands are safe for users to run manually when they want to inspect state without going through a skill.
+Two skills are user-invocable:
+
+- `/mission` — the single entry point for mission work. Starts, continues, or resumes a mission; dispatches every other lifecycle skill.
+- `/navigating-geas` — the framework map. Explains skills, CLI, and workflow. Safe to call any time; never writes.
+
+Everything else in `plugin/skills/` is dispatched by `mission` and must not be invoked directly — sub-skills carry `user-invocable: false` in their frontmatter.
+
+For inspecting `.geas/` state without going through a skill, a handful of CLI commands are read-only and safe to run manually:
 
 | Command | What it shows |
 |---|---|
 | `geas context` | JSON summary of current `.geas/` state (active mission, phase, task counts). |
-| `geas status` | Active mission phase, active tasks with state and agent, pending queues. Read-only. |
 | `geas mission state --mission <mid>` | Mission spec + phase + task counts. |
-| `geas task state --task <tid>` | Task contract summary + current lifecycle state + iterations. |
+| `geas task state --task <tid>` | Task contract summary + current lifecycle state + verify-fix iteration count. |
 | `geas debt list` | Open / resolved debts across the project. |
 | `geas schema list` | Embedded schema inventory. |
 | `geas schema show <name>` | A single schema's JSON. |
-| `geas validate` | Re-validate the entire `.geas/` tree against schemas. |
 
-The only user-level writes supported outside a skill-driven flow are the memory rewrites:
-
-- `geas memory shared-set` — overwrite `.geas/memory/shared.md` with markdown from stdin.
-- `geas memory agent-set --agent <type>` — overwrite `.geas/memory/agents/{type}.md`.
-
-Everything else in `.geas/` must go through a skill-driven flow. Direct `Write` / `Edit` on files under `.geas/` is blocked by the `PreToolUse` hook (see `HOOKS.md`).
+All other writes to `.geas/` must flow through a skill-driven CLI call. Direct `Write` / `Edit` on files under `.geas/` is blocked by the `PreToolUse` hook (see `HOOKS.md`).
 
 ---
 
-## 5. Cross-references
+## 6. Cross-references
 
-- `architecture/CLI.md` — the full CLI contract, command surface, and error codes.
-- `architecture/DESIGN.md` — how skills relate to the protocol layers.
-- `protocol/02` through `protocol/07` — the authoritative specifications the skills implement.
+- `architecture/CLI.md` — full CLI contract, command surface, error codes.
+- `architecture/DESIGN.md §7.5` — authoritative 17-skill catalog grouped by execution role.
+- `protocol/01`–`protocol/08` — protocol layers the skills implement.
 - `HOOKS.md` — hook surface and what runs automatically around skill invocations.
 - `plugin/skills/{name}/SKILL.md` — per-skill body with the actual prompt text.
