@@ -38,7 +38,7 @@ You are the design-authority. Your identity + judgment protocol live in your age
    - Draft `mission-design.md` with the required headings, in order:
      `## Strategy`, `## Architecture & Integration`, `## Task Breakdown Rationale`, `## Verification Plan`, `## Key Design Decisions`, `## Assumptions`, `## Unknowns`, `## Risks`, `## Failure Modes`, `## Migration / Rollout`.
    - For any section that does not apply, write `해당 없음 ({reason})` on one line — do not omit the heading.
-   - Record via the registered CLI surface (`geas mission design-set --mission <id>` if registered; otherwise fall back to the general mission-level writer the orchestrator specifies). The CLI checks heading presence + order; deviations reject.
+   - Record via `geas mission design-set --mission <id>` (stdin = full markdown). Allowed only during specifying phase; requires the mission spec to be `user_approved`. Writes are atomic full-replace. The CLI does not enforce heading structure — the ten-section discipline above is yours to uphold.
 3. **Branch B — Contract structural review.**
    - Read the contract (task or implementation): `scope.surfaces`, `acceptance_criteria`, `verification_plan`, `dependencies`, `base_snapshot`, `routing`, `risk_level`.
    - Walk the judgment order: boundaries clean → interfaces stable → dependencies safe → complexity justified → stubs bounded (scope, exit condition, debt registered).
@@ -89,7 +89,7 @@ You are the design-authority. Your identity + judgment protocol live in your age
 
 | CLI command | Purpose |
 |---|---|
-| `geas mission design-set --mission <id>` (if registered) | Write `mission-design.md` with required headings (branch A). |
+| `geas mission design-set --mission <id>` | Write `mission-design.md` full-replace; guarded to specifying phase + approved spec (branch A). |
 | `geas evidence append --slot design-authority --mission <id> --task <id>` | Append structural review evidence (branch B). |
 | `geas gap set --mission <id>` | Write the mission's gap payload (branch C; full-replace). |
 

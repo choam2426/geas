@@ -91,7 +91,7 @@ Sub-skills invoked: `drafting-task` (per initial task), `convening-deliberation`
 - **Design approval stalls** in full_depth: escalate to deliberation (`convening-deliberation`); record the result before re-asking the user.
 - **User declines a section**: revise that section only; re-present for approval. Never silent-skip.
 - **Ambiguous mission boundary**: halt and return to dispatcher with a decomposition proposal; do not force-create a spec.
-- **Missing `geas mission design-set` at runtime**: this command is specified in CLI.md §3 but may be a known CLI gap; if the CLI rejects with `unknown command`, report it upward as a CLI gap and write the design content via the documented command shape.
+- **`geas mission design-set` guard rejection** (`guard_failed`): check that the mission spec is `user_approved` and the current phase is `specifying`; after building starts, the design is frozen and must not be edited from this skill.
 
 ## Related Skills
 
