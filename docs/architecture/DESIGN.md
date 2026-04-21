@@ -310,22 +310,46 @@ Do not duplicate CLI internals, the full raw schemas, or runtime-specific interc
 
 ### 7.5 Core Skill Contract
 
-| skill | `execution` | `slot` | Purpose | Primary CLI |
-|---|---|---|---|---|
-| `/mission` | `main_session` | `orchestrator` | Entry point for the specifying phase (mission creation and initial approvals) | `mission create`, `mission design-set`, `task draft`, `task approve`, `mission-state update` |
-| `/task-draft` | `main_session` | `orchestrator` (spawns `design-authority`) | Draft a mid-mission task contract | `task draft`, `task approve` |
-| `/task-implement` | `spawned` | `implementer` | Implement, self-check, and submit implementation evidence | `impl-contract set`, `self-check set`, `evidence append` |
-| `/task-review` | `spawned` | `risk-assessor` / `operator` / `communicator` / `challenger` | Submit review evidence | `evidence append` |
-| `/task-verify` | `spawned` | `verifier` | Run independent verification and submit verification evidence | `evidence append` |
-| `/gate-run` | `main_session` | `orchestrator` | Run the Tier 0 -> 1 -> 2 gate | `gate run`, `task transition` |
-| `/task-close` | `main_session` | `orchestrator` | Write closure evidence | `evidence append`, `task transition` |
-| `/deliberation` | `main_session` | `orchestrator` (spawns participant slots) | Multi-party deliberation | `deliberation append` |
-| `/phase-review` | `main_session` | `orchestrator` | Judge a phase gate | `phase-review append`, `mission-state update` |
-| `/mission-consolidate` | `main_session` | `orchestrator` (spawns `design-authority` for gap) | Produce debts, gap, and memory-update | `debt register`, `gap set`, `memory-update set` |
-| `/mission-verdict` | `main_session` | `orchestrator` (spawns `decision-maker`) | Mission final verdict | `mission-verdict append` |
-| `/resume` | `main_session` | `orchestrator` | Resume after context loss | `resume` |
+The skill layer consists of 17 skills. The only user entry point is `mission`; the rest are sub-skills that the dispatcher invokes when conditions require.
 
-The core skill set and the step responsibility in each row are fixed parts of the shared contract. Slash-command naming, registration, and sentence style may vary across adapters, but the step ownership and artifact relationships in this table do not.
+#### User-invocable (2)
+
+| skill | `execution` | slot | Purpose |
+|---|---|---|---|
+| `mission` | `main_session` | `orchestrator` | Mission dispatcher — bootstrap, state check, dispatch of phase sub-skills, briefing |
+| `navigating-geas` | `main_session` | `orchestrator` | Skill catalog, CLI, and workflow guide |
+
+#### Mission lifecycle sub-skills (8, main_session)
+
+| skill | slot | When the dispatcher invokes it | Primary CLI |
+|---|---|---|---|
+| `specifying-mission` | `orchestrator` | Entering specifying phase with mission spec not yet approved | `mission create`, `mission approve`, `mission design-set` |
+| `drafting-task` | `orchestrator` (may consult `design-authority`) | Drafting the initial task set or an additional mid-mission task | `task draft`, `task approve`, `task deps add` |
+| `scheduling-work` | `orchestrator` | Approved task exists and is ready to dispatch | `task transition --to implementing` |
+| `running-gate` | `orchestrator` | All required reviewer and verifier evidence has arrived | `gate run`, `task transition` |
+| `closing-task` | `orchestrator` | Immediately after gate pass | `evidence append --kind closure`, `task transition --to passed` |
+| `reviewing-phase` | `orchestrator` | All tasks in the phase scope are closed | `phase-review append`, `mission-state update --phase` |
+| `consolidating-mission` | `orchestrator` (spawns `design-authority` for gap) | Entering consolidating phase | `debt register`, `gap set`, `memory-update set`, `memory shared-set`, `memory agent-set` |
+| `verdicting-mission` | `orchestrator` (spawns `decision-maker`) | All phases closed | `mission-verdict append` |
+
+#### Multi-party (1, main_session)
+
+| skill | slot | When the dispatcher invokes it | Primary CLI |
+|---|---|---|---|
+| `convening-deliberation` | `orchestrator` (spawns voters) | Reviewer verdict conflict, structural disagreement, or phase rollback in `mode == full_depth` | `deliberation append` |
+
+#### Spawned agent procedures (6, spawned)
+
+| skill | slot | When it is spawned | Primary CLI |
+|---|---|---|---|
+| `implementing-task` | `implementer` | An approved task is dispatched | `self-check set`, `evidence append --slot implementer` |
+| `reviewing-task` | `challenger` / `risk-assessor` / `operator` / `communicator` | Implementation evidence and self-check have been submitted | `evidence append --slot <reviewer>` |
+| `verifying-task` | `verifier` | Reviewer concurrence has been reached | `evidence append --slot verifier` |
+| `deliberating-on-proposal` | the invoked voter slot | Convened by `convening-deliberation` | (no direct writes — returns a vote) |
+| `designing-solution` | `design-authority` | Drafting mission design, reviewing task structure, analyzing a gap | `mission design-set`, `evidence append --slot design-authority`, `gap set` |
+| `deciding-on-approval` | `decision-maker` | Mission spec approval, task approval, phase-review, mission-verdict | `evidence append --slot decision-maker`, `task approve`, `phase-review append`, `mission-verdict append` |
+
+The step responsibility and artifact relationships across all 17 skills are fixed parts of the shared contract. Sub-skills are never invoked outside the `mission` dispatcher (`user-invocable: false` in sub-skill frontmatter), and manual user invocation or Claude auto-trigger is restricted to what does not break the single-dispatcher rule. Skill naming and sentence style may vary across adapters, but the step ownership and artifact relationships this table captures do not.
 
 ### 7.6 Skill Conventions
 
