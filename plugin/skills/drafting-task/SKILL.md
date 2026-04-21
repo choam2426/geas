@@ -35,7 +35,7 @@ Transforms a slice of mission scope into a task contract routed to a concrete im
 4. **List `acceptance_criteria`.** ≥1 observable yes/no item; each names the dimension (correctness, scope boundary, regression safety) so reviewers can write useful evidence.
 5. **Write `verification_plan`.** Prose (markdown allowed). Both automated and manual checks go here; do not emit an executable command vector — verification is prose + gate.
 6. **Declare `surfaces`.** Named files, directories, documents, environments. One task per surface at a time.
-7. **Fill `routing`.** `primary_worker_type` = concrete implementer agent type (kebab-case). `required_reviewers` picked from `challenger | risk-assessor | operator | communicator`. Challenger mandatory when `risk_level >= high`. Verifier is implicit.
+7. **Fill `routing`.** `primary_worker_type` = concrete implementer agent type (kebab-case). `required_reviewers` picked from `challenger | risk-assessor | operator | communicator`. Challenger mandatory when `risk_level >= high`. Verifier is implicit. **Mission `mode` does NOT change task-level `required_reviewers`** — `full_depth` changes judgment depth via mission-level deliberation (see `convening-deliberation`), not by adding reviewers to every task. Picking reviewers based on mode instead of the task's actual risk and surfaces produces rubber-stamp reviews and pollutes the real dissent signal.
 8. **Capture `base_snapshot`.** Typically `git rev-parse HEAD`; any stable baseline id works.
 9. **Set `dependencies` and `supersedes`.** `dependencies` lists task ids that must reach `passed` before this leaves `ready`. `supersedes` is non-null only when replacing a cancelled task.
 10. **Submit draft + approval.** Run `geas task draft`. On response, show the user (or route to decision-maker for mid-mission in-scope). On confirmation, run `geas task approve --by user` (or `--by decision-maker`).
@@ -68,6 +68,7 @@ The CLI injects `mission_id`, `task_id`, `created_at`, `updated_at`; defaults `a
 |---|---|
 | "Just list `src/` — the exact files will become clear during work" | `surfaces` is the concurrency contract. Broad roots block every other task; be specific. |
 | "Risk is high but challenger isn't needed this time" | Challenger is mandatory at `risk_level >= high`. No exceptions. |
+| "Mission is `full_depth` so every task gets challenger" | Mode affects mission-level deliberation, not task-level reviewers. Task reviewers are chosen from `risk_level` and surface impact, independent of mode. Blanket challenger assignment dilutes real dissent into rubber stamps. |
 | "Goal is `improve scheduling`" | That is an activity, not an observable outcome. Rewrite as an observable end-state a reviewer can grade. |
 | "Contract is wrong — let me edit `contract.json` to fix it" | Contracts are immutable on approval. Cancel the task and draft a replacement with `supersedes`. |
 | "Drop `verification_plan` — the gate will figure it out" | Tier 1 runs the plan; without it the gate returns `error`. |
@@ -105,5 +106,6 @@ The CLI injects `mission_id`, `task_id`, `created_at`, `updated_at`; defaults `a
 - Goal names an observable change, not an activity.
 - Surfaces are an allowlist — name specific files, not broad roots.
 - Challenger is mandatory at `risk_level >= high`; verifier is implicit.
+- Mission `mode` does not change task-level `required_reviewers`. `full_depth` drives depth through mission-level deliberation, not by attaching challenger to every task.
 - Contract is immutable after approve; replace via `supersedes` if wrong.
 - Tasks outside `spec.scope.in` are not drafted here — route back to the dispatcher.
