@@ -1,6 +1,6 @@
 ---
 name: consolidating-mission
-description: Invoked by the mission dispatcher on entry to the consolidating phase; scaffolds candidates from task evidence, promotes debt/memory/gap candidates, writes memory-update and gap artifacts, and updates the shared and per-agent memory markdown via the CLI.
+description: Invoked by the mission dispatcher when phase=consolidating is entered; scaffolds candidates from task evidence, promotes debt/memory/gap candidates, writes memory-update and gap artifacts, and updates the shared and per-agent memory markdown via the CLI.
 user-invocable: false
 ---
 

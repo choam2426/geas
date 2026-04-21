@@ -1,6 +1,6 @@
 ---
 name: closing-task
-description: Invoked by the mission dispatcher after the gate returns verdict=pass on a task in the verified state; writes the orchestrator closure evidence entry (verdict=approved) with retrospective fields, then transitions task-state from verified to passed.
+description: Invoked by the mission dispatcher when the gate has returned verdict=pass on a task in the verified state; writes the orchestrator closure evidence entry (verdict=approved) with retrospective fields, then transitions task-state from verified to passed.
 user-invocable: false
 ---
 
