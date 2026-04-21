@@ -98,7 +98,7 @@ it up) or escalate.
 
 ## Mission verdict format
 
-Verdict entry schema (see `docs/schemas/mission-verdicts.schema.json`):
+Verdict entry shape (validated by the CLI's embedded schema):
 
 ```json
 {

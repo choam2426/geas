@@ -11,13 +11,13 @@ Thin convening wrapper over `geas deliberation append`. Use this when multiple s
 
 ## When to Use
 
-Task-level deliberation (protocol 03 §189) opens when:
+Task-level deliberation opens when:
 
 - Required reviewer verdicts conflict on incompatible grounds (e.g. risk-assessor says `blocked`, operator says `approved` because they're reading different threat models).
 - Challenger raises a structural objection that closure cannot adjudicate alone.
 - Rewind target (which state to send the task back to) is non-obvious and needs collective judgment.
 
-Mission-level deliberation (doc 02) opens when:
+Mission-level deliberation opens when:
 
 - `full_depth` mission's specifying-phase close requires a documented agreement among at least 3 voters including challenger.
 - Phase rollback is being considered and the orchestrator wants the record to reflect the consulted voters.
@@ -49,7 +49,7 @@ Voters are dispatched in parallel when practical. They do NOT see each other's v
 
 ### Step 2 — Assemble the entry
 
-Collect votes and compute the expected `result` using the CLI's aggregation rule (CLI.md §14.3):
+Collect votes and compute the expected `result` using the CLI's aggregation rule:
 
 - any `escalate` → `escalate`
 - else majority `agree` → `agree`
