@@ -225,6 +225,145 @@ test('mission create is rejected after approve (spec immutable)', () => {
   }
 });
 
+test('mission design-set writes mission-design.md after approve', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupWithMission(dir);
+    runCli(['mission', 'approve', '--mission', MID], { cwd: dir });
+    const content = '# Mission design\n\nStrategy paragraph here.\n';
+    const res = runCli(['mission', 'design-set', '--mission', MID], {
+      cwd: dir,
+      input: content,
+    });
+    assert.equal(res.status, 0, `design-set failed: ${res.stderr}`);
+    assert.equal(res.json.ok, true);
+    assert.equal(res.json.data.replaced, false);
+    const written = fs.readFileSync(
+      path.join(dir, '.geas', 'missions', MID, 'mission-design.md'),
+      'utf-8',
+    );
+    assert.equal(written, content);
+  } finally {
+    cleanup();
+  }
+});
+
+test('mission design-set appends trailing newline when stdin lacks one', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupWithMission(dir);
+    runCli(['mission', 'approve', '--mission', MID], { cwd: dir });
+    const res = runCli(['mission', 'design-set', '--mission', MID], {
+      cwd: dir,
+      input: '# Design\n\nNo trailing newline',
+    });
+    assert.equal(res.status, 0);
+    const written = fs.readFileSync(
+      path.join(dir, '.geas', 'missions', MID, 'mission-design.md'),
+      'utf-8',
+    );
+    assert.ok(written.endsWith('\n'));
+  } finally {
+    cleanup();
+  }
+});
+
+test('mission design-set full-replaces on second call', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupWithMission(dir);
+    runCli(['mission', 'approve', '--mission', MID], { cwd: dir });
+    runCli(['mission', 'design-set', '--mission', MID], {
+      cwd: dir,
+      input: '# First\n',
+    });
+    const res2 = runCli(['mission', 'design-set', '--mission', MID], {
+      cwd: dir,
+      input: '# Second\n',
+    });
+    assert.equal(res2.status, 0);
+    assert.equal(res2.json.data.replaced, true);
+    const written = fs.readFileSync(
+      path.join(dir, '.geas', 'missions', MID, 'mission-design.md'),
+      'utf-8',
+    );
+    assert.equal(written, '# Second\n');
+  } finally {
+    cleanup();
+  }
+});
+
+test('mission design-set rejects empty stdin', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupWithMission(dir);
+    runCli(['mission', 'approve', '--mission', MID], { cwd: dir });
+    const res = runCli(['mission', 'design-set', '--mission', MID], {
+      cwd: dir,
+      input: '',
+    });
+    assert.notEqual(res.status, 0);
+    assert.equal(res.json.error.code, 'invalid_argument');
+  } finally {
+    cleanup();
+  }
+});
+
+test('mission design-set rejected before mission is approved', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupWithMission(dir);
+    // no approve call
+    const res = runCli(['mission', 'design-set', '--mission', MID], {
+      cwd: dir,
+      input: '# Design\n',
+    });
+    assert.notEqual(res.status, 0);
+    assert.equal(res.json.error.code, 'guard_failed');
+    assert.match(res.json.error.message, /user_approved/);
+  } finally {
+    cleanup();
+  }
+});
+
+test('mission design-set rejected once phase has advanced past specifying', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupWithMission(dir);
+    runCli(['mission', 'approve', '--mission', MID], { cwd: dir });
+    insertApprovedTask(dir, MID);
+    const r = runCli(
+      ['mission-state', 'update', '--mission', MID, '--phase', 'building'],
+      { cwd: dir },
+    );
+    assert.equal(r.status, 0, `phase advance failed: ${r.stderr}`);
+    const res = runCli(['mission', 'design-set', '--mission', MID], {
+      cwd: dir,
+      input: '# Too late\n',
+    });
+    assert.notEqual(res.status, 0);
+    assert.equal(res.json.error.code, 'guard_failed');
+    assert.match(res.json.error.message, /specifying/);
+  } finally {
+    cleanup();
+  }
+});
+
+test('mission design-set rejects invalid mission id', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupWithMission(dir);
+    const res = runCli(['mission', 'design-set', '--mission', 'not-a-mission'], {
+      cwd: dir,
+      input: '# Design\n',
+    });
+    assert.notEqual(res.status, 0);
+    assert.equal(res.json.error.code, 'invalid_argument');
+  } finally {
+    cleanup();
+  }
+});
+
 test('specifying -> building rejected when no approved task exists', () => {
   const { dir, cleanup } = makeTempRoot();
   try {

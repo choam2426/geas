@@ -10767,6 +10767,9 @@ function missionDir(projectRoot, missionId) {
 function missionSpecPath(projectRoot, missionId) {
   return path2.join(missionDir(projectRoot, missionId), "spec.json");
 }
+function missionDesignPath(projectRoot, missionId) {
+  return path2.join(missionDir(projectRoot, missionId), "mission-design.md");
+}
 function missionStatePath(projectRoot, missionId) {
   return path2.join(missionDir(projectRoot, missionId), "mission-state.json");
 }
@@ -11755,6 +11758,89 @@ function registerMissionApprove(mission) {
     );
   });
 }
+function registerMissionDesignSet(mission) {
+  mission.command("design-set").description(
+    "Write mission-design.md from stdin (atomic full-replace). Allowed only during specifying phase, after the spec is user_approved."
+  ).requiredOption("--mission <id>", "Mission ID").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    const root = needProjectRoot2();
+    const specPath = missionSpecPath(root, opts.mission);
+    const spec = readJsonFile(specPath);
+    if (!spec) {
+      emit(
+        err(
+          "missing_artifact",
+          `mission spec not found for ${opts.mission} at ${slashPath(specPath)}`
+        )
+      );
+      return;
+    }
+    if (spec.user_approved !== true) {
+      emit(
+        err(
+          "guard_failed",
+          `mission spec is not user_approved; run 'geas mission approve --mission ${opts.mission}' first`
+        )
+      );
+      return;
+    }
+    const statePath = missionStatePath(root, opts.mission);
+    const state = readJsonFile(statePath);
+    if (!state) {
+      emit(
+        err(
+          "missing_artifact",
+          `mission-state not found for ${opts.mission} at ${slashPath(statePath)}`
+        )
+      );
+      return;
+    }
+    const phase = typeof state.phase === "string" ? state.phase : null;
+    if (phase !== "specifying") {
+      emit(
+        err(
+          "guard_failed",
+          `mission-design is immutable after specifying phase; current phase is '${phase ?? "unknown"}'`
+        )
+      );
+      return;
+    }
+    let content;
+    try {
+      content = readStdinText();
+    } catch (e) {
+      if (e instanceof StdinError) {
+        emit(err("invalid_argument", e.message));
+        return;
+      }
+      throw e;
+    }
+    if (!content.endsWith("\n")) content = content + "\n";
+    const designPath = missionDesignPath(root, opts.mission);
+    const wasPresent = exists(designPath);
+    atomicWrite(designPath, content, tmpDir(root));
+    recordEvent(root, {
+      kind: "mission_design_set",
+      actor: "cli:auto",
+      payload: {
+        mission_id: opts.mission,
+        artifact: slashPath(designPath),
+        replaced: wasPresent,
+        bytes: Buffer.byteLength(content, "utf-8")
+      }
+    });
+    emit(
+      ok({
+        path: slashPath(designPath),
+        ids: { mission_id: opts.mission },
+        replaced: wasPresent,
+        bytes: Buffer.byteLength(content, "utf-8")
+      })
+    );
+  });
+}
 function registerMissionStateRead(mission) {
   mission.command("state").description("Summarize mission spec + phase + task counts (read-only).").requiredOption("--mission <id>", "Mission ID").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
@@ -12003,6 +12089,7 @@ function registerMissionCommands(program2) {
   const mission = program2.command("mission").description("Mission-level artifact commands (spec, approve, state summary)");
   registerMissionCreate(mission);
   registerMissionApprove(mission);
+  registerMissionDesignSet(mission);
   registerMissionStateRead(mission);
   registerMissionStateUpdatePhase(program2);
   registerPhaseReviewAppend(program2);

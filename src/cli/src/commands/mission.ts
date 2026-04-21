@@ -4,6 +4,7 @@
  * Subcommands:
  *   geas mission create                (stdin: mission spec fields)
  *   geas mission approve    --mission <id>
+ *   geas mission design-set --mission <id>                 (stdin: markdown)
  *   geas mission state      --mission <id>                 (read-only)
  *   geas mission-state update --mission <id> --phase <p>   (phase transition)
  *   geas phase-review append  --mission <id>               (stdin entry)
@@ -24,6 +25,7 @@ import * as path from 'path';
 
 import { emit, err, ok, recordEvent } from '../lib/envelope';
 import {
+  atomicWrite,
   atomicWriteJson,
   ensureDir,
   exists,
@@ -34,6 +36,7 @@ import {
   findProjectRoot,
   isValidMissionId,
   missionDeliberationsPath,
+  missionDesignPath,
   missionDir,
   missionSpecPath,
   missionStatePath,
@@ -42,7 +45,7 @@ import {
   tasksDir,
   tmpDir,
 } from '../lib/paths';
-import { readStdinJson, StdinError } from '../lib/input';
+import { readStdinJson, readStdinText, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 import {
   canAdvanceMissionPhase,
@@ -353,6 +356,102 @@ function registerMissionApprove(mission: Command): void {
           ids: { mission_id: opts.mission },
           already_approved: false,
           spec,
+        }),
+      );
+    });
+}
+
+// ── `geas mission design-set` ──────────────────────────────────────────
+
+function registerMissionDesignSet(mission: Command): void {
+  mission
+    .command('design-set')
+    .description(
+      'Write mission-design.md from stdin (atomic full-replace). Allowed only during specifying phase, after the spec is user_approved.',
+    )
+    .requiredOption('--mission <id>', 'Mission ID')
+    .action((opts: { mission: string }) => {
+      if (!isValidMissionId(opts.mission)) {
+        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+      }
+      const root = needProjectRoot();
+
+      const specPath = missionSpecPath(root, opts.mission);
+      const spec = readJsonFile<Record<string, unknown>>(specPath);
+      if (!spec) {
+        emit(
+          err(
+            'missing_artifact',
+            `mission spec not found for ${opts.mission} at ${slashPath(specPath)}`,
+          ),
+        );
+        return;
+      }
+      if (spec.user_approved !== true) {
+        emit(
+          err(
+            'guard_failed',
+            `mission spec is not user_approved; run 'geas mission approve --mission ${opts.mission}' first`,
+          ),
+        );
+        return;
+      }
+
+      const statePath = missionStatePath(root, opts.mission);
+      const state = readJsonFile<Record<string, unknown>>(statePath);
+      if (!state) {
+        emit(
+          err(
+            'missing_artifact',
+            `mission-state not found for ${opts.mission} at ${slashPath(statePath)}`,
+          ),
+        );
+        return;
+      }
+      const phase = typeof state.phase === 'string' ? state.phase : null;
+      if (phase !== 'specifying') {
+        emit(
+          err(
+            'guard_failed',
+            `mission-design is immutable after specifying phase; current phase is '${phase ?? 'unknown'}'`,
+          ),
+        );
+        return;
+      }
+
+      let content: string;
+      try {
+        content = readStdinText();
+      } catch (e) {
+        if (e instanceof StdinError) {
+          emit(err('invalid_argument', e.message));
+          return;
+        }
+        throw e;
+      }
+      if (!content.endsWith('\n')) content = content + '\n';
+
+      const designPath = missionDesignPath(root, opts.mission);
+      const wasPresent = exists(designPath);
+      atomicWrite(designPath, content, tmpDir(root));
+
+      recordEvent(root, {
+        kind: 'mission_design_set',
+        actor: 'cli:auto',
+        payload: {
+          mission_id: opts.mission,
+          artifact: slashPath(designPath),
+          replaced: wasPresent,
+          bytes: Buffer.byteLength(content, 'utf-8'),
+        },
+      });
+
+      emit(
+        ok({
+          path: slashPath(designPath),
+          ids: { mission_id: opts.mission },
+          replaced: wasPresent,
+          bytes: Buffer.byteLength(content, 'utf-8'),
         }),
       );
     });
@@ -687,6 +786,7 @@ export function registerMissionCommands(program: Command): void {
 
   registerMissionCreate(mission);
   registerMissionApprove(mission);
+  registerMissionDesignSet(mission);
   registerMissionStateRead(mission);
 
   registerMissionStateUpdatePhase(program);
