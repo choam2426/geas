@@ -14,17 +14,19 @@ You have been spawned as a reviewer for a task. Your slot's system prompt define
 
 ## When to Use
 
-- The orchestrator has spawned you as a reviewer after an implementer appended implementation evidence + self-check, or after an implementer proposed an implementation-contract plan (pre-implementation concurrence).
+- The orchestrator has spawned you as a reviewer after the implementer has appended implementation evidence and set the self-check. Per protocol doc 03 §70, required reviewers submit evidence **after** the self-check completes; there is no pre-code plan concurrence round in v3.
 - You were handed: your slot identity, the task's `mission_id` + `task_id`, and access to `.geas/`.
 - Do NOT run to "verify" — `verifying-task` is the verifier's procedure and executes `verification_plan`.
 - Do NOT run if you authored the implementation evidence you'd be reviewing.
+- Do NOT run on a task that is still in `implementing` and has no self-check yet — wait for the implementer to finish.
 
 ## Preconditions
 
-- `task-state.status == implementing` (pre-work plan concurrence) or `reviewed` (post-work review).
+- `task-state.status == reviewed` (the orchestrator transitions `implementing → reviewed` once the implementer has appended implementation evidence + self-check, then spawns reviewers).
 - Task contract exists with `approved_by` set.
-- For post-work review: implementation-kind evidence entry and `self-check.json` exist.
-- For pre-work concurrence: implementation-contract payload exists (via the registered CLI surface).
+- Implementation-kind evidence entry exists (latest per-implementer entry is the one you grade against; walk back via `revision_ref` for trajectory).
+- `self-check.json` exists and is schema-valid.
+- `implementation-contract.json` exists (reviewer-visible plan input; lets you trace intent vs. delivery).
 - You are not the implementer on this task (CLI enforces; stop if unsure).
 
 ## Process
@@ -81,6 +83,7 @@ You have been spawned as a reviewer for a task. Your slot's system prompt define
 | "I'll examine beyond my slot's lens to be helpful" | Stay in lane. Cross-slot commentary blurs the audit; if another slot is missing a view, raise it to the orchestrator, don't absorb the slot. |
 | "I'll edit the implementation directly and mark approved" | Reviewers never edit. If you can fix it yourself, you are an implementer — and you cannot be both on this task. |
 | "I'll skip reading prior reviews to stay unbiased" | Prior reviews name resolved concerns; re-raising them wastes the verify-fix budget. |
+| "I'll review the impl-contract before any code exists (pre-work concurrence)" | v3 protocol has no pre-code review round. Per doc 03 §70, reviewers submit after the self-check completes. Reviewing a plan with no implementation to grade it against is work you were not asked to do and that the gate does not consume. |
 | "Put concerns as `{severity, text}` objects like the old docs showed" | The evidence schema is `concerns: string[]`. Objects are rejected at append. Severity lives in `verdict`, not inside each concern. |
 | "`scope_excluded` is just a quick note, a single string is fine" | `scope_excluded` is `string[]`. Use `[]` for nothing excluded, otherwise one entry per excluded item. A single string fails schema validation. |
 | "Read self-check's `confidence` to calibrate my review" | v3 self-check has no `confidence`. Read `reviewer_focus` first — the implementer's own weak-spot list is far more useful than a 1–5 score ever was. |
@@ -116,7 +119,7 @@ Sub-skills you do NOT invoke: none.
 
 ## Related Skills
 
-- **Invoked by**: `scheduling-work` (pre-work implementation-contract concurrence), `running-gate` verify-fix loop (post-revision re-review), orchestrator-direct (post-implementation first review).
+- **Invoked by**: the orchestrator after the implementer has appended implementation evidence + self-check and the task has transitioned to `reviewed`; and `running-gate` verify-fix loop (post-revision re-review, after the implementer re-submits following a `reviewed → implementing` rewind and re-transition to `reviewed`).
 - **Invokes**: none.
 - **Do NOT invoke**: `verifying-task` (verifier runs it separately), `running-gate` (orchestrator aggregates verdicts), `implementing-task` (you're reviewing, not implementing).
 

@@ -1,6 +1,6 @@
 ---
 name: implementing-task
-description: Invoked by a spawned implementer after the orchestrator dispatches an approved, dependency-satisfied task. Produces the implementation plan, coordinates one-round reviewer concurrence on the plan, implements per the approved plan, and appends implementation evidence plus the self-check via the CLI.
+description: Invoked by a spawned implementer after the orchestrator dispatches an approved, dependency-satisfied task. Writes the implementation contract, performs the work per that plan (amending the contract if the direction shifts materially), and appends implementation evidence plus the self-check via the CLI. Reviewers examine the result after self-check completes.
 user-invocable: false
 ---
 
@@ -8,20 +8,20 @@ user-invocable: false
 
 ## Overview
 
-You have been spawned as the implementer for an approved task. Before writing code, state the concrete plan (implementation-contract shape) and get reviewer concurrence on the plan. Only after plan approval do you transition to `implementing`, make the changes, and close out with implementation evidence + a self-check entry. Amendments during implementation go through the same concurrence loop.
+You have been spawned as the implementer for an approved task. You own the full span of the `implementing` state: write the implementation-contract (the plan reviewers will later follow), do the work, amend the plan if direction shifts materially, and close out with implementation evidence + self-check. Reviewers do NOT review the plan before you code — per protocol doc 03, required reviewers submit their evidence **after** your self-check completes. The implementation-contract is a reviewer-visible reference, not a pre-work approval gate.
 
-<HARD-GATE> Every task gets an implementation-contract; there is no "simple task" shortcut. The CLI is the sole writer to `.geas/`. The same concrete agent cannot hold implementer and reviewer/verifier on the same task. `non_goals` and `open_questions` are mandatory, not decorative.
+<HARD-GATE> Every task gets an implementation-contract; there is no "simple task" shortcut. The CLI is the sole writer to `.geas/`. The same concrete agent cannot hold implementer and reviewer/verifier on the same task. `non_goals` and `open_questions` are mandatory content, not decorative. If you are tempted to wait for reviewer sign-off before coding, stop — that is not how v3 works.
 
 ## When to Use
 
-- The orchestrator has dispatched you for a task in `ready` (first run) or in the verify-fix loop (revision run) state.
+- The orchestrator has dispatched you for a task in `implementing` (either first dispatch from `ready`, or a verify-fix revision).
 - You have access to the task contract, the mission spec + mission design, and shared + agent memory.
-- Do NOT run when the task is still in `drafted` — wait for approval.
+- Do NOT run when the task is still in `drafted` or `ready` — scheduler transitions the task to `implementing` before spawning you.
 - Do NOT run to "review" or "verify" — those are different spawned skills.
 
 ## Preconditions
 
-- `task-state.status == ready` on first run, or `task-state.status == implementing` on a verify-fix revision.
+- `task-state.status == implementing` at the moment you are spawned. The scheduler transitions `ready → implementing` before your spawn on first dispatch; `running-gate` transitions `reviewed → implementing` on verify-fix rewinds and the CLI increments `verify_fix_iterations` in that path.
 - Task contract exists under `missions/{mission_id}/tasks/{task_id}/contract.json` with `approved_by` set.
 - Mission spec is `user_approved: true` for specifying-phase tasks; `approved_by: decision-maker` for mid-mission scope-in tasks.
 - `base_snapshot` still matches the real workspace (if not, return to orchestrator to rebase).
@@ -30,7 +30,7 @@ You have been spawned as the implementer for an approved task. Before writing co
 ## Process
 
 1. **Read everything in your lane.** Contract, mission spec, mission design (if present), `shared.md`, `agents/{your_agent_type}.md`, any prior evidence on this task (revisions), and the supersedes chain if present.
-2. **Draft the implementation plan** as an `implementation-contract` payload:
+2. **Write the implementation contract** as an `implementation-contract` payload. This is the plan reviewers will read post-work to trace what you intended vs. what you delivered:
    ```json
    {
      "summary": "...",
@@ -48,30 +48,24 @@ You have been spawned as the implementer for an approved task. Before writing co
    - `non_goals` names things tempting but out of scope.
    - `open_questions` names every real ambiguity; do not silently pick an interpretation.
    Write it via `geas impl-contract set --mission <id> --task <id>` (stdin: the body). The CLI injects `mission_id` / `task_id` / timestamps and validates against `implementation-contract.schema`.
-3. **Wait for one-round reviewer concurrence.** The orchestrator spawns each reviewer in `routing.required_reviewers` to run `reviewing-task` against your plan. Each reviewer appends a review-kind evidence entry with verdict `approved` / `changes_requested` / `blocked`.
-   - All `approved` → proceed to step 5.
-   - Any `changes_requested` → go to step 4.
-   - Any `blocked` → halt; orchestrator either escalates to decision-maker (structural) or opens a task-level deliberation via `convening-deliberation`.
-4. **Revise once.** Incorporate the concerns, append a new `implementation`-kind evidence entry with `summary: "amendment proposal"` and `revision_ref` to the prior plan entry, and request a fresh review round. If reviewers still disagree after one revision, escalate rather than loop; the orchestrator opens a task-level deliberation.
-5. **Transition to `implementing`.** The orchestrator calls `geas task transition --to implementing`. The CLI increments `verify_fix_iterations` on rewind (not first entry).
-6. **Do the work per the approved plan.** Stay inside `change_scope`. If reality forces a material deviation (plan needs to touch outside `change_scope`, a criterion is wrong, risk rose, new dependency appeared, a non-goal must come in-scope), pause and amend via step 4.
-7. **Append implementation evidence.**
+3. **Do the work per the plan.** Stay inside `change_scope`. The implementation-contract is a live document — if reality forces a material deviation (plan needs to touch outside `change_scope`, an assumption broke, risk rose, a non-goal must come in-scope), pause and amend before pushing ahead (step 4). Minor adjustments that stay within scope do not require amendment; record them in `deviations_from_plan` at self-check time.
+4. **Amend the contract when direction shifts materially.** Run `geas impl-contract set` again with the revised body; the CLI replaces the prior contract (full-replace semantics) so reviewers later see the current plan. Amendment is NOT gated on reviewer approval — keeping the document current is an obligation to future readers, not a concurrence checkpoint. If the amendment itself is so structural it should pause the task, stop and hand back to the orchestrator; they decide whether to open a task-level deliberation via `convening-deliberation`.
+5. **Append implementation evidence** when the work is ready for review:
    ```bash
    geas evidence append --mission {mission_id} --task {task_id} \
        --agent {your_concrete_agent} --slot implementer <<'EOF'
    {
      "evidence_kind": "implementation",
      "summary": "what you did",
-     "concerns": [...],
-     "rationale": "...",
-     "scope_examined": "<surfaces touched>",
-     "methods_used": ["..."],
+     "rationale": "<why these changes, in this shape>",
+     "scope_examined": "<surfaces actually touched>",
+     "methods_used": ["<concrete tools/procedures>"],
      "revision_ref": null
    }
    EOF
    ```
-   On a revision run, set `revision_ref` to the prior `evidence_id`.
-8. **Write the self-check.** The self-check is a worker-side factual record, not a confidence score. The reviewer and the gate read it to orient their own checks.
+   On a revision run (verify-fix rewind), set `revision_ref` to the prior implementation entry's `entry_id`. The CLI auto-injects `entry_id`, `artifacts: []`, `memory_suggestions: []`, `debt_candidates: []`, `gap_signals: []`, `created_at`; you only need to supply the semantic fields above.
+6. **Write the self-check.** The self-check is a worker-side factual record, not a confidence score. The reviewer and the gate read it to orient their own checks:
    ```bash
    geas self-check set --mission {mission_id} --task {task_id} <<'EOF'
    {
@@ -97,59 +91,64 @@ You have been spawned as the implementer for an approved task. Before writing co
    - `known_risks` are forward-looking (what could still break); `deviations_from_plan` and `gap_signals` are backward-looking (what actually happened vs. the plan / vs. the scope).
    - All five fields are required by the schema; use `[]` for arrays that legitimately have nothing.
    - Per-criterion pass/fail belongs to the verifier's evidence (`criteria_results`), NOT here. Do not restate criterion outcomes in self-check.
-9. **Return.** The orchestrator now moves the task to `reviewed` and runs `running-gate`.
+7. **Return.** The orchestrator spawns the required reviewers (they run `reviewing-task` against your impl-contract + implementation evidence + self-check), then the verifier runs `verifying-task`, then `running-gate` aggregates. You are done.
 
 ## Red Flags
 
 | Excuse | Reality |
 |---|---|
-| "This task is trivial — skip the plan and just code" | The plan catches the ambiguity that causes rework. Friction is the point. |
+| "This task is trivial — skip the plan and just code" | The plan catches the ambiguity that causes rework. Friction is the point. Protocol doc 03 requires an impl-contract for every task; there is no "simple task" shortcut. |
+| "Wait for reviewers to approve the plan before coding" | v3 protocol has no pre-code reviewer concurrence. Reviewers submit evidence after your self-check. Waiting for approval that never arrives stalls every task. |
 | "I'll leave `non_goals` empty since it's self-evident" | Undeclared scope is the top source of "why did you change that too" review cycles. |
 | "I'll pick a reasonable interpretation of the ambiguous requirement silently" | `open_questions` exists to surface exactly that. Silent interpretation is the anti-pattern this skill prevents. |
 | "Put `confidence: 5` in self-check" | The self-check schema has no `confidence` field. That was the v2 shape. v3 self-check is factual (`completed_work`, `reviewer_focus`, `known_risks`, `deviations_from_plan`, `gap_signals`); a confidence score gets rejected at append time. |
 | "Leave `reviewer_focus` empty — everything looks fine" | `reviewer_focus` is the main honesty test. Empty array on a non-trivial task claims zero self-known weak spots, which is almost never true. Name the areas you are least sure about so reviewers land there first. |
 | "Restate each criterion's pass/fail in self-check" | Per-criterion pass/fail is the verifier's `criteria_results`. Self-check is a worker-side factual record of what was done, not a grading sheet. |
-| "I'll amend the plan after the fact in the same entry" | Amendments are append-only new entries with `revision_ref`. Overwriting breaks the trajectory audit. |
+| "I'll amend the plan after the fact by editing my implementation entry" | Plan amendments go through `geas impl-contract set` (full-replace). Deviations that stay within the original plan go in `deviations_from_plan` at self-check time. Overwriting implementation evidence breaks the trajectory audit. |
 | "I'll also review my own work to save a round" | CLI enforces agent-slot independence. Implementer cannot hold reviewer or verifier on the same task. |
 
 ## Invokes
 
 | CLI command | Purpose |
 |---|---|
-| `geas impl-contract set --mission <id> --task <id>` | Record the pre-work implementation plan (initial + amendments). CLI injects envelope + validates against `implementation-contract.schema`. |
-| `geas evidence append --slot implementer --agent <concrete> --mission <id> --task <id>` | Append implementation-kind evidence (initial + revisions + amendments). |
+| `geas impl-contract set --mission <id> --task <id>` | Record / update the implementation plan. Full-replace each call — the CLI keeps only the current plan, which reviewers read post-work. |
+| `geas evidence append --slot implementer --agent <concrete> --mission <id> --task <id>` | Append implementation-kind evidence (initial + revisions on verify-fix rewinds). |
 | `geas self-check set --mission <id> --task <id>` | Record the end-of-work self-check (completed_work, reviewer_focus, known_risks, deviations_from_plan, gap_signals). |
-| `geas task transition --to implementing` | Orchestrator-invoked; triggers CLI's `verify_fix_iterations` bookkeeping. |
-| `geas task transition --to reviewed` | Orchestrator-invoked once implementation evidence + self-check are present. |
 
-Sub-skills you do NOT invoke: `reviewing-task` (reviewers run it), `verifying-task` (verifier runs it), `running-gate` (orchestrator invokes after you return).
+Task-state transitions are owned by the orchestrator / scheduler / gate, not by this skill:
+- `ready → implementing` is done by `scheduling-work` before your spawn.
+- `implementing → reviewed` is done by the orchestrator after your self-check is appended (and before reviewers are spawned).
+- `reviewed → implementing` on verify-fix is done by `running-gate`, which triggers a fresh implementer spawn.
+
+Sub-skills you do NOT invoke: `reviewing-task` (reviewers run it), `verifying-task` (verifier runs it), `running-gate` (orchestrator invokes after evidence is in).
 
 ## Outputs
 
-- One `implementation-contract.json` payload (via the registered CLI surface) before any code.
-- One or more `implementation`-kind evidence entries (plan, amendments, final).
+- One `implementation-contract.json` (via `geas impl-contract set`) before any code; updated in place if direction shifts.
+- One or more `implementation`-kind evidence entries (initial + any verify-fix revisions with `revision_ref`).
 - One `self-check.json` capturing `completed_work`, `reviewer_focus`, `known_risks`, `deviations_from_plan`, `gap_signals`.
 - Source changes inside `change_scope` only.
 - No direct writes to `.geas/` — every append is through the CLI.
 
 ## Failure Handling
 
-- **Reviewer `blocked`**: halt. Orchestrator decides (escalate to decision-maker, open task-level deliberation, or transition to `blocked`).
-- **`changes_requested` on second round**: escalate via task-level deliberation. Do not loop indefinitely.
-- **Material scope drift discovered mid-implementation**: stop coding, amend plan via step 4, wait for new concurrence, resume.
+- **Structural ambiguity you cannot resolve from the contract + spec + design**: stop before coding. Return to orchestrator with the `open_questions` front-loaded. Orchestrator either clarifies or opens a task-level deliberation.
+- **Material scope drift discovered mid-implementation**: stop coding, amend the impl-contract via `geas impl-contract set`, record the drift in `deviations_from_plan` at self-check time, then continue. If the drift is large enough to need escalation, return to orchestrator.
 - **Surface conflict with another in-flight task**: stop; return to orchestrator. `contract.surfaces` is the allowlist; scheduling should not have dispatched you.
-- **CLI `guard_failed` on transition**: inspect hint; usually missing implementation evidence or missing self-check.
+- **CLI `guard_failed` on implementation evidence append**: inspect hints; common cause is agent-slot independence violation (you hold another slot on this task).
+- **CLI `guard_failed` on self-check set**: schema validation failure; fix the body (see Step 6) and retry.
+- **Verify-fix rewind**: the CLI has already moved the task back to `implementing` and bumped `verify_fix_iterations`. Read the prior reviewer concerns + gate details, amend the impl-contract if the plan changed, and set `revision_ref` on the next implementation evidence entry.
 
 ## Related Skills
 
-- **Invoked by**: the orchestrator's main-session skill (`scheduling-work` on first run, `running-gate` verify-fix loop on revisions) spawning you as the concrete implementer.
+- **Invoked by**: `scheduling-work` on first dispatch (after it transitions `ready → implementing`), and `running-gate` verify-fix loop on revisions (after it rewinds `reviewed → implementing`).
 - **Invokes**: no sub-skills. CLI surfaces only.
-- **Do NOT invoke**: `reviewing-task` (reviewers), `verifying-task` (verifier), `running-gate` (orchestrator runs this after you return), `closing-task` (orchestrator after gate pass).
+- **Do NOT invoke**: `reviewing-task` (reviewers run it, post-work only), `verifying-task` (verifier runs it), `running-gate` (orchestrator runs this after your evidence + self-check are in place and reviewers + verifier have appended), `closing-task` (orchestrator runs it after gate pass).
 
 ## Remember
 
-- Plan first, concurrence second, code third. No shortcuts.
+- Plan, code, self-check — in that order. No pre-code reviewer approval step exists in v3; waiting for one is the anti-pattern this skill prevents.
 - `non_goals` and `open_questions` are mandatory content.
-- Stay inside `change_scope`; amend via a new evidence entry if reality forces a deviation.
+- Stay inside `change_scope`; material deviations mean amending the impl-contract, not silently going outside scope.
 - Self-check is factual, not a confidence score. `completed_work` + honest `reviewer_focus` beat any 1–5 rating.
-- One revision cycle default; escalate rather than loop.
+- One clean pass; verify-fix loop is entered only when the gate fails.
