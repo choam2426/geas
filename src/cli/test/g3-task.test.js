@@ -141,23 +141,84 @@ function writeReviewEvidenceStub(dir, taskId, agent, slot) {
   }
 }
 
-function writeVerificationEvidenceStub(dir, taskId) {
-  // G4: reviewed -> verified now requires a gate-results run with
-  // verdict=pass and tier_2.status=pass. We keep the name for
-  // compatibility with existing tests but route through the gate command.
+function writeImplContractStub(dir, taskId) {
+  // Tier 0 preflight requires a schema-valid implementation-contract.json.
   const body = {
-    tier_results: {
-      tier_0: { status: 'pass', details: 'stub tier 0' },
-      tier_1: { status: 'pass', details: 'stub tier 1' },
-      tier_2: { status: 'pass', details: 'stub tier 2' },
-    },
+    summary: 'stub impl-contract for test',
+    rationale: 'satisfy Tier 0 preflight',
+    change_scope: ['src/cli/src/commands/task.ts'],
+    planned_actions: ['advance lifecycle'],
+    non_goals: [],
+    alternatives_considered: [],
+    assumptions: [],
+    open_questions: [],
   };
   const res = runCli(
-    ['gate', 'run', '--mission', MID, '--task', taskId],
+    ['impl-contract', 'set', '--mission', MID, '--task', taskId],
     { cwd: dir, input: JSON.stringify(body) },
   );
   if (res.status !== 0) {
+    throw new Error(
+      `impl-contract set failed: ${res.stderr}\n${res.stdout}`,
+    );
+  }
+}
+
+function writeVerifierEvidenceStub(dir, taskId, opts = {}) {
+  // Tier 1 input: verifier evidence. approved verdict with all criteria
+  // passed (matches contract.acceptance_criteria).
+  const criteria = opts.criteria || ['lifecycle advances under CLI guards'];
+  const verdict = opts.verdict || 'approved';
+  const body = {
+    evidence_kind: 'verification',
+    summary: 'stub verifier entry for test',
+    verdict,
+    concerns: [],
+    rationale: 'ran verification plan',
+    scope_examined: 'all criteria per contract',
+    methods_used: ['manual'],
+    scope_excluded: [],
+    criteria_results: criteria.map((c) => ({
+      criterion: c,
+      passed: verdict === 'approved',
+      details: 'observed',
+    })),
+  };
+  const res = runCli(
+    [
+      'evidence',
+      'append',
+      '--mission',
+      MID,
+      '--task',
+      taskId,
+      '--agent',
+      opts.agent || 'qa-engineer',
+      '--slot',
+      'verifier',
+    ],
+    { cwd: dir, input: JSON.stringify(body) },
+  );
+  if (res.status !== 0) {
+    throw new Error(
+      `verifier evidence append failed: ${res.stderr}\n${res.stdout}`,
+    );
+  }
+}
+
+function runGatePass(dir, taskId) {
+  // Gate computes tiers from files on disk; no stdin.
+  const res = runCli(
+    ['gate', 'run', '--mission', MID, '--task', taskId],
+    { cwd: dir },
+  );
+  if (res.status !== 0) {
     throw new Error(`gate run failed: ${res.stderr}\n${res.stdout}`);
+  }
+  if (!res.json || res.json.data.verdict !== 'pass') {
+    throw new Error(
+      `gate run expected pass; got ${res.json && res.json.data.verdict}: ${res.stdout}`,
+    );
   }
 }
 
@@ -467,7 +528,8 @@ test('9-state traversal drafted -> ready -> implementing -> reviewed -> verified
     );
     assert.equal(r.status, 0, `ready->implementing failed: ${r.stderr}`);
 
-    // implementing -> reviewed (needs self-check + review evidence for challenger)
+    // implementing -> reviewed (needs impl-contract + self-check + review evidence for challenger)
+    writeImplContractStub(dir, 'task-001');
     writeSelfCheckStub(dir, 'task-001');
     writeReviewEvidenceStub(dir, 'task-001', 'research-integrity-reviewer', 'challenger');
     r = runCli(
@@ -476,8 +538,9 @@ test('9-state traversal drafted -> ready -> implementing -> reviewed -> verified
     );
     assert.equal(r.status, 0, `implementing->reviewed failed: ${r.stderr}\n${r.stdout}`);
 
-    // reviewed -> verified (needs verification evidence stub)
-    writeVerificationEvidenceStub(dir, 'task-001');
+    // reviewed -> verified (verifier evidence + gate run)
+    writeVerifierEvidenceStub(dir, 'task-001');
+    runGatePass(dir, 'task-001');
     r = runCli(
       ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'verified'],
       { cwd: dir },

@@ -622,9 +622,13 @@ function collectTaskStateHints(
   }
   const reviewEvidenceExists = missingReviewSlots.length === 0;
 
-  // Verification evidence: gate-results.json last run must have
-  // verdict=pass AND tier_2 status=pass. Verifier evidence file existence
-  // alone is no longer enough.
+  // Verification evidence: the `reviewed -> verified` guard reads the
+  // last gate run verdict. The gate itself (see commands/gate.ts) now
+  // reads impl-contract, self-check, reviewer evidence, and verifier
+  // evidence directly and computes tier statuses — so a gate verdict of
+  // `pass` is authoritative proof that every artifact the gate consumes
+  // is present and consistent. This guard therefore checks only the gate
+  // run; the gate is the enforcer.
   const gateResultsFile = readJsonFile<{
     runs?: Array<{
       verdict?: string;

@@ -103,6 +103,46 @@ function validImplementationEntry(overrides = {}) {
   };
 }
 
+function validImplContract(overrides = {}) {
+  return {
+    summary: 'implement the feature as scoped',
+    rationale: 'required by the task contract',
+    change_scope: ['src/cli/'],
+    planned_actions: ['land planned changes', 'update tests'],
+    non_goals: [],
+    alternatives_considered: [],
+    assumptions: [],
+    open_questions: [],
+    ...overrides,
+  };
+}
+
+function validVerifierEntry(overrides = {}) {
+  // verification-kind evidence: verdict=approved with all criteria passed.
+  // Matches baseContract().acceptance_criteria by default.
+  const {
+    criteria = ['task reaches passed status via CLI guards'],
+    verdict = 'approved',
+    ...rest
+  } = overrides;
+  return {
+    evidence_kind: 'verification',
+    summary: 'verification ran cleanly',
+    verdict,
+    concerns: [],
+    rationale: 'ran the verification plan; every criterion observed',
+    scope_examined: 'workspace + outputs per verification_plan',
+    methods_used: ['manual walk-through'],
+    scope_excluded: [],
+    criteria_results: criteria.map((c) => ({
+      criterion: c,
+      passed: verdict === 'approved',
+      details: 'observed directly',
+    })),
+    ...rest,
+  };
+}
+
 function validClosureEntry(overrides = {}) {
   return {
     evidence_kind: 'closure',
@@ -117,25 +157,10 @@ function validClosureEntry(overrides = {}) {
   };
 }
 
-function passingTierResults() {
-  return {
-    tier_results: {
-      tier_0: { status: 'pass', details: 'all required artifacts present' },
-      tier_1: { status: 'pass', details: 'mechanical checks clean' },
-      tier_2: { status: 'pass', details: 'reviewers approved' },
-    },
-  };
-}
-
-function failingTierResults() {
-  return {
-    tier_results: {
-      tier_0: { status: 'pass', details: 'all required artifacts present' },
-      tier_1: { status: 'pass', details: 'mechanical checks clean' },
-      tier_2: { status: 'fail', details: 'reviewer requested changes' },
-    },
-  };
-}
+// Legacy helpers (passingTierResults / failingTierResults) were removed
+// when the gate was rewired to compute tier statuses from evidence files
+// (see src/cli/src/commands/gate.ts). Tests build evidence that yields the
+// target gate verdict instead of stubbing tier_results over stdin.
 
 function setupMission(dir, missionId, specOverrides = {}) {
   let r = runCli(['setup'], { cwd: dir });
@@ -180,9 +205,16 @@ function fullTaskRun(dir, missionId, taskId, opts = {}) {
   // ready -> implementing
   transition(dir, missionId, taskId, 'implementing');
 
+  // implementation contract (required for Tier 0 preflight)
+  let r = runCli(
+    ['impl-contract', 'set', '--mission', missionId, '--task', taskId],
+    { cwd: dir, input: JSON.stringify(validImplContract()) },
+  );
+  assert.equal(r.status, 0, `impl-contract set failed: ${r.stderr}\n${r.stdout}`);
+
   // implementer evidence
   const implAgent = opts.implementer || 'software-engineer';
-  let r = runCli(
+  r = runCli(
     [
       'evidence',
       'append',
@@ -233,16 +265,46 @@ function fullTaskRun(dir, missionId, taskId, opts = {}) {
     );
   }
 
+  // verifier evidence (Tier 1 input — matches contract.acceptance_criteria)
+  r = runCli(
+    [
+      'evidence',
+      'append',
+      '--mission',
+      missionId,
+      '--task',
+      taskId,
+      '--agent',
+      opts.verifier || 'qa-engineer',
+      '--slot',
+      'verifier',
+    ],
+    {
+      cwd: dir,
+      input: JSON.stringify(
+        validVerifierEntry({
+          criteria: opts.acceptanceCriteria || [
+            'task reaches passed status via CLI guards',
+          ],
+        }),
+      ),
+    },
+  );
+  assert.equal(r.status, 0, `verifier evidence failed: ${r.stderr}\n${r.stdout}`);
+
   // implementing -> reviewed
   transition(dir, missionId, taskId, 'reviewed');
 
-  // gate run (pass)
+  // gate run — no stdin; gate reads evidence files and computes tiers.
   r = runCli(['gate', 'run', '--mission', missionId, '--task', taskId], {
     cwd: dir,
-    input: JSON.stringify(passingTierResults()),
   });
   assert.equal(r.status, 0, `gate run failed: ${r.stderr}\n${r.stdout}`);
-  assert.equal(r.json.data.verdict, 'pass');
+  assert.equal(
+    r.json.data.verdict,
+    'pass',
+    `gate verdict expected pass, got: ${JSON.stringify(r.json.data)}`,
+  );
 
   // reviewed -> verified
   transition(dir, missionId, taskId, 'verified');
@@ -681,7 +743,15 @@ test('E2E verify-fix loop: reviewed -> implementing increments verify_fix_iterat
 
     // First round: ready -> implementing -> reviewed.
     transition(dir, MID, 'task-001', 'implementing');
+
+    // impl-contract (Tier 0 preflight input)
     let r = runCli(
+      ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
+      { cwd: dir, input: JSON.stringify(validImplContract()) },
+    );
+    assert.equal(r.status, 0, `impl-contract failed: ${r.stderr}\n${r.stdout}`);
+
+    r = runCli(
       [
         'evidence',
         'append',
@@ -730,12 +800,29 @@ test('E2E verify-fix loop: reviewed -> implementing increments verify_fix_iterat
     );
     assert.equal(r.status, 0);
 
+    // Verifier: approved (so Tier 1 passes; Tier 2 carries the fail).
+    r = runCli(
+      [
+        'evidence',
+        'append',
+        '--mission',
+        MID,
+        '--task',
+        'task-001',
+        '--agent',
+        'qa-engineer',
+        '--slot',
+        'verifier',
+      ],
+      { cwd: dir, input: JSON.stringify(validVerifierEntry()) },
+    );
+    assert.equal(r.status, 0);
+
     transition(dir, MID, 'task-001', 'reviewed');
 
-    // Gate run: tier_2 fail.
+    // Gate run: tier 2 reviewer=changes_requested → overall fail.
     r = runCli(['gate', 'run', '--mission', MID, '--task', 'task-001'], {
       cwd: dir,
-      input: JSON.stringify(failingTierResults()),
     });
     assert.equal(r.status, 0);
     assert.equal(r.json.data.verdict, 'fail');
@@ -798,10 +885,10 @@ test('E2E verify-fix loop: reviewed -> implementing increments verify_fix_iterat
 
     transition(dir, MID, 'task-001', 'reviewed');
 
-    // Second gate run: pass.
+    // Second gate run: reviewer now approved, verifier still approved from
+    // first round → Tier 1 pass, Tier 2 pass, overall pass.
     r = runCli(['gate', 'run', '--mission', MID, '--task', 'task-001'], {
       cwd: dir,
-      input: JSON.stringify(passingTierResults()),
     });
     assert.equal(r.status, 0);
     assert.equal(r.json.data.verdict, 'pass');

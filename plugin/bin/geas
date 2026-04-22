@@ -960,7 +960,7 @@ var require_command = __commonJS({
     var EventEmitter = require("node:events").EventEmitter;
     var childProcess = require("node:child_process");
     var path17 = require("node:path");
-    var fs10 = require("node:fs");
+    var fs11 = require("node:fs");
     var process2 = require("node:process");
     var { Argument: Argument2, humanReadableArgName } = require_argument();
     var { CommanderError: CommanderError2 } = require_error();
@@ -1893,10 +1893,10 @@ Expecting one of '${allowedValues.join("', '")}'`);
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
         function findFile(baseDir, baseName) {
           const localBin = path17.resolve(baseDir, baseName);
-          if (fs10.existsSync(localBin)) return localBin;
+          if (fs11.existsSync(localBin)) return localBin;
           if (sourceExt.includes(path17.extname(baseName))) return void 0;
           const foundExt = sourceExt.find(
-            (ext) => fs10.existsSync(`${localBin}${ext}`)
+            (ext) => fs11.existsSync(`${localBin}${ext}`)
           );
           if (foundExt) return `${localBin}${foundExt}`;
           return void 0;
@@ -1908,7 +1908,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
         if (this._scriptPath) {
           let resolvedScriptPath;
           try {
-            resolvedScriptPath = fs10.realpathSync(this._scriptPath);
+            resolvedScriptPath = fs11.realpathSync(this._scriptPath);
           } catch (err2) {
             resolvedScriptPath = this._scriptPath;
           }
@@ -10599,12 +10599,12 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f;
     };
-    function addFormats(ajv, list, fs10, exportName) {
+    function addFormats(ajv, list, fs11, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
       for (const f of list)
-        ajv.addFormat(f, fs10[f]);
+        ajv.addFormat(f, fs11[f]);
     }
     module2.exports = exports2 = formatsPlugin;
     Object.defineProperty(exports2, "__esModule", { value: true });
@@ -13544,6 +13544,7 @@ function registerDeliberationCommands(program2) {
 }
 
 // src/commands/gate.ts
+var fs9 = __toESM(require("fs"));
 var path10 = __toESM(require("path"));
 function nowUtc8() {
   return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -13571,9 +13572,223 @@ function overallFromTiers(tier0, tier1, tier2) {
   }
   return "pass";
 }
+function worstStatus(statuses) {
+  if (statuses.length === 0) return "error";
+  const order = {
+    error: 4,
+    block: 3,
+    fail: 2,
+    pass: 1,
+    skipped: 0
+  };
+  let worst = "pass";
+  for (const s of statuses) {
+    if (order[s] > order[worst]) worst = s;
+  }
+  return worst;
+}
+function listEvidenceFilesForSlot(root, missionId, taskId, slot) {
+  const dir = evidenceDir(root, missionId, taskId);
+  if (!exists(dir)) return [];
+  const suffix = `.${slot}.json`;
+  return fs9.readdirSync(dir).filter((f) => f.endsWith(suffix)).map((f) => path10.join(dir, f));
+}
+function readEvidenceFile(filePath) {
+  return readJsonFile(filePath);
+}
+function latestEntryOfKind(file, kind) {
+  if (!file || !Array.isArray(file.entries)) return null;
+  for (let i = file.entries.length - 1; i >= 0; i--) {
+    const e = file.entries[i];
+    if (e && e.evidence_kind === kind) return e;
+  }
+  return null;
+}
+function computeTier0(root, missionId, taskId, contract, taskState) {
+  const fails = [];
+  const notes = [];
+  if (!taskState) {
+    fails.push("task-state.json missing");
+  } else if (taskState.status !== "reviewed") {
+    fails.push(
+      `task-state.status is '${taskState.status}'; gate requires 'reviewed'`
+    );
+  }
+  const implPath = implementationContractPath(root, missionId, taskId);
+  if (!exists(implPath)) {
+    fails.push("implementation-contract.json missing");
+  } else {
+    const impl = readJsonFile(implPath);
+    const v = validate("implementation-contract", impl);
+    if (!v.ok) {
+      fails.push("implementation-contract.json schema-invalid");
+    } else {
+      notes.push("implementation-contract.json present and valid");
+    }
+  }
+  const scPath = selfCheckPath(root, missionId, taskId);
+  if (!exists(scPath)) {
+    fails.push("self-check.json missing");
+  } else {
+    const sc = readJsonFile(scPath);
+    const v = validate("self-check", sc);
+    if (!v.ok) {
+      fails.push("self-check.json schema-invalid");
+    } else {
+      notes.push("self-check.json present and valid");
+    }
+  }
+  const required = Array.isArray(contract.routing?.required_reviewers) ? contract.routing.required_reviewers : [];
+  for (const slot of required) {
+    const files = listEvidenceFilesForSlot(root, missionId, taskId, slot);
+    if (files.length === 0) {
+      fails.push(`reviewer slot '${slot}': no evidence/*.${slot}.json file`);
+      continue;
+    }
+    let sawValidReview = false;
+    for (const fp of files) {
+      const ef = readEvidenceFile(fp);
+      const last = latestEntryOfKind(ef, "review");
+      if (last && typeof last.verdict === "string" && ["approved", "changes_requested", "blocked"].includes(last.verdict)) {
+        sawValidReview = true;
+        notes.push(
+          `reviewer '${slot}': ${path10.basename(fp)} entry_id=${last.entry_id} verdict=${last.verdict}`
+        );
+        break;
+      }
+    }
+    if (!sawValidReview) {
+      fails.push(
+        `reviewer slot '${slot}': no valid review-kind entry with verdict in {approved, changes_requested, blocked}`
+      );
+    }
+  }
+  if (fails.length > 0) {
+    return {
+      status: "fail",
+      details: `Tier 0 fail: ${fails.join("; ")}`
+    };
+  }
+  return {
+    status: "pass",
+    details: `Tier 0 pass. ${notes.join("; ")}`
+  };
+}
+function computeTier1(root, missionId, taskId) {
+  const verifierFiles = listEvidenceFilesForSlot(
+    root,
+    missionId,
+    taskId,
+    "verifier"
+  );
+  if (verifierFiles.length === 0) {
+    return {
+      status: "error",
+      details: "Tier 1 error: no evidence/*.verifier.json file found. Verifier must append a verification-kind entry before the gate runs."
+    };
+  }
+  const perFile = [];
+  for (const fp of verifierFiles) {
+    const ef = readEvidenceFile(fp);
+    const last = latestEntryOfKind(ef, "verification");
+    const base = path10.basename(fp);
+    if (!last) {
+      perFile.push({
+        file: fp,
+        status: "error",
+        note: `${base}: no verification-kind entry`
+      });
+      continue;
+    }
+    const verdict = last.verdict;
+    const criteria = Array.isArray(last.criteria_results) ? last.criteria_results : [];
+    if (verdict === "approved" && criteria.some((c) => c.passed !== true)) {
+      const failedCount = criteria.filter((c) => c.passed !== true).length;
+      perFile.push({
+        file: fp,
+        status: "error",
+        note: `${base}: verdict=approved but ${failedCount}/${criteria.length} criteria have passed=false (internal contradiction)`
+      });
+      continue;
+    }
+    let status2;
+    if (verdict === "approved") status2 = "pass";
+    else if (verdict === "changes_requested") status2 = "fail";
+    else if (verdict === "blocked") status2 = "block";
+    else {
+      perFile.push({
+        file: fp,
+        status: "error",
+        note: `${base}: entry_id=${last.entry_id} has no recognized verdict`
+      });
+      continue;
+    }
+    const passedCount = criteria.filter((c) => c.passed === true).length;
+    perFile.push({
+      file: fp,
+      status: status2,
+      note: `${base}: entry_id=${last.entry_id} verdict=${verdict} criteria=${passedCount}/${criteria.length}`
+    });
+  }
+  const status = worstStatus(perFile.map((p) => p.status));
+  const details = `Tier 1 ${status}: ${perFile.map((p) => p.note).join("; ")}`;
+  return { status, details };
+}
+function computeTier2(root, missionId, taskId, contract) {
+  const required = Array.isArray(contract.routing?.required_reviewers) ? contract.routing.required_reviewers : [];
+  if (required.length === 0) {
+    return {
+      status: "pass",
+      details: "Tier 2 pass: no required reviewers declared in contract."
+    };
+  }
+  const verdicts = [];
+  for (const slot of required) {
+    const files = listEvidenceFilesForSlot(root, missionId, taskId, slot);
+    let picked = null;
+    for (const fp of files) {
+      const ef = readEvidenceFile(fp);
+      const last = latestEntryOfKind(ef, "review");
+      if (last && typeof last.verdict === "string" && ["approved", "changes_requested", "blocked"].includes(last.verdict)) {
+        picked = { verdict: last.verdict, file: path10.basename(fp) };
+        break;
+      }
+    }
+    verdicts.push({
+      slot,
+      verdict: picked ? picked.verdict : null,
+      file: picked ? picked.file : null
+    });
+  }
+  const missing = verdicts.filter((v) => v.verdict === null);
+  if (missing.length > 0) {
+    return {
+      status: "error",
+      details: `Tier 2 error: missing reviewer verdicts for ${missing.map((v) => v.slot).join(", ")}.`
+    };
+  }
+  const anyBlocked = verdicts.some((v) => v.verdict === "blocked");
+  if (anyBlocked) {
+    return {
+      status: "block",
+      details: `Tier 2 block: ${verdicts.map((v) => `${v.slot}=${v.verdict}`).join(", ")}`
+    };
+  }
+  const anyChanges = verdicts.some((v) => v.verdict === "changes_requested");
+  if (anyChanges) {
+    return {
+      status: "fail",
+      details: `Tier 2 fail: ${verdicts.map((v) => `${v.slot}=${v.verdict}`).join(", ")}`
+    };
+  }
+  return {
+    status: "pass",
+    details: `Tier 2 pass: ${verdicts.map((v) => `${v.slot}=approved (${v.file})`).join(", ")}`
+  };
+}
 function registerGateRun(cmd) {
   cmd.command("run").description(
-    "Record an evidence gate run. stdin: tier_results body. Auto-assigns gate_run_id and derives overall verdict."
+    "Record an evidence gate run. Reads task artifacts directly and computes tier statuses itself \u2014 no stdin payload."
   ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
       emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
@@ -13590,47 +13805,39 @@ function registerGateRun(cmd) {
         )
       );
     }
-    if (!exists(taskContractPath(root, opts.mission, opts.task))) {
+    const contractPath = taskContractPath(root, opts.mission, opts.task);
+    if (!exists(contractPath)) {
       emit(
         err("missing_artifact", `task contract not found for ${opts.task}`)
       );
     }
-    let payload;
-    try {
-      payload = readStdinJson();
-    } catch (e) {
-      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
-      throw e;
-    }
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    const contract = readJsonFile(contractPath);
+    if (!contract) {
       emit(
         err(
-          "invalid_argument",
-          "gate run expects a JSON object on stdin"
+          "missing_artifact",
+          `task contract unreadable for ${opts.task}`
         )
       );
     }
-    const tierResults = payload.tier_results ?? void 0;
-    if (!tierResults) {
-      emit(
-        err(
-          "invalid_argument",
-          "gate run payload must contain `tier_results` with tier_0, tier_1, tier_2"
-        )
-      );
-    }
-    const t0 = tierResults.tier_0?.status;
-    const t1 = tierResults.tier_1?.status;
-    const t2 = tierResults.tier_2?.status;
-    if (!t0 || !t1 || !t2) {
-      emit(
-        err(
-          "invalid_argument",
-          "tier_results must include tier_0, tier_1, tier_2 each with a status"
-        )
-      );
-    }
-    const overall = overallFromTiers(t0, t1, t2);
+    const taskState = readJsonFile(
+      taskStatePath(root, opts.mission, opts.task)
+    );
+    const tier0 = computeTier0(
+      root,
+      opts.mission,
+      opts.task,
+      contract,
+      taskState
+    );
+    const tier1 = computeTier1(root, opts.mission, opts.task);
+    const tier2 = computeTier2(
+      root,
+      opts.mission,
+      opts.task,
+      contract
+    );
+    const overall = overallFromTiers(tier0.status, tier1.status, tier2.status);
     const filePath = gateResultsPath(root, opts.mission, opts.task);
     const existing = readJsonFile(filePath);
     const nextRunN = existing && Array.isArray(existing.runs) ? existing.runs.length + 1 : 1;
@@ -13639,7 +13846,11 @@ function registerGateRun(cmd) {
     const run2 = {
       gate_run_id: gateRunId,
       verdict: overall,
-      tier_results: tierResults,
+      tier_results: {
+        tier_0: tier0,
+        tier_1: tier1,
+        tier_2: tier2
+      },
       created_at: ts
     };
     const merged = {
@@ -13672,7 +13883,7 @@ function registerGateRun(cmd) {
         verdict: overall
       }
     });
-    let suggested = {
+    const suggested = {
       verdict: overall,
       target_state: null,
       command: null
@@ -13693,6 +13904,7 @@ function registerGateRun(cmd) {
           gate_run_id: gateRunId
         },
         verdict: overall,
+        tier_results: run2.tier_results,
         suggested_next_transition: suggested,
         runs_count: merged.runs.length
       })
@@ -14450,7 +14662,7 @@ function registerEventCommands(program2) {
 }
 
 // src/commands/consolidation.ts
-var fs9 = __toESM(require("fs"));
+var fs10 = __toESM(require("fs"));
 var path15 = __toESM(require("path"));
 function nowUtc12() {
   return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -14558,11 +14770,11 @@ function registerScaffold(root) {
     };
     const tDir = tasksDir(projectRoot, opts.mission);
     if (exists(tDir)) {
-      for (const taskDirName of fs9.readdirSync(tDir)) {
+      for (const taskDirName of fs10.readdirSync(tDir)) {
         if (!/^task-[0-9]{3}$/.test(taskDirName)) continue;
         const evDir = evidenceDir(projectRoot, opts.mission, taskDirName);
         if (!exists(evDir)) continue;
-        for (const file of fs9.readdirSync(evDir)) {
+        for (const file of fs10.readdirSync(evDir)) {
           if (!file.endsWith(".json")) continue;
           const filePath = path15.join(evDir, file);
           harvestFile(filePath, taskDirName, buckets);

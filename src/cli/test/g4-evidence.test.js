@@ -135,6 +135,71 @@ function validSelfCheck() {
   };
 }
 
+function validImplContract(overrides = {}) {
+  return {
+    summary: 'stub impl-contract',
+    rationale: 'satisfy Tier 0 preflight',
+    change_scope: ['src/cli/src/commands/evidence.ts'],
+    planned_actions: ['implement'],
+    non_goals: [],
+    alternatives_considered: [],
+    assumptions: [],
+    open_questions: [],
+    ...overrides,
+  };
+}
+
+function validVerifierEntry(overrides = {}) {
+  const {
+    criteria = ['every artifact writes atomically'],
+    verdict = 'approved',
+    ...rest
+  } = overrides;
+  return {
+    evidence_kind: 'verification',
+    summary: 'verifier ran plan',
+    verdict,
+    concerns: [],
+    rationale: 'executed verification plan',
+    scope_examined: 'all criteria',
+    methods_used: ['manual walk-through'],
+    scope_excluded: [],
+    criteria_results: criteria.map((c) => ({
+      criterion: c,
+      passed: verdict === 'approved',
+      details: 'observed',
+    })),
+    ...rest,
+  };
+}
+
+function writeImplContract(dir, missionId, taskId) {
+  const r = runCli(
+    ['impl-contract', 'set', '--mission', missionId, '--task', taskId],
+    { cwd: dir, input: JSON.stringify(validImplContract()) },
+  );
+  assert.equal(r.status, 0, `impl-contract set failed: ${r.stderr}\n${r.stdout}`);
+}
+
+function writeVerifierEvidence(dir, missionId, taskId, overrides = {}) {
+  const r = runCli(
+    [
+      'evidence',
+      'append',
+      '--mission',
+      missionId,
+      '--task',
+      taskId,
+      '--agent',
+      'qa-engineer',
+      '--slot',
+      'verifier',
+    ],
+    { cwd: dir, input: JSON.stringify(validVerifierEntry(overrides)) },
+  );
+  assert.equal(r.status, 0, `verifier evidence failed: ${r.stderr}\n${r.stdout}`);
+}
+
 function validClosureEntry(overrides = {}) {
   return {
     evidence_kind: 'closure',
@@ -463,54 +528,84 @@ test('gate run aggregates overall verdict from tier statuses', () => {
     setupMission(dir, MID_STANDARD);
     draftTaskReady(dir, MID_STANDARD, 'task-001');
 
+    // Seed Tier 0 prerequisites.
+    writeImplContract(dir, MID_STANDARD, 'task-001');
     let r = runCli(
-      ['gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'],
-      {
-        cwd: dir,
-        input: JSON.stringify({
-          tier_results: {
-            tier_0: { status: 'pass', details: 'all present' },
-            tier_1: { status: 'pass', details: 'plan ran clean' },
-            tier_2: { status: 'pass', details: 'all reviewers approved' },
-          },
-        }),
-      },
+      ['self-check', 'set', '--mission', MID_STANDARD, '--task', 'task-001'],
+      { cwd: dir, input: JSON.stringify(validSelfCheck()) },
     );
-    assert.equal(r.status, 0, `gate run failed: ${r.stderr}`);
+    assert.equal(r.status, 0);
+
+    // Helpers for this test: append one reviewer verdict + one verifier
+    // verdict; each call becomes the latest entry the gate observes.
+    function appendChallenger(verdict, rationale) {
+      const res = runCli(
+        [
+          'evidence',
+          'append',
+          '--mission',
+          MID_STANDARD,
+          '--task',
+          'task-001',
+          '--agent',
+          'challenger-a',
+          '--slot',
+          'challenger',
+        ],
+        {
+          cwd: dir,
+          input: JSON.stringify(
+            validReviewEntry({ verdict, rationale, concerns: [] }),
+          ),
+        },
+      );
+      assert.equal(res.status, 0, `challenger append failed: ${res.stderr}`);
+    }
+
+    // Must be in `reviewed` for Tier 0 to pass. Pre-seed an approved review
+    // so the first transition succeeds; we'll append further entries to
+    // mutate the LATEST verdict before each gate run.
+    appendChallenger('approved', 'initial approved review for transition');
+    writeVerifierEvidence(dir, MID_STANDARD, 'task-001');
+    r = runCli(
+      [
+        'task',
+        'transition',
+        '--mission',
+        MID_STANDARD,
+        '--task',
+        'task-001',
+        '--to',
+        'reviewed',
+      ],
+      { cwd: dir },
+    );
+    assert.equal(r.status, 0, `→reviewed failed: ${r.stderr}\n${r.stdout}`);
+
+    // Run 1: everything approved → pass.
+    r = runCli(
+      ['gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'],
+      { cwd: dir },
+    );
+    assert.equal(r.status, 0, `gate run 1 failed: ${r.stderr}`);
     assert.equal(r.json.data.verdict, 'pass');
     assert.equal(r.json.data.suggested_next_transition.target_state, 'verified');
 
-    // changes_requested in tier 2 → fail
+    // Run 2: append challenger changes_requested (now latest) → fail.
+    appendChallenger('changes_requested', 'reviewer saw a gap');
     r = runCli(
       ['gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'],
-      {
-        cwd: dir,
-        input: JSON.stringify({
-          tier_results: {
-            tier_0: { status: 'pass', details: 'all present' },
-            tier_1: { status: 'pass', details: 'plan ran clean' },
-            tier_2: { status: 'fail', details: 'risk-assessor changes_requested' },
-          },
-        }),
-      },
+      { cwd: dir },
     );
     assert.equal(r.status, 0);
     assert.equal(r.json.data.verdict, 'fail');
     assert.equal(r.json.data.suggested_next_transition.target_state, null);
 
-    // any block → block
+    // Run 3: append challenger blocked → block.
+    appendChallenger('blocked', 'structural issue');
     r = runCli(
       ['gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'],
-      {
-        cwd: dir,
-        input: JSON.stringify({
-          tier_results: {
-            tier_0: { status: 'pass', details: 'all present' },
-            tier_1: { status: 'pass', details: 'plan ran clean' },
-            tier_2: { status: 'block', details: 'challenger blocked' },
-          },
-        }),
-      },
+      { cwd: dir },
     );
     assert.equal(r.status, 0);
     assert.equal(r.json.data.verdict, 'block');
@@ -650,7 +745,9 @@ test('reviewed -> verified requires gate-results last run verdict=pass (G4 tight
     setupMission(dir, MID_STANDARD);
     draftTaskReady(dir, MID_STANDARD, 'task-001');
 
-    // Get to reviewed.
+    // Seed Tier 0 artifacts + review + verifier with changes_requested
+    // so the first gate run yields fail (Tier 1 fail).
+    writeImplContract(dir, MID_STANDARD, 'task-001');
     let r = runCli(
       ['self-check', 'set', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validSelfCheck()) },
@@ -672,22 +769,19 @@ test('reviewed -> verified requires gate-results last run verdict=pass (G4 tight
       { cwd: dir, input: JSON.stringify(validReviewEntry()) },
     );
     assert.equal(r.status, 0);
+    // Verifier first says changes_requested → Tier 1 fail.
+    writeVerifierEvidence(dir, MID_STANDARD, 'task-001', {
+      verdict: 'changes_requested',
+    });
     r = runCli(
       ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'reviewed'],
       { cwd: dir },
     );
     assert.equal(r.status, 0);
 
-    // Gate run with fail verdict — should not satisfy reviewed -> verified.
+    // First gate run → fail (verifier changes_requested at Tier 1).
     r = runCli(['gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'], {
       cwd: dir,
-      input: JSON.stringify({
-        tier_results: {
-          tier_0: { status: 'pass', details: 'ok' },
-          tier_1: { status: 'pass', details: 'ok' },
-          tier_2: { status: 'fail', details: 'changes_requested' },
-        },
-      }),
     });
     assert.equal(r.status, 0);
     assert.equal(r.json.data.verdict, 'fail');
@@ -700,18 +794,14 @@ test('reviewed -> verified requires gate-results last run verdict=pass (G4 tight
     assert.equal(r.json.error.code, 'guard_failed');
     assert.match(r.json.error.message, /verdict=pass/);
 
-    // Now a passing gate run — should go through.
+    // Append a revised verifier entry with approved verdict → latest
+    // verification entry is now approved → Tier 1 pass.
+    writeVerifierEvidence(dir, MID_STANDARD, 'task-001');
     r = runCli(['gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'], {
       cwd: dir,
-      input: JSON.stringify({
-        tier_results: {
-          tier_0: { status: 'pass', details: 'ok' },
-          tier_1: { status: 'pass', details: 'ok' },
-          tier_2: { status: 'pass', details: 'all approved' },
-        },
-      }),
     });
     assert.equal(r.status, 0);
+    assert.equal(r.json.data.verdict, 'pass');
     r = runCli(
       ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'verified'],
       { cwd: dir },
@@ -728,6 +818,7 @@ test('verified -> passed requires approved closure evidence validating the schem
     setupMission(dir, MID_STANDARD);
     draftTaskReady(dir, MID_STANDARD, 'task-001');
 
+    writeImplContract(dir, MID_STANDARD, 'task-001');
     let r = runCli(
       ['self-check', 'set', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validSelfCheck()) },
@@ -749,6 +840,7 @@ test('verified -> passed requires approved closure evidence validating the schem
       { cwd: dir, input: JSON.stringify(validReviewEntry()) },
     );
     assert.equal(r.status, 0);
+    writeVerifierEvidence(dir, MID_STANDARD, 'task-001');
     r = runCli(
       ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'reviewed'],
       { cwd: dir },
@@ -756,15 +848,9 @@ test('verified -> passed requires approved closure evidence validating the schem
     assert.equal(r.status, 0);
     r = runCli(['gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'], {
       cwd: dir,
-      input: JSON.stringify({
-        tier_results: {
-          tier_0: { status: 'pass', details: 'ok' },
-          tier_1: { status: 'pass', details: 'ok' },
-          tier_2: { status: 'pass', details: 'ok' },
-        },
-      }),
     });
     assert.equal(r.status, 0);
+    assert.equal(r.json.data.verdict, 'pass');
     r = runCli(
       ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'verified'],
       { cwd: dir },
