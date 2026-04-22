@@ -16,7 +16,7 @@ Constructs a task-level parallel batch and dispatches implementers for the selec
 
 - Dispatcher signals `phase=building` (or `polishing`) with at least one `ready` task whose dependencies are all `passed`.
 - Session resume where no `implementing` tasks are in flight.
-- Do NOT use to re-dispatch tasks already in `implementing` — leave them with their implementer until they move to `reviewed`, `blocked`, or `escalated`.
+- Do NOT use to re-dispatch tasks already in `implementing` — leave them with their implementer until they move to `reviewing`, `blocked`, or `escalated`.
 - Do NOT use during `specifying` or `consolidating`.
 
 ## Preconditions
@@ -28,7 +28,7 @@ Constructs a task-level parallel batch and dispatches implementers for the selec
 
 ## Process
 
-1. **Seed candidates.** Every task whose `task-state.status == ready`. Ignore terminal (`passed`, `cancelled`), waiting (`drafted`), and in-progress (`implementing`, `reviewed`, `verified`, `blocked`, `escalated`) states.
+1. **Seed candidates.** Every task whose `task-state.status == ready`. Ignore terminal (`passed`, `cancelled`), waiting (`drafted`), and in-progress (`implementing`, `reviewing`, `deciding`, `blocked`, `escalated`) states.
 2. **Dependency gate.** Drop candidates with any dependency not in `passed`. Reason: `dependency_not_passed`.
 3. **Baseline staleness check.** Compare each candidate's `contract.base_snapshot` against the current baseline reference (typically integration branch tip). Equal → proceeds. Different but the diff is outside the candidate's `surfaces` → proceeds. Different and overlapping → defer with `baseline_stale`. Rebase the baseline or re-draft the task before retry.
 4. **Surface conflict prevention.** Compare each candidate's `surfaces` pairwise against (a) surfaces held by currently-`implementing` tasks in this mission, (b) surfaces of candidates already accepted into this batch. Any overlap → defer with `surface_conflict` (list the conflicting strings).
@@ -70,7 +70,7 @@ Constructs a task-level parallel batch and dispatches implementers for the selec
 
 - **Invoked by**: mission dispatcher when `phase=building` (or `polishing`) has ready tasks with satisfied dependencies.
 - **Invokes**: none directly in main session; each dispatched implementer runs `implementing-task` in its own spawned context.
-- **Do NOT invoke**: `drafting-task` — scheduling does not create tasks; if no candidates exist, return to dispatcher. `running-gate` — gates run after `reviewed`, not after dispatch.
+- **Do NOT invoke**: `drafting-task` — scheduling does not create tasks; if no candidates exist, return to dispatcher. `running-gate` — gates run after `reviewing`, not after dispatch.
 
 ## Remember
 

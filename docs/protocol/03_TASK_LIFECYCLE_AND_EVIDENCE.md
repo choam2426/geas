@@ -40,16 +40,142 @@ A task must not enter an execution state until `approved_by` is no longer `null`
 
 ## State and Transitions
 
-### Primary States
+Tasks cycle through six active states (`drafted`, `ready`, `implementing`, `reviewing`, `deciding`, `passed`) and three hold/terminal states (`blocked`, `escalated`, `cancelled`). Each active state is described below with its activities, slot responsibilities, outputs, and the condition for leaving it — laid out like the phase sections in doc 02. Hold/terminal states carry no work, so they follow as a short table. The full set of transition conditions and rewind paths lives in the transition table at the bottom.
 
-| State | Meaning |
+### `drafted`
+
+**Meaning**: a draft task contract exists but is not yet approved.
+
+**Created when**: during the mission's specifying phase when the initial task set is produced. A task also enters this state during building or polishing when a new in-scope task contract is created (see doc 02).
+
+**Activities in this state**:
+
+1. Design Authority drafts the task contract (`goal`, `acceptance_criteria`, `surfaces`, `routing`, `verification_plan`, etc.)
+2. The approval owner reviews the contract and sets `approved_by`
+
+**Responsibilities by slot**:
+
+| Slot | What they do |
 |---|---|
-| `drafted` | A draft exists but is not yet approved |
-| `ready` | Approved and waiting to execute |
-| `implementing` | The Implementer's work is underway |
-| `reviewed` | All required reviewer evidence has been submitted |
-| `verified` | The evidence gate has completed its judgment |
-| `passed` | Closed because the closure decision ended as `approved` |
+| Design Authority | Draft the task contract |
+| User | Approve initial task set or any task outside mission scope |
+| Decision Maker | Approve in-scope mid-mission tasks |
+
+**Outputs**: `contract.json` (unapproved).
+
+**Condition to leave**: `approved_by` is not `null` and the phase gate passes → `ready`.
+
+### `ready`
+
+**Meaning**: approved and waiting to be dispatched.
+
+**Activities in this state**:
+
+- No active work. The Orchestrator periodically re-verifies whether dependency tasks are `passed` and whether the baseline is still valid; when both hold, the task is dispatched.
+
+**Responsibilities by slot**:
+
+| Slot | What they do |
+|---|---|
+| Orchestrator | Re-verify baseline and dependency state; dispatch when ready |
+
+**Outputs**: —.
+
+**Condition to leave**: dependency tasks are `passed` and the baseline is valid → `implementing`.
+
+### `implementing`
+
+**Meaning**: the Implementer writes the implementation contract, performs the work, and records the self-check.
+
+**Activities in this state**:
+
+1. Implementer writes the implementation contract (`change_scope`, `planned_actions`, `non_goals`, `alternatives_considered`, `assumptions`, `open_questions`)
+2. Implementer performs the actual implementation
+3. Implementer appends an implementation evidence entry (work summary and observed artifacts)
+4. Implementer records the self-check (`completed_work`, `reviewer_focus`, `known_risks`, `deviations_from_plan`, `gap_signals`)
+
+**Responsibilities by slot**:
+
+| Slot | What they do |
+|---|---|
+| Implementer | Implementation contract, implementation, implementation evidence, self-check |
+
+**Verify-fix re-entry**: when the task returns from `reviewing` on gate verdict `fail`, it re-enters the same `implementing` state. Two differences — (1) prior reviewer/verifier concerns are folded back into the implementation contract (amended in place), and (2) the new implementation evidence entry's `revision_ref` points to the prior entry. The activity order is otherwise identical, and once a new self-check is appended the task transitions back to `reviewing`.
+
+**Outputs**: `implementation-contract.json`, `self-check.json`, implementation evidence entry.
+
+**Condition to leave**: self-check is submitted → `reviewing`.
+
+### `reviewing`
+
+**Meaning**: required reviewers and the verifier submit their evidence, and the Orchestrator runs the evidence gate.
+
+**Activities in this state**:
+
+1. Each required reviewer slot submits review evidence from its own lens (`verdict`, `concerns`, `scope_examined`, `methods_used`, `scope_excluded`)
+2. Verifier independently executes the contract's `verification_plan` and submits verification evidence (every acceptance criterion mapped to a `criteria_results` entry)
+3. When reviewer verdicts conflict or a Challenger raises a blocking claim, the Orchestrator convenes task-level deliberation
+4. Orchestrator runs the evidence gate → Tier 0/1/2 judgment
+
+**Responsibilities by slot**:
+
+| Slot | What they do |
+|---|---|
+| Required reviewer | Submit review evidence from their slot's lens |
+| Verifier | Execute `verification_plan`, submit verification evidence |
+| Challenger | Raise a blocking review when needed, vote in task-level deliberation |
+| Orchestrator | Run the evidence gate, convene task-level deliberation when needed |
+
+**Outputs**: review evidence (one per required reviewer slot), verification evidence, a new gate run appended to `gate-results.json`.
+
+**Condition to leave**:
+
+- gate verdict `pass` → `deciding`
+- gate verdict `fail` → rewind to `implementing` (verify-fix loop; reviewer/verifier concerns are folded back into the implementation and the task returns to `reviewing`)
+- gate verdict `block` → `blocked`
+- gate verdict `error` → fix the cause and rerun the gate
+
+### `deciding`
+
+**Meaning**: the Orchestrator is writing the task closure decision.
+
+**Activities in this state**:
+
+1. Orchestrator synthesizes implementation contract, self-check, review evidence, verification evidence, the latest gate result, and any task-level deliberation
+2. Orchestrator writes closure evidence — `verdict`, `rationale`, and the four retrospective fields (`what_went_well`, `what_broke`, `what_was_surprising`, `next_time_guidance`)
+
+**Responsibilities by slot**:
+
+| Slot | What they do |
+|---|---|
+| Orchestrator | Synthesize every task artifact and write the closure evidence |
+
+**Outputs**: closure evidence (`evidence/orchestrator.orchestrator.json`).
+
+**Condition to leave**:
+
+- closure verdict `approved` → `passed`
+- closure verdict `changes_requested` → Orchestrator restores to `ready`, `implementing`, or `reviewing` based on its judgment
+- closure verdict `escalated` → `escalated`
+- closure verdict `cancelled` → `cancelled`
+
+### `passed`
+
+**Meaning**: the task has closed.
+
+**Activities in this state**:
+
+- No task-level activity. During the mission's consolidating phase, the task's evidence-side `memory_suggestions`, `debt_candidates`, and `gap_signals` feed into mission-level aggregation (see doc 02 consolidating).
+
+**Responsibilities by slot**:
+
+| Slot | What they do |
+|---|---|
+| (terminal) | No task-level work in this state |
+
+**Outputs**: —.
+
+**Condition to leave**: in the normal path this is terminal. The only exception is a transition to `cancelled` for external reasons, defined in the transition table below.
 
 ### Hold / Terminal States
 
@@ -59,20 +185,7 @@ A task must not enter an execution state until `approved_by` is no longer `null`
 | `escalated` | Could not close at task level and has been handed upward for judgment |
 | `cancelled` | It has been decided that this contract will not continue |
 
-### Work Performed in Each State
-
-This table summarizes the actual work and artifact creation that happen in each state. Implementations may add finer-grained pipeline steps, but the following are the minimum activities that must complete before the task can move on.
-
-| State | Work performed in this state | Main artifacts created in this state |
-|---|---|---|
-| `drafted` | The Design Authority writes the draft task contract | `contract.json` (unapproved) |
-| `ready` | The system rechecks baseline validity and dependency task state while waiting to execute | - |
-| `implementing` | The Implementer writes the implementation contract, performs the work, and records a self-check. Required reviewers then submit their evidence after the self-check completes | `implementation-contract.json`, `self-check.json`, and the task's `evidence/{agent}.{slot}.json` files |
-| `reviewed` | The evidence gate judges pass/fail/block/error | A new run object appended to the `runs` array in `gate-results.json` |
-| `verified` | The Orchestrator issues the task closure decision | Closure evidence in `evidence/orchestrator.orchestrator.json` |
-| `passed` | The consolidating phase reads the signal from this task | - |
-
-Hold states (`blocked`, `escalated`, `cancelled`) do not include additional work because forward progress has stopped. The conditions for entering them are defined by the transition table.
+None of these three states carry task-level activity. Entry and recovery paths are defined in the transition table below.
 
 ### Failure Is Not a State
 
@@ -84,15 +197,15 @@ Verification failure and `changes_requested` are not separate states. If the gat
 |---|---|---|
 | `drafted` | `ready` | `approved_by` is not `null` and the phase gate has passed |
 | `ready` | `implementing` | Dependency tasks are `passed` and the baseline is valid |
-| `implementing` | `reviewed` | Implementation and self-check are complete, and required reviewer reviews have been submitted |
-| `reviewed` | `verified` | The evidence gate has completed |
-| `verified` | `passed` | The Orchestrator records task closure decision `approved` |
-| `implementing`, `reviewed`, `verified` | `blocked` | A blocking reason has been confirmed that prevents further progress under current conditions |
-| `blocked` | `ready`, `implementing`, `reviewed` | The blocking reason has been resolved and work resumes |
-| `blocked`, `verified` | `escalated` | The issue exceeds task-level judgment and is handed upward |
-| `escalated` | `passed` | Higher-level judgment is `approved` (only when the task was escalated from `verified`) |
-| `escalated` | `ready`, `implementing`, `reviewed` | Higher-level judgment is `changes_requested` and the Orchestrator restores the task to that state |
-| `drafted`, `ready`, `implementing`, `reviewed`, `verified`, `blocked`, `escalated` | `cancelled` | Mission scope changed, a replacement task exists, or higher-level judgment stopped the work (`verified` may be cancelled only for external reasons) |
+| `implementing` | `reviewing` | Self-check is submitted |
+| `reviewing` | `deciding` | Evidence gate run verdict is `pass` |
+| `deciding` | `passed` | The Orchestrator records task closure decision `approved` |
+| `implementing`, `reviewing`, `deciding` | `blocked` | A blocking reason has been confirmed that prevents further progress under current conditions |
+| `blocked` | `ready`, `implementing`, `reviewing` | The blocking reason has been resolved and work resumes |
+| `blocked`, `deciding` | `escalated` | The issue exceeds task-level judgment and is handed upward |
+| `escalated` | `passed` | Higher-level judgment is `approved` (only when the task was escalated from `deciding`) |
+| `escalated` | `ready`, `implementing`, `reviewing` | Higher-level judgment is `changes_requested` and the Orchestrator restores the task to that state |
+| `drafted`, `ready`, `implementing`, `reviewing`, `deciding`, `blocked`, `escalated` | `cancelled` | Mission scope changed, a replacement task exists, or higher-level judgment stopped the work (`deciding` may be cancelled only for external reasons) |
 
 When a task is rewound, the exact target state is not fixed by the table alone; it is Orchestrator judgment. But the reason for the rewind and the rationale for the restored state must appear in the closure decision or related evidence.
 
@@ -135,7 +248,7 @@ Every entry shares the following fields. Array fields must be present as empty a
 | `verification` | Verifier | All additional fields from `review`, plus `criteria_results` | approved / changes_requested / blocked |
 | `closure` | Orchestrator | `verdict`, `rationale`, `what_went_well`, `what_broke`, `what_was_surprising`, `next_time_guidance` | approved / changes_requested / escalated / cancelled |
 
-`implementation` evidence never carries a `verdict`. When the `closure` verdict is `changes_requested`, the state to which the Orchestrator restores the task (`ready` / `implementing` / `reviewed`) is expressed through the subsequent transition, and the intended rewind should be recorded in the rationale. When writing closure that exits `escalated`, the rationale should also name the original state at the moment escalation began, usually `verified` or `blocked`, so later readers can trace whether the follow-up transition was justified. If a task is replaced by a new contract, the new task contract's `supersedes` field points back to this task. A challenge from the Challenger is stored as `review` evidence, and the fact that it came from the Challenger is identified through the `agent` field. When the `closure` verdict is `escalated` or `cancelled`, the work itself did not complete, so the four retrospective fields (`what_went_well`, `what_broke`, `what_was_surprising`, `next_time_guidance`) may be left as empty arrays.
+`implementation` evidence never carries a `verdict`. When the `closure` verdict is `changes_requested`, the state to which the Orchestrator restores the task (`ready` / `implementing` / `reviewing`) is expressed through the subsequent transition, and the intended rewind should be recorded in the rationale. When writing closure that exits `escalated`, the rationale should also name the original state at the moment escalation began, usually `deciding` or `blocked`, so later readers can trace whether the follow-up transition was justified. If a task is replaced by a new contract, the new task contract's `supersedes` field points back to this task. A challenge from the Challenger is stored as `review` evidence, and the fact that it came from the Challenger is identified through the `agent` field. When the `closure` verdict is `escalated` or `cancelled`, the work itself did not complete, so the four retrospective fields (`what_went_well`, `what_broke`, `what_was_surprising`, `next_time_guidance`) may be left as empty arrays.
 
 `scope_examined`, `methods_used`, and `scope_excluded` are the fields that make review and verification explicit about what was checked, how it was checked, and what was excluded. Even when there are no empty observations, these fields should still contain meaningful content; only `scope_excluded` may be empty.
 

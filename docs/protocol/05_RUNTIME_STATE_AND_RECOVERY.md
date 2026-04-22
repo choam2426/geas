@@ -25,7 +25,7 @@ Mission state is not the source of truth. It is a mission-level runtime index th
 |---|---|
 | `mission_id` | Identifier for this mission, used to check consistency with the path |
 | `phase` | The mission's current phase |
-| `active_tasks` | Task IDs currently in `implementing`, `reviewed`, or `verified`: open work still in flight, not yet closed as `passed`, `cancelled`, or `escalated`, and not halted in `blocked` (`0` = idle, `1` = sequential, `N` = parallel batch) |
+| `active_tasks` | Task IDs currently in `implementing`, `reviewing`, or `deciding`: open work still in flight, not yet closed as `passed`, `cancelled`, or `escalated`, and not halted in `blocked` (`0` = idle, `1` = sequential, `N` = parallel batch) |
 | `created_at`, `updated_at` | Creation and update timestamps |
 
 Mission state does not carry the list of closed tasks, a recovery type, or implementation-specific scheduler signals. Closed status is derived from each task's `task-state.json`, and implementation signals are outside protocol scope.
@@ -43,7 +43,7 @@ Task state is the task-level runtime state that records the lifecycle status, wh
 | field | meaning |
 |---|---|
 | `mission_id`, `task_id` | Identifiers used to check consistency with the path |
-| `status` | The task's current lifecycle stage: the current state in the 9-state machine (`drafted` / `ready` / `implementing` / `reviewed` / `verified` / `passed` / `blocked` / `escalated` / `cancelled`) |
+| `status` | The task's current lifecycle stage: the current state in the 9-state machine (`drafted` / `ready` / `implementing` / `reviewing` / `deciding` / `passed` / `blocked` / `escalated` / `cancelled`) |
 | `active_agent` | The concrete type of the agent currently doing the work, or `null` if none. It uses the same namespace as the `agent` field in evidence files. If one agent serves multiple slots, the active slot is not encoded here; it is revealed by which `evidence/{agent}.{slot}.json` file receives appended entries |
 | `verify_fix_iterations` | The number of verify-fix loops for this task. It increments every time the Orchestrator records closure evidence as `changes_requested` and rewinds the task |
 | `created_at`, `updated_at` | Creation and update timestamps |

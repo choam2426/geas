@@ -10,11 +10,11 @@
  *
  * and the transition-guard tightening that consumes their artifacts:
  *
- *   implementing -> reviewed   : self-check schema-valid + each required
+ *   implementing -> reviewing   : self-check schema-valid + each required
  *                                reviewer slot has a review-kind entry.
- *   reviewed     -> verified   : gate-results last run verdict=pass with
+ *   reviewing    -> deciding   : gate-results last run verdict=pass with
  *                                tier_2.status=pass.
- *   verified     -> passed     : orchestrator closure evidence with
+ *   deciding     -> passed     : orchestrator closure evidence with
  *                                verdict=approved and the file validates
  *                                against the evidence schema.
  */
@@ -562,7 +562,7 @@ test('gate run aggregates overall verdict from tier statuses', () => {
       assert.equal(res.status, 0, `challenger append failed: ${res.stderr}`);
     }
 
-    // Must be in `reviewed` for Tier 0 to pass. Pre-seed an approved review
+    // Must be in `reviewing` for Tier 0 to pass. Pre-seed an approved review
     // so the first transition succeeds; we'll append further entries to
     // mutate the LATEST verdict before each gate run.
     appendChallenger('approved', 'initial approved review for transition');
@@ -576,11 +576,11 @@ test('gate run aggregates overall verdict from tier statuses', () => {
         '--task',
         'task-001',
         '--to',
-        'reviewed',
+        'reviewing',
       ],
       { cwd: dir },
     );
-    assert.equal(r.status, 0, `→reviewed failed: ${r.stderr}\n${r.stdout}`);
+    assert.equal(r.status, 0, `→reviewing failed: ${r.stderr}\n${r.stdout}`);
 
     // Run 1: everything approved → pass.
     r = runCli(
@@ -589,7 +589,7 @@ test('gate run aggregates overall verdict from tier statuses', () => {
     );
     assert.equal(r.status, 0, `gate run 1 failed: ${r.stderr}`);
     assert.equal(r.json.data.verdict, 'pass');
-    assert.equal(r.json.data.suggested_next_transition.target_state, 'verified');
+    assert.equal(r.json.data.suggested_next_transition.target_state, 'deciding');
 
     // Run 2: append challenger changes_requested (now latest) → fail.
     appendChallenger('changes_requested', 'reviewer saw a gap');
@@ -625,7 +625,7 @@ test('gate run aggregates overall verdict from tier statuses', () => {
   }
 });
 
-test('implementing -> reviewed requires schema-valid self-check (G4 tightening)', () => {
+test('implementing -> reviewing requires schema-valid self-check (G4 tightening)', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMission(dir, MID_STANDARD);
@@ -662,7 +662,7 @@ test('implementing -> reviewed requires schema-valid self-check (G4 tightening)'
     assert.equal(r.status, 0);
 
     r = runCli(
-      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'reviewed'],
+      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'reviewing'],
       { cwd: dir },
     );
     assert.notEqual(r.status, 0);
@@ -673,7 +673,7 @@ test('implementing -> reviewed requires schema-valid self-check (G4 tightening)'
   }
 });
 
-test('implementing -> reviewed requires review-kind entry, not just a file', () => {
+test('implementing -> reviewing allowed with only self-check — reviewer evidence check is delegated to gate Tier 0', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMission(dir, MID_STANDARD);
@@ -686,60 +686,20 @@ test('implementing -> reviewed requires review-kind entry, not just a file', () 
     );
     assert.equal(r.status, 0);
 
-    // Write a challenger evidence file that has entries but none are
-    // review-kind (evidence_kind=implementation). Direct file write.
-    const evDir = path.join(
-      dir,
-      '.geas',
-      'missions',
-      MID_STANDARD,
-      'tasks',
-      'task-001',
-      'evidence',
-    );
-    fs.mkdirSync(evDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(evDir, 'challenger-a.challenger.json'),
-      JSON.stringify(
-        {
-          mission_id: MID_STANDARD,
-          task_id: 'task-001',
-          agent: 'challenger-a',
-          slot: 'challenger',
-          entries: [
-            {
-              entry_id: 1,
-              evidence_kind: 'implementation',
-              summary: 'stub',
-              artifacts: [],
-              memory_suggestions: [],
-              debt_candidates: [],
-              gap_signals: [],
-              revision_ref: null,
-              created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-            },
-          ],
-          created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-          updated_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
-        },
-        null,
-        2,
-      ),
-    );
-
+    // Intentionally no reviewer evidence. Transition to reviewing should
+    // still succeed — reviewer evidence is enforced by gate Tier 0 at
+    // gate run time, not by this transition.
     r = runCli(
-      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'reviewed'],
+      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'reviewing'],
       { cwd: dir },
     );
-    assert.notEqual(r.status, 0);
-    assert.equal(r.json.error.code, 'guard_failed');
-    assert.deepEqual(r.json.error.hints.missing_review_slots, ['challenger']);
+    assert.equal(r.status, 0, `transition should succeed: ${r.stderr}\n${r.stdout}`);
   } finally {
     cleanup();
   }
 });
 
-test('reviewed -> verified requires gate-results last run verdict=pass (G4 tightening)', () => {
+test('reviewing -> deciding requires gate-results last run verdict=pass (G4 tightening)', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMission(dir, MID_STANDARD);
@@ -774,7 +734,7 @@ test('reviewed -> verified requires gate-results last run verdict=pass (G4 tight
       verdict: 'changes_requested',
     });
     r = runCli(
-      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'reviewed'],
+      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'reviewing'],
       { cwd: dir },
     );
     assert.equal(r.status, 0);
@@ -787,7 +747,7 @@ test('reviewed -> verified requires gate-results last run verdict=pass (G4 tight
     assert.equal(r.json.data.verdict, 'fail');
 
     r = runCli(
-      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'verified'],
+      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'deciding'],
       { cwd: dir },
     );
     assert.notEqual(r.status, 0);
@@ -803,16 +763,16 @@ test('reviewed -> verified requires gate-results last run verdict=pass (G4 tight
     assert.equal(r.status, 0);
     assert.equal(r.json.data.verdict, 'pass');
     r = runCli(
-      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'verified'],
+      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'deciding'],
       { cwd: dir },
     );
-    assert.equal(r.status, 0, `verified transition failed: ${r.stderr}\n${r.stdout}`);
+    assert.equal(r.status, 0, `deciding transition failed: ${r.stderr}\n${r.stdout}`);
   } finally {
     cleanup();
   }
 });
 
-test('verified -> passed requires approved closure evidence validating the schema', () => {
+test('deciding -> passed requires approved closure evidence validating the schema', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMission(dir, MID_STANDARD);
@@ -842,7 +802,7 @@ test('verified -> passed requires approved closure evidence validating the schem
     assert.equal(r.status, 0);
     writeVerifierEvidence(dir, MID_STANDARD, 'task-001');
     r = runCli(
-      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'reviewed'],
+      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'reviewing'],
       { cwd: dir },
     );
     assert.equal(r.status, 0);
@@ -852,12 +812,12 @@ test('verified -> passed requires approved closure evidence validating the schem
     assert.equal(r.status, 0);
     assert.equal(r.json.data.verdict, 'pass');
     r = runCli(
-      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'verified'],
+      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'deciding'],
       { cwd: dir },
     );
     assert.equal(r.status, 0);
 
-    // No closure yet — verified -> passed should fail.
+    // No closure yet — deciding -> passed should fail.
     r = runCli(
       ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'passed'],
       { cwd: dir },
@@ -888,7 +848,7 @@ test('verified -> passed requires approved closure evidence validating the schem
       ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'passed'],
       { cwd: dir },
     );
-    assert.equal(r.status, 0, `verified->passed failed: ${r.stderr}\n${r.stdout}`);
+    assert.equal(r.status, 0, `deciding->passed failed: ${r.stderr}\n${r.stdout}`);
   } finally {
     cleanup();
   }
@@ -938,7 +898,7 @@ test('deliberation accepted when mission mode is full_depth', () => {
     draftTaskReady(dir, MID_FULL, 'task-001');
 
     const entry = {
-      proposal_summary: 'should the task enter verified now?',
+      proposal_summary: 'should the task enter deciding now?',
       votes: [
         { voter: 'challenger', vote: 'agree', rationale: 'all concerns addressed' },
         { voter: 'risk-assessor', vote: 'agree', rationale: 'risk is mitigated' },

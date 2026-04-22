@@ -21,7 +21,7 @@ You have been spawned as the implementer for an approved task. You own the full 
 
 ## Preconditions
 
-- `task-state.status == implementing` at the moment you are spawned. The scheduler transitions `ready → implementing` before your spawn on first dispatch; `running-gate` transitions `reviewed → implementing` on verify-fix rewinds and the CLI increments `verify_fix_iterations` in that path.
+- `task-state.status == implementing` at the moment you are spawned. The scheduler transitions `ready → implementing` before your spawn on first dispatch; `running-gate` transitions `reviewing → implementing` on verify-fix rewinds and the CLI increments `verify_fix_iterations` in that path.
 - Task contract exists under `missions/{mission_id}/tasks/{task_id}/contract.json` with `approved_by` set.
 - Mission spec is `user_approved: true` for specifying-phase tasks; `approved_by: decision-maker` for mid-mission scope-in tasks.
 - `base_snapshot` still matches the real workspace (if not, return to orchestrator to rebase).
@@ -117,8 +117,8 @@ You have been spawned as the implementer for an approved task. You own the full 
 
 Task-state transitions are owned by the orchestrator / scheduler / gate, not by this skill:
 - `ready → implementing` is done by `scheduling-work` before your spawn.
-- `implementing → reviewed` is done by the orchestrator after your self-check is appended (and before reviewers are spawned).
-- `reviewed → implementing` on verify-fix is done by `running-gate`, which triggers a fresh implementer spawn.
+- `implementing → reviewing` is done by the orchestrator after your self-check is appended (and before reviewers are spawned).
+- `reviewing → implementing` on verify-fix is done by `running-gate`, which triggers a fresh implementer spawn.
 
 Sub-skills you do NOT invoke: `reviewing-task` (reviewers run it), `verifying-task` (verifier runs it), `running-gate` (orchestrator invokes after evidence is in).
 
@@ -141,7 +141,7 @@ Sub-skills you do NOT invoke: `reviewing-task` (reviewers run it), `verifying-ta
 
 ## Related Skills
 
-- **Invoked by**: `scheduling-work` on first dispatch (after it transitions `ready → implementing`), and `running-gate` verify-fix loop on revisions (after it rewinds `reviewed → implementing`).
+- **Invoked by**: `scheduling-work` on first dispatch (after it transitions `ready → implementing`), and `running-gate` verify-fix loop on revisions (after it rewinds `reviewing → implementing`).
 - **Invokes**: no sub-skills. CLI surfaces only.
 - **Do NOT invoke**: `reviewing-task` (reviewers run it, post-work only), `verifying-task` (verifier runs it), `running-gate` (orchestrator runs this after your evidence + self-check are in place and reviewers + verifier have appended), `closing-task` (orchestrator runs it after gate pass).
 

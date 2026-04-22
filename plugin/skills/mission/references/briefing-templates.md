@@ -31,7 +31,7 @@ Mode         : {mode}
 
 **렌더링 규칙**
 - `{phase 내 진행 위치}`는 phase별로 의미가 다르다. specifying이면 "spec 승인 대기" / "task 초안 작성 중" 등, building이면 "batch 실행 중" / "gate 대기" 등.
-- `active`는 implementing·reviewed·verified 상태를 합산한 값.
+- `active`는 implementing·reviewing·deciding 상태를 합산한 값.
 - `⚠ 경고 블록`은 artifact drift / 알 수 없는 상태 / CLI 거부 등이 있을 때만 붙인다.
 
 ---

@@ -21,7 +21,7 @@ You have been spawned as the verifier for a task. Your job is to run the contrac
 
 ## Preconditions
 
-- `task-state.status == reviewed`. The orchestrator transitions the task from `implementing` to `reviewed` after the implementer has appended implementation evidence + self-check, then spawns you (and the reviewers) against the reviewed state.
+- `task-state.status == reviewing`. The orchestrator transitions the task from `implementing` to `reviewing` after the implementer has appended implementation evidence + self-check, then spawns you (and the reviewers) against the reviewing state.
 - Task contract exists with `verification_plan` non-empty.
 - At least one `implementation`-kind evidence entry exists for the task.
 - `base_snapshot` still matches the real workspace (if not, verdict=`blocked` with snapshot-mismatch rationale).

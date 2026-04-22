@@ -408,7 +408,7 @@ function makeApproveHints(): TaskStateHints {
 /**
  * Recompute mission-state.active_tasks by scanning every task-state.json
  * under missions/{mid}/tasks/ and collecting task_ids whose status is in
- * {implementing, reviewed, verified}. Per mission-state.schema.json,
+ * {implementing, reviewing, deciding}. Per mission-state.schema.json,
  * active_tasks lists tasks "not yet terminated as passed/cancelled/escalated
  * and not paused as blocked" — these three live states are the canonical
  * set. Writes back atomically and bumps updated_at.
@@ -426,7 +426,7 @@ function recomputeActiveTasks(root: string, missionId: string): void {
   const dir = tasksDir(root, missionId);
   if (!exists(dir)) return;
 
-  const LIVE = new Set(['implementing', 'reviewed', 'verified']);
+  const LIVE = new Set(['implementing', 'reviewing', 'deciding']);
   const active: string[] = [];
   let entries: string[];
   try {
@@ -523,9 +523,9 @@ function registerTaskTransition(task: Command): void {
       state.mission_id = opts.mission;
       state.task_id = opts.task;
 
-      // reviewed -> implementing is the changes_requested loop. Bump
-      // verify_fix_iterations on entry into implementing from reviewed.
-      if (from === 'reviewed' && to === 'implementing') {
+      // reviewing -> implementing is the verify-fix loop. Bump
+      // verify_fix_iterations on entry into implementing from reviewing.
+      if (from === 'reviewing' && to === 'implementing') {
         const current = typeof state.verify_fix_iterations === 'number'
           ? state.verify_fix_iterations
           : 0;
@@ -546,8 +546,8 @@ function registerTaskTransition(task: Command): void {
 
       // After writing task-state, recompute mission-state.active_tasks from
       // the updated task directory. The schema defines active_tasks as the
-      // set of tasks in lifecycle status ∈ {implementing, reviewed,
-      // verified} — i.e. not yet terminated (passed/cancelled/escalated)
+      // set of tasks in lifecycle status ∈ {implementing, reviewing,
+      // deciding} — i.e. not yet terminated (passed/cancelled/escalated)
       // and not paused (blocked). See mission-state.schema.json. This is
       // the sole writer; the field was never updated pre-transition and
       // dashboards read it for "currently in flight" views.
@@ -657,11 +657,11 @@ function collectTaskStateHints(
   //
   // Note: this guard only checks that the REQUIRED review slots have at
   // least one valid review entry present. The gate verdict (pass/fail/block)
-  // is what `gate run` computes and the `reviewed -> verified` transition
+  // is what `gate run` computes and the `reviewing -> deciding` transition
   // consults (gate verdict = pass). We do not reject `implementing ->
-  // reviewed` just because a reviewer said `changes_requested` — that's
+  // reviewing` just because a reviewer said `changes_requested` — that's
   // recorded, and the orchestrator later re-enters implementing via the
-  // `reviewed -> implementing` loop.
+  // `reviewing -> implementing` loop.
   const evDir = evidenceDir(root, missionId, taskId);
   const evidenceFiles = exists(evDir) ? fs.readdirSync(evDir) : [];
   const missingReviewSlots: string[] = [];
@@ -688,7 +688,7 @@ function collectTaskStateHints(
   }
   const reviewEvidenceExists = missingReviewSlots.length === 0;
 
-  // Verification evidence: the `reviewed -> verified` guard reads the
+  // Verification evidence: the `reviewing -> deciding` guard reads the
   // last gate run verdict. The gate itself (see commands/gate.ts) now
   // reads impl-contract, self-check, reviewer evidence, and verifier
   // evidence directly and computes tier statuses — so a gate verdict of

@@ -51,7 +51,7 @@ Total: 17 skills. Only two appear in the `/` menu.
 Every mission moves through four phases. Each phase ends with a phase-review and a CLI-enforced phase transition.
 
 1. **Specifying** — user request becomes a frozen mission spec and an approved initial task set.
-2. **Building** — each approved task runs through the task lifecycle (drafted, ready, implementing, reviewed, verified, passed; plus terminal states blocked, escalated, cancelled).
+2. **Building** — each approved task runs through the task lifecycle (drafted, ready, implementing, reviewing, deciding, passed; plus terminal states blocked, escalated, cancelled).
 3. **Polishing** — integration-level review across tasks; new tasks may be added before returning to building.
 4. **Consolidating** — aggregate debts, gaps, and memory updates; decision-maker issues the mission verdict; mission transitions to complete.
 

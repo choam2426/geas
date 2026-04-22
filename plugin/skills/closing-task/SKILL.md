@@ -1,6 +1,6 @@
 ---
 name: closing-task
-description: Invoked by the mission dispatcher when the gate has returned verdict=pass on a task in the verified state; writes the orchestrator closure evidence entry (verdict=approved) with retrospective fields, then transitions task-state from verified to passed.
+description: Invoked by the mission dispatcher when the gate has returned verdict=pass on a task in the deciding state; writes the orchestrator closure evidence entry (verdict=approved) with retrospective fields, then transitions task-state from deciding to passed.
 user-invocable: false
 ---
 
@@ -8,20 +8,20 @@ user-invocable: false
 
 ## Overview
 
-Writes the closure evidence that finalizes a task. Closure is an orchestrator-authored evidence entry (slot = orchestrator) with a closure-kind body; it records the retrospective (what went well, what broke, surprises, next-time guidance) and the orchestrator's approval verdict. The CLI's `verified → passed` guard requires this entry with `verdict=approved`.
+Writes the closure evidence that finalizes a task. Closure is an orchestrator-authored evidence entry (slot = orchestrator) with a closure-kind body; it records the retrospective (what went well, what broke, surprises, next-time guidance) and the orchestrator's approval verdict. The CLI's `deciding → passed` guard requires this entry with `verdict=approved`.
 
-<HARD-GATE> Closure is orchestrator-authored, not implementer-authored. The closure evidence is the only way to leave `verified`. Retrospective fields feed consolidation; omitting them is not a shortcut, it is data loss.
+<HARD-GATE> Closure is orchestrator-authored, not implementer-authored. The closure evidence is the only way to leave `deciding`. Retrospective fields feed consolidation; omitting them is not a shortcut, it is data loss.
 
 ## When to Use
 
-- Dispatcher signals a task in `task-state.status == verified` with a passing gate run.
+- Dispatcher signals a task in `task-state.status == deciding` with a passing gate run.
 - Re-entry after escalation resolution (decision-maker approves the escalated task) — the same entry shape is used.
-- Do NOT use on tasks still in `reviewed` — the gate must run first.
+- Do NOT use on tasks still in `reviewing` — the gate must run first.
 - Do NOT use on `blocked`, `escalated`, or `cancelled` terminal paths — those write closure via the decision-maker/orchestrator path with a different verdict.
 
 ## Preconditions
 
-- `task-state.status == verified`.
+- `task-state.status == deciding`.
 - `gate-results.runs` last entry has verdict `pass`.
 - Task's evidence directory is present and complete.
 - CLI is the sole writer to `.geas/`.
@@ -65,7 +65,7 @@ The CLI injects `entry_id`, `created_at`; the agent/slot come from flags.
 
 | Excuse | Reality |
 |---|---|
-| "Gate passed — skip the retrospective and just transition" | The `verified → passed` guard rejects without a closure entry; retrospective fields are the primary consolidation input. |
+| "Gate passed — skip the retrospective and just transition" | The `deciding → passed` guard rejects without a closure entry; retrospective fields are the primary consolidation input. |
 | "Nothing broke — leave `what_broke` empty" | Empty retrospective fields are a consolidation failure. If nothing broke, state that explicitly; do not omit. |
 | "Implementer writes closure" | Closure is orchestrator-authored. Implementer's evidence is implementation-kind, not closure-kind. |
 | "Hand-transition to `passed` first, append closure later" | CLI guard rejects; even if bypassed, the audit trail would be inverted. Append first, transition second. |

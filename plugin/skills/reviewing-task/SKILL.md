@@ -22,7 +22,7 @@ You have been spawned as a reviewer for a task. Your slot's system prompt define
 
 ## Preconditions
 
-- `task-state.status == reviewed` (the orchestrator transitions `implementing → reviewed` once the implementer has appended implementation evidence + self-check, then spawns reviewers).
+- `task-state.status == reviewing` (the orchestrator transitions `implementing → reviewing` once the implementer has appended implementation evidence + self-check, then spawns reviewers).
 - Task contract exists with `approved_by` set.
 - Implementation-kind evidence entry exists (latest per-implementer entry is the one you grade against; walk back via `revision_ref` for trajectory).
 - `self-check.json` exists and is schema-valid.
@@ -119,7 +119,7 @@ Sub-skills you do NOT invoke: none.
 
 ## Related Skills
 
-- **Invoked by**: the orchestrator after the implementer has appended implementation evidence + self-check and the task has transitioned to `reviewed`; and `running-gate` verify-fix loop (post-revision re-review, after the implementer re-submits following a `reviewed → implementing` rewind and re-transition to `reviewed`).
+- **Invoked by**: the orchestrator after the implementer has appended implementation evidence + self-check and the task has transitioned to `reviewing`; and `running-gate` verify-fix loop (post-revision re-review, after the implementer re-submits following a `reviewing → implementing` rewind and re-transition to `reviewing`).
 - **Invokes**: none.
 - **Do NOT invoke**: `verifying-task` (verifier runs it separately), `running-gate` (orchestrator aggregates verdicts), `implementing-task` (you're reviewing, not implementing).
 

@@ -76,7 +76,7 @@ Contract approved → Implementation contract → Implement → Self-check
 → Closure evidence → Retrospective
 ```
 
-Task states move through `drafted → ready → implementing → reviewed → verified → passed`, with `blocked` / `escalated` / `cancelled` as side exits.
+Task states move through `drafted → ready → implementing → reviewing → deciding → passed`, with `blocked` / `escalated` / `cancelled` as side exits.
 
 ---
 
@@ -154,7 +154,7 @@ A Tauri desktop app that reads `.geas/` state in real time. It watches for file 
 
 **Project overview** — current mission, active agent, phase, task progress, last activity timestamp. Multiple projects in the sidebar.
 
-**Kanban board** — tasks flow through the 9-state lifecycle columns (drafted → ready → implementing → reviewed → verified → passed, with blocked / escalated / cancelled side states). Click a card for contract details, evidence, and closure sections.
+**Kanban board** — tasks flow through the 9-state lifecycle columns (drafted → ready → implementing → reviewing → deciding → passed, with blocked / escalated / cancelled side states). Click a card for contract details, evidence, and closure sections.
 
 ![Kanban Board](docs/images/kanvanboard.png)
 

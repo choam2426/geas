@@ -17,7 +17,7 @@ Closes a phase with an append-only phase-review entry, then advances `mission-st
 - `phase=specifying` completed: mission spec approved + design approved + ≥1 approved task contract. (This skill is normally invoked through `specifying-mission`'s final step, but can be invoked standalone by the dispatcher on resume.)
 - `phase=building` completed: every mission-scope task is terminal (`passed`, `cancelled`, or `escalated`).
 - `phase=polishing` completed: integration clean; retrospective tasks done.
-- Do NOT invoke when any mission-scope task is still `drafted`, `ready`, `implementing`, `reviewed`, `verified`, or `blocked` — non-terminal tasks block phase advance by CLI guard.
+- Do NOT invoke when any mission-scope task is still `drafted`, `ready`, `implementing`, `reviewing`, `deciding`, or `blocked` — non-terminal tasks block phase advance by CLI guard.
 - Do NOT use inside `consolidating` — consolidation end is handled by `verdicting-mission`, not by a phase-review.
 
 ## Preconditions

@@ -119,7 +119,7 @@ The CLI injects `mission_id`, `task_id`, `created_at`, `updated_at`; defaults `a
 
 - **Invoked by**: mission dispatcher for initial task set during specifying, for scope expansion mid-mission, or for cancelled-task replacement. Also called by `specifying-mission` during initial task set authoring.
 - **Invokes**: none.
-- **Do NOT invoke**: `scheduling-work` — drafting does not schedule; the dispatcher picks the next action after approval. `running-gate` — gates live in the reviewed state, not the draft stage.
+- **Do NOT invoke**: `scheduling-work` — drafting does not schedule; the dispatcher picks the next action after approval. `running-gate` — gates live in the reviewing state, not the draft stage.
 
 ## Remember
 

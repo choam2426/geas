@@ -87,36 +87,36 @@ The `approved_by` field on a task contract records the final approver (`user` or
 
 > Reference: [protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md](protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md)
 
-A task has six primary states (`drafted` -> `ready` -> `implementing` -> `reviewed` -> `verified` -> `passed`) and three held or terminal states (`blocked`, `escalated`, `cancelled`). `blocked` and `escalated` are temporary; once resolved, the task returns to the appropriate point in the lifecycle or terminates.
+A task has six primary states (`drafted` -> `ready` -> `implementing` -> `reviewing` -> `deciding` -> `passed`) and three held or terminal states (`blocked`, `escalated`, `cancelled`). `blocked` and `escalated` are temporary; once resolved, the task returns to the appropriate point in the lifecycle or terminates.
 
 ```mermaid
 stateDiagram-v2
     [*] --> drafted
     drafted --> ready: approved_by set<br/>+ phase gate
     ready --> implementing: dependency tasks passed<br/>+ baseline valid
-    implementing --> reviewed: self-check + required<br/>reviewer evidence submitted
-    reviewed --> verified: evidence gate passed
-    verified --> passed: closure approved
+    implementing --> reviewing: self-check submitted
+    reviewing --> deciding: evidence gate passed
+    deciding --> passed: closure approved
 
     implementing --> blocked: blocking reason
-    reviewed --> blocked: blocking reason
-    verified --> blocked: blocking reason
+    reviewing --> blocked: blocking reason
+    deciding --> blocked: blocking reason
     blocked --> ready: blocking cause resolved
     blocked --> implementing: blocking cause resolved
-    blocked --> reviewed: blocking cause resolved
+    blocked --> reviewing: blocking cause resolved
 
     blocked --> escalated: higher-level judgment required
-    verified --> escalated: higher-level judgment required
-    escalated --> passed: higher-level approved<br/>(escalated from verified)
+    deciding --> escalated: higher-level judgment required
+    escalated --> passed: higher-level approved<br/>(escalated from deciding)
     escalated --> ready: higher-level changes_requested
     escalated --> implementing: higher-level changes_requested
-    escalated --> reviewed: higher-level changes_requested
+    escalated --> reviewing: higher-level changes_requested
 
     drafted --> cancelled
     ready --> cancelled
     implementing --> cancelled
-    reviewed --> cancelled
-    verified --> cancelled
+    reviewing --> cancelled
+    deciding --> cancelled
     blocked --> cancelled
     escalated --> cancelled
 
@@ -136,7 +136,7 @@ The Evidence Gate runs in order from Tier 0 to Tier 1 to Tier 2. At any tier, `f
 
 ```mermaid
 flowchart TD
-    Start(["Gate start<br/>(task = reviewed)"])
+    Start(["Gate start<br/>(task = reviewing)"])
 
     T0["Tier 0<br/>required artifacts + required reviewer<br/>evidence submitted?"]
     T1["Tier 1<br/>repeatable objective verification<br/>defined by verification_plan<br/>(automated or manual)"]
@@ -144,7 +144,7 @@ flowchart TD
 
     Out0["gate = Tier 0 result<br/>(fail/block/error)"]
     Out1["gate = Tier 1 result<br/>(fail/block/error)"]
-    OutPass(["gate pass<br/>-> task verified"])
+    OutPass(["gate pass<br/>-> task deciding"])
     OutFail["gate fail"]
     OutBlock["gate block"]
 

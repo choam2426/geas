@@ -87,36 +87,36 @@ Task contract의 `approved_by` 필드에는 최종 승인 주체가 기록된다
 
 > 참조: `protocol/03_TASK_LIFECYCLE_AND_EVIDENCE.md`
 
-Task는 6개 주 상태(`drafted` → `ready` → `implementing` → `reviewed` → `verified` → `passed`)와 3개 보류/종결 상태(`blocked`, `escalated`, `cancelled`)를 가진다. `blocked`와 `escalated`는 일시 상태이며 해소되면 해당 조건에 따라 복귀하거나 종결된다.
+Task는 6개 주 상태(`drafted` → `ready` → `implementing` → `reviewing` → `deciding` → `passed`)와 3개 보류/종결 상태(`blocked`, `escalated`, `cancelled`)를 가진다. `blocked`와 `escalated`는 일시 상태이며 해소되면 해당 조건에 따라 복귀하거나 종결된다.
 
 ```mermaid
 stateDiagram-v2
     [*] --> drafted
     drafted --> ready: approved_by 확정<br/>+ phase gate
     ready --> implementing: 의존 task passed<br/>+ baseline 유효
-    implementing --> reviewed: self-check + required<br/>reviewer evidence 제출
-    reviewed --> verified: evidence gate 통과
-    verified --> passed: closure approved
+    implementing --> reviewing: self-check 제출
+    reviewing --> deciding: evidence gate 통과
+    deciding --> passed: closure approved
 
     implementing --> blocked: 차단 사유
-    reviewed --> blocked: 차단 사유
-    verified --> blocked: 차단 사유
+    reviewing --> blocked: 차단 사유
+    deciding --> blocked: 차단 사유
     blocked --> ready: 차단 해소
     blocked --> implementing: 차단 해소
-    blocked --> reviewed: 차단 해소
+    blocked --> reviewing: 차단 해소
 
     blocked --> escalated: 상위 판단 필요
-    verified --> escalated: 상위 판단 필요
-    escalated --> passed: 상위 approved<br/>(verified에서 escalate)
+    deciding --> escalated: 상위 판단 필요
+    escalated --> passed: 상위 approved<br/>(deciding에서 escalate)
     escalated --> ready: 상위 changes_requested
     escalated --> implementing: 상위 changes_requested
-    escalated --> reviewed: 상위 changes_requested
+    escalated --> reviewing: 상위 changes_requested
 
     drafted --> cancelled
     ready --> cancelled
     implementing --> cancelled
-    reviewed --> cancelled
-    verified --> cancelled
+    reviewing --> cancelled
+    deciding --> cancelled
     blocked --> cancelled
     escalated --> cancelled
 
@@ -136,7 +136,7 @@ Evidence gate는 Tier 0 → Tier 1 → Tier 2 순서로 진행한다. 어느 Tie
 
 ```mermaid
 flowchart TD
-    Start(["Gate 시작<br/>(task = reviewed)"])
+    Start(["Gate 시작<br/>(task = reviewing)"])
 
     T0["Tier 0<br/>필수 artifact + 필수 reviewer<br/>evidence 제출 여부"]
     T1["Tier 1<br/>verification_plan이 명시한<br/>반복 가능한 객관 검증<br/>(자동/수동 무관)"]
@@ -144,7 +144,7 @@ flowchart TD
 
     Out0["gate = Tier 0 결과<br/>(fail/block/error)"]
     Out1["gate = Tier 1 결과<br/>(fail/block/error)"]
-    OutPass(["gate pass<br/>→ task verified"])
+    OutPass(["gate pass<br/>→ task deciding"])
     OutFail["gate fail"]
     OutBlock["gate block"]
 

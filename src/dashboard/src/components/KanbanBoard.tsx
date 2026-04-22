@@ -16,8 +16,8 @@ const COLUMNS = [
   { key: "drafted", label: "Drafted", color: "#656d76" },
   { key: "ready", label: "Ready", color: "#58a6ff" },
   { key: "implementing", label: "Implementing", color: "#3fb950" },
-  { key: "reviewed", label: "Reviewed", color: "#d29922" },
-  { key: "verified", label: "Verified", color: "#56d364" },
+  { key: "reviewing", label: "Reviewing", color: "#d29922" },
+  { key: "deciding", label: "Deciding", color: "#56d364" },
   { key: "passed", label: "Passed", color: "#56d364" },
 ] as const;
 

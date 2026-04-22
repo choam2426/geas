@@ -8,14 +8,15 @@ A mission is the top-level unit that turns a user request into an executable sys
 
 ## Mission
 
-A mission is defined by two artifacts.
+A mission is defined by three artifacts.
 
-- **Mission spec** - what the mission must satisfy (the contract)
-- **Mission design** - how the mission will achieve it (the plan)
+- **Mission spec** - what the mission must satisfy (opening contract)
+- **Mission design** - how the mission will achieve it (plan)
+- **Mission verdict** - how the mission closed (closing judgment)
 
-Alongside these two artifacts, the **operating mode** determines how deep the mission's judgment and review should go (the `mode` field in the spec).
+Alongside these artifacts, the **operating mode** determines how deep the mission's judgment and review should go (the `mode` field in the spec).
 
-All three are established during the specifying phase.
+Spec and design are fixed during the specifying phase; the verdict is fixed during the consolidating phase.
 
 ### Mission Operating Mode
 
@@ -74,6 +75,29 @@ Mission design must contain the following sections. Every section is required. I
 
 Heading names must match the table exactly. The CLI validates only whether the sections exist.
 
+### Mission Verdict
+
+The mission verdict is the closing judgment for a mission. Its value is one of `approved`, `changes_requested`, `escalated`, or `cancelled`, and only the Decision Maker may issue it. All verdicts for a mission are appended in time order to the `verdicts` array of a single file, `mission-verdicts.json`. The exact structure is owned by `mission-verdicts.schema.json`.
+
+If additional work happens after `changes_requested` or `escalated` and consolidating ends again, a new verdict object is appended. The latest entry is the current judgment.
+
+Each verdict object has the following fields.
+
+| Field | Meaning |
+|---|---|
+| `verdict` | This judgment: `approved`, `changes_requested`, `escalated`, or `cancelled` |
+| `rationale` | The basis for the judgment. It may cite specific artifact paths inside the prose |
+| `carry_forward` | Items passed forward to future work, such as risks, debt, or unresolved gap items. Empty array if none |
+| `created_at` | When the verdict was written |
+
+When issuing a verdict, the Decision Maker reads the mission's full artifact set: mission spec, mission design, phase reviews, gap, debts, memory update, every mission-level deliberation, and each task's contract, evidence, and closure. The basis for the judgment is captured in `rationale`.
+
+A mission does not become `approved` automatically just because every task is `passed`. There may still be mission-level gap, accepted debt, or carry-forward work that matters to the final judgment.
+
+#### Handling a Cancelled Mission
+
+If a mission must stop because of a user request or an external reason, it closes with verdict `cancelled`. Any mission that has progressed even slightly must still go through `consolidating`, organize debts, gap, and memory updates as far as possible, and then record verdict `cancelled`. The only exception is abandoning the mission during `specifying` before the mission spec has user approval; in that case, the mission may skip consolidating, transition directly to `complete`, and record verdict `cancelled`.
+
 ## 4-Phase Model
 
 Every mission follows `specifying -> building -> polishing -> consolidating`. Once consolidating finishes, the mission phase transitions to the terminal state `complete`. If polishing introduces a new task, however, the mission may return to building.
@@ -98,32 +122,65 @@ A phase review records mission-level judgment. It does not replace task-level ve
 
 **Purpose**: turn the user request into an approvable mission baseline and design the initial task set.
 
-**Outputs**: mission spec, mission design, initial task contract set, phase review.
+**Activities in this phase** (approval order is fixed):
 
-**Responsibilities by slot**: The Orchestrator turns the request into a mission spec through conversation and deliberation with the user. The Design Authority writes the mission design and task decomposition. The user gives final approval to both - **the final approver is always the user** - and the required pre-user step varies by mode. `lightweight` goes straight to user approval. `standard` requires the Decision Maker to review the mission design and initial task contract set before user approval. `full_depth` requires a pre-user deliberation on the same items with the Decision Maker, Challenger, and one specialist. The Orchestrator also checks execution feasibility and whether reviewer composition can be supported.
+1. Orchestrator drafts the mission spec through conversation and deliberation with the user
+2. User approves the mission spec
+3. Design Authority writes the mission design
+4. Mode-dependent prerequisite:
+   - `lightweight`: none
+   - `standard`: Decision Maker reviews before user approval
+   - `full_depth`: deliberation with Decision Maker, Challenger, and one specialist (mandatory before user approval)
+5. User approves the mission design
+6. Design Authority writes the initial task contract set
+7. Mode-dependent prerequisite (same rule as step 4)
+8. User approves the initial task contract set
+9. Orchestrator checks execution feasibility and reviewer composition, then the phase gate fires
+
+**Responsibilities by slot**:
+
+| Slot | What they do |
+|---|---|
+| Orchestrator | Lead user conversation, draft mission spec, check execution feasibility and reviewer composition |
+| Design Authority | Write mission design and initial task contract set |
+| Decision Maker | Pre-user review (`standard`) or deliberation voter (`full_depth`) |
+| Challenger | Deliberation voter in `full_depth` (mandatory) |
+| Specialist | Deliberation voter in `full_depth` (one, mandatory) |
+| User | Final approver of mission spec, mission design, and initial task set |
+
+**The final approver is always the user.** Mode only changes the depth of the prerequisite process before user approval.
+
+**Outputs**: mission spec, mission design, initial task contract set, phase review.
 
 **Phase gate checks**: whether the mission spec is user-approved, whether the mission design is consistent with the mission spec, and whether the initial task contract set is user-approved.
 
 **On passing the phase gate**: change the initial tasks' `status` from `drafted` to `ready`, then transition to `building`.
 
-The approval order in specifying is fixed.
-
-1. Write the mission spec
-2. Get user approval
-3. Write the mission design
-4. Run the mode-dependent prerequisite: Decision Maker review for `standard`; deliberation with the Decision Maker, Challenger, and one specialist for `full_depth` (`lightweight` skips this)
-5. Get user approval
-6. Write the initial task contract set
-7. Run the same mode-dependent prerequisite again
-8. Get user approval
-
 ### `building`
 
 **Purpose**: execute approved task contracts and accumulate task-level evidence and closure rationale.
 
-**Outputs**: implementation contract, self-check, task evidence, gate result, task closure decision, phase review.
+**Activities in this phase** (repeated per task):
 
-**Responsibilities by slot**: Specialists perform the work and reviews. The Orchestrator manages ordering and state, and records task closure decisions.
+1. Scheduler dispatches a `ready` task (dependencies `passed` and baseline valid)
+2. Implementer writes the implementation contract, performs the implementation, and records the self-check
+3. Required reviewers submit review evidence; verifier submits verification evidence
+4. Orchestrator runs the evidence gate
+5. Orchestrator writes the task closure decision (closure evidence)
+6. When needed, Orchestrator convenes task-level deliberation
+7. When needed, Decision Maker approves an additional in-scope task contract
+8. Once every task targeted for this phase is `passed` or organized as carry-forward, the phase gate fires
+
+**Responsibilities by slot**:
+
+| Slot | What they do |
+|---|---|
+| Orchestrator | Manage task order and state, run evidence gate, record task closure decision, convene task-level deliberation when needed |
+| Specialist | Act as implementer / reviewer / verifier per task (see doc 03) |
+| Challenger | Raise task-level challenge when needed |
+| Decision Maker | Approve in-scope additional task contracts, task-level deliberation voter |
+
+**Outputs**: implementation contract, self-check, task evidence, gate result, task closure decision, phase review.
 
 **Phase gate checks**: whether the tasks intended to finish in this phase are `passed`, or whether remaining work is explicitly represented as new tasks or carry-forward items.
 
@@ -137,9 +194,24 @@ When new task contracts are added during building or polishing, the approval own
 
 **Purpose**: re-evaluate task-level completion as mission-level completeness.
 
-**Outputs**: additional task contracts when needed, phase review.
+**Activities in this phase**:
 
-**Responsibilities by slot**: The Orchestrator synthesizes the integration state. The Design Authority and relevant specialists identify any remaining structural shortfall.
+1. Orchestrator inspects the integration state
+2. Design Authority and relevant specialists identify any remaining structural shortfall
+3. Each shortfall is classified as: new task / debt / gap / no action
+4. If new tasks are needed, write contracts, approve, and return to `building`
+5. If no new tasks are needed, the phase gate fires and the mission transitions to `consolidating`
+
+**Responsibilities by slot**:
+
+| Slot | What they do |
+|---|---|
+| Orchestrator | Synthesize integration state, decide how each shortfall is treated |
+| Design Authority | Identify structural shortfall, write new task contracts when needed |
+| Specialist | Help identify structural shortfall from their lens |
+| Decision Maker | Approve new in-scope task contracts |
+
+**Outputs**: additional task contracts when needed, phase review.
 
 **Phase gate checks**: whether the remaining shortfall should become new tasks, remain as debt/gap, or be left with no additional action.
 
@@ -151,9 +223,23 @@ Polishing is not a stage for cosmetic cleanup. It is the point where the mission
 
 **Purpose**: decide what must be preserved and what must be carried forward before the mission closes.
 
-**Outputs**: gap, debts, memory inputs, mission final verdict, final phase review.
+**Activities in this phase**:
 
-**Responsibilities by slot**: The Orchestrator organizes closure rationale, debts, and memory updates. The Design Authority checks scope closure and writes the gap artifact. The Decision Maker issues the mission final verdict.
+1. Orchestrator scans every evidence, closure, and deliberation to aggregate `memory_suggestions`, `debt_candidates`, and `gap_signals`
+2. Design Authority checks scope closure and writes the gap artifact
+3. Orchestrator finalizes debt and memory updates
+4. Decision Maker synthesizes all mission artifacts and issues the mission final verdict
+5. Phase gate fires and the mission phase transitions to `complete`
+
+**Responsibilities by slot**:
+
+| Slot | What they do |
+|---|---|
+| Orchestrator | Finalize memory and debt, organize carry-forward, assemble closure rationale |
+| Design Authority | Check scope closure, write gap artifact |
+| Decision Maker | Issue mission final verdict |
+
+**Outputs**: gap, debts, memory inputs, mission final verdict, final phase review.
 
 **Phase gate checks**: whether debt and gap are organized, whether carry-forward items are visible, and whether the rationale for a final verdict is sufficient.
 
@@ -191,26 +277,3 @@ Challenger participation is optional in `lightweight` and `standard`, but mandat
 The Orchestrator may increase the voter count beyond this minimum. If the weight or scope of the issue calls for a wider perspective, the Orchestrator includes additional specialists as voters. The minimum requirements above are fixed by mode; anything beyond them is left to Orchestrator judgment.
 
 Deliberation used to close a task is owned by [03_TASK_LIFECYCLE_AND_EVIDENCE.md](./03_TASK_LIFECYCLE_AND_EVIDENCE.md).
-
-## Mission Verdict
-
-The mission verdict is the closing judgment for a mission. Its value is one of `approved`, `changes_requested`, `escalated`, or `cancelled`, and only the Decision Maker may issue it. All verdicts for a mission are appended in time order to the `verdicts` array of a single file, `mission-verdicts.json`. The exact structure is owned by `mission-verdicts.schema.json`.
-
-If additional work happens after `changes_requested` or `escalated` and consolidating ends again, a new verdict object is appended. The latest entry is the current judgment.
-
-Each verdict object has the following fields.
-
-| Field | Meaning |
-|---|---|
-| `verdict` | This judgment: `approved`, `changes_requested`, `escalated`, or `cancelled` |
-| `rationale` | The basis for the judgment. It may cite specific artifact paths inside the prose |
-| `carry_forward` | Items passed forward to future work, such as risks, debt, or unresolved gap items. Empty array if none |
-| `created_at` | When the verdict was written |
-
-### Handling a Cancelled Mission
-
-If a mission must stop because of a user request or an external reason, it closes with verdict `cancelled`. Any mission that has progressed even slightly must still go through `consolidating`, organize debts, gap, and memory updates as far as possible, and then record verdict `cancelled`. The only exception is abandoning the mission during `specifying` before the mission spec has user approval; in that case, the mission may skip consolidating, transition directly to `complete`, and record verdict `cancelled`.
-
-When issuing a verdict, the Decision Maker reads the mission's full artifact set: mission spec, mission design, phase reviews, gap, debts, memory update, every mission-level deliberation, and each task's contract, evidence, and closure. The basis for the judgment is captured in `rationale`.
-
-A mission does not become `approved` automatically just because every task is `passed`. There may still be mission-level gap, accepted debt, or carry-forward work that matters to the final judgment.

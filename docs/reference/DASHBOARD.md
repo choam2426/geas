@@ -85,7 +85,7 @@ The dashboard organizes nine views. Each view is specified as: *what it shows*, 
 
 **Reads.** `spec.json`, `mission-state.json`, `mission-design.md`, `mission-verdicts.json`, and summaries from `tasks/*/task-state.json`.
 
-**Aggregates.** Task counts are grouped by the 9-state lifecycle (`drafted`, `ready`, `implementing`, `reviewed`, `verified`, `passed`, `blocked`, `escalated`, `cancelled`).
+**Aggregates.** Task counts are grouped by the 9-state lifecycle (`drafted`, `ready`, `implementing`, `reviewing`, `deciding`, `passed`, `blocked`, `escalated`, `cancelled`).
 
 **Edge cases.**
 - `mission-state.json` missing → mission is rendered with phase `unknown` and a warning badge.

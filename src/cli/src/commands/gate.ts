@@ -11,7 +11,7 @@
  * Tiers (doc 03 §160–170):
  *   Tier 0 — Preflight: required artifacts + required reviewer reviews
  *            submitted. Checks:
- *              - task-state.status == reviewed
+ *              - task-state.status == reviewing
  *              - implementation-contract.json present + schema-valid
  *              - self-check.json present + schema-valid
  *              - for each slot in contract.routing.required_reviewers,
@@ -239,9 +239,9 @@ function computeTier0(
   // task-state.status
   if (!taskState) {
     fails.push('task-state.json missing');
-  } else if (taskState.status !== 'reviewed') {
+  } else if (taskState.status !== 'reviewing') {
     fails.push(
-      `task-state.status is '${taskState.status}'; gate requires 'reviewed'`,
+      `task-state.status is '${taskState.status}'; gate requires 'reviewing'`,
     );
   }
 
@@ -602,8 +602,8 @@ function registerGateRun(cmd: Command): void {
         command: null,
       };
       if (overall === 'pass') {
-        suggested.target_state = 'verified';
-        suggested.command = `geas task transition --mission ${opts.mission} --task ${opts.task} --to verified`;
+        suggested.target_state = 'deciding';
+        suggested.command = `geas task transition --mission ${opts.mission} --task ${opts.task} --to deciding`;
       } else if (overall === 'block') {
         suggested.target_state = 'blocked';
         suggested.command = `geas task transition --mission ${opts.mission} --task ${opts.task} --to blocked`;

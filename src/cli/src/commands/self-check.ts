@@ -6,7 +6,7 @@
  * Writes `.geas/missions/{mission_id}/tasks/{task_id}/self-check.json`.
  * Self-check is written once by the implementer after finishing implementation
  * and before independent review. Overwrite is rejected — if the implementer
- * needs to revise, they should open a `reviewed -> implementing` loop and
+ * needs to revise, they should open a `reviewing -> implementing` loop and
  * land a new self-check as part of the next pass.
  *
  * The CLI owns mission_id / task_id / created_at / updated_at; other

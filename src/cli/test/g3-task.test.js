@@ -4,17 +4,17 @@
  * Drives the 9-state task FSM through the CLI and checks the guards:
  *
  *   draft -> approve -> transition(implementing)
- *         -> self-check/evidence stubs -> transition(reviewed)
- *         -> verification evidence stub -> transition(verified)
+ *         -> self-check/evidence stubs -> transition(reviewing)
+ *         -> verification evidence stub -> transition(deciding)
  *         -> closure stub -> transition(passed)
  *
  *   blocked / escalated / cancelled branches, the
- *   reviewed -> implementing changes_requested loop (iteration bump),
+ *   reviewing -> implementing changes_requested loop (iteration bump),
  *   dependency gate, surface-conflict gate, and deterministic id
  *   generation via GEAS_MOCK_TASK_ID.
  *
- * G3's evidence-driven guards (implementing->reviewed, reviewed->verified,
- * verified->passed) check file presence only; G4 tightens them against
+ * G3's evidence-driven guards (implementing->reviewing, reviewing->deciding,
+ * deciding->passed) check file presence only; G4 tightens them against
  * evidence.schema verdicts. This test reflects that boundary by
  * constructing the marker files directly.
  */
@@ -510,7 +510,7 @@ test('transition ready -> implementing accepted when dependencies passed', () =>
   }
 });
 
-test('9-state traversal drafted -> ready -> implementing -> reviewed -> verified -> passed', () => {
+test('9-state traversal drafted -> ready -> implementing -> reviewing -> deciding -> passed', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMissionApproved(dir);
@@ -528,32 +528,32 @@ test('9-state traversal drafted -> ready -> implementing -> reviewed -> verified
     );
     assert.equal(r.status, 0, `ready->implementing failed: ${r.stderr}`);
 
-    // implementing -> reviewed (needs impl-contract + self-check + review evidence for challenger)
+    // implementing -> reviewing (needs impl-contract + self-check + review evidence for challenger)
     writeImplContractStub(dir, 'task-001');
     writeSelfCheckStub(dir, 'task-001');
     writeReviewEvidenceStub(dir, 'task-001', 'research-integrity-reviewer', 'challenger');
     r = runCli(
-      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'reviewed'],
+      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'reviewing'],
       { cwd: dir },
     );
-    assert.equal(r.status, 0, `implementing->reviewed failed: ${r.stderr}\n${r.stdout}`);
+    assert.equal(r.status, 0, `implementing->reviewing failed: ${r.stderr}\n${r.stdout}`);
 
-    // reviewed -> verified (verifier evidence + gate run)
+    // reviewing -> deciding (verifier evidence + gate run)
     writeVerifierEvidenceStub(dir, 'task-001');
     runGatePass(dir, 'task-001');
     r = runCli(
-      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'verified'],
+      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'deciding'],
       { cwd: dir },
     );
-    assert.equal(r.status, 0, `reviewed->verified failed: ${r.stderr}\n${r.stdout}`);
+    assert.equal(r.status, 0, `reviewing->deciding failed: ${r.stderr}\n${r.stdout}`);
 
-    // verified -> passed (needs closure approved)
+    // deciding -> passed (needs closure approved)
     writeClosureApproved(dir, 'task-001');
     r = runCli(
       ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'passed'],
       { cwd: dir },
     );
-    assert.equal(r.status, 0, `verified->passed failed: ${r.stderr}\n${r.stdout}`);
+    assert.equal(r.status, 0, `deciding->passed failed: ${r.stderr}\n${r.stdout}`);
 
     const state = readArtifact(
       dir,
@@ -565,7 +565,7 @@ test('9-state traversal drafted -> ready -> implementing -> reviewed -> verified
   }
 });
 
-test('implementing -> reviewed rejected without self-check', () => {
+test('implementing -> reviewing rejected without self-check', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMissionApproved(dir);
@@ -580,7 +580,7 @@ test('implementing -> reviewed rejected without self-check', () => {
       { cwd: dir },
     );
     const res = runCli(
-      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'reviewed'],
+      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'reviewing'],
       { cwd: dir },
     );
     assert.notEqual(res.status, 0);
@@ -591,7 +591,7 @@ test('implementing -> reviewed rejected without self-check', () => {
   }
 });
 
-test('implementing -> reviewed rejected when required reviewer slot has no evidence file', () => {
+test('implementing -> reviewing allowed with only self-check — reviewer evidence is enforced by gate Tier 0 later', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMissionApproved(dir);
@@ -613,19 +613,14 @@ test('implementing -> reviewed rejected when required reviewer slot has no evide
       { cwd: dir },
     );
     writeSelfCheckStub(dir, 'task-001');
-    writeReviewEvidenceStub(dir, 'task-001', 'challenger-a', 'challenger');
-    // Missing risk-assessor evidence.
+    // Intentionally no reviewer evidence — transition must still succeed.
+    // Gate Tier 0 will enforce reviewer-evidence presence at gate run time.
 
     const res = runCli(
-      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'reviewed'],
+      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'reviewing'],
       { cwd: dir },
     );
-    assert.notEqual(res.status, 0);
-    assert.equal(res.json.error.code, 'guard_failed');
-    assert.deepEqual(
-      res.json.error.hints.missing_review_slots,
-      ['risk-assessor'],
-    );
+    assert.equal(res.status, 0, `transition should succeed: ${res.stderr}\n${res.stdout}`);
   } finally {
     cleanup();
   }
@@ -740,7 +735,7 @@ test('escalated branch: blocked -> escalated -> passed (closure approved)', () =
   }
 });
 
-test('reviewed -> implementing (changes_requested) increments verify_fix_iterations', () => {
+test('reviewing -> implementing (changes_requested) increments verify_fix_iterations', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMissionApproved(dir);
@@ -757,17 +752,17 @@ test('reviewed -> implementing (changes_requested) increments verify_fix_iterati
     writeSelfCheckStub(dir, 'task-001');
     writeReviewEvidenceStub(dir, 'task-001', 'challenger-a', 'challenger');
     let r = runCli(
-      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'reviewed'],
+      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'reviewing'],
       { cwd: dir },
     );
-    assert.equal(r.status, 0, `implementing->reviewed failed: ${r.stderr}`);
+    assert.equal(r.status, 0, `implementing->reviewing failed: ${r.stderr}`);
 
     // Changes requested — go back to implementing.
     r = runCli(
       ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'implementing'],
       { cwd: dir },
     );
-    assert.equal(r.status, 0, `reviewed->implementing failed: ${r.stderr}\n${r.stdout}`);
+    assert.equal(r.status, 0, `reviewing->implementing failed: ${r.stderr}\n${r.stdout}`);
 
     const state = readArtifact(
       dir,
@@ -778,7 +773,7 @@ test('reviewed -> implementing (changes_requested) increments verify_fix_iterati
 
     // One more loop, iterations becomes 2.
     r = runCli(
-      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'reviewed'],
+      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'reviewing'],
       { cwd: dir },
     );
     assert.equal(r.status, 0);

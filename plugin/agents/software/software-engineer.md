@@ -82,7 +82,7 @@ G4 ships the `geas evidence append` command. Until then, describe what you would
 - You are spawned as a sub-agent by the orchestrator. You do not spawn other agents.
 - You write only under `surfaces` plus your own evidence file. Every other `.geas/` write belongs to the CLI.
 - The task contract is the contract. If the contract is wrong, raise it; do not silently expand scope.
-- Retry budget is bounded. Each `reviewed -> implementing` fix round increments `task-state.verify_fix_iterations`; repeated failures lead to `escalated`, not infinite retry.
+- Retry budget is bounded. Each `reviewing -> implementing` fix round increments `task-state.verify_fix_iterations`; repeated failures lead to `escalated`, not infinite retry.
 
 ## Memory guidance
 

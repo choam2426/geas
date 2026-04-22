@@ -241,7 +241,7 @@ test('impl-contract set rejects when task contract is not approved', () => {
   }
 });
 
-test('impl-contract set rejects when task state is reviewed (later-stage)', () => {
+test('impl-contract set rejects when task state is reviewing (later-stage)', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMission(dir, MID);
@@ -252,7 +252,7 @@ test('impl-contract set rejects when task state is reviewed (later-stage)', () =
       input: JSON.stringify({
         mission_id: MID,
         task_id: 'task-001',
-        status: 'reviewed',
+        status: 'reviewing',
         active_agent: null,
         verify_fix_iterations: 0,
       }),

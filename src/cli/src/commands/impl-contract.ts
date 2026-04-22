@@ -71,7 +71,7 @@ function needProjectRoot(): string {
 /**
  * Allowed task states from which the impl-contract may be written.
  * Pre-implementation agreement is only meaningful before implementation
- * ends; later states (reviewed/verified/passed) have already moved past
+ * ends; later states (reviewing/deciding/passed) have already moved past
  * the plan, and terminal states (cancelled/escalated) cannot accept new
  * plans.
  */

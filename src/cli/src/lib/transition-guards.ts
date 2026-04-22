@@ -216,31 +216,31 @@ export function canAdvanceMissionPhase(
 //
 // Task lifecycle — protocol doc 03. Nine states total:
 //
-//   drafted, ready, implementing, reviewed, verified, passed,
+//   drafted, ready, implementing, reviewing, deciding, passed,
 //   blocked, escalated, cancelled
 //
 // Main forward path:
 //
-//   drafted -> ready -> implementing -> reviewed -> verified -> passed
+//   drafted -> ready -> implementing -> reviewing -> deciding -> passed
 //
 // blocked / escalated / cancelled branches may be entered from active
 // states. blocked is recoverable (back to ready / implementing /
-// reviewed); escalated routes to passed (if upward decision approves)
-// or back to ready/implementing/reviewed (if upward decision asks for
+// reviewing); escalated routes to passed (if upward decision approves)
+// or back to ready/implementing/reviewing (if upward decision asks for
 // changes). passed / cancelled are terminal. escalated is a holding
 // state awaiting upward judgment, but once reached, the only exits are
 // the ones above.
 //
-// `reviewed -> implementing` is the changes_requested loop: the gate
-// or closure decision asked for changes and the orchestrator re-enters
-// implementing. Each such re-entry increments verify_fix_iterations.
+// `reviewing -> implementing` is the verify-fix loop: gate verdict=fail
+// rewinds the task so the implementer folds reviewer/verifier concerns
+// back in. Each such re-entry increments verify_fix_iterations.
 
 export type TaskState =
   | 'drafted'
   | 'ready'
   | 'implementing'
-  | 'reviewed'
-  | 'verified'
+  | 'reviewing'
+  | 'deciding'
   | 'passed'
   | 'blocked'
   | 'escalated'
@@ -250,8 +250,8 @@ export const TASK_STATES: readonly TaskState[] = [
   'drafted',
   'ready',
   'implementing',
-  'reviewed',
-  'verified',
+  'reviewing',
+  'deciding',
   'passed',
   'blocked',
   'escalated',
@@ -263,25 +263,20 @@ export const TASK_STATES: readonly TaskState[] = [
  * doc 03 transition table.
  *
  * Main path:
- *   drafted -> ready -> implementing -> reviewed -> verified -> passed
+ *   drafted -> ready -> implementing -> reviewing -> deciding -> passed
  *
- * Changes-requested loop from reviewed back into implementing. The
- * `verify -> implementing` edge is NOT present (protocol 03): a failed
- * gate returns the task to reviewed (re-review) or implementing via
- * orchestrator restoration, and the concrete restoration is decided by
- * the orchestrator. We model:
- *   reviewed -> implementing  (changes_requested fix loop)
- *   verified -> reviewed      (gate re-run requested)
- * both of which exist in protocol 03's prose ("Orchestrator가 이유에
- * 맞는 작업 상태로 되돌린다").
+ * Verify-fix loop:
+ *   reviewing -> implementing  (gate verdict=fail; implementer folds
+ *                               reviewer/verifier concerns back in)
+ *   deciding -> reviewing      (gate re-run requested; rare)
  *
  * blocked branch:
- *   implementing, reviewed, verified -> blocked
- *   blocked -> ready | implementing | reviewed
+ *   implementing, reviewing, deciding -> blocked
+ *   blocked -> ready | implementing | reviewing
  *
  * escalated branch:
- *   blocked, verified -> escalated
- *   escalated -> passed | ready | implementing | reviewed
+ *   blocked, deciding -> escalated
+ *   escalated -> passed | ready | implementing | reviewing
  *
  * cancel: any non-terminal state -> cancelled.
  * passed and cancelled are terminal; escalated is exited only through
@@ -291,40 +286,40 @@ export const TASK_TRANSITIONS: ReadonlySet<string> = new Set([
   // Forward main path
   'drafted->ready',
   'ready->implementing',
-  'implementing->reviewed',
-  'reviewed->verified',
-  'verified->passed',
+  'implementing->reviewing',
+  'reviewing->deciding',
+  'deciding->passed',
 
-  // Changes-requested loop
-  'reviewed->implementing',
-  'verified->reviewed',
+  // Verify-fix loop
+  'reviewing->implementing',
+  'deciding->reviewing',
 
   // Blocked entry
   'implementing->blocked',
-  'reviewed->blocked',
-  'verified->blocked',
+  'reviewing->blocked',
+  'deciding->blocked',
 
   // Blocked exit (unblock)
   'blocked->ready',
   'blocked->implementing',
-  'blocked->reviewed',
+  'blocked->reviewing',
 
   // Escalation entry
   'blocked->escalated',
-  'verified->escalated',
+  'deciding->escalated',
 
   // Escalation exit (upward verdict)
   'escalated->passed',
   'escalated->ready',
   'escalated->implementing',
-  'escalated->reviewed',
+  'escalated->reviewing',
 
   // Cancel from any non-terminal state
   'drafted->cancelled',
   'ready->cancelled',
   'implementing->cancelled',
-  'reviewed->cancelled',
-  'verified->cancelled',
+  'reviewing->cancelled',
+  'deciding->cancelled',
   'blocked->cancelled',
   'escalated->cancelled',
 ]);
@@ -338,8 +333,8 @@ export function isValidTaskState(v: unknown): v is TaskState {
  * The guard uses these (rather than re-reading files) so callers can
  * compose the check from state they already have.
  *
- * Evidence-driven checks (implementing -> reviewed, reviewed ->
- * verified, verified -> passed) are delegated to G4. G3 only models
+ * Evidence-driven checks (implementing -> reviewing, reviewing ->
+ * deciding, deciding -> passed) are delegated to G4. G3 only models
  * whether the minimum marker files exist (e.g. self-check.json,
  * closure evidence file). G4 tightens these into evidence.schema
  * validation and verdict inspection.
@@ -396,7 +391,7 @@ export interface TaskStateHints {
   /**
    * Whether the orchestrator closure evidence file exists, its last entry
    * is a closure entry with `verdict=approved`, and the file validates
-   * against the evidence schema. Required for verified -> passed and
+   * against the evidence schema. Required for deciding -> passed and
    * escalated -> passed.
    */
   closureApproved: boolean;
@@ -481,46 +476,44 @@ export function canTransitionTaskState(
     return pass();
   }
 
-  // ── implementing -> reviewed: schema-valid self-check + at least one
-  // valid review entry per required reviewer slot.
-  if (from === 'implementing' && to === 'reviewed') {
+  // ── implementing -> reviewing: schema-valid self-check only.
+  // Reviewer evidence is NOT checked here per protocol doc 03 — it is
+  // produced DURING the reviewing state and enforced by gate Tier 0.
+  if (from === 'implementing' && to === 'reviewing') {
     if (!hints.selfCheckExists) {
       return fail(
-        'implementing -> reviewed requires self-check.json to exist and validate against the self-check schema',
-      );
-    }
-    if (!hints.reviewEvidenceExists) {
-      return fail(
-        'implementing -> reviewed requires at least one review-kind evidence entry with a valid verdict for every required review slot',
-        { missing_review_slots: hints.missingReviewSlots },
+        'implementing -> reviewing requires self-check.json to exist and validate against the self-check schema',
       );
     }
     return pass();
   }
 
-  // ── reviewed -> verified: gate-results last run verdict=pass with
-  // tier_2.status=pass.
-  if (from === 'reviewed' && to === 'verified') {
+  // ── reviewing -> deciding: gate-results last run verdict=pass with
+  // tier_2.status=pass. Gate Tier 0 itself enforces that required
+  // reviewer evidence and implementation-contract + self-check are
+  // present; if any are missing, gate returns fail/block and this
+  // transition is blocked.
+  if (from === 'reviewing' && to === 'deciding') {
     if (!hints.verificationEvidenceExists) {
       return fail(
-        'reviewed -> verified requires a gate-results run with verdict=pass and tier_2.status=pass',
+        'reviewing -> deciding requires a gate-results run with verdict=pass and tier_2.status=pass',
       );
     }
     return pass();
   }
 
-  // ── verified -> passed: schema-valid closure evidence with
+  // ── deciding -> passed: schema-valid closure evidence with
   // verdict=approved.
-  if (from === 'verified' && to === 'passed') {
+  if (from === 'deciding' && to === 'passed') {
     if (!hints.closureApproved) {
       return fail(
-        'verified -> passed requires orchestrator closure evidence (evidence_kind=closure, verdict=approved) that validates against the evidence schema',
+        'deciding -> passed requires orchestrator closure evidence (evidence_kind=closure, verdict=approved) that validates against the evidence schema',
       );
     }
     return pass();
   }
 
-  // ── escalated -> passed: closure evidence approved (same as verified->passed)
+  // ── escalated -> passed: closure evidence approved (same as deciding->passed)
   if (from === 'escalated' && to === 'passed') {
     if (!hints.closureApproved) {
       return fail(
@@ -530,8 +523,8 @@ export function canTransitionTaskState(
     return pass();
   }
 
-  // All other edges (to blocked / cancelled / escalated / changes-requested
-  // loops / reviewed restoration) are unconditional per protocol 03 once
+  // All other edges (to blocked / cancelled / escalated / verify-fix
+  // loops / reviewing restoration) are unconditional per protocol 03 once
   // the transition is in the known table.
   return pass();
 }

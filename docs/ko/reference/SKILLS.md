@@ -27,7 +27,7 @@ Skill 층은 17개 skill로 구성된다. 사용자가 직접 호출하는 skill
 | `drafting-task` | B. Mission lifecycle | main_session | 불가 | Task contract 1건 작성(초기 set 또는 중간 scope-in). 승인 시 ready 전이 |
 | `scheduling-work` | B. Mission lifecycle | main_session | 불가 | 표면 충돌 규칙 하에 task 병렬 배치 구성, implementer dispatch |
 | `running-gate` | B. Mission lifecycle | main_session | 불가 | Tier 0/1/2 gate 실행, reviewer verdict 집계, `fail`이면 제한 수정-재검증 루프 |
-| `closing-task` | B. Mission lifecycle | main_session | 불가 | Orchestrator closure evidence 기록, task-state `verified → passed` 전이 |
+| `closing-task` | B. Mission lifecycle | main_session | 불가 | Orchestrator closure evidence 기록, task-state `deciding → passed` 전이 |
 | `reviewing-phase` | B. Mission lifecycle | main_session | 불가 | Phase-review entry append와 mission-state phase 전진 |
 | `consolidating-mission` | B. Mission lifecycle | main_session | 불가 | Consolidating phase의 debt·gap·memory 승격 |
 | `verdicting-mission` | B. Mission lifecycle | main_session | 불가 | Mission-verdict 작성. `complete` 전이는 사용자 확인 후 dispatcher가 수행 |
@@ -89,17 +89,17 @@ Task contract가 필요할 때 mission dispatcher가 invoke한다 — specifying
 
 #### `running-gate`
 
-Task의 모든 required reviewer slot과 verifier가 evidence를 append한 뒤 mission dispatcher가 invoke한다. Tier 0/1/2 gate를 실행하고 reviewer verdict를 집계하며, `fail` verdict 시 제한된 verify-fix 루프를 돈다(`reviewed → implementing`으로 되감고 `verify_fix_iterations` 증가). `pass` 또는 예산 소진까지 반복. `block` / `error` / `pass`는 루프에 진입하지 않으며 오직 `fail`만 진입한다.
+Task의 모든 required reviewer slot과 verifier가 evidence를 append한 뒤 mission dispatcher가 invoke한다. Tier 0/1/2 gate를 실행하고 reviewer verdict를 집계하며, `fail` verdict 시 제한된 verify-fix 루프를 돈다(`reviewing → implementing`으로 되감고 `verify_fix_iterations` 증가). `pass` 또는 예산 소진까지 반복. `block` / `error` / `pass`는 루프에 진입하지 않으며 오직 `fail`만 진입한다.
 
-- 트리거 — `task-state.status == reviewed` + `self-check.json` 유효 + `routing.required_reviewers`의 모든 slot evidence 존재 + verifier evidence 존재.
+- 트리거 — `task-state.status == reviewing` + `self-check.json` 유효 + `routing.required_reviewers`의 모든 slot evidence 존재 + verifier evidence 존재.
 - 주된 CLI — `geas gate run`, `geas task transition`(rewind용 `implementing` 또는 예산 소진 시 `escalated`), 수정 반복 시 `geas evidence append --slot implementer`.
 - 주 산출물 — `tasks/{tid}/gate-results.json`의 신규 entry, 되감긴 task-state 전이, 수정 반복 시 추가 implementation evidence.
 
 #### `closing-task`
 
-`verified` 상태 task에 gate가 `verdict=pass`를 반환한 뒤 mission dispatcher가 invoke한다. Orchestrator 권위(slot = orchestrator, `verdict=approved`)로 closure evidence를 작성하며 retrospective 필드(잘 된 점, 망가진 점, 예상 밖, 다음엔 이렇게)를 함께 기록한다. 이어서 task-state를 `verified → passed`로 전이한다. `verified`를 빠져나오는 유일한 경로이며, retrospective 필드는 consolidation 입력이 된다.
+`deciding` 상태 task에 gate가 `verdict=pass`를 반환한 뒤 mission dispatcher가 invoke한다. Orchestrator 권위(slot = orchestrator, `verdict=approved`)로 closure evidence를 작성하며 retrospective 필드(잘 된 점, 망가진 점, 예상 밖, 다음엔 이렇게)를 함께 기록한다. 이어서 task-state를 `deciding → passed`로 전이한다. `deciding`를 빠져나오는 유일한 경로이며, retrospective 필드는 consolidation 입력이 된다.
 
-- 트리거 — `task-state.status == verified`이고 gate run의 verdict가 `pass`인 경우. 에스컬레이션 해결 후 재진입에도 같은 entry 형식을 사용한다.
+- 트리거 — `task-state.status == deciding`이고 gate run의 verdict가 `pass`인 경우. 에스컬레이션 해결 후 재진입에도 같은 entry 형식을 사용한다.
 - 주된 CLI — `geas evidence append --kind closure`, `geas task transition --to passed`.
 - 주 산출물 — `tasks/{tid}/evidence/`의 closure-kind orchestrator evidence entry, `task-state.status = passed`.
 
@@ -144,14 +144,14 @@ Task의 모든 required reviewer slot과 verifier가 evidence를 append한 뒤 m
 승인되고 dependency가 만족된 task를 dispatcher가 넘겨주었을 때 spawn된 implementer가 invoke한다. 코드 작성 전에 구체 계획(planned_actions, edge_cases, demo_steps)을 선언하고 reviewer concurrence를 1라운드 받는다. 계획 승인 후에만 `implementing`으로 전이해 변경을 수행하며, 마무리로 implementation-kind evidence entry 1건과 `self-check.json`을 기록한다. 같은 concrete agent가 동일 task에서 implementer와 reviewer/verifier를 겸하는 것은 금지다.
 
 - 트리거 — 첫 실행은 `task-state.status == ready`, verify-fix 수정 실행은 `implementing`. `base_snapshot`이 실제 workspace와 일치해야 한다.
-- 주된 CLI — `geas self-check set`, `geas evidence append --slot implementer`(계약용 `plan-proposal` kind, 최종 기록용 `implementation` kind), `geas task transition --to implementing|reviewed`.
+- 주된 CLI — `geas self-check set`, `geas evidence append --slot implementer`(계약용 `plan-proposal` kind, 최종 기록용 `implementation` kind), `geas task transition --to implementing|reviewing`.
 - 주 산출물 — `tasks/{tid}/evidence/`의 implementation-kind evidence entry, `tasks/{tid}/self-check.json`. (별도의 `impl-contract set` 등록은 비블로킹 queue에 있으며, 현재는 계획 concurrence를 `evidence append --kind plan-proposal` + reviewer review entry로 기록한다.)
 
 #### `reviewing-task`
 
 Implementer가 implementation evidence와 `self-check.json`을 제출한 뒤(또는 implementer가 계획을 먼저 제안한 사전 concurrence 시점에) spawn된 reviewer(challenger / risk-assessor / operator / communicator)가 invoke한다. 자기 lane의 evidence를 읽고 verdict를 세워 review-kind evidence entry 1건을 append한다. 슬롯별 입장(적대적 / 실패 모드 / 운용성 / 사람 표면)은 agent 파일이 담고, 여기서는 공통 절차만 다룬다.
 
-- 트리거 — `implementing` 상태 task(사전 계획 concurrence) 또는 `reviewed` 상태 task(사후 review)에 reviewer로 spawn된 경우. 해당 task의 implementer와 겸할 수 없다.
+- 트리거 — `implementing` 상태 task(사전 계획 concurrence) 또는 `reviewing` 상태 task(사후 review)에 reviewer로 spawn된 경우. 해당 task의 implementer와 겸할 수 없다.
 - 주된 CLI — `geas evidence append --slot <reviewer slot>`에 `evidence_kind: review`.
 - 주 산출물 — `verdict`, `concerns`, `scope_examined`, `methods_used`를 갖춘 review-kind evidence entry.
 
@@ -159,7 +159,7 @@ Implementer가 implementation evidence와 `self-check.json`을 제출한 뒤(또
 
 Reviewer concurrence가 끝난 뒤(또는 full-depth에서는 reviewer와 병렬로) spawn된 verifier가 invoke한다. Task contract의 `verification_plan`을 implementer와 독립적으로 실행하고, 모든 acceptance criterion을 pass/fail로 구체 근거와 함께 매핑한 verification-kind evidence entry 1건을 기록한다. 누락·모호한 검증은 gate `error`를 만든다.
 
-- 트리거 — `task-state.status == reviewed`(또는 verifier를 reviewer와 병렬로 돌리는 프로파일에서는 `implementing`). implementation-kind evidence가 ≥1건 있고 `base_snapshot`이 workspace와 일치해야 한다.
+- 트리거 — `task-state.status == reviewing`(또는 verifier를 reviewer와 병렬로 돌리는 프로파일에서는 `implementing`). implementation-kind evidence가 ≥1건 있고 `base_snapshot`이 workspace와 일치해야 한다.
 - 주된 CLI — `geas evidence append --slot verifier`에 `evidence_kind: verification`.
 - 주 산출물 — 모든 acceptance criterion을 덮는 `criteria_results`를 갖춘 verifier evidence entry.
 

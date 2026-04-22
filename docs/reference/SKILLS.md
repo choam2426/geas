@@ -26,7 +26,7 @@ Execution kinds:
 | `drafting-task` | B. Mission lifecycle | main_session | No | Authors one task contract (initial set or mid-mission scope-in) and moves it to ready on approval |
 | `scheduling-work` | B. Mission lifecycle | main_session | No | Constructs a task-level parallel batch under surface-conflict rules and dispatches implementers |
 | `running-gate` | B. Mission lifecycle | main_session | No | Runs Tier 0/1/2 gate, aggregates reviewer verdicts, and drives the bounded verify-fix loop on fail |
-| `closing-task` | B. Mission lifecycle | main_session | No | Writes orchestrator closure evidence and transitions task-state from verified to passed |
+| `closing-task` | B. Mission lifecycle | main_session | No | Writes orchestrator closure evidence and transitions task-state from deciding to passed |
 | `reviewing-phase` | B. Mission lifecycle | main_session | No | Appends a phase-review entry and advances mission-state phase |
 | `consolidating-mission` | B. Mission lifecycle | main_session | No | Promotes debt / gap / memory candidates in consolidating phase |
 | `verdicting-mission` | B. Mission lifecycle | main_session | No | Authors the mission-verdict entry; dispatcher transitions to complete after user confirmation |
@@ -88,17 +88,17 @@ Invoked by the mission dispatcher when one or more approved tasks have all depen
 
 #### `running-gate`
 
-Invoked by the mission dispatcher when all required reviewer slots and the verifier have appended evidence for a task. Runs the Tier 0/1/2 gate, aggregates reviewer verdicts, and on a `fail` verdict runs the bounded verify-fix loop (rewinding `reviewed → implementing` with `verify_fix_iterations` incremented) until `pass` or budget exhaustion. `fail` enters the loop; `block` / `error` / `pass` do not.
+Invoked by the mission dispatcher when all required reviewer slots and the verifier have appended evidence for a task. Runs the Tier 0/1/2 gate, aggregates reviewer verdicts, and on a `fail` verdict runs the bounded verify-fix loop (rewinding `reviewing → implementing` with `verify_fix_iterations` incremented) until `pass` or budget exhaustion. `fail` enters the loop; `block` / `error` / `pass` do not.
 
-- Trigger — `task-state.status == reviewed` with `self-check.json` valid, all `routing.required_reviewers` evidence files present, and verifier evidence present.
+- Trigger — `task-state.status == reviewing` with `self-check.json` valid, all `routing.required_reviewers` evidence files present, and verifier evidence present.
 - Primary CLI — `geas gate run`, `geas task transition` (to `implementing` for rewind or `escalated` on budget exhaustion), `geas evidence append --slot implementer` during fix iterations.
 - Primary outputs — new entries in `tasks/{tid}/gate-results.json`; rewound task-state transitions; additional implementation evidence entries on fix iterations.
 
 #### `closing-task`
 
-Invoked by the mission dispatcher when the gate has returned `verdict=pass` on a task in the `verified` state. Writes the orchestrator-authored closure evidence (slot = orchestrator, `verdict=approved`) with retrospective fields (what went well, what broke, surprises, next-time guidance), then transitions task-state from `verified → passed`. Closure is the only way to leave `verified`; retrospective fields feed consolidation.
+Invoked by the mission dispatcher when the gate has returned `verdict=pass` on a task in the `deciding` state. Writes the orchestrator-authored closure evidence (slot = orchestrator, `verdict=approved`) with retrospective fields (what went well, what broke, surprises, next-time guidance), then transitions task-state from `deciding → passed`. Closure is the only way to leave `deciding`; retrospective fields feed consolidation.
 
-- Trigger — task in `task-state.status == verified` with a passing gate run; also used on re-entry after escalation resolution.
+- Trigger — task in `task-state.status == deciding` with a passing gate run; also used on re-entry after escalation resolution.
 - Primary CLI — `geas evidence append --kind closure`, `geas task transition --to passed`.
 - Primary outputs — closure-kind orchestrator evidence entry under `tasks/{tid}/evidence/`; `task-state.status = passed`.
 
@@ -143,14 +143,14 @@ Invoked by the mission dispatcher when `mission.mode == full_depth` and a multi-
 Invoked by a spawned implementer after the dispatcher hands off an approved, dependency-satisfied task. Before writing code, the implementer states the concrete plan (planned_actions, edge_cases, demo_steps) and obtains one-round reviewer concurrence on the plan. Only after plan approval does the task transition to `implementing`. Closes out with one implementation-kind evidence entry plus the `self-check.json`. Same concrete agent cannot hold implementer and reviewer/verifier on the same task.
 
 - Trigger — `task-state.status == ready` on first run, or `implementing` on a verify-fix revision; `base_snapshot` still matches the real workspace.
-- Primary CLI — `geas self-check set`, `geas evidence append --slot implementer` (kinds `plan-proposal` for the contract and `implementation` for the final entry), `geas task transition --to implementing|reviewed`.
+- Primary CLI — `geas self-check set`, `geas evidence append --slot implementer` (kinds `plan-proposal` for the contract and `implementation` for the final entry), `geas task transition --to implementing|reviewing`.
 - Primary outputs — implementation-kind evidence entry under `tasks/{tid}/evidence/`, plus `tasks/{tid}/self-check.json`. (The separate `impl-contract set` registration is on the non-blocking queue; today the plan concurrence is recorded through `evidence append --kind plan-proposal` + reviewer review entries.)
 
 #### `reviewing-task`
 
 Invoked by a spawned reviewer (challenger / risk-assessor / operator / communicator) after an implementer has appended implementation evidence plus `self-check.json` (post-work review) or after the implementer has proposed a plan (pre-work concurrence). Reads the evidence in the reviewer's lane, forms a verdict, and appends one review-kind evidence entry. Stance (adversarial / failure-modes / operability / human-surfaces) lives in the agent file; the shared procedure lives here.
 
-- Trigger — spawned as reviewer for a task in `implementing` (pre-work plan concurrence) or `reviewed` (post-work review); reviewer is not the implementer on this task.
+- Trigger — spawned as reviewer for a task in `implementing` (pre-work plan concurrence) or `reviewing` (post-work review); reviewer is not the implementer on this task.
 - Primary CLI — `geas evidence append --slot <reviewer slot>` with `evidence_kind: review`.
 - Primary outputs — review-kind evidence entry with `verdict`, `concerns`, `scope_examined`, `methods_used`.
 
@@ -158,7 +158,7 @@ Invoked by a spawned reviewer (challenger / risk-assessor / operator / communica
 
 Invoked by a spawned verifier after reviewers have returned concurrence (or alongside them in full-depth). Runs the task contract's `verification_plan` independently of the implementer and records one verification-kind evidence entry mapping every acceptance criterion to a pass/fail result with concrete details. Missing or ambiguous verification produces a gate `error`.
 
-- Trigger — `task-state.status == reviewed` (or `implementing` in profiles that run verifier concurrent with reviewers); at least one implementation-kind evidence entry exists; `base_snapshot` still matches.
+- Trigger — `task-state.status == reviewing` (or `implementing` in profiles that run verifier concurrent with reviewers); at least one implementation-kind evidence entry exists; `base_snapshot` still matches.
 - Primary CLI — `geas evidence append --slot verifier` with `evidence_kind: verification`.
 - Primary outputs — verifier evidence entry with `criteria_results` covering every acceptance criterion.
 

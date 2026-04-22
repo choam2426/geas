@@ -6,7 +6,7 @@ Supporting detail for the gate verdict interpretation, self-check reuse, and ver
 
 | verdict | Budget impact | Next action |
 |---|---|---|
-| `pass` | none | Dispatcher invokes `closing-task` → orchestrator writes closure evidence → `task transition --to verified` → `--to passed`. |
+| `pass` | none | Dispatcher invokes `closing-task` → orchestrator writes closure evidence → `task transition --to deciding` → `--to passed`. |
 | `fail` | Consumes one `verify_fix_iterations` slot | Rewind via `task transition --to implementing`. Dispatch implementer with fix brief. Reviewers re-append review entries. Re-run gate. |
 | `block` | No budget consumed | `task transition --to blocked`. Cannot re-gate until the block is resolved upstream. Return control to dispatcher. |
 | `error` | No budget consumed | Resolve cause (tooling, plan ambiguity, snapshot drift) and re-run. After 3 consecutive `error` verdicts → `blocked`. |
@@ -24,7 +24,7 @@ Collecting self-check without consuming it in all three tiers is non-conformant.
 ## Verify-fix loop invariants
 
 - The loop runs only on gate verdict `fail`.
-- `verify_fix_iterations` is CLI-incremented automatically on each `reviewed → implementing` transition. Agents and skills never edit this field directly.
+- `verify_fix_iterations` is CLI-incremented automatically on each `reviewing → implementing` transition. Agents and skills never edit this field directly.
 - Default budget = 3. `risk_level = critical` tightens the budget to 1.
 - A fix without updated reviewer evidence is not a fix. Every iteration re-collects reviewer entries before the next gate run.
 - Budget exhaustion path: `* → blocked` (unconditional) → `blocked → escalated`. Decision-maker then writes closure evidence with verdict `escalated` or `cancelled`. A follow-up task with a `supersedes` link may be drafted by the dispatcher + `drafting-task`.

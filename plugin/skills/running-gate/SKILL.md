@@ -1,6 +1,6 @@
 ---
 name: running-gate
-description: Invoked by the mission dispatcher when all required reviewer slots and the verifier have appended evidence for a task; runs `geas gate run` (which reads those evidence files and computes Tier 0/1/2 statuses itself), interprets the resulting verdict, and on a fail verdict runs the bounded verify-fix loop (rewinding reviewed→implementing with verify_fix_iterations incremented) until pass or budget exhaustion.
+description: Invoked by the mission dispatcher when all required reviewer slots and the verifier have appended evidence for a task; runs `geas gate run` (which reads those evidence files and computes Tier 0/1/2 statuses itself), interprets the resulting verdict, and on a fail verdict runs the bounded verify-fix loop (rewinding reviewing→implementing with verify_fix_iterations incremented) until pass or budget exhaustion.
 user-invocable: false
 ---
 
@@ -14,7 +14,7 @@ Answers "may this task move toward `passed`?" by asking the CLI for a gate verdi
 
 ## When to Use
 
-- Dispatcher signals a task in `reviewed` state with evidence present for every required reviewer slot + verifier.
+- Dispatcher signals a task in `reviewing` state with evidence present for every required reviewer slot + verifier.
 - Re-run after verify-fix: implementer has re-submitted, reviewers have re-inspected, and verifier has re-appended a verification-kind entry.
 - Do NOT run on a task in `implementing` — Tier 0 returns `fail`.
 - Do NOT run when any required evidence is missing — Tier 0 / Tier 1 will explain what's missing; the absence itself is not an error to work around.
@@ -23,7 +23,7 @@ Answers "may this task move toward `passed`?" by asking the CLI for a gate verdi
 
 Required for the gate to produce a non-`fail` / non-`error` verdict (the CLI still records the run either way, so these are preconditions for a useful verdict, not for the command itself):
 
-- `task-state.status == reviewed`.
+- `task-state.status == reviewing`.
 - `implementation-contract.json` exists and validates.
 - `self-check.json` exists and validates.
 - For every slot in `routing.required_reviewers`: at least one `evidence/*.{slot}.json` file has a review-kind entry with a valid verdict (`approved` / `changes_requested` / `blocked`).
@@ -62,7 +62,7 @@ See `references/verdict-handling.md` for the verdict table, self-check reuse mat
 |---|---|
 | "All reviewers said approved; gate is redundant" | Gate verifies Tier 0 (artifact presence + validity) + Tier 1 (verifier evidence) + Tier 2 (verdict aggregation). Three distinct checks, computed from three distinct evidence sources. |
 | "Just stub the tier_results on stdin to move things along" | The CLI ignores stdin. The gate's authority comes from reading evidence files, not from caller-supplied claims. Stubbing never worked after the rewrite. |
-| "This task is low risk; skip the full gate" | Risk level does not bypass the gate. `reviewed → verified` guard rejects without a gate-results run whose verdict is `pass`. |
+| "This task is low risk; skip the full gate" | Risk level does not bypass the gate. `reviewing → deciding` guard rejects without a gate-results run whose verdict is `pass`. |
 | "Time pressure — treat `changes_requested` as pass" | `verify_fix_iterations` is bounded, not optional. Verdict manipulation corrupts the audit trail and will be caught by the gate on re-read. |
 | "Reset iterations so the loop gets another try" | `verify_fix_iterations` is authoritative. If the count is wrong, that is a CLI bug, not a workaround opportunity. |
 | "Fix the code directly without re-reviewer evidence or re-verifier evidence" | A fix without updated reviewer / verifier verdicts is an unverified claim. The gate reads the LATEST entry in each file — stale entries become the basis for a stale verdict. |
@@ -90,7 +90,7 @@ The gate never creates evidence. It reads.
 ## Failure Handling
 
 - **Tier 0 `fail` (missing artifact)**: return to dispatcher; the missing precondition must be supplied (usually a reviewer or the verifier forgot to append). Re-running the gate without supplying the missing artifact returns the same `fail`.
-- **Tier 0 `error` (state or schema)**: task-state.status is not `reviewed`, or one of impl-contract / self-check / reviewer files is corrupt. Fix before re-running.
+- **Tier 0 `error` (state or schema)**: task-state.status is not `reviewing`, or one of impl-contract / self-check / reviewer files is corrupt. Fix before re-running.
 - **Tier 1 `error`**: verifier evidence is missing, has no verification entry, or the latest entry is internally inconsistent (verdict=approved but some `criteria_results.passed` is false). The verifier must re-run with a coherent entry. After three consecutive `error`s → `blocked`.
 - **Tier 2 conflict** (reviewers disagree on incompatible grounds): invoke `convening-deliberation` before re-running the gate; the deliberation result feeds the next review round's verdicts.
 - **Budget exhaustion**: `blocked` → `escalated`. Decision-maker reviews the full trail and writes closure evidence with verdict `escalated` or `cancelled`. Rationale states whether a supersedes-linked successor is needed.
@@ -98,7 +98,7 @@ The gate never creates evidence. It reads.
 
 ## Related Skills
 
-- **Invoked by**: mission dispatcher once all required reviewer slots and the verifier have evidence for a `reviewed` task.
+- **Invoked by**: mission dispatcher once all required reviewer slots and the verifier have evidence for a `reviewing` task.
 - **Invokes**: `convening-deliberation` (Tier 2 conflict in `full_depth`); the verify-fix loop dispatches the primary implementer which runs `implementing-task` in a spawned context, and re-spawns reviewers + verifier via `reviewing-task` / `verifying-task`.
 - **Do NOT invoke**: `closing-task` — the dispatcher invokes it after this skill returns `pass`. `reviewing-phase` — phase review is a separate concern after all mission-scope tasks are terminal.
 

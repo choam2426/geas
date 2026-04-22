@@ -292,8 +292,8 @@ function fullTaskRun(dir, missionId, taskId, opts = {}) {
   );
   assert.equal(r.status, 0, `verifier evidence failed: ${r.stderr}\n${r.stdout}`);
 
-  // implementing -> reviewed
-  transition(dir, missionId, taskId, 'reviewed');
+  // implementing -> reviewing
+  transition(dir, missionId, taskId, 'reviewing');
 
   // gate run — no stdin; gate reads evidence files and computes tiers.
   r = runCli(['gate', 'run', '--mission', missionId, '--task', taskId], {
@@ -306,8 +306,8 @@ function fullTaskRun(dir, missionId, taskId, opts = {}) {
     `gate verdict expected pass, got: ${JSON.stringify(r.json.data)}`,
   );
 
-  // reviewed -> verified
-  transition(dir, missionId, taskId, 'verified');
+  // reviewing -> deciding
+  transition(dir, missionId, taskId, 'deciding');
 
   // orchestrator closure evidence
   r = runCli(
@@ -327,7 +327,7 @@ function fullTaskRun(dir, missionId, taskId, opts = {}) {
   );
   assert.equal(r.status, 0, `closure append failed: ${r.stderr}\n${r.stdout}`);
 
-  // verified -> passed
+  // deciding -> passed
   transition(dir, missionId, taskId, 'passed');
 
   const state = readArtifact(
@@ -730,7 +730,7 @@ test('E2E blocked path: task blocked -> cancelled, superseding task completes to
 
 // ── Verify-fix loop scenario ────────────────────────────────────────────
 
-test('E2E verify-fix loop: reviewed -> implementing increments verify_fix_iterations', () => {
+test('E2E verify-fix loop: reviewing -> implementing increments verify_fix_iterations', () => {
   const MID = 'mission-20260420-e2everif';
   const { dir, cleanup } = makeTempRoot();
   try {
@@ -741,7 +741,7 @@ test('E2E verify-fix loop: reviewed -> implementing increments verify_fix_iterat
     });
     advancePhase(dir, MID, 'building');
 
-    // First round: ready -> implementing -> reviewed.
+    // First round: ready -> implementing -> reviewing.
     transition(dir, MID, 'task-001', 'implementing');
 
     // impl-contract (Tier 0 preflight input)
@@ -818,7 +818,7 @@ test('E2E verify-fix loop: reviewed -> implementing increments verify_fix_iterat
     );
     assert.equal(r.status, 0);
 
-    transition(dir, MID, 'task-001', 'reviewed');
+    transition(dir, MID, 'task-001', 'reviewing');
 
     // Gate run: tier 2 reviewer=changes_requested → overall fail.
     r = runCli(['gate', 'run', '--mission', MID, '--task', 'task-001'], {
@@ -827,7 +827,7 @@ test('E2E verify-fix loop: reviewed -> implementing increments verify_fix_iterat
     assert.equal(r.status, 0);
     assert.equal(r.json.data.verdict, 'fail');
 
-    // Rewind: reviewed -> implementing; iteration counter bumps.
+    // Rewind: reviewing -> implementing; iteration counter bumps.
     transition(dir, MID, 'task-001', 'implementing');
     let state = readArtifact(
       dir,
@@ -883,7 +883,7 @@ test('E2E verify-fix loop: reviewed -> implementing increments verify_fix_iterat
     );
     assert.equal(r.status, 0);
 
-    transition(dir, MID, 'task-001', 'reviewed');
+    transition(dir, MID, 'task-001', 'reviewing');
 
     // Second gate run: reviewer now approved, verifier still approved from
     // first round → Tier 1 pass, Tier 2 pass, overall pass.
@@ -893,7 +893,7 @@ test('E2E verify-fix loop: reviewed -> implementing increments verify_fix_iterat
     assert.equal(r.status, 0);
     assert.equal(r.json.data.verdict, 'pass');
 
-    transition(dir, MID, 'task-001', 'verified');
+    transition(dir, MID, 'task-001', 'deciding');
 
     r = runCli(
       [
@@ -948,7 +948,7 @@ test('E2E deliberation: full_depth accepts; standard rejects', () => {
     transition(full.dir, MID_FULL, 'task-001', 'implementing');
 
     const entry = {
-      proposal_summary: 'should the task advance to reviewed now?',
+      proposal_summary: 'should the task advance to reviewing now?',
       votes: [
         { voter: 'challenger', vote: 'agree', rationale: 'acceptable' },
         { voter: 'risk-assessor', vote: 'agree', rationale: 'risk low' },

@@ -246,7 +246,7 @@ When a command requires state transition or reference integrity, the CLI reads p
 
 - `task transition --to ready`: `contract.approved_by != null`. Tasks added mid-mission and still in scope may move directly to `ready` as soon as that condition is satisfied. The initial task set is moved to `ready` by the specifying -> building bulk transition in Section 14.2, so the system does not call `task transition --to ready` individually for those tasks.
 - `task transition --to implementing`: every dependency task must already be `passed`
-- `task transition --to verified`: the latest run in `gate-results.runs` must have verdict `pass`
+- `task transition --to deciding`: the latest run in `gate-results.runs` must have verdict `pass`
 - `task transition --to passed`: the task must contain an Orchestrator closure entry whose verdict is `approved`
 
 If a guard fails, the CLI returns `guard_failed`.
@@ -329,14 +329,14 @@ These match the task-lifecycle transition table in protocol doc 03. The CLI read
 |---|---|---|
 | `drafted -> ready` | `contract.json` | `approved_by != null` |
 | `ready -> implementing` | each dependency's `task-state.json` | all have `status == passed` |
-| `implementing -> reviewed` | `self-check.json` + `evidence/*.{slot}.json` | `self-check` exists, and for every slot listed in `contract.routing.required_reviewers` there is an evidence file tagged with that slot from some concrete agent and containing at least one entry |
-| `reviewed -> verified` | `gate-results.runs` | the latest run verdict is `pass` |
-| `verified -> passed` | `evidence/orchestrator.orchestrator.json` | the latest entry has `evidence_kind=closure` and `verdict=approved` |
+| `implementing -> reviewing` | `self-check.json` | `self-check` exists and validates against the self-check schema. Reviewer evidence is not required at this transition — it is enforced by gate Tier 0 inside the `reviewing` state |
+| `reviewing -> deciding` | `gate-results.runs` | the latest run verdict is `pass` |
+| `deciding -> passed` | `evidence/orchestrator.orchestrator.json` | the latest entry has `evidence_kind=closure` and `verdict=approved` |
 | `* -> blocked` | - | always allowed (reason is recorded in closure or state) |
-| `blocked -> ready/implementing/reviewed` | - | always allowed (Orchestrator judgment) |
+| `blocked -> ready/implementing/reviewing` | - | always allowed (Orchestrator judgment) |
 | `* -> escalated` | - | always allowed |
 | `escalated -> passed` | `evidence/orchestrator.orchestrator.json` | latest closure entry verdict is `approved` |
-| `escalated -> ready/implementing/reviewed` | `evidence/orchestrator.orchestrator.json` | latest closure entry verdict is `changes_requested` |
+| `escalated -> ready/implementing/reviewing` | `evidence/orchestrator.orchestrator.json` | latest closure entry verdict is `changes_requested` |
 | `* -> cancelled` | - | always allowed |
 
 Phase transitions through `mission-state update --phase` follow the same rule: the last entry in `phase-reviews.reviews` must have `status=passed`, and its `next_phase` must match the target.
@@ -636,14 +636,14 @@ Deliberation entries are appended only once the result is final. An "open delibe
   "ids": { "gate_run_id": "gate-2" },
   "suggested_next_transition": {
     "verdict": "pass",
-    "target_state": "verified",
-    "command": "geas task transition --task task-001 --to verified"
+    "target_state": "deciding",
+    "command": "geas task transition --task task-001 --to deciding"
   }
 }
 ```
 
 - target mapping by verdict:
-  - `pass` -> `verified`
+  - `pass` -> `deciding`
   - `block` -> `blocked`
   - `fail` -> `null` (the Orchestrator chooses the rewind target)
   - `error` -> `null` (the cause must be resolved and the gate rerun)
@@ -663,7 +663,7 @@ Deliberation entries are appended only once the result is final. An "open delibe
   "phase": "building",
   "active_tasks": [
     {"task_id": "task-001", "status": "implementing", "active_agent": "software-engineer"},
-    {"task_id": "task-002", "status": "reviewed", "pending_gate": true}
+    {"task_id": "task-002", "status": "reviewing", "pending_gate": true}
   ],
   "pending": {
     "drafted_unapproved": ["task-003"],
@@ -714,9 +714,9 @@ These commands write only the Markdown files and do not touch `memory-update.jso
 The following actions always require an explicit Orchestrator call. The CLI does not automate them:
 
 - `task transition --to blocked/cancelled/escalated` - a reason must be stated explicitly
-- `task transition --to ready/implementing/reviewed` when returning from `blocked` - the restore point requires judgment
+- `task transition --to ready/implementing/reviewing` when returning from `blocked` - the restore point requires judgment
 - choosing the rewind target after a `changes_requested` closure
-- the `verified` transition after `gate run` (Section 14.5 provides a hint only)
+- the `deciding` transition after `gate run` (Section 14.5 provides a hint only)
 - lifecycle transitions after `evidence append`, including closure; evidence writes and state transitions remain separate operations
 - `mission-verdict append`, which is reserved for Decision Maker judgment
 - `debt update-status`, whose status change is semantic, not mechanical
