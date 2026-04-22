@@ -71,18 +71,32 @@ You have been spawned as the implementer for an approved task. Before writing co
    EOF
    ```
    On a revision run, set `revision_ref` to the prior `evidence_id`.
-8. **Write the self-check.**
+8. **Write the self-check.** The self-check is a worker-side factual record, not a confidence score. The reviewer and the gate read it to orient their own checks.
    ```bash
    geas self-check set --mission {mission_id} --task {task_id} <<'EOF'
    {
-     "confidence": 1-5,
-     "acceptance_criteria_status": [{"criterion": "...", "status": "met|unmet|partial", "note": "..."}],
-     "surprises": "...",
-     "remaining_risks": ["..."]
+     "completed_work": "<one paragraph: what you actually landed on which surfaces>",
+     "reviewer_focus": [
+       "<area reviewers should inspect first — your own known weak spot 1>",
+       "<area 2>"
+     ],
+     "known_risks": [
+       "<forward-looking risk or unresolved concern that remains after implementation>"
+     ],
+     "deviations_from_plan": [
+       "<how the actual work diverged from implementation-contract.planned_actions, if at all>"
+     ],
+     "gap_signals": [
+       "<early signal of scope or expectation gap noticed during work>"
+     ]
    }
    EOF
    ```
-   Self-check must cover every acceptance criterion. Honest confidence — do not inflate.
+   - `completed_work` is a factual statement of what landed, not a confidence claim. No "mostly done", no 1–5 score.
+   - `reviewer_focus` is the main honesty test: name the areas you yourself are least sure about. An empty array on a non-trivial task is a red flag.
+   - `known_risks` are forward-looking (what could still break); `deviations_from_plan` and `gap_signals` are backward-looking (what actually happened vs. the plan / vs. the scope).
+   - All five fields are required by the schema; use `[]` for arrays that legitimately have nothing.
+   - Per-criterion pass/fail belongs to the verifier's evidence (`criteria_results`), NOT here. Do not restate criterion outcomes in self-check.
 9. **Return.** The orchestrator now moves the task to `reviewed` and runs `running-gate`.
 
 ## Red Flags
@@ -92,7 +106,9 @@ You have been spawned as the implementer for an approved task. Before writing co
 | "This task is trivial — skip the plan and just code" | The plan catches the ambiguity that causes rework. Friction is the point. |
 | "I'll leave `non_goals` empty since it's self-evident" | Undeclared scope is the top source of "why did you change that too" review cycles. |
 | "I'll pick a reasonable interpretation of the ambiguous requirement silently" | `open_questions` exists to surface exactly that. Silent interpretation is the anti-pattern this skill prevents. |
-| "I'll inflate self-check confidence to look decisive" | Gate reads honest self-check; inflated confidence corrupts downstream memory extraction. |
+| "Put `confidence: 5` in self-check" | The self-check schema has no `confidence` field. That was the v2 shape. v3 self-check is factual (`completed_work`, `reviewer_focus`, `known_risks`, `deviations_from_plan`, `gap_signals`); a confidence score gets rejected at append time. |
+| "Leave `reviewer_focus` empty — everything looks fine" | `reviewer_focus` is the main honesty test. Empty array on a non-trivial task claims zero self-known weak spots, which is almost never true. Name the areas you are least sure about so reviewers land there first. |
+| "Restate each criterion's pass/fail in self-check" | Per-criterion pass/fail is the verifier's `criteria_results`. Self-check is a worker-side factual record of what was done, not a grading sheet. |
 | "I'll amend the plan after the fact in the same entry" | Amendments are append-only new entries with `revision_ref`. Overwriting breaks the trajectory audit. |
 | "I'll also review my own work to save a round" | CLI enforces agent-slot independence. Implementer cannot hold reviewer or verifier on the same task. |
 
@@ -102,7 +118,7 @@ You have been spawned as the implementer for an approved task. Before writing co
 |---|---|
 | `geas impl-contract set --mission <id> --task <id>` | Record the pre-work implementation plan (initial + amendments). CLI injects envelope + validates against `implementation-contract.schema`. |
 | `geas evidence append --slot implementer --agent <concrete> --mission <id> --task <id>` | Append implementation-kind evidence (initial + revisions + amendments). |
-| `geas self-check set --mission <id> --task <id>` | Record the end-of-work self-check (confidence + per-criterion status). |
+| `geas self-check set --mission <id> --task <id>` | Record the end-of-work self-check (completed_work, reviewer_focus, known_risks, deviations_from_plan, gap_signals). |
 | `geas task transition --to implementing` | Orchestrator-invoked; triggers CLI's `verify_fix_iterations` bookkeeping. |
 | `geas task transition --to reviewed` | Orchestrator-invoked once implementation evidence + self-check are present. |
 
@@ -112,7 +128,7 @@ Sub-skills you do NOT invoke: `reviewing-task` (reviewers run it), `verifying-ta
 
 - One `implementation-contract.json` payload (via the registered CLI surface) before any code.
 - One or more `implementation`-kind evidence entries (plan, amendments, final).
-- One `self-check.json` entry capturing confidence + per-criterion status.
+- One `self-check.json` capturing `completed_work`, `reviewer_focus`, `known_risks`, `deviations_from_plan`, `gap_signals`.
 - Source changes inside `change_scope` only.
 - No direct writes to `.geas/` — every append is through the CLI.
 
@@ -135,5 +151,5 @@ Sub-skills you do NOT invoke: `reviewing-task` (reviewers run it), `verifying-ta
 - Plan first, concurrence second, code third. No shortcuts.
 - `non_goals` and `open_questions` are mandatory content.
 - Stay inside `change_scope`; amend via a new evidence entry if reality forces a deviation.
-- Self-check is honest, not marketing.
+- Self-check is factual, not a confidence score. `completed_work` + honest `reviewer_focus` beat any 1–5 rating.
 - One revision cycle default; escalate rather than loop.
