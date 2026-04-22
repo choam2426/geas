@@ -29,12 +29,12 @@ You have been spawned as a reviewer for a task. Your slot's system prompt define
 
 ## Process
 
-1. **Read your inputs in order.**
+1. **Read your inputs in order. Start with `reviewer_focus`.**
+   - **Self-check first**: `reviewer_focus` is the implementer's own list of "where I am least sure — look here first". Read it before anything else and let it shape where you spend time. Also read `completed_work` (what actually landed), `deviations_from_plan` (how it diverged from impl-contract), `known_risks` (forward-looking concerns), `gap_signals` (scope/expectation mismatches). There is no `confidence` field in v3 self-check.
    - Task contract: `goal`, `acceptance_criteria`, `verification_plan`, `surfaces`, `routing`, `risk_level`, `dependencies`, `supersedes`.
    - Implementation evidence (latest entry; walk back via `revision_ref` for trajectory).
-   - Self-check: `confidence`, per-criterion status, `surprises`, `remaining_risks`.
    - Mission spec + mission design for project-wide constraints.
-   - Prior review entries on this task (to avoid duplicating concerns already raised and resolved).
+   - Prior review entries on this task (to avoid duplicating concerns already raised and resolved). Per-criterion pass/fail is NOT your input — that lives in the verifier's `criteria_results`; you are answering slot-specific questions, not grading criteria.
 2. **Scope your review to your slot's lens.**
    - challenger: adversarial — what would cause this to fail? where are the hidden assumptions?
    - risk-assessor: failure modes — what happens when something goes wrong? are risks honest?
@@ -45,22 +45,30 @@ You have been spawned as a reviewer for a task. Your slot's system prompt define
    - `approved` — criteria are met within your lens; concerns (if any) are non-blocking and recorded honestly.
    - `changes_requested` — specific corrections needed; each concern must cite a criterion or surface and suggest the correction.
    - `blocked` — the plan or implementation as stated cannot proceed; structural issue, scope violation, dependency failure, etc.
-4. **Write the review-kind evidence entry** via CLI:
+4. **Write the review-kind evidence entry** via CLI. Every listed field is required for `review` kind per the evidence schema:
    ```bash
    geas evidence append --mission {mission_id} --task {task_id} \
        --agent {your_concrete_agent} --slot {your_slot} <<'EOF'
    {
      "evidence_kind": "review",
      "summary": "<one-line summary of your verdict>",
-     "verdict": "approved | changes_requested | blocked",
-     "concerns": [{"severity": "info|warn|blocker", "text": "..."}],
-     "rationale": "<why this verdict, citing artifacts>",
-     "scope_examined": "<what you actually inspected>",
-     "methods_used": ["read contract", "diff implementation", "..."],
-     "scope_excluded": "<what's out of your lens>"
+     "verdict": "approved",
+     "concerns": [
+       "race condition in module.ts L142 when N>100; reproducible with the attached script",
+       "retry count is a magic number; callers cannot tune it"
+     ],
+     "rationale": "<why this verdict, citing artifacts + entry_ids>",
+     "scope_examined": "<what you actually inspected — files, flows, docs>",
+     "methods_used": ["read contract", "diff implementation", "run verification_plan step 2"],
+     "scope_excluded": [
+       "performance envelope — that is the operator's lens, not mine"
+     ]
    }
    EOF
    ```
+   - `concerns` is `string[]` — each concern is one plain-text sentence (or a short paragraph). No `{severity, text}` objects; the schema rejects them. Severity is conveyed by `verdict`: if a concern is blocking, the whole verdict is `blocked`; if it requires rework, `changes_requested`; otherwise `approved` with the concern still recorded for the audit trail. Write specific concerns — "line 142" beats "performance looks sketchy".
+   - `scope_excluded` is `string[]` — use `[]` when nothing is excluded; never a single string.
+   - `methods_used` must have at least one concrete entry (schema `minItems: 1`).
 5. **Return.** The orchestrator aggregates every required reviewer's verdict in Tier 2 of `running-gate`. You do not wait for other reviewers; you do not see their verdicts.
 
 ## Red Flags
@@ -73,6 +81,9 @@ You have been spawned as a reviewer for a task. Your slot's system prompt define
 | "I'll examine beyond my slot's lens to be helpful" | Stay in lane. Cross-slot commentary blurs the audit; if another slot is missing a view, raise it to the orchestrator, don't absorb the slot. |
 | "I'll edit the implementation directly and mark approved" | Reviewers never edit. If you can fix it yourself, you are an implementer — and you cannot be both on this task. |
 | "I'll skip reading prior reviews to stay unbiased" | Prior reviews name resolved concerns; re-raising them wastes the verify-fix budget. |
+| "Put concerns as `{severity, text}` objects like the old docs showed" | The evidence schema is `concerns: string[]`. Objects are rejected at append. Severity lives in `verdict`, not inside each concern. |
+| "`scope_excluded` is just a quick note, a single string is fine" | `scope_excluded` is `string[]`. Use `[]` for nothing excluded, otherwise one entry per excluded item. A single string fails schema validation. |
+| "Read self-check's `confidence` to calibrate my review" | v3 self-check has no `confidence`. Read `reviewer_focus` first — the implementer's own weak-spot list is far more useful than a 1–5 score ever was. |
 
 ## Invokes
 
@@ -83,9 +94,10 @@ You have been spawned as a reviewer for a task. Your slot's system prompt define
 Read-only helpers:
 | CLI command | Purpose |
 |---|---|
-| `geas evidence list --mission <id> --task <id>` | Walk prior evidence, including prior reviews. |
 | `geas mission state --mission <id>` | Confirm phase + approval state. |
-| `geas event query --mission <id> --task <id>` | Trace the task's transition history. |
+| `geas context` | Mission overview from the dispatcher view. |
+
+(There is no `geas evidence list` or `geas event query`. Walk prior evidence by reading `.geas/missions/{id}/tasks/{id}/evidence/*.json` directly; trace transitions by reading `.geas/events.jsonl` if a history view is needed.)
 
 Sub-skills you do NOT invoke: none.
 
@@ -97,7 +109,7 @@ Sub-skills you do NOT invoke: none.
 ## Failure Handling
 
 - **Implementation evidence missing** (post-work review): stop; return to orchestrator. Do not review absent work.
-- **Self-check missing or schema-invalid**: return to orchestrator with a note; the implementer must fix the self-check before Tier 0 passes.
+- **Self-check missing or schema-invalid**: return to orchestrator with a note; the implementer must fix the self-check before the gate's Tier 0 passes. In particular, a self-check that uses v2 fields (`confidence`, `surprises`, `remaining_risks`, `acceptance_criteria_status`) is schema-invalid and must be rewritten with `completed_work` + `reviewer_focus` + `known_risks` + `deviations_from_plan` + `gap_signals`.
 - **Criterion outside your slot's lens**: record `scope_excluded`; do not issue verdict over that criterion.
 - **Evidence of implementer-as-reviewer conflict**: refuse the review, return with note. CLI should have prevented the spawn.
 - **Base_snapshot drift**: raise as `blocked` with concern about snapshot mismatch; orchestrator re-bases.
