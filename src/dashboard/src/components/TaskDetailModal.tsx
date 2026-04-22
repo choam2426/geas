@@ -341,41 +341,45 @@ export default function TaskDetailModal({
                 </Section>
               )}
 
-              {detail.self_check && (
-                <Section title="Self-check">
-                  <div className="space-y-3">
-                    {detail.self_check.completed_work && (
-                      <p className="whitespace-pre-wrap">
-                        {detail.self_check.completed_work}
-                      </p>
-                    )}
-                    {detail.self_check.reviewer_focus.length > 0 && (
-                      <div>
-                        <p className="text-xs text-text-muted mb-1">Reviewer focus</p>
-                        <BulletList items={detail.self_check.reviewer_focus} />
-                      </div>
-                    )}
-                    {detail.self_check.known_risks.length > 0 && (
-                      <div>
-                        <p className="text-xs text-text-muted mb-1">Known risks</p>
-                        <BulletList items={detail.self_check.known_risks} />
-                      </div>
-                    )}
-                    {detail.self_check.deviations_from_plan.length > 0 && (
-                      <div>
-                        <p className="text-xs text-text-muted mb-1">Deviations</p>
-                        <BulletList items={detail.self_check.deviations_from_plan} />
-                      </div>
-                    )}
-                    {detail.self_check.gap_signals.length > 0 && (
-                      <div>
-                        <p className="text-xs text-text-muted mb-1">Gap signals</p>
-                        <BulletList items={detail.self_check.gap_signals} />
-                      </div>
-                    )}
-                  </div>
-                </Section>
-              )}
+              {detail.self_check && detail.self_check.entries.length > 0 && (() => {
+                const latestEntry = detail.self_check.entries[detail.self_check.entries.length - 1];
+                const totalEntries = detail.self_check.entries.length;
+                return (
+                  <Section title={totalEntries > 1 ? `Self-check (latest of ${totalEntries})` : "Self-check"}>
+                    <div className="space-y-3">
+                      {latestEntry.completed_work && (
+                        <p className="whitespace-pre-wrap">
+                          {latestEntry.completed_work}
+                        </p>
+                      )}
+                      {latestEntry.reviewer_focus.length > 0 && (
+                        <div>
+                          <p className="text-xs text-text-muted mb-1">Reviewer focus</p>
+                          <BulletList items={latestEntry.reviewer_focus} />
+                        </div>
+                      )}
+                      {latestEntry.known_risks.length > 0 && (
+                        <div>
+                          <p className="text-xs text-text-muted mb-1">Known risks</p>
+                          <BulletList items={latestEntry.known_risks} />
+                        </div>
+                      )}
+                      {latestEntry.deviations_from_plan.length > 0 && (
+                        <div>
+                          <p className="text-xs text-text-muted mb-1">Deviations</p>
+                          <BulletList items={latestEntry.deviations_from_plan} />
+                        </div>
+                      )}
+                      {latestEntry.gap_signals.length > 0 && (
+                        <div>
+                          <p className="text-xs text-text-muted mb-1">Gap signals</p>
+                          <BulletList items={latestEntry.gap_signals} />
+                        </div>
+                      )}
+                    </div>
+                  </Section>
+                );
+              })()}
 
               <Section
                 title="Evidence Gate Status"

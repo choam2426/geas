@@ -144,7 +144,7 @@ Task의 모든 required reviewer slot과 verifier가 evidence를 append한 뒤 m
 승인되고 dependency가 만족된 task를 dispatcher가 넘겨주었을 때 spawn된 implementer가 invoke한다. 코드 작성 전에 구체 계획(planned_actions, edge_cases, demo_steps)을 선언하고 reviewer concurrence를 1라운드 받는다. 계획 승인 후에만 `implementing`으로 전이해 변경을 수행하며, 마무리로 implementation-kind evidence entry 1건과 `self-check.json`을 기록한다. 같은 concrete agent가 동일 task에서 implementer와 reviewer/verifier를 겸하는 것은 금지다.
 
 - 트리거 — 첫 실행은 `task-state.status == ready`, verify-fix 수정 실행은 `implementing`. `base_snapshot`이 실제 workspace와 일치해야 한다.
-- 주된 CLI — `geas self-check set`, `geas evidence append --slot implementer`(계약용 `plan-proposal` kind, 최종 기록용 `implementation` kind), `geas task transition --to implementing|reviewing`.
+- 주된 CLI — `geas self-check append`, `geas evidence append --slot implementer`(계약용 `plan-proposal` kind, 최종 기록용 `implementation` kind), `geas task transition --to implementing|reviewing`.
 - 주 산출물 — `tasks/{tid}/evidence/`의 implementation-kind evidence entry, `tasks/{tid}/self-check.json`. (별도의 `impl-contract set` 등록은 비블로킹 queue에 있으며, 현재는 계획 concurrence를 `evidence append --kind plan-proposal` + reviewer review entry로 기록한다.)
 
 #### `reviewing-task`
@@ -206,7 +206,7 @@ Reviewer concurrence가 끝난 뒤(또는 full-depth에서는 reviewer와 병렬
 | `consolidating-mission` | `debt register`, `gap set`, `memory-update set`, `memory shared-set`, `memory agent-set` |
 | `verdicting-mission` | `mission-verdict append`, `mission-state update --phase complete` |
 | `convening-deliberation` | `deliberation append --level mission\|task` |
-| `implementing-task` | `self-check set`, `evidence append --slot implementer`, `task transition` |
+| `implementing-task` | `self-check append`, `evidence append --slot implementer`, `task transition` |
 | `reviewing-task` | `evidence append --slot <reviewer slot>` |
 | `verifying-task` | `evidence append --slot verifier` |
 | `deliberating-on-proposal` | (없음 — 소집 skill로 vote 반환) |

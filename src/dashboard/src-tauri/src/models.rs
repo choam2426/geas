@@ -350,11 +350,9 @@ pub struct ImplementationContract {
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[allow(dead_code)]
-pub struct SelfCheck {
+pub struct SelfCheckEntry {
     #[serde(default)]
-    pub mission_id: Option<String>,
-    #[serde(default)]
-    pub task_id: Option<String>,
+    pub entry_id: u32,
     #[serde(default)]
     pub completed_work: Option<String>,
     #[serde(default)]
@@ -365,6 +363,21 @@ pub struct SelfCheck {
     pub deviations_from_plan: Vec<String>,
     #[serde(default)]
     pub gap_signals: Vec<String>,
+    #[serde(default)]
+    pub revision_ref: Option<u32>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[allow(dead_code)]
+pub struct SelfCheck {
+    #[serde(default)]
+    pub mission_id: Option<String>,
+    #[serde(default)]
+    pub task_id: Option<String>,
+    #[serde(default)]
+    pub entries: Vec<SelfCheckEntry>,
     #[serde(default)]
     pub created_at: Option<String>,
     #[serde(default)]

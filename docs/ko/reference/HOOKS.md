@@ -147,7 +147,7 @@ Mission · task 컨텍스트는 의도적으로 주입하지 않는다. Mission 
 | `task_drafted` | `geas task draft` |
 | `task_approved` | `geas task approve` |
 | `task_state_changed` | `geas task transition` |
-| `self_check_set` | `geas self-check set` |
+| `self_check_appended` | `geas self-check append` |
 | `evidence_appended` | `geas evidence append` |
 | `gate_run_recorded` | `geas gate run` |
 | `deliberation_appended` | `geas deliberation append` |

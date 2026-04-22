@@ -28,7 +28,7 @@ Writes the closure evidence that finalizes a task. Closure is an orchestrator-au
 
 ## Process
 
-1. **Read the trail.** Load the contract, self-check, all reviewer entries, the verifier entry, and the latest gate run. Identify the acceptance criteria that the gate Tier 1 marked pass, the concerns reviewers raised, and the `gap_signals` / `debt_candidates` / `memory_suggestions` accumulated across the entries.
+1. **Read the trail.** Load the contract, the self-check (read all entries to see iteration history; the latest entry is the implementer's final view), all reviewer entries, the verifier entry, and the latest gate run. Identify the acceptance criteria that the gate Tier 1 marked pass, the concerns reviewers raised, and the `gap_signals` / `debt_candidates` / `memory_suggestions` accumulated across the entries.
 2. **Write the retrospective.** Draft closure fields:
    - `what_went_well` — concrete observations, not platitudes.
    - `what_broke` — failure modes encountered, even if recovered.
@@ -88,7 +88,7 @@ The CLI injects `entry_id`, `created_at`; the agent/slot come from flags.
 
 - **CLI `guard_failed` on transition**: the closure entry is missing, the wrong kind, or the wrong verdict. Re-read the evidence file; append again with corrected fields. Do not attempt state mutation.
 - **Schema rejection on evidence append**: `evidence_kind=closure` has specific required fields (retrospective fields). Read hints; fill missing ones.
-- **Conflicting signals** (gate says pass but self-check surfaces a deviation): record the deviation in the retrospective; do not paper over it. If the conflict is severe, transition to `blocked` instead and escalate — closure with `verdict=approved` is for clean passes only.
+- **Conflicting signals** (gate says pass but the latest self-check entry surfaces a deviation): record the deviation in the retrospective; do not paper over it. If the conflict is severe, transition to `blocked` instead and escalate — closure with `verdict=approved` is for clean passes only.
 - **Escalated task reaching closure**: verdict may be `escalated` or `cancelled` instead of `approved`. That path is not this skill's default; the dispatcher may route via decision-maker.
 
 ## Related Skills

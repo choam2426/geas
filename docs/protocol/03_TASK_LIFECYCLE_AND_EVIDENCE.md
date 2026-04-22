@@ -358,16 +358,33 @@ If the implementation direction changes materially, the implementer must update 
 
 ## Implementer Self-Check
 
-The implementer self-check is the self-review record left by the task's assigned `implementer` after implementation and before independent review begins. The canonical artifact is `self-check.json`, and the exact structure is owned by `self-check.schema.json`.
+The implementer self-check is the append-only self-review log left by the task's assigned `implementer` after each implementation pass and before independent review begins. The canonical artifact is `self-check.json`, and the exact structure is owned by `self-check.schema.json`. The envelope mirrors the evidence file shape: one file per task holds a sequence of self-check entries, one per implementer pass.
+
+### File envelope
 
 | Field | Meaning |
 |---|---|
 | `mission_id`, `task_id` | Identifiers used for path and consistency checks |
-| `completed_work` | What the implementer believes was actually completed |
-| `reviewer_focus` | Places the implementer believes reviewers should examine first. Empty array if none |
-| `known_risks` | Forward-looking concerns that remain after implementation. Empty array if none |
-| `deviations_from_plan` | Where execution diverged from `planned_actions` in the implementation contract. Empty array if execution matched the plan |
-| `gap_signals` | Early signals of scope or expectation mismatch discovered during implementation. These later flow into closure evidence and mission gap. Empty array if none |
+| `entries` | Append-only array of self-check entries in chronological order. At least one entry must exist |
+| `created_at` | When the file was first written |
+| `updated_at` | When the last entry was appended |
+
+### Entry fields
+
+| Field | Meaning |
+|---|---|
+| `entry_id` | Monotonically increasing integer starting at 1 within the file |
+| `completed_work` | What the implementer believes was actually completed in this pass |
+| `reviewer_focus` | Places the implementer believes reviewers should examine first, based on this pass. Empty array if none |
+| `known_risks` | Forward-looking concerns that remain after this pass. Empty array if none |
+| `deviations_from_plan` | Where execution diverged from `planned_actions` in the implementation contract during this pass. Empty array if execution matched the plan |
+| `gap_signals` | Early signals of scope or expectation mismatch discovered during this pass. These later flow into closure evidence and mission gap. Empty array if none |
+| `revision_ref` | `entry_id` of the prior self-check entry this revises, or `null`. Set on verify-fix re-entries to link back to the previous pass |
+| `created_at` | When this entry was appended |
+
+### Iteration model
+
+The first implementer pass on a task appends `entry_id: 1` with `revision_ref: null`. Each verify-fix re-entry appends a new entry with `revision_ref` pointing to the prior `entry_id`, preserving the iteration history without mutating earlier content. Reviewers read the latest entry to find the current `reviewer_focus`; the earlier entries remain available for tracing how the implementer's self-assessment evolved across passes.
 
 The self-check does not replace review. It helps reviewers focus their first pass.
 

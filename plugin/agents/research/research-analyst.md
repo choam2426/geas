@@ -86,7 +86,7 @@ geas evidence append --mission {mission_id} --task {task_id} \
 EOF
 ```
 
-Self-check via `geas self-check set`. Do not write under `.geas/` outside the evidence/ and self-check paths.
+Self-check via `geas self-check append` (one entry per implementer pass; on verify-fix re-entry set `revision_ref` to the prior entry's `entry_id`). Do not write under `.geas/` outside the evidence/ and self-check paths.
 
 ## Boundaries
 

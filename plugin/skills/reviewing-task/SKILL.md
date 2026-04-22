@@ -1,6 +1,6 @@
 ---
 name: reviewing-task
-description: Invoked by a spawned reviewer (challenger, risk-assessor, operator, or communicator) after an implementer has appended implementation evidence and a self-check. Reads the task contract, implementation evidence, and self-check, then produces a review-kind evidence entry with verdict, concerns, scope_examined, and methods_used.
+description: Invoked by a spawned reviewer (challenger, risk-assessor, operator, or communicator) after an implementer has appended implementation evidence and a self-check entry. Reads the task contract, implementation evidence, and the latest self-check entry, then produces a review-kind evidence entry with verdict, concerns, scope_examined, and methods_used.
 user-invocable: false
 ---
 
@@ -14,7 +14,7 @@ You have been spawned as a reviewer for a task. Your slot's system prompt define
 
 ## When to Use
 
-- The orchestrator has spawned you as a reviewer after the implementer has appended implementation evidence and set the self-check. Per protocol doc 03 §70, required reviewers submit evidence **after** the self-check completes; there is no pre-code plan concurrence round in v3.
+- The orchestrator has spawned you as a reviewer after the implementer has appended implementation evidence and appended a self-check entry. Per protocol doc 03, required reviewers submit evidence **after** the self-check is appended; there is no pre-code plan concurrence round in v3.
 - You were handed: your slot identity, the task's `mission_id` + `task_id`, and access to `.geas/`.
 - Do NOT run to "verify" — `verifying-task` is the verifier's procedure and executes `verification_plan`.
 - Do NOT run if you authored the implementation evidence you'd be reviewing.
@@ -22,7 +22,7 @@ You have been spawned as a reviewer for a task. Your slot's system prompt define
 
 ## Preconditions
 
-- `task-state.status == reviewing` (the orchestrator transitions `implementing → reviewing` once the implementer has appended implementation evidence + self-check, then spawns reviewers).
+- `task-state.status == reviewing` (the orchestrator transitions `implementing → reviewing` once the implementer has appended implementation evidence + a self-check entry, then spawns reviewers).
 - Task contract exists with `approved_by` set.
 - Implementation-kind evidence entry exists (latest per-implementer entry is the one you grade against; walk back via `revision_ref` for trajectory).
 - `self-check.json` exists and is schema-valid.
@@ -32,7 +32,7 @@ You have been spawned as a reviewer for a task. Your slot's system prompt define
 ## Process
 
 1. **Read your inputs in order. Start with `reviewer_focus`.**
-   - **Self-check first**: `reviewer_focus` is the implementer's own list of "where I am least sure — look here first". Read it before anything else and let it shape where you spend time. Also read `completed_work` (what actually landed), `deviations_from_plan` (how it diverged from impl-contract), `known_risks` (forward-looking concerns), `gap_signals` (scope/expectation mismatches). There is no `confidence` field in v3 self-check.
+   - **Self-check first**: read the **latest entry** in `self-check.json` (`entries[entries.length - 1]`). `reviewer_focus` is the implementer's own list of "where I am least sure — look here first". Read it before anything else and let it shape where you spend time. Also read `completed_work` (what actually landed this pass), `deviations_from_plan` (how it diverged from impl-contract), `known_risks` (forward-looking concerns), `gap_signals` (scope/expectation mismatches). On verify-fix iterations, earlier entries remain in the file and are reachable via `revision_ref`, but the latest entry is the current view. There is no `confidence` field in v3 self-check.
    - Task contract: `goal`, `acceptance_criteria`, `verification_plan`, `surfaces`, `routing`, `risk_level`, `dependencies`, `supersedes`.
    - Implementation evidence (latest entry; walk back via `revision_ref` for trajectory).
    - Mission spec + mission design for project-wide constraints.
@@ -112,14 +112,14 @@ Sub-skills you do NOT invoke: none.
 ## Failure Handling
 
 - **Implementation evidence missing** (post-work review): stop; return to orchestrator. Do not review absent work.
-- **Self-check missing or schema-invalid**: return to orchestrator with a note; the implementer must fix the self-check before the gate's Tier 0 passes. In particular, a self-check that uses v2 fields (`confidence`, `surprises`, `remaining_risks`, `acceptance_criteria_status`) is schema-invalid and must be rewritten with `completed_work` + `reviewer_focus` + `known_risks` + `deviations_from_plan` + `gap_signals`.
+- **Self-check missing or schema-invalid**: return to orchestrator with a note; the implementer must append a valid self-check entry before the gate's Tier 0 passes. The v3 self-check is append-only with a top-level `entries[]` envelope. A self-check missing the envelope, missing `revision_ref` per entry, or using v2 field names (`confidence`, `surprises`, `remaining_risks`, `acceptance_criteria_status`) is schema-invalid and must be rewritten.
 - **Criterion outside your slot's lens**: record `scope_excluded`; do not issue verdict over that criterion.
 - **Evidence of implementer-as-reviewer conflict**: refuse the review, return with note. CLI should have prevented the spawn.
 - **Base_snapshot drift**: raise as `blocked` with concern about snapshot mismatch; orchestrator re-bases.
 
 ## Related Skills
 
-- **Invoked by**: the orchestrator after the implementer has appended implementation evidence + self-check and the task has transitioned to `reviewing`; and `running-gate` verify-fix loop (post-revision re-review, after the implementer re-submits following a `reviewing → implementing` rewind and re-transition to `reviewing`).
+- **Invoked by**: the orchestrator after the implementer has appended implementation evidence + a self-check entry and the task has transitioned to `reviewing`; and `running-gate` verify-fix loop (post-revision re-review, after the implementer appends a new self-check entry following a `reviewing → implementing` rewind and re-transition to `reviewing`).
 - **Invokes**: none.
 - **Do NOT invoke**: `verifying-task` (verifier runs it separately), `running-gate` (orchestrator aggregates verdicts), `implementing-task` (you're reviewing, not implementing).
 

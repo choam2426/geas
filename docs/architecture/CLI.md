@@ -69,7 +69,7 @@ Commands are organized along two axes: **artifact** (which file they act on) and
 | `geas task transition` | update | `task-state.json` (lifecycle transition) |
 | `geas task-state update` | update | `task-state.json` (`active_agent`, iterations) |
 | `geas impl-contract set` | set | `tasks/{id}/implementation-contract.json` |
-| `geas self-check set` | set | `tasks/{id}/self-check.json` |
+| `geas self-check append` | append | `tasks/{id}/self-check.json` |
 | `geas evidence append` | append | `tasks/{id}/evidence/{agent}.{slot}.json` |
 | `geas gate run` | run | `tasks/{id}/gate-results.json`; includes `suggested_next_transition` in the response (Section 14.5) |
 | `geas deliberation append --level task` | append | `tasks/{id}/deliberations.json` |

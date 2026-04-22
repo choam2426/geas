@@ -233,7 +233,7 @@ function fullTaskRun(dir, missionId, taskId, opts = {}) {
 
   // self-check
   r = runCli(
-    ['self-check', 'set', '--mission', missionId, '--task', taskId],
+    ['self-check', 'append', '--mission', missionId, '--task', taskId],
     { cwd: dir, input: JSON.stringify(validSelfCheck()) },
   );
   assert.equal(r.status, 0, `self-check failed: ${r.stderr}\n${r.stdout}`);
@@ -768,7 +768,7 @@ test('E2E verify-fix loop: reviewing -> implementing increments verify_fix_itera
     );
     assert.equal(r.status, 0);
     r = runCli(
-      ['self-check', 'set', '--mission', MID, '--task', 'task-001'],
+      ['self-check', 'append', '--mission', MID, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validSelfCheck()) },
     );
     assert.equal(r.status, 0);

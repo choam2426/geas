@@ -360,16 +360,33 @@ Implementation contract는 승인된 task contract를 어떻게 실행할지 미
 
 ## Implementer Self-Check
 
-Implementer self-check는 해당 task에 할당된 `implementer`가 구현을 마친 뒤, independent review로 넘기기 전에 남기는 자기 점검 기록이다. 정규 artifact는 `self-check.json`이고, 정확한 구조는 `self-check.schema.json`이 관리한다.
+Implementer self-check는 해당 task에 할당된 `implementer`가 각 구현 pass를 마친 뒤 independent review로 넘기기 전에 남기는 append-only 자기 점검 로그다. 정규 artifact는 `self-check.json`이며 정확한 구조는 `self-check.schema.json`이 관리한다. Envelope은 evidence 파일과 동일한 형태를 따른다 — task 하나에 파일 하나, 안에는 implementer pass별 self-check entry가 순서대로 쌓인다.
+
+### 파일 envelope의 필드
 
 | 필드 | 의미 |
 |---|---|
 | `mission_id`, `task_id` | 경로와 정합 확인용 식별자 |
-| `completed_work` | `implementer`가 실제로 끝냈다고 보는 범위 |
-| `reviewer_focus` | reviewer가 먼저 봐야 한다고 `implementer`가 판단한 지점. 없으면 빈 배열 |
-| `known_risks` | 구현 이후에도 남아 있는 forward-looking 우려. 없으면 빈 배열 |
-| `deviations_from_plan` | implementation-contract `planned_actions`와 실제 실행이 다른 부분. 계획대로 갔으면 빈 배열 |
-| `gap_signals` | 구현 중 발견한 범위/기대 차이 조기 신호. closure evidence와 mission gap으로 이어진다. 없으면 빈 배열 |
+| `entries` | 시간 순 self-check entry의 append-only 배열. 최소 1 entry |
+| `created_at` | 파일 최초 작성 시각 |
+| `updated_at` | 마지막 entry append 시각 |
+
+### Entry의 필드
+
+| 필드 | 의미 |
+|---|---|
+| `entry_id` | 파일 안에서 1부터 단조증가하는 정수 id |
+| `completed_work` | 이번 pass에서 `implementer`가 실제로 끝냈다고 보는 범위 |
+| `reviewer_focus` | 이번 pass 기준 reviewer가 먼저 봐야 한다고 `implementer`가 판단한 지점. 없으면 빈 배열 |
+| `known_risks` | 이번 pass 이후에도 남아 있는 forward-looking 우려. 없으면 빈 배열 |
+| `deviations_from_plan` | 이번 pass에서 implementation-contract `planned_actions`와 실제 실행이 다른 부분. 계획대로 갔으면 빈 배열 |
+| `gap_signals` | 이번 pass에서 발견한 범위/기대 차이 조기 신호. closure evidence와 mission gap으로 이어진다. 없으면 빈 배열 |
+| `revision_ref` | 직전 self-check entry의 `entry_id`. verify-fix 재진입 시 이전 pass를 가리키도록 설정. 첫 entry(또는 revision이 아닌 entry)는 `null` |
+| `created_at` | 이 entry가 append된 시각 |
+
+### Iteration 모델
+
+첫 번째 implementer pass는 `entry_id: 1` + `revision_ref: null`로 append한다. Verify-fix 재진입은 새 entry를 append하며 `revision_ref`로 직전 `entry_id`를 가리킨다. 이 방식으로 이전 pass의 self-check 내용은 덮이지 않고 보존되어 iteration 기록이 남는다. Reviewer는 latest entry를 읽어 현재 `reviewer_focus`를 파악하며, 이전 entry는 pass 사이에 implementer의 자기 판단이 어떻게 바뀌었는지 추적하는 용도로 계속 접근 가능하다.
 
 Self-check는 review를 대신하지 않는다. reviewer가 어디부터 볼지 압축해서 넘기는 입력이다.
 

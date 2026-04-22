@@ -143,7 +143,7 @@ Invoked by the mission dispatcher when `mission.mode == full_depth` and a multi-
 Invoked by a spawned implementer after the dispatcher hands off an approved, dependency-satisfied task. Before writing code, the implementer states the concrete plan (planned_actions, edge_cases, demo_steps) and obtains one-round reviewer concurrence on the plan. Only after plan approval does the task transition to `implementing`. Closes out with one implementation-kind evidence entry plus the `self-check.json`. Same concrete agent cannot hold implementer and reviewer/verifier on the same task.
 
 - Trigger — `task-state.status == ready` on first run, or `implementing` on a verify-fix revision; `base_snapshot` still matches the real workspace.
-- Primary CLI — `geas self-check set`, `geas evidence append --slot implementer` (kinds `plan-proposal` for the contract and `implementation` for the final entry), `geas task transition --to implementing|reviewing`.
+- Primary CLI — `geas self-check append`, `geas evidence append --slot implementer` (kinds `plan-proposal` for the contract and `implementation` for the final entry), `geas task transition --to implementing|reviewing`.
 - Primary outputs — implementation-kind evidence entry under `tasks/{tid}/evidence/`, plus `tasks/{tid}/self-check.json`. (The separate `impl-contract set` registration is on the non-blocking queue; today the plan concurrence is recorded through `evidence append --kind plan-proposal` + reviewer review entries.)
 
 #### `reviewing-task`
@@ -205,7 +205,7 @@ Fast lookup. For command details (flags, JSON shape, failure modes), see `archit
 | `consolidating-mission` | `debt register`, `gap set`, `memory-update set`, `memory shared-set`, `memory agent-set` |
 | `verdicting-mission` | `mission-verdict append`, `mission-state update --phase complete` |
 | `convening-deliberation` | `deliberation append --level mission\|task` |
-| `implementing-task` | `self-check set`, `evidence append --slot implementer`, `task transition` |
+| `implementing-task` | `self-check append`, `evidence append --slot implementer`, `task transition` |
 | `reviewing-task` | `evidence append --slot <reviewer slot>` |
 | `verifying-task` | `evidence append --slot verifier` |
 | `deliberating-on-proposal` | (none — returns a vote to the convener) |

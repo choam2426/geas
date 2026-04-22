@@ -342,7 +342,7 @@ The skill layer consists of 17 skills. The only user entry point is `mission`; t
 
 | skill | slot | When it is spawned | Primary CLI |
 |---|---|---|---|
-| `implementing-task` | `implementer` | An approved task is dispatched | `self-check set`, `evidence append --slot implementer` |
+| `implementing-task` | `implementer` | An approved task is dispatched | `self-check append`, `evidence append --slot implementer` |
 | `reviewing-task` | `challenger` / `risk-assessor` / `operator` / `communicator` | Implementation evidence and self-check have been submitted | `evidence append --slot <reviewer>` |
 | `verifying-task` | `verifier` | Reviewer concurrence has been reached | `evidence append --slot verifier` |
 | `deliberating-on-proposal` | the invoked voter slot | Convened by `convening-deliberation` | (no direct writes — returns a vote) |

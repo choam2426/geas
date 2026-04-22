@@ -1,6 +1,6 @@
 ---
 name: verifying-task
-description: Invoked by a spawned verifier after the implementer has appended implementation evidence and set the self-check, in parallel with or after post-work reviewers. Runs the task contract's verification_plan (automated or manual procedure) independently against the implementation, and produces one verifier evidence entry with a verdict, per-criterion pass/fail results, concerns, and concrete details. The gate (`running-gate`) reads this entry to compute its Tier 1 status.
+description: Invoked by a spawned verifier after the implementer has appended implementation evidence and a self-check entry, in parallel with or after post-work reviewers. Runs the task contract's verification_plan (automated or manual procedure) independently against the implementation, and produces one verifier evidence entry with a verdict, per-criterion pass/fail results, concerns, and concrete details. The gate (`running-gate`) reads this entry to compute its Tier 1 status.
 user-invocable: false
 ---
 
@@ -14,14 +14,14 @@ You have been spawned as the verifier for a task. Your job is to run the contrac
 
 ## When to Use
 
-- The orchestrator has spawned you after the implementer appended implementation evidence and set the self-check. Reviewers may have already returned, may be running in parallel with you, or may run after you — the gate only requires that both sets are present by the time it runs.
+- The orchestrator has spawned you after the implementer appended implementation evidence and a self-check entry. Reviewers may have already returned, may be running in parallel with you, or may run after you — the gate only requires that both sets are present by the time it runs.
 - You have the task contract, the implementation evidence, and access to the workspace.
 - Do NOT run before the implementer has appended implementation evidence.
 - Do NOT review — that is the reviewer slots' job; your remit is objective verification of acceptance criteria.
 
 ## Preconditions
 
-- `task-state.status == reviewing`. The orchestrator transitions the task from `implementing` to `reviewing` after the implementer has appended implementation evidence + self-check, then spawns you (and the reviewers) against the reviewing state.
+- `task-state.status == reviewing`. The orchestrator transitions the task from `implementing` to `reviewing` after the implementer has appended implementation evidence + a self-check entry, then spawns you (and the reviewers) against the reviewing state.
 - Task contract exists with `verification_plan` non-empty.
 - At least one `implementation`-kind evidence entry exists for the task.
 - `base_snapshot` still matches the real workspace (if not, verdict=`blocked` with snapshot-mismatch rationale).

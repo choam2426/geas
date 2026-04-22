@@ -480,37 +480,47 @@ test('evidence append infers implementer agent from contract primary_worker_type
 
 // ── self-check set ──────────────────────────────────────────────────────
 
-test('self-check set writes once; second call rejected', () => {
+test('self-check append writes entries array; second call appends entry_id=2', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMission(dir, MID_STANDARD);
     draftTaskReady(dir, MID_STANDARD, 'task-001');
 
     let r = runCli(
-      ['self-check', 'set', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validSelfCheck()) },
     );
-    assert.equal(r.status, 0, `self-check set failed: ${r.stderr}`);
+    assert.equal(r.status, 0, `self-check append failed: ${r.stderr}`);
+    assert.equal(r.json.data.ids.entry_id, 1);
+    assert.equal(r.json.data.self_check.entries.length, 1);
+    assert.equal(r.json.data.self_check.entries[0].entry_id, 1);
+    assert.equal(r.json.data.self_check.entries[0].revision_ref, null);
 
     r = runCli(
-      ['self-check', 'set', '--mission', MID_STANDARD, '--task', 'task-001'],
-      { cwd: dir, input: JSON.stringify(validSelfCheck()) },
+      ['self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
+      {
+        cwd: dir,
+        input: JSON.stringify({ ...validSelfCheck(), revision_ref: 1 }),
+      },
     );
-    assert.notEqual(r.status, 0);
-    assert.equal(r.json.error.code, 'path_collision');
+    assert.equal(r.status, 0, `second self-check append failed: ${r.stderr}`);
+    assert.equal(r.json.data.ids.entry_id, 2);
+    assert.equal(r.json.data.self_check.entries.length, 2);
+    assert.equal(r.json.data.self_check.entries[1].entry_id, 2);
+    assert.equal(r.json.data.self_check.entries[1].revision_ref, 1);
   } finally {
     cleanup();
   }
 });
 
-test('self-check set rejects schema-invalid body', () => {
+test('self-check append rejects schema-invalid body', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMission(dir, MID_STANDARD);
     draftTaskReady(dir, MID_STANDARD, 'task-001');
 
     const r = runCli(
-      ['self-check', 'set', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify({ completed_work: '' }) },
     );
     assert.notEqual(r.status, 0);
@@ -531,7 +541,7 @@ test('gate run aggregates overall verdict from tier statuses', () => {
     // Seed Tier 0 prerequisites.
     writeImplContract(dir, MID_STANDARD, 'task-001');
     let r = runCli(
-      ['self-check', 'set', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validSelfCheck()) },
     );
     assert.equal(r.status, 0);
@@ -681,7 +691,7 @@ test('implementing -> reviewing allowed with only self-check — reviewer eviden
 
     // Valid self-check via CLI.
     let r = runCli(
-      ['self-check', 'set', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validSelfCheck()) },
     );
     assert.equal(r.status, 0);
@@ -709,7 +719,7 @@ test('reviewing -> deciding requires gate-results last run verdict=pass (G4 tigh
     // so the first gate run yields fail (Tier 1 fail).
     writeImplContract(dir, MID_STANDARD, 'task-001');
     let r = runCli(
-      ['self-check', 'set', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validSelfCheck()) },
     );
     assert.equal(r.status, 0);
@@ -780,7 +790,7 @@ test('deciding -> passed requires approved closure evidence validating the schem
 
     writeImplContract(dir, MID_STANDARD, 'task-001');
     let r = runCli(
-      ['self-check', 'set', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validSelfCheck()) },
     );
     assert.equal(r.status, 0);

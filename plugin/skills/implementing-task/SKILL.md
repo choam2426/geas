@@ -65,9 +65,9 @@ You have been spawned as the implementer for an approved task. You own the full 
    EOF
    ```
    On a revision run (verify-fix rewind), set `revision_ref` to the prior implementation entry's `entry_id`. The CLI auto-injects `entry_id`, `artifacts: []`, `memory_suggestions: []`, `debt_candidates: []`, `gap_signals: []`, `created_at`; you only need to supply the semantic fields above.
-6. **Write the self-check.** The self-check is a worker-side factual record, not a confidence score. The reviewer and the gate read it to orient their own checks:
+6. **Append the self-check entry.** The self-check is an append-only log: one entry per implementer pass. It is a worker-side factual record, not a confidence score. The reviewer and the gate read the latest entry to orient their own checks:
    ```bash
-   geas self-check set --mission {mission_id} --task {task_id} <<'EOF'
+   geas self-check append --mission {mission_id} --task {task_id} <<'EOF'
    {
      "completed_work": "<one paragraph: what you actually landed on which surfaces>",
      "reviewer_focus": [
@@ -82,14 +82,16 @@ You have been spawned as the implementer for an approved task. You own the full 
      ],
      "gap_signals": [
        "<early signal of scope or expectation gap noticed during work>"
-     ]
+     ],
+     "revision_ref": null
    }
    EOF
    ```
-   - `completed_work` is a factual statement of what landed, not a confidence claim. No "mostly done", no 1–5 score.
+   On a verify-fix re-entry, set `revision_ref` to the prior self-check entry's `entry_id` so reviewers can trace iteration history. The CLI assigns `entry_id` and `created_at` automatically; prior entries are preserved so the iteration log stays intact.
+   - `completed_work` is a factual statement of what landed in this pass, not a confidence claim. No "mostly done", no 1–5 score.
    - `reviewer_focus` is the main honesty test: name the areas you yourself are least sure about. An empty array on a non-trivial task is a red flag.
    - `known_risks` are forward-looking (what could still break); `deviations_from_plan` and `gap_signals` are backward-looking (what actually happened vs. the plan / vs. the scope).
-   - All five fields are required by the schema; use `[]` for arrays that legitimately have nothing.
+   - All five content fields plus `revision_ref` are required by the schema; use `[]` for arrays that legitimately have nothing and `null` for `revision_ref` on the first pass.
    - Per-criterion pass/fail belongs to the verifier's evidence (`criteria_results`), NOT here. Do not restate criterion outcomes in self-check.
 7. **Return.** The orchestrator spawns the required reviewers (they run `reviewing-task` against your impl-contract + implementation evidence + self-check), then the verifier runs `verifying-task`, then `running-gate` aggregates. You are done.
 
@@ -113,7 +115,7 @@ You have been spawned as the implementer for an approved task. You own the full 
 |---|---|
 | `geas impl-contract set --mission <id> --task <id>` | Record / update the implementation plan. Full-replace each call — the CLI keeps only the current plan, which reviewers read post-work. |
 | `geas evidence append --slot implementer --agent <concrete> --mission <id> --task <id>` | Append implementation-kind evidence (initial + revisions on verify-fix rewinds). |
-| `geas self-check set --mission <id> --task <id>` | Record the end-of-work self-check (completed_work, reviewer_focus, known_risks, deviations_from_plan, gap_signals). |
+| `geas self-check append --mission <id> --task <id>` | Append the end-of-pass self-check entry (completed_work, reviewer_focus, known_risks, deviations_from_plan, gap_signals, revision_ref). One entry per implementer pass. |
 
 Task-state transitions are owned by the orchestrator / scheduler / gate, not by this skill:
 - `ready → implementing` is done by `scheduling-work` before your spawn.
@@ -126,7 +128,7 @@ Sub-skills you do NOT invoke: `reviewing-task` (reviewers run it), `verifying-ta
 
 - One `implementation-contract.json` (via `geas impl-contract set`) before any code; updated in place if direction shifts.
 - One or more `implementation`-kind evidence entries (initial + any verify-fix revisions with `revision_ref`).
-- One `self-check.json` capturing `completed_work`, `reviewer_focus`, `known_risks`, `deviations_from_plan`, `gap_signals`.
+- A new entry appended to `self-check.json` capturing `completed_work`, `reviewer_focus`, `known_risks`, `deviations_from_plan`, `gap_signals`, and `revision_ref` for this pass.
 - Source changes inside `change_scope` only.
 - No direct writes to `.geas/` — every append is through the CLI.
 
@@ -136,8 +138,8 @@ Sub-skills you do NOT invoke: `reviewing-task` (reviewers run it), `verifying-ta
 - **Material scope drift discovered mid-implementation**: stop coding, amend the impl-contract via `geas impl-contract set`, record the drift in `deviations_from_plan` at self-check time, then continue. If the drift is large enough to need escalation, return to orchestrator.
 - **Surface conflict with another in-flight task**: stop; return to orchestrator. `contract.surfaces` is the allowlist; scheduling should not have dispatched you.
 - **CLI `guard_failed` on implementation evidence append**: inspect hints; common cause is agent-slot independence violation (you hold another slot on this task).
-- **CLI `guard_failed` on self-check set**: schema validation failure; fix the body (see Step 6) and retry.
-- **Verify-fix rewind**: the CLI has already moved the task back to `implementing` and bumped `verify_fix_iterations`. Read the prior reviewer concerns + gate details, amend the impl-contract if the plan changed, and set `revision_ref` on the next implementation evidence entry.
+- **CLI `schema_validation_failed` on self-check append**: schema validation failure; fix the body (see Step 6) and retry.
+- **Verify-fix rewind**: the CLI has already moved the task back to `implementing` and bumped `verify_fix_iterations`. Read the prior reviewer concerns + gate details, amend the impl-contract if the plan changed, and set `revision_ref` on both the next implementation evidence entry AND the next self-check entry so reviewers can follow iteration history on both logs.
 
 ## Related Skills
 

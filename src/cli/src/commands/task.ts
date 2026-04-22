@@ -639,7 +639,9 @@ function collectTaskStateHints(
     }
   }
 
-  // G4: verdict-aware self-check — file must exist AND validate.
+  // G4: verdict-aware self-check — file must exist AND validate against
+  // the self-check envelope schema. The schema enforces entries minItems=1,
+  // so an empty entries array is rejected here automatically.
   const selfCheckFilePath = selfCheckPath(root, missionId, taskId);
   let selfCheckExists = false;
   if (exists(selfCheckFilePath)) {

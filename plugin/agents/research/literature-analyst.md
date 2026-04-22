@@ -89,19 +89,22 @@ geas evidence append --mission {mission_id} --task {task_id} \
 EOF
 ```
 
-Self-check is written once via `geas self-check set`:
+Append a self-check entry per implementer pass via `geas self-check append`:
 
 ```bash
-geas self-check set --mission {mission_id} --task {task_id} <<'EOF'
+geas self-check append --mission {mission_id} --task {task_id} <<'EOF'
 {
   "completed_work": "…",
   "reviewer_focus": ["…"],
   "known_risks": ["…"],
   "deviations_from_plan": ["…"],
-  "gap_signals": ["…"]
+  "gap_signals": ["…"],
+  "revision_ref": null
 }
 EOF
 ```
+
+On a verify-fix re-entry, set `revision_ref` to the prior self-check entry's `entry_id` to link the iteration history.
 
 Do not write under `.geas/` outside the evidence/ and self-check paths. The CLI owns every other write.
 

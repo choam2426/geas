@@ -96,12 +96,12 @@ function writeSelfCheckStub(dir, taskId) {
     gap_signals: [],
   };
   const res = runCli(
-    ['self-check', 'set', '--mission', MID, '--task', taskId],
+    ['self-check', 'append', '--mission', MID, '--task', taskId],
     { cwd: dir, input: JSON.stringify(body) },
   );
   if (res.status !== 0) {
     throw new Error(
-      `self-check set failed: ${res.stderr}\n${res.stdout}`,
+      `self-check append failed: ${res.stderr}\n${res.stdout}`,
     );
   }
 }

@@ -217,14 +217,21 @@ export interface ImplementationContract {
   updated_at: string | null;
 }
 
-export interface SelfCheck {
-  mission_id: string | null;
-  task_id: string | null;
+export interface SelfCheckEntry {
+  entry_id: number;
   completed_work: string | null;
   reviewer_focus: string[];
   known_risks: string[];
   deviations_from_plan: string[];
   gap_signals: string[];
+  revision_ref: number | null;
+  created_at: string | null;
+}
+
+export interface SelfCheck {
+  mission_id: string | null;
+  task_id: string | null;
+  entries: SelfCheckEntry[];
   created_at: string | null;
   updated_at: string | null;
 }

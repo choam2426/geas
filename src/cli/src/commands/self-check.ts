@@ -1,16 +1,17 @@
 /**
- * `geas self-check` — write the worker self-check artifact for a task.
+ * `geas self-check` — append a worker self-check entry for a task.
  *
- *   geas self-check set --mission <id> --task <id>    (stdin: self-check body)
+ *   geas self-check append --mission <id> --task <id>    (stdin: entry body)
  *
  * Writes `.geas/missions/{mission_id}/tasks/{task_id}/self-check.json`.
- * Self-check is written once by the implementer after finishing implementation
- * and before independent review. Overwrite is rejected — if the implementer
- * needs to revise, they should open a `reviewing -> implementing` loop and
- * land a new self-check as part of the next pass.
+ * The file is append-only: every implementer pass (initial or verify-fix
+ * re-entry) adds a new entry to `entries[]`. Prior entries are preserved
+ * so reviewers can trace iteration history.
  *
- * The CLI owns mission_id / task_id / created_at / updated_at; other
- * content fields come from stdin.
+ * The CLI owns the file envelope (mission_id / task_id / created_at /
+ * updated_at) and per-entry entry_id + created_at. Content fields
+ * (completed_work, reviewer_focus, known_risks, deviations_from_plan,
+ * gap_signals, revision_ref) come from stdin.
  */
 
 import type { Command } from 'commander';
@@ -56,14 +57,22 @@ function needProjectRoot(): string {
   return root as string;
 }
 
+interface SelfCheckFile {
+  mission_id: string;
+  task_id: string;
+  entries: Array<Record<string, unknown>>;
+  created_at: string;
+  updated_at: string;
+}
+
 export function registerSelfCheckCommands(program: Command): void {
   const sc = program
     .command('self-check')
     .description('Implementer self-check artifact (self-check.json) commands.');
 
-  sc.command('set')
+  sc.command('append')
     .description(
-      'Write self-check.json for a task (stdin: content fields). Rejects overwrite — self-check is written once.',
+      'Append a self-check entry for a task (stdin: entry content fields). Creates the file on first append; subsequent appends push new entries to entries[]. One entry per implementer pass.',
     )
     .requiredOption('--mission <id>', 'Mission ID')
     .requiredOption('--task <id>', 'Task ID')
@@ -93,16 +102,6 @@ export function registerSelfCheckCommands(program: Command): void {
         );
       }
 
-      const p = selfCheckPath(root, opts.mission, opts.task);
-      if (exists(p)) {
-        emit(
-          err(
-            'path_collision',
-            `self-check.json already exists at ${slashPath(p)} — self-check is written once`,
-          ),
-        );
-      }
-
       let payload: Record<string, unknown>;
       try {
         payload = readStdinJson() as Record<string, unknown>;
@@ -114,7 +113,7 @@ export function registerSelfCheckCommands(program: Command): void {
         emit(
           err(
             'invalid_argument',
-            'self-check set expects a JSON object on stdin',
+            'self-check append expects a JSON object on stdin',
           ),
         );
       }
@@ -126,14 +125,41 @@ export function registerSelfCheckCommands(program: Command): void {
         payload.deviations_from_plan = [];
       }
       if (payload.gap_signals === undefined) payload.gap_signals = [];
+      if (payload.revision_ref === undefined) payload.revision_ref = null;
 
+      // CLI owns per-entry envelope (entry_id, created_at). Strip any
+      // caller-supplied values to prevent tampering.
+      delete payload.entry_id;
+      delete payload.created_at;
+
+      const p = selfCheckPath(root, opts.mission, opts.task);
       const ts = nowUtc();
-      payload.mission_id = opts.mission;
-      payload.task_id = opts.task;
-      payload.created_at = ts;
-      payload.updated_at = ts;
 
-      const v = validate('self-check', payload);
+      // Read existing file (if any) to compute next entry_id and
+      // preserve prior entries.
+      const existing = readJsonFile<SelfCheckFile>(p);
+      const nextEntryId = existing && Array.isArray(existing.entries)
+        ? existing.entries.length + 1
+        : 1;
+
+      const entry: Record<string, unknown> = {
+        entry_id: nextEntryId,
+        ...payload,
+        created_at: ts,
+      };
+
+      const merged: SelfCheckFile = {
+        mission_id: opts.mission,
+        task_id: opts.task,
+        entries:
+          existing && Array.isArray(existing.entries)
+            ? [...existing.entries, entry]
+            : [entry],
+        created_at: existing?.created_at ?? ts,
+        updated_at: ts,
+      };
+
+      const v = validate('self-check', merged);
       if (!v.ok) {
         emit(
           err(
@@ -145,34 +171,28 @@ export function registerSelfCheckCommands(program: Command): void {
       }
 
       ensureDir(path.dirname(p));
-      // Pre-check already rejected existing path; existing-raced writes
-      // surface via atomicWrite's temp + rename semantics.
-      const existing = readJsonFile<Record<string, unknown>>(p);
-      if (existing) {
-        emit(
-          err(
-            'path_collision',
-            `self-check.json already exists at ${slashPath(p)}`,
-          ),
-        );
-      }
-      atomicWriteJson(p, payload, tmpDir(root));
+      atomicWriteJson(p, merged, tmpDir(root));
 
       recordEvent(root, {
-        kind: 'self_check_set',
+        kind: 'self_check_appended',
         actor: 'cli:auto',
         payload: {
           mission_id: opts.mission,
           task_id: opts.task,
           artifact: slashPath(path.relative(root, p)),
+          entry_id: nextEntryId,
         },
       });
 
       emit(
         ok({
           path: slashPath(p),
-          ids: { mission_id: opts.mission, task_id: opts.task },
-          self_check: payload,
+          ids: {
+            mission_id: opts.mission,
+            task_id: opts.task,
+            entry_id: nextEntryId,
+          },
+          self_check: merged,
         }),
       );
     });

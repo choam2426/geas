@@ -66,9 +66,9 @@ export const ENVELOPE_SPECS: readonly EnvelopeSpec[] = [
   },
   {
     schema: 'self-check',
-    op: 'set',
-    envelope: ['mission_id', 'task_id', 'created_at', 'updated_at'],
-    hint: 'geas self-check set — CLI injects mission_id / task_id / timestamps. Written once per task.',
+    op: 'append',
+    envelope: ['mission_id', 'task_id', 'entry_id', 'created_at', 'updated_at'],
+    hint: 'geas self-check append — CLI assigns per-entry entry_id (monotonic) and created_at; file-level mission_id / task_id / updated_at are maintained by the CLI. Agent fills content fields of the entry.',
   },
   {
     schema: 'deliberation',
