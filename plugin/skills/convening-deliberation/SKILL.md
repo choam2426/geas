@@ -41,9 +41,9 @@ Thin convening wrapper over `geas deliberation append`. Spawns the voter set for
    - else majority `disagree` → `disagree`
    - else (tie or fewer than two voters) → `inconclusive`
 4. **Handle inconclusive locally.** If the expected result is `inconclusive`, do NOT call the CLI. Revise the composition or the proposal, return to step 1.
-5. **Record the entry via CLI.**
+5. **Record the entry via CLI.** **Stage to a file with the Write tool, then pass `--file`** — each voter's `rationale` is prose that can contain apostrophes/quotes.
    ```bash
-   geas deliberation append --mission {mission_id} --level task --task {task_id} <<'EOF'
+   # Step 1: Write tool → e.g. <workspace>/.tmp/deliberation.json
    {
      "proposal_summary": "one-line summary of the question",
      "votes": [
@@ -53,7 +53,10 @@ Thin convening wrapper over `geas deliberation append`. Spawns the voter set for
      ],
      "result": "agree"
    }
-   EOF
+
+   # Step 2: hand the file to the CLI
+   geas deliberation append --mission {mission_id} --level task --task {task_id} \
+       --file <workspace>/.tmp/deliberation.json
    ```
    For mission-level deliberation drop `--task` and use `--level mission`. CLI checks: mode gate, ≥2 voters, voter slots in enum, rationales non-empty, `result` matches aggregation. Mismatch → `guard_failed`.
 6. **Feed the result back to the caller.**

@@ -33,7 +33,7 @@ import {
   taskContractPath,
   tmpDir,
 } from '../lib/paths';
-import { readStdinJson, StdinError } from '../lib/input';
+import { readPayloadJson, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 
 function nowUtc(): string {
@@ -72,11 +72,12 @@ export function registerSelfCheckCommands(program: Command): void {
 
   sc.command('append')
     .description(
-      'Append a self-check entry for a task (stdin: entry content fields). Creates the file on first append; subsequent appends push new entries to entries[]. One entry per implementer pass.',
+      'Append a self-check entry for a task (payload via --file or stdin: entry content fields). Creates the file on first append; subsequent appends push new entries to entries[]. One entry per implementer pass.',
     )
     .requiredOption('--mission <id>', 'Mission ID')
     .requiredOption('--task <id>', 'Task ID')
-    .action((opts: { mission: string; task: string }) => {
+    .option('--file <path>', 'Read JSON payload from file instead of stdin')
+    .action((opts: { mission: string; task: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
         emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
       }
@@ -104,7 +105,7 @@ export function registerSelfCheckCommands(program: Command): void {
 
       let payload: Record<string, unknown>;
       try {
-        payload = readStdinJson() as Record<string, unknown>;
+        payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
         if (e instanceof StdinError) emit(err('invalid_argument', e.message));
         throw e;

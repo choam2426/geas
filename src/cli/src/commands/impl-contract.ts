@@ -44,7 +44,7 @@ import {
   taskStatePath,
   tmpDir,
 } from '../lib/paths';
-import { readStdinJson, StdinError } from '../lib/input';
+import { readPayloadJson, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 
 function nowUtc(): string {
@@ -89,11 +89,12 @@ export function registerImplContractCommands(program: Command): void {
 
   ic.command('set')
     .description(
-      'Write implementation-contract.json for a task (full-replace, stdin: body). CLI injects mission_id / task_id / timestamps.',
+      'Write implementation-contract.json for a task (full-replace; payload via --file or stdin). CLI injects mission_id / task_id / timestamps.',
     )
     .requiredOption('--mission <id>', 'Mission ID')
     .requiredOption('--task <id>', 'Task ID')
-    .action((opts: { mission: string; task: string }) => {
+    .option('--file <path>', 'Read JSON payload from file instead of stdin')
+    .action((opts: { mission: string; task: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
         emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
       }
@@ -169,7 +170,7 @@ export function registerImplContractCommands(program: Command): void {
 
       let payload: Record<string, unknown>;
       try {
-        payload = readStdinJson() as Record<string, unknown>;
+        payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
         if (e instanceof StdinError) emit(err('invalid_argument', e.message));
         throw e;

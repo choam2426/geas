@@ -37,7 +37,7 @@ import {
   missionSpecPath,
   tmpDir,
 } from '../lib/paths';
-import { readStdinJson, StdinError } from '../lib/input';
+import { readPayloadJson, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 
 function nowUtc(): string {
@@ -76,10 +76,11 @@ export function registerMemoryUpdateCommands(program: Command): void {
   mu
     .command('set')
     .description(
-      'Write memory-update.json for a mission (full-replace, stdin: body). Records what shared + agent memory changed this mission.',
+      'Write memory-update.json for a mission (full-replace; payload via --file or stdin). Records what shared + agent memory changed this mission.',
     )
     .requiredOption('--mission <id>', 'Mission ID')
-    .action((opts: { mission: string }) => {
+    .option('--file <path>', 'Read JSON payload from file instead of stdin')
+    .action((opts: { mission: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
         emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
       }
@@ -96,7 +97,7 @@ export function registerMemoryUpdateCommands(program: Command): void {
 
       let payload: Record<string, unknown>;
       try {
-        payload = readStdinJson() as Record<string, unknown>;
+        payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
         if (e instanceof StdinError) emit(err('invalid_argument', e.message));
         throw e;
@@ -105,7 +106,7 @@ export function registerMemoryUpdateCommands(program: Command): void {
         emit(
           err(
             'invalid_argument',
-            'memory-update set expects a JSON object on stdin',
+            'memory-update set expects a JSON object payload',
           ),
         );
       }

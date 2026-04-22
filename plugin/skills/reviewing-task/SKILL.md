@@ -47,10 +47,9 @@ You have been spawned as a reviewer for a task. Your slot's system prompt define
    - `approved` — criteria are met within your lens; concerns (if any) are non-blocking and recorded honestly.
    - `changes_requested` — specific corrections needed; each concern must cite a criterion or surface and suggest the correction.
    - `blocked` — the plan or implementation as stated cannot proceed; structural issue, scope violation, dependency failure, etc.
-4. **Write the review-kind evidence entry** via CLI. Every listed field is required for `review` kind per the evidence schema:
+4. **Write the review-kind evidence entry** via CLI. Every listed field is required for `review` kind per the evidence schema. **Stage to a file with the Write tool, then pass `--file`** — `concerns`/`rationale` are prose and apostrophes or quotes inside the body will break bash heredoc:
    ```bash
-   geas evidence append --mission {mission_id} --task {task_id} \
-       --agent {your_concrete_agent} --slot {your_slot} <<'EOF'
+   # Step 1: Write tool → e.g. <workspace>/.tmp/review-entry.json
    {
      "evidence_kind": "review",
      "summary": "<one-line summary of your verdict>",
@@ -66,7 +65,11 @@ You have been spawned as a reviewer for a task. Your slot's system prompt define
        "performance envelope — that is the operator's lens, not mine"
      ]
    }
-   EOF
+
+   # Step 2: hand the file to the CLI
+   geas evidence append --mission {mission_id} --task {task_id} \
+       --agent {your_concrete_agent} --slot {your_slot} \
+       --file <workspace>/.tmp/review-entry.json
    ```
    - `concerns` is `string[]` — each concern is one plain-text sentence (or a short paragraph). No `{severity, text}` objects; the schema rejects them. Severity is conveyed by `verdict`: if a concern is blocking, the whole verdict is `blocked`; if it requires rework, `changes_requested`; otherwise `approved` with the concern still recorded for the audit trail. Write specific concerns — "line 142" beats "performance looks sketchy".
    - `scope_excluded` is `string[]` — use `[]` when nothing is excluded; never a single string.

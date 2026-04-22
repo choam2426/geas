@@ -43,10 +43,9 @@ You are the design-authority. Your identity + judgment protocol live in your age
    - Read the contract (task or implementation): `scope.surfaces`, `acceptance_criteria`, `verification_plan`, `dependencies`, `base_snapshot`, `routing`, `risk_level`.
    - Walk the judgment order: boundaries clean → interfaces stable → dependencies safe → complexity justified → stubs bounded (scope, exit condition, debt registered).
    - Choose a verdict: `approved` / `changes_requested` / `blocked`.
-   - Append a review-kind evidence entry via CLI:
+   - Append a review-kind evidence entry via CLI. **Stage to a file with the Write tool, then pass `--file`** — `rationale` and `concerns` are prose that bash heredoc can corrupt:
      ```bash
-     geas evidence append --mission {mission_id} --task {task_id} \
-         --agent {your_concrete_agent} --slot design-authority <<'EOF'
+     # Step 1: Write tool → e.g. <workspace>/.tmp/da-review.json
      {
        "evidence_kind": "review",
        "summary": "structural review of <contract|implementation-contract>",
@@ -56,21 +55,27 @@ You are the design-authority. Your identity + judgment protocol live in your age
        "scope_examined": "<contract fields + surfaces inspected>",
        "methods_used": ["read contract", "traced surface overlaps", "..."]
      }
-     EOF
+
+     # Step 2: hand the file to the CLI
+     geas evidence append --mission {mission_id} --task {task_id} \
+         --agent {your_concrete_agent} --slot design-authority \
+         --file <workspace>/.tmp/da-review.json
      ```
 4. **Branch C — Gap analysis.**
    - Read every phase-review, closure evidence (gap_signals), and mission-design trajectory.
    - Identify gaps: design ≠ delivery, acceptance criteria partially met, stubs without exit condition, surfaces the mission touched that the design did not anticipate.
    - Classify each gap: should it resolve inside this mission's consolidating phase, land as a debt, or appear in the mission-verdict's `carry_forward`?
-   - Write the gap payload via CLI:
+   - Write the gap payload via CLI. **Stage to a file with the Write tool, then pass `--file`**:
      ```bash
-     geas gap set --mission {mission_id} <<'EOF'
+     # Step 1: Write tool → e.g. <workspace>/.tmp/gap.json
      {
        "gaps": [
          {"id": "...", "summary": "...", "category": "design-vs-delivery|scope|quality|operability", "severity": "low|normal|high|critical", "disposition": "resolve|debt|carry_forward", "rationale": "..."}
        ]
      }
-     EOF
+
+     # Step 2: hand the file to the CLI
+     geas gap set --mission {mission_id} --file <workspace>/.tmp/gap.json
      ```
    - `geas gap set` is full-replace; one payload per mission.
 5. **Return.** Orchestrator re-enters briefing and invokes the next phase-appropriate skill.

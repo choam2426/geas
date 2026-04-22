@@ -71,11 +71,10 @@ Implementer evidence file:
 .geas/missions/{mission_id}/tasks/{task_id}/evidence/literature-analyst.implementer.json
 ```
 
-Append via CLI (kind `implementation`):
+Append via CLI (kind `implementation`). Stage the body to a file with the Write tool, then pass `--file`:
 
 ```bash
-geas evidence append --mission {mission_id} --task {task_id} \
-    --agent literature-analyst --slot implementer <<'EOF'
+# Step 1: Write tool → <workspace>/.tmp/impl-evidence.json
 {
   "evidence_kind": "implementation",
   "summary": "what you synthesized and on what evidence base",
@@ -86,13 +85,17 @@ geas evidence append --mission {mission_id} --task {task_id} \
     {"kind": "under_delivery", "summary": "coverage thin on X; need dedicated search later"}
   ]
 }
-EOF
+
+# Step 2:
+geas evidence append --mission {mission_id} --task {task_id} \
+    --agent literature-analyst --slot implementer \
+    --file <workspace>/.tmp/impl-evidence.json
 ```
 
-Append a self-check entry per implementer pass via `geas self-check append`:
+Append a self-check entry per implementer pass via `geas self-check append` (same `--file` pattern):
 
 ```bash
-geas self-check append --mission {mission_id} --task {task_id} <<'EOF'
+# Step 1: Write tool → <workspace>/.tmp/self-check.json
 {
   "completed_work": "…",
   "reviewer_focus": ["…"],
@@ -101,7 +104,10 @@ geas self-check append --mission {mission_id} --task {task_id} <<'EOF'
   "gap_signals": ["…"],
   "revision_ref": null
 }
-EOF
+
+# Step 2:
+geas self-check append --mission {mission_id} --task {task_id} \
+    --file <workspace>/.tmp/self-check.json
 ```
 
 On a verify-fix re-entry, set `revision_ref` to the prior self-check entry's `entry_id` to link the iteration history.

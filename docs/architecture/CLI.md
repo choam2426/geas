@@ -78,8 +78,8 @@ Commands are organized along two axes: **artifact** (which file they act on) and
 
 | Command | Operation | Target artifact |
 |---|---|---|
-| `geas memory shared-set` | set | `.geas/memory/shared.md` (stdin is full Markdown; atomic replace) |
-| `geas memory agent-set --agent <type>` | set | `.geas/memory/agents/{type}.md` (stdin is full Markdown; atomic replace) |
+| `geas memory shared-set` | set | `.geas/memory/shared.md` (payload via `--file` or stdin is full Markdown; atomic replace) |
+| `geas memory agent-set --agent <type>` | set | `.geas/memory/agents/{type}.md` (payload via `--file` or stdin is full Markdown; atomic replace) |
 
 ### Utility Commands
 
@@ -95,11 +95,16 @@ Commands are organized along two axes: **artifact** (which file they act on) and
 
 ## 4. Input Contract
 
-### JSON Payload Delivery
+### Payload Delivery
 
-JSON payloads are accepted **only on stdin**. They are never passed through flags. If stdin is not a TTY, the CLI interprets it as UTF-8 JSON. If a command requires a payload and stdin is empty or attached to a TTY, the call fails with `invalid_argument` (exit code `1`). JSON parsing failures are handled the same way.
+Payload-taking commands accept the payload via one of two channels:
 
-This contract goes no further than "receive UTF-8 JSON on stdin." How a shell or runtime supplies that payload is the caller's concern. Section 4.4 shows shell invocation patterns verified by the reference implementation.
+- **`--file <path>`** (recommended for large or prose-heavy content). The CLI reads the full file content at the given path as UTF-8 text. The shell never parses the content, so apostrophes, non-ASCII prose, newlines, and backticks inside the payload cannot corrupt it. Any local path works — direct writes under `.geas/` are blocked by the hook, so callers should stage the payload at a path outside `.geas/` (for example `/tmp/` or a project-local scratch file).
+- **stdin**. The CLI reads from stdin when no `--file` is provided. Safe when the content is produced by a reliable pipe (`cat file | geas cmd`). Not safe for prose payload passed inline via bash heredoc — embedded quotes, apostrophes, or non-ASCII text routinely break shell parsing before the bytes reach the CLI.
+
+Exactly one channel must supply the payload. If both `--file` and stdin are provided, `--file` wins (the stdin content is ignored). If neither is provided, the call fails with `invalid_argument` (exit code `1`). JSON-payload commands parse the content as UTF-8 JSON; parse failures use the same error code. Text-payload commands (`mission design-set`, `memory shared-set`, `memory agent-set`) write the content verbatim after BOM strip and trailing-newline normalization.
+
+This contract goes no further than "receive UTF-8 content via `--file` or stdin." How a shell or runtime prepares that content is the caller's concern. Section 4.4 shows invocation patterns verified by the reference implementation.
 
 ### Identifier Flags
 
@@ -119,32 +124,61 @@ Only explicit long flags are used, never positional arguments.
 
 ### Reference Usage (bash and zsh)
 
-The contract stops at the points above. This subsection shows POSIX shell patterns verified by the reference implementation. Adapters for fish, PowerShell, cmd, or other environments may use any equivalent way of sending JSON on stdin.
+The contract stops at the points above. This subsection shows invocation patterns verified by the reference implementation. Adapters for fish, PowerShell, cmd, or other environments may use any equivalent way of staging content in a file or producing a clean pipe.
 
-**Recommended pattern: quoted heredoc**
+**Preferred: stage to a file, pass `--file`**
+
+The most reliable pattern across every shell and every agent environment. Payload bytes never traverse the shell parser.
 
 ```bash
-geas evidence append --task task-001 --agent software-engineer --slot implementer <<'EOF'
-{
-  "evidence_kind": "implementation",
-  "summary": "$HOME paths and `backticks` stay safe here"
-}
+# Stage the payload to any path outside .geas/
+#   (agents: use the Write tool; humans: use an editor, heredoc, or redirection)
+cat > /tmp/mission-design.md <<'DONE'
+# Mission Design
+
+Any markdown body — apostrophes, Korean prose, `backticks`, $dollar signs,
+"double quotes", 'single quotes' — all safe here because the shell never
+re-parses the file contents.
+DONE
+
+geas mission design-set --mission mission-20260419-abcd1234 --file /tmp/mission-design.md
+```
+
+For JSON payloads, the same shape works:
+
+```bash
+printf '%s' "$body_json" > /tmp/evidence-entry.json
+geas evidence append --mission M --task T --agent software-engineer --slot implementer --file /tmp/evidence-entry.json
+```
+
+**Acceptable: pipe from file via stdin**
+
+Equivalent to `--file` for reliability. Useful when integrating with tools that already produce a stream.
+
+```bash
+cat /tmp/mission-design.md   | geas mission design-set --mission M
+cat /tmp/evidence-entry.json | geas evidence append --mission M --task T --agent A --slot S
+```
+
+**Acceptable for short, shell-safe literals**
+
+Only for payloads that contain no single quotes, apostrophes, dollar signs, or backticks:
+
+```bash
+echo '{"name": "Mission X"}' | geas mission create
+```
+
+**Avoid: heredoc with prose body**
+
+```bash
+# FRAGILE — a single apostrophe, backtick, or non-ASCII character inside the
+# body routinely breaks shell parsing before the bytes reach the CLI.
+geas evidence append --mission M --task T --agent A --slot S <<'EOF'
+{ "summary": "... natural prose with quotes and 'apostrophes' ..." }
 EOF
 ```
 
-The quoted delimiter in `<<'EOF'` disables shell variable expansion and backtick evaluation. The JSON reaches the CLI unchanged.
-
-Avoid `<<EOF` without quotes. In bash and zsh, `$` expansion and backtick evaluation can corrupt the JSON payload.
-
-Alternative paths:
-
-```bash
-# via file
-cat payload.json | geas mission create
-
-# acceptable for short payloads that contain no single quotes
-echo '{"name": "Mission X"}' | geas mission create
-```
+The quoted delimiter (`<<'EOF'`) disables `$` expansion and backtick evaluation, but that only protects against a subset of failure modes. For any payload with prose content, non-ASCII text, or more than a few lines, use `--file` or pipe-from-file instead.
 
 ## 5. Output Contract
 
@@ -224,7 +258,7 @@ Skills and agents should primarily branch on the JSON `ok` field. Exit codes exi
 Every write command passes through the following six stages in order. If any stage fails, later stages do not run and `.geas/` is left untouched.
 
 ```
-1. parse            load JSON payload from stdin
+1. parse            load payload from --file or stdin
 2. schema validate  validate it with the artifact schema
 3. guard check      read prerequisite artifacts and evaluate conditions when needed
 4. inject           auto-fill timestamps and IDs
@@ -234,7 +268,7 @@ Every write command passes through the following six stages in order. If any sta
 
 ### 6.1 Parse
 
-Load the payload from stdin. If stdin is attached to a TTY or empty for a command that requires a payload, return `invalid_argument` (exit code `1`). JSON parse failures are handled the same way.
+Load the payload per the rules in Section 4.3. If `--file <path>` is provided, read that file as UTF-8; otherwise read from stdin. If neither channel supplies content for a command that requires a payload, return `invalid_argument` (exit code `1`). JSON parse failures on JSON-payload commands are handled the same way.
 
 ### 6.2 Schema Validate
 
@@ -375,16 +409,12 @@ Guard-failure hints are structured around what is missing or mismatched:
 
 ### Input Shape
 
-For append commands, stdin contains **one entry object only**. The caller does not send the full wrapper (`{entries: [...]}` or the file's top-level object). The CLI is responsible for loading the file, appending the entry, injecting timestamps, and writing the result.
+For append commands, the payload contains **one entry object only**. The caller does not send the full wrapper (`{entries: [...]}` or the file's top-level object). The CLI is responsible for loading the file, appending the entry, injecting timestamps, and writing the result.
 
 ```bash
-geas evidence append --task task-001 --agent software-engineer --slot implementer <<'EOF'
-{
-  "evidence_kind": "implementation",
-  "summary": "...",
-  "artifacts": [...]
-}
-EOF
+# Preferred: stage the entry body, pass --file
+printf '%s' "$entry_json" > /tmp/entry.json
+geas evidence append --task task-001 --agent software-engineer --slot implementer --file /tmp/entry.json
 ```
 
 ### Validation Algorithm
@@ -394,7 +424,7 @@ When an append command runs:
 ```
 1. load the existing file; if it does not exist, initialize an empty wrapper
    with top-level metadata and entries=[]
-2. validate the stdin payload against the entry schema
+2. validate the payload (from --file or stdin) against the entry schema
 3. inject CLI-managed fields into the new entry
    (entry_id = max(existing) + 1, created_at = current UTC time)
 4. append the new entry to the existing array
@@ -482,7 +512,7 @@ geas schema template <type> --op <operation> [--kind <k>]
 }
 ```
 
-- `you_must_fill`: the exact JSON the agent must submit on stdin. Placeholders use the form `<REQUIRED: ...>`. The agent must replace those placeholders with real values.
+- `you_must_fill`: the exact JSON the agent must submit as the payload (via `--file` or stdin; see Section 4.3). Placeholders use the form `<REQUIRED: ...>`. The agent must replace those placeholders with real values.
 - `cli_auto_fills`: fields the CLI injects automatically. If the agent includes them anyway, they are overwritten.
 - `from_flags_or_path`: fields inferred from CLI flags or project path. The agent does not include them in the JSON payload.
 
@@ -705,7 +735,7 @@ Every command that performs automation also appends an event to `events.jsonl`. 
 
 ### 14.8 Memory Markdown Writes
 
-`geas memory shared-set` and `geas memory agent-set --agent <type>` replace the entire target file with the Markdown body received on stdin using an atomic temp -> fsync -> rename write. There is no schema validation because `.geas/memory/*.md` is free-form Markdown and not part of schema validation. These are not append operations, so the caller must read the existing file first, modify it, and resubmit the full contents.
+`geas memory shared-set` and `geas memory agent-set --agent <type>` replace the entire target file with the Markdown body received via `--file` or stdin (see Section 4.3) using an atomic temp -> fsync -> rename write. There is no schema validation because `.geas/memory/*.md` is free-form Markdown and not part of schema validation. These are not append operations, so the caller must read the existing file first, modify it, and resubmit the full contents.
 
 These commands write only the Markdown files and do not touch `memory-update.json`. Semantic audit data such as reasons and evidence references for added, modified, or removed items must be written separately by the Orchestrator through `memory-update set` during consolidating. Skills are responsible for calling the two writes together when needed. The CLI does not auto-synchronize Markdown content with the memory update log, which is consistent with the Section 2 assumption that the CLI owns formal writes, not semantic judgment.
 

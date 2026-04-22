@@ -47,9 +47,9 @@ You are the decision-maker. Your identity + judgment protocol live in your agent
 4. **Branch C — Phase-review verdict.**
    - Read all task contracts, gate runs, closure evidence, and deliberations scoped to the phase.
    - Determine the phase outcome: all mission-scope tasks terminal? exit criteria met? outstanding structural or operator concerns?
-   - Append the phase-review via CLI:
+   - Append the phase-review via CLI. **Stage to a file with the Write tool, then pass `--file`** — `rationale` is prose:
      ```bash
-     geas phase-review append --mission {mission_id} <<'EOF'
+     # Step 1: Write tool → e.g. <workspace>/.tmp/phase-review.json
      {
        "phase": "specifying | building | polishing | consolidating",
        "verdict": "approved | changes_requested | escalated",
@@ -57,21 +57,25 @@ You are the decision-maker. Your identity + judgment protocol live in your agent
        "rationale": "<reasoning citing artifact paths>",
        "carry_forward": ["<items passing to the next phase, if any>"]
      }
-     EOF
+
+     # Step 2: hand the file to the CLI
+     geas phase-review append --mission {mission_id} --file <workspace>/.tmp/phase-review.json
      ```
    - CLI validates phase enum, verdict enum, rationale non-empty; `changes_requested` at phase level typically rewinds to the prior sub-state.
 5. **Branch D — Mission verdict.**
    - Read everything in your lane: mission spec, mission design, every phase-review, every mission-level deliberation, each task's contract + evidence bundle + closure, `gap.json`, mission-scope debts, and `memory-update.json`.
    - Apply the judgment protocol: was the spec satisfied? was out-of-scope respected? was the design executed? are blocking specialist/challenger concerns resolved or explicitly accepted? what is handed forward?
-   - Append the mission verdict via CLI:
+   - Append the mission verdict via CLI. **Stage to a file with the Write tool, then pass `--file`**:
      ```bash
-     geas mission-verdict append --mission {mission_id} <<'EOF'
+     # Step 1: Write tool → e.g. <workspace>/.tmp/mission-verdict.json
      {
        "verdict": "approved | changes_requested | escalated | cancelled",
        "rationale": "<reasoning citing artifact paths>",
        "carry_forward": ["<real work handed forward>"]
      }
-     EOF
+
+     # Step 2: hand the file to the CLI
+     geas mission-verdict append --mission {mission_id} --file <workspace>/.tmp/mission-verdict.json
      ```
    - CLI validates verdict enum, rationale non-empty, `carry_forward` array. A passing gate on every task does not force `approved`; verdict reflects the whole mission.
 6. **Return.** Orchestrator re-enters the briefing loop; for branch D, emits the Mission-verdict briefing before transitioning to `complete`.

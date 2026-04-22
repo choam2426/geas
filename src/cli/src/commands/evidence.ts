@@ -48,7 +48,7 @@ import {
   taskContractPath,
   tmpDir,
 } from '../lib/paths';
-import { readStdinJson, StdinError } from '../lib/input';
+import { readPayloadJson, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 
 function nowUtc(): string {
@@ -171,7 +171,7 @@ function registerEvidenceAppend(ev: Command): void {
   ev
     .command('append')
     .description(
-      'Append an entry to `evidence/{agent}.{slot}.json` for a task. stdin: entry body (entry_id auto-assigned).',
+      'Append an entry to `evidence/{agent}.{slot}.json` for a task. Payload via --file or stdin: entry body (entry_id auto-assigned).',
     )
     .requiredOption('--mission <id>', 'Mission ID')
     .requiredOption('--task <id>', 'Task ID')
@@ -180,12 +180,14 @@ function registerEvidenceAppend(ev: Command): void {
       '--agent <agent>',
       'Concrete agent type (defaults to routing.primary_worker_type when slot=implementer)',
     )
+    .option('--file <path>', 'Read JSON payload from file instead of stdin')
     .action(
       (opts: {
         mission: string;
         task: string;
         slot: string;
         agent?: string;
+        file?: string;
       }) => {
         if (!isValidMissionId(opts.mission)) {
           emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
@@ -247,7 +249,7 @@ function registerEvidenceAppend(ev: Command): void {
 
         let payload: Record<string, unknown>;
         try {
-          payload = readStdinJson() as Record<string, unknown>;
+          payload = readPayloadJson(opts.file) as Record<string, unknown>;
         } catch (e) {
           if (e instanceof StdinError) emit(err('invalid_argument', e.message));
           throw e;

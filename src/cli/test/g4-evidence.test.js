@@ -270,6 +270,78 @@ test('evidence append assigns entry_id sequentially from 1', () => {
   }
 });
 
+test('evidence append accepts --file as an alternative to stdin', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMission(dir, MID_STANDARD);
+    draftTaskReady(dir, MID_STANDARD, 'task-001');
+
+    // Stage the entry body to a file outside .geas/ (agent-style flow).
+    const payloadPath = path.join(dir, 'entry.json');
+    fs.writeFileSync(payloadPath, JSON.stringify(validImplementationEntry()), 'utf-8');
+
+    const r = runCli(
+      [
+        'evidence',
+        'append',
+        '--mission',
+        MID_STANDARD,
+        '--task',
+        'task-001',
+        '--agent',
+        'software-engineer',
+        '--slot',
+        'implementer',
+        '--file',
+        payloadPath,
+      ],
+      { cwd: dir }, // NO stdin input
+    );
+    assert.equal(r.status, 0, `--file evidence append failed: ${r.stderr}\n${r.stdout}`);
+    assert.equal(r.json.data.ids.entry_id, 1);
+
+    const file = readArtifact(
+      dir,
+      `.geas/missions/${MID_STANDARD}/tasks/task-001/evidence/software-engineer.implementer.json`,
+    );
+    assert.equal(file.entries.length, 1);
+    assert.equal(file.entries[0].evidence_kind, 'implementation');
+  } finally {
+    cleanup();
+  }
+});
+
+test('evidence append --file rejects unreadable file path', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMission(dir, MID_STANDARD);
+    draftTaskReady(dir, MID_STANDARD, 'task-001');
+
+    const r = runCli(
+      [
+        'evidence',
+        'append',
+        '--mission',
+        MID_STANDARD,
+        '--task',
+        'task-001',
+        '--agent',
+        'software-engineer',
+        '--slot',
+        'implementer',
+        '--file',
+        path.join(dir, 'does-not-exist.json'),
+      ],
+      { cwd: dir },
+    );
+    assert.notEqual(r.status, 0);
+    assert.equal(r.json.error.code, 'invalid_argument');
+    assert.match(r.json.error.message, /failed to read --file/);
+  } finally {
+    cleanup();
+  }
+});
+
 test('evidence append strips client-provided entry_id and created_at', () => {
   const { dir, cleanup } = makeTempRoot();
   try {

@@ -43,10 +43,9 @@ You have been spawned as the verifier for a task. Your job is to run the contrac
    - `changes_requested` — at least one criterion is `passed: false`; the task must rework. Do NOT mark `approved` with any `passed: false` entries — the gate treats that as an internal contradiction and returns Tier 1 `error`.
    - `blocked` — the `verification_plan` itself cannot be run as written (ambiguous, tooling missing, snapshot drift, structural issue owned outside this task). A `blocked` verdict signals the plan or environment needs repair, not the implementation.
 5. **Collect `concerns`.** Specific issues raised during verification that the reviewers / orchestrator / decision-maker should know about. Empty array if none. Even an `approved` verdict may carry non-blocking concerns; record them.
-6. **Append the verification-kind evidence entry** via CLI. Every field below is required for `verification` per the evidence schema:
+6. **Append the verification-kind evidence entry** via CLI. Every field below is required for `verification` per the evidence schema. **Stage to a file with the Write tool, then pass `--file`** — `details` text on each criterion is prose and embedded quotes break bash heredoc:
    ```bash
-   geas evidence append --mission {mission_id} --task {task_id} \
-       --agent {your_concrete_agent} --slot verifier <<'EOF'
+   # Step 1: Write tool → e.g. <workspace>/.tmp/verification-entry.json
    {
      "evidence_kind": "verification",
      "summary": "<one-line: N/M criteria passed, overall <verdict>>",
@@ -60,7 +59,11 @@ You have been spawned as the verifier for a task. Your job is to run the contrac
        {"criterion": "<criterion text>", "passed": true, "details": "<concrete observation>"}
      ]
    }
-   EOF
+
+   # Step 2: hand the file to the CLI
+   geas evidence append --mission {mission_id} --task {task_id} \
+       --agent {your_concrete_agent} --slot verifier \
+       --file <workspace>/.tmp/verification-entry.json
    ```
    `scope_excluded` is an array of strings (empty array if nothing was excluded); never a single string. `concerns` is an array of strings (empty array if none). `criteria_results[].passed` is a boolean (`true` / `false`), not the string `"pass"` / `"fail"`.
 7. **Return.** The orchestrator runs `running-gate`; the gate reads your latest verification entry and produces a Tier 1 status from its verdict + `criteria_results` consistency.

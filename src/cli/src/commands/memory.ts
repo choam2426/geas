@@ -43,7 +43,7 @@ import {
   sharedMemoryPath,
   tmpDir,
 } from '../lib/paths';
-import { readStdinText, StdinError } from '../lib/input';
+import { readPayloadText, StdinError } from '../lib/input';
 
 function slashPath(p: string): string {
   return p.replace(/\\/g, '/');
@@ -79,9 +79,9 @@ const SLOT_IDS = new Set([
   'communicator',
 ]);
 
-function readContentFromStdin(): string {
+function readContent(filePath?: string): string {
   try {
-    return readStdinText();
+    return readPayloadText(filePath);
   } catch (e) {
     if (e instanceof StdinError) {
       emit(err('invalid_argument', e.message));
@@ -94,11 +94,12 @@ function registerSharedSet(mem: Command): void {
   mem
     .command('shared-set')
     .description(
-      'Replace `.geas/memory/shared.md` with markdown read from stdin (atomic write).',
+      'Replace `.geas/memory/shared.md` with markdown read from --file or stdin (atomic write).',
     )
-    .action(() => {
+    .option('--file <path>', 'Read markdown from file instead of stdin')
+    .action((opts: { file?: string }) => {
       const root = needProjectRoot();
-      const content = readContentFromStdin();
+      const content = readContent(opts.file);
 
       const targetPath = sharedMemoryPath(root);
       atomicWrite(targetPath, content, tmpDir(root));
@@ -126,13 +127,14 @@ function registerAgentSet(mem: Command): void {
   mem
     .command('agent-set')
     .description(
-      'Replace `.geas/memory/agents/{agent}.md` with markdown read from stdin. `--agent` must be a concrete agent type (kebab-case), not a slot id.',
+      'Replace `.geas/memory/agents/{agent}.md` with markdown read from --file or stdin. `--agent` must be a concrete agent type (kebab-case), not a slot id.',
     )
     .requiredOption(
       '--agent <agent_type>',
       'Concrete agent type (kebab-case). Slot ids (implementer, verifier, challenger, decision-maker, design-authority, orchestrator, risk-assessor, operator, communicator) are rejected.',
     )
-    .action((opts: { agent: string }) => {
+    .option('--file <path>', 'Read markdown from file instead of stdin')
+    .action((opts: { agent: string; file?: string }) => {
       const agent = opts.agent;
       if (!isValidAgentOrSlot(agent)) {
         emit(
@@ -153,7 +155,7 @@ function registerAgentSet(mem: Command): void {
       }
 
       const root = needProjectRoot();
-      const content = readContentFromStdin();
+      const content = readContent(opts.file);
 
       ensureDir(agentsMemoryDir(root));
       const targetPath = agentMemoryPath(root, agent);

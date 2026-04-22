@@ -248,6 +248,46 @@ test('mission design-set writes mission-design.md after approve', () => {
   }
 });
 
+test('mission design-set accepts --file as an alternative to stdin (prose-safe)', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupWithMission(dir);
+    runCli(['mission', 'approve', '--mission', MID], { cwd: dir });
+
+    // Prose with Korean, apostrophes, backticks, and dollar signs —
+    // the exact pattern that breaks bash heredoc. --file bypasses shell
+    // parsing entirely.
+    const proseContent = [
+      '# Mission 설계',
+      '',
+      "The user's request touches `src/`, $HOME settings, and '여러 표면'.",
+      '',
+      '## Strategy',
+      '',
+      '한국어 prose with mixed ASCII — no shell parsing here.',
+      '',
+    ].join('\n');
+
+    const payloadPath = path.join(dir, 'design.md');
+    fs.writeFileSync(payloadPath, proseContent, 'utf-8');
+
+    const res = runCli(
+      ['mission', 'design-set', '--mission', MID, '--file', payloadPath],
+      { cwd: dir }, // NO stdin input
+    );
+    assert.equal(res.status, 0, `--file design-set failed: ${res.stderr}\n${res.stdout}`);
+    assert.equal(res.json.ok, true);
+
+    const written = fs.readFileSync(
+      path.join(dir, '.geas', 'missions', MID, 'mission-design.md'),
+      'utf-8',
+    );
+    assert.equal(written, proseContent);
+  } finally {
+    cleanup();
+  }
+});
+
 test('mission design-set appends trailing newline when stdin lacks one', () => {
   const { dir, cleanup } = makeTempRoot();
   try {

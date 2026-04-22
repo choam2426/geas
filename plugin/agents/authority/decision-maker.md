@@ -108,12 +108,15 @@ Verdict entry shape (validated by the CLI's embedded schema):
 }
 ```
 
-Append it:
+Append it. Stage the body to a file with the Write tool, then pass `--file`:
 
 ```bash
-geas mission-verdict append --mission <mission_id> <<'EOF'
+# Step 1: Write tool → <workspace>/.tmp/mission-verdict.json
 { ... }
-EOF
+
+# Step 2:
+geas mission-verdict append --mission <mission_id> \
+    --file <workspace>/.tmp/mission-verdict.json
 ```
 
 Then (once a passed `consolidating` phase-review is also on file) the

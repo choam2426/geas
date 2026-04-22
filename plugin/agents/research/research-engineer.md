@@ -60,11 +60,10 @@ Reviewer evidence file:
 .geas/missions/{mission_id}/tasks/{task_id}/evidence/research-engineer.operator.json
 ```
 
-Append via CLI (kind `review`):
+Append via CLI (kind `review`). Stage the body to a file with the Write tool, then pass `--file`:
 
 ```bash
-geas evidence append --mission {mission_id} --task {task_id} \
-    --agent research-engineer --slot operator <<'EOF'
+# Step 1: Write tool → <workspace>/.tmp/review-entry.json
 {
   "evidence_kind": "review",
   "summary": "operational review of reproducibility and infrastructure",
@@ -75,7 +74,11 @@ geas evidence append --mission {mission_id} --task {task_id} \
   "methods_used": ["re-ran pipeline in clean env", "audited requirements.txt"],
   "scope_excluded": []
 }
-EOF
+
+# Step 2:
+geas evidence append --mission {mission_id} --task {task_id} \
+    --agent research-engineer --slot operator \
+    --file <workspace>/.tmp/review-entry.json
 ```
 
 ## Boundaries

@@ -36,7 +36,7 @@ import {
   taskDeliberationsPath,
   tmpDir,
 } from '../lib/paths';
-import { readStdinJson, StdinError } from '../lib/input';
+import { readPayloadJson, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 
 function nowUtc(): string {
@@ -107,8 +107,9 @@ function registerDeliberationAppend(cmd: Command): void {
     .requiredOption('--mission <id>', 'Mission ID')
     .requiredOption('--level <level>', '"mission" or "task"')
     .option('--task <id>', 'Task ID (required when --level task)')
+    .option('--file <path>', 'Read JSON payload from file instead of stdin')
     .action(
-      (opts: { mission: string; level: string; task?: string }) => {
+      (opts: { mission: string; level: string; task?: string; file?: string }) => {
         if (!isValidMissionId(opts.mission)) {
           emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
         }
@@ -160,7 +161,7 @@ function registerDeliberationAppend(cmd: Command): void {
 
         let payload: Record<string, unknown>;
         try {
-          payload = readStdinJson() as Record<string, unknown>;
+          payload = readPayloadJson(opts.file) as Record<string, unknown>;
         } catch (e) {
           if (e instanceof StdinError) emit(err('invalid_argument', e.message));
           throw e;
@@ -169,7 +170,7 @@ function registerDeliberationAppend(cmd: Command): void {
           emit(
             err(
               'invalid_argument',
-              'deliberation append expects a JSON object on stdin',
+              'deliberation append expects a JSON object payload',
             ),
           );
         }

@@ -49,7 +49,7 @@ import {
   tasksDir,
   tmpDir,
 } from '../lib/paths';
-import { readStdinJson, StdinError } from '../lib/input';
+import { readPayloadJson, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 import {
   canTransitionTaskState,
@@ -128,10 +128,11 @@ function registerTaskDraft(task: Command): void {
   task
     .command('draft')
     .description(
-      'Create a task contract under a mission (stdin: contract content). Writes contract.json + task-state.json (drafted).',
+      'Create a task contract under a mission (payload via --file or stdin). Writes contract.json + task-state.json (drafted).',
     )
     .requiredOption('--mission <id>', 'Mission ID')
-    .action((opts: { mission: string }) => {
+    .option('--file <path>', 'Read JSON payload from file instead of stdin')
+    .action((opts: { mission: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
         emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
       }
@@ -144,13 +145,13 @@ function registerTaskDraft(task: Command): void {
 
       let payload: Record<string, unknown>;
       try {
-        payload = readStdinJson() as Record<string, unknown>;
+        payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
         if (e instanceof StdinError) emit(err('invalid_argument', e.message));
         throw e;
       }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-        emit(err('invalid_argument', 'task draft expects a JSON object on stdin'));
+        emit(err('invalid_argument', 'task draft expects a JSON object payload'));
       }
 
       const providedId = typeof payload.task_id === 'string' ? payload.task_id : undefined;

@@ -65,11 +65,10 @@ Reviewer evidence file:
 .geas/missions/{mission_id}/tasks/{task_id}/evidence/research-integrity-reviewer.risk-assessor.json
 ```
 
-Append via CLI (kind `review`):
+Append via CLI (kind `review`). Stage the body to a file with the Write tool, then pass `--file`:
 
 ```bash
-geas evidence append --mission {mission_id} --task {task_id} \
-    --agent research-integrity-reviewer --slot risk-assessor <<'EOF'
+# Step 1: Write tool → <workspace>/.tmp/review-entry.json
 {
   "evidence_kind": "review",
   "summary": "integrity review of data handling, bias, and reporting",
@@ -80,7 +79,11 @@ geas evidence append --mission {mission_id} --task {task_id} \
   "methods_used": ["mapped data lifecycle", "audited consent log"],
   "scope_excluded": []
 }
-EOF
+
+# Step 2:
+geas evidence append --mission {mission_id} --task {task_id} \
+    --agent research-integrity-reviewer --slot risk-assessor \
+    --file <workspace>/.tmp/review-entry.json
 ```
 
 For each concern, name: the integrity surface (consent, privacy, bias, validity), the concrete consequence, the severity, and the minimum fix. Vague warnings are not reviewable evidence.

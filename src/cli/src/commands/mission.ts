@@ -45,7 +45,7 @@ import {
   tasksDir,
   tmpDir,
 } from '../lib/paths';
-import { readStdinJson, readStdinText, StdinError } from '../lib/input';
+import { readPayloadJson, readPayloadText, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 import {
   canAdvanceMissionPhase,
@@ -172,20 +172,21 @@ function registerMissionCreate(mission: Command): void {
   mission
     .command('create')
     .description(
-      'Create a new mission from stdin JSON (spec fields); scaffolds the mission tree.',
+      'Create a new mission from JSON (spec fields) via --file or stdin; scaffolds the mission tree.',
     )
-    .action(() => {
+    .option('--file <path>', 'Read JSON payload from file instead of stdin')
+    .action((opts: { file?: string }) => {
       const root = needProjectRoot();
 
       let payload: Record<string, unknown>;
       try {
-        payload = readStdinJson() as Record<string, unknown>;
+        payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
         if (e instanceof StdinError) emit(err('invalid_argument', e.message));
         throw e;
       }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-        emit(err('invalid_argument', 'mission create expects a JSON object on stdin'));
+        emit(err('invalid_argument', 'mission create expects a JSON object payload'));
       }
 
       // id is caller-supplied or CLI-generated.
@@ -367,10 +368,11 @@ function registerMissionDesignSet(mission: Command): void {
   mission
     .command('design-set')
     .description(
-      'Write mission-design.md from stdin (atomic full-replace). Allowed only during specifying phase, after the spec is user_approved.',
+      'Write mission-design.md from --file or stdin (atomic full-replace). Allowed only during specifying phase, after the spec is user_approved.',
     )
     .requiredOption('--mission <id>', 'Mission ID')
-    .action((opts: { mission: string }) => {
+    .option('--file <path>', 'Read markdown from file instead of stdin (preferred for prose-heavy payloads)')
+    .action((opts: { mission: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
         emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
       }
@@ -421,7 +423,7 @@ function registerMissionDesignSet(mission: Command): void {
 
       let content: string;
       try {
-        content = readStdinText();
+        content = readPayloadText(opts.file);
       } catch (e) {
         if (e instanceof StdinError) {
           emit(err('invalid_argument', e.message));
@@ -621,9 +623,10 @@ function registerPhaseReviewAppend(program: Command): void {
 
   pr
     .command('append')
-    .description('Append a phase-review entry (stdin JSON). Mission-scoped.')
+    .description('Append a phase-review entry (JSON via --file or stdin). Mission-scoped.')
     .requiredOption('--mission <id>', 'Mission ID')
-    .action((opts: { mission: string }) => {
+    .option('--file <path>', 'Read JSON payload from file instead of stdin')
+    .action((opts: { mission: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
         emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
       }
@@ -631,7 +634,7 @@ function registerPhaseReviewAppend(program: Command): void {
 
       let entry: Record<string, unknown>;
       try {
-        entry = readStdinJson() as Record<string, unknown>;
+        entry = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
         if (e instanceof StdinError) emit(err('invalid_argument', e.message));
         throw e;
@@ -704,9 +707,10 @@ function registerMissionVerdictAppend(program: Command): void {
 
   mv
     .command('append')
-    .description('Append a mission-verdict entry (stdin JSON).')
+    .description('Append a mission-verdict entry (JSON via --file or stdin).')
     .requiredOption('--mission <id>', 'Mission ID')
-    .action((opts: { mission: string }) => {
+    .option('--file <path>', 'Read JSON payload from file instead of stdin')
+    .action((opts: { mission: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
         emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
       }
@@ -714,7 +718,7 @@ function registerMissionVerdictAppend(program: Command): void {
 
       let entry: Record<string, unknown>;
       try {
-        entry = readStdinJson() as Record<string, unknown>;
+        entry = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
         if (e instanceof StdinError) emit(err('invalid_argument', e.message));
         throw e;

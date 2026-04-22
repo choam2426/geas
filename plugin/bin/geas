@@ -11432,30 +11432,22 @@ var StdinError = class extends Error {
     this.code = "invalid_argument";
   }
 };
-function readStdinJson() {
-  if (process.stdin.isTTY === true) {
-    throw new StdinError("stdin is an interactive terminal (no JSON provided)");
-  }
+function stripBom(raw) {
+  return raw.charCodeAt(0) === 65279 ? raw.slice(1) : raw;
+}
+function readFileUtf8(filePath) {
   let raw;
   try {
-    raw = fs5.readFileSync(0, "utf-8");
+    raw = fs5.readFileSync(filePath, "utf-8");
   } catch (err2) {
     const e = err2;
-    throw new StdinError(`failed to read stdin: ${e.code ?? "unknown"}`);
+    throw new StdinError(
+      `failed to read --file '${filePath}': ${e.code ?? "unknown"}`
+    );
   }
-  if (raw.charCodeAt(0) === 65279) raw = raw.slice(1);
-  raw = raw.trim();
-  if (raw.length === 0) {
-    throw new StdinError("stdin was empty");
-  }
-  try {
-    return JSON.parse(raw);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    throw new StdinError(`invalid JSON on stdin: ${msg}`);
-  }
+  return stripBom(raw);
 }
-function readStdinText() {
+function readStdinUtf8() {
   if (process.stdin.isTTY === true) {
     throw new StdinError("stdin is an interactive terminal (no content provided)");
   }
@@ -11466,9 +11458,38 @@ function readStdinText() {
     const e = err2;
     throw new StdinError(`failed to read stdin: ${e.code ?? "unknown"}`);
   }
-  if (raw.charCodeAt(0) === 65279) raw = raw.slice(1);
+  return stripBom(raw);
+}
+function readPayloadJson(filePath) {
+  let raw;
+  if (filePath !== void 0 && filePath !== "") {
+    raw = readFileUtf8(filePath);
+  } else {
+    raw = readStdinUtf8();
+  }
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) {
+    const src = filePath ? `--file '${filePath}'` : "stdin";
+    throw new StdinError(`${src} was empty`);
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const src = filePath ? `--file '${filePath}'` : "stdin";
+    throw new StdinError(`invalid JSON on ${src}: ${msg}`);
+  }
+}
+function readPayloadText(filePath) {
+  let raw;
+  if (filePath !== void 0 && filePath !== "") {
+    raw = readFileUtf8(filePath);
+  } else {
+    raw = readStdinUtf8();
+  }
   if (raw.length === 0) {
-    throw new StdinError("stdin was empty");
+    const src = filePath ? `--file '${filePath}'` : "stdin";
+    throw new StdinError(`${src} was empty`);
   }
   return raw;
 }
@@ -11535,14 +11556,14 @@ function registerStateCommands(program2) {
     if (!data) emit(err("missing_artifact", `mission-state.json not found for ${opts.mission}`));
     emit(ok({ path: p.replace(/\\/g, "/"), state: data }));
   });
-  state.command("mission-set").description("Replace mission-state.json (stdin JSON; validated against mission-state schema)").requiredOption("--mission <id>", "Mission ID").action((opts) => {
+  state.command("mission-set").description("Replace mission-state.json (payload via --file or stdin; validated against mission-state schema)").requiredOption("--mission <id>", "Mission ID").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
       emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
     }
     const root = needProjectRoot();
     let payload;
     try {
-      payload = readStdinJson();
+      payload = readPayloadJson(opts.file);
     } catch (e) {
       if (e instanceof StdinError) emit(err("invalid_argument", e.message));
       throw e;
@@ -11570,13 +11591,13 @@ function registerStateCommands(program2) {
     if (!data) emit(err("missing_artifact", `task-state.json not found for ${opts.task}`));
     emit(ok({ path: p.replace(/\\/g, "/"), state: data }));
   });
-  state.command("task-set").description("Replace task-state.json (stdin JSON; validated against task-state schema)").requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").action((opts) => {
+  state.command("task-set").description("Replace task-state.json (payload via --file or stdin; validated against task-state schema)").requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     if (!isValidMissionId(opts.mission)) emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
     if (!isValidTaskId(opts.task)) emit(err("invalid_argument", `invalid task id '${opts.task}'`));
     const root = needProjectRoot();
     let payload;
     try {
-      payload = readStdinJson();
+      payload = readPayloadJson(opts.file);
     } catch (e) {
       if (e instanceof StdinError) emit(err("invalid_argument", e.message));
       throw e;
@@ -11929,18 +11950,18 @@ function missionVerdictExists(projectRoot, missionId) {
 }
 function registerMissionCreate(mission) {
   mission.command("create").description(
-    "Create a new mission from stdin JSON (spec fields); scaffolds the mission tree."
-  ).action(() => {
+    "Create a new mission from JSON (spec fields) via --file or stdin; scaffolds the mission tree."
+  ).option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     const root = needProjectRoot2();
     let payload;
     try {
-      payload = readStdinJson();
+      payload = readPayloadJson(opts.file);
     } catch (e) {
       if (e instanceof StdinError) emit(err("invalid_argument", e.message));
       throw e;
     }
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      emit(err("invalid_argument", "mission create expects a JSON object on stdin"));
+      emit(err("invalid_argument", "mission create expects a JSON object payload"));
     }
     const providedId = typeof payload.id === "string" ? payload.id : void 0;
     const missionId = providedId ?? generateMissionId();
@@ -12090,8 +12111,8 @@ function registerMissionApprove(mission) {
 }
 function registerMissionDesignSet(mission) {
   mission.command("design-set").description(
-    "Write mission-design.md from stdin (atomic full-replace). Allowed only during specifying phase, after the spec is user_approved."
-  ).requiredOption("--mission <id>", "Mission ID").action((opts) => {
+    "Write mission-design.md from --file or stdin (atomic full-replace). Allowed only during specifying phase, after the spec is user_approved."
+  ).requiredOption("--mission <id>", "Mission ID").option("--file <path>", "Read markdown from file instead of stdin (preferred for prose-heavy payloads)").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
       emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
     }
@@ -12139,7 +12160,7 @@ function registerMissionDesignSet(mission) {
     }
     let content;
     try {
-      content = readStdinText();
+      content = readPayloadText(opts.file);
     } catch (e) {
       if (e instanceof StdinError) {
         emit(err("invalid_argument", e.message));
@@ -12295,14 +12316,14 @@ function registerMissionStateUpdatePhase(program2) {
 }
 function registerPhaseReviewAppend(program2) {
   const pr = program2.command("phase-review").description("phase-reviews.json append operation (mission phase gate records)");
-  pr.command("append").description("Append a phase-review entry (stdin JSON). Mission-scoped.").requiredOption("--mission <id>", "Mission ID").action((opts) => {
+  pr.command("append").description("Append a phase-review entry (JSON via --file or stdin). Mission-scoped.").requiredOption("--mission <id>", "Mission ID").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
       emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
     }
     const root = needProjectRoot2();
     let entry;
     try {
-      entry = readStdinJson();
+      entry = readPayloadJson(opts.file);
     } catch (e) {
       if (e instanceof StdinError) emit(err("invalid_argument", e.message));
       throw e;
@@ -12356,14 +12377,14 @@ function registerPhaseReviewAppend(program2) {
 }
 function registerMissionVerdictAppend(program2) {
   const mv = program2.command("mission-verdict").description("mission-verdicts.json append operation (Decision Maker closure)");
-  mv.command("append").description("Append a mission-verdict entry (stdin JSON).").requiredOption("--mission <id>", "Mission ID").action((opts) => {
+  mv.command("append").description("Append a mission-verdict entry (JSON via --file or stdin).").requiredOption("--mission <id>", "Mission ID").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
       emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
     }
     const root = needProjectRoot2();
     let entry;
     try {
-      entry = readStdinJson();
+      entry = readPayloadJson(opts.file);
     } catch (e) {
       if (e instanceof StdinError) emit(err("invalid_argument", e.message));
       throw e;
@@ -12482,8 +12503,8 @@ function generateTaskId(root, missionId) {
 }
 function registerTaskDraft(task) {
   task.command("draft").description(
-    "Create a task contract under a mission (stdin: contract content). Writes contract.json + task-state.json (drafted)."
-  ).requiredOption("--mission <id>", "Mission ID").action((opts) => {
+    "Create a task contract under a mission (payload via --file or stdin). Writes contract.json + task-state.json (drafted)."
+  ).requiredOption("--mission <id>", "Mission ID").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
       emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
     }
@@ -12492,13 +12513,13 @@ function registerTaskDraft(task) {
     void spec;
     let payload;
     try {
-      payload = readStdinJson();
+      payload = readPayloadJson(opts.file);
     } catch (e) {
       if (e instanceof StdinError) emit(err("invalid_argument", e.message));
       throw e;
     }
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      emit(err("invalid_argument", "task draft expects a JSON object on stdin"));
+      emit(err("invalid_argument", "task draft expects a JSON object payload"));
     }
     const providedId = typeof payload.task_id === "string" ? payload.task_id : void 0;
     const taskId = providedId ?? generateTaskId(root, opts.mission);
@@ -13118,11 +13139,11 @@ function resolveAgent(projectRoot, missionId, taskId, slot, explicitAgent) {
 }
 function registerEvidenceAppend(ev) {
   ev.command("append").description(
-    "Append an entry to `evidence/{agent}.{slot}.json` for a task. stdin: entry body (entry_id auto-assigned)."
+    "Append an entry to `evidence/{agent}.{slot}.json` for a task. Payload via --file or stdin: entry body (entry_id auto-assigned)."
   ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").requiredOption("--slot <slot>", "Protocol slot (e.g. implementer, verifier, risk-assessor, orchestrator, challenger, operator, communicator, design-authority, decision-maker)").option(
     "--agent <agent>",
     "Concrete agent type (defaults to routing.primary_worker_type when slot=implementer)"
-  ).action(
+  ).option("--file <path>", "Read JSON payload from file instead of stdin").action(
     (opts) => {
       if (!isValidMissionId(opts.mission)) {
         emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
@@ -13180,7 +13201,7 @@ function registerEvidenceAppend(ev) {
       }
       let payload;
       try {
-        payload = readStdinJson();
+        payload = readPayloadJson(opts.file);
       } catch (e) {
         if (e instanceof StdinError) emit(err("invalid_argument", e.message));
         throw e;
@@ -13301,8 +13322,8 @@ function needProjectRoot5() {
 function registerSelfCheckCommands(program2) {
   const sc = program2.command("self-check").description("Implementer self-check artifact (self-check.json) commands.");
   sc.command("append").description(
-    "Append a self-check entry for a task (stdin: entry content fields). Creates the file on first append; subsequent appends push new entries to entries[]. One entry per implementer pass."
-  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").action((opts) => {
+    "Append a self-check entry for a task (payload via --file or stdin: entry content fields). Creates the file on first append; subsequent appends push new entries to entries[]. One entry per implementer pass."
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
       emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
     }
@@ -13328,7 +13349,7 @@ function registerSelfCheckCommands(program2) {
     }
     let payload;
     try {
-      payload = readStdinJson();
+      payload = readPayloadJson(opts.file);
     } catch (e) {
       if (e instanceof StdinError) emit(err("invalid_argument", e.message));
       throw e;
@@ -13438,7 +13459,7 @@ function aggregateExpected(votes) {
 function registerDeliberationAppend(cmd) {
   cmd.command("append").description(
     "Append a deliberation entry. Requires mission mode = full_depth."
-  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--level <level>", '"mission" or "task"').option("--task <id>", "Task ID (required when --level task)").action(
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--level <level>", '"mission" or "task"').option("--task <id>", "Task ID (required when --level task)").option("--file <path>", "Read JSON payload from file instead of stdin").action(
     (opts) => {
       if (!isValidMissionId(opts.mission)) {
         emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
@@ -13487,7 +13508,7 @@ function registerDeliberationAppend(cmd) {
       }
       let payload;
       try {
-        payload = readStdinJson();
+        payload = readPayloadJson(opts.file);
       } catch (e) {
         if (e instanceof StdinError) emit(err("invalid_argument", e.message));
         throw e;
@@ -13496,7 +13517,7 @@ function registerDeliberationAppend(cmd) {
         emit(
           err(
             "invalid_argument",
-            "deliberation append expects a JSON object on stdin"
+            "deliberation append expects a JSON object payload"
           )
         );
       }
@@ -13974,9 +13995,9 @@ var SLOT_IDS = /* @__PURE__ */ new Set([
   "operator",
   "communicator"
 ]);
-function readContentFromStdin() {
+function readContent(filePath) {
   try {
-    return readStdinText();
+    return readPayloadText(filePath);
   } catch (e) {
     if (e instanceof StdinError) {
       emit(err("invalid_argument", e.message));
@@ -13986,10 +14007,10 @@ function readContentFromStdin() {
 }
 function registerSharedSet(mem) {
   mem.command("shared-set").description(
-    "Replace `.geas/memory/shared.md` with markdown read from stdin (atomic write)."
-  ).action(() => {
+    "Replace `.geas/memory/shared.md` with markdown read from --file or stdin (atomic write)."
+  ).option("--file <path>", "Read markdown from file instead of stdin").action((opts) => {
     const root = needProjectRoot8();
-    const content = readContentFromStdin();
+    const content = readContent(opts.file);
     const targetPath = sharedMemoryPath(root);
     atomicWrite(targetPath, content, tmpDir(root));
     recordEvent(root, {
@@ -14011,11 +14032,11 @@ function registerSharedSet(mem) {
 }
 function registerAgentSet(mem) {
   mem.command("agent-set").description(
-    "Replace `.geas/memory/agents/{agent}.md` with markdown read from stdin. `--agent` must be a concrete agent type (kebab-case), not a slot id."
+    "Replace `.geas/memory/agents/{agent}.md` with markdown read from --file or stdin. `--agent` must be a concrete agent type (kebab-case), not a slot id."
   ).requiredOption(
     "--agent <agent_type>",
     "Concrete agent type (kebab-case). Slot ids (implementer, verifier, challenger, decision-maker, design-authority, orchestrator, risk-assessor, operator, communicator) are rejected."
-  ).action((opts) => {
+  ).option("--file <path>", "Read markdown from file instead of stdin").action((opts) => {
     const agent = opts.agent;
     if (!isValidAgentOrSlot(agent)) {
       emit(
@@ -14035,7 +14056,7 @@ function registerAgentSet(mem) {
       );
     }
     const root = needProjectRoot8();
-    const content = readContentFromStdin();
+    const content = readContent(opts.file);
     ensureDir(agentsMemoryDir(root));
     const targetPath = agentMemoryPath(root, agent);
     atomicWrite(targetPath, content, tmpDir(root));
@@ -14119,12 +14140,12 @@ function nextDebtId(entries) {
 }
 function registerRegister(debt) {
   debt.command("register").description(
-    "Append a new entry to `.geas/debts.json` (project-level). stdin: debt body (debt_id auto-assigned, status forced to open)."
-  ).action(() => {
+    "Append a new entry to `.geas/debts.json` (project-level). Payload via --file or stdin: debt body (debt_id auto-assigned, status forced to open)."
+  ).option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     const root = needProjectRoot9();
     let payload;
     try {
-      payload = readStdinJson();
+      payload = readPayloadJson(opts.file);
     } catch (e) {
       if (e instanceof StdinError) emit(err("invalid_argument", e.message));
       throw e;
@@ -14133,7 +14154,7 @@ function registerRegister(debt) {
       emit(
         err(
           "invalid_argument",
-          "debt register expects a JSON object on stdin (one entry body)"
+          "debt register expects a JSON object payload (one entry body)"
         )
       );
     }
@@ -14236,8 +14257,8 @@ function registerRegister(debt) {
 }
 function registerUpdateStatus(debt) {
   debt.command("update-status").description(
-    "Update status + resolved_by + resolution_rationale on an existing debt entry. stdin: { status, resolved_by, resolution_rationale }."
-  ).requiredOption("--debt <id>", "Debt ID (debt-NNN)").action((opts) => {
+    "Update status + resolved_by + resolution_rationale on an existing debt entry. Payload via --file or stdin: { status, resolved_by, resolution_rationale }."
+  ).requiredOption("--debt <id>", "Debt ID (debt-NNN)").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     if (!DEBT_ID_RE.test(opts.debt)) {
       emit(
         err(
@@ -14249,7 +14270,7 @@ function registerUpdateStatus(debt) {
     const root = needProjectRoot9();
     let payload;
     try {
-      payload = readStdinJson();
+      payload = readPayloadJson(opts.file);
     } catch (e) {
       if (e instanceof StdinError) emit(err("invalid_argument", e.message));
       throw e;
@@ -14258,7 +14279,7 @@ function registerUpdateStatus(debt) {
       emit(
         err(
           "invalid_argument",
-          "debt update-status expects a JSON object on stdin"
+          "debt update-status expects a JSON object payload"
         )
       );
     }
@@ -14479,8 +14500,8 @@ function registerGapCommands(program2) {
     "Mission-level gap artifact (missions/{id}/consolidation/gap.json)."
   );
   gap.command("set").description(
-    "Write gap.json for a mission (full-replace, stdin: gap body). Allowed during consolidating phase."
-  ).requiredOption("--mission <id>", "Mission ID").action((opts) => {
+    "Write gap.json for a mission (full-replace; payload via --file or stdin). Allowed during consolidating phase."
+  ).requiredOption("--mission <id>", "Mission ID").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
       emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
     }
@@ -14495,14 +14516,14 @@ function registerGapCommands(program2) {
     }
     let payload;
     try {
-      payload = readStdinJson();
+      payload = readPayloadJson(opts.file);
     } catch (e) {
       if (e instanceof StdinError) emit(err("invalid_argument", e.message));
       throw e;
     }
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
       emit(
-        err("invalid_argument", "gap set expects a JSON object on stdin")
+        err("invalid_argument", "gap set expects a JSON object payload")
       );
     }
     if (payload.fully_delivered === void 0) payload.fully_delivered = [];
@@ -14573,8 +14594,8 @@ function registerMemoryUpdateCommands(program2) {
     "Mission consolidation memory change log (missions/{id}/consolidation/memory-update.json)."
   );
   mu.command("set").description(
-    "Write memory-update.json for a mission (full-replace, stdin: body). Records what shared + agent memory changed this mission."
-  ).requiredOption("--mission <id>", "Mission ID").action((opts) => {
+    "Write memory-update.json for a mission (full-replace; payload via --file or stdin). Records what shared + agent memory changed this mission."
+  ).requiredOption("--mission <id>", "Mission ID").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
       emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
     }
@@ -14589,7 +14610,7 @@ function registerMemoryUpdateCommands(program2) {
     }
     let payload;
     try {
-      payload = readStdinJson();
+      payload = readPayloadJson(opts.file);
     } catch (e) {
       if (e instanceof StdinError) emit(err("invalid_argument", e.message));
       throw e;
@@ -14598,7 +14619,7 @@ function registerMemoryUpdateCommands(program2) {
       emit(
         err(
           "invalid_argument",
-          "memory-update set expects a JSON object on stdin"
+          "memory-update set expects a JSON object payload"
         )
       );
     }
@@ -14656,18 +14677,18 @@ function needProjectRoot12() {
 function registerEventCommands(program2) {
   const event = program2.command("event").description("Append entries to .geas/events.jsonl (automation-only audit log).");
   event.command("log").description(
-    "Append a single event (stdin: JSON object with kind + actor, optional mission_id, task_id, ref, payload). CLI assigns entry_id and created_at."
-  ).action(() => {
+    "Append a single event (payload via --file or stdin: JSON object with kind + actor, optional mission_id, task_id, ref, payload). CLI assigns entry_id and created_at."
+  ).option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     const root = needProjectRoot12();
     let payload;
     try {
-      payload = readStdinJson();
+      payload = readPayloadJson(opts.file);
     } catch (e) {
       if (e instanceof StdinError) emit(err("invalid_argument", e.message));
       throw e;
     }
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      emit(err("invalid_argument", "event log expects a JSON object on stdin"));
+      emit(err("invalid_argument", "event log expects a JSON object payload"));
     }
     if (typeof payload.kind !== "string" || payload.kind.length === 0) {
       emit(err("invalid_argument", "event.kind is required (non-empty string)"));
@@ -14885,8 +14906,8 @@ function registerImplContractCommands(program2) {
     "Pre-implementation agreement (implementation-contract.json) commands."
   );
   ic.command("set").description(
-    "Write implementation-contract.json for a task (full-replace, stdin: body). CLI injects mission_id / task_id / timestamps."
-  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").action((opts) => {
+    "Write implementation-contract.json for a task (full-replace; payload via --file or stdin). CLI injects mission_id / task_id / timestamps."
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
       emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
     }
@@ -14955,7 +14976,7 @@ function registerImplContractCommands(program2) {
     }
     let payload;
     try {
-      payload = readStdinJson();
+      payload = readPayloadJson(opts.file);
     } catch (e) {
       if (e instanceof StdinError) emit(err("invalid_argument", e.message));
       throw e;

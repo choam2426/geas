@@ -35,7 +35,7 @@ import type { Command } from 'commander';
 
 import { emit, err, isValidActor, ok, recordEvent } from '../lib/envelope';
 import { findProjectRoot } from '../lib/paths';
-import { readStdinJson, StdinError } from '../lib/input';
+import { readPayloadJson, StdinError } from '../lib/input';
 
 function needProjectRoot(): string {
   const root = findProjectRoot(process.cwd());
@@ -58,20 +58,21 @@ export function registerEventCommands(program: Command): void {
   event
     .command('log')
     .description(
-      'Append a single event (stdin: JSON object with kind + actor, optional mission_id, task_id, ref, payload). CLI assigns entry_id and created_at.',
+      'Append a single event (payload via --file or stdin: JSON object with kind + actor, optional mission_id, task_id, ref, payload). CLI assigns entry_id and created_at.',
     )
-    .action(() => {
+    .option('--file <path>', 'Read JSON payload from file instead of stdin')
+    .action((opts: { file?: string }) => {
       const root = needProjectRoot();
 
       let payload: Record<string, unknown>;
       try {
-        payload = readStdinJson() as Record<string, unknown>;
+        payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
         if (e instanceof StdinError) emit(err('invalid_argument', e.message));
         throw e;
       }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-        emit(err('invalid_argument', 'event log expects a JSON object on stdin'));
+        emit(err('invalid_argument', 'event log expects a JSON object payload'));
       }
 
       if (typeof payload.kind !== 'string' || payload.kind.length === 0) {

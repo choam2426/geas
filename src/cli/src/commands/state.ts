@@ -25,7 +25,7 @@ import {
   taskStatePath,
   tmpDir,
 } from '../lib/paths';
-import { readStdinJson, StdinError } from '../lib/input';
+import { readPayloadJson, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 
 function needProjectRoot(): string {
@@ -60,16 +60,17 @@ export function registerStateCommands(program: Command): void {
 
   state
     .command('mission-set')
-    .description('Replace mission-state.json (stdin JSON; validated against mission-state schema)')
+    .description('Replace mission-state.json (payload via --file or stdin; validated against mission-state schema)')
     .requiredOption('--mission <id>', 'Mission ID')
-    .action((opts: { mission: string }) => {
+    .option('--file <path>', 'Read JSON payload from file instead of stdin')
+    .action((opts: { mission: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
         emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
       }
       const root = needProjectRoot();
       let payload: Record<string, unknown>;
       try {
-        payload = readStdinJson() as Record<string, unknown>;
+        payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
         if (e instanceof StdinError) emit(err('invalid_argument', e.message));
         throw e;
@@ -111,16 +112,17 @@ export function registerStateCommands(program: Command): void {
 
   state
     .command('task-set')
-    .description('Replace task-state.json (stdin JSON; validated against task-state schema)')
+    .description('Replace task-state.json (payload via --file or stdin; validated against task-state schema)')
     .requiredOption('--mission <id>', 'Mission ID')
     .requiredOption('--task <id>', 'Task ID')
-    .action((opts: { mission: string; task: string }) => {
+    .option('--file <path>', 'Read JSON payload from file instead of stdin')
+    .action((opts: { mission: string; task: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
       if (!isValidTaskId(opts.task)) emit(err('invalid_argument', `invalid task id '${opts.task}'`));
       const root = needProjectRoot();
       let payload: Record<string, unknown>;
       try {
-        payload = readStdinJson() as Record<string, unknown>;
+        payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
         if (e instanceof StdinError) emit(err('invalid_argument', e.message));
         throw e;

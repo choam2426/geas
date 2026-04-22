@@ -34,7 +34,7 @@ import {
   isValidTaskId,
   tmpDir,
 } from '../lib/paths';
-import { readStdinJson, StdinError } from '../lib/input';
+import { readPayloadJson, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 
 function nowUtc(): string {
@@ -113,14 +113,15 @@ function registerRegister(debt: Command): void {
   debt
     .command('register')
     .description(
-      'Append a new entry to `.geas/debts.json` (project-level). stdin: debt body (debt_id auto-assigned, status forced to open).',
+      'Append a new entry to `.geas/debts.json` (project-level). Payload via --file or stdin: debt body (debt_id auto-assigned, status forced to open).',
     )
-    .action(() => {
+    .option('--file <path>', 'Read JSON payload from file instead of stdin')
+    .action((opts: { file?: string }) => {
       const root = needProjectRoot();
 
       let payload: Record<string, unknown>;
       try {
-        payload = readStdinJson() as Record<string, unknown>;
+        payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
         if (e instanceof StdinError) emit(err('invalid_argument', e.message));
         throw e;
@@ -129,7 +130,7 @@ function registerRegister(debt: Command): void {
         emit(
           err(
             'invalid_argument',
-            'debt register expects a JSON object on stdin (one entry body)',
+            'debt register expects a JSON object payload (one entry body)',
           ),
         );
       }
@@ -259,10 +260,11 @@ function registerUpdateStatus(debt: Command): void {
   debt
     .command('update-status')
     .description(
-      'Update status + resolved_by + resolution_rationale on an existing debt entry. stdin: { status, resolved_by, resolution_rationale }.',
+      'Update status + resolved_by + resolution_rationale on an existing debt entry. Payload via --file or stdin: { status, resolved_by, resolution_rationale }.',
     )
     .requiredOption('--debt <id>', 'Debt ID (debt-NNN)')
-    .action((opts: { debt: string }) => {
+    .option('--file <path>', 'Read JSON payload from file instead of stdin')
+    .action((opts: { debt: string; file?: string }) => {
       if (!DEBT_ID_RE.test(opts.debt)) {
         emit(
           err(
@@ -276,7 +278,7 @@ function registerUpdateStatus(debt: Command): void {
 
       let payload: Record<string, unknown>;
       try {
-        payload = readStdinJson() as Record<string, unknown>;
+        payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
         if (e instanceof StdinError) emit(err('invalid_argument', e.message));
         throw e;
@@ -285,7 +287,7 @@ function registerUpdateStatus(debt: Command): void {
         emit(
           err(
             'invalid_argument',
-            'debt update-status expects a JSON object on stdin',
+            'debt update-status expects a JSON object payload',
           ),
         );
       }

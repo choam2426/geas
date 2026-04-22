@@ -47,13 +47,18 @@ You have been spawned as the implementer for an approved task. You own the full 
    - `planned_actions` must be specific enough for a reviewer to inspect.
    - `non_goals` names things tempting but out of scope.
    - `open_questions` names every real ambiguity; do not silently pick an interpretation.
-   Write it via `geas impl-contract set --mission <id> --task <id>` (stdin: the body). The CLI injects `mission_id` / `task_id` / timestamps and validates against `implementation-contract.schema`.
+   **Stage to a file with the Write tool, then pass `--file`.** Do not use heredoc — prose in `rationale` / `planned_actions` routinely breaks bash parsing:
+   ```bash
+   # Step 1: Write tool → e.g. <workspace>/.tmp/impl-contract.json (body above)
+   # Step 2: hand the file to the CLI
+   geas impl-contract set --mission <id> --task <id> --file <workspace>/.tmp/impl-contract.json
+   ```
+   The CLI injects `mission_id` / `task_id` / timestamps and validates against `implementation-contract.schema`.
 3. **Do the work per the plan.** Stay inside `change_scope`. The implementation-contract is a live document — if reality forces a material deviation (plan needs to touch outside `change_scope`, an assumption broke, risk rose, a non-goal must come in-scope), pause and amend before pushing ahead (step 4). Minor adjustments that stay within scope do not require amendment; record them in `deviations_from_plan` at self-check time.
 4. **Amend the contract when direction shifts materially.** Run `geas impl-contract set` again with the revised body; the CLI replaces the prior contract (full-replace semantics) so reviewers later see the current plan. Amendment is NOT gated on reviewer approval — keeping the document current is an obligation to future readers, not a concurrence checkpoint. If the amendment itself is so structural it should pause the task, stop and hand back to the orchestrator; they decide whether to open a task-level deliberation via `convening-deliberation`.
-5. **Append implementation evidence** when the work is ready for review:
+5. **Append implementation evidence** when the work is ready for review. **Use the Write tool to stage the payload to a file outside `.geas/`, then hand it to the CLI with `--file`.** Never write the JSON body inside a bash heredoc — prose inside the body (rationale, summary) breaks shell parsing on apostrophes/quotes/non-ASCII.
    ```bash
-   geas evidence append --mission {mission_id} --task {task_id} \
-       --agent {your_concrete_agent} --slot implementer <<'EOF'
+   # Step 1: Write tool → e.g. <workspace>/.tmp/impl-evidence.json
    {
      "evidence_kind": "implementation",
      "summary": "what you did",
@@ -62,12 +67,16 @@ You have been spawned as the implementer for an approved task. You own the full 
      "methods_used": ["<concrete tools/procedures>"],
      "revision_ref": null
    }
-   EOF
+
+   # Step 2: hand the file to the CLI
+   geas evidence append --mission {mission_id} --task {task_id} \
+       --agent {your_concrete_agent} --slot implementer \
+       --file <workspace>/.tmp/impl-evidence.json
    ```
    On a revision run (verify-fix rewind), set `revision_ref` to the prior implementation entry's `entry_id`. The CLI auto-injects `entry_id`, `artifacts: []`, `memory_suggestions: []`, `debt_candidates: []`, `gap_signals: []`, `created_at`; you only need to supply the semantic fields above.
-6. **Append the self-check entry.** The self-check is an append-only log: one entry per implementer pass. It is a worker-side factual record, not a confidence score. The reviewer and the gate read the latest entry to orient their own checks:
+6. **Append the self-check entry.** The self-check is an append-only log: one entry per implementer pass. It is a worker-side factual record, not a confidence score. The reviewer and the gate read the latest entry to orient their own checks. **Same pattern: Write tool → `--file`.**
    ```bash
-   geas self-check append --mission {mission_id} --task {task_id} <<'EOF'
+   # Step 1: Write tool → e.g. <workspace>/.tmp/self-check.json
    {
      "completed_work": "<one paragraph: what you actually landed on which surfaces>",
      "reviewer_focus": [
@@ -85,7 +94,10 @@ You have been spawned as the implementer for an approved task. You own the full 
      ],
      "revision_ref": null
    }
-   EOF
+
+   # Step 2: hand the file to the CLI
+   geas self-check append --mission {mission_id} --task {task_id} \
+       --file <workspace>/.tmp/self-check.json
    ```
    On a verify-fix re-entry, set `revision_ref` to the prior self-check entry's `entry_id` so reviewers can trace iteration history. The CLI assigns `entry_id` and `created_at` automatically; prior entries are preserved so the iteration log stays intact.
    - `completed_work` is a factual statement of what landed in this pass, not a confidence claim. No "mostly done", no 1–5 score.
