@@ -31,7 +31,7 @@ Execution kinds:
 | `consolidating-mission` | B. Mission lifecycle | main_session | No | Promotes debt / gap / memory candidates in consolidating phase |
 | `verdicting-mission` | B. Mission lifecycle | main_session | No | Authors the mission-verdict entry; dispatcher transitions to complete after user confirmation |
 | `convening-deliberation` | C. Multi-party | main_session (spawns voters) | No | Full-depth multi-party judgment; spawns voters and records one deliberation entry |
-| `implementing-task` | D. Spawned agent | spawned | No | Spawned implementer: plan concurrence, implementation, implementation evidence + self-check |
+| `implementing-task` | D. Spawned agent | spawned | No | Spawned implementer owns the `implementing` state: writes implementation contract, implements, appends implementation evidence + self-check entry |
 | `reviewing-task` | D. Spawned agent | spawned | No | Spawned reviewer (challenger / risk-assessor / operator / communicator) appends review-kind evidence |
 | `verifying-task` | D. Spawned agent | spawned | No | Spawned verifier runs the contract's verification_plan and appends verifier evidence |
 | `deliberating-on-proposal` | D. Spawned agent | spawned | No | Spawned voter returns one vote (agree / disagree / escalate) with rationale; no direct writes |
@@ -140,25 +140,25 @@ Invoked by the mission dispatcher when `mission.mode == full_depth` and a multi-
 
 #### `implementing-task`
 
-Invoked by a spawned implementer after the dispatcher hands off an approved, dependency-satisfied task. Before writing code, the implementer states the concrete plan (planned_actions, edge_cases, demo_steps) and obtains one-round reviewer concurrence on the plan. Only after plan approval does the task transition to `implementing`. Closes out with one implementation-kind evidence entry plus the `self-check.json`. Same concrete agent cannot hold implementer and reviewer/verifier on the same task.
+Invoked by a spawned implementer after the dispatcher hands off an approved, dependency-satisfied task. The implementer owns the full `implementing` state: writes the implementation contract (the plan reviewers read later), performs the work, amends the contract if direction shifts materially, and closes out with one implementation-kind evidence entry plus a self-check entry. There is no pre-code reviewer concurrence round — per protocol doc 03, required reviewers submit evidence after the self-check is appended. Same concrete agent cannot hold implementer and reviewer/verifier on the same task.
 
-- Trigger — `task-state.status == ready` on first run, or `implementing` on a verify-fix revision; `base_snapshot` still matches the real workspace.
-- Primary CLI — `geas self-check append`, `geas evidence append --slot implementer` (kinds `plan-proposal` for the contract and `implementation` for the final entry), `geas task transition --to implementing|reviewing`.
-- Primary outputs — implementation-kind evidence entry under `tasks/{tid}/evidence/`, plus `tasks/{tid}/self-check.json`. (The separate `impl-contract set` registration is on the non-blocking queue; today the plan concurrence is recorded through `evidence append --kind plan-proposal` + reviewer review entries.)
+- Trigger — `task-state.status == implementing` at spawn. Scheduler transitions `ready → implementing` on first dispatch; `running-gate` transitions `reviewing → implementing` on verify-fix rewinds. `base_snapshot` still matches the real workspace.
+- Primary CLI — `geas impl-contract set`, `geas evidence append --slot implementer`, `geas self-check append`, `geas task transition --to reviewing` (orchestrator handles the transition after self-check lands).
+- Primary outputs — `tasks/{tid}/implementation-contract.json`, implementation-kind evidence entry under `tasks/{tid}/evidence/`, and an entry appended to `tasks/{tid}/self-check.json`.
 
 #### `reviewing-task`
 
-Invoked by a spawned reviewer (challenger / risk-assessor / operator / communicator) after an implementer has appended implementation evidence plus `self-check.json` (post-work review) or after the implementer has proposed a plan (pre-work concurrence). Reads the evidence in the reviewer's lane, forms a verdict, and appends one review-kind evidence entry. Stance (adversarial / failure-modes / operability / human-surfaces) lives in the agent file; the shared procedure lives here.
+Invoked by a spawned reviewer (challenger / risk-assessor / operator / communicator) after an implementer has appended implementation evidence plus a self-check entry. Reads the evidence in the reviewer's lane, forms a verdict, and appends one review-kind evidence entry. Stance (adversarial / failure-modes / operability / human-surfaces) lives in the agent file; the shared procedure lives here.
 
-- Trigger — spawned as reviewer for a task in `implementing` (pre-work plan concurrence) or `reviewing` (post-work review); reviewer is not the implementer on this task.
+- Trigger — spawned as reviewer for a task in `reviewing`; reviewer is not the implementer on this task.
 - Primary CLI — `geas evidence append --slot <reviewer slot>` with `evidence_kind: review`.
-- Primary outputs — review-kind evidence entry with `verdict`, `concerns`, `scope_examined`, `methods_used`.
+- Primary outputs — review-kind evidence entry with `verdict`, `concerns`, `scope_examined`, `methods_used`, `scope_excluded`.
 
 #### `verifying-task`
 
-Invoked by a spawned verifier after reviewers have returned concurrence (or alongside them in full-depth). Runs the task contract's `verification_plan` independently of the implementer and records one verification-kind evidence entry mapping every acceptance criterion to a pass/fail result with concrete details. Missing or ambiguous verification produces a gate `error`.
+Invoked by a spawned verifier alongside or after post-work reviewers (both sets must be present by gate run time). Runs the task contract's `verification_plan` independently of the implementer and records one verification-kind evidence entry mapping every acceptance criterion to a pass/fail result with concrete details. Missing or ambiguous verification produces a gate `error`.
 
-- Trigger — `task-state.status == reviewing` (or `implementing` in profiles that run verifier concurrent with reviewers); at least one implementation-kind evidence entry exists; `base_snapshot` still matches.
+- Trigger — `task-state.status == reviewing`; at least one implementation-kind evidence entry exists; `base_snapshot` still matches.
 - Primary CLI — `geas evidence append --slot verifier` with `evidence_kind: verification`.
 - Primary outputs — verifier evidence entry with `criteria_results` covering every acceptance criterion.
 

@@ -150,7 +150,7 @@ Who owns which decisions. See [`docs/protocol/01_AGENTS_AND_AUTHORITY.md`](../pr
 | Decision | Owner |
 |---|---|
 | Phase selection and task routing | Orchestrator (mission skill) |
-| Implementation approach (plan) | Implementer, with reviewer concurrence on the implementation contract |
+| Implementation approach (plan) | Implementer alone. Writes the implementation contract during the `implementing` state; reviewers see it post-work, not before |
 | Structural review of contracts | design-authority |
 | Evidence gate verdict | Gate runner (Tier 0 / Tier 1 / Tier 2 over existing evidence) |
 | Adversarial challenge | challenger |

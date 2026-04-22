@@ -14899,7 +14899,7 @@ function needProjectRoot14() {
   }
   return root;
 }
-var IMPL_CONTRACT_WRITABLE_STATES = /* @__PURE__ */ new Set(["ready", "implementing"]);
+var IMPL_CONTRACT_WRITABLE_STATES = /* @__PURE__ */ new Set(["implementing"]);
 var ENVELOPE_FIELDS = ["mission_id", "task_id", "created_at", "updated_at"];
 function registerImplContractCommands(program2) {
   const ic = program2.command("impl-contract").description(
@@ -14969,7 +14969,7 @@ function registerImplContractCommands(program2) {
       emit(
         err(
           "guard_failed",
-          `impl-contract set requires task state ready or implementing (current: ${status || "unknown"})`,
+          `impl-contract set requires task state implementing (current: ${status || "unknown"})`,
           { current_status: status, allowed: [...IMPL_CONTRACT_WRITABLE_STATES] }
         )
       );

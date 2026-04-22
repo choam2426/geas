@@ -102,7 +102,7 @@ Questions are asked one at a time until the mission spec is clear. No ambiguous 
 
 ### Task contracts
 
-Each unit of work gets a machine-readable contract with scope, acceptance criteria, reviewers, verification plan, risk level, and routing policy. The implementer writes an implementation contract and gets reviewer concurrence on the plan before any code is written.
+Each unit of work gets a machine-readable contract with scope, acceptance criteria, reviewers, verification plan, risk level, and routing policy. During the `implementing` state the implementer writes an implementation contract alongside the work; required reviewers submit their evidence after the implementer's self-check is appended.
 
 ### Evidence Gate
 

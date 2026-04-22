@@ -32,7 +32,7 @@ Skill 층은 17개 skill로 구성된다. 사용자가 직접 호출하는 skill
 | `consolidating-mission` | B. Mission lifecycle | main_session | 불가 | Consolidating phase의 debt·gap·memory 승격 |
 | `verdicting-mission` | B. Mission lifecycle | main_session | 불가 | Mission-verdict 작성. `complete` 전이는 사용자 확인 후 dispatcher가 수행 |
 | `convening-deliberation` | C. Multi-party | main_session (voter spawn) | 불가 | Full-depth 다자 판단. Voter spawn 후 deliberation entry 1건 기록 |
-| `implementing-task` | D. Spawned agent | spawned | 불가 | Spawned implementer — 계획 concurrence, 구현, implementation evidence + self-check |
+| `implementing-task` | D. Spawned agent | spawned | 불가 | Spawned implementer가 `implementing` 상태를 소유: implementation contract 작성, 구현, implementation evidence + self-check entry append |
 | `reviewing-task` | D. Spawned agent | spawned | 불가 | Spawned reviewer(challenger / risk-assessor / operator / communicator). Review-kind evidence append |
 | `verifying-task` | D. Spawned agent | spawned | 불가 | Spawned verifier — contract `verification_plan` 실행 후 verifier evidence append |
 | `deliberating-on-proposal` | D. Spawned agent | spawned | 불가 | Spawned voter — agree/disagree/escalate 투표 1건을 근거와 함께 반환. 직접 쓰기 없음 |
@@ -141,25 +141,25 @@ Task의 모든 required reviewer slot과 verifier가 evidence를 append한 뒤 m
 
 #### `implementing-task`
 
-승인되고 dependency가 만족된 task를 dispatcher가 넘겨주었을 때 spawn된 implementer가 invoke한다. 코드 작성 전에 구체 계획(planned_actions, edge_cases, demo_steps)을 선언하고 reviewer concurrence를 1라운드 받는다. 계획 승인 후에만 `implementing`으로 전이해 변경을 수행하며, 마무리로 implementation-kind evidence entry 1건과 `self-check.json`을 기록한다. 같은 concrete agent가 동일 task에서 implementer와 reviewer/verifier를 겸하는 것은 금지다.
+승인되고 dependency가 만족된 task를 dispatcher가 넘겨주었을 때 spawn된 implementer가 invoke한다. Implementer가 `implementing` 상태 전 구간을 소유하며, implementation contract(reviewer가 이후 읽는 계획)를 작성하고 실제 구현을 수행하며 방향이 실질적으로 바뀌면 contract를 amend한다. 마무리로 implementation-kind evidence entry 1건과 self-check 항목 1건을 append한다. 코드 작성 전 reviewer concurrence round는 없다 — protocol doc 03에 따라 required reviewer는 self-check가 append된 뒤에 evidence를 제출한다. 같은 concrete agent가 동일 task에서 implementer와 reviewer/verifier를 겸하는 것은 금지다.
 
-- 트리거 — 첫 실행은 `task-state.status == ready`, verify-fix 수정 실행은 `implementing`. `base_snapshot`이 실제 workspace와 일치해야 한다.
-- 주된 CLI — `geas self-check append`, `geas evidence append --slot implementer`(계약용 `plan-proposal` kind, 최종 기록용 `implementation` kind), `geas task transition --to implementing|reviewing`.
-- 주 산출물 — `tasks/{tid}/evidence/`의 implementation-kind evidence entry, `tasks/{tid}/self-check.json`. (별도의 `impl-contract set` 등록은 비블로킹 queue에 있으며, 현재는 계획 concurrence를 `evidence append --kind plan-proposal` + reviewer review entry로 기록한다.)
+- 트리거 — spawn 시점에 `task-state.status == implementing`. Scheduler가 첫 dispatch에서 `ready → implementing` 전이를 먼저 수행하고, `running-gate`가 verify-fix rewind에서 `reviewing → implementing`으로 되돌림. `base_snapshot`이 실제 workspace와 일치해야 한다.
+- 주된 CLI — `geas impl-contract set`, `geas evidence append --slot implementer`, `geas self-check append`, `geas task transition --to reviewing`(self-check append 이후 orchestrator가 전이 수행).
+- 주 산출물 — `tasks/{tid}/implementation-contract.json`, `tasks/{tid}/evidence/`의 implementation-kind evidence entry, `tasks/{tid}/self-check.json`에 append된 entry.
 
 #### `reviewing-task`
 
-Implementer가 implementation evidence와 `self-check.json`을 제출한 뒤(또는 implementer가 계획을 먼저 제안한 사전 concurrence 시점에) spawn된 reviewer(challenger / risk-assessor / operator / communicator)가 invoke한다. 자기 lane의 evidence를 읽고 verdict를 세워 review-kind evidence entry 1건을 append한다. 슬롯별 입장(적대적 / 실패 모드 / 운용성 / 사람 표면)은 agent 파일이 담고, 여기서는 공통 절차만 다룬다.
+Implementer가 implementation evidence와 self-check entry를 append한 뒤 spawn된 reviewer(challenger / risk-assessor / operator / communicator)가 invoke한다. 자기 lane의 evidence를 읽고 verdict를 세워 review-kind evidence entry 1건을 append한다. 슬롯별 입장(적대적 / 실패 모드 / 운용성 / 사람 표면)은 agent 파일이 담고, 여기서는 공통 절차만 다룬다.
 
-- 트리거 — `implementing` 상태 task(사전 계획 concurrence) 또는 `reviewing` 상태 task(사후 review)에 reviewer로 spawn된 경우. 해당 task의 implementer와 겸할 수 없다.
+- 트리거 — `reviewing` 상태 task에 reviewer로 spawn된 경우. 해당 task의 implementer와 겸할 수 없다.
 - 주된 CLI — `geas evidence append --slot <reviewer slot>`에 `evidence_kind: review`.
-- 주 산출물 — `verdict`, `concerns`, `scope_examined`, `methods_used`를 갖춘 review-kind evidence entry.
+- 주 산출물 — `verdict`, `concerns`, `scope_examined`, `methods_used`, `scope_excluded`를 갖춘 review-kind evidence entry.
 
 #### `verifying-task`
 
-Reviewer concurrence가 끝난 뒤(또는 full-depth에서는 reviewer와 병렬로) spawn된 verifier가 invoke한다. Task contract의 `verification_plan`을 implementer와 독립적으로 실행하고, 모든 acceptance criterion을 pass/fail로 구체 근거와 함께 매핑한 verification-kind evidence entry 1건을 기록한다. 누락·모호한 검증은 gate `error`를 만든다.
+Post-work reviewer와 병렬 또는 그 이후에 spawn된 verifier가 invoke한다(gate run 시점에 두 셋이 모두 있어야 함). Task contract의 `verification_plan`을 implementer와 독립적으로 실행하고, 모든 acceptance criterion을 pass/fail로 구체 근거와 함께 매핑한 verification-kind evidence entry 1건을 기록한다. 누락·모호한 검증은 gate `error`를 만든다.
 
-- 트리거 — `task-state.status == reviewing`(또는 verifier를 reviewer와 병렬로 돌리는 프로파일에서는 `implementing`). implementation-kind evidence가 ≥1건 있고 `base_snapshot`이 workspace와 일치해야 한다.
+- 트리거 — `task-state.status == reviewing`. implementation-kind evidence가 ≥1건 있고 `base_snapshot`이 workspace와 일치해야 한다.
 - 주된 CLI — `geas evidence append --slot verifier`에 `evidence_kind: verification`.
 - 주 산출물 — 모든 acceptance criterion을 덮는 `criteria_results`를 갖춘 verifier evidence entry.
 

@@ -115,12 +115,33 @@ function transitionTask(dir, missionId, taskId, toState) {
 
 // ── happy path ─────────────────────────────────────────────────────────
 
-test('impl-contract set writes a valid contract in ready state', () => {
+test('impl-contract set rejects task in ready state (implementer not spawned yet)', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMission(dir, MID);
     draftTaskReady(dir, MID, 'task-001');
-    // task is in ready after approve.
+    // task is in ready after approve — implementer has not been spawned yet
+    // per v3 canonical flow (scheduler transitions ready → implementing first,
+    // then the implementer writes the contract).
+
+    const r = runCli(
+      ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
+      { cwd: dir, input: JSON.stringify(validImplBody()) },
+    );
+    assert.equal(r.status, 3, `expected guard_failed, got ${r.stderr}`);
+    assert.equal(r.json.error.code, 'guard_failed');
+    assert.match(r.json.error.message, /requires task state implementing/);
+  } finally {
+    cleanup();
+  }
+});
+
+test('impl-contract set writes a valid contract in implementing state', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMission(dir, MID);
+    draftTaskReady(dir, MID, 'task-001');
+    transitionTask(dir, MID, 'task-001', 'implementing');
 
     const r = runCli(
       ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
@@ -149,28 +170,12 @@ test('impl-contract set writes a valid contract in ready state', () => {
   }
 });
 
-test('impl-contract set accepts implementing state', () => {
-  const { dir, cleanup } = makeTempRoot();
-  try {
-    setupMission(dir, MID);
-    draftTaskReady(dir, MID, 'task-001');
-    transitionTask(dir, MID, 'task-001', 'implementing');
-
-    const r = runCli(
-      ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
-      { cwd: dir, input: JSON.stringify(validImplBody()) },
-    );
-    assert.equal(r.status, 0, `impl-contract set (implementing) failed: ${r.stderr}`);
-  } finally {
-    cleanup();
-  }
-});
-
 test('impl-contract set rejects schema-invalid body (missing required fields)', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMission(dir, MID);
     draftTaskReady(dir, MID, 'task-001');
+    transitionTask(dir, MID, 'task-001', 'implementing');
 
     // Missing summary / rationale / change_scope / planned_actions
     const r = runCli(
@@ -265,7 +270,7 @@ test('impl-contract set rejects when task state is reviewing (later-stage)', () 
     );
     assert.equal(r2.status, 3, `expected guard_failed, got ${r2.stderr}`);
     assert.equal(r2.json.error.code, 'guard_failed');
-    assert.match(r2.json.error.message, /ready or implementing/);
+    assert.match(r2.json.error.message, /requires task state implementing/);
   } finally {
     cleanup();
   }
@@ -304,6 +309,7 @@ test('impl-contract set full-replaces on second call', () => {
   try {
     setupMission(dir, MID);
     draftTaskReady(dir, MID, 'task-001');
+    transitionTask(dir, MID, 'task-001', 'implementing');
 
     let r = runCli(
       ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
@@ -351,6 +357,7 @@ test('impl-contract set strips client-provided envelope fields', () => {
   try {
     setupMission(dir, MID);
     draftTaskReady(dir, MID, 'task-001');
+    transitionTask(dir, MID, 'task-001', 'implementing');
 
     const r = runCli(
       ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
@@ -387,6 +394,7 @@ test('impl-contract set emits impl_contract_set event', () => {
   try {
     setupMission(dir, MID);
     draftTaskReady(dir, MID, 'task-001');
+    transitionTask(dir, MID, 'task-001', 'implementing');
 
     const r = runCli(
       ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],

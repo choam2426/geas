@@ -1,27 +1,31 @@
 /**
- * `geas impl-contract` — pre-implementation agreement artifact.
+ * `geas impl-contract` — implementer-authored plan artifact.
  *
- *   geas impl-contract set --mission <id> --task <id>   (stdin: body)
+ *   geas impl-contract set --mission <id> --task <id>   (payload via --file or stdin)
  *
  * Writes the task implementation contract to
  * `.geas/missions/{mission_id}/tasks/{task_id}/implementation-contract.json`.
- * This is the worker's concrete action plan (change_scope, planned_actions,
- * non_goals, alternatives_considered, assumptions, open_questions) agreed
- * upon by design-authority and quality-specialist before implementation
- * begins — preventing wasted implementation cycles from misunderstood
- * requirements (protocol 03, CLI.md §3 + §71).
+ * Per protocol doc 03, this is the worker's concrete action plan
+ * (change_scope, planned_actions, non_goals, alternatives_considered,
+ * assumptions, open_questions) written by the implementer during the
+ * `implementing` state. Reviewers read it later as a reviewer-visible
+ * reference — it is NOT a pre-code concurrence artifact. Amendment is
+ * allowed while the implementer still owns the state; the implementer
+ * may re-run `impl-contract set` if direction shifts materially, and
+ * the full-replace semantics keeps only the current plan on disk.
  *
  * Set semantics: full-replace (not append). The CLI injects
  * mission_id / task_id / created_at / updated_at; everything else
- * comes from stdin and is schema-validated.
+ * comes from the payload and is schema-validated.
  *
  * Guards:
  *   - Valid mission_id + task_id.
  *   - Mission spec exists + user_approved.
  *   - Task contract exists + has approved_by set.
- *   - Task state is `ready` or `implementing` (impl-contract is a
- *     pre-implementation agreement; later-stage or terminal states
- *     reject the write).
+ *   - Task state is `implementing` — the implementer is spawned in
+ *     this state and owns the plan artifact throughout. Earlier
+ *     (`drafted` / `ready`) and later (`reviewing` / `deciding` /
+ *     terminal) states reject the write.
  */
 
 import type { Command } from 'commander';
@@ -70,12 +74,14 @@ function needProjectRoot(): string {
 
 /**
  * Allowed task states from which the impl-contract may be written.
- * Pre-implementation agreement is only meaningful before implementation
- * ends; later states (reviewing/deciding/passed) have already moved past
- * the plan, and terminal states (cancelled/escalated) cannot accept new
- * plans.
+ * Per protocol doc 03, the implementer is spawned in `implementing` and
+ * owns the plan artifact throughout that state. Earlier states
+ * (`drafted` / `ready`) have no implementer yet; later states
+ * (`reviewing` / `deciding` / `passed`) have moved past the plan, and
+ * terminal states (`blocked` / `escalated` / `cancelled`) cannot accept
+ * new plans.
  */
-const IMPL_CONTRACT_WRITABLE_STATES = new Set(['ready', 'implementing']);
+const IMPL_CONTRACT_WRITABLE_STATES = new Set(['implementing']);
 
 /** Fields the CLI owns exclusively. Caller-provided values are stripped. */
 const ENVELOPE_FIELDS = ['mission_id', 'task_id', 'created_at', 'updated_at'];
@@ -145,7 +151,7 @@ export function registerImplContractCommands(program: Command): void {
         );
       }
 
-      // Task state must be ready or implementing.
+      // Task state must be implementing.
       const state = readJsonFile<{ status?: string }>(
         taskStatePath(root, opts.mission, opts.task),
       );
@@ -162,7 +168,7 @@ export function registerImplContractCommands(program: Command): void {
         emit(
           err(
             'guard_failed',
-            `impl-contract set requires task state ready or implementing (current: ${status || 'unknown'})`,
+            `impl-contract set requires task state implementing (current: ${status || 'unknown'})`,
             { current_status: status, allowed: [...IMPL_CONTRACT_WRITABLE_STATES] },
           ),
         );
