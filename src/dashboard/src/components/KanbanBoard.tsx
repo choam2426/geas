@@ -31,8 +31,13 @@ interface KanbanBoardProps {
   projectPath: string;
   projectName: string;
   missionId?: string | null;
-  onBack: () => void;
+  onBack?: () => void;
   activeTasks?: string[];
+  /**
+   * When true, the component skips rendering its own header (the outer shell
+   * is providing one). Default false preserves the standalone-page behavior.
+   */
+  embedded?: boolean;
 }
 
 export default function KanbanBoard({
@@ -41,6 +46,7 @@ export default function KanbanBoard({
   missionId,
   onBack,
   activeTasks,
+  embedded = false,
 }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,17 +112,21 @@ export default function KanbanBoard({
 
   return (
     <div className="flex-1 flex flex-col min-w-0">
-      <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-border-default shrink-0">
-        <button
-          onClick={onBack}
-          className="text-text-secondary hover:text-text-primary text-sm cursor-pointer transition-colors active:scale-95"
-        >
-          <ArrowLeft size={16} className="inline" /> Back
-        </button>
-        <h1 className="text-base md:text-lg font-semibold text-text-primary truncate">
-          {projectName}
-        </h1>
-      </div>
+      {!embedded && (
+        <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-border shrink-0">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="text-fg-muted hover:text-fg text-sm cursor-pointer transition-colors active:scale-95"
+            >
+              <ArrowLeft size={16} className="inline" /> Back
+            </button>
+          )}
+          <h1 className="text-base md:text-lg font-semibold text-fg truncate">
+            {projectName}
+          </h1>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex-1 overflow-auto p-4">

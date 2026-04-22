@@ -1,11 +1,27 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Archive, AlertTriangle, Brain, ChevronDown, ChevronRight } from "lucide-react";
 import * as geas from "../lib/geasClient";
 import type { MissionSummary, ProjectSummary } from "../types";
-import { Archive, Brain, Clock, FileText } from "lucide-react";
 import PhaseBadge from "./PhaseBadge";
-import ProgressBar from "./ProgressBar";
-import { formatDate } from "../utils/dates";
+import PathBadge from "./PathBadge";
 import { useProjectRefresh } from "../contexts/ProjectRefreshContext";
+
+/**
+ * Dashboard (project landing) — the post-reorg top-level view for a
+ * project. Combines two responsibilities that used to be split across
+ * `ProjectDashboard` (active mission summary) and `MissionHistory`
+ * (standalone history list):
+ *
+ *   ACTIVE   — missions with is_active = true, rendered as a large card
+ *   HISTORY  — completed / escalated / cancelled missions in a tight list,
+ *              with resolved-state items collapsed by default
+ *
+ * Clicking a mission row navigates to the mission-detail view via
+ * `onViewDetail`, which in turn opens the mission-scoped sub-tabs.
+ *
+ * Project-wide rollups (debt, memory) are surfaced as small action links
+ * in the project header row; the StatusBar carries running totals.
+ */
 
 interface ProjectDashboardProps {
   projectPath: string;
@@ -18,36 +34,100 @@ interface ProjectDashboardProps {
   onViewDetail?: (missionId: string) => void;
 }
 
-function formatActivity(timestamp: string | null): string {
-  if (!timestamp) return "No activity recorded";
-  const date = new Date(timestamp);
-  if (isNaN(date.getTime())) return "No activity recorded";
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60_000);
-  const diffHr = Math.floor(diffMs / 3_600_000);
-  const diffDay = Math.floor(diffMs / 86_400_000);
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  if (diffHr < 24) return `${diffHr}h ago`;
-  if (diffDay < 7) return `${diffDay}d ago`;
-  return date.toLocaleDateString();
+/** True when the mission is terminal in the "resolved / done" sense. */
+function isResolved(m: MissionSummary): boolean {
+  if (m.is_active) return false;
+  // Heuristic — phase 'consolidated' | 'complete' means the mission is
+  // wrapped up. Other terminal states (escalated / cancelled) stay visible.
+  const ph = (m.phase ?? "").toLowerCase();
+  return ph === "consolidated" || ph === "complete";
+}
+
+function MissionCard({
+  mission,
+  onClick,
+  variant,
+}: {
+  mission: MissionSummary;
+  onClick: () => void;
+  variant: "active" | "past";
+}) {
+  const pct =
+    mission.task_total > 0
+      ? Math.round((mission.task_completed / mission.task_total) * 100)
+      : 0;
+
+  // ASCII-style progress bar — matches the console direction.
+  const barWidth = variant === "active" ? 28 : 18;
+  const filled = Math.round((pct / 100) * barWidth);
+  const bar = "█".repeat(filled) + "░".repeat(barWidth - filled);
+
+  return (
+    <button
+      onClick={onClick}
+      className={
+        "group w-full text-left transition-colors cursor-pointer border-l-2 " +
+        (variant === "active"
+          ? "bg-bg-1 border-green hover:bg-bg-2 px-5 py-4"
+          : "bg-transparent border-transparent hover:bg-bg-1 hover:border-border px-5 py-3")
+      }
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          {/* id line */}
+          <div className="font-mono text-[11px] text-fg-dim mb-1 flex items-center gap-2">
+            <span>{mission.mission_id}</span>
+            {mission.is_active && (
+              <span className="text-green">● active</span>
+            )}
+          </div>
+          {/* name */}
+          <div
+            className={
+              (variant === "active"
+                ? "text-[15px] font-medium "
+                : "text-[13px] ") + "text-fg truncate"
+            }
+          >
+            {mission.mission_name ?? mission.mission_id}
+          </div>
+          {/* meta row */}
+          <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-2 font-mono text-[11px] text-fg-muted">
+            <PhaseBadge phase={mission.phase} size="sm" />
+            <span>
+              {mission.task_completed}/{mission.task_total} passed
+            </span>
+          </div>
+          {/* progress bar */}
+          {mission.task_total > 0 && (
+            <div className="mt-2 font-mono text-[11px] text-fg-dim flex items-center gap-2">
+              <span className="text-green">{bar}</span>
+              <span>{pct}%</span>
+            </div>
+          )}
+        </div>
+        <ChevronRight
+          size={14}
+          className="text-fg-dim group-hover:text-fg-muted flex-shrink-0 mt-1"
+        />
+      </div>
+    </button>
+  );
 }
 
 export default function ProjectDashboard({
   projectPath,
   projectName,
-  onViewTasks,
   onViewDebt,
-  onViewKanban,
   onViewMemory,
-  onViewTimeline,
   onViewDetail,
+  onViewKanban,
 }: ProjectDashboardProps) {
   const [missions, setMissions] = useState<MissionSummary[]>([]);
   const [summary, setSummary] = useState<ProjectSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showResolved, setShowResolved] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,229 +167,196 @@ export default function ProjectDashboard({
         setMissions(missionResult);
         setSummary(summaryResult);
       } catch {
-        // ignore
+        // ignore — keep the prior view
       }
     })();
   }, [refreshKey, projectPath]);
 
-  const activeMission = missions.find((m) => m.is_active) ?? null;
-  const totalTasks = missions.reduce((sum, m) => sum + m.task_total, 0);
-  const totalDebt = summary?.debt_total ?? 0;
-  const lastActivity = summary?.last_activity ?? null;
-  const activeTasks = summary?.active_tasks ?? [];
+  const { active, nonResolvedPast, resolvedPast } = useMemo(() => {
+    const activeMissions: MissionSummary[] = [];
+    const nonResolved: MissionSummary[] = [];
+    const resolved: MissionSummary[] = [];
+    for (const m of missions) {
+      if (m.is_active) activeMissions.push(m);
+      else if (isResolved(m)) resolved.push(m);
+      else nonResolved.push(m);
+    }
+    return {
+      active: activeMissions,
+      nonResolvedPast: nonResolved,
+      resolvedPast: resolved,
+    };
+  }, [missions]);
+
+  const goToMission = (missionId: string) => {
+    if (onViewDetail) onViewDetail(missionId);
+    else onViewKanban(missionId);
+  };
 
   return (
-    <div className="flex-1 overflow-auto p-4 md:p-6 lg:p-8 min-w-0">
-      <div className="w-full min-w-[320px]">
-        <div className="mb-6 md:mb-8">
-          <h1 className="text-xl md:text-2xl font-bold text-text-primary">
-            {projectName}
-          </h1>
-          <p className="text-xs md:text-sm text-text-muted break-all mt-1">
-            {projectPath}
-          </p>
-        </div>
+    <div className="flex-1 overflow-auto min-w-0">
+      <div className="mx-auto max-w-5xl px-6 py-5">
+        {/* Project header */}
+        <div className="mb-6 pb-4 border-b border-border">
+          <h1 className="text-[18px] font-semibold text-fg">{projectName}</h1>
+          <PathBadge path={projectPath} />
 
-        {(onViewMemory || onViewTimeline) && (
-          <div className="mb-6 flex gap-2 flex-wrap">
-            {onViewTimeline && (
-              <button
-                onClick={onViewTimeline}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-bg-surface border border-border-default text-sm text-text-secondary cursor-pointer hover:text-text-primary hover:bg-bg-elevated/50 active:scale-95 transition-all"
-              >
-                <Clock size={16} />
-                Events
-              </button>
-            )}
+          <div className="mt-3 flex items-center gap-4 font-mono text-[11px] text-fg-muted">
+            <span>
+              {missions.length} mission{missions.length === 1 ? "" : "s"}
+            </span>
+            <button
+              onClick={onViewDebt}
+              className="flex items-center gap-1 text-fg-muted hover:text-amber cursor-pointer transition-colors"
+              title="Project debt ledger"
+            >
+              <AlertTriangle size={11} />
+              debt {summary?.debt_total ?? 0}
+            </button>
             {onViewMemory && (
               <button
                 onClick={onViewMemory}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-bg-surface border border-border-default text-sm text-text-secondary cursor-pointer hover:text-text-primary hover:bg-bg-elevated/50 active:scale-95 transition-all"
+                className="flex items-center gap-1 text-fg-muted hover:text-cyan cursor-pointer transition-colors"
+                title="Project memory browser"
               >
-                <Brain size={16} />
-                Memory
+                <Brain size={11} />
+                memory
               </button>
             )}
           </div>
-        )}
-
-        {/* Active task badges (if any) */}
-        {activeTasks.length > 0 && (
-          <div className="bg-bg-surface rounded-lg p-4 mb-4 border border-border-default border-l-2 border-l-status-green shadow-[0_0_12px_rgba(63,185,80,0.08)]">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-2 h-2 rounded-full bg-status-green animate-pulse-dot shrink-0" />
-              <span className="text-xs font-semibold text-text-primary uppercase tracking-wide">
-                {activeTasks.length === 1 ? "Active task" : `${activeTasks.length} active tasks`}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {activeTasks.map((tid) => (
-                <span
-                  key={tid}
-                  className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] bg-bg-elevated text-text-primary"
-                >
-                  {tid}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Active mission card */}
-        <div className="bg-bg-surface rounded-lg p-5 mb-6 border border-border-default border-l-2 border-l-accent">
-          {activeMission ? (
-            <>
-              <div className="flex items-center gap-3 mb-3">
-                <h2 className="text-sm font-semibold text-text-primary">
-                  {activeMission.mission_name ?? activeMission.mission_id}
-                </h2>
-                <PhaseBadge phase={activeMission.phase} />
-              </div>
-              <ProgressBar
-                completed={activeMission.task_completed}
-                total={activeMission.task_total}
-              />
-              <div className="flex flex-col md:flex-row gap-2 mt-4">
-                <button
-                  onClick={() => onViewTasks(activeMission.mission_id)}
-                  className="px-4 py-1.5 rounded-md bg-accent text-white text-sm cursor-pointer hover:opacity-90 active:scale-95 transition-all"
-                >
-                  View Tasks
-                </button>
-                <button
-                  onClick={onViewDebt}
-                  className="px-4 py-1.5 rounded-md bg-bg-elevated text-text-secondary text-sm cursor-pointer hover:text-text-primary hover:bg-bg-elevated/80 active:scale-95 transition-all"
-                >
-                  View Debt
-                </button>
-                {onViewDetail && (
-                  <button
-                    onClick={() => onViewDetail(activeMission.mission_id)}
-                    className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-bg-elevated text-text-secondary text-sm cursor-pointer hover:text-text-primary hover:bg-bg-elevated/80 active:scale-95 transition-all"
-                  >
-                    <FileText size={14} />
-                    Detail
-                  </button>
-                )}
-              </div>
-            </>
-          ) : (
-            <p className="text-sm text-text-muted">No active mission</p>
-          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full mb-6">
-          <div className="bg-bg-surface rounded-lg p-4 border border-border-default">
-            <p className="text-xs font-medium text-text-secondary uppercase tracking-wide mb-1">
-              Total Tasks
-            </p>
-            <p className="text-2xl font-bold text-text-primary">{totalTasks}</p>
+        {loading ? (
+          <div className="flex flex-col gap-2">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="bg-bg-1 px-5 py-4 border-l-2 border-border"
+              >
+                <div className="h-3 w-32 rounded bg-bg-2 animate-skeleton mb-2" />
+                <div className="h-4 w-64 rounded bg-bg-2 animate-skeleton mb-2" />
+                <div className="h-3 w-24 rounded bg-bg-2 animate-skeleton" />
+              </div>
+            ))}
           </div>
-          <div className="bg-bg-surface rounded-lg p-4 border border-border-default">
-            <p className="text-xs font-medium text-text-secondary uppercase tracking-wide mb-1">
-              Open Debt
-            </p>
-            <p className="text-2xl font-bold text-text-primary">{totalDebt}</p>
+        ) : error ? (
+          <div className="bg-bg-1 px-5 py-4 border-l-2 border-red">
+            <p className="text-red text-sm">Failed to load missions</p>
+            <p className="font-mono text-[11px] text-fg-dim mt-1">{error}</p>
           </div>
-          <div className="bg-bg-surface rounded-lg p-4 border border-border-default">
-            <p className="text-xs font-medium text-text-secondary uppercase tracking-wide mb-1">
-              Last Activity
-            </p>
-            <p className="text-sm font-medium text-text-primary mt-1">
-              {formatActivity(lastActivity)}
+        ) : missions.length === 0 ? (
+          <div className="py-16 text-center">
+            <div className="mb-3 flex justify-center opacity-30">
+              <Archive size={36} />
+            </div>
+            <p className="text-sm text-fg-muted">No missions yet</p>
+            <p className="font-mono text-[11px] text-fg-dim mt-2">
+              run <span className="text-cyan">geas mission set</span> to spawn one
             </p>
           </div>
-        </div>
-
-        <div>
-          <h2 className="text-xs font-medium text-text-secondary uppercase tracking-wide mb-3">
-            Missions
-          </h2>
-
-          {loading ? (
-            <div className="flex flex-col gap-2">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="bg-bg-surface rounded-lg p-4 border border-border-default"
-                >
-                  <div className="h-4 w-48 rounded bg-bg-elevated animate-skeleton mb-2" />
-                  <div className="h-3 w-32 rounded bg-bg-elevated animate-skeleton" />
+        ) : (
+          <>
+            {/* ACTIVE */}
+            {active.length > 0 && (
+              <section className="mb-8">
+                <SectionHeader
+                  label="active"
+                  count={active.length}
+                  countLabel={active.length === 1 ? "mission" : "missions"}
+                />
+                <div className="flex flex-col gap-2">
+                  {active.map((m) => (
+                    <MissionCard
+                      key={m.mission_id}
+                      mission={m}
+                      onClick={() => goToMission(m.mission_id)}
+                      variant="active"
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="bg-bg-surface rounded-lg p-4 border border-border-default">
-              <p className="text-status-red text-sm">Failed to load missions</p>
-              <p className="text-text-muted text-xs mt-1">{error}</p>
-            </div>
-          ) : missions.length === 0 ? (
-            <div className="bg-bg-surface rounded-lg p-6 border border-border-default text-center">
-              <div className="mb-2 flex justify-center opacity-30">
-                <Archive size={32} />
-              </div>
-              <p className="text-sm text-text-muted">No missions yet</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {missions.map((mission) => {
-                const pct =
-                  mission.task_total > 0
-                    ? Math.round(
-                        (mission.task_completed / mission.task_total) * 100,
-                      )
-                    : 0;
+              </section>
+            )}
 
-                return (
-                  <button
-                    key={mission.mission_id}
-                    onClick={() => onViewKanban(mission.mission_id)}
-                    className={`w-full text-left rounded-lg px-4 py-3 flex items-center justify-between gap-3 transition-all duration-150 cursor-pointer hover:bg-bg-elevated/50 ${
-                      mission.is_active
-                        ? "bg-bg-surface border-l-2 border-l-accent"
-                        : "bg-transparent"
-                    } ${
-                      mission.task_total > 0 &&
-                      mission.task_completed === mission.task_total &&
-                      !mission.is_active
-                        ? "opacity-60"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-sm font-medium text-text-primary truncate">
-                        {mission.mission_name ?? mission.mission_id}
-                      </span>
-                      <PhaseBadge phase={mission.phase} size="sm" />
-                      {mission.is_active && (
-                        <span className="text-[10px] font-medium text-accent bg-accent/15 rounded-full px-1.5 py-0.5 shrink-0">
-                          Active
-                        </span>
+            {/* HISTORY — non-resolved first (escalated, cancelled, other terminals) */}
+            {(nonResolvedPast.length > 0 || resolvedPast.length > 0) && (
+              <section>
+                <SectionHeader
+                  label="history"
+                  count={nonResolvedPast.length + resolvedPast.length}
+                  countLabel={
+                    nonResolvedPast.length + resolvedPast.length === 1
+                      ? "mission"
+                      : "missions"
+                  }
+                />
+                <div className="flex flex-col">
+                  {nonResolvedPast.map((m) => (
+                    <MissionCard
+                      key={m.mission_id}
+                      mission={m}
+                      onClick={() => goToMission(m.mission_id)}
+                      variant="past"
+                    />
+                  ))}
+                </div>
+
+                {resolvedPast.length > 0 && (
+                  <div className={nonResolvedPast.length > 0 ? "mt-3" : ""}>
+                    <button
+                      onClick={() => setShowResolved((v) => !v)}
+                      className="w-full font-mono text-[11px] text-fg-dim hover:text-fg-muted flex items-center gap-1.5 py-2 cursor-pointer transition-colors"
+                    >
+                      {showResolved ? (
+                        <ChevronDown size={12} />
+                      ) : (
+                        <ChevronRight size={12} />
                       )}
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-xs text-text-muted">
-                        {mission.task_completed}/{mission.task_total}
+                      <span>
+                        resolved ({resolvedPast.length})
+                        {showResolved ? "" : " — click to expand"}
                       </span>
-                      {mission.task_total > 0 && (
-                        <div className="w-16 h-1 rounded-full bg-bg-elevated overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-status-green transition-all duration-500"
-                            style={{ width: `${pct}%` }}
+                    </button>
+                    {showResolved && (
+                      <div className="flex flex-col opacity-75">
+                        {resolvedPast.map((m) => (
+                          <MissionCard
+                            key={m.mission_id}
+                            mission={m}
+                            onClick={() => goToMission(m.mission_id)}
+                            variant="past"
                           />
-                        </div>
-                      )}
-                      <span className="text-xs text-text-muted">
-                        {formatDate(mission.created_at)}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
+          </>
+        )}
       </div>
+    </div>
+  );
+}
+
+function SectionHeader({
+  label,
+  count,
+  countLabel,
+}: {
+  label: string;
+  count: number;
+  countLabel: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <span className="font-mono text-[10px] uppercase tracking-widest text-fg-dim">
+        {label}
+      </span>
+      <span className="flex-1 h-px bg-border" />
+      <span className="font-mono text-[11px] text-fg-dim">
+        {count} {countLabel}
+      </span>
     </div>
   );
 }

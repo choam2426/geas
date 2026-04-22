@@ -13,7 +13,9 @@ import { useProjectRefresh } from "../contexts/ProjectRefreshContext";
 interface TimelineViewProps {
   projectPath: string;
   missionId?: string | null;
-  onBack: () => void;
+  onBack?: () => void;
+  /** Hides the internal header when hosted by a parent shell. */
+  embedded?: boolean;
 }
 
 const PAGE_SIZE = 50;
@@ -52,6 +54,7 @@ export default function TimelineView({
   projectPath,
   missionId,
   onBack,
+  embedded = false,
 }: TimelineViewProps) {
   const [data, setData] = useState<EventsPage | null>(null);
   const [page, setPage] = useState(0);
@@ -116,24 +119,28 @@ export default function TimelineView({
 
   return (
     <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-border-default shrink-0">
-        <button
-          onClick={onBack}
-          className="p-1.5 rounded-md hover:bg-bg-elevated transition-colors cursor-pointer"
-          aria-label="Go back"
-        >
-          <ArrowLeft size={18} className="text-text-secondary" />
-        </button>
-        <Clock size={20} className="text-accent" />
-        <h1 className="text-lg font-semibold text-text-primary">
+      {!embedded && (
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-border shrink-0">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="p-1.5 rounded-md hover:bg-bg-2 transition-colors cursor-pointer"
+            aria-label="Go back"
+          >
+            <ArrowLeft size={18} className="text-fg-muted" />
+          </button>
+        )}
+        <Clock size={20} className="text-green" />
+        <h1 className="text-lg font-semibold text-fg">
           {missionId ? `Events — ${missionId}` : "Project events"}
         </h1>
         {data && (
-          <span className="text-xs text-text-muted ml-auto">
+          <span className="text-xs text-fg-muted ml-auto">
             {data.total_count} events
           </span>
         )}
       </div>
+      )}
 
       <div className="flex-1 overflow-auto p-6">
         {loading && !data ? (

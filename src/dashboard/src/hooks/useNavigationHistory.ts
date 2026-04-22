@@ -1,9 +1,34 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
+/**
+ * Mission-scoped sub-tab.
+ *
+ * Only meaningful when `view === "detail"`. When absent the shell defaults
+ * to `"overview"`. Kanban and Timeline used to be top-level routes; they
+ * are now sub-tabs of the mission detail view so all mission work sits
+ * under one breadcrumb ancestor.
+ */
+export type MissionTab = "overview" | "spec" | "design" | "kanban" | "timeline";
+
+/**
+ * View enum.
+ *
+ * - `dashboard` — project landing (mission list, active + history inline).
+ * - `detail`    — mission-scoped view with sub-tabs (missionTab).
+ * - `debt`      — project-wide debt ledger.
+ * - `memory`    — project-wide memory browser.
+ *
+ * `kanban` / `timeline` / `history` / `overview` were removed or collapsed
+ * into other routes:
+ *   - kanban, timeline → sub-tabs of detail
+ *   - history          → inline in dashboard
+ *   - overview         → sub-tab of detail (default)
+ */
 export interface NavState {
-  view: "dashboard" | "overview" | "kanban" | "history" | "debt" | "timeline" | "memory" | "detail";
+  view: "dashboard" | "detail" | "debt" | "memory";
   selectedPath: string | null;
   selectedMissionId: string | null;
+  missionTab?: MissionTab;
 }
 
 export interface NavigationHistory {

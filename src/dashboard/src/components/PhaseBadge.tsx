@@ -1,4 +1,5 @@
-import { phaseColors } from "../colors";
+import { lookupColor, phaseColors } from "../colors";
+import Pill from "./Pill";
 
 interface PhaseBadgeProps {
   phase: string | null;
@@ -7,21 +8,13 @@ interface PhaseBadgeProps {
 
 export default function PhaseBadge({ phase, size = "md" }: PhaseBadgeProps) {
   if (!phase) return null;
-
-  const colors = phaseColors[phase.toLowerCase()] ?? {
-    bg: "rgba(139,148,158,0.15)",
-    text: "#8b949e",
-  };
-
-  const sizeClasses =
-    size === "sm" ? "text-[10px] px-1.5 py-0.5" : "text-xs px-2 py-0.5";
-
+  const colors = lookupColor(phaseColors, phase.toLowerCase());
   return (
-    <span
-      className={`inline-flex items-center rounded-full font-medium capitalize ${sizeClasses}`}
-      style={{ backgroundColor: colors.bg, color: colors.text }}
+    <Pill
+      color={colors}
+      className={size === "sm" ? "text-[10px]" : ""}
     >
       {phase}
-    </span>
+    </Pill>
   );
 }

@@ -1,9 +1,30 @@
-import { useState, useEffect, useMemo } from "react";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+/**
+ * DebtDetailPanel — project-wide debt ledger.
+ *
+ * Layout: compact filter row at the top (severity + kind + status), then a
+ * list of debt rows sorted by severity then by debt_id. Clicking a row opens
+ * the existing DebtDetailModal for the full entry.
+ *
+ * Filter semantics:
+ *   - severity chips multi-select (toggle each to include/exclude).
+ *     Empty set = "any severity".
+ *   - status is single-select; defaults to "open" so the panel opens on
+ *     the actionable slice.
+ */
+
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
 import * as geas from "../lib/geasClient";
 import type { DebtEntry } from "../types";
-import { severityColors, severityOrder, debtStatusColors } from "../colors";
+import {
+  debtStatusColors,
+  lookupColor,
+  severityColors,
+  severityOrder,
+} from "../colors";
 import DebtDetailModal from "./DebtDetailModal";
+import Pill from "./Pill";
+import PathBadge from "./PathBadge";
 import { useProjectRefresh } from "../contexts/ProjectRefreshContext";
 
 interface DebtDetailPanelProps {
@@ -14,6 +35,15 @@ interface DebtDetailPanelProps {
 
 type SeverityFilter = "critical" | "high" | "normal" | "low";
 type StatusFilter = "all" | "open" | "resolved" | "dropped";
+
+const STATUS_TABS: StatusFilter[] = ["open", "resolved", "dropped", "all"];
+
+const SEVERITY_SORT: Record<string, number> = {
+  critical: 0,
+  high: 1,
+  normal: 2,
+  low: 3,
+};
 
 export default function DebtDetailPanel({
   projectPath,
@@ -27,7 +57,7 @@ export default function DebtDetailPanel({
     new Set(),
   );
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
-  const [selectedDebt, setSelectedDebt] = useState<DebtEntry | null>(null);
+  const [selected, setSelected] = useState<DebtEntry | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -43,14 +73,7 @@ export default function DebtDetailPanel({
   };
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      await load();
-      if (cancelled) return;
-    })();
-    return () => {
-      cancelled = true;
-    };
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectPath]);
 
@@ -71,10 +94,15 @@ export default function DebtDetailPanel({
   }
 
   const bySeverity = useMemo(() => {
-    const counts = { low: 0, normal: 0, high: 0, critical: 0 };
+    const counts: Record<string, number> = {
+      low: 0,
+      normal: 0,
+      high: 0,
+      critical: 0,
+    };
     for (const e of entries) {
       if (e.status !== "open") continue;
-      const s = e.severity as keyof typeof counts;
+      const s = e.severity ?? "";
       if (s in counts) counts[s] += 1;
     }
     return counts;
@@ -100,82 +128,104 @@ export default function DebtDetailPanel({
     if (statusFilter !== "all") {
       items = items.filter((e) => e.status === statusFilter);
     }
-    return items;
+    // Stable sort: severity rank → debt_id.
+    return items.slice().sort((a, b) => {
+      const rankA = SEVERITY_SORT[a.severity ?? ""] ?? 9;
+      const rankB = SEVERITY_SORT[b.severity ?? ""] ?? 9;
+      if (rankA !== rankB) return rankA - rankB;
+      return (a.debt_id ?? "").localeCompare(b.debt_id ?? "");
+    });
   }, [entries, severityFilters, statusFilter]);
 
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-      <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-border-default shrink-0">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-6 py-3 border-b border-border flex-shrink-0">
         <button
           onClick={onBack}
-          className="text-text-secondary hover:text-text-primary text-sm cursor-pointer transition-colors"
+          className="text-fg-muted hover:text-fg text-sm cursor-pointer transition-colors flex items-center gap-1"
         >
-          <ArrowLeft size={16} className="inline" /> Back
+          <ArrowLeft size={14} />
+          <span className="font-mono text-[12px]">back</span>
         </button>
-        <h1 className="text-base md:text-lg font-semibold text-text-primary truncate">
-          {projectName} — Tech Debt
-        </h1>
+        <div className="min-w-0">
+          <h1 className="text-[14px] font-semibold text-fg truncate">
+            {projectName} — tech debt
+          </h1>
+          <PathBadge path=".geas/debt.json" />
+        </div>
       </div>
 
       {loading ? (
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className="max-w-3xl">
-            <div className="flex gap-2 mb-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="h-7 w-20 rounded-full bg-bg-elevated animate-skeleton"
-                />
-              ))}
-            </div>
-            {[1, 2, 3].map((i) => (
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="max-w-4xl space-y-2">
+            {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="bg-bg-surface rounded-lg p-4 border border-border-default mb-3"
+                className="bg-bg-1 px-4 py-3 border-l-2 border-border"
               >
-                <div className="h-4 w-48 rounded bg-bg-elevated animate-skeleton mb-2" />
-                <div className="h-3 w-64 rounded bg-bg-elevated animate-skeleton" />
+                <div className="h-3 w-32 rounded bg-bg-2 animate-skeleton mb-2" />
+                <div className="h-4 w-64 rounded bg-bg-2 animate-skeleton mb-2" />
+                <div className="h-3 w-40 rounded bg-bg-2 animate-skeleton" />
               </div>
             ))}
           </div>
         </div>
       ) : error ? (
-        <div className="flex flex-1 items-center justify-center">
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-status-red text-sm mb-2">Failed to load debts</p>
-            <p className="text-text-muted text-xs">{error}</p>
+            <p className="text-red text-sm mb-1">Failed to load debts</p>
+            <p className="font-mono text-[11px] text-fg-dim">{error}</p>
           </div>
         </div>
       ) : entries.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center">
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="mb-3 flex justify-center opacity-30">
-              <ShieldCheck size={40} />
+              <AlertTriangle size={32} />
             </div>
-            <span className="text-text-muted text-sm">
-              No debts registered yet
-            </span>
+            <p className="text-sm text-fg-muted">no debts registered</p>
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className="max-w-3xl">
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <span className="text-xs text-text-muted mr-1">Severity:</span>
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-4xl px-6 py-4">
+            {/* Status tabs */}
+            <div className="flex items-center gap-0 mb-3 border-b border-border-muted">
+              {STATUS_TABS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={
+                    "font-mono text-[12px] px-3 py-1.5 cursor-pointer transition-colors border-b-2 -mb-px " +
+                    (statusFilter === s
+                      ? "text-fg border-green"
+                      : "text-fg-muted hover:text-fg border-transparent")
+                  }
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            {/* Severity chips */}
+            <div className="flex flex-wrap items-center gap-1.5 mb-3">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-fg-dim mr-1">
+                severity
+              </span>
               {severityOrder.map((sev) => {
                 const active = severityFilters.has(sev);
-                const colors = severityColors[sev] ?? severityColors.normal;
-                const count = bySeverity[sev as keyof typeof bySeverity];
+                const colors = lookupColor(severityColors, sev);
+                const count = bySeverity[sev] ?? 0;
                 return (
                   <button
                     key={sev}
                     onClick={() => toggleSeverity(sev)}
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium cursor-pointer transition-all duration-150 ${
-                      active
-                        ? "ring-1 ring-current"
-                        : "opacity-60 hover:opacity-100"
-                    }`}
-                    style={{ backgroundColor: colors.bg, color: colors.text }}
+                    className={
+                      "font-mono text-[11px] px-1.5 py-[2px] rounded-[3px] cursor-pointer transition-all " +
+                      (active ? "ring-1 ring-current" : "opacity-60 hover:opacity-100")
+                    }
+                    style={{ background: colors.bg, color: colors.text }}
                   >
                     {count} {sev}
                   </button>
@@ -183,13 +233,16 @@ export default function DebtDetailPanel({
               })}
             </div>
 
+            {/* Kind counts (informational, not a filter) */}
             {Object.keys(byKind).length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                <span className="text-xs text-text-muted mr-1">Kind:</span>
+              <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-fg-dim mr-1">
+                  kind
+                </span>
                 {Object.entries(byKind).map(([kind, count]) => (
                   <span
                     key={kind}
-                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-bg-elevated text-text-secondary"
+                    className="font-mono text-[11px] px-1.5 py-[2px] rounded-[3px] bg-bg-2 text-fg-muted"
                   >
                     {count} {kind.replace(/_/g, " ")}
                   </span>
@@ -197,40 +250,22 @@ export default function DebtDetailPanel({
               </div>
             )}
 
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-xs text-text-muted mr-1">Status:</span>
-              {(["all", "open", "resolved", "dropped"] as StatusFilter[]).map(
-                (s) => (
-                  <button
-                    key={s}
-                    onClick={() => setStatusFilter(s)}
-                    className={`px-2.5 py-1 rounded-md text-xs cursor-pointer transition-all duration-150 capitalize ${
-                      statusFilter === s
-                        ? "bg-bg-elevated text-text-primary font-medium"
-                        : "text-text-muted hover:text-text-secondary hover:bg-bg-elevated/50"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ),
-              )}
-            </div>
-
-            <p className="text-xs text-text-muted mb-3">
+            <p className="font-mono text-[10px] text-fg-dim mb-3">
               {filteredItems.length} of {entries.length} items
             </p>
 
-            <div className="space-y-2">
+            {/* Rows */}
+            <div className="flex flex-col divide-y divide-border-muted">
               {filteredItems.length === 0 ? (
-                <p className="text-sm text-text-muted py-4 text-center">
-                  No items match the current filters
+                <p className="text-[12px] text-fg-muted py-6 text-center font-mono">
+                  no items match the current filters
                 </p>
               ) : (
                 filteredItems.map((item) => (
-                  <DebtItemCard
+                  <DebtRow
                     key={item.debt_id}
                     item={item}
-                    onClick={() => setSelectedDebt(item)}
+                    onClick={() => setSelected(item)}
                   />
                 ))
               )}
@@ -239,92 +274,76 @@ export default function DebtDetailPanel({
         </div>
       )}
 
-      {selectedDebt && (
+      {selected && (
         <DebtDetailModal
-          debt={selectedDebt}
-          onClose={() => setSelectedDebt(null)}
+          debt={selected}
+          onClose={() => setSelected(null)}
         />
       )}
     </div>
   );
 }
 
-function DebtItemCard({
+function DebtRow({
   item,
   onClick,
 }: {
   item: DebtEntry;
-  onClick?: () => void;
+  onClick: () => void;
 }) {
-  const sevColors =
-    severityColors[item.severity ?? ""] ?? severityColors.normal;
-  const stColors = item.status
-    ? debtStatusColors[item.status] ?? debtStatusColors.open
-    : null;
+  const resolved = item.status !== "open";
 
   return (
-    <div
-      className="bg-bg-surface rounded-lg p-4 border border-border-default hover:-translate-y-px hover:shadow-md transition-all duration-150 cursor-pointer"
+    <button
       onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={
-        onClick
-          ? (e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
+      className={
+        "w-full text-left px-3 py-2.5 hover:bg-bg-1 transition-colors cursor-pointer " +
+        (resolved ? "opacity-60" : "")
       }
     >
-      <div className="flex items-start gap-2 mb-1.5">
-        <span
-          className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shrink-0 mt-0.5"
-          style={{ backgroundColor: sevColors.bg, color: sevColors.text }}
-        >
-          {item.severity ?? "unknown"}
-        </span>
-        {item.kind && (
-          <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shrink-0 mt-0.5 bg-bg-elevated text-text-muted">
-            {item.kind}
-          </span>
-        )}
-        {stColors && item.status && (
-          <span
-            className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium shrink-0 mt-0.5"
-            style={{ backgroundColor: stColors.bg, color: stColors.text }}
-          >
-            {item.status}
-          </span>
-        )}
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Pill color={lookupColor(severityColors, item.severity)}>
+              {item.severity ?? "—"}
+            </Pill>
+            {item.kind && (
+              <span className="font-mono text-[11px] px-1.5 py-[2px] rounded-[3px] bg-bg-2 text-fg-muted">
+                {item.kind.replace(/_/g, " ")}
+              </span>
+            )}
+            {item.status && (
+              <Pill color={lookupColor(debtStatusColors, item.status)}>
+                {item.status}
+              </Pill>
+            )}
+            <span className="font-mono text-[10px] text-fg-dim ml-auto">
+              {item.debt_id}
+            </span>
+          </div>
+          <div className="text-[13px] text-fg truncate">
+            {item.title ?? "(untitled)"}
+          </div>
+          {item.description && (
+            <div className="text-[12px] text-fg-muted mt-1 line-clamp-2">
+              {item.description}
+            </div>
+          )}
+          <div className="flex items-center gap-3 mt-1 font-mono text-[10px] text-fg-dim flex-wrap">
+            {item.introduced_by?.task_id && (
+              <span>from {item.introduced_by.task_id}</span>
+            )}
+            {item.introduced_by?.mission_id && (
+              <span className="truncate max-w-[280px]">
+                mission {item.introduced_by.mission_id}
+              </span>
+            )}
+            {item.resolved_by?.task_id && (
+              <span>resolved by {item.resolved_by.task_id}</span>
+            )}
+          </div>
+        </div>
       </div>
-
-      <h3 className="text-sm font-medium text-text-primary mb-1">
-        {item.title ?? "(untitled)"}
-      </h3>
-
-      {item.description && (
-        <p className="text-xs text-text-secondary mb-2 leading-relaxed">
-          {item.description}
-        </p>
-      )}
-
-      <div className="flex items-center gap-3 text-[11px] text-text-muted flex-wrap">
-        <span>{item.debt_id}</span>
-        {item.introduced_by?.task_id && (
-          <span>from {item.introduced_by.task_id}</span>
-        )}
-        {item.introduced_by?.mission_id && (
-          <span className="truncate max-w-[200px]">
-            mission {item.introduced_by.mission_id}
-          </span>
-        )}
-        {item.resolved_by?.task_id && (
-          <span>resolved by {item.resolved_by.task_id}</span>
-        )}
-      </div>
-    </div>
+    </button>
   );
 }

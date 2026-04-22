@@ -1,5 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, Brain, FileText } from "lucide-react";
+/**
+ * MemoryBrowser — project-wide view of shared + per-agent memory files
+ * plus the latest mission's memory changelog.
+ *
+ * Layout:
+ *   - Narrow left rail lists available memory "channels" (shared, each agent,
+ *     and an optional "changelog" entry tied to the latest mission).
+ *   - Main area renders the selected channel's contents as prose with a
+ *     `PathBadge` so the user sees which file they're looking at.
+ *
+ * We don't perform any indexing / full-text search here; the raw markdown is
+ * shown as authored. If that ever changes, treat this as the entry point.
+ */
+
+import { useCallback, useEffect, useState } from "react";
+import { ArrowLeft, Brain } from "lucide-react";
 import * as geas from "../lib/geasClient";
 import type {
   AgentMemory,
@@ -7,6 +21,7 @@ import type {
   MemoryUpdate,
   MissionSummary,
 } from "../types";
+import PathBadge from "./PathBadge";
 import { useProjectRefresh } from "../contexts/ProjectRefreshContext";
 
 interface MemoryBrowserProps {
@@ -50,7 +65,6 @@ export default function MemoryBrowser({
       setShared(sharedText);
       setAgents(agentMemories);
 
-      // Latest mission (for memory-update changelog)
       const latest = history.length > 0 ? history[0] : null;
       setLatestMission(latest);
       if (latest) {
@@ -78,111 +92,136 @@ export default function MemoryBrowser({
     load();
   }, [refreshKey, load]);
 
+  const activePath =
+    active.kind === "shared"
+      ? ".geas/memory/shared.md"
+      : active.kind === "agent"
+        ? `.geas/memory/${active.agent}.md`
+        : latestMission
+          ? `.geas/missions/${latestMission.mission_id}/memory-update.json`
+          : ".geas/memory/";
+
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-      <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-border-default shrink-0">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-6 py-3 border-b border-border flex-shrink-0">
         <button
           onClick={onBack}
-          className="text-text-secondary hover:text-text-primary text-sm cursor-pointer transition-colors"
+          className="text-fg-muted hover:text-fg text-sm cursor-pointer transition-colors flex items-center gap-1"
         >
-          <ArrowLeft size={16} className="inline" /> Back
+          <ArrowLeft size={14} />
+          <span className="font-mono text-[12px]">back</span>
         </button>
-        <h1 className="text-base md:text-lg font-semibold text-text-primary truncate">
-          Memory
-        </h1>
+        <div className="min-w-0">
+          <h1 className="text-[14px] font-semibold text-fg">memory</h1>
+          <PathBadge path={activePath} />
+        </div>
       </div>
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
-          <span className="text-text-muted text-sm">Loading...</span>
+          <span className="font-mono text-[11px] text-fg-dim">loading…</span>
         </div>
       ) : error ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-status-red text-sm mb-2">
-              Failed to load memory
-            </p>
-            <p className="text-text-muted text-xs">{error}</p>
+            <p className="text-red text-sm mb-1">Failed to load memory</p>
+            <p className="font-mono text-[11px] text-fg-dim">{error}</p>
           </div>
         </div>
       ) : !shared && agents.length === 0 && !memoryUpdate ? (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <Brain size={40} className="mx-auto text-text-muted mb-3 opacity-30" />
-            <span className="text-text-muted text-sm">No memory written yet</span>
+            <Brain size={32} className="mx-auto text-fg-dim mb-2 opacity-30" />
+            <span className="text-sm text-fg-muted">no memory written yet</span>
           </div>
         </div>
       ) : (
         <div className="flex-1 flex min-h-0">
-          <div className="w-56 border-r border-border-default overflow-y-auto shrink-0">
-            <TabButton
-              label="shared"
-              icon={<FileText size={12} />}
+          {/* Left rail */}
+          <aside className="w-52 border-r border-border overflow-y-auto flex-shrink-0 py-2">
+            <SectionLabel>shared</SectionLabel>
+            <ChannelButton
+              label="shared.md"
               active={active.kind === "shared"}
               onClick={() => setActive({ kind: "shared" })}
             />
-            {agents.map((a) => (
-              <TabButton
-                key={tabKey({ kind: "agent", agent: a.agent_name })}
-                label={a.agent_name.replace(/-/g, " ")}
-                active={active.kind === "agent" && active.agent === a.agent_name}
-                onClick={() => setActive({ kind: "agent", agent: a.agent_name })}
-              />
-            ))}
-            {memoryUpdate && (
-              <TabButton
-                label={`changelog${latestMission ? " · latest" : ""}`}
-                active={active.kind === "changelog"}
-                onClick={() => setActive({ kind: "changelog" })}
-              />
-            )}
-          </div>
-          <div className="flex-1 overflow-y-auto p-6">
-            {active.kind === "shared" ? (
-              <div className="max-w-3xl">
-                <h2 className="text-sm font-semibold text-text-primary mb-4">
-                  shared.md
-                </h2>
-                <div className="text-sm text-text-secondary whitespace-pre-wrap leading-relaxed">
-                  {shared || "Empty"}
-                </div>
-              </div>
-            ) : active.kind === "agent" ? (
-              (() => {
-                const found = agents.find((a) => a.agent_name === active.agent);
-                return (
-                  <div className="max-w-3xl">
-                    <h2 className="text-sm font-semibold text-text-primary mb-4">
-                      {active.agent}.md
-                    </h2>
-                    <div className="text-sm text-text-secondary whitespace-pre-wrap leading-relaxed">
-                      {found?.content || "Empty"}
-                    </div>
-                  </div>
-                );
-              })()
-            ) : memoryUpdate ? (
-              <div className="max-w-3xl">
-                <h2 className="text-sm font-semibold text-text-primary mb-1">
-                  Memory changelog
-                </h2>
-                <p className="text-xs text-text-muted mb-4">
-                  From mission{" "}
-                  {latestMission?.mission_name ?? latestMission?.mission_id ?? "—"}
-                </p>
-                <MemoryChangeList
-                  title="Shared memory"
-                  added={memoryUpdate.shared?.added ?? []}
-                  modified={memoryUpdate.shared?.modified ?? []}
-                  removed={memoryUpdate.shared?.removed ?? []}
-                />
-                {memoryUpdate.agents.map((ac, i) => (
-                  <AgentChanges key={i} changes={ac} />
+
+            {agents.length > 0 && (
+              <>
+                <SectionLabel>per-agent</SectionLabel>
+                {agents.map((a) => (
+                  <ChannelButton
+                    key={tabKey({ kind: "agent", agent: a.agent_name })}
+                    label={`${a.agent_name}.md`}
+                    active={
+                      active.kind === "agent" && active.agent === a.agent_name
+                    }
+                    onClick={() =>
+                      setActive({ kind: "agent", agent: a.agent_name })
+                    }
+                  />
                 ))}
-              </div>
-            ) : (
-              <p className="text-text-muted text-sm">No data</p>
+              </>
             )}
+
+            {memoryUpdate && (
+              <>
+                <SectionLabel>changelog</SectionLabel>
+                <ChannelButton
+                  label="memory-update"
+                  active={active.kind === "changelog"}
+                  onClick={() => setActive({ kind: "changelog" })}
+                />
+              </>
+            )}
+          </aside>
+
+          {/* Main content */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="mx-auto max-w-3xl px-6 py-5">
+              {active.kind === "shared" ? (
+                <ProsePanel
+                  title="shared.md"
+                  subtitle="common memory surfaced across all agents"
+                  content={shared}
+                />
+              ) : active.kind === "agent" ? (
+                (() => {
+                  const found = agents.find(
+                    (a) => a.agent_name === active.agent,
+                  );
+                  return (
+                    <ProsePanel
+                      title={`${active.agent}.md`}
+                      subtitle="agent-local memory"
+                      content={found?.content ?? null}
+                    />
+                  );
+                })()
+              ) : memoryUpdate ? (
+                <div>
+                  <h2 className="font-mono text-[13px] text-green mb-1">
+                    memory-update.json
+                  </h2>
+                  <p className="font-mono text-[11px] text-fg-dim mb-5">
+                    from mission{" "}
+                    {latestMission?.mission_name ?? latestMission?.mission_id ?? "—"}
+                  </p>
+                  <MemoryChangeList
+                    title="shared memory"
+                    added={memoryUpdate.shared?.added ?? []}
+                    modified={memoryUpdate.shared?.modified ?? []}
+                    removed={memoryUpdate.shared?.removed ?? []}
+                  />
+                  {memoryUpdate.agents.map((ac, i) => (
+                    <AgentChanges key={i} changes={ac} />
+                  ))}
+                </div>
+              ) : (
+                <p className="font-mono text-[11px] text-fg-dim">no data</p>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -190,29 +229,61 @@ export default function MemoryBrowser({
   );
 }
 
-function TabButton({
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="px-3 pt-3 pb-1 font-mono text-[10px] uppercase tracking-widest text-fg-dim">
+      {children}
+    </div>
+  );
+}
+
+function ChannelButton({
   label,
   active,
   onClick,
-  icon,
 }: {
   label: string;
   active: boolean;
   onClick: () => void;
-  icon?: React.ReactNode;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer flex items-center gap-2 ${
-        active
-          ? "bg-bg-elevated text-text-primary font-medium"
-          : "text-text-secondary hover:bg-bg-elevated/50"
-      }`}
+      className={
+        "w-full text-left px-3 py-1.5 font-mono text-[12px] transition-colors cursor-pointer border-l-2 " +
+        (active
+          ? "bg-bg-2 text-fg border-green"
+          : "text-fg-muted hover:text-fg hover:bg-bg-1 border-transparent")
+      }
     >
-      {icon}
       {label}
     </button>
+  );
+}
+
+function ProsePanel({
+  title,
+  subtitle,
+  content,
+}: {
+  title: string;
+  subtitle?: string;
+  content: string | null;
+}) {
+  return (
+    <>
+      <h2 className="font-mono text-[13px] text-green mb-1">{title}</h2>
+      {subtitle && (
+        <p className="font-mono text-[11px] text-fg-dim mb-5">{subtitle}</p>
+      )}
+      <div className="text-[13px] text-fg whitespace-pre-wrap leading-relaxed">
+        {content && content.trim().length > 0 ? (
+          content
+        ) : (
+          <span className="text-fg-dim italic">empty</span>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -223,8 +294,16 @@ function MemoryChangeList({
   removed,
 }: {
   title: string;
-  added: { memory_id: string | null; reason: string | null; evidence_refs: string[] }[];
-  modified: { memory_id: string | null; reason: string | null; evidence_refs: string[] }[];
+  added: {
+    memory_id: string | null;
+    reason: string | null;
+    evidence_refs: string[];
+  }[];
+  modified: {
+    memory_id: string | null;
+    reason: string | null;
+    evidence_refs: string[];
+  }[];
   removed: { memory_id: string | null; reason: string | null }[];
 }) {
   if (added.length === 0 && modified.length === 0 && removed.length === 0) {
@@ -232,51 +311,43 @@ function MemoryChangeList({
   }
   return (
     <div className="mb-6">
-      <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">
+      <div className="font-mono text-[11px] text-green mb-2 pb-1 border-b border-border-muted">
         {title}
-      </h3>
-      {added.length > 0 && (
-        <div className="mb-3">
-          <p className="text-xs text-status-green mb-1">Added</p>
-          {added.map((e, i) => (
-            <div
-              key={i}
-              className="bg-bg-elevated rounded p-2 mb-1 text-xs"
-            >
-              <p className="text-text-primary">{e.memory_id}</p>
-              {e.reason && <p className="text-text-muted">{e.reason}</p>}
+      </div>
+      <ChangeGroup label="added" items={added} cls="text-green" />
+      <ChangeGroup label="modified" items={modified} cls="text-amber" />
+      <ChangeGroup label="removed" items={removed} cls="text-red" />
+    </div>
+  );
+}
+
+function ChangeGroup({
+  label,
+  items,
+  cls,
+}: {
+  label: string;
+  items: { memory_id: string | null; reason: string | null }[];
+  cls: string;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div className="mb-3">
+      <div className={"font-mono text-[10px] uppercase tracking-widest mb-1 " + cls}>
+        {label} ({items.length})
+      </div>
+      <div className="space-y-1">
+        {items.map((e, i) => (
+          <div key={i} className="bg-bg-1 px-2.5 py-1.5 rounded-[3px]">
+            <div className="font-mono text-[11px] text-fg">
+              {e.memory_id ?? "—"}
             </div>
-          ))}
-        </div>
-      )}
-      {modified.length > 0 && (
-        <div className="mb-3">
-          <p className="text-xs text-status-amber mb-1">Modified</p>
-          {modified.map((e, i) => (
-            <div
-              key={i}
-              className="bg-bg-elevated rounded p-2 mb-1 text-xs"
-            >
-              <p className="text-text-primary">{e.memory_id}</p>
-              {e.reason && <p className="text-text-muted">{e.reason}</p>}
-            </div>
-          ))}
-        </div>
-      )}
-      {removed.length > 0 && (
-        <div className="mb-3">
-          <p className="text-xs text-status-red mb-1">Removed</p>
-          {removed.map((e, i) => (
-            <div
-              key={i}
-              className="bg-bg-elevated rounded p-2 mb-1 text-xs"
-            >
-              <p className="text-text-primary">{e.memory_id}</p>
-              {e.reason && <p className="text-text-muted">{e.reason}</p>}
-            </div>
-          ))}
-        </div>
-      )}
+            {e.reason && (
+              <div className="text-[12px] text-fg-muted">{e.reason}</div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -284,7 +355,7 @@ function MemoryChangeList({
 function AgentChanges({ changes }: { changes: AgentMemoryChanges }) {
   return (
     <MemoryChangeList
-      title={`Agent: ${changes.agent ?? "—"}`}
+      title={`agent · ${changes.agent ?? "—"}`}
       added={changes.added}
       modified={changes.modified}
       removed={changes.removed}

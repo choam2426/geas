@@ -1,26 +1,82 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens — "geas console" direction.
+ *
+ * Terminal-inspired dark theme with a phosphor-green accent, tight
+ * typography, and low chroma (≈0.17) across all accent colors so
+ * nothing screams.
+ *
+ * Fonts:
+ *   - Inter for prose, headings, buttons.
+ *   - JetBrains Mono for IDs, paths, timestamps, numeric tables.
+ *
+ * Color naming: two layers.
+ *   --bg-0/1/2     : flat surfaces, 0 = root.
+ *   --fg / -muted / -dim : text at three weights.
+ *   --border / -muted    : 1-px dividers.
+ *   --accent-{name}      : solid accent for text/dots/badges.
+ *   --surface-{name}     : translucent accent, used for pill backgrounds.
+ */
+
 @theme {
-  --color-bg-primary: #0d1117;
-  --color-bg-surface: #161b22;
-  --color-bg-elevated: #1c2128;
-  --color-border-default: #30363d;
-  --color-text-primary: #e6edf3;
-  --color-text-secondary: #8b949e;
-  --color-text-muted: #656d76;
-  --color-status-blue: #58a6ff;
-  --color-status-green: #3fb950;
-  --color-status-amber: #d29922;
-  --color-status-red: #f85149;
-  --color-accent: #58a6ff;
+  /* Surfaces */
+  --color-bg-0: #0b0c0d;
+  --color-bg-1: #111315;
+  --color-bg-2: #1a1d20;
+
+  /* Borders */
+  --color-border: #23272c;
+  --color-border-muted: #1a1d20;
+
+  /* Text */
+  --color-fg: #e4e6ea;
+  --color-fg-muted: #8a8f98;
+  --color-fg-dim: #5a6068;
+
+  /* Accents — solid */
+  --color-green: #5cf28a;
+  --color-amber: #f2c44a;
+  --color-red: #f57070;
+  --color-cyan: #7edbff;
+  --color-violet: #c18dff;
+
+  /* Accents — translucent surfaces for pill backgrounds */
+  --color-green-surface: rgba(92, 242, 138, 0.12);
+  --color-amber-surface: rgba(242, 196, 74, 0.12);
+  --color-red-surface: rgba(245, 112, 112, 0.15);
+  --color-cyan-surface: rgba(126, 219, 255, 0.12);
+  --color-violet-surface: rgba(193, 141, 255, 0.12);
+  --color-muted-surface: rgba(138, 143, 152, 0.10);
+
+  /* Fonts */
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ---- Legacy aliases (kept while the rest of the app migrates) ---- */
+  --color-bg-primary: var(--color-bg-0);
+  --color-bg-surface: var(--color-bg-1);
+  --color-bg-elevated: var(--color-bg-2);
+  --color-border-default: var(--color-border);
+  --color-text-primary: var(--color-fg);
+  --color-text-secondary: var(--color-fg-muted);
+  --color-text-muted: var(--color-fg-dim);
+  --color-status-blue: var(--color-cyan);
+  --color-status-green: var(--color-green);
+  --color-status-amber: var(--color-amber);
+  --color-status-red: var(--color-red);
+  --color-accent: var(--color-green);
 }
 
 html,
 body {
-  @apply bg-bg-primary text-text-primary font-sans;
+  @apply bg-bg-0 text-fg font-sans;
   margin: 0;
   padding: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* View transition animation */
@@ -92,27 +148,53 @@ body {
 }
 
 /* Markdown styles for rules viewer */
-.rules-markdown h1 { font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary); margin: 1.5rem 0 0.75rem; }
-.rules-markdown h2 { font-size: 1.25rem; font-weight: 600; color: var(--color-text-primary); margin: 1.25rem 0 0.5rem; }
-.rules-markdown h3 { font-size: 1.1rem; font-weight: 600; color: var(--color-text-primary); margin: 1rem 0 0.5rem; }
-.rules-markdown p { color: var(--color-text-secondary); line-height: 1.6; margin: 0.5rem 0; }
-.rules-markdown ul, .rules-markdown ol { color: var(--color-text-secondary); padding-left: 1.5rem; margin: 0.5rem 0; }
+.rules-markdown h1 { font-size: 1.5rem; font-weight: 700; color: var(--color-fg); margin: 1.5rem 0 0.75rem; }
+.rules-markdown h2 { font-size: 1.25rem; font-weight: 600; color: var(--color-fg); margin: 1.25rem 0 0.5rem; }
+.rules-markdown h3 { font-size: 1.1rem; font-weight: 600; color: var(--color-fg); margin: 1rem 0 0.5rem; }
+.rules-markdown p { color: var(--color-fg-muted); line-height: 1.6; margin: 0.5rem 0; }
+.rules-markdown ul, .rules-markdown ol { color: var(--color-fg-muted); padding-left: 1.5rem; margin: 0.5rem 0; }
 .rules-markdown li { margin: 0.25rem 0; }
 .rules-markdown ul { list-style-type: disc; }
 .rules-markdown ol { list-style-type: decimal; }
-.rules-markdown code { background: var(--color-bg-elevated); color: var(--color-accent); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.875rem; }
-.rules-markdown pre { background: var(--color-bg-elevated); border: 1px solid var(--color-border-default); border-radius: 0.5rem; padding: 1rem; overflow-x: auto; margin: 0.75rem 0; }
+.rules-markdown code { background: var(--color-bg-2); color: var(--color-cyan); padding: 0.125rem 0.375rem; border-radius: 3px; font-size: 0.875rem; font-family: var(--font-mono); }
+.rules-markdown pre { background: var(--color-bg-2); border: 1px solid var(--color-border); border-radius: 4px; padding: 1rem; overflow-x: auto; margin: 0.75rem 0; }
 .rules-markdown pre code { background: none; padding: 0; }
-.rules-markdown blockquote { border-left: 3px solid var(--color-accent); padding-left: 1rem; color: var(--color-text-muted); margin: 0.75rem 0; }
-.rules-markdown table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
-.rules-markdown th, .rules-markdown td { border: 1px solid var(--color-border-default); padding: 0.5rem 0.75rem; text-align: left; font-size: 0.875rem; }
-.rules-markdown th { background: var(--color-bg-elevated); color: var(--color-text-primary); font-weight: 600; }
-.rules-markdown td { color: var(--color-text-secondary); }
-.rules-markdown a { color: var(--color-accent); text-decoration: underline; }
-.rules-markdown hr { border: none; border-top: 1px solid var(--color-border-default); margin: 1rem 0; }
+.rules-markdown blockquote { border-left: 2px solid var(--color-amber); padding-left: 1rem; color: var(--color-fg-muted); margin: 0.75rem 0; }
+.rules-markdown table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; font-family: var(--font-mono); font-size: 0.825rem; }
+.rules-markdown th, .rules-markdown td { border: 1px solid var(--color-border); padding: 0.5rem 0.75rem; text-align: left; }
+.rules-markdown th { background: var(--color-bg-2); color: var(--color-fg); font-weight: 600; }
+.rules-markdown td { color: var(--color-fg-muted); }
+.rules-markdown a { color: var(--color-cyan); text-decoration: underline; }
+.rules-markdown hr { border: none; border-top: 1px solid var(--color-border); margin: 1rem 0; }
+
+/* Mission-design markdown — tighter, phosphor headings */
+.design-markdown h1,
+.design-markdown h2,
+.design-markdown h3 {
+  font-family: var(--font-mono);
+  color: var(--color-green);
+  font-weight: 600;
+}
+.design-markdown h1 { font-size: 1.05rem; margin: 1.5rem 0 0.5rem; }
+.design-markdown h2 { font-size: 0.95rem; margin: 1.25rem 0 0.5rem; }
+.design-markdown h3 { font-size: 0.875rem; margin: 1rem 0 0.5rem; }
+.design-markdown p { color: var(--color-fg); line-height: 1.65; margin: 0.5rem 0; }
+.design-markdown ul, .design-markdown ol { color: var(--color-fg); padding-left: 1.25rem; margin: 0.5rem 0; }
+.design-markdown li { margin: 0.25rem 0; }
+.design-markdown ul { list-style-type: none; }
+.design-markdown ul > li::before { content: "\2014  "; color: var(--color-fg-dim); margin-left: -1rem; }
+.design-markdown code { background: var(--color-bg-2); color: var(--color-cyan); padding: 0.125rem 0.375rem; border-radius: 3px; font-size: 0.85em; font-family: var(--font-mono); }
+.design-markdown pre { background: var(--color-bg-2); border: 1px solid var(--color-border); border-radius: 4px; padding: 0.75rem 1rem; overflow-x: auto; margin: 0.75rem 0; font-size: 0.825rem; }
+.design-markdown pre code { background: none; padding: 0; color: var(--color-fg); }
+.design-markdown blockquote { border-left: 2px solid var(--color-amber); padding-left: 0.75rem; color: var(--color-fg-muted); margin: 0.75rem 0; font-style: normal; }
+.design-markdown a { color: var(--color-cyan); text-decoration: underline; }
+.design-markdown table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; font-family: var(--font-mono); font-size: 0.825rem; }
+.design-markdown th, .design-markdown td { border: 1px solid var(--color-border); padding: 0.4rem 0.6rem; text-align: left; }
+.design-markdown th { background: var(--color-bg-2); color: var(--color-fg); font-weight: 600; }
+.design-markdown td { color: var(--color-fg-muted); }
 
 /* Focus-visible for accessibility */
 *:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-green);
   outline-offset: 2px;
 }

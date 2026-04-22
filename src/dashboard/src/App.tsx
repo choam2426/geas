@@ -1,21 +1,23 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import type { ProjectEntry, ProjectSummary } from "./types";
 import * as geas from "./lib/geasClient";
 import Sidebar from "./components/Sidebar";
+import TopBar, { type BreadcrumbCrumb } from "./components/TopBar";
+import StatusBar from "./components/StatusBar";
 import ProjectDashboard from "./components/ProjectDashboard";
-import KanbanBoard from "./components/KanbanBoard";
-import MissionHistory from "./components/MissionHistory";
 import DebtDetailPanel from "./components/DebtDetailPanel";
-import TimelineView from "./components/TimelineView";
-import MissionDetailView from "./components/MissionDetailView";
+import MissionDetailShell from "./components/MissionDetailShell";
 import MemoryBrowser from "./components/MemoryBrowser";
 import EmptyState from "./components/EmptyState";
 import ErrorState from "./components/ErrorState";
 import AddProjectDialog from "./components/AddProjectDialog";
 import { ToastProvider } from "./contexts/ToastContext";
 import { ProjectRefreshProvider } from "./contexts/ProjectRefreshContext";
-import { useNavigationHistory } from "./hooks/useNavigationHistory";
+import {
+  useNavigationHistory,
+  type MissionTab,
+} from "./hooks/useNavigationHistory";
 
 /** Normalize a path for cross-platform comparison. */
 function normalizePath(p: string): string {
@@ -49,6 +51,7 @@ function AppInner() {
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [backendError, setBackendError] = useState<string | null>(null);
+  const [lastEventAt, setLastEventAt] = useState<Date | null>(null);
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -93,6 +96,7 @@ function AppInner() {
   const selectedPath = nav.current.selectedPath;
   const view = nav.current.view;
   const selectedMissionId = nav.current.selectedMissionId;
+  const missionTab = nav.current.missionTab ?? "overview";
   const selected = projects.find((p) => p.path === selectedPath) ?? null;
 
   // Auto-refresh: subscribe to project-changed events from the file watcher.
@@ -105,6 +109,7 @@ function AppInner() {
           (p) => normalizePath(p.path) === eventNorm,
         );
         if (!matching) return;
+        setLastEventAt(new Date());
         (async () => {
           try {
             const summary = await geas.getProjectSummary(matching.path);
@@ -150,258 +155,210 @@ function AppInner() {
       });
   };
 
-  return (
-    <div className="flex h-screen bg-bg-primary text-text-primary font-sans overflow-hidden">
-      <Sidebar
-        projects={projects}
-        selectedPath={selectedPath}
-        onSelect={(path) => {
-          nav.reset({
-            view: "dashboard",
-            selectedPath: path,
-            selectedMissionId: null,
-          });
-        }}
-        onViewHistory={
-          selected
-            ? () =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "history",
-                  selectedMissionId: null,
-                })
-            : undefined
-        }
-        onAddProject={() => setShowAddDialog(true)}
-        onRemoveProject={handleRemoveProject}
-        onRefresh={loadProjects}
-        loading={loading}
-      />
+  /**
+   * Navigate to a specific mission, defaulting to the overview sub-tab.
+   * Callers that want a different tab can pass `tab` explicitly.
+   */
+  const openMission = useCallback(
+    (missionId: string, tab: MissionTab = "overview") => {
+      nav.navigate({
+        ...nav.current,
+        view: "detail",
+        selectedMissionId: missionId,
+        missionTab: tab,
+      });
+    },
+    [nav],
+  );
 
-      <main className="flex flex-1 min-w-0 overflow-hidden">
-        {backendError && !loading ? (
-          <div className="flex flex-1 min-w-0 items-center justify-center animate-fade-in">
-            <div className="text-center max-w-md">
-              <p className="text-status-red text-lg font-semibold mb-2">
-                Backend Error
-              </p>
-              <p className="text-text-secondary text-sm mb-4">{backendError}</p>
-              <button
-                onClick={loadProjects}
-                className="px-4 py-1.5 rounded-md bg-status-blue text-white text-sm cursor-pointer hover:opacity-90 active:scale-95 transition-all"
-              >
-                Retry
-              </button>
+  const changeMissionTab = useCallback(
+    (tab: MissionTab) => {
+      if (!selectedMissionId) return;
+      nav.navigate({
+        ...nav.current,
+        view: "detail",
+        selectedMissionId,
+        missionTab: tab,
+      });
+    },
+    [nav, selectedMissionId],
+  );
+
+  /**
+   * Build the breadcrumb trail for the TopBar based on the current view.
+   * Past-mission names aren't in ProjectSummary (only the active one), so
+   * when viewing a non-active mission we fall back to the mission id in mono.
+   */
+  const crumbs = useMemo<BreadcrumbCrumb[]>(() => {
+    if (!selected) return [];
+
+    const gotoDashboard = () =>
+      nav.reset({
+        view: "dashboard",
+        selectedPath: selected.path,
+        selectedMissionId: null,
+      });
+
+    const base: BreadcrumbCrumb[] = [
+      {
+        label: selected.name,
+        onClick: view === "dashboard" ? undefined : gotoDashboard,
+      },
+    ];
+
+    if (view === "dashboard") return base;
+    if (view === "debt") return [...base, { label: "debt" }];
+    if (view === "memory") return [...base, { label: "memory" }];
+
+    // Mission-scoped view (detail). Mission crumb + sub-tab tail.
+    const missionLabel =
+      selectedMissionId === selected.mission_id && selected.mission_name
+        ? selected.mission_name
+        : selectedMissionId ?? "mission";
+    const isMissionId = selectedMissionId && missionLabel === selectedMissionId;
+
+    const missionCrumb: BreadcrumbCrumb = {
+      label: missionLabel,
+      mono: !!isMissionId,
+      onClick:
+        missionTab === "overview"
+          ? undefined
+          : () => changeMissionTab("overview"),
+    };
+
+    const tail: BreadcrumbCrumb[] =
+      missionTab === "overview" ? [] : [{ label: missionTab }];
+
+    return [...base, missionCrumb, ...tail];
+  }, [selected, view, selectedMissionId, missionTab, nav, changeMissionTab]);
+
+  return (
+    <div className="flex flex-col h-screen bg-bg-0 text-fg font-sans overflow-hidden">
+      <TopBar crumbs={crumbs} phase={selected?.phase ?? null} />
+
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <Sidebar
+          projects={projects}
+          selectedPath={selectedPath}
+          onSelect={(path) => {
+            nav.reset({
+              view: "dashboard",
+              selectedPath: path,
+              selectedMissionId: null,
+            });
+          }}
+          onAddProject={() => setShowAddDialog(true)}
+          onRemoveProject={handleRemoveProject}
+          onRefresh={loadProjects}
+          loading={loading}
+        />
+
+        <main className="flex flex-1 min-w-0 overflow-hidden">
+          {backendError && !loading ? (
+            <div className="flex flex-1 min-w-0 items-center justify-center animate-fade-in">
+              <div className="text-center max-w-md">
+                <p className="text-red text-lg font-semibold mb-2">
+                  Backend Error
+                </p>
+                <p className="text-fg-muted text-sm mb-4">{backendError}</p>
+                <button
+                  onClick={loadProjects}
+                  className="px-4 py-1.5 rounded-[4px] bg-bg-2 text-fg border border-border text-sm cursor-pointer hover:bg-bg-1 active:scale-95 transition-all"
+                >
+                  Retry
+                </button>
+              </div>
             </div>
-          </div>
-        ) : projects.length === 0 && !loading ? (
-          <EmptyState onAddProject={() => setShowAddDialog(true)} />
-        ) : selected && (selected.status === "no_geas" || selected.status === "error") ? (
-          <div
-            key={`error-${selected.path}`}
-            className="flex flex-1 min-w-0 animate-fade-in"
-          >
-            <ErrorState
-              status={selected.status}
-              projectName={selected.name}
-              projectPath={selected.path}
-            />
-          </div>
-        ) : selected && view === "dashboard" ? (
-          <div
-            key={`dashboard-${selected.path}`}
-            className="flex flex-1 min-w-0 animate-fade-in"
-          >
-            <ProjectDashboard
-              projectPath={selected.path}
-              projectName={selected.name}
-              onViewTasks={(missionId) =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "kanban",
-                  selectedMissionId: missionId ?? null,
-                })
-              }
-              onViewDebt={() =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "debt",
-                  selectedMissionId: null,
-                })
-              }
-              onViewKanban={(missionId) =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "kanban",
-                  selectedMissionId: missionId,
-                })
-              }
-              onViewMemory={() =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "memory",
-                  selectedMissionId: null,
-                })
-              }
-              onViewTimeline={() =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "timeline",
-                  selectedMissionId: null,
-                })
-              }
-              onViewDetail={(missionId) =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "detail",
-                  selectedMissionId: missionId,
-                })
-              }
-            />
-          </div>
-        ) : selected && view === "timeline" ? (
-          <div
-            key={`timeline-${selected.path}-${selectedMissionId ?? ""}`}
-            className="flex flex-1 min-w-0 animate-fade-in"
-          >
-            <TimelineView
-              projectPath={selected.path}
-              missionId={selectedMissionId}
-              onBack={back}
-            />
-          </div>
-        ) : selected && view === "detail" && selectedMissionId ? (
-          <div
-            key={`detail-${selected.path}-${selectedMissionId}`}
-            className="flex flex-1 min-w-0 animate-fade-in"
-          >
-            <MissionDetailView
-              projectPath={selected.path}
-              missionId={selectedMissionId}
-              onBack={back}
-            />
-          </div>
-        ) : selected && view === "kanban" ? (
-          <div
-            key={`kanban-${selected.path}-${selectedMissionId ?? ""}`}
-            className="flex flex-1 min-w-0 animate-fade-in"
-          >
-            <KanbanBoard
-              projectPath={selected.path}
-              projectName={selected.mission_name ?? selected.name}
-              missionId={selectedMissionId ?? selected.mission_id ?? null}
-              onBack={back}
-              activeTasks={selected.active_tasks}
-            />
-          </div>
-        ) : selected && view === "history" ? (
-          <div
-            key={`history-${selected.path}`}
-            className="flex flex-1 min-w-0 animate-fade-in"
-          >
-            <MissionHistory
-              projectPath={selected.path}
-              projectName={selected.name}
-              onSelectMission={(missionId) =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "kanban",
-                  selectedMissionId: missionId,
-                })
-              }
-              onViewTimeline={(missionId) =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "timeline",
-                  selectedMissionId: missionId,
-                })
-              }
-              onViewDetail={(missionId) =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "detail",
-                  selectedMissionId: missionId,
-                })
-              }
-              onBack={back}
-            />
-          </div>
-        ) : selected && view === "debt" ? (
-          <div
-            key={`debt-${selected.path}`}
-            className="flex flex-1 min-w-0 animate-fade-in"
-          >
-            <DebtDetailPanel
-              projectPath={selected.path}
-              projectName={selected.name}
-              onBack={back}
-            />
-          </div>
-        ) : selected && view === "memory" ? (
-          <div
-            key={`memory-${selected.path}`}
-            className="flex flex-1 min-w-0 animate-fade-in"
-          >
-            <MemoryBrowser projectPath={selected.path} onBack={back} />
-          </div>
-        ) : selected ? (
-          <div
-            key={`dashboard-fallback-${selected.path}`}
-            className="flex flex-1 min-w-0 animate-fade-in"
-          >
-            <ProjectDashboard
-              projectPath={selected.path}
-              projectName={selected.name}
-              onViewTasks={(missionId) =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "kanban",
-                  selectedMissionId: missionId ?? null,
-                })
-              }
-              onViewDebt={() =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "debt",
-                  selectedMissionId: null,
-                })
-              }
-              onViewKanban={(missionId) =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "kanban",
-                  selectedMissionId: missionId,
-                })
-              }
-              onViewMemory={() =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "memory",
-                  selectedMissionId: null,
-                })
-              }
-              onViewTimeline={() =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "timeline",
-                  selectedMissionId: null,
-                })
-              }
-              onViewDetail={(missionId) =>
-                nav.navigate({
-                  ...nav.current,
-                  view: "detail",
-                  selectedMissionId: missionId,
-                })
-              }
-            />
-          </div>
-        ) : loading ? (
-          <div className="flex flex-1 items-center justify-center">
-            <span className="text-text-muted text-sm">Loading...</span>
-          </div>
-        ) : null}
-      </main>
+          ) : projects.length === 0 && !loading ? (
+            <EmptyState onAddProject={() => setShowAddDialog(true)} />
+          ) : selected &&
+            (selected.status === "no_geas" || selected.status === "error") ? (
+            <div
+              key={`error-${selected.path}`}
+              className="flex flex-1 min-w-0 animate-fade-in"
+            >
+              <ErrorState
+                status={selected.status}
+                projectName={selected.name}
+                projectPath={selected.path}
+              />
+            </div>
+          ) : selected && view === "dashboard" ? (
+            <div
+              key={`dashboard-${selected.path}`}
+              className="flex flex-1 min-w-0 animate-fade-in"
+            >
+              <ProjectDashboard
+                projectPath={selected.path}
+                projectName={selected.name}
+                onViewTasks={(missionId) =>
+                  missionId
+                    ? openMission(missionId, "kanban")
+                    : undefined
+                }
+                onViewKanban={(missionId) => openMission(missionId, "kanban")}
+                onViewDetail={(missionId) => openMission(missionId, "overview")}
+                onViewDebt={() =>
+                  nav.navigate({
+                    ...nav.current,
+                    view: "debt",
+                    selectedMissionId: null,
+                  })
+                }
+                onViewMemory={() =>
+                  nav.navigate({
+                    ...nav.current,
+                    view: "memory",
+                    selectedMissionId: null,
+                  })
+                }
+              />
+            </div>
+          ) : selected && view === "detail" && selectedMissionId ? (
+            <div
+              key={`detail-${selected.path}-${selectedMissionId}`}
+              className="flex flex-1 min-w-0 animate-fade-in"
+            >
+              <MissionDetailShell
+                projectPath={selected.path}
+                projectName={selected.name}
+                missionId={selectedMissionId}
+                activeTab={missionTab}
+                onChangeTab={changeMissionTab}
+                onBack={back}
+              />
+            </div>
+          ) : selected && view === "debt" ? (
+            <div
+              key={`debt-${selected.path}`}
+              className="flex flex-1 min-w-0 animate-fade-in"
+            >
+              <DebtDetailPanel
+                projectPath={selected.path}
+                projectName={selected.name}
+                onBack={back}
+              />
+            </div>
+          ) : selected && view === "memory" ? (
+            <div
+              key={`memory-${selected.path}`}
+              className="flex flex-1 min-w-0 animate-fade-in"
+            >
+              <MemoryBrowser projectPath={selected.path} onBack={back} />
+            </div>
+          ) : loading ? (
+            <div className="flex flex-1 items-center justify-center">
+              <span className="text-fg-dim text-sm">Loading...</span>
+            </div>
+          ) : null}
+        </main>
+      </div>
+
+      <StatusBar
+        project={selected}
+        lastEventAt={lastEventAt}
+        memoryCount={null}
+      />
 
       {showAddDialog && (
         <AddProjectDialog

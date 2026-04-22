@@ -1,14 +1,30 @@
-import { useEffect, useRef, useCallback } from "react";
+/**
+ * DebtDetailModal — full view of a single DebtEntry.
+ *
+ * Restyled to match the console direction: monospace ids, phosphor section
+ * headers, compact pills, path sticker for the debt ledger file.
+ */
+
+import { useCallback, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import type { DebtEntry } from "../types";
-import { severityColors, debtStatusColors } from "../colors";
+import {
+  debtStatusColors,
+  lookupColor,
+  severityColors,
+} from "../colors";
+import Pill from "./Pill";
+import PathBadge from "./PathBadge";
 
 interface DebtDetailModalProps {
   debt: DebtEntry;
   onClose: () => void;
 }
 
-export default function DebtDetailModal({ debt, onClose }: DebtDetailModalProps) {
+export default function DebtDetailModal({
+  debt,
+  onClose,
+}: DebtDetailModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
@@ -55,15 +71,9 @@ export default function DebtDetailModal({ debt, onClose }: DebtDetailModalProps)
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  const sevColor =
-    severityColors[debt.severity ?? ""] ?? severityColors.low;
-  const statColor = debt.status
-    ? debtStatusColors[debt.status] ?? debtStatusColors.open
-    : null;
-
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65"
       onClick={onClose}
     >
       <div
@@ -71,105 +81,125 @@ export default function DebtDetailModal({ debt, onClose }: DebtDetailModalProps)
         role="dialog"
         aria-modal="true"
         aria-label={`Debt: ${debt.title}`}
-        className="bg-bg-surface border border-border-default rounded-lg w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-xl animate-fade-in mx-4"
+        className="bg-bg-1 border border-border rounded-[4px] w-full max-w-xl max-h-[82vh] overflow-y-auto shadow-2xl animate-fade-in mx-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between p-5 border-b border-border-default">
-          <div>
-            <p className="text-xs text-text-muted mb-1">{debt.debt_id}</p>
-            <h2 className="text-lg font-semibold text-text-primary">
+        {/* Header */}
+        <div className="flex items-start justify-between px-5 pt-4 pb-3 border-b border-border sticky top-0 bg-bg-1 z-10">
+          <div className="min-w-0 flex-1">
+            <div className="font-mono text-[11px] text-fg-dim mb-1">
+              {debt.debt_id}
+            </div>
+            <h2 className="text-[15px] font-semibold text-fg">
               {debt.title ?? "(untitled)"}
             </h2>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <Pill color={lookupColor(severityColors, debt.severity)}>
+                {debt.severity ?? "—"}
+              </Pill>
+              {debt.kind && (
+                <span className="font-mono text-[11px] px-1.5 py-[2px] rounded-[3px] bg-bg-2 text-fg-muted">
+                  {debt.kind.replace(/_/g, " ")}
+                </span>
+              )}
+              {debt.status && (
+                <Pill color={lookupColor(debtStatusColors, debt.status)}>
+                  {debt.status}
+                </Pill>
+              )}
+            </div>
+            <div className="mt-2">
+              <PathBadge path=".geas/debt.json" />
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="text-text-muted hover:text-text-primary transition-colors cursor-pointer p-1"
+            className="text-fg-dim hover:text-fg transition-colors cursor-pointer p-1"
             aria-label="Close"
+            title="ESC to close"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
         <div className="p-5 space-y-5">
-          <div className="flex flex-wrap gap-2">
-            <span
-              className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
-              style={{ backgroundColor: sevColor.bg, color: sevColor.text }}
-            >
-              {debt.severity ?? "unknown"}
-            </span>
-            {debt.kind && (
-              <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-bg-elevated text-text-secondary">
-                {debt.kind}
-              </span>
-            )}
-            {debt.status && statColor && (
-              <span
-                className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
-                style={{ backgroundColor: statColor.bg, color: statColor.text }}
-              >
-                {debt.status}
-              </span>
-            )}
-          </div>
-
-          <div>
-            <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
-              Description
-            </h3>
-            <p className="text-sm text-text-secondary whitespace-pre-wrap break-words">
-              {debt.description ?? "No description"}
+          <Section title="description">
+            <p className="text-[13px] text-fg whitespace-pre-wrap break-words">
+              {debt.description ?? (
+                <span className="text-fg-dim italic">no description</span>
+              )}
             </p>
-          </div>
+          </Section>
 
-          <div>
-            <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
-              Introduced by
-            </h3>
+          <Section title="introduced_by">
             {debt.introduced_by ? (
-              <div className="flex flex-wrap gap-2 text-xs">
-                {debt.introduced_by.mission_id && (
-                  <span className="inline-flex items-center rounded-md bg-bg-elevated px-2.5 py-1 text-text-primary">
-                    mission: {debt.introduced_by.mission_id}
-                  </span>
-                )}
-                {debt.introduced_by.task_id && (
-                  <span className="inline-flex items-center rounded-md bg-bg-elevated px-2.5 py-1 text-text-primary">
-                    task: {debt.introduced_by.task_id}
-                  </span>
-                )}
-              </div>
+              <RefBlock
+                mission={debt.introduced_by.mission_id}
+                task={debt.introduced_by.task_id}
+              />
             ) : (
-              <p className="text-sm text-text-muted">Unknown</p>
+              <p className="font-mono text-[11px] text-fg-dim">unknown</p>
             )}
-          </div>
+          </Section>
 
           {debt.resolved_by && (
-            <div>
-              <h3 className="text-xs font-medium text-text-muted uppercase tracking-wide mb-2">
-                Resolved by
-              </h3>
-              <div className="flex flex-wrap gap-2 text-xs">
-                {debt.resolved_by.mission_id && (
-                  <span className="inline-flex items-center rounded-md bg-bg-elevated px-2.5 py-1 text-text-primary">
-                    mission: {debt.resolved_by.mission_id}
-                  </span>
-                )}
-                {debt.resolved_by.task_id && (
-                  <span className="inline-flex items-center rounded-md bg-bg-elevated px-2.5 py-1 text-text-primary">
-                    task: {debt.resolved_by.task_id}
-                  </span>
-                )}
-              </div>
+            <Section title="resolved_by">
+              <RefBlock
+                mission={debt.resolved_by.mission_id}
+                task={debt.resolved_by.task_id}
+              />
               {debt.resolution_rationale && (
-                <p className="text-sm text-text-secondary mt-2 whitespace-pre-wrap">
+                <p className="text-[12px] text-fg-muted mt-2 whitespace-pre-wrap">
                   {debt.resolution_rationale}
                 </p>
               )}
-            </div>
+            </Section>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="flex items-center gap-2 mb-2 pb-1 border-b border-border-muted">
+        <span className="font-mono text-[11px] text-green">{title}</span>
+      </div>
+      <div className="pl-1">{children}</div>
+    </section>
+  );
+}
+
+function RefBlock({
+  mission,
+  task,
+}: {
+  mission: string | null;
+  task: string | null;
+}) {
+  if (!mission && !task) {
+    return <p className="font-mono text-[11px] text-fg-dim">—</p>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5 font-mono text-[11px]">
+      {mission && (
+        <span className="px-1.5 py-[2px] rounded-[3px] bg-bg-2 text-fg">
+          mission · {mission}
+        </span>
+      )}
+      {task && (
+        <span className="px-1.5 py-[2px] rounded-[3px] bg-bg-2 text-fg">
+          task · {task}
+        </span>
+      )}
     </div>
   );
 }
