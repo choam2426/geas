@@ -12718,6 +12718,40 @@ function makeApproveHints() {
     closureApproved: false
   };
 }
+function recomputeActiveTasks(root, missionId) {
+  const msPath = missionStatePath(root, missionId);
+  const ms = readJsonFile(msPath);
+  if (!ms) return;
+  const dir = tasksDir(root, missionId);
+  if (!exists(dir)) return;
+  const LIVE = /* @__PURE__ */ new Set(["implementing", "reviewed", "verified"]);
+  const active = [];
+  let entries;
+  try {
+    entries = fs7.readdirSync(dir);
+  } catch {
+    return;
+  }
+  for (const name of entries) {
+    const tPath = path6.join(dir, name, "task-state.json");
+    if (!exists(tPath)) continue;
+    const ts = readJsonFile(tPath);
+    if (!ts || typeof ts.status !== "string") continue;
+    if (LIVE.has(ts.status)) {
+      const tid = typeof ts.task_id === "string" ? ts.task_id : name;
+      active.push(tid);
+    }
+  }
+  active.sort();
+  ms.active_tasks = active;
+  ms.updated_at = nowUtc4();
+  const v = validate("mission-state", ms);
+  if (!v.ok) return;
+  try {
+    atomicWriteJson(msPath, ms, tmpDir(root));
+  } catch {
+  }
+}
 function registerTaskTransition(task) {
   task.command("transition").description(
     "Transition a task through the 9-state FSM. Guards per protocol doc 03."
@@ -12782,6 +12816,7 @@ function registerTaskTransition(task) {
       );
     }
     atomicWriteJson(sPath, state, tmpDir(root));
+    recomputeActiveTasks(root, opts.mission);
     recordEvent(root, {
       kind: "task_state_changed",
       actor: "cli:auto",

@@ -403,6 +403,63 @@ function makeApproveHints(): TaskStateHints {
   };
 }
 
+// ── mission-state.active_tasks recompute ─────────────────────────────
+
+/**
+ * Recompute mission-state.active_tasks by scanning every task-state.json
+ * under missions/{mid}/tasks/ and collecting task_ids whose status is in
+ * {implementing, reviewed, verified}. Per mission-state.schema.json,
+ * active_tasks lists tasks "not yet terminated as passed/cancelled/escalated
+ * and not paused as blocked" — these three live states are the canonical
+ * set. Writes back atomically and bumps updated_at.
+ *
+ * Best-effort: if mission-state.json is missing or unreadable, this is a
+ * no-op (the transition itself has already succeeded). Schema validation
+ * is enforced; on failure the write is skipped and the error is swallowed
+ * so the primary transition response still returns ok.
+ */
+function recomputeActiveTasks(root: string, missionId: string): void {
+  const msPath = missionStatePath(root, missionId);
+  const ms = readJsonFile<Record<string, unknown>>(msPath);
+  if (!ms) return;
+
+  const dir = tasksDir(root, missionId);
+  if (!exists(dir)) return;
+
+  const LIVE = new Set(['implementing', 'reviewed', 'verified']);
+  const active: string[] = [];
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(dir);
+  } catch {
+    return;
+  }
+  for (const name of entries) {
+    const tPath = path.join(dir, name, 'task-state.json');
+    if (!exists(tPath)) continue;
+    const ts = readJsonFile<Record<string, unknown>>(tPath);
+    if (!ts || typeof ts.status !== 'string') continue;
+    if (LIVE.has(ts.status as string)) {
+      const tid = typeof ts.task_id === 'string' ? ts.task_id : name;
+      active.push(tid);
+    }
+  }
+  active.sort();
+
+  ms.active_tasks = active;
+  ms.updated_at = nowUtc();
+
+  const v = validate('mission-state', ms);
+  if (!v.ok) return;
+  try {
+    atomicWriteJson(msPath, ms, tmpDir(root));
+  } catch {
+    // Best-effort: do not fail the transition because a secondary index
+    // write failed. The task-state.json is authoritative; active_tasks
+    // is a derived convenience field.
+  }
+}
+
 // ── `geas task transition --to <state>` ──────────────────────────────
 
 function registerTaskTransition(task: Command): void {
@@ -486,6 +543,15 @@ function registerTaskTransition(task: Command): void {
         );
       }
       atomicWriteJson(sPath, state, tmpDir(root));
+
+      // After writing task-state, recompute mission-state.active_tasks from
+      // the updated task directory. The schema defines active_tasks as the
+      // set of tasks in lifecycle status ∈ {implementing, reviewed,
+      // verified} — i.e. not yet terminated (passed/cancelled/escalated)
+      // and not paused (blocked). See mission-state.schema.json. This is
+      // the sole writer; the field was never updated pre-transition and
+      // dashboards read it for "currently in flight" views.
+      recomputeActiveTasks(root, opts.mission);
 
       recordEvent(root, {
         kind: 'task_state_changed',
