@@ -68,12 +68,12 @@ graph LR
 
 ### Per-task pipeline
 
-Each approved task runs through the same governed sequence. Reviewer concurrence and the evidence gate are the non-negotiable checkpoints.
+Each approved task runs through the same governed sequence. The evidence gate is the non-negotiable checkpoint: it reads the reviewer and verifier evidence directly and decides whether the task may close.
 
 ```text
-Contract approved → Implementation contract → Reviewer concurrence
-→ Implement → Self-check → Reviewer evidence → Evidence gate
-→ Verification → Closure evidence → Retrospective
+Contract approved → Implementation contract → Implement → Self-check
+→ Reviewer evidence + Verification → Evidence gate
+→ Closure evidence → Retrospective
 ```
 
 Task states move through `drafted → ready → implementing → reviewed → verified → passed`, with `blocked` / `escalated` / `cancelled` as side exits.

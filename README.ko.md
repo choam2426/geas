@@ -68,12 +68,12 @@ graph LR
 
 ### Per-task Pipeline
 
-승인된 task는 모두 같은 순서를 따릅니다. 리뷰어 동의와 evidence gate는 타협 불가 체크포인트입니다.
+승인된 task는 모두 같은 순서를 따릅니다. Evidence gate가 타협 불가 체크포인트입니다. 리뷰어 evidence와 verifier evidence를 직접 읽어서 task가 종료로 진행 가능한지 판정합니다.
 
 ```text
-Contract 승인 → Implementation contract → 리뷰어 동의
-→ 구현 → Self-check → 리뷰어 evidence → Evidence gate
-→ Verification → Closure evidence → Retrospective
+Contract 승인 → Implementation contract → 구현 → Self-check
+→ 리뷰어 evidence + Verification → Evidence gate
+→ Closure evidence → Retrospective
 ```
 
 Task 상태는 `drafted → ready → implementing → reviewed → verified → passed` 흐름으로 이동하며, `blocked` / `escalated` / `cancelled`가 측면 종결 상태입니다.
