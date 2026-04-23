@@ -17,6 +17,8 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import * as geas from "../lib/geasClient";
 import { useProjectRefresh } from "../contexts/ProjectRefreshContext";
 import type {
@@ -195,9 +197,11 @@ export default function MissionOverviewTab({
                       </span>
                     </div>
                     {v.rationale && (
-                      <p className="text-[12px] text-fg-muted whitespace-pre-wrap">
-                        {v.rationale}
-                      </p>
+                      <div className="design-markdown text-[12px] mt-1">
+                        <Markdown remarkPlugins={[remarkGfm]}>
+                          {v.rationale}
+                        </Markdown>
+                      </div>
                     )}
                   </div>
                 </div>
