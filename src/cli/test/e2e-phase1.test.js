@@ -429,8 +429,31 @@ test('E2E: full mission lifecycle (3 building tasks + polishing + consolidating 
     appendPhaseReview(dir, MID, 'polishing', 'consolidating');
     advancePhase(dir, MID, 'consolidating');
 
-    // Step 10: consolidating — debts, gap, memory-update, memory writes.
-    let r = runCli(['debt', 'register'], {
+    // Step 10a: scaffold consolidation candidates. Walks task evidence and
+    // writes missions/{mid}/consolidation/candidates.json (the support file
+    // the dashboard reads and the convening of later promotion steps
+    // consults). This used to be skipped by the E2E, leaving the
+    // mission-scoped candidates path untested even though the dashboard
+    // depends on it.
+    let r = runCli(['consolidation', 'scaffold', '--mission', MID], {
+      cwd: dir,
+    });
+    assert.equal(
+      r.status,
+      0,
+      `consolidation scaffold failed: ${r.stderr}\n${r.stdout}`,
+    );
+    const candidates = readArtifact(
+      dir,
+      `.geas/missions/${MID}/consolidation/candidates.json`,
+    );
+    assert.ok(
+      Array.isArray(candidates.debt_candidates),
+      'scaffold should populate debt_candidates array',
+    );
+
+    // Step 10b: consolidating — debts, gap, memory-update, memory writes.
+    r = runCli(['debt', 'register'], {
       cwd: dir,
       input: JSON.stringify({
         severity: 'normal',
@@ -539,12 +562,12 @@ test('E2E: full mission lifecycle (3 building tasks + polishing + consolidating 
 
     // Step 13: .geas/ tree shape assertion.
     const geasRoot = path.join(dir, '.geas');
-    // Top-level project artifacts.
+    // Top-level project artifacts. (No `.geas/candidates.json` — consolidation
+    // candidates are mission-scoped; see missions/{id}/consolidation/ below.)
     for (const p of [
       'config.json',
       'debts.json',
       'events.jsonl',
-      'candidates.json',
       'memory/shared.md',
       'memory/agents/software-engineer.md',
     ]) {
@@ -553,6 +576,10 @@ test('E2E: full mission lifecycle (3 building tasks + polishing + consolidating 
         `expected ${p} to exist in .geas/ tree`,
       );
     }
+    assert.ok(
+      !fs.existsSync(path.join(geasRoot, 'candidates.json')),
+      '.geas/candidates.json (top-level) should not exist — consolidation candidates are mission-scoped',
+    );
 
     // Mission-level artifacts.
     const missionRoot = path.join(geasRoot, 'missions', MID);
@@ -562,6 +589,7 @@ test('E2E: full mission lifecycle (3 building tasks + polishing + consolidating 
       'phase-reviews.json',
       'mission-verdicts.json',
       'deliberations.json',
+      'consolidation/candidates.json',
       'consolidation/gap.json',
       'consolidation/memory-update.json',
     ]) {

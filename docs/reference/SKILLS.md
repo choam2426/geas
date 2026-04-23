@@ -115,8 +115,8 @@ Invoked by the mission dispatcher when every mission-scope task in the current p
 Invoked by the mission dispatcher when `phase=consolidating` is entered. Scaffolds candidates from task evidence, promotes debt / memory / gap candidates, writes `memory-update.json` and `gap.json`, and replaces the memory markdowns (`shared.md` + per-agent `agents/{type}.md`). Memory markdown replace and `memory-update set` are paired by protocol.
 
 - Trigger — `phase=consolidating` entry; session resume into an in-progress consolidation with partial artifacts.
-- Primary CLI — `geas debt register`, `geas gap set`, `geas memory-update set`, `geas memory shared-set`, `geas memory agent-set`.
-- Primary outputs — `missions/{mid}/consolidation/gap.json`, `missions/{mid}/consolidation/memory-update.json`, appended entries in `debts.json`, rewritten `.geas/memory/shared.md` and `.geas/memory/agents/{type}.md`.
+- Primary CLI — `geas consolidation scaffold`, `geas debt register`, `geas gap set`, `geas memory-update set`, `geas memory shared-set`, `geas memory agent-set`.
+- Primary outputs — `missions/{mid}/consolidation/candidates.json` (support file), `missions/{mid}/consolidation/gap.json`, `missions/{mid}/consolidation/memory-update.json`, appended entries in `debts.json`, rewritten `.geas/memory/shared.md` and `.geas/memory/agents/{type}.md`.
 
 #### `verdicting-mission`
 
@@ -202,7 +202,7 @@ Fast lookup. For command details (flags, JSON shape, failure modes), see `archit
 | `running-gate` | `gate run`, `task transition`, `evidence append --slot implementer` (fix iterations) |
 | `closing-task` | `evidence append --kind closure`, `task transition --to passed` |
 | `reviewing-phase` | `phase-review append`, `mission-state update --phase` |
-| `consolidating-mission` | `debt register`, `gap set`, `memory-update set`, `memory shared-set`, `memory agent-set` |
+| `consolidating-mission` | `consolidation scaffold`, `debt register`, `gap set`, `memory-update set`, `memory shared-set`, `memory agent-set` |
 | `verdicting-mission` | `mission-verdict append`, `mission-state update --phase complete` |
 | `convening-deliberation` | `deliberation append --level mission\|task` |
 | `implementing-task` | `self-check append`, `evidence append --slot implementer`, `task transition` |

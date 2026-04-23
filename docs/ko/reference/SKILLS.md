@@ -116,8 +116,8 @@ Task의 모든 required reviewer slot과 verifier가 evidence를 append한 뒤 m
 `phase=consolidating` 진입 시 mission dispatcher가 invoke한다. task evidence에서 후보를 scaffold하고, debt / memory / gap 후보를 승격해 `memory-update.json`과 `gap.json`을 작성하며, memory markdown(`shared.md`와 agent별 `agents/{type}.md`)을 교체한다. Memory markdown 교체와 `memory-update set`은 프로토콜상 쌍으로 실행한다.
 
 - 트리거 — `phase=consolidating` 진입, 또는 artifact가 부분적으로만 기록된 consolidation을 재개할 때.
-- 주된 CLI — `geas debt register`, `geas gap set`, `geas memory-update set`, `geas memory shared-set`, `geas memory agent-set`.
-- 주 산출물 — `missions/{mid}/consolidation/gap.json`, `missions/{mid}/consolidation/memory-update.json`, `debts.json`의 추가 entry, 재작성된 `.geas/memory/shared.md`와 `.geas/memory/agents/{type}.md`.
+- 주된 CLI — `geas consolidation scaffold`, `geas debt register`, `geas gap set`, `geas memory-update set`, `geas memory shared-set`, `geas memory agent-set`.
+- 주 산출물 — `missions/{mid}/consolidation/candidates.json`(지원 파일), `missions/{mid}/consolidation/gap.json`, `missions/{mid}/consolidation/memory-update.json`, `debts.json`의 추가 entry, 재작성된 `.geas/memory/shared.md`와 `.geas/memory/agents/{type}.md`.
 
 #### `verdicting-mission`
 
@@ -203,7 +203,7 @@ Post-work reviewer와 병렬 또는 그 이후에 spawn된 verifier가 invoke한
 | `running-gate` | `gate run`, `task transition`, `evidence append --slot implementer`(수정 반복) |
 | `closing-task` | `evidence append --kind closure`, `task transition --to passed` |
 | `reviewing-phase` | `phase-review append`, `mission-state update --phase` |
-| `consolidating-mission` | `debt register`, `gap set`, `memory-update set`, `memory shared-set`, `memory agent-set` |
+| `consolidating-mission` | `consolidation scaffold`, `debt register`, `gap set`, `memory-update set`, `memory shared-set`, `memory agent-set` |
 | `verdicting-mission` | `mission-verdict append`, `mission-state update --phase complete` |
 | `convening-deliberation` | `deliberation append --level mission\|task` |
 | `implementing-task` | `self-check append`, `evidence append --slot implementer`, `task transition` |

@@ -9,12 +9,20 @@
  * Write-path commands (mutations) additionally append an event to
  * `.geas/events.jsonl` via recordEvent(). Read-only commands do not.
  *
- * Event scope (automation-only per DESIGN.md + CLI.md §14.7):
- *   events.jsonl records protocol waypoints — state transitions,
- *   approvals, and artifact appends. Single-artifact full-replaces
- *   (tracked by created_at / updated_at on the artifact itself) and
- *   low-level raw state setters do NOT emit events. See scope audit
- *   in G7 plan.
+ * Event scope:
+ *   Every mutation command that advances the protocol emits an event —
+ *   state transitions, approvals, artifact appends, AND single-artifact
+ *   set operations (mission-design-set, impl-contract set, memory
+ *   shared-set / agent-set, gap set, memory-update set). The authoritative
+ *   event-kind table lives in `docs/reference/HOOKS.md §4.2`.
+ *
+ * Failure policy (best-effort):
+ *   `recordEvent()` swallows every error. The primary artifact write is
+ *   atomic and runs first; the event append runs after. If the event
+ *   append fails (disk full, transient permission error), the command
+ *   still returns `ok` — rolling back the already-committed artifact
+ *   write would be worse than a missing telemetry line. See CLI.md
+ *   §14.6 and HOOKS.md §4.3.
  *
  * Exit codes follow CLI.md §5:
  *   0 success

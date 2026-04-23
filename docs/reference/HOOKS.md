@@ -142,12 +142,14 @@ Or nothing if neither memory source has content.
 |---|---|
 | `mission_created` | `geas mission create` |
 | `mission_approved` | `geas mission approve` |
+| `mission_design_set` | `geas mission design-set` |
 | `mission_phase_advanced` | `geas mission-state update --phase` |
 | `phase_review_appended` | `geas phase-review append` |
 | `mission_verdict_appended` | `geas mission-verdict append` |
 | `task_drafted` | `geas task draft` |
 | `task_approved` | `geas task approve` |
 | `task_state_changed` | `geas task transition` |
+| `impl_contract_set` | `geas impl-contract set` |
 | `self_check_appended` | `geas self-check append` |
 | `evidence_appended` | `geas evidence append` |
 | `gate_run_recorded` | `geas gate run` |
@@ -158,6 +160,7 @@ Or nothing if neither memory source has content.
 | `memory_update_set` | `geas memory-update set` |
 | `memory_shared_set` | `geas memory shared-set` |
 | `memory_agent_set` | `geas memory agent-set` |
+| `consolidation_scaffolded` | `geas consolidation scaffold` |
 | user-supplied `kind` | `geas event log` |
 
 ### 4.3 Actor namespace

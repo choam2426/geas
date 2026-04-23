@@ -76,7 +76,7 @@ Converts the mission's accumulated `memory_suggestions`, `debt_candidates`, and 
 
 ## Failure Handling
 
-- **Scaffold CLI rejects with `unknown command`**: CLI.md documents the command shape but the CLI may not yet register it (known gap). Report upward as a CLI gap; fall back to reading task evidence directly and assembling candidates in working memory.
+- **Scaffold CLI rejects with a `guard_failed` or `missing_artifact` envelope**: read the `hints` payload and resolve the actual precondition before retrying. Common causes are `mission-state.phase != consolidating`, open tasks that should already be terminal, or a missing mission spec. Do not fall back to assembling candidates in working memory — `consolidation/candidates.json` is the canonical support file that downstream consumers (dashboard, later skill steps) read.
 - **Classification stalls** on an unclear candidate: prefer the narrower scope; if still unclear, drop it and surface as a gap_signal instead of forcing a memory write.
 - **Contradiction cannot be resolved**: escalate to `convening-deliberation` scoped to consolidation; implement the deliberation outcome, not the skill's default.
 - **`memory-update set` fails after markdown write succeeded**: re-run with corrected body. Do not revert the markdown — that would leave `memory-update.json` unable to cite the real state.

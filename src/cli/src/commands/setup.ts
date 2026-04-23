@@ -7,7 +7,6 @@
  *     config.json      — project-level config (minimal bootstrap)
  *     debts.json       — empty debts ledger (valid per debts schema)
  *     events.jsonl     — empty event log
- *     candidates.json  — empty project candidates cache
  *     memory/
  *       shared.md      — empty shared memory
  *       agents/        — (directory)
@@ -16,6 +15,12 @@
  *
  * Existing files are preserved (no-op on re-run). Only missing pieces
  * are created.
+ *
+ * Note: consolidation candidates live per-mission at
+ * `missions/{id}/consolidation/candidates.json`, written by
+ * `geas consolidation scaffold`. There is no project-level candidates
+ * file — the old `.geas/candidates.json` bootstrap was unused by any
+ * consumer and has been removed.
  */
 
 import type { Command } from 'commander';
@@ -24,7 +29,6 @@ import { atomicWrite, atomicWriteJson, ensureDir, exists } from '../lib/fs-atomi
 import { emit, ok, err } from '../lib/envelope';
 import {
   agentsMemoryDir,
-  candidatesPath,
   configPath,
   debtsPath,
   eventsPath,
@@ -94,14 +98,6 @@ export function registerSetupCommand(program: Command): void {
         // events.jsonl — empty file
         recordFile(eventsPath(root), () => {
           atomicWrite(eventsPath(root), '');
-        });
-
-        // candidates.json — project-level scratch cache (empty)
-        recordFile(candidatesPath(root), () => {
-          atomicWriteJson(candidatesPath(root), {
-            created_at: nowUtc(),
-            entries: [],
-          });
         });
 
         // shared.md — empty markdown

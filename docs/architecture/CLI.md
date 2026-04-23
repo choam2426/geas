@@ -36,12 +36,12 @@ Commands are organized along two axes: **artifact** (which file they act on) and
 | Operation | Meaning | Targets |
 |---|---|---|
 | `create` | Create a top-level artifact for the first time | spec, mission-design, contract |
-| `set` | Replace a top-level artifact in full | implementation-contract, self-check, gap, memory-update |
+| `set` | Replace a top-level artifact in full | implementation-contract, gap, memory-update, mission-design |
 | `update` | Update selected fields on a top-level artifact | mission-state, task-state (`status`, `active_agent`, `iterations`), task contract `approved_by` |
-| `append` | Add one entry to an append-only array log | phase-reviews, mission-verdicts, gate-results, deliberations, evidence |
+| `append` | Add one entry to an append-only array log | phase-reviews, mission-verdicts, gate-results, deliberations, evidence, self-check |
 | `register` | Add a new entry that has its own identifier | debts |
 | `run` | Execute logic and append the result (compound operation) | gate (append tier execution results into `runs`) |
-| `read` | Read a file or emit a summary | schema template, resume |
+| `read` | Read a file or emit a summary | schema template, context |
 | `scaffold` | Create an implementation-support file (not a protocol artifact; not validated) | consolidation candidates |
 
 ### Mission-Level Commands
@@ -87,9 +87,9 @@ Commands are organized along two axes: **artifact** (which file they act on) and
 |---|---|
 | `geas schema list` | Return JSON listing available schemas |
 | `geas schema template <type>` | Return a JSON skeleton for the required fields of that schema |
-| `geas status` | Return structured JSON for the active mission's phase, the status of each item in `active_tasks`, and pending work (Section 14.6) |
-| `geas resume` | Return context JSON describing current mission and task state for agent bootstrapping |
-| `geas validate` | Return JSON with the result of validating the entire `.geas/` tree against schemas |
+| `geas schema validate --type <t>` | Validate a JSON payload (from `--file` or stdin) against the named schema |
+| `geas context` | Return context JSON describing current mission / task state for agent bootstrapping |
+| `geas state get` | Return structured JSON for the active mission's phase and each task's state |
 | `geas setup` | Initialize `.geas/` at the project root |
 | `geas event log --kind <k> --payload <json>` | Append a line to `events.jsonl` |
 
@@ -342,7 +342,7 @@ The CLI bundle embeds all 14 schemas from `docs/schemas/`. They are not read fro
 ### Validation Timing
 
 - immediately before writing any artifact (Section 6.2)
-- across the full `.geas/` tree when `geas validate` runs
+- on demand via `geas schema validate --type <t>` for a single payload
 - when generating `schema template`, which returns a skeleton containing only the required fields for that schema (Section 12)
 
 ### Validation Strictness
@@ -652,7 +652,7 @@ Deliberation entries are appended only once the result is final. An "open delibe
 }
 ```
 
-- `candidates.json` is not schema-validated and is skipped by `geas validate`
+- `candidates.json` is a support file, not a protocol artifact, and is not schema-validated
 - the Orchestrator reads `candidates.json` and separately writes `debts.json`, `gap.json`, and `memory-update.json` through `register` and `set` commands; there is no automatic promotion from candidates into official artifacts
 
 ### 14.5 Gate Result Hint
@@ -679,39 +679,7 @@ Deliberation entries are appended only once the result is final. An "open delibe
   - `error` -> `null` (the cause must be resolved and the gate rerun)
 - the CLI never performs the transition automatically; the Orchestrator decides whether to follow the hint and then issues a separate `task transition`
 
-### 14.6 Status
-
-`geas status [--mission <mission_id>]`:
-
-- defaults to the currently active mission (`mission-state.phase != complete`)
-- returns a response in this shape:
-
-```json
-{
-  "ok": true,
-  "mission_id": "...",
-  "phase": "building",
-  "active_tasks": [
-    {"task_id": "task-001", "status": "implementing", "active_agent": "software-engineer"},
-    {"task_id": "task-002", "status": "reviewing", "pending_gate": true}
-  ],
-  "pending": {
-    "drafted_unapproved": ["task-003"],
-    "blocked": [],
-    "escalated": []
-  },
-  "phase_progress": {
-    "tasks_total": 5,
-    "passed": 2,
-    "in_flight": 2,
-    "terminated": 1
-  }
-}
-```
-
-- this command is read-only and never writes anything
-
-### 14.7 Enforced Events Logging
+### 14.6 Enforced Events Logging
 
 Every command that performs automation also appends an event to `events.jsonl`. The event shape is:
 
@@ -731,15 +699,15 @@ Every command that performs automation also appends an event to `events.jsonl`. 
 - events with **`actor: "cli:auto"`** must be chained to a prior user or Orchestrator intent through `prior_event`
 - **artifact references are one-way (events -> artifact)**: side-effecting events put affected artifact paths and identifiers in `payload`, for example `{ "artifact": "tasks/task-001/evidence/software-engineer.implementer.json", "entry_id": 3 }`. Protocol artifacts do not contain back-references to event IDs, because their schemas are closed with `additionalProperties: false` and `events.jsonl` is deliberately kept separate from the protocol contract. If you need to know which events touched an artifact, grep `events.jsonl` by path.
 - **rollback** is also append-only: when an automated transition is reversed, the system appends a new event such as `kind: "transition_reversed"` with `invalidates: evt-<seq>` rather than mutating or deleting the old one
-- if event logging fails, the command itself fails with `io_error` and leaves no side effects behind
+- event logging is **best-effort**. The primary artifact write is atomic and authoritative; the `events.jsonl` append runs after it, and a failure there (disk full, transient permission error) is swallowed so that the primary write is not rolled back. The command still reports `ok`. Consumers that treat `events.jsonl` as a transaction log must account for this — it is telemetry, not the source of truth. The protocol artifact on disk is.
 
-### 14.8 Memory Markdown Writes
+### 14.7 Memory Markdown Writes
 
 `geas memory shared-set` and `geas memory agent-set --agent <type>` replace the entire target file with the Markdown body received via `--file` or stdin (see Section 4.3) using an atomic temp -> fsync -> rename write. There is no schema validation because `.geas/memory/*.md` is free-form Markdown and not part of schema validation. These are not append operations, so the caller must read the existing file first, modify it, and resubmit the full contents.
 
 These commands write only the Markdown files and do not touch `memory-update.json`. Semantic audit data such as reasons and evidence references for added, modified, or removed items must be written separately by the Orchestrator through `memory-update set` during consolidating. Skills are responsible for calling the two writes together when needed. The CLI does not auto-synchronize Markdown content with the memory update log, which is consistent with the Section 2 assumption that the CLI owns formal writes, not semantic judgment.
 
-### 14.9 What Stays Manual
+### 14.8 What Stays Manual
 
 The following actions always require an explicit Orchestrator call. The CLI does not automate them:
 

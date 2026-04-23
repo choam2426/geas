@@ -10740,9 +10740,6 @@ function debtsPath(projectRoot) {
 function eventsPath(projectRoot) {
   return path2.join(geasDir(projectRoot), "events.jsonl");
 }
-function candidatesPath(projectRoot) {
-  return path2.join(geasDir(projectRoot), "candidates.json");
-}
 function tmpDir(projectRoot) {
   return path2.join(geasDir(projectRoot), ".tmp");
 }
@@ -10970,12 +10967,6 @@ function registerSetupCommand(program2) {
       });
       recordFile(eventsPath(root), () => {
         atomicWrite(eventsPath(root), "");
-      });
-      recordFile(candidatesPath(root), () => {
-        atomicWriteJson(candidatesPath(root), {
-          created_at: nowUtc(),
-          entries: []
-        });
       });
       recordFile(sharedMemoryPath(root), () => {
         atomicWrite(sharedMemoryPath(root), "");

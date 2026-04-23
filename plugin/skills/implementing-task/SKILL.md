@@ -56,7 +56,8 @@ You have been spawned as the implementer for an approved task. You own the full 
    The CLI injects `mission_id` / `task_id` / timestamps and validates against `implementation-contract.schema`.
 3. **Do the work per the plan.** Stay inside `change_scope`. The implementation-contract is a live document — if reality forces a material deviation (plan needs to touch outside `change_scope`, an assumption broke, risk rose, a non-goal must come in-scope), pause and amend before pushing ahead (step 4). Minor adjustments that stay within scope do not require amendment; record them in `deviations_from_plan` at self-check time.
 4. **Amend the contract when direction shifts materially.** Run `geas impl-contract set` again with the revised body; the CLI replaces the prior contract (full-replace semantics) so reviewers later see the current plan. Amendment is NOT gated on reviewer approval — keeping the document current is an obligation to future readers, not a concurrence checkpoint. If the amendment itself is so structural it should pause the task, stop and hand back to the orchestrator; they decide whether to open a task-level deliberation via `convening-deliberation`.
-5. **Append implementation evidence** when the work is ready for review. **Use the Write tool to stage the payload to a file outside `.geas/`, then hand it to the CLI with `--file`.** Never write the JSON body inside a bash heredoc — prose inside the body (rationale, summary) breaks shell parsing on apostrophes/quotes/non-ASCII.
+5. **Clean up work byproducts before evidence.** Remove anything that isn't part of the final deliverable: scratch files and temp payloads staged outside `.geas/`, experimental code paths abandoned mid-way, debug-only logs / prints, commented-out alternatives, backup copies, unused imports, TODO markers for work already completed. The tree reviewers read should reflect the committed deliverable only — not the exploration path that got you there. `.geas/` runtime artifacts are NOT byproducts; they are the audit trail and must stay intact. If a byproduct is deliberately preserved (e.g. a test fixture), record it in the implementation evidence's `scope_examined` or in `deviations_from_plan` at self-check time so its presence is explicit, not accidental.
+6. **Append implementation evidence** when the work is ready for review. **Use the Write tool to stage the payload to a file outside `.geas/`, then hand it to the CLI with `--file`.** Never write the JSON body inside a bash heredoc — prose inside the body (rationale, summary) breaks shell parsing on apostrophes/quotes/non-ASCII.
    ```bash
    # Step 1: Write tool → e.g. <workspace>/.tmp/impl-evidence.json
    {
@@ -74,7 +75,7 @@ You have been spawned as the implementer for an approved task. You own the full 
        --file <workspace>/.tmp/impl-evidence.json
    ```
    On a revision run (verify-fix rewind), set `revision_ref` to the prior implementation entry's `entry_id`. The CLI auto-injects `entry_id`, `artifacts: []`, `memory_suggestions: []`, `debt_candidates: []`, `gap_signals: []`, `created_at`; you only need to supply the semantic fields above.
-6. **Append the self-check entry.** The self-check is an append-only log: one entry per implementer pass. It is a worker-side factual record, not a confidence score. The reviewer and the gate read the latest entry to orient their own checks. **Same pattern: Write tool → `--file`.**
+7. **Append the self-check entry.** The self-check is an append-only log: one entry per implementer pass. It is a worker-side factual record, not a confidence score. The reviewer and the gate read the latest entry to orient their own checks. **Same pattern: Write tool → `--file`.**
    ```bash
    # Step 1: Write tool → e.g. <workspace>/.tmp/self-check.json
    {
@@ -105,7 +106,7 @@ You have been spawned as the implementer for an approved task. You own the full 
    - `known_risks` are forward-looking (what could still break); `deviations_from_plan` and `gap_signals` are backward-looking (what actually happened vs. the plan / vs. the scope).
    - All five content fields plus `revision_ref` are required by the schema; use `[]` for arrays that legitimately have nothing and `null` for `revision_ref` on the first pass.
    - Per-criterion pass/fail belongs to the verifier's evidence (`criteria_results`), NOT here. Do not restate criterion outcomes in self-check.
-7. **Return.** The orchestrator spawns the required reviewers (they run `reviewing-task` against your impl-contract + implementation evidence + self-check), then the verifier runs `verifying-task`, then `running-gate` aggregates. You are done.
+8. **Return.** The orchestrator spawns the required reviewers (they run `reviewing-task` against your impl-contract + implementation evidence + self-check), then the verifier runs `verifying-task`, then `running-gate` aggregates. You are done.
 
 ## Red Flags
 
@@ -120,6 +121,7 @@ You have been spawned as the implementer for an approved task. You own the full 
 | "Restate each criterion's pass/fail in self-check" | Per-criterion pass/fail is the verifier's `criteria_results`. Self-check is a worker-side factual record of what was done, not a grading sheet. |
 | "I'll amend the plan after the fact by editing my implementation entry" | Plan amendments go through `geas impl-contract set` (full-replace). Deviations that stay within the original plan go in `deviations_from_plan` at self-check time. Overwriting implementation evidence breaks the trajectory audit. |
 | "I'll also review my own work to save a round" | CLI enforces agent-slot independence. Implementer cannot hold reviewer or verifier on the same task. |
+| "Leave the scratch / debug output in — reviewers can tell what's real" | They can't, and shouldn't have to. Step 5 is explicit: remove non-deliverable byproducts before evidence append. Anything kept intentionally must be called out in `scope_examined` or `deviations_from_plan`. |
 
 ## Invokes
 

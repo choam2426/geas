@@ -68,7 +68,6 @@ test('geas setup creates the canonical .geas/ tree', () => {
       '.geas/config.json',
       '.geas/debts.json',
       '.geas/events.jsonl',
-      '.geas/candidates.json',
       '.geas/memory/shared.md',
     ]) {
       assert.ok(
@@ -76,6 +75,12 @@ test('geas setup creates the canonical .geas/ tree', () => {
         `expected file ${f} to exist after setup`,
       );
     }
+    // No top-level candidates.json — consolidation candidates are
+    // mission-scoped (`missions/{id}/consolidation/candidates.json`).
+    assert.ok(
+      !fs.existsSync(path.join(dir, '.geas/candidates.json')),
+      '.geas/candidates.json (top-level) should not be created by setup',
+    );
 
     // debts.json must be a valid empty debts artifact
     const debts = readArtifact(dir, '.geas/debts.json');

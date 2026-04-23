@@ -11,7 +11,6 @@
  *     config.json
  *     debts.json
  *     events.jsonl
- *     candidates.json
  *     memory/
  *       shared.md
  *       agents/
@@ -88,10 +87,6 @@ export function debtsPath(projectRoot: string): string {
 
 export function eventsPath(projectRoot: string): string {
   return path.join(geasDir(projectRoot), 'events.jsonl');
-}
-
-export function candidatesPath(projectRoot: string): string {
-  return path.join(geasDir(projectRoot), 'candidates.json');
 }
 
 export function tmpDir(projectRoot: string): string {
