@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 > **Note**: Tags were restructured in v0.5.1. Previous major versions (v1.x, v2.x) have been flattened to v0.x.y to reflect that the project is pre-1.0.
 
-## [2.0.0] — 2026-04-20
+## [2.0.0] — 2026-04-23
 
 **Major release — Protocol v3 clean rewrite + Skill layer redesign.**
 
@@ -14,13 +14,18 @@ This release replaces the entire implementation stack (CLI, skills, agents, hook
 
 - **Protocol v3 replaces v1/v2.** 4-phase mission lifecycle (`specifying` / `building` / `polishing` / `consolidating` → `complete`), 9-state task lifecycle (`drafted` / `ready` / `implementing` / `reviewing` / `deciding` / `passed` / `blocked` / `escalated` / `cancelled`), 3 operating modes (`lightweight` / `standard` / `full_depth`), slot-based agent model (4 authority + 5 specialist slots). 14 JSON Schemas replace the prior set.
 - **CLI command surface replaced.** All v1.x commands removed: `lock`, `packet`, `recovery`, `health`, `evolution`, `decision`, `retrospective-draft`, `advance`, `harvest-memory`, `check-artifacts`, `closure-assemble`, `revalidate`, positional `task create` / `task add-acceptance` / `task add-surface` / `task set-risk` / `evidence submit` / `task record`, `mission create TITLE --done-when`, `phase write`. New v3 commands: `setup`, `context`, `schema`, `state`, `mission create|approve|state`, `mission-state update`, `phase-review append`, `mission-verdict append`, `task draft|approve|transition|deps|state`, `evidence append`, `self-check append`, `gate run`, `deliberation append`, `memory shared-set|agent-set`, `debt register|update-status|list`, `gap set`, `memory-update set`, `event log`.
-- **Artifact paths replaced.** Per-mission at `.geas/missions/{mission_id}/`: `spec.json`, `mission-state.json`, `phase-reviews.json`, `mission-verdicts.json`, `deliberations.json`, `consolidation/gap.json`, `consolidation/memory-update.json`, `consolidation/candidates.json`, `tasks/{task_id}/{contract,task-state,self-check,implementation-contract}.json`, `tasks/{task_id}/deliberations.json`, `tasks/{task_id}/gate-results.json`, `tasks/{task_id}/evidence/{agent}.{slot}.json`. Project-level: `.geas/debts.json` (append-only ledger, replaces mission-scoped carry-forward), `.geas/events.jsonl` (automation-only scope), `.geas/candidates.json`, `.geas/memory/{shared.md,agents/{agent_type}.md}`.
+- **Artifact paths replaced.** Per-mission at `.geas/missions/{mission_id}/`: `spec.json`, `mission-state.json`, `phase-reviews.json`, `mission-verdicts.json`, `deliberations.json`, `consolidation/gap.json`, `consolidation/memory-update.json`, `consolidation/candidates.json`, `tasks/{task_id}/{contract,task-state,self-check,implementation-contract}.json`, `tasks/{task_id}/deliberations.json`, `tasks/{task_id}/gate-results.json`, `tasks/{task_id}/evidence/{agent}.{slot}.json`. Project-level: `.geas/debts.json` (append-only ledger, replaces mission-scoped carry-forward), `.geas/events.jsonl` (best-effort telemetry, never rolls back primary writes), `.geas/memory/{shared.md,agents/{agent_type}.md}`. (No top-level `candidates.json` — consolidation candidates are mission-scoped.)
 - **Removed v2 concepts**: `rules.md`, `policy-override`, `lock-manifest`, `recovery-packet`, `decision-record`, `health-check`, `evolving` phase, mission-scoped carry-forward debt, `pipeline_step`, `run-state`, `scheduler_state`, `recovery_class`, `design-brief`, `checkpoint_phase`, `rules-update`.
 - **Skill catalog replaced (17 skills).** All 11 prior skills removed or rewritten. User-invocable surface narrowed to 2: `/mission` (dispatcher) and `/navigating-geas` (help). The other 15 are `user-invocable: false` sub-skills dispatched by `/mission`.
 - **Agent directory reorganized.** `plugin/agents/authority/product-authority.md` renamed to `decision-maker.md` (v3 slot name, kebab-case canonical). Specialist roles in `plugin/agents/software/` and `plugin/agents/research/` re-slotted: `qa-engineer` → verifier, `security-engineer` → risk-assessor, `technical-writer` → communicator, `methodology-reviewer` → verifier, `research-integrity-reviewer` → risk-assessor, `research-engineer` → operator, `research-writer` → communicator.
 - **Hook set trimmed.** `hooks.json` reduced to SessionStart + SubagentStart + PreToolUse. Deleted scripts: `calculate-cost.sh`, `checkpoint-pre-write.sh`, `checkpoint-post-write.sh`, `packet-stale-check.sh`, `protect-geas-state.sh`, `integration-lane-check.sh`, `restore-context.sh`.
 - **Reference docs restructured.** `docs/{ko/,}reference/CLI.md` deleted (CLI is internal plumbing, not user-facing). `SKILLS.md`, `HOOKS.md`, `DASHBOARD.md` rewritten for v3.
 - **Dashboard rebuilt.** Rust backend (`src/dashboard/src-tauri/`) models + commands + watcher replaced with v3 artifact readers. React frontend reads via a new `src/dashboard/src/lib/geasClient.ts` single wrapper. Deleted v2-only components: `RulesViewer`, `DebtPanel`, `DebtBadge`, `ProjectOverview`.
+- **Task state rename.** `reviewed` → `reviewing`, `verified` → `deciding`. The old names captured the *completed* activity; the new names capture the *ongoing* state the task occupies, matching protocol doc 03 prose. Cascade hit schemas, CLI guards + commands, tests, skills, agent frontmatter, dashboard, reference docs.
+- **Self-check model.** `self-check.json` is now an append-only `entries[]` envelope (one entry per implementer pass), not a write-once artifact. `geas self-check set` removed; new `geas self-check append` is the only writer. Each entry carries `entry_id` + `created_at` + optional `revision_ref`. Verify-fix re-entry appends another entry rather than rejecting the second call.
+- **`impl-contract set` writable state narrowed.** Previously accepted `ready` OR `implementing`; now only `implementing`. The implementer is spawned into `implementing` and owns the plan artifact throughout that state — there is no pre-code concurrence gate. Header comment + docs + 6 tests updated.
+- **Gate computes tier statuses itself.** `geas gate run` reads implementation-contract + self-check + evidence files directly and derives each tier's status. Callers no longer submit a tier payload; the command takes no stdin. Tier 1 verdict mapping: `approved→pass`, `changes_requested→fail`, `blocked→block`; worst-wins across multiple verifier files.
+- **Event semantics clarified.** `events.jsonl` append is best-effort — if logging fails (disk full, transient permission error), the primary artifact write is not rolled back and the command still returns `ok`. CLI.md and HOOKS.md previously contradicted each other on this; both now match the implementation. HOOKS.md event-kind table expanded to cover all 21 emitted kinds.
 
 ### Added
 
@@ -47,8 +52,19 @@ This release replaces the entire implementation stack (CLI, skills, agents, hook
 
 **Dashboard**
 - `src/dashboard/src/lib/geasClient.ts` — single Tauri `invoke` wrapper for all artifact reads.
-- New views: Evidence gate status, Phase review history, Gap signals summary, Consolidation packet view (in `MissionDetailView`).
 - Graceful degradation on missing/malformed artifacts.
+- **"Console" direction reskin.** Terminal-inspired dark theme with phosphor-green accent, JetBrains Mono for IDs / paths / timestamps + Inter for prose. New design-token layer in `index.css @theme` (`--bg-0..2`, `--fg / muted / dim`, 5 accent families with translucent surface variants).
+- **New shell.** Vertical flex — `TopBar` (logo + breadcrumb + phase pill) / `Sidebar` (project list, kept) / main / `StatusBar` (file-watcher status + real counts). `PathBadge` (click-to-copy `.geas/` path sticker) + `Pill` primitives used across the app.
+- **Dashboard view = mission list** (active + past inline, resolved collapsed by default). `MissionHistory` absorbed; standalone `history` route removed.
+- **MissionDetailShell with 5 sub-tabs**: `overview` / `spec` / `design` / `kanban` / `timeline`. `MissionSpecTab` renders the frozen `mission-spec.json` as structured key/value blocks with typed scalar cues; `MissionDesignTab` renders `mission-design.md` via `react-markdown` with a sticky decision-log sidebar sourced from phase-review verdicts; Kanban + Timeline embed inside the shell via an `embedded` prop.
+- **TaskDetailModal expansion**: header `PathBadge`, acceptance-criteria list, implementation-contract full view, self-check (latest-of-N), gate tier drill-down, evidence timeline with per-entry detail, deliberations, deps-stack navigation (clicking a dependency pushes the current task, ESC pops).
+- **Debt + Memory views restyled** with the new tokens, status-tab filter + severity chips (debt), shared / per-agent / changelog channels (memory).
+
+**Implementing-task skill**
+- New Process step 5 — "Clean up work byproducts before evidence." Scratch files, abandoned code paths, debug output, commented alternatives, unused imports, completed TODO markers must be removed before the implementation evidence + self-check land. `.geas/` runtime artifacts are explicitly exempt (they are the audit trail). Intentionally preserved byproducts must be recorded in `scope_examined` or `deviations_from_plan`. New Red Flag row enforces the same.
+
+**CLI**
+- `--file <path>` option added to every payload-taking command (`mission design-set`, `task draft`, `impl-contract set`, `evidence append`, `self-check append`, `deliberation append`, `phase-review append`, `mission-verdict append`, `gap set`, `memory-update set`, `memory shared-set`, `memory agent-set`, `debt register`, `event log`). Preferred over stdin because bash heredocs break on apostrophes / quotes / non-ASCII inside prose bodies. Stdin still accepted as a fallback.
 
 **Docs**
 - `docs/{ko/,}architecture/DESIGN.md §7.5` rewritten to enumerate the 17-skill catalog (user-invocable 2 / mission lifecycle 8 / multi-party 1 / spawned 6) with bilingual sync.
@@ -65,8 +81,10 @@ This release replaces the entire implementation stack (CLI, skills, agents, hook
 - **Self-check and closure** — now first-class evidence: `self-check.json` (one per task, write-once), closure as `evidence/orchestrator.orchestrator.json` entry with `evidence_kind=closure`, `verdict=approved`.
 - **Task-state lifecycle** — status field moves from contract to runtime state (`task-state.json`). Contract remains immutable after approval.
 - **Mission spec immutability** — after `geas mission approve`, the spec is frozen. No amendment path; scope changes require a new mission.
-- `plugin/bin/geas` bundle regenerated. CLI version bumped through `0.9.0` → `0.10.0` → `0.11.0` → `0.12.0` as groups landed.
+- `plugin/bin/geas` bundle regenerated. CLI version bumped through `0.9.0` → `0.10.0` → `0.11.0` → `0.12.0` → `0.13.0` as groups landed.
 - `plugin.json` version → `2.0.0`.
+- **`transition-guards.ts`** — `implementing → reviewing` guard drops reviewer-evidence check (moved to gate Tier 0 inside the `reviewing` state). `reviewing → deciding` reads the last gate run verdict directly.
+- **Reviewer routing** — `required_reviewers` set at contract time. Verifier slot remains implicit (every task has one regardless).
 
 ### Removed
 
@@ -87,15 +105,24 @@ This release replaces the entire implementation stack (CLI, skills, agents, hook
 - **`geas consolidation scaffold`** (CLI.md §14.4) — registered. Walks all task evidence under a mission and writes `consolidation/candidates.json` with `debt_candidates`, `memory_suggestions`, `gap_signals` arrays; each item is stamped with `source_task_id` + `source_evidence_entry_id`. Convenience cache, not schema-validated. Guarded to polishing or consolidating phase.
 - **`geas impl-contract set`** (CLI.md §3 + §71) — registered. Writes `tasks/{id}/implementation-contract.json` with schema validation + envelope injection. Guarded to `ready` or `implementing` task state (pre-implementation agreement). Full-replace semantics.
 - **`geas schema template <type> --op <op> [--kind <k>]`** (CLI.md §12) — registered. Returns 3-part response (`you_must_fill` + `cli_will_inject` + `notes`) with op-aware envelope filtering; `--kind` selects the allOf branch for `evidence` (review / verification / closure). New `lib/envelope-fields.ts` maps `(schema, op)` pairs to envelope field lists.
+- **`mission-state.active_tasks` recomputed on every task transition** — was previously only written at `task draft` time; now derived from current task-state files at each `geas task transition` so dashboard reads stay consistent with what the CLI enforces.
+- **Dashboard file-watcher on Windows** — `std::fs::canonicalize` returns paths in the `\\?\` extended-length form, and `notify` silently drops events for some Windows configurations when watching prefixed paths. Strip the prefix before calling `watcher.watch()`; registry still stores the prefixed path for display.
+- **Dashboard refresh cascade** — `ProjectRefreshContext` now exposes `bumpProject(path)`. The Sidebar refresh button calls it for every project, forcing every subscribed view (sub-tabs included) to re-fetch its own data. Previously manual refresh only reloaded the project list.
+- **Dashboard shell robustness** — a refresh failure after a successful initial fetch no longer blanks the mission detail view; stale detail is kept on screen until the next refresh replaces it.
+- **Dashboard overview tab refresh** — unified initial-mount and refresh-tick loaders into a single `load()` callback, closing a gap where the refresh tick forgot to re-fetch debts.
+- **session-init hook** — read `phase` rather than the v2-era `mission_phase` key from `mission-state.json` (was silently producing empty status lines).
+- **CLI.md surface drift** — removed stale documentation for `geas status` / `geas resume` / `geas validate` (never registered in `main.ts`); corrected operation taxonomy (`self-check` is `append`, `mission-design` is `set`); dropped the dedicated `§14.6 Status` section and renumbered down.
+- **Consolidating-mission skill** — removed the stale `unknown command` fallback in Failure Handling (command has been registered for some time). Reference docs (`SKILLS.md`, `DESIGN.md`, EN + KO) now list `consolidation scaffold` as primary CLI with the mission-scoped `candidates.json` as a primary output.
+- **Top-level `.geas/candidates.json` removed.** `geas setup` used to bootstrap an empty scratch file that no consumer read — actual consolidation candidates live per-mission at `missions/{id}/consolidation/candidates.json`. The `candidatesPath` helper + its tree-comment entry are gone; `g1-foundation` asserts the absence. `e2e-phase1` now drives `geas consolidation scaffold` explicitly and asserts the mission-scoped output exists, closing a test-coverage gap where the path the dashboard actually reads was never exercised end-to-end.
 
 ### Known Issues / follow-ups
 
-- **CLI convenience gaps still open** (2 of the original 6): `geas status` (CLI.md §14.6) and `geas validate` (CLI.md §3). Dispatcher can compose status from `geas context` + `geas mission state` + `geas task state`; individual writes are already schema-validated, so `validate` is a debug/CI convenience. Neither blocks current skill flows.
-- **Rust compile for dashboard** not validated locally (no `cargo` in migration environment); user to run `cargo check` / `cargo build` on their machine.
+- **`geas status` / `geas validate`** — retired from CLI.md rather than implemented. Status composes from `geas context` + `geas state get`; single-payload validation sits on `geas schema validate --type <t>`. No dispatcher or skill depends on the retired names.
 - **Dashboard Rust-side tests** removed with the v3 rewrite; replacement suite deferred.
 - **Skill lint automation** not yet in CI; checklist verified manually during this release.
 - **Skill pressure-test harness** (obra-style adversarial eval) not yet implemented.
-- **Local `main` ahead of `origin/main`**; release push is a separate operation.
+- **Docs parity test** not in CI — `legacy-sweep` covers `src/cli`, `plugin/skills`, `plugin/agents`, `plugin/hooks` but not `docs/reference` / `docs/architecture`. Stale `docs/architecture/CLI.md` text drifted undetected until caught by external review this release.
+- **TaskDetailModal not file-watcher subscribed** — if the modal is open when `.geas/` changes, the rendered view is the snapshot at open time. Close + reopen to refresh. Minor; documented here as a known gap.
 
 ## [1.4.0] — 2026-04-15
 

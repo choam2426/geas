@@ -29,7 +29,7 @@ import { registerEventCommands } from './commands/event';
 import { registerConsolidationCommands } from './commands/consolidation';
 import { registerImplContractCommands } from './commands/impl-contract';
 
-const VERSION = '0.12.0';
+const VERSION = '0.13.0';
 
 export function run(): void {
   const program = new Command();
