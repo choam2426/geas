@@ -1,6 +1,6 @@
 [package]
 name = "geas-dashboard"
-version = "0.1.0"
+version = "0.2.0"
 description = "Geas Dashboard — mission control for multi-agent governance"
 authors = ["geas"]
 edition = "2021"
