@@ -139,38 +139,44 @@ At the end of a mission, design versus delivery is compared. Each gap is classif
 
 ### Real-time dashboard
 
-Tauri desktop app that watches `.geas/` state. Kanban board, timeline, memory browser, debt tracking, toast notifications. See the [Dashboard](#dashboard) section below.
+Tauri desktop app that watches `.geas/` state. Terminal-inspired "console" direction with path stickers on every panel. File-watcher driven — no polling, no agent interruption. See the [Dashboard](#dashboard) section below.
 
 
 ---
 
 ## Dashboard
 
-A Tauri desktop app that reads `.geas/` state in real time. It watches for file changes — no polling, no agent interruption.
+A Tauri desktop app that reads `.geas/` state in real time. It watches for file changes — no polling, no agent interruption. Styled in a terminal-inspired "console" direction: JetBrains Mono for IDs / paths / timestamps, Inter for prose, phosphor-green accent on deep-neutral surfaces. Every panel carries a `PathBadge` that shows the `.geas/` file driving the view.
 
 ![Dashboard Overview](docs/images/dashboard.png)
 
+### Layout
+
+- **Top bar** — logo + breadcrumb (project › mission › sub-tab) + active phase pill.
+- **Sidebar** — project list with path + phase per row. Click to switch projects.
+- **Main area** — one of four top-level views (see below).
+- **Status bar** — `.geas/` watch status + last file-event timestamp + real counts (tasks, debt).
+
 ### Views
 
-**Project overview** — current mission, active agent, phase, task progress, last activity timestamp. Multiple projects in the sidebar.
+**Dashboard (mission list)** — the landing view for a project. Active missions as large cards with ASCII progress bars; past missions inline in a history section (resolved ones collapsed by default). Click any card to open its mission detail.
 
-**Kanban board** — tasks flow through the 9-state lifecycle columns (drafted → ready → implementing → reviewing → deciding → passed, with blocked / escalated / cancelled side states). Click a card for contract details, evidence, and closure sections.
+**Mission detail** — per-mission shell with five sub-tabs:
+- `overview` — task roster grouped by lifecycle, recent events, debts introduced, final verdict, phase reviews, gap summary
+- `spec` — structured render of `mission-spec.json` (frozen after approval)
+- `design` — `mission-design.md` rendered as Markdown with a sticky decision-log sidebar built from phase-review verdicts
+- `kanban` — tasks across the 9-state lifecycle columns (drafted → ready → implementing → reviewing → deciding → passed, with blocked / escalated / cancelled side states)
+- `timeline` — full `events.jsonl` chronological view with pagination
 
 ![Kanban Board](docs/images/kanvanboard.png)
 
-**Mission detail** — mission design, task list, gap analysis, debt ledger, mission verdict. Everything the protocol produced for one mission.
+**Debt** — project-wide debt ledger. Filter by status tab (open / resolved / dropped / all) and severity chips. Click a row for the full entry.
 
-**Memory browser** — `shared.md` content and per-agent memory notes. See what the team has learned.
+**Memory** — shared memory (`shared.md`), per-agent notes (`agents/{type}.md`), and the latest mission's memory changelog (`memory-update.json`).
 
-**Timeline** — event log visualization. Every state transition, gate result, and agent spawn in chronological order.
+### Task detail modal
 
-**Tech debt panel** — debt items by severity and kind. Filter by status (open / resolved / deferred).
-
-### Notifications
-
-File-system watcher triggers toast notifications when tasks complete, gates pass or fail, or phases change. No need to switch windows to check progress.
-
-![Task Completed](docs/images/toast.png)
+Click any task (in the overview tasks panel, the kanban board, or an event row) to open a full detail modal: contract with acceptance criteria, implementation contract, self-check (latest-of-N on verify-fix loops), gate result per tier, evidence timeline with per-entry drill-down, deliberations, and deps-stack navigation (clicking a dependency pushes the current task; ESC pops back).
 
 ### Install
 
