@@ -163,16 +163,18 @@ A Tauri desktop app that reads `.geas/` state in real time. It watches for file 
 
 **Mission detail** — per-mission shell with five sub-tabs:
 - `overview` — task roster grouped by lifecycle, recent events, debts introduced, final verdict, phase reviews, gap summary
+  ![overview](docs/images/overview.png)
 - `spec` — structured render of `mission-spec.json` (frozen after approval)
+  ![mission spec](docs/images/spec.png)
 - `design` — `mission-design.md` rendered as Markdown with a sticky decision-log sidebar built from phase-review verdicts
+  ![mission design](docs/images/design.png)
 - `kanban` — tasks across the 9-state lifecycle columns (drafted → ready → implementing → reviewing → deciding → passed, with blocked / escalated / cancelled side states)
 - `timeline` — full `events.jsonl` chronological view with pagination
 
-![Kanban Board](docs/images/kanvanboard.png)
-
 **Debt** — project-wide debt ledger. Filter by status tab (open / resolved / dropped / all) and severity chips. Click a row for the full entry.
-
+![debt](docs/images/debt.png)
 **Memory** — shared memory (`shared.md`), per-agent notes (`agents/{type}.md`), and the latest mission's memory changelog (`memory-update.json`).
+![memory](docs/images/memory.png)
 
 ### Task detail modal
 
