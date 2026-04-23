@@ -111,7 +111,7 @@ export default function KanbanBoard({
   const activeSet = new Set(activeTasks ?? []);
 
   return (
-    <div className="flex-1 flex flex-col min-w-0">
+    <div className="flex-1 flex flex-col min-w-0 min-h-0">
       {!embedded && (
         <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-border shrink-0">
           {onBack && (
@@ -129,7 +129,7 @@ export default function KanbanBoard({
       )}
 
       {loading ? (
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 min-h-0 overflow-auto p-4">
           <div
             className="grid gap-2"
             style={{
@@ -177,63 +177,73 @@ export default function KanbanBoard({
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-auto p-4">
-          <div
-            className="grid gap-2"
-            style={{
-              gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(0, 1fr))`,
-              minWidth: `${COLUMNS.length * 130 + (COLUMNS.length - 1) * 8}px`,
-            }}
-          >
-            {COLUMNS.map((col) => {
-              const colTasks = tasksByStatus.get(col.key) ?? [];
-              return (
-                <div
-                  key={col.key}
-                  className="flex flex-col bg-bg-surface rounded-lg min-w-0"
-                >
-                  <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-default">
-                    <span
-                      className="text-xs font-medium"
-                      style={{
-                        color: colTasks.length > 0 ? col.color : "#656d76",
-                      }}
-                    >
-                      {col.label}
-                    </span>
-                    <span
-                      className="text-[11px] rounded-full px-1.5 py-0.5"
-                      style={{
-                        backgroundColor:
-                          colTasks.length > 0
-                            ? col.color + "20"
-                            : "rgba(101,109,118,0.15)",
-                        color: colTasks.length > 0 ? col.color : "#656d76",
-                      }}
-                    >
-                      {colTasks.length}
-                    </span>
+        /*
+         * Two-region layout:
+         *   - top: flex-row of columns, each column scrolls its own task
+         *     list vertically. The row itself is wrapped in an
+         *     overflow-x-auto band so the board scrolls horizontally on
+         *     narrow viewports.
+         *   - bottom: auxiliary-state summary, natural height, always
+         *     visible below the columns (doesn't scroll with tasks).
+         */
+        <>
+          <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden px-4 pt-4">
+            <div
+              className="flex gap-2 h-full"
+              style={{
+                minWidth: `${COLUMNS.length * 130 + (COLUMNS.length - 1) * 8}px`,
+              }}
+            >
+              {COLUMNS.map((col) => {
+                const colTasks = tasksByStatus.get(col.key) ?? [];
+                return (
+                  <div
+                    key={col.key}
+                    className="flex-1 min-w-[130px] flex flex-col bg-bg-surface rounded-lg overflow-hidden"
+                  >
+                    <div className="flex items-center justify-between px-3 py-2.5 border-b border-border-default flex-shrink-0">
+                      <span
+                        className="text-xs font-medium"
+                        style={{
+                          color: colTasks.length > 0 ? col.color : "#656d76",
+                        }}
+                      >
+                        {col.label}
+                      </span>
+                      <span
+                        className="text-[11px] rounded-full px-1.5 py-0.5"
+                        style={{
+                          backgroundColor:
+                            colTasks.length > 0
+                              ? col.color + "20"
+                              : "rgba(101,109,118,0.15)",
+                          color: colTasks.length > 0 ? col.color : "#656d76",
+                        }}
+                      >
+                        {colTasks.length}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5 p-1.5">
+                      {colTasks.map((task) => {
+                        const isActive = activeSet.has(task.task_id);
+                        return (
+                          <TaskCard
+                            key={task.task_id}
+                            task={task}
+                            onClick={() => setSelectedTask(task)}
+                            isActive={isActive}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-1.5 p-1.5">
-                    {colTasks.map((task) => {
-                      const isActive = activeSet.has(task.task_id);
-                      return (
-                        <TaskCard
-                          key={task.task_id}
-                          task={task}
-                          onClick={() => setSelectedTask(task)}
-                          isActive={isActive}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
           {totalAuxiliary > 0 && (
-            <div className="pb-3 pt-2">
+            <div className="flex-shrink-0 px-4 pb-3 pt-2">
               <div className="bg-bg-surface rounded-lg p-3">
                 <span className="text-xs text-text-muted">
                   {totalAuxiliary} task{totalAuxiliary !== 1 ? "s" : ""} in
@@ -276,7 +286,7 @@ export default function KanbanBoard({
               </div>
             </div>
           )}
-        </div>
+        </>
       )}
 
       {selectedTask && missionId && (

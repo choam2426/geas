@@ -79,6 +79,24 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/*
+ * Hide scrollbars globally while keeping the content scrollable.
+ *
+ * Fits the terminal-console aesthetic — no chrome — and avoids Windows'
+ * wide scrollbars stealing a noticeable strip of the layout.
+ * Scrolling via wheel / trackpad / arrow keys still works; only the
+ * painted track/thumb disappears.
+ */
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+* {
+  scrollbar-width: none;      /* Firefox */
+  -ms-overflow-style: none;   /* IE/legacy Edge */
+}
+
 /* View transition animation */
 @keyframes fadeIn {
   from {

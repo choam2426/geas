@@ -1,5 +1,15 @@
 import type { TaskRow } from "../types";
-import { riskColors } from "../colors";
+import { lookupColor, riskColors } from "../colors";
+import Pill from "./Pill";
+
+/**
+ * TaskCard — compact row rendered inside a KanbanBoard column.
+ *
+ * Sizing is driven by the column width (flex-1) rather than hard-coded, so
+ * the card grows on wide screens and clamps gracefully on narrow ones.
+ * The title uses `line-clamp-2` (2 lines max) instead of a character slice
+ * so we respect the actual rendered width, not an assumed fixed one.
+ */
 
 interface TaskCardProps {
   task: TaskRow;
@@ -8,20 +18,18 @@ interface TaskCardProps {
 }
 
 export default function TaskCard({ task, onClick, isActive }: TaskCardProps) {
-  const title =
-    task.title.length > 50 ? task.title.slice(0, 47) + "..." : task.title;
-
   const risk = task.risk_level
-    ? riskColors[task.risk_level] ?? riskColors.normal
+    ? lookupColor(riskColors, task.risk_level)
     : null;
-
-  const borderClass = isActive
-    ? "border-status-green/40"
-    : "border-transparent";
 
   return (
     <div
-      className={`bg-bg-elevated rounded-lg p-2 border hover:border-border-default hover:-translate-y-px hover:shadow-md active:scale-95 transition-all duration-150 cursor-pointer ${borderClass}`}
+      className={
+        "bg-bg-2 rounded-[4px] p-2 border cursor-pointer transition-colors " +
+        (isActive
+          ? "border-green/50"
+          : "border-transparent hover:border-border")
+      }
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -36,35 +44,47 @@ export default function TaskCard({ task, onClick, isActive }: TaskCardProps) {
           : undefined
       }
     >
-      <p className="text-xs text-text-primary leading-snug mb-1.5">{title}</p>
+      {/* Task id — mono, muted, small */}
+      <div className="font-mono text-[10px] text-fg-dim mb-0.5 truncate">
+        {task.task_id}
+      </div>
+
+      {/* Title — natural wrap, 2-line clamp */}
+      <p
+        className="text-[12px] text-fg leading-snug mb-1.5"
+        style={{
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+          wordBreak: "break-word",
+        }}
+      >
+        {task.title}
+      </p>
+
+      {/* Active indicator */}
       {isActive && (
         <div className="flex items-center gap-1 mb-1.5">
-          <span className="w-2 h-2 rounded-full bg-status-green animate-pulse-dot shrink-0" />
-          {task.active_agent ? (
-            <span className="text-[10px] text-text-secondary truncate">
-              {task.active_agent}
-            </span>
-          ) : (
-            <span className="text-[10px] text-text-secondary">In progress</span>
-          )}
+          <span className="w-1.5 h-1.5 rounded-full bg-green animate-pulse-dot shrink-0" />
+          <span className="font-mono text-[10px] text-green truncate min-w-0">
+            {task.active_agent ?? "in progress"}
+          </span>
         </div>
       )}
+
+      {/* Meta pills — wrap naturally */}
       <div className="flex items-center gap-1 flex-wrap">
         {task.primary_worker_type && (
-          <span className="inline-flex items-center rounded-full bg-bg-surface px-2 py-0.5 text-[10px] text-text-muted">
+          <span className="font-mono text-[10px] px-1 py-[1px] rounded-[3px] bg-bg-1 text-fg-muted truncate max-w-full">
             {task.primary_worker_type}
           </span>
         )}
         {task.risk_level && risk && (
-          <span
-            className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
-            style={{ backgroundColor: risk.bg, color: risk.text }}
-          >
-            {task.risk_level}
-          </span>
+          <Pill color={risk}>{task.risk_level}</Pill>
         )}
         {task.verify_fix_iterations > 0 && (
-          <span className="inline-flex items-center rounded-full bg-bg-surface px-2 py-0.5 text-[10px] text-text-muted">
+          <span className="font-mono text-[10px] px-1 py-[1px] rounded-[3px] bg-bg-1 text-fg-muted">
             iter {task.verify_fix_iterations}
           </span>
         )}

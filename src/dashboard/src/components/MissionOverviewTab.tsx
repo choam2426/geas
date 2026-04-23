@@ -5,16 +5,18 @@
  * "what's happening right now?" without pivoting to another view:
  *   - Task roster (status groupings, click to open task modal)
  *   - Recent events (last 20, link to the full timeline tab)
- *   - Active-agent signal (last-seen, derived from events, honest)
  *   - Debts introduced by this mission (top 5, link to debt view)
- *   - Consolidation packet rollup (when present)
- *   - Final verdict / phase reviews / deliberations / gap
+ *   - Final verdict / phase reviews / gap signals
  *
  * The content is split into a left/right grid on wide screens; on narrow
  * viewports the right column stacks below the left.
+ *
+ * We deliberately do NOT synthesize an "active agents" panel: we only have
+ * snapshot event data, no live agent-state signal, and pretending to show
+ * realtime activity would be misleading.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import * as geas from "../lib/geasClient";
 import { useProjectRefresh } from "../contexts/ProjectRefreshContext";
 import type {
@@ -30,6 +32,21 @@ import {
   severityColors,
   statusColors,
 } from "../colors";
+
+/**
+ * `cli:auto` is the CLI's bookkeeping actor (envelope events written by the
+ * CLI itself, not a human or agent). We keep the event visible — the `kind`
+ * is informative — but suppress the actor label so it doesn't read as a
+ * distinct identity in the UI, and we exclude it from the agent-activity
+ * roll-up where "actor = agent identity" is the implied meaning.
+ */
+const HIDDEN_ACTORS = new Set(["cli:auto"]);
+
+function displayActor(actor: string | null | undefined): string | null {
+  if (!actor) return null;
+  if (HIDDEN_ACTORS.has(actor)) return null;
+  return actor;
+}
 
 interface Props {
   projectPath: string;
@@ -75,57 +92,49 @@ export default function MissionOverviewTab({
   const [events, setEvents] = useState<EventEntry[]>([]);
   const [debts, setDebts] = useState<Debts | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const [ts, ev, db] = await Promise.all([
-        geas.listTasks(projectPath, missionId).catch(() => [] as TaskRow[]),
-        geas
-          .getEvents({
-            path: projectPath,
-            mission_id: missionId,
-            page: 0,
-            page_size: 20,
-          })
-          .catch(() => null),
-        geas.getDebts(projectPath).catch(() => null),
-      ]);
-      if (cancelled) return;
-      setTasks(ts);
-      setEvents(ev?.events ?? []);
-      setDebts(db);
-    })();
-    return () => {
-      cancelled = true;
-    };
+  /**
+   * Unified loader used by both the initial mount effect and the file-watch
+   * refresh effect. Keeping a single function avoids divergence — earlier
+   * an older split version refetched tasks + events on refresh but forgot
+   * debts, so "debt introduced" counts went stale until the view was
+   * remounted.
+   */
+  const load = useCallback(async (signal?: { cancelled: boolean }) => {
+    const [ts, ev, db] = await Promise.all([
+      geas.listTasks(projectPath, missionId).catch(() => [] as TaskRow[]),
+      geas
+        .getEvents({
+          path: projectPath,
+          mission_id: missionId,
+          page: 0,
+          page_size: 20,
+        })
+        .catch(() => null),
+      geas.getDebts(projectPath).catch(() => null),
+    ]);
+    if (signal?.cancelled) return;
+    setTasks(ts);
+    setEvents(ev?.events ?? []);
+    setDebts(db);
   }, [projectPath, missionId]);
+
+  useEffect(() => {
+    const signal = { cancelled: false };
+    load(signal);
+    return () => {
+      signal.cancelled = true;
+    };
+  }, [load]);
 
   const refreshKey = useProjectRefresh(projectPath);
   useEffect(() => {
     if (refreshKey === 0) return;
-    (async () => {
-      const [ts, ev] = await Promise.all([
-        geas.listTasks(projectPath, missionId).catch(() => [] as TaskRow[]),
-        geas
-          .getEvents({
-            path: projectPath,
-            mission_id: missionId,
-            page: 0,
-            page_size: 20,
-          })
-          .catch(() => null),
-      ]);
-      setTasks(ts);
-      setEvents(ev?.events ?? []);
-    })();
-  }, [refreshKey, projectPath, missionId]);
+    load();
+  }, [refreshKey, load]);
 
   const missionDebts =
     debts?.entries.filter((d) => d.introduced_by?.mission_id === missionId) ??
     [];
-
-  // Latest seen-per-agent from events (honest: "last seen", not "running").
-  const agentActivity = aggregateAgentActivity(events);
 
   return (
     <div className="flex-1 overflow-auto">
@@ -248,52 +257,30 @@ export default function MissionOverviewTab({
               </p>
             ) : (
               <ul className="font-mono text-[11px] space-y-1">
-                {events.slice(0, 10).map((e, i) => (
-                  <li
-                    key={e.event_id ?? i}
-                    className="flex items-start gap-2 py-0.5"
-                  >
-                    <span className="text-fg-dim flex-shrink-0 w-14">
-                      {formatTsShort(e.created_at)}
-                    </span>
-                    <span className="text-green flex-shrink-0">
-                      {e.actor ?? "—"}
-                    </span>
-                    <span className="text-fg-muted truncate">
-                      {e.kind ?? "event"}
-                    </span>
-                  </li>
-                ))}
+                {events.slice(0, 10).map((e, i) => {
+                  const actor = displayActor(e.actor);
+                  return (
+                    <li
+                      key={e.event_id ?? i}
+                      className="flex items-start gap-2 py-0.5"
+                    >
+                      <span className="text-fg-dim flex-shrink-0 w-14">
+                        {formatTsShort(e.created_at)}
+                      </span>
+                      {actor && (
+                        <span className="text-green flex-shrink-0">
+                          {actor}
+                        </span>
+                      )}
+                      <span className="text-fg-muted truncate">
+                        {e.kind ?? "event"}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
-
-          {/* Agent activity */}
-          {agentActivity.length > 0 && (
-            <div>
-              <SectionHeader label="agent activity" />
-              <ul className="font-mono text-[11px] space-y-1">
-                {agentActivity.map((a) => (
-                  <li
-                    key={a.actor}
-                    className="flex items-center gap-2 py-0.5"
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: freshnessColor(a.minutesAgo) }}
-                    />
-                    <span className="text-fg flex-1 truncate">{a.actor}</span>
-                    <span className="text-fg-dim flex-shrink-0">
-                      {formatAgo(a.minutesAgo)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-2 font-mono text-[10px] text-fg-dim">
-                derived from recent events · last seen, not necessarily running
-              </p>
-            </div>
-          )}
 
           {/* Mission debts */}
           <div>
@@ -453,45 +440,6 @@ function GapSummary({ gap }: { gap: NonNullable<MissionDetail["gap"]> }) {
 }
 
 // -- Helpers ------------------------------------------------------------------
-
-interface AgentLine {
-  actor: string;
-  minutesAgo: number;
-}
-
-function aggregateAgentActivity(events: EventEntry[]): AgentLine[] {
-  const now = Date.now();
-  const byActor = new Map<string, number>();
-  for (const e of events) {
-    if (!e.actor || !e.created_at) continue;
-    const t = new Date(e.created_at).getTime();
-    if (isNaN(t)) continue;
-    if (!byActor.has(e.actor) || byActor.get(e.actor)! < t) {
-      byActor.set(e.actor, t);
-    }
-  }
-  const rows: AgentLine[] = [];
-  for (const [actor, t] of byActor.entries()) {
-    rows.push({ actor, minutesAgo: Math.floor((now - t) / 60_000) });
-  }
-  rows.sort((a, b) => a.minutesAgo - b.minutesAgo);
-  return rows;
-}
-
-function freshnessColor(minutesAgo: number): string {
-  if (minutesAgo < 5) return "var(--color-green)";
-  if (minutesAgo < 60) return "var(--color-fg-muted)";
-  return "var(--color-fg-dim)";
-}
-
-function formatAgo(min: number): string {
-  if (min < 1) return "just now";
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.floor(hr / 24);
-  return `${day}d ago`;
-}
 
 function verdictClass(v: string | null | undefined): string {
   switch (v) {

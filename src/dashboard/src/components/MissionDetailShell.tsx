@@ -103,7 +103,11 @@ export default function MissionDetailShell({
     );
   }
 
-  if (error || !detail) {
+  // Show the error screen ONLY when we have no detail to fall back on.
+  // If a refresh fails after a successful initial load (file in the middle
+  // of an atomic write, for example), keep showing the stale detail — the
+  // next refresh will replace it, and the user isn't blanked out mid-view.
+  if (!detail) {
     return (
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <div className="flex-1 flex items-center justify-center">
@@ -129,7 +133,15 @@ export default function MissionDetailShell({
       <MissionHero detail={detail} summary={summary} />
       <SubTabBar active={activeTab} onChange={onChangeTab} />
 
-      <div className="flex-1 min-h-0 overflow-hidden">
+      {/*
+       * Tab content slot.
+       *
+       * Must be a flex container so that tab components using `flex-1` /
+       * `overflow-auto` pick up a bounded height; `min-h-0` prevents the
+       * wrapper from ballooning past the parent when its child has large
+       * intrinsic content.
+       */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         {activeTab === "overview" && (
           <MissionOverviewTab
             projectPath={projectPath}
@@ -191,7 +203,7 @@ function MissionHero({
   const phaseLabel = state?.phase ?? spec?.mode ?? null;
 
   return (
-    <div className="px-6 pt-4 pb-3 border-b border-border bg-bg-1">
+    <div className="px-6 pt-4 pb-3 border-b border-border bg-bg-1 flex-shrink-0">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="font-mono text-[11px] text-fg-dim mb-1">

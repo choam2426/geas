@@ -4,7 +4,6 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
-  Bot,
 } from "lucide-react";
 import * as geas from "../lib/geasClient";
 import type { EventsPage, EventEntry } from "../types";
@@ -19,6 +18,14 @@ interface TimelineViewProps {
 }
 
 const PAGE_SIZE = 50;
+
+/**
+ * `cli:auto` is the actor the CLI writes for bookkeeping envelope events
+ * (e.g. `impl_contract_set`, `self_check_appended`). We still render the
+ * event — the `kind` is informative — but we suppress the actor label so
+ * it doesn't read as a distinct identity in the timeline.
+ */
+const HIDDEN_ACTORS = new Set(["cli:auto"]);
 
 function formatTimestamp(ts: string | null): string {
   if (!ts) return "—";
@@ -217,11 +224,10 @@ function EventRow({ event }: { event: EventEntry }) {
           <span className="px-2 py-0.5 rounded text-xs font-medium bg-bg-elevated text-text-secondary">
             {event.kind ?? "(unknown)"}
           </span>
-          {event.actor && (
+          {event.actor && !HIDDEN_ACTORS.has(event.actor) && (
             <span
               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${actorClass(event.actor)}`}
             >
-              {event.actor === "cli:auto" && <Bot size={10} />}
               {event.actor}
             </span>
           )}

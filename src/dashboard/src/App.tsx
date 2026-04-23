@@ -13,7 +13,10 @@ import EmptyState from "./components/EmptyState";
 import ErrorState from "./components/ErrorState";
 import AddProjectDialog from "./components/AddProjectDialog";
 import { ToastProvider } from "./contexts/ToastContext";
-import { ProjectRefreshProvider } from "./contexts/ProjectRefreshContext";
+import {
+  ProjectRefreshProvider,
+  useBumpProjectRefresh,
+} from "./contexts/ProjectRefreshContext";
 import {
   useNavigationHistory,
   type MissionTab,
@@ -52,6 +55,7 @@ function AppInner() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [backendError, setBackendError] = useState<string | null>(null);
   const [lastEventAt, setLastEventAt] = useState<Date | null>(null);
+  const bumpProjectRefresh = useBumpProjectRefresh();
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -66,6 +70,11 @@ function AppInner() {
         ),
       );
       setProjects(summaries);
+      // Cascade: force every view subscribed via `useProjectRefresh` to
+      // refetch its own data. Without this, hitting the Sidebar refresh
+      // button only updates the project list — mission sub-tabs would
+      // still show stale data until the next file-watcher event.
+      for (const s of summaries) bumpProjectRefresh(s.path);
       const currentPath = navRef.current.current.selectedPath;
       if (!currentPath || !summaries.some((s) => s.path === currentPath)) {
         const firstPath = summaries.length > 0 ? summaries[0].path : null;
@@ -87,7 +96,7 @@ function AppInner() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [bumpProjectRefresh]);
 
   useEffect(() => {
     loadProjects();

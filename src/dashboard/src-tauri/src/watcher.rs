@@ -79,11 +79,30 @@ pub fn unregister_path(state: &mut WatcherState, path: &str) {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+/// Strip Windows' `\\?\` extended-length prefix from a path.
+///
+/// `std::fs::canonicalize()` on Windows returns paths in the extended-length
+/// form (e.g. `\\?\A:\geas`). The `notify` crate that backs our watcher can
+/// register the watch on such a path without error but, on some Windows
+/// configurations, emits no change events for files inside it. Stripping the
+/// prefix produces the normal form (`A:\geas`) which notify reliably watches.
+///
+/// On non-Windows platforms the prefix never appears, so this is a no-op.
+fn strip_extended_prefix(p: &Path) -> PathBuf {
+    let s = p.to_string_lossy();
+    if let Some(rest) = s.strip_prefix(r"\\?\") {
+        PathBuf::from(rest)
+    } else {
+        p.to_path_buf()
+    }
+}
+
 fn watch_project(
     debouncer: &mut Debouncer<notify_debouncer_mini::notify::RecommendedWatcher>,
     root: &Path,
 ) {
-    let geas_dir = root.join(".geas");
+    let root_plain = strip_extended_prefix(root);
+    let geas_dir = root_plain.join(".geas");
     // Watch .geas itself non-recursively so that debts.json / events.jsonl
     // changes at the root are captured.
     if geas_dir.is_dir() {
@@ -113,7 +132,8 @@ fn unwatch_project(
     debouncer: &mut Debouncer<notify_debouncer_mini::notify::RecommendedWatcher>,
     root: &Path,
 ) {
-    let geas_dir = root.join(".geas");
+    let root_plain = strip_extended_prefix(root);
+    let geas_dir = root_plain.join(".geas");
     let _ = debouncer.watcher().unwatch(&geas_dir);
     for subdir in GEAS_WATCH_SUBDIRS {
         let target = geas_dir.join(subdir);
