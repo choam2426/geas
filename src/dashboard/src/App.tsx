@@ -12,7 +12,6 @@ import MemoryBrowser from "./components/MemoryBrowser";
 import EmptyState from "./components/EmptyState";
 import ErrorState from "./components/ErrorState";
 import AddProjectDialog from "./components/AddProjectDialog";
-import { ToastProvider } from "./contexts/ToastContext";
 import {
   ProjectRefreshProvider,
   useBumpProjectRefresh,
@@ -381,11 +380,9 @@ function AppInner() {
 
 function App() {
   return (
-    <ToastProvider>
-      <ProjectRefreshProvider>
-        <AppInner />
-      </ProjectRefreshProvider>
-    </ToastProvider>
+    <ProjectRefreshProvider>
+      <AppInner />
+    </ProjectRefreshProvider>
   );
 }
 

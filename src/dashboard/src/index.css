@@ -133,38 +133,6 @@ body {
   animation: pulseDot 1.5s ease-in-out infinite;
 }
 
-/* Toast slide-in */
-@keyframes toastSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.animate-toast-in {
-  animation: toastSlideIn 300ms ease-out;
-}
-
-/* Toast slide-out */
-@keyframes toastSlideOut {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-}
-
-.animate-toast-out {
-  animation: toastSlideOut 200ms ease-in forwards;
-}
-
 /* Markdown styles for rules viewer */
 .rules-markdown h1 { font-size: 1.5rem; font-weight: 700; color: var(--color-fg); margin: 1.5rem 0 0.75rem; }
 .rules-markdown h2 { font-size: 1.25rem; font-weight: 600; color: var(--color-fg); margin: 1.25rem 0 0.5rem; }
