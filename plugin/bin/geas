@@ -12940,7 +12940,7 @@ function collectTaskStateHints(root, missionId, taskId, contract) {
     closureApproved
   };
 }
-function registerTaskDepsAdd(task) {
+function registerTaskDeps(task) {
   const deps = task.command("deps").description("Dependency manipulation for a task contract");
   deps.command("add").description(
     "Append dependency task ids to contract.dependencies (duplicates ignored)."
@@ -13012,6 +13012,68 @@ function registerTaskDepsAdd(task) {
       })
     );
   });
+  deps.command("remove").description(
+    "Remove dependency task ids from contract.dependencies (missing ids ignored)."
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").requiredOption("--deps <ids>", "Comma-separated task ids to remove").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    if (!isValidTaskId(opts.task)) {
+      emit(err("invalid_argument", `invalid task id '${opts.task}'`));
+    }
+    const parts = opts.deps.split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length === 0) {
+      emit(err("invalid_argument", "--deps requires at least one task id"));
+    }
+    for (const p of parts) {
+      if (!isValidTaskId(p)) {
+        emit(err("invalid_argument", `invalid task id in --deps: '${p}'`));
+      }
+    }
+    const root = needProjectRoot3();
+    const cPath = taskContractPath(root, opts.mission, opts.task);
+    const contract = readJsonFile(cPath);
+    if (!contract) {
+      emit(
+        err(
+          "missing_artifact",
+          `task contract not found for ${opts.task}`
+        )
+      );
+      return;
+    }
+    const existing = Array.isArray(contract.dependencies) ? contract.dependencies : [];
+    const toRemove = new Set(parts);
+    const removed = [];
+    const notPresent = [];
+    for (const p of parts) {
+      if (existing.includes(p)) removed.push(p);
+      else notPresent.push(p);
+    }
+    const next = existing.filter((d) => !toRemove.has(d));
+    contract.dependencies = next;
+    contract.updated_at = nowUtc4();
+    const v = validate("task-contract", contract);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "task-contract schema validation failed after dependency removal",
+          v.errors
+        )
+      );
+    }
+    atomicWriteJson(cPath, contract, tmpDir(root));
+    emit(
+      ok({
+        path: slashPath2(cPath),
+        ids: { mission_id: opts.mission, task_id: opts.task },
+        removed,
+        not_present: notPresent,
+        dependencies: next
+      })
+    );
+  });
 }
 function registerTaskStateRead(task) {
   task.command("state").description("Summarize task contract + task-state (read-only).").requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").action((opts) => {
@@ -13057,7 +13119,7 @@ function registerTaskCommands(program2) {
   registerTaskDraft(task);
   registerTaskApprove(task);
   registerTaskTransition(task);
-  registerTaskDepsAdd(task);
+  registerTaskDeps(task);
   registerTaskStateRead(task);
 }
 

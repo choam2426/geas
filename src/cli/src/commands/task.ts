@@ -14,6 +14,8 @@
  *     9-state FSM transition, guarded.
  *   geas task deps add     --mission <id> --task <id> --deps <id[,id...]>
  *     Adds dependency task ids to contract.dependencies (merge+dedupe).
+ *   geas task deps remove  --mission <id> --task <id> --deps <id[,id...]>
+ *     Removes dependency task ids from contract.dependencies (missing ignored).
  *   geas task state        --mission <id> --task <id>
  *     Read-only summary.
  *
@@ -762,9 +764,9 @@ function collectTaskStateHints(
   };
 }
 
-// ── `geas task deps add` ──────────────────────────────────────────────
+// ── `geas task deps {add,remove}` ────────────────────────────────────
 
-function registerTaskDepsAdd(task: Command): void {
+function registerTaskDeps(task: Command): void {
   const deps = task
     .command('deps')
     .description('Dependency manipulation for a task contract');
@@ -854,6 +856,80 @@ function registerTaskDepsAdd(task: Command): void {
         }),
       );
     });
+
+  deps
+    .command('remove')
+    .description(
+      'Remove dependency task ids from contract.dependencies (missing ids ignored).',
+    )
+    .requiredOption('--mission <id>', 'Mission ID')
+    .requiredOption('--task <id>', 'Task ID')
+    .requiredOption('--deps <ids>', 'Comma-separated task ids to remove')
+    .action((opts: { mission: string; task: string; deps: string }) => {
+      if (!isValidMissionId(opts.mission)) {
+        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+      }
+      if (!isValidTaskId(opts.task)) {
+        emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+      }
+      const parts = opts.deps.split(',').map((s) => s.trim()).filter(Boolean);
+      if (parts.length === 0) {
+        emit(err('invalid_argument', '--deps requires at least one task id'));
+      }
+      for (const p of parts) {
+        if (!isValidTaskId(p)) {
+          emit(err('invalid_argument', `invalid task id in --deps: '${p}'`));
+        }
+      }
+
+      const root = needProjectRoot();
+      const cPath = taskContractPath(root, opts.mission, opts.task);
+      const contract = readJsonFile<Record<string, unknown>>(cPath);
+      if (!contract) {
+        emit(
+          err(
+            'missing_artifact',
+            `task contract not found for ${opts.task}`,
+          ),
+        );
+        return;
+      }
+      const existing = Array.isArray(contract.dependencies)
+        ? (contract.dependencies as string[])
+        : [];
+      const toRemove = new Set(parts);
+      const removed: string[] = [];
+      const notPresent: string[] = [];
+      for (const p of parts) {
+        if (existing.includes(p)) removed.push(p);
+        else notPresent.push(p);
+      }
+      const next = existing.filter((d) => !toRemove.has(d));
+      contract.dependencies = next;
+      contract.updated_at = nowUtc();
+
+      const v = validate('task-contract', contract);
+      if (!v.ok) {
+        emit(
+          err(
+            'schema_validation_failed',
+            'task-contract schema validation failed after dependency removal',
+            v.errors,
+          ),
+        );
+      }
+      atomicWriteJson(cPath, contract, tmpDir(root));
+
+      emit(
+        ok({
+          path: slashPath(cPath),
+          ids: { mission_id: opts.mission, task_id: opts.task },
+          removed,
+          not_present: notPresent,
+          dependencies: next,
+        }),
+      );
+    });
 }
 
 // ── `geas task state` (read-only) ────────────────────────────────────
@@ -930,6 +1006,6 @@ export function registerTaskCommands(program: Command): void {
   registerTaskDraft(task);
   registerTaskApprove(task);
   registerTaskTransition(task);
-  registerTaskDepsAdd(task);
+  registerTaskDeps(task);
   registerTaskStateRead(task);
 }

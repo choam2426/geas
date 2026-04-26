@@ -877,6 +877,64 @@ test('task deps add merges deduplicated dependencies', () => {
   }
 });
 
+test('task deps remove drops listed deps and reports missing ones', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMissionApproved(dir);
+    runCli(['task', 'draft', '--mission', MID], {
+      cwd: dir,
+      input: JSON.stringify(
+        draftContract({ dependencies: ['task-001', 'task-003'] }),
+      ),
+      env: { GEAS_MOCK_TASK_ID: 'task-002' },
+    });
+    // Remove one present + one absent. Present is dropped; absent reported.
+    const r = runCli(
+      ['task', 'deps', 'remove', '--mission', MID, '--task', 'task-002',
+       '--deps', 'task-001,task-099'],
+      { cwd: dir },
+    );
+    assert.equal(r.status, 0, `deps remove failed: ${r.stderr}`);
+    assert.deepEqual(r.json.data.dependencies, ['task-003']);
+    assert.deepEqual(r.json.data.removed, ['task-001']);
+    assert.deepEqual(r.json.data.not_present, ['task-099']);
+
+    // Re-running with the same args is idempotent: nothing removed, same list.
+    const r2 = runCli(
+      ['task', 'deps', 'remove', '--mission', MID, '--task', 'task-002',
+       '--deps', 'task-001'],
+      { cwd: dir },
+    );
+    assert.equal(r2.status, 0);
+    assert.deepEqual(r2.json.data.dependencies, ['task-003']);
+    assert.deepEqual(r2.json.data.removed, []);
+    assert.deepEqual(r2.json.data.not_present, ['task-001']);
+  } finally {
+    cleanup();
+  }
+});
+
+test('task deps remove rejects invalid task ids in --deps', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMissionApproved(dir);
+    runCli(['task', 'draft', '--mission', MID], {
+      cwd: dir,
+      input: JSON.stringify(draftContract()),
+      env: { GEAS_MOCK_TASK_ID: 'task-002' },
+    });
+    const r = runCli(
+      ['task', 'deps', 'remove', '--mission', MID, '--task', 'task-002',
+       '--deps', 'not-a-task-id'],
+      { cwd: dir },
+    );
+    assert.notEqual(r.status, 0);
+    assert.equal(r.json.error.code, 'invalid_argument');
+  } finally {
+    cleanup();
+  }
+});
+
 test('GEAS_MOCK_TASK_ID env var produces deterministic ids', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
