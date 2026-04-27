@@ -45,7 +45,7 @@
 import type { Command } from 'commander';
 
 import { isValidActor, recordEvent } from '../lib/envelope';
-import { emitErr, emitOk } from '../lib/output';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
 import { makeError } from '../lib/errors';
 import { findProjectRoot } from '../lib/paths';
 import { readPayloadJson, StdinError } from '../lib/input';
@@ -77,7 +77,17 @@ function resolvePayloadFile(opts: { payloadFromFile?: string; file?: string }): 
   return opts.payloadFromFile ?? opts.file;
 }
 
+/**
+ * AC3 (mission-20260427-xIPG1sDY task-006): scalar formatter for the
+ * event log subcommand. Single-line summary of the appended event.
+ */
+function formatEventLog(data: unknown): string {
+  const d = data as { path?: string; kind?: string; actor?: string };
+  return `event logged: kind=${d.kind ?? '<unknown>'} actor=${d.actor ?? '<unknown>'} path=${d.path ?? '<unknown>'}`;
+}
+
 export function registerEventCommands(program: Command): void {
+  registerFormatter('event log', formatEventLog);
   const event = program
     .command('event')
     .description('Append entries to .geas/events.jsonl (automation-only audit log).');

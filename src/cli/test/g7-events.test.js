@@ -104,7 +104,8 @@ test('geas event log appends an explicit entry with caller-supplied kind/actor',
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMission(dir);
-    const r = runCli(['event', 'log'], {
+    // AC3 (task-006): --json keeps envelope on stdout for assertion.
+    const r = runCli(['--json', 'event', 'log'], {
       cwd: dir,
       input: JSON.stringify({
         kind: 'manual_note',
@@ -151,7 +152,8 @@ test('geas event log accepts the AC1 --payload-from-file flag (cross-check vs st
       }),
       'utf-8',
     );
-    const r = runCli(['event', 'log', '--payload-from-file', tmpPath], { cwd: dir });
+    // AC3 (task-006): --json keeps envelope on stdout for assertion.
+    const r = runCli(['--json', 'event', 'log', '--payload-from-file', tmpPath], { cwd: dir });
     assert.equal(r.status, 0, `event log via --payload-from-file failed: ${r.stderr}`);
     assert.equal(r.json.ok, true);
     assert.equal(r.json.data.kind, 'manual_note_via_payload_file');
@@ -210,6 +212,25 @@ test('events.jsonl is valid JSONL — one JSON object per line, each newline-ter
       assert.equal(typeof obj.actor, 'string');
       assert.equal(typeof obj.created_at, 'string');
     }
+  } finally {
+    cleanup();
+  }
+});
+
+test('geas event log default-mode emits scalar text via registered formatter (post-AC3)', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMission(dir);
+    const r = runCli(['event', 'log'], {
+      cwd: dir,
+      input: JSON.stringify({
+        kind: 'scalar_probe',
+        actor: 'orchestrator',
+      }),
+    });
+    assert.equal(r.status, 0, `event log failed: ${r.stderr}`);
+    assert.equal(r.json, null, `default-mode stdout should be scalar; got: ${r.stdout}`);
+    assert.match(r.stdout, /^event logged: kind=scalar_probe actor=orchestrator/m);
   } finally {
     cleanup();
   }
@@ -450,7 +471,8 @@ test('event log stays ok even if events.jsonl is unwritable (best-effort)', () =
     // Remove existing file and replace with a directory.
     fs.rmSync(logPath, { force: true });
     fs.mkdirSync(logPath, { recursive: true });
-    const r = runCli(['event', 'log'], {
+    // AC3 (task-006): --json keeps envelope on stdout for assertion.
+    const r = runCli(['--json', 'event', 'log'], {
       cwd: dir,
       input: JSON.stringify({
         kind: 'best_effort_probe',

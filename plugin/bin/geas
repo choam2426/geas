@@ -15075,7 +15075,12 @@ function needProjectRoot12() {
 function resolvePayloadFile2(opts) {
   return opts.payloadFromFile ?? opts.file;
 }
+function formatEventLog(data) {
+  const d = data;
+  return `event logged: kind=${d.kind ?? "<unknown>"} actor=${d.actor ?? "<unknown>"} path=${d.path ?? "<unknown>"}`;
+}
 function registerEventCommands(program2) {
+  registerFormatter("event log", formatEventLog);
   const event = program2.command("event").description("Append entries to .geas/events.jsonl (automation-only audit log).");
   event.command("log").description(
     "Append a single event (payload via --payload-from-file, --file, or stdin: JSON object with kind + actor, optional mission_id, task_id, ref, payload). CLI assigns entry_id and created_at."
