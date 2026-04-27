@@ -272,6 +272,72 @@ test('evidence append assigns entry_id sequentially from 1', () => {
   }
 });
 
+test('evidence append works inline-flag-only without stdin or --file (AC1, task-006 verify-fix)', () => {
+  // AC1 (task-006): evidence append must be invokable purely from
+  // inline flags. Heterogeneous evidence_kind schema is exercised via
+  // an implementation entry which only requires summary + kind beyond
+  // the CLI-injected envelope fields.
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMission(dir, MID_STANDARD);
+    draftTaskReady(dir, MID_STANDARD, 'task-001');
+    const r = runCli(
+      [
+        '--json',
+        'evidence',
+        'append',
+        '--mission',
+        MID_STANDARD,
+        '--task',
+        'task-001',
+        '--slot',
+        'implementer',
+        '--agent',
+        'software-engineer',
+        '--evidence-kind',
+        'implementation',
+        '--summary',
+        'Inline-flag implementation entry verifying AC1 path.',
+        '--rationale',
+        'Inline path under verify-fix iteration 1.',
+        '--scope-examined',
+        'evidence append inline-flag plumbing',
+        '--method-used',
+        'inline flag invocation',
+        '--method-used',
+        'fixture assertion via assert.equal',
+        '--artifact',
+        'src/cli/src/commands/evidence.ts',
+        '--gap-signal',
+        '{"kind":"learning_gain","summary":"inline-flag path landed via AC1 fix"}',
+      ],
+      { cwd: dir },
+    );
+    assert.equal(r.status, 0, `inline-flag evidence append failed: ${r.stderr}\n${r.stdout}`);
+    assert.equal(r.json.ok, true);
+    assert.equal(r.json.data.ids.entry_id, 1);
+    const file = readArtifact(
+      dir,
+      `.geas/missions/${MID_STANDARD}/tasks/task-001/evidence/software-engineer.implementer.json`,
+    );
+    assert.equal(file.entries.length, 1);
+    const entry = file.entries[0];
+    assert.equal(entry.evidence_kind, 'implementation');
+    assert.equal(entry.summary, 'Inline-flag implementation entry verifying AC1 path.');
+    assert.equal(entry.rationale, 'Inline path under verify-fix iteration 1.');
+    assert.deepEqual(entry.methods_used, [
+      'inline flag invocation',
+      'fixture assertion via assert.equal',
+    ]);
+    assert.deepEqual(entry.artifacts, ['src/cli/src/commands/evidence.ts']);
+    assert.equal(entry.gap_signals.length, 1);
+    assert.equal(entry.gap_signals[0].kind, 'learning_gain');
+    assert.equal(entry.revision_ref, null);
+  } finally {
+    cleanup();
+  }
+});
+
 test('evidence append accepts --file as an alternative to stdin', () => {
   const { dir, cleanup } = makeTempRoot();
   try {

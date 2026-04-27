@@ -50,7 +50,7 @@ import {
   taskContractPath,
   tmpDir,
 } from '../lib/paths';
-import { readPayloadJson, StdinError } from '../lib/input';
+import { readPayloadJson, readPayloadText, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 
 /**
@@ -210,11 +210,166 @@ function resolveAgent(
   return typeof pwt === 'string' && pwt.length > 0 ? pwt : null;
 }
 
+interface EvidenceAppendInlineOpts {
+  mission: string;
+  task: string;
+  slot: string;
+  agent?: string;
+  file?: string;
+  entryFromFile?: string;
+  evidenceKind?: string;
+  summary?: string;
+  summaryFromFile?: string;
+  rationale?: string;
+  rationaleFromFile?: string;
+  scopeExamined?: string;
+  scopeExaminedFromFile?: string;
+  verdict?: string;
+  concern?: string[];
+  methodUsed?: string[];
+  scopeExcluded?: string[];
+  artifact?: string[];
+  memorySuggestion?: string[];
+  debtCandidate?: string[];
+  gapSignal?: string[];
+  revisionRef?: string;
+  criterionResult?: string[];
+  whatWentWell?: string[];
+  whatBroke?: string[];
+  whatWasSurprising?: string[];
+  nextTimeGuidance?: string[];
+}
+
+/**
+ * AC1 (task-006 verify-fix iteration 1): build an evidence entry payload
+ * from inline flags. Heterogeneous schema (4 evidence_kinds) means many
+ * optional fields. Returns null if no inline flags are present.
+ */
+function buildEvidencePayloadFromFlags(
+  opts: EvidenceAppendInlineOpts,
+): Record<string, unknown> | null {
+  const inlineFlagPresent =
+    opts.evidenceKind !== undefined ||
+    opts.summary !== undefined ||
+    opts.summaryFromFile !== undefined ||
+    opts.rationale !== undefined ||
+    opts.rationaleFromFile !== undefined ||
+    opts.scopeExamined !== undefined ||
+    opts.scopeExaminedFromFile !== undefined ||
+    opts.verdict !== undefined ||
+    (Array.isArray(opts.concern) && opts.concern.length > 0) ||
+    (Array.isArray(opts.methodUsed) && opts.methodUsed.length > 0) ||
+    (Array.isArray(opts.scopeExcluded) && opts.scopeExcluded.length > 0) ||
+    (Array.isArray(opts.artifact) && opts.artifact.length > 0) ||
+    (Array.isArray(opts.memorySuggestion) && opts.memorySuggestion.length > 0) ||
+    (Array.isArray(opts.debtCandidate) && opts.debtCandidate.length > 0) ||
+    (Array.isArray(opts.gapSignal) && opts.gapSignal.length > 0) ||
+    opts.revisionRef !== undefined ||
+    (Array.isArray(opts.criterionResult) && opts.criterionResult.length > 0) ||
+    (Array.isArray(opts.whatWentWell) && opts.whatWentWell.length > 0) ||
+    (Array.isArray(opts.whatBroke) && opts.whatBroke.length > 0) ||
+    (Array.isArray(opts.whatWasSurprising) && opts.whatWasSurprising.length > 0) ||
+    (Array.isArray(opts.nextTimeGuidance) && opts.nextTimeGuidance.length > 0);
+  if (!inlineFlagPresent) return null;
+
+  const payload: Record<string, unknown> = {};
+  if (opts.evidenceKind !== undefined) payload.evidence_kind = opts.evidenceKind;
+  if (opts.summaryFromFile !== undefined) {
+    payload.summary = readFreeBodyOrEmit(opts.summaryFromFile, '--summary <text> or --summary-from-file <path>');
+  } else if (opts.summary !== undefined) {
+    payload.summary = opts.summary;
+  }
+  if (opts.rationaleFromFile !== undefined) {
+    payload.rationale = readFreeBodyOrEmit(opts.rationaleFromFile, '--rationale <text> or --rationale-from-file <path>');
+  } else if (opts.rationale !== undefined) {
+    payload.rationale = opts.rationale;
+  }
+  if (opts.scopeExaminedFromFile !== undefined) {
+    payload.scope_examined = readFreeBodyOrEmit(opts.scopeExaminedFromFile, '--scope-examined <text> or --scope-examined-from-file <path>');
+  } else if (opts.scopeExamined !== undefined) {
+    payload.scope_examined = opts.scopeExamined;
+  }
+  if (opts.verdict !== undefined) payload.verdict = opts.verdict;
+  if (Array.isArray(opts.concern)) payload.concerns = opts.concern;
+  if (Array.isArray(opts.methodUsed) && opts.methodUsed.length > 0) {
+    payload.methods_used = opts.methodUsed;
+  }
+  if (Array.isArray(opts.scopeExcluded)) payload.scope_excluded = opts.scopeExcluded;
+  if (Array.isArray(opts.artifact)) payload.artifacts = opts.artifact;
+  if (Array.isArray(opts.memorySuggestion)) payload.memory_suggestions = opts.memorySuggestion;
+  if (Array.isArray(opts.debtCandidate) && opts.debtCandidate.length > 0) {
+    payload.debt_candidates = opts.debtCandidate.map((s) => parseInlineJson(s, '--debt-candidate'));
+  }
+  if (Array.isArray(opts.gapSignal) && opts.gapSignal.length > 0) {
+    payload.gap_signals = opts.gapSignal.map((s) => parseInlineJson(s, '--gap-signal'));
+  }
+  if (opts.revisionRef !== undefined) {
+    if (opts.revisionRef === 'null' || opts.revisionRef === '') {
+      payload.revision_ref = null;
+    } else {
+      const n = parseInt(opts.revisionRef, 10);
+      if (!Number.isFinite(n) || n < 1) {
+        emitErr(
+          makeError(
+            'invalid_argument',
+            `--revision-ref must be a positive integer or 'null' (got '${opts.revisionRef}')`,
+            { hint: 'pass --revision-ref <int> with a value ≥1, or omit for null', exit_category: 'validation' },
+          ),
+        );
+      }
+      payload.revision_ref = n;
+    }
+  }
+  if (Array.isArray(opts.criterionResult) && opts.criterionResult.length > 0) {
+    payload.criteria_results = opts.criterionResult.map((s) => parseInlineJson(s, '--criterion-result'));
+  }
+  if (Array.isArray(opts.whatWentWell)) payload.what_went_well = opts.whatWentWell;
+  if (Array.isArray(opts.whatBroke)) payload.what_broke = opts.whatBroke;
+  if (Array.isArray(opts.whatWasSurprising)) payload.what_was_surprising = opts.whatWasSurprising;
+  if (Array.isArray(opts.nextTimeGuidance)) payload.next_time_guidance = opts.nextTimeGuidance;
+  return payload;
+}
+
+function readFreeBodyOrEmit(filePath: string, flagPair: string): string {
+  try {
+    return readPayloadText(filePath);
+  } catch (e) {
+    if (e instanceof StdinError) {
+      emitErr(
+        makeError('invalid_argument', e.message, {
+          hint: `pass ${flagPair}`,
+          exit_category: 'validation',
+        }),
+      );
+    }
+    throw e;
+  }
+}
+
+function parseInlineJson(raw: string, flagName: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    emitErr(
+      makeError(
+        'invalid_argument',
+        `${flagName} expects a JSON object string (parse failed: ${msg})`,
+        {
+          hint: `pass ${flagName} with a valid JSON object value (e.g. '{"kind":"learning_gain","summary":"..."}')`,
+          exit_category: 'validation',
+        },
+      ),
+    );
+    return null; // unreachable after emitErr exits
+  }
+}
+
 function registerEvidenceAppend(ev: Command): void {
   ev
     .command('append')
     .description(
-      'Append an entry to `evidence/{agent}.{slot}.json` for a task. Payload via --file or stdin: entry body (entry_id auto-assigned).',
+      'Append an entry to `evidence/{agent}.{slot}.json` for a task. Accepts inline flags (--evidence-kind, --summary, --rationale, --scope-examined, --verdict, --concern..., --method-used..., --scope-excluded..., --artifact..., --debt-candidate <json>..., --gap-signal <json>..., --criterion-result <json>..., --revision-ref, closure-only --what-went-well... etc.) or full JSON via --file/stdin/--entry-from-file. Free-body fields (--summary, --rationale, --scope-examined) also accept --<field>-from-file. entry_id is auto-assigned.',
     )
     .requiredOption('--mission <id>', 'Mission ID')
     .requiredOption('--task <id>', 'Task ID')
@@ -223,15 +378,31 @@ function registerEvidenceAppend(ev: Command): void {
       '--agent <agent>',
       'Concrete agent type (defaults to routing.primary_worker_type when slot=implementer)',
     )
-    .option('--file <path>', 'Read JSON payload from file instead of stdin')
+    .option('--file <path>', 'Read full JSON entry from file (overrides inline flags) instead of stdin')
+    .option('--entry-from-file <path>', 'Named alias for --file (free-body entry payload)')
+    .option('--evidence-kind <kind>', 'evidence_kind: implementation, review, verification, or closure')
+    .option('--summary <text>', 'Entry summary (free-body — short prose)')
+    .option('--summary-from-file <path>', 'Read summary text from file')
+    .option('--rationale <text>', 'Reasoning (free-body — short prose; required for review/verification/closure)')
+    .option('--rationale-from-file <path>', 'Read rationale text from file')
+    .option('--scope-examined <text>', 'Scope examined (free-body; required for review/verification)')
+    .option('--scope-examined-from-file <path>', 'Read scope_examined text from file')
+    .option('--verdict <verdict>', 'Verdict: approved, changes_requested, blocked, escalated, or cancelled')
+    .option('--concern <text...>', 'Concern (repeatable)')
+    .option('--method-used <text...>', 'Method, tool, or procedure used (repeatable)')
+    .option('--scope-excluded <text...>', 'Scope intentionally left out (repeatable)')
+    .option('--artifact <text...>', 'Artifact path or id (repeatable)')
+    .option('--memory-suggestion <text...>', 'Candidate memory entry (repeatable)')
+    .option('--debt-candidate <json...>', 'Debt candidate JSON object (repeatable; e.g. {"title":"...","kind":"process","severity":"normal","summary":"..."})')
+    .option('--gap-signal <json...>', 'Gap signal JSON object (repeatable; e.g. {"kind":"learning_gain","summary":"..."})')
+    .option('--criterion-result <json...>', 'Criterion result JSON object (verification entries; e.g. {"criterion":"...","passed":true,"details":"..."})')
+    .option('--revision-ref <int>', "Prior entry_id this revises, or 'null' for first/non-revision")
+    .option('--what-went-well <text...>', 'Closure-only: aspect that worked (repeatable)')
+    .option('--what-broke <text...>', 'Closure-only: failure or unplanned effort (repeatable)')
+    .option('--what-was-surprising <text...>', 'Closure-only: unexpected outcome (repeatable)')
+    .option('--next-time-guidance <text...>', 'Closure-only: advice for next time (repeatable)')
     .action(
-      (opts: {
-        mission: string;
-        task: string;
-        slot: string;
-        agent?: string;
-        file?: string;
-      }) => {
+      (opts: EvidenceAppendInlineOpts) => {
         if (!isValidMissionId(opts.mission)) {
           emitErr(
             makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
@@ -321,26 +492,51 @@ function registerEvidenceAppend(ev: Command): void {
         }
 
         let payload: Record<string, unknown>;
-        try {
-          payload = readPayloadJson(opts.file) as Record<string, unknown>;
-        } catch (e) {
-          if (e instanceof StdinError) {
-            emitErr(
-              makeError('invalid_argument', e.message, {
-                hint: 'pass the JSON via --file <path> or pipe through stdin',
-                exit_category: 'validation',
-              }),
-            );
+        // --file or --entry-from-file always wins (full-payload bypass).
+        // Otherwise prefer inline flags when any inline flag is present;
+        // else fall back to stdin.
+        const payloadSrcFile = opts.file ?? opts.entryFromFile;
+        if (payloadSrcFile !== undefined) {
+          try {
+            payload = readPayloadJson(payloadSrcFile) as Record<string, unknown>;
+          } catch (e) {
+            if (e instanceof StdinError) {
+              emitErr(
+                makeError('invalid_argument', e.message, {
+                  hint: 'pass the JSON via --file/--entry-from-file <path> or use inline flags (--evidence-kind, --summary, ...)',
+                  exit_category: 'validation',
+                }),
+              );
+            }
+            throw e;
           }
-          throw e;
+        } else {
+          const inline = buildEvidencePayloadFromFlags(opts);
+          if (inline !== null) {
+            payload = inline;
+          } else {
+            try {
+              payload = readPayloadJson(undefined) as Record<string, unknown>;
+            } catch (e) {
+              if (e instanceof StdinError) {
+                emitErr(
+                  makeError('invalid_argument', e.message, {
+                    hint: 'use inline flags (--evidence-kind, --summary, ...) or pass JSON via --file/--entry-from-file <path> or stdin',
+                    exit_category: 'validation',
+                  }),
+                );
+              }
+              throw e;
+            }
+          }
         }
         if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
           emitErr(
             makeError(
               'invalid_argument',
-              'evidence append expects a JSON object on stdin (one entry body)',
+              'evidence append expects a JSON object payload (one entry body)',
               {
-                hint: 'wrap the entry fields in a single JSON object',
+                hint: 'wrap the entry fields in a single JSON object, or use inline flags',
                 exit_category: 'validation',
               },
             ),
