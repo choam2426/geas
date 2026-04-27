@@ -14982,50 +14982,79 @@ function registerMemoryUpdateCommands(program2) {
 function needProjectRoot12() {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         "missing_artifact",
-        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: "missing_artifact"
+        }
       )
     );
   }
   return root;
 }
+function resolvePayloadFile2(opts) {
+  return opts.payloadFromFile ?? opts.file;
+}
 function registerEventCommands(program2) {
   const event = program2.command("event").description("Append entries to .geas/events.jsonl (automation-only audit log).");
   event.command("log").description(
-    "Append a single event (payload via --file or stdin: JSON object with kind + actor, optional mission_id, task_id, ref, payload). CLI assigns entry_id and created_at."
-  ).option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
+    "Append a single event (payload via --payload-from-file, --file, or stdin: JSON object with kind + actor, optional mission_id, task_id, ref, payload). CLI assigns entry_id and created_at."
+  ).option(
+    "--payload-from-file <path>",
+    "Read JSON payload from file (preferred per AC1; takes precedence over --file)"
+  ).option("--file <path>", "Legacy alias for --payload-from-file (kept for back-compat)").action((opts) => {
     const root = needProjectRoot12();
     let payload;
     try {
-      payload = readPayloadJson(opts.file);
+      payload = readPayloadJson(resolvePayloadFile2(opts));
     } catch (e) {
-      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError("invalid_argument", e.message, {
+            hint: "pass the JSON via --payload-from-file <path>, --file <path>, or pipe through stdin",
+            exit_category: "validation"
+          })
+        );
+      }
       throw e;
     }
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      emit(err("invalid_argument", "event log expects a JSON object payload"));
+      emitErr(
+        makeError("invalid_argument", "event log expects a JSON object payload", {
+          hint: 'wrap the event fields in a single JSON object: {"kind": "...", "actor": "..."}',
+          exit_category: "validation"
+        })
+      );
     }
     if (typeof payload.kind !== "string" || payload.kind.length === 0) {
-      emit(err("invalid_argument", "event.kind is required (non-empty string)"));
+      emitErr(
+        makeError("invalid_argument", "event.kind is required (non-empty string)", {
+          hint: "set kind to a short snake_case identifier such as 'mission_created' or 'manual_note'",
+          exit_category: "validation"
+        })
+      );
     }
     if (!isValidActor(payload.actor)) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          `event.actor must be a slot id (kebab-case), 'user', or 'cli:auto'; got ${JSON.stringify(payload.actor)}`
+          `event.actor must be a slot id (kebab-case), 'user', or 'cli:auto'; got ${JSON.stringify(payload.actor)}`,
+          {
+            hint: "valid actors include 'orchestrator', 'implementer', 'user', 'cli:auto'",
+            exit_category: "validation"
+          }
         )
       );
     }
     recordEvent(root, payload);
-    emit(
-      ok({
-        path: ".geas/events.jsonl",
-        kind: payload.kind,
-        actor: payload.actor
-      })
-    );
+    emitOk("event log", {
+      path: ".geas/events.jsonl",
+      kind: payload.kind,
+      actor: payload.actor
+    });
   });
 }
 

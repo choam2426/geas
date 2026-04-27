@@ -129,6 +129,41 @@ test('geas event log appends an explicit entry with caller-supplied kind/actor',
   }
 });
 
+test('geas event log accepts the AC1 --payload-from-file flag (cross-check vs stdin)', () => {
+  // T2.a (mission-20260427-xIPG1sDY task-002 / AC1): event log's
+  // payload IS the event body (a free-form JSON object), so per AC1 the
+  // explicit free-body inline-flag fallback is --payload-from-file.
+  // The historical --file remains as functional alias; stdin remains
+  // as implicit fallback.
+  const fs = require('fs');
+  const path = require('path');
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMission(dir);
+    const tmpPath = path.join(dir, 'event-payload.json');
+    fs.writeFileSync(
+      tmpPath,
+      JSON.stringify({
+        kind: 'manual_note_via_payload_file',
+        actor: 'orchestrator',
+        mission_id: MID,
+        payload: { source: 'payload-from-file' },
+      }),
+      'utf-8',
+    );
+    const r = runCli(['event', 'log', '--payload-from-file', tmpPath], { cwd: dir });
+    assert.equal(r.status, 0, `event log via --payload-from-file failed: ${r.stderr}`);
+    assert.equal(r.json.ok, true);
+    assert.equal(r.json.data.kind, 'manual_note_via_payload_file');
+    const events = readEvents(dir);
+    const probe = events.find((e) => e.kind === 'manual_note_via_payload_file');
+    assert.ok(probe, 'event must land in events.jsonl');
+    assert.equal(probe.payload.source, 'payload-from-file');
+  } finally {
+    cleanup();
+  }
+});
+
 // ── 2. Automation-scope auto-append ─────────────────────────────────────
 
 test('mission create triggers mission_created event with cli:auto actor', () => {
@@ -280,9 +315,19 @@ test('geas event log accepts slot ids + user + cli:auto and rejects others', () 
         cwd: dir,
         input: JSON.stringify({ kind: 'actor_probe_bad', actor }),
       });
-      assert.notEqual(r.status, 0, `actor ${JSON.stringify(actor)} should be rejected`);
+      // T2.a (mission-20260427-xIPG1sDY task-002 / AC2): invalid_argument
+      // rotates from legacy exit=1 to category exit=2 (validation) for
+      // every error site in event.ts. Single-system lock-in: the
+      // command's success and error paths both go through emit*.
+      assert.equal(
+        r.status,
+        2,
+        `actor ${JSON.stringify(actor)} must exit 2 (validation) after T2.a; got ${r.status}`,
+      );
       assert.equal(r.json.ok, false);
       assert.equal(r.json.error.code, 'invalid_argument');
+      assert.equal(typeof r.json.error.hint, 'string');
+      assert.ok(!('hints' in r.json.error), 'legacy `hints` plural is gone after T2.a');
     }
   } finally {
     cleanup();
