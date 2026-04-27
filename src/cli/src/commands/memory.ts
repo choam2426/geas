@@ -134,16 +134,34 @@ function readContent(filePath?: string): string {
   }
 }
 
+interface MemorySharedSetInlineOpts {
+  file?: string;
+  bodyFromFile?: string;
+  body?: string;
+}
+
 function registerSharedSet(mem: Command): void {
   mem
     .command('shared-set')
     .description(
-      'Replace `.geas/memory/shared.md` with markdown read from --file or stdin (atomic write).',
+      'Replace `.geas/memory/shared.md` with markdown. Accepts inline --body <text> for short markdown, --body-from-file <path> for prose-heavy content, or full markdown via --file/stdin (atomic write).',
     )
-    .option('--file <path>', 'Read markdown from file instead of stdin')
-    .action((opts: { file?: string }) => {
+    .option('--body <text>', 'Inline markdown body (short prose; AC1 inline-flag path)')
+    .option('--body-from-file <path>', 'Read markdown body from file (named alias for --file per AC1)')
+    .option('--file <path>', 'Read markdown from file (overrides inline body) instead of stdin')
+    .action((opts: MemorySharedSetInlineOpts) => {
       const root = needProjectRoot();
-      const content = readContent(opts.file);
+      // Precedence: --file > --body-from-file > --body > stdin.
+      let content: string;
+      if (opts.file !== undefined) {
+        content = readContent(opts.file);
+      } else if (opts.bodyFromFile !== undefined) {
+        content = readContent(opts.bodyFromFile);
+      } else if (opts.body !== undefined) {
+        content = opts.body.endsWith('\n') ? opts.body : opts.body + '\n';
+      } else {
+        content = readContent(undefined);
+      }
 
       const targetPath = sharedMemoryPath(root);
       atomicWrite(targetPath, content, tmpDir(root));

@@ -69,6 +69,31 @@ test('memory shared-set writes stdin bytes verbatim to shared.md', () => {
   }
 });
 
+test('memory shared-set works inline-flag-only with --body (AC1, task-006 verify-fix)', () => {
+  // AC1 (task-006): memory shared-set must be invokable purely from
+  // inline flags. --body for short content; --body-from-file is the
+  // named alias for --file per AC1.
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    bootstrap(dir);
+    const r = runCli(
+      ['--json', 'memory', 'shared-set', '--body', 'Inline AC1 shared memory body — single-call invocation.'],
+      { cwd: dir },
+    );
+    assert.equal(r.status, 0, `inline-flag shared-set failed: ${r.stderr}\n${r.stdout}`);
+    assert.equal(r.json.ok, true);
+    assert.equal(r.json.data.scope, 'shared');
+    const onDisk = readFile(dir, '.geas/memory/shared.md');
+    // Trailing newline auto-added by the inline path for filesystem hygiene.
+    assert.equal(
+      onDisk,
+      'Inline AC1 shared memory body — single-call invocation.\n',
+    );
+  } finally {
+    cleanup();
+  }
+});
+
 test('memory shared-set is full-replace (not patch): second call overwrites', () => {
   const { dir, cleanup } = makeTempRoot();
   try {

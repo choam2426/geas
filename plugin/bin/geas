@@ -15412,10 +15412,19 @@ function readContent(filePath) {
 }
 function registerSharedSet(mem) {
   mem.command("shared-set").description(
-    "Replace `.geas/memory/shared.md` with markdown read from --file or stdin (atomic write)."
-  ).option("--file <path>", "Read markdown from file instead of stdin").action((opts) => {
+    "Replace `.geas/memory/shared.md` with markdown. Accepts inline --body <text> for short markdown, --body-from-file <path> for prose-heavy content, or full markdown via --file/stdin (atomic write)."
+  ).option("--body <text>", "Inline markdown body (short prose; AC1 inline-flag path)").option("--body-from-file <path>", "Read markdown body from file (named alias for --file per AC1)").option("--file <path>", "Read markdown from file (overrides inline body) instead of stdin").action((opts) => {
     const root = needProjectRoot8();
-    const content = readContent(opts.file);
+    let content;
+    if (opts.file !== void 0) {
+      content = readContent(opts.file);
+    } else if (opts.bodyFromFile !== void 0) {
+      content = readContent(opts.bodyFromFile);
+    } else if (opts.body !== void 0) {
+      content = opts.body.endsWith("\n") ? opts.body : opts.body + "\n";
+    } else {
+      content = readContent(void 0);
+    }
     const targetPath = sharedMemoryPath(root);
     atomicWrite(targetPath, content, tmpDir(root));
     recordEvent(root, {
