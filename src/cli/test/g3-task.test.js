@@ -296,6 +296,80 @@ test('task draft writes a drafted contract and task-state', () => {
   }
 });
 
+test('task draft works inline-flag-only without stdin or --file (AC1, task-006 verify-fix)', () => {
+  // AC1 (task-006): inline-flag-only invokability for the 11 listed core
+  // commands. task draft must work with --title/--goal/etc. without any
+  // stdin or --file payload. Free-body fields (goal, verification_plan)
+  // accept both inline --<field> and --<field>-from-file.
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMissionApproved(dir);
+    const res = runCli(
+      [
+        '--json',
+        'task',
+        'draft',
+        '--mission',
+        MID,
+        '--task-id',
+        'task-001',
+        '--title',
+        'Inline-flag task',
+        '--goal',
+        'Verify task draft works without --file or stdin payload.',
+        '--risk-level',
+        'normal',
+        '--verification-plan',
+        'Run the inline-flag fixture and confirm the contract is written.',
+        '--surface',
+        'src/cli/src/commands/task.ts',
+        '--surface',
+        'src/cli/test/g3-task.test.js',
+        '--acceptance-criterion',
+        'task draft accepts inline flags',
+        '--acceptance-criterion',
+        'goal+verification_plan can be supplied inline',
+        '--primary-worker-type',
+        'software-engineer',
+        '--reviewer',
+        'challenger',
+        '--reviewer',
+        'risk-assessor',
+        '--base-snapshot',
+        'a'.repeat(40),
+        '--dependency',
+        'task-000',
+      ],
+      { cwd: dir },
+    );
+    assert.equal(res.status, 0, `inline-flag task draft failed: ${res.stderr}\n${res.stdout}`);
+    assert.equal(res.json.ok, true);
+    assert.equal(res.json.data.ids.task_id, 'task-001');
+    const contract = readArtifact(
+      dir,
+      `.geas/missions/${MID}/tasks/task-001/contract.json`,
+    );
+    assert.equal(contract.task_id, 'task-001');
+    assert.equal(contract.title, 'Inline-flag task');
+    assert.equal(contract.risk_level, 'normal');
+    assert.deepEqual(contract.surfaces, [
+      'src/cli/src/commands/task.ts',
+      'src/cli/test/g3-task.test.js',
+    ]);
+    assert.deepEqual(contract.acceptance_criteria, [
+      'task draft accepts inline flags',
+      'goal+verification_plan can be supplied inline',
+    ]);
+    assert.deepEqual(contract.routing.required_reviewers, ['challenger', 'risk-assessor']);
+    assert.equal(contract.routing.primary_worker_type, 'software-engineer');
+    assert.deepEqual(contract.dependencies, ['task-000']);
+    assert.equal(contract.approved_by, null);
+    assert.equal(contract.supersedes, null);
+  } finally {
+    cleanup();
+  }
+});
+
 test('task draft rejects schema-invalid payloads', () => {
   const { dir, cleanup } = makeTempRoot();
   try {

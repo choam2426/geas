@@ -13107,10 +13107,67 @@ function generateTaskId(root, missionId) {
   const next = (maxN + 1).toString().padStart(3, "0");
   return `task-${next}`;
 }
+function buildTaskDraftPayloadFromFlags(opts) {
+  const inlineFlagPresent = opts.taskId !== void 0 || opts.title !== void 0 || opts.goal !== void 0 || opts.goalFromFile !== void 0 || opts.riskLevel !== void 0 || opts.verificationPlan !== void 0 || opts.verificationPlanFromFile !== void 0 || Array.isArray(opts.surface) && opts.surface.length > 0 || Array.isArray(opts.dependency) && opts.dependency.length > 0 || Array.isArray(opts.reviewer) && opts.reviewer.length > 0 || opts.primaryWorkerType !== void 0 || Array.isArray(opts.acceptanceCriterion) && opts.acceptanceCriterion.length > 0 || opts.supersedes !== void 0 || opts.baseSnapshot !== void 0 || opts.approvedBy !== void 0;
+  if (!inlineFlagPresent) return null;
+  const payload = {};
+  if (opts.taskId !== void 0) payload.task_id = opts.taskId;
+  if (opts.title !== void 0) payload.title = opts.title;
+  if (opts.goalFromFile !== void 0) {
+    try {
+      payload.goal = readPayloadText(opts.goalFromFile);
+    } catch (e) {
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError("invalid_argument", e.message, {
+            hint: "pass --goal <text> inline or --goal-from-file <path>",
+            exit_category: "validation"
+          })
+        );
+      }
+      throw e;
+    }
+  } else if (opts.goal !== void 0) {
+    payload.goal = opts.goal;
+  }
+  if (opts.riskLevel !== void 0) payload.risk_level = opts.riskLevel;
+  if (opts.verificationPlanFromFile !== void 0) {
+    try {
+      payload.verification_plan = readPayloadText(opts.verificationPlanFromFile);
+    } catch (e) {
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError("invalid_argument", e.message, {
+            hint: "pass --verification-plan <text> inline or --verification-plan-from-file <path>",
+            exit_category: "validation"
+          })
+        );
+      }
+      throw e;
+    }
+  } else if (opts.verificationPlan !== void 0) {
+    payload.verification_plan = opts.verificationPlan;
+  }
+  if (Array.isArray(opts.surface)) payload.surfaces = opts.surface;
+  if (Array.isArray(opts.dependency)) payload.dependencies = opts.dependency;
+  if (Array.isArray(opts.acceptanceCriterion) && opts.acceptanceCriterion.length > 0) {
+    payload.acceptance_criteria = opts.acceptanceCriterion;
+  }
+  if (opts.supersedes !== void 0) payload.supersedes = opts.supersedes;
+  if (opts.baseSnapshot !== void 0) payload.base_snapshot = opts.baseSnapshot;
+  if (opts.approvedBy !== void 0) payload.approved_by = opts.approvedBy;
+  if (opts.primaryWorkerType !== void 0 || Array.isArray(opts.reviewer) && opts.reviewer.length > 0) {
+    payload.routing = {
+      primary_worker_type: opts.primaryWorkerType ?? "software-engineer",
+      required_reviewers: Array.isArray(opts.reviewer) && opts.reviewer.length > 0 ? opts.reviewer : ["challenger"]
+    };
+  }
+  return payload;
+}
 function registerTaskDraft(task) {
   task.command("draft").description(
-    "Create a task contract under a mission (payload via --file or stdin). Writes contract.json + task-state.json (drafted)."
-  ).requiredOption("--mission <id>", "Mission ID").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
+    "Create a task contract under a mission. Accepts inline flags (--title, --goal, --risk-level, --verification-plan, --surface..., --dependency..., --primary-worker-type, --reviewer..., --acceptance-criterion..., --base-snapshot, --supersedes, --approved-by) or a full JSON payload via --file/stdin. Free-body fields (--goal, --verification-plan) also accept --<field>-from-file. Writes contract.json + task-state.json (drafted)."
+  ).requiredOption("--mission <id>", "Mission ID").option("--task-id <id>", "Task id (auto-generated if absent)").option("--title <text>", "Short human-readable label for the task").option("--goal <text>", "Concrete outcome the task is expected to achieve (free-body \u2014 short prose)").option("--goal-from-file <path>", "Read goal markdown/text from file (preferred for prose-heavy free-body)").option("--risk-level <level>", "Risk level: low, normal, high, or critical").option("--verification-plan <text>", "Verification plan (free-body \u2014 short prose)").option("--verification-plan-from-file <path>", "Read verification_plan markdown/text from file").option("--surface <s...>", "Impact surface (repeatable)").option("--dependency <id...>", "Task id dependency (repeatable, task-NNN)").option("--reviewer <slot...>", "Required reviewer slot (repeatable; challenger, risk-assessor, operator, communicator)").option("--primary-worker-type <type>", "Concrete primary worker type (kebab-case; default software-engineer)").option("--acceptance-criterion <text...>", "Acceptance criterion (repeatable)").option("--supersedes <id>", "Task id this contract replaces (task-NNN)").option("--base-snapshot <sha>", "Shared baseline snapshot (e.g. git sha)").option("--approved-by <actor>", "Approver identity (user, decision-maker, or omit for null/drafted)").option("--file <path>", "Read full JSON payload from file (overrides inline flags) instead of stdin").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
       emitErr(
         makeError("invalid_argument", `invalid mission id '${opts.mission}'`, {
@@ -13123,23 +13180,44 @@ function registerTaskDraft(task) {
     const spec = needMissionSpec(root, opts.mission);
     void spec;
     let payload;
-    try {
-      payload = readPayloadJson(opts.file);
-    } catch (e) {
-      if (e instanceof StdinError) {
-        emitErr(
-          makeError("invalid_argument", e.message, {
-            hint: "pass the JSON via --file <path> or pipe through stdin",
-            exit_category: "validation"
-          })
-        );
+    if (opts.file !== void 0) {
+      try {
+        payload = readPayloadJson(opts.file);
+      } catch (e) {
+        if (e instanceof StdinError) {
+          emitErr(
+            makeError("invalid_argument", e.message, {
+              hint: "pass the JSON via --file <path> or use inline flags (--title, --goal, --risk-level, ...)",
+              exit_category: "validation"
+            })
+          );
+        }
+        throw e;
       }
-      throw e;
+    } else {
+      const inline = buildTaskDraftPayloadFromFlags(opts);
+      if (inline !== null) {
+        payload = inline;
+      } else {
+        try {
+          payload = readPayloadJson(void 0);
+        } catch (e) {
+          if (e instanceof StdinError) {
+            emitErr(
+              makeError("invalid_argument", e.message, {
+                hint: "use inline flags (--title, --goal, --risk-level, ...) or pass JSON via --file <path> or stdin",
+                exit_category: "validation"
+              })
+            );
+          }
+          throw e;
+        }
+      }
     }
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
       emitErr(
         makeError("invalid_argument", "task draft expects a JSON object payload", {
-          hint: "pass a single JSON object containing the task contract fields",
+          hint: "pass a single JSON object containing the task contract fields, or use inline flags",
           exit_category: "validation"
         })
       );

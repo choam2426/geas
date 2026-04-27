@@ -56,7 +56,7 @@ import {
   tasksDir,
   tmpDir,
 } from '../lib/paths';
-import { readPayloadJson, StdinError } from '../lib/input';
+import { readPayloadJson, readPayloadText, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 import {
   canTransitionTaskState,
@@ -228,15 +228,141 @@ function generateTaskId(root: string, missionId: string): string {
 
 // ── `geas task draft` (create) ────────────────────────────────────────
 
+interface TaskDraftInlineOpts {
+  mission: string;
+  file?: string;
+  taskId?: string;
+  title?: string;
+  goal?: string;
+  goalFromFile?: string;
+  riskLevel?: string;
+  verificationPlan?: string;
+  verificationPlanFromFile?: string;
+  surface?: string[];
+  dependency?: string[];
+  reviewer?: string[];
+  primaryWorkerType?: string;
+  acceptanceCriterion?: string[];
+  supersedes?: string;
+  baseSnapshot?: string;
+  approvedBy?: string;
+}
+
+/**
+ * AC1 (task-006 verify-fix iteration 1): build a task-contract payload
+ * from inline Commander flags. Free-body fields (goal, verification-plan)
+ * accept both --<field> inline and --<field>-from-file path. Returns null
+ * when no inline flags are present, signaling the caller should fall back
+ * to --file or stdin.
+ */
+function buildTaskDraftPayloadFromFlags(
+  opts: TaskDraftInlineOpts,
+): Record<string, unknown> | null {
+  const inlineFlagPresent =
+    opts.taskId !== undefined ||
+    opts.title !== undefined ||
+    opts.goal !== undefined ||
+    opts.goalFromFile !== undefined ||
+    opts.riskLevel !== undefined ||
+    opts.verificationPlan !== undefined ||
+    opts.verificationPlanFromFile !== undefined ||
+    (Array.isArray(opts.surface) && opts.surface.length > 0) ||
+    (Array.isArray(opts.dependency) && opts.dependency.length > 0) ||
+    (Array.isArray(opts.reviewer) && opts.reviewer.length > 0) ||
+    opts.primaryWorkerType !== undefined ||
+    (Array.isArray(opts.acceptanceCriterion) && opts.acceptanceCriterion.length > 0) ||
+    opts.supersedes !== undefined ||
+    opts.baseSnapshot !== undefined ||
+    opts.approvedBy !== undefined;
+  if (!inlineFlagPresent) return null;
+
+  const payload: Record<string, unknown> = {};
+  if (opts.taskId !== undefined) payload.task_id = opts.taskId;
+  if (opts.title !== undefined) payload.title = opts.title;
+  if (opts.goalFromFile !== undefined) {
+    try {
+      payload.goal = readPayloadText(opts.goalFromFile);
+    } catch (e) {
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError('invalid_argument', e.message, {
+            hint: 'pass --goal <text> inline or --goal-from-file <path>',
+            exit_category: 'validation',
+          }),
+        );
+      }
+      throw e;
+    }
+  } else if (opts.goal !== undefined) {
+    payload.goal = opts.goal;
+  }
+  if (opts.riskLevel !== undefined) payload.risk_level = opts.riskLevel;
+  if (opts.verificationPlanFromFile !== undefined) {
+    try {
+      payload.verification_plan = readPayloadText(opts.verificationPlanFromFile);
+    } catch (e) {
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError('invalid_argument', e.message, {
+            hint: 'pass --verification-plan <text> inline or --verification-plan-from-file <path>',
+            exit_category: 'validation',
+          }),
+        );
+      }
+      throw e;
+    }
+  } else if (opts.verificationPlan !== undefined) {
+    payload.verification_plan = opts.verificationPlan;
+  }
+  if (Array.isArray(opts.surface)) payload.surfaces = opts.surface;
+  if (Array.isArray(opts.dependency)) payload.dependencies = opts.dependency;
+  if (Array.isArray(opts.acceptanceCriterion) && opts.acceptanceCriterion.length > 0) {
+    payload.acceptance_criteria = opts.acceptanceCriterion;
+  }
+  if (opts.supersedes !== undefined) payload.supersedes = opts.supersedes;
+  if (opts.baseSnapshot !== undefined) payload.base_snapshot = opts.baseSnapshot;
+  if (opts.approvedBy !== undefined) payload.approved_by = opts.approvedBy;
+  // routing is required by schema; assemble when primary-worker-type or
+  // any reviewer is supplied.
+  if (
+    opts.primaryWorkerType !== undefined ||
+    (Array.isArray(opts.reviewer) && opts.reviewer.length > 0)
+  ) {
+    payload.routing = {
+      primary_worker_type: opts.primaryWorkerType ?? 'software-engineer',
+      required_reviewers:
+        Array.isArray(opts.reviewer) && opts.reviewer.length > 0
+          ? opts.reviewer
+          : ['challenger'],
+    };
+  }
+  return payload;
+}
+
 function registerTaskDraft(task: Command): void {
   task
     .command('draft')
     .description(
-      'Create a task contract under a mission (payload via --file or stdin). Writes contract.json + task-state.json (drafted).',
+      'Create a task contract under a mission. Accepts inline flags (--title, --goal, --risk-level, --verification-plan, --surface..., --dependency..., --primary-worker-type, --reviewer..., --acceptance-criterion..., --base-snapshot, --supersedes, --approved-by) or a full JSON payload via --file/stdin. Free-body fields (--goal, --verification-plan) also accept --<field>-from-file. Writes contract.json + task-state.json (drafted).',
     )
     .requiredOption('--mission <id>', 'Mission ID')
-    .option('--file <path>', 'Read JSON payload from file instead of stdin')
-    .action((opts: { mission: string; file?: string }) => {
+    .option('--task-id <id>', 'Task id (auto-generated if absent)')
+    .option('--title <text>', 'Short human-readable label for the task')
+    .option('--goal <text>', 'Concrete outcome the task is expected to achieve (free-body — short prose)')
+    .option('--goal-from-file <path>', 'Read goal markdown/text from file (preferred for prose-heavy free-body)')
+    .option('--risk-level <level>', 'Risk level: low, normal, high, or critical')
+    .option('--verification-plan <text>', 'Verification plan (free-body — short prose)')
+    .option('--verification-plan-from-file <path>', 'Read verification_plan markdown/text from file')
+    .option('--surface <s...>', 'Impact surface (repeatable)')
+    .option('--dependency <id...>', 'Task id dependency (repeatable, task-NNN)')
+    .option('--reviewer <slot...>', 'Required reviewer slot (repeatable; challenger, risk-assessor, operator, communicator)')
+    .option('--primary-worker-type <type>', 'Concrete primary worker type (kebab-case; default software-engineer)')
+    .option('--acceptance-criterion <text...>', 'Acceptance criterion (repeatable)')
+    .option('--supersedes <id>', 'Task id this contract replaces (task-NNN)')
+    .option('--base-snapshot <sha>', 'Shared baseline snapshot (e.g. git sha)')
+    .option('--approved-by <actor>', 'Approver identity (user, decision-maker, or omit for null/drafted)')
+    .option('--file <path>', 'Read full JSON payload from file (overrides inline flags) instead of stdin')
+    .action((opts: TaskDraftInlineOpts) => {
       if (!isValidMissionId(opts.mission)) {
         emitErr(
           makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
@@ -253,23 +379,46 @@ function registerTaskDraft(task: Command): void {
       void spec;
 
       let payload: Record<string, unknown>;
-      try {
-        payload = readPayloadJson(opts.file) as Record<string, unknown>;
-      } catch (e) {
-        if (e instanceof StdinError) {
-          emitErr(
-            makeError('invalid_argument', e.message, {
-              hint: 'pass the JSON via --file <path> or pipe through stdin',
-              exit_category: 'validation',
-            }),
-          );
+      // --file always wins (full-payload bypass). Otherwise prefer inline
+      // flags when any inline flag is present; else fall back to stdin.
+      if (opts.file !== undefined) {
+        try {
+          payload = readPayloadJson(opts.file) as Record<string, unknown>;
+        } catch (e) {
+          if (e instanceof StdinError) {
+            emitErr(
+              makeError('invalid_argument', e.message, {
+                hint: 'pass the JSON via --file <path> or use inline flags (--title, --goal, --risk-level, ...)',
+                exit_category: 'validation',
+              }),
+            );
+          }
+          throw e;
         }
-        throw e;
+      } else {
+        const inline = buildTaskDraftPayloadFromFlags(opts);
+        if (inline !== null) {
+          payload = inline;
+        } else {
+          try {
+            payload = readPayloadJson(undefined) as Record<string, unknown>;
+          } catch (e) {
+            if (e instanceof StdinError) {
+              emitErr(
+                makeError('invalid_argument', e.message, {
+                  hint: 'use inline flags (--title, --goal, --risk-level, ...) or pass JSON via --file <path> or stdin',
+                  exit_category: 'validation',
+                }),
+              );
+            }
+            throw e;
+          }
+        }
       }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
         emitErr(
           makeError('invalid_argument', 'task draft expects a JSON object payload', {
-            hint: 'pass a single JSON object containing the task contract fields',
+            hint: 'pass a single JSON object containing the task contract fields, or use inline flags',
             exit_category: 'validation',
           }),
         );
