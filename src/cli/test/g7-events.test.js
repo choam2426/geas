@@ -311,7 +311,10 @@ test('geas event log accepts slot ids + user + cli:auto and rejects others', () 
     }
     const bad = ['', 'Orchestrator', 'SYSTEM', 'weird_actor!', 'cli:unknown:ns'];
     for (const actor of bad) {
-      const r = runCli(['event', 'log'], {
+      // AC3 flip (task-006): use --json so the JSON envelope stays on
+      // stdout for programmatic inspection; default mode now writes
+      // scalar `error: ...` to stderr for migrated commands.
+      const r = runCli(['--json', 'event', 'log'], {
         cwd: dir,
         input: JSON.stringify({ kind: 'actor_probe_bad', actor }),
       });

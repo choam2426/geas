@@ -144,14 +144,15 @@ test('geas context fails clearly when .geas/ is missing — exit 4 (missing_arti
     // carries `hint` (singular) per CliErrorV2 instead of legacy `hints`
     // (plural). Single-system lock-in: this command's success and error
     // paths both flow through output.emit* — no envelope.emit calls
-    // remain.
-    const ctx = runCli(['context'], { cwd: dir });
+    // remain. AC3 flip (task-006): default-mode errors go to stderr
+    // scalar; we use --json here to inspect the JSON envelope.
+    const ctx = runCli(['--json', 'context'], { cwd: dir });
     assert.equal(
       ctx.status,
       4,
       `missing_artifact must exit 4 (category) after T2.a migration; got ${ctx.status}: ${ctx.stdout}`,
     );
-    assert.ok(ctx.json, 'context should still emit a JSON envelope');
+    assert.ok(ctx.json, 'context with --json should emit a JSON envelope');
     assert.equal(ctx.json.ok, false);
     assert.equal(ctx.json.error.code, 'missing_artifact');
     assert.equal(typeof ctx.json.error.hint, 'string', 'AC2 mandates next-step hint on every error');
@@ -160,6 +161,23 @@ test('geas context fails clearly when .geas/ is missing — exit 4 (missing_arti
       !('hints' in ctx.json.error),
       'legacy `hints` (plural) field must not appear in migrated command output',
     );
+  } finally {
+    cleanup();
+  }
+});
+
+test('geas context default mode (no --json) writes scalar error to stderr post-AC3', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    // AC3 (task-006 / mission-20260427-xIPG1sDY): default-mode errors
+    // for migrated commands write `error: ...` + `hint: ...` to stderr,
+    // not the JSON envelope to stdout. Exit code stays category-derived.
+    const ctx = runCli(['context'], { cwd: dir });
+    assert.equal(ctx.status, 4, 'missing_artifact still exits 4 in default mode');
+    assert.equal(ctx.stdout, '', 'default-mode error must not write stdout');
+    assert.match(ctx.stderr, /^error: /m, 'stderr carries the error line');
+    assert.match(ctx.stderr, /^hint: .*geas setup/m, 'stderr carries the hint line');
+    assert.equal(ctx.json, null, 'stdout is empty so JSON parse is null');
   } finally {
     cleanup();
   }
@@ -214,7 +232,10 @@ test('geas schema show dumps the requested schema as JSON', () => {
 test('geas schema show rejects unknown schemas — exit 2 (validation) with hint', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
-    const res = runCli(['schema', 'show', 'not-a-real-schema'], { cwd: dir });
+    // AC3 flip (task-006): use --json to inspect the JSON envelope on
+    // stdout for migrated T2.a commands; default mode now goes to stderr
+    // scalar.
+    const res = runCli(['--json', 'schema', 'show', 'not-a-real-schema'], { cwd: dir });
     // T2.a (mission-20260427-xIPG1sDY task-002 / AC2): invalid_argument
     // rotates from legacy exit=1 to category exit=2 (validation).
     assert.equal(res.status, 2, `invalid_argument must exit 2 after T2.a: got ${res.status}`);
@@ -249,8 +270,10 @@ test('geas state mission-get reports missing artifact cleanly — exit 4 (missin
   const { dir, cleanup } = makeTempRoot();
   try {
     runCli(['setup'], { cwd: dir });
+    // AC3 flip (task-006): --json to inspect the envelope; default mode
+    // now writes scalar error to stderr.
     const res = runCli(
-      ['state', 'mission-get', '--mission', 'mission-20260420-abcdefgh'],
+      ['--json', 'state', 'mission-get', '--mission', 'mission-20260420-abcdefgh'],
       { cwd: dir },
     );
     // T2.a (mission-20260427-xIPG1sDY task-002 / AC2): missing_artifact
@@ -273,8 +296,10 @@ test('geas state mission-get rejects an invalid mission id — exit 2 (validatio
   const { dir, cleanup } = makeTempRoot();
   try {
     runCli(['setup'], { cwd: dir });
+    // AC3 flip (task-006): --json keeps the envelope on stdout; default
+    // mode goes to stderr.
     const res = runCli(
-      ['state', 'mission-get', '--mission', 'not-a-mission-id'],
+      ['--json', 'state', 'mission-get', '--mission', 'not-a-mission-id'],
       { cwd: dir },
     );
     // T2.a / AC2: invalid_argument rotates from legacy exit=1 to
@@ -355,7 +380,8 @@ test('geas state mission-set rejects schema-invalid payloads — exit 2 (validat
     runCli(['setup'], { cwd: dir });
     const mid = 'mission-20260420-abcdefgh';
     const badPayload = JSON.stringify({ phase: 'not-a-valid-phase' });
-    const res = runCli(['state', 'mission-set', '--mission', mid], {
+    // AC3 flip (task-006): --json to inspect the envelope on stdout.
+    const res = runCli(['--json', 'state', 'mission-set', '--mission', mid], {
       cwd: dir,
       input: badPayload,
     });
@@ -500,8 +526,9 @@ test('schema template evidence verification branch differs from review branch', 
 test('schema template evidence --op append rejects missing --kind — exit 2 with hint listing valid kinds', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
+    // AC3 flip (task-006): --json to inspect the JSON envelope on stdout.
     const res = runCli(
-      ['schema', 'template', 'evidence', '--op', 'append'],
+      ['--json', 'schema', 'template', 'evidence', '--op', 'append'],
       { cwd: dir },
     );
     // T2.a / AC2: invalid_argument rotates 1 → 2 (validation). The
@@ -530,8 +557,9 @@ test('schema template evidence --op append rejects missing --kind — exit 2 wit
 test('schema template rejects unknown schema / op / kind — exit 2 (validation) for each', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
+    // AC3 flip (task-006): --json to inspect error envelopes on stdout.
     let res = runCli(
-      ['schema', 'template', 'not-a-schema', '--op', 'create'],
+      ['--json', 'schema', 'template', 'not-a-schema', '--op', 'create'],
       { cwd: dir },
     );
     assert.equal(res.status, 2);
@@ -539,7 +567,7 @@ test('schema template rejects unknown schema / op / kind — exit 2 (validation)
     assert.equal(typeof res.json.error.hint, 'string');
 
     res = runCli(
-      ['schema', 'template', 'mission-spec', '--op', 'nonsense'],
+      ['--json', 'schema', 'template', 'mission-spec', '--op', 'nonsense'],
       { cwd: dir },
     );
     assert.equal(res.status, 2);
@@ -548,7 +576,7 @@ test('schema template rejects unknown schema / op / kind — exit 2 (validation)
     assert.equal(typeof res.json.error.hint, 'string');
 
     res = runCli(
-      ['schema', 'template', 'evidence', '--op', 'append', '--kind', 'bogus'],
+      ['--json', 'schema', 'template', 'evidence', '--op', 'append', '--kind', 'bogus'],
       { cwd: dir },
     );
     assert.equal(res.status, 2);

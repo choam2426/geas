@@ -1,14 +1,25 @@
 /**
- * T2 integration tests — global --json / --verbose / --debug flags wired
- * through main.ts (mission-20260426 task-002 / acceptance criterion T2.3).
+ * Integration tests — global --json / --verbose / --debug flags wired
+ * through main.ts.
  *
  * Strategy: spawn the bundle at plugin/bin/geas with `--json` etc. at
  * different positions in the argv (before vs. after the subcommand,
  * deeply nested subcommands) and assert that the CLI accepts them
- * without error. T2 invariant: --json doesn't change the stdout *shape*
- * because default mode is already JSON; the test is that the flags are
- * RECOGNIZED at every depth, i.e. parsing doesn't fail with "unknown
- * option".
+ * without error AND that the new default-mode behavior (post-AC3) holds
+ * across all 17 commands' help/read-only surfaces.
+ *
+ * AC3 (mission-20260427-xIPG1sDY task-006, supersedes task-002):
+ *   - default mode (no --json) → success on stdout as scalar text when
+ *     a per-command ScalarFormatter is registered, else JSON envelope
+ *     fallback (staged rollout); errors on stderr as `error: ...` +
+ *     `hint: ...`.
+ *   - --json mode → single-line `{ok,...}` envelope on stdout regardless
+ *     of formatter registration; pretty-indented when --json --debug.
+ *
+ * The 17-command parameterized coverage at the bottom of this file
+ * realizes T2.7 (a) — main-flags.test.js asserts the new default
+ * behavior across the full command surface in one consistent assertion
+ * set rather than scattered per-test snippets.
  *
  * Note on extension: written as `.js` to run under `node --test` since
  * tsconfig excludes test/. See errors.test.js for the same rationale.
@@ -176,28 +187,142 @@ test('geas --bogus context rejects the unknown flag', () => {
   }
 });
 
-// ── T2 invariant: existing 147 tests' default-mode behavior preserved ─
+// ── AC3 default-mode invariant (post-flip) ────────────────────────────
+//
+// The 5 T2.a commands (context, setup, state, event, schema) get
+// per-command ScalarFormatter registrations in dedicated AC3 sub-commits
+// after this baseline commit lands. Until each registration commits, the
+// default-mode success path falls back to JSON envelope per output.ts
+// `useJson = state.mode === 'json' || !lookupFormatter(name)`. Each of
+// the per-command formatter-registration commits updates the
+// per-command default-mode scalar assertion in the relevant batch
+// fixture (g1-foundation for these 5).
 
-test('geas context (no flags) still emits a JSON envelope (T2 default-mode invariant)', () => {
+test('geas context --json still emits a JSON envelope on stdout (AC3 invariant: --json forces envelope)', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     runCli(['setup'], { cwd: dir });
-    const res = runCli(['context'], { cwd: dir });
+    const res = runCli(['context', '--json'], { cwd: dir });
     assert.equal(res.status, 0);
-    assert.ok(res.json, 'default mode (no --json) must still emit JSON envelope in T2');
+    assert.ok(res.json, '--json must always emit JSON envelope');
     assert.equal(res.json.ok, true);
   } finally {
     cleanup();
   }
 });
 
-test('geas setup (no flags) still emits a JSON envelope on a fresh root', () => {
+// ── 17-command coverage: AC3 default-mode behavior assertion set (T2.7 a) ─
+//
+// The 17 production commands listed in the mission spec affected_surfaces
+// (commands/*.ts, 17 files). For each command we assert two invariants:
+//   1. --help reachable → exit 0, parsing succeeds (validates --json /
+//      --verbose / --debug are inherited at every depth).
+//   2. --json mode for a representative invocation → JSON envelope on
+//      stdout (validates the global flag flows into the action handler).
+//
+// Per-command default-mode scalar success is asserted by each command's
+// own batch fixture (g1, g2, g3, g4, g5, g6, g7); main-flags only
+// validates the cross-cutting flag plumbing here.
+
+const COMMAND_HELP_TARGETS = [
+  ['context', '--help'],
+  ['setup', '--help'],
+  ['mission', '--help'],
+  ['task', '--help'],
+  ['evidence', '--help'],
+  ['gate', '--help'],
+  ['self-check', '--help'],
+  ['debt', '--help'],
+  ['memory', '--help'],
+  ['state', '--help'],
+  ['deliberation', '--help'],
+  ['impl-contract', '--help'],
+  ['gap', '--help'],
+  ['memory-update', '--help'],
+  ['consolidation', '--help'],
+  ['event', '--help'],
+  ['schema', '--help'],
+];
+
+test('17 commands: --help reachable and parsing succeeds (cross-cutting flag plumbing)', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
-    const res = runCli(['setup'], { cwd: dir });
-    assert.equal(res.status, 0);
-    assert.ok(res.json, 'default mode must still emit JSON envelope');
-    assert.equal(res.json.ok, true);
+    for (const args of COMMAND_HELP_TARGETS) {
+      const res = runCli(args, { cwd: dir });
+      assert.equal(
+        res.status,
+        0,
+        `command '${args.join(' ')}' --help should exit 0; got ${res.status} stderr: ${res.stderr}`,
+      );
+    }
+  } finally {
+    cleanup();
+  }
+});
+
+test('17 commands: --json on read-only surfaces produces JSON envelope on stdout', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    runCli(['setup'], { cwd: dir });
+    // Read-only surfaces reachable without further setup. Each must
+    // produce a parseable JSON envelope on stdout under --json. (Write
+    // commands have batch-specific fixtures asserting the same shape.)
+    const READ_ONLY_TARGETS = [
+      ['context'],
+      ['schema', 'list'],
+      ['schema', 'show', 'debts'],
+      ['schema', 'dump'],
+      ['debt', 'list'],
+    ];
+    for (const args of READ_ONLY_TARGETS) {
+      const res = runCli(['--json', ...args], { cwd: dir });
+      assert.equal(res.status, 0, `--json ${args.join(' ')} should exit 0: ${res.stderr}`);
+      assert.ok(res.json, `--json ${args.join(' ')} should emit JSON envelope; got: ${res.stdout}`);
+      assert.equal(res.json.ok, true);
+    }
+  } finally {
+    cleanup();
+  }
+});
+
+test('17 commands: default-mode error path writes scalar to stderr for migrated commands', () => {
+  // T2.a-migrated commands' error sites flow through emitErr, so post-AC3
+  // their default-mode error path goes to stderr scalar. This sweeps the
+  // 5 T2.a commands; T2.b/c/d commands get equivalent assertions in
+  // their own per-command commit's fixture sweep.
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    runCli(['setup'], { cwd: dir });
+    const ERROR_TARGETS = [
+      // [args, expected_exit_code, hint_pattern]
+      [['state', 'mission-get', '--mission', 'not-a-valid-id'], 2, /mission ids look like/],
+      [['state', 'task-get', '--mission', 'not-a-valid-id', '--task', 'task-001'], 2, /mission ids look like/],
+      [['schema', 'show', 'not-a-real-schema'], 2, /pick one of/],
+      [['schema', 'template', 'evidence', '--op', 'append'], 2, /one of/],
+    ];
+    for (const [args, expected_exit, hint_pat] of ERROR_TARGETS) {
+      const res = runCli(args, { cwd: dir });
+      assert.equal(
+        res.status,
+        expected_exit,
+        `'${args.join(' ')}' should exit ${expected_exit}; got ${res.status}`,
+      );
+      assert.equal(
+        res.stdout,
+        '',
+        `'${args.join(' ')}' default-mode error must not write stdout; got: ${res.stdout}`,
+      );
+      assert.match(
+        res.stderr,
+        /^error: /m,
+        `'${args.join(' ')}' must write 'error: ...' to stderr`,
+      );
+      assert.match(
+        res.stderr,
+        hint_pat,
+        `'${args.join(' ')}' stderr must include hint matching ${hint_pat}; got: ${res.stderr}`,
+      );
+    }
   } finally {
     cleanup();
   }

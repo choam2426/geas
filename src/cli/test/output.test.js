@@ -91,11 +91,15 @@ test('setOutputMode updates only the provided fields (partial update)', () => {
   }
 });
 
-test('getEffectiveJsonMode returns true under T2 invariant (default == JSON)', () => {
+test('getEffectiveJsonMode returns false in default mode and true in json mode (post-AC3)', () => {
   const before = output.getOutputMode();
   try {
     output.setOutputMode({ mode: 'default', verbose: false, debug: false });
-    assert.equal(output.getEffectiveJsonMode(), true);
+    assert.equal(
+      output.getEffectiveJsonMode(),
+      false,
+      'default mode no longer forces JSON post-AC3 (mission-20260427-xIPG1sDY task-006)',
+    );
     output.setOutputMode({ mode: 'json' });
     assert.equal(output.getEffectiveJsonMode(), true);
   } finally {
@@ -148,7 +152,11 @@ test('emitOk in JSON mode produces {ok:true,data} envelope and exits 0', () => {
   assert.deepEqual(res.json.data, { hello: 'world' });
 });
 
-test('emitOk in default mode (T2 invariant) also produces JSON envelope when registry is empty', () => {
+test('emitOk in default mode falls back to JSON envelope when no formatter is registered', () => {
+  // Staged-rollout invariant (post-AC3): unmigrated commands (no
+  // ScalarFormatter registered) still produce a JSON envelope on stdout
+  // in default mode. This keeps partial migrations byte-stable for the
+  // unmigrated subset.
   const snippet = `
     const o = require('${OUTPUT_PATH}');
     o._clearFormatterRegistry();
@@ -262,9 +270,11 @@ test('emitErr omits hint key from envelope when hint is not provided', () => {
   assert.ok(!('hint' in res.json.error), 'hint should not appear when not provided');
 });
 
-test('emitErr in default mode (T2) also writes JSON envelope to stdout', () => {
-  // T2 invariant: default mode falls through to JSON for errors so old
-  // commands keep their exit codes and stdout shape.
+test('emitErr in default mode writes scalar text on stderr (post-AC3)', () => {
+  // AC3 flip (mission-20260427-xIPG1sDY task-006): default mode now writes
+  // `error: <message>` and `hint: <hint>` to STDERR, not the JSON envelope
+  // to stdout. --json mode keeps the envelope on stdout (covered by the
+  // earlier emitErr test). Exit code is still derived from exit_category.
   const snippet = `
     const o = require('${OUTPUT_PATH}');
     o.setOutputMode({ mode: 'default', verbose: false, debug: false });
@@ -276,10 +286,28 @@ test('emitErr in default mode (T2) also writes JSON envelope to stdout', () => {
     });
   `;
   const res = runChild(snippet);
-  assert.equal(res.status, 3);
-  assert.ok(res.json, 'default-mode error should still emit JSON in T2');
-  assert.equal(res.json.ok, false);
-  assert.equal(res.json.error.code, 'guard_failed');
+  assert.equal(res.status, 3, 'exit code stays category-derived (guard=3)');
+  assert.equal(res.stdout, '', 'default-mode error must not write stdout');
+  assert.match(res.stderr, /^error: cannot transition$/m);
+  assert.match(res.stderr, /^hint: check status$/m);
+  assert.equal(res.json, null, 'stdout is empty so JSON parse is null');
+});
+
+test('emitErr in default mode without hint writes only the error line on stderr', () => {
+  const snippet = `
+    const o = require('${OUTPUT_PATH}');
+    o.setOutputMode({ mode: 'default', verbose: false, debug: false });
+    o.emitErr({
+      code: 'internal_error',
+      message: 'no hint case',
+      exit_category: 'internal',
+    });
+  `;
+  const res = runChild(snippet);
+  assert.equal(res.status, 1);
+  assert.equal(res.stdout, '');
+  assert.match(res.stderr, /^error: no hint case$/m);
+  assert.ok(!/hint:/.test(res.stderr), 'hint line absent when hint omitted');
 });
 
 // ── T1 bridge equivalence (mission-20260427-xIPG1sDY task-001) ────────

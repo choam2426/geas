@@ -10784,7 +10784,7 @@ function emitOk(commandName, data) {
 }
 function writeErrEnvelope(error) {
   const state = getOutputMode();
-  if (state.mode === "json" || state.mode === "default") {
+  if (state.mode === "json") {
     const payload = {
       ok: false,
       error: {

@@ -1,20 +1,38 @@
 /**
- * CLI output formatter (T2 / mission-20260426-DbFKlpAr).
+ * CLI output formatter (T2 framework, AC3 flip — mission-20260427-xIPG1sDY
+ * task-006, supersedes task-002).
  *
  * Two-mode emission:
  *
- *   - JSON mode  (--json or T2 default)            single-line envelope
- *                                                  on stdout
- *   - Scalar mode (T3 default once a formatter is  human-readable text on
- *                  registered for the command)     stdout, hint+message
- *                                                  on stderr for errors
+ *   - default mode (no flag, post AC3)           human-readable scalar text
+ *                                                on stdout for success;
+ *                                                `error: <msg>` + `hint: ...`
+ *                                                on stderr for errors.
+ *                                                Falls back to JSON envelope
+ *                                                on stdout for success when
+ *                                                no scalar formatter is
+ *                                                registered for the command
+ *                                                (this preserves the
+ *                                                staged-rollout invariant —
+ *                                                unmigrated commands keep
+ *                                                their old JSON stdout).
+ *   - JSON mode    (--json)                      single-line `{ok,data}` /
+ *                                                `{ok:false,error}` envelope
+ *                                                on stdout regardless of
+ *                                                whether a scalar formatter
+ *                                                is registered.
+ *   - --json --debug                             pretty-indented JSON
+ *                                                envelope on stdout.
  *
- * In T2 the formatter registry is intentionally empty — no command has
- * registered a scalar formatter yet, so even when scalar mode is the
- * "preferred" mode `emitOk()` will fall back to JSON-envelope output.
- * This is what keeps the 147 existing tests green: command stdout shape
- * remains a `{ok:true,data}` JSON envelope until T3 starts registering
- * per-command scalar formatters.
+ * AC3 flip: prior to mission-20260427-xIPG1sDY task-006, default mode
+ * emitted JSON on stdout for both success AND error. The task-006 contract
+ * acceptance criterion T2.3 / mission AC3 require default mode to produce
+ * human-readable text (success on stdout, error on stderr). The success
+ * path retains the empty-registry → JSON fallback so a partial migration
+ * (some commands have ScalarFormatters registered, others don't) is
+ * byte-stable for the unmigrated subset; the error path now uniformly
+ * goes to stderr scalar in default mode (no fallback — error envelopes
+ * have a fixed v2 shape that is always renderable).
  *
  * Module-level mutable state (the registry and the active mode) is
  * intentional: this module is a lifecycle singleton. main.ts captures
@@ -73,17 +91,17 @@ export function getOutputMode(): OutputState {
 }
 
 /**
- * True when the output layer should produce a JSON envelope. In T2 this
- * is always true: `default` is treated as JSON (preserves existing
- * behavior), `json` is explicit JSON. T3 will flip `default` to scalar
- * once per-command formatters are registered.
+ * True when the output layer should force a JSON envelope. Post-AC3
+ * (mission-20260427-xIPG1sDY task-006), this is true only when --json was
+ * explicitly passed. In default mode the function returns false; the
+ * actual stdout shape for success is then decided per command by whether
+ * a ScalarFormatter is registered (registered → scalar text; unregistered
+ * → JSON envelope fallback for staged-rollout byte-stability).
  *
  * Exported so envelope.ts can route `emit()` through the same decision.
  */
 export function getEffectiveJsonMode(): boolean {
-  if (activeState.mode === 'json') return true;
-  // T2 invariant: default == JSON until T3 registers scalar formatters.
-  return true;
+  return activeState.mode === 'json';
 }
 
 // ── Formatter registry ────────────────────────────────────────────────
@@ -178,17 +196,22 @@ export function emitOk(commandName: string, data: unknown): never {
  * NOT call process.exit. Exposed so the legacy envelope.ts bridge can
  * decide its own exit code (legacy {@link
  * import('./envelope').EXIT_CODES} integer) while still routing the
- * stdout shape through the unified output layer's debug + mode logic.
+ * shape through the unified output layer's debug + mode logic.
  *
  * Callers that just want the standard "emit + exit per category"
  * semantics should prefer {@link emitErr}.
+ *
+ * AC3 flip (mission-20260427-xIPG1sDY task-006): default mode now writes
+ * `error: <message>` (and `hint: <hint>` when present) to STDERR, not the
+ * JSON envelope to stdout. --json mode keeps writing the v2 envelope to
+ * stdout. The legacy envelope.ts bridge does NOT call this function —
+ * unmigrated commands route through {@link writeLegacyErrEnvelope} which
+ * unconditionally goes to stdout JSON. So this flip applies only to
+ * commands that have migrated to `makeError` + `emitErr` directly.
  */
 export function writeErrEnvelope(error: CliErrorV2): void {
   const state = getOutputMode();
-  if (state.mode === 'json' || state.mode === 'default') {
-    // T2: default also goes through JSON for back-compat. T3 will
-    // switch the default branch to scalar stderr+stdout once the
-    // command surfaces are migrated.
+  if (state.mode === 'json') {
     const payload: { ok: false; error: { code: string; message: string; hint?: string } } = {
       ok: false,
       error: {
@@ -201,6 +224,7 @@ export function writeErrEnvelope(error: CliErrorV2): void {
     }
     process.stdout.write(jsonStringify(payload, state.debug) + '\n');
   } else {
+    // Default mode: scalar text on stderr (post-AC3).
     process.stderr.write(`error: ${error.message}\n`);
     if (error.hint !== undefined) {
       process.stderr.write(`hint: ${error.hint}\n`);
