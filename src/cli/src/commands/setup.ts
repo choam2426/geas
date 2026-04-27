@@ -21,12 +21,20 @@
  * `geas consolidation scaffold`. There is no project-level candidates
  * file — the old `.geas/candidates.json` bootstrap was unused by any
  * consumer and has been removed.
+ *
+ * T2.a (mission-20260427-xIPG1sDY task-002): migrated off the legacy
+ * envelope.emit/err/ok bridge to call output.emitOk / output.emitErr +
+ * errors.makeError directly. Single-system lock-in: both success and
+ * error paths use the new framework. Per AC2, the io_error from a
+ * filesystem failure rotates to exit_category 'io' (legacy=4, new=5
+ * per EXIT_CATEGORY_CODE).
  */
 
 import type { Command } from 'commander';
 import * as path from 'path';
 import { atomicWrite, atomicWriteJson, ensureDir, exists } from '../lib/fs-atomic';
-import { emit, ok, err } from '../lib/envelope';
+import { emitErr, emitOk } from '../lib/output';
+import { makeError } from '../lib/errors';
 import {
   agentsMemoryDir,
   configPath,
@@ -39,13 +47,15 @@ import {
   tmpDir,
 } from '../lib/paths';
 
+const COMMAND_NAME = 'setup';
+
 function nowUtc(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
 export function registerSetupCommand(program: Command): void {
   program
-    .command('setup')
+    .command(COMMAND_NAME)
     .description('Initialize the .geas/ runtime tree for the current project')
     .action(() => {
       try {
@@ -105,17 +115,20 @@ export function registerSetupCommand(program: Command): void {
           atomicWrite(sharedMemoryPath(root), '');
         });
 
-        emit(
-          ok({
-            project_root: root.replace(/\\/g, '/'),
-            geas_dir: geasDir(root).replace(/\\/g, '/'),
-            created,
-            existed,
-          }),
-        );
+        emitOk(COMMAND_NAME, {
+          project_root: root.replace(/\\/g, '/'),
+          geas_dir: geasDir(root).replace(/\\/g, '/'),
+          created,
+          existed,
+        });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        emit(err('io_error', `setup failed: ${msg}`));
+        emitErr(
+          makeError('io_error', `setup failed: ${msg}`, {
+            hint: 'check filesystem permissions and that the project directory is writable',
+            exit_category: 'io',
+          }),
+        );
       }
     });
 }
