@@ -743,8 +743,10 @@ test('implementing -> reviewing requires schema-valid self-check (G4 tightening)
     );
     assert.equal(r.status, 0);
 
+    // AC3 (task-006): --json envelope for programmatic assertion (task
+    // transition errors now write scalar to stderr in default mode).
     r = runCli(
-      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'reviewing'],
+      ['--json', 'task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'reviewing'],
       { cwd: dir },
     );
     assert.notEqual(r.status, 0);
@@ -828,8 +830,9 @@ test('reviewing -> deciding requires gate-results last run verdict=pass (G4 tigh
     assert.equal(r.status, 0);
     assert.equal(r.json.data.verdict, 'fail');
 
+    // AC3 (task-006): --json envelope for programmatic assertion.
     r = runCli(
-      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'deciding'],
+      ['--json', 'task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'deciding'],
       { cwd: dir },
     );
     assert.notEqual(r.status, 0);
@@ -899,9 +902,10 @@ test('deciding -> passed requires approved closure evidence validating the schem
     );
     assert.equal(r.status, 0);
 
-    // No closure yet — deciding -> passed should fail.
+    // No closure yet — deciding -> passed should fail. AC3 (task-006):
+    // --json envelope for programmatic assertion.
     r = runCli(
-      ['task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'passed'],
+      ['--json', 'task', 'transition', '--mission', MID_STANDARD, '--task', 'task-001', '--to', 'passed'],
       { cwd: dir },
     );
     assert.notEqual(r.status, 0);

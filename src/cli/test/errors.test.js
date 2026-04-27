@@ -158,32 +158,29 @@ test('cliErrorFromException stringifies non-Error throws into internal-category'
   assert.equal(env.exit_category, 'internal');
 });
 
-// ── T1 bridge regression: 17 commands keep legacy EXIT_CODES values ───
+// ── Post-T2.b: `task state` exit codes use new EXIT_CATEGORY_CODE ─────
 //
-// mission-20260427-xIPG1sDY task-001 acceptance criterion T1.5.
-// At T1 merge, all unmigrated commands route their err() emissions
-// through envelope.emit -> the bridge -> output.writeLegacyErrEnvelope,
-// then exit with the LEGACY EXIT_CODES integer. This guards the
-// 17-command "external appearance unchanged" invariant — a regression
-// here means a command's exit code rotated to the new category before
-// its T2 batch lock-in.
-//
-// missing_artifact: legacy=1, new=4. We assert legacy.
+// These tests originally asserted the T1 bridge invariant (`task state`
+// errors stay at legacy exit codes 1) before task.ts was migrated. Per
+// mission-20260427-xIPG1sDY task-006 T2.b, task.ts is now on the new
+// errors framework: missing_artifact rotates to category 4,
+// invalid_argument to category 2 (validation). The test names are kept
+// to preserve the audit trail of the rotation.
 
-test('bridge regression: missing_artifact via a real command exits 1 (legacy), not 4 (new category)', () => {
+test('post-T2.b: missing_artifact via task state exits 4 (new category)', () => {
   // `geas task state --mission ... --task ...` against an unknown task
-  // emits err('missing_artifact', ...). The bridge must keep it at 1.
+  // emits emitErr(makeError('missing_artifact', ...)). Post-T2.b the
+  // exit code is EXIT_CATEGORY_CODE.missing_artifact = 4. AC3
+  // (task-006): default-mode error goes to stderr scalar; we use
+  // --json to inspect the JSON envelope.
   const { dir, cleanup } = makeTempRoot();
   try {
-    // setup must succeed first so .geas/ exists; otherwise the
-    // missing_artifact would be the .geas tree itself, which is also
-    // valid for this test — but explicit setup makes the failure
-    // location clear.
     const r1 = runCli(['setup'], { cwd: dir });
     assert.equal(r1.status, 0, `setup failed: ${r1.stderr}`);
 
     const r2 = runCli(
       [
+        '--json',
         'task',
         'state',
         '--mission',
@@ -195,36 +192,40 @@ test('bridge regression: missing_artifact via a real command exits 1 (legacy), n
     );
     assert.equal(
       r2.status,
-      1,
-      `missing_artifact must exit 1 (legacy) at T1 merge; got ${r2.status}: ${r2.stdout}`,
+      4,
+      `missing_artifact must exit 4 (new category) post-T2.b; got ${r2.status}: ${r2.stdout}`,
     );
     assert.ok(r2.json, `expected JSON envelope on stdout, got: ${r2.stdout}`);
     assert.equal(r2.json.ok, false);
     assert.equal(r2.json.error.code, 'missing_artifact');
+    assert.equal(typeof r2.json.error.hint, 'string', 'AC2 mandates hint on every error');
+    assert.ok(!('hints' in r2.json.error), 'legacy `hints` plural is gone post-T2.b');
   } finally {
     cleanup();
   }
 });
 
-test('bridge regression: invalid_argument via a real command exits 1 (legacy), not 2 (new category)', () => {
-  // invalid_argument: legacy=1, new=2 (validation). Verify legacy at T1.
+test('post-T2.b: invalid_argument via task state exits 2 (validation category)', () => {
+  // invalid_argument rotates 1 → 2 (validation) post-T2.b.
   const { dir, cleanup } = makeTempRoot();
   try {
     const r1 = runCli(['setup'], { cwd: dir });
     assert.equal(r1.status, 0, `setup failed: ${r1.stderr}`);
 
     const r2 = runCli(
-      ['task', 'state', '--mission', 'not-a-mission-id', '--task', 'task-001'],
+      ['--json', 'task', 'state', '--mission', 'not-a-mission-id', '--task', 'task-001'],
       { cwd: dir },
     );
     assert.equal(
       r2.status,
-      1,
-      `invalid_argument must exit 1 (legacy) at T1 merge; got ${r2.status}`,
+      2,
+      `invalid_argument must exit 2 (validation) post-T2.b; got ${r2.status}`,
     );
     assert.ok(r2.json);
     assert.equal(r2.json.ok, false);
     assert.equal(r2.json.error.code, 'invalid_argument');
+    assert.equal(typeof r2.json.error.hint, 'string');
+    assert.ok(!('hints' in r2.json.error));
   } finally {
     cleanup();
   }

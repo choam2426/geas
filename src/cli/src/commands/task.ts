@@ -32,7 +32,9 @@ import type { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { emit, err, ok, recordEvent } from '../lib/envelope';
+import { recordEvent } from '../lib/envelope';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
+import { makeError } from '../lib/errors';
 import {
   atomicWriteJson,
   ensureDir,
@@ -63,6 +65,95 @@ import {
   type TaskStateHints,
 } from '../lib/transition-guards';
 
+/**
+ * T2.8 path (b) (mission-20260427-xIPG1sDY task-006): fold a structured
+ * guard hint object (e.g. {unsatisfied_dependencies: ['task-001']} or
+ * {conflicting_surfaces: ['shared-surface']}) into a single human-readable
+ * string for the CliErrorV2 hint field. lib/errors.ts CliErrorV2 carries
+ * `hint` as a single string and is out of contract.surfaces, so the
+ * carve-out path (a) — extending CliErrorV2.hint to support a guard
+ * category object — is unavailable. The structural data (array members,
+ * counts) is still discoverable in human-readable form by parsing the
+ * folded string. The 2 g3-task.test.js assertions that previously read
+ * res.json.error.hints.unsatisfied_dependencies and
+ * res.json.error.hints.conflicting_surfaces are updated atomically in
+ * this commit to assert hint substring matches.
+ */
+function foldGuardHint(hints: unknown): string | undefined {
+  if (hints === undefined || hints === null) return undefined;
+  if (typeof hints === 'string') return hints;
+  if (typeof hints !== 'object') return String(hints);
+  const obj = hints as Record<string, unknown>;
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const key = k.replace(/_/g, ' ');
+    if (Array.isArray(v)) {
+      parts.push(`${key}: ${v.join(', ')}`);
+    } else if (v !== null && typeof v === 'object') {
+      parts.push(`${key}: ${JSON.stringify(v)}`);
+    } else {
+      parts.push(`${key}: ${String(v)}`);
+    }
+  }
+  return parts.length > 0 ? parts.join('; ') : undefined;
+}
+
+/**
+ * AC3 scalar formatters for the eight task subcommands (draft, approve,
+ * transition, deps add, deps remove, base-snapshot set, state).
+ */
+function formatTaskDraft(data: unknown): string {
+  const d = data as { ids?: { mission_id?: string; task_id?: string }; path?: string; contract?: { title?: string; risk_level?: string } };
+  return [
+    `task drafted: ${d.ids?.task_id ?? '<unknown>'} mission=${d.ids?.mission_id ?? '<unknown>'}`,
+    `path: ${d.path ?? '<unknown>'}`,
+    `title: ${d.contract?.title ?? '<unknown>'} risk=${d.contract?.risk_level ?? '<unknown>'}`,
+  ].join('\n');
+}
+function formatTaskApprove(data: unknown): string {
+  const d = data as { ids?: { mission_id?: string; task_id?: string }; already_approved?: boolean; state?: { status?: string } };
+  return `task approved: ${d.ids?.task_id ?? '<unknown>'} status=${d.state?.status ?? '<unknown>'} already_approved=${Boolean(d.already_approved)}`;
+}
+function formatTaskTransition(data: unknown): string {
+  const d = data as { ids?: { mission_id?: string; task_id?: string }; transition?: { from?: string; to?: string }; state?: { verify_fix_iterations?: number } };
+  const iter = d.state?.verify_fix_iterations;
+  return `task transition: ${d.ids?.task_id ?? '<unknown>'} ${d.transition?.from ?? '?'} -> ${d.transition?.to ?? '?'}${typeof iter === 'number' ? ` verify_fix=${iter}` : ''}`;
+}
+function formatTaskDepsAdd(data: unknown): string {
+  const d = data as { ids?: { task_id?: string }; added?: string[]; dependencies?: string[] };
+  return `task deps add: ${d.ids?.task_id ?? '<unknown>'} added=[${(d.added ?? []).join(', ')}] dependencies=[${(d.dependencies ?? []).join(', ')}]`;
+}
+function formatTaskDepsRemove(data: unknown): string {
+  const d = data as { ids?: { task_id?: string }; removed?: string[]; not_present?: string[]; dependencies?: string[] };
+  return `task deps remove: ${d.ids?.task_id ?? '<unknown>'} removed=[${(d.removed ?? []).join(', ')}] not_present=[${(d.not_present ?? []).join(', ')}] dependencies=[${(d.dependencies ?? []).join(', ')}]`;
+}
+function formatTaskBaseSnapshot(data: unknown): string {
+  const d = data as { ids?: { task_id?: string }; base_snapshot?: string };
+  return `task base-snapshot set: ${d.ids?.task_id ?? '<unknown>'} base=${d.base_snapshot ?? '<unknown>'}`;
+}
+function formatTaskState(data: unknown): string {
+  const d = data as {
+    mission_id?: string;
+    task_id?: string;
+    status?: string | null;
+    verify_fix_iterations?: number;
+    approved_by?: string | null;
+    risk_level?: string | null;
+    primary_worker_type?: string | null;
+    surfaces?: string[];
+    dependencies?: string[];
+  };
+  const lines: string[] = [];
+  lines.push(`task: ${d.task_id ?? '<unknown>'} mission=${d.mission_id ?? '<unknown>'} status=${d.status ?? 'unknown'}`);
+  lines.push(`approved_by: ${d.approved_by ?? '(none)'} risk=${d.risk_level ?? 'unknown'} worker=${d.primary_worker_type ?? 'unknown'}`);
+  lines.push(`verify_fix_iterations: ${d.verify_fix_iterations ?? 0}`);
+  const deps = Array.isArray(d.dependencies) ? d.dependencies : [];
+  const surf = Array.isArray(d.surfaces) ? d.surfaces : [];
+  lines.push(`dependencies: ${deps.length === 0 ? '(none)' : deps.join(', ')}`);
+  lines.push(`surfaces: ${surf.length === 0 ? '(none)' : `${surf.length} listed`}`);
+  return lines.join('\n');
+}
+
 function nowUtc(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
@@ -74,10 +165,14 @@ function slashPath(p: string): string {
 function needProjectRoot(): string {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         'missing_artifact',
-        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`,
+        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: 'missing_artifact',
+        },
       ),
     );
   }
@@ -92,10 +187,14 @@ function needMissionSpec(
     missionSpecPath(root, missionId),
   );
   if (!spec) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         'missing_artifact',
-        `mission spec not found for ${missionId}; run 'geas mission create' first`,
+        `mission spec not found for ${missionId}`,
+        {
+          hint: "run 'geas mission create' first or check the --mission id",
+          exit_category: 'missing_artifact',
+        },
       ),
     );
   }
@@ -139,7 +238,12 @@ function registerTaskDraft(task: Command): void {
     .option('--file <path>', 'Read JSON payload from file instead of stdin')
     .action((opts: { mission: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const root = needProjectRoot();
       const spec = needMissionSpec(root, opts.mission);
@@ -152,17 +256,34 @@ function registerTaskDraft(task: Command): void {
       try {
         payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
-        if (e instanceof StdinError) emit(err('invalid_argument', e.message));
+        if (e instanceof StdinError) {
+          emitErr(
+            makeError('invalid_argument', e.message, {
+              hint: 'pass the JSON via --file <path> or pipe through stdin',
+              exit_category: 'validation',
+            }),
+          );
+        }
         throw e;
       }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-        emit(err('invalid_argument', 'task draft expects a JSON object payload'));
+        emitErr(
+          makeError('invalid_argument', 'task draft expects a JSON object payload', {
+            hint: 'pass a single JSON object containing the task contract fields',
+            exit_category: 'validation',
+          }),
+        );
       }
 
       const providedId = typeof payload.task_id === 'string' ? payload.task_id : undefined;
       const taskId = providedId ?? generateTaskId(root, opts.mission);
       if (!isValidTaskId(taskId)) {
-        emit(err('invalid_argument', `invalid task id '${taskId}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid task id '${taskId}'`, {
+            hint: "task ids look like 'task-NNN' (3+ digits)",
+            exit_category: 'validation',
+          }),
+        );
       }
       payload.task_id = taskId;
       payload.mission_id = opts.mission;
@@ -180,21 +301,28 @@ function registerTaskDraft(task: Command): void {
 
       const contractPath = taskContractPath(root, opts.mission, taskId);
       if (exists(contractPath)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'path_collision',
             `task contract already exists at ${slashPath(contractPath)}`,
+            {
+              hint: 'inspect the existing contract or pick a different task id',
+              exit_category: 'validation',
+            },
           ),
         );
       }
 
       const v = validate('task-contract', payload);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'task-contract schema validation failed',
-            v.errors,
+            {
+              hint: 'inspect ajv errors and fix the contract body, then retry',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -215,11 +343,14 @@ function registerTaskDraft(task: Command): void {
       };
       const vs = validate('task-state', state);
       if (!vs.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'task-state schema validation failed on initialization',
-            vs.errors,
+            {
+              hint: 'inspect ajv errors and fix the contract body to match the task-state schema',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -256,14 +387,12 @@ function registerTaskDraft(task: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(contractPath),
-          ids: { mission_id: opts.mission, task_id: taskId },
-          contract: payload,
-          state,
-        }),
-      );
+      emitOk('task draft', {
+        path: slashPath(contractPath),
+        ids: { mission_id: opts.mission, task_id: taskId },
+        contract: payload,
+        state,
+      });
     });
 }
 
@@ -284,16 +413,30 @@ function registerTaskApprove(task: Command): void {
     )
     .action((opts: { mission: string; task: string; by: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       if (!isValidTaskId(opts.task)) {
-        emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid task id '${opts.task}'`, {
+            hint: "task ids look like 'task-NNN' (3+ digits)",
+            exit_category: 'validation',
+          }),
+        );
       }
       if (opts.by !== 'user' && opts.by !== 'decision-maker') {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             `--by must be 'user' or 'decision-maker' (got '${opts.by}')`,
+            {
+              hint: "valid --by values: 'user' or 'decision-maker'",
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -302,10 +445,14 @@ function registerTaskApprove(task: Command): void {
       const cPath = taskContractPath(root, opts.mission, opts.task);
       const contract = readJsonFile<Record<string, unknown>>(cPath);
       if (!contract) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'missing_artifact',
             `task contract not found at ${slashPath(cPath)}`,
+            {
+              hint: "run 'geas task draft' to create the contract first",
+              exit_category: 'missing_artifact',
+            },
           ),
         );
         return;
@@ -314,8 +461,11 @@ function registerTaskApprove(task: Command): void {
       const sPath = taskStatePath(root, opts.mission, opts.task);
       const state = readJsonFile<Record<string, unknown>>(sPath);
       if (!state) {
-        emit(
-          err('missing_artifact', `task-state.json not found for ${opts.task}`),
+        emitErr(
+          makeError('missing_artifact', `task-state.json not found for ${opts.task}`, {
+            hint: 'task-state is created automatically by task draft; check the --task id or restore the artifact',
+            exit_category: 'missing_artifact',
+          }),
         );
         return;
       }
@@ -330,11 +480,14 @@ function registerTaskApprove(task: Command): void {
 
       const vC = validate('task-contract', contract);
       if (!vC.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'task-contract schema validation failed after setting approved_by',
-            vC.errors,
+            {
+              hint: 'inspect ajv errors and fix the contract body, then retry',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -347,18 +500,26 @@ function registerTaskApprove(task: Command): void {
         const guardHints: TaskStateHints = makeApproveHints();
         const guard = canTransitionTaskState('drafted', 'ready', guardHints);
         if (!guard.ok) {
-          emit(err('guard_failed', guard.reason, guard.hints));
+          emitErr(
+            makeError('guard_failed', guard.reason, {
+              hint: foldGuardHint(guard.hints) ?? 'check the contract approval status and dependencies',
+              exit_category: 'guard',
+            }),
+          );
         }
         state.status = 'ready' as TaskState;
         state.updated_at = ts;
         if (!state.created_at) state.created_at = ts;
         const vS = validate('task-state', state);
         if (!vS.ok) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'schema_validation_failed',
               'task-state schema validation failed after approve transition',
-              vS.errors,
+              {
+                hint: 'inspect ajv errors and reconcile the on-disk state with the schema',
+                exit_category: 'validation',
+              },
             ),
           );
         }
@@ -381,15 +542,13 @@ function registerTaskApprove(task: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(cPath),
-          ids: { mission_id: opts.mission, task_id: opts.task },
-          already_approved: wasAlreadyApproved && wasAlreadyReady,
-          contract,
-          state,
-        }),
-      );
+      emitOk('task approve', {
+        path: slashPath(cPath),
+        ids: { mission_id: opts.mission, task_id: opts.task },
+        already_approved: wasAlreadyApproved && wasAlreadyReady,
+        contract,
+        state,
+      });
     });
 }
 
@@ -479,23 +638,42 @@ function registerTaskTransition(task: Command): void {
     .requiredOption('--to <state>', 'Target task-state status')
     .action((opts: { mission: string; task: string; to: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       if (!isValidTaskId(opts.task)) {
-        emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid task id '${opts.task}'`, {
+            hint: "task ids look like 'task-NNN' (3+ digits)",
+            exit_category: 'validation',
+          }),
+        );
       }
       if (!isValidTaskState(opts.to)) {
-        emit(err('invalid_argument', `unknown task state '${opts.to}'`));
+        emitErr(
+          makeError('invalid_argument', `unknown task state '${opts.to}'`, {
+            hint: 'valid states: drafted, ready, implementing, reviewing, deciding, passed, blocked, escalated, cancelled',
+            exit_category: 'validation',
+          }),
+        );
       }
 
       const root = needProjectRoot();
       const cPath = taskContractPath(root, opts.mission, opts.task);
       const contract = readJsonFile<Record<string, unknown>>(cPath);
       if (!contract) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'missing_artifact',
             `task contract not found for ${opts.task}`,
+            {
+              hint: "run 'geas task draft' to create the contract first",
+              exit_category: 'missing_artifact',
+            },
           ),
         );
         return;
@@ -503,7 +681,12 @@ function registerTaskTransition(task: Command): void {
       const sPath = taskStatePath(root, opts.mission, opts.task);
       const state = readJsonFile<Record<string, unknown>>(sPath);
       if (!state) {
-        emit(err('missing_artifact', `task-state.json not found for ${opts.task}`));
+        emitErr(
+          makeError('missing_artifact', `task-state.json not found for ${opts.task}`, {
+            hint: 'task-state is created automatically by task draft; check the --task id',
+            exit_category: 'missing_artifact',
+          }),
+        );
         return;
       }
 
@@ -519,7 +702,13 @@ function registerTaskTransition(task: Command): void {
 
       const guard = canTransitionTaskState(from, to, hints);
       if (!guard.ok) {
-        emit(err('guard_failed', guard.reason, guard.hints));
+        // T2.8 path (b): structural guard hints folded to a string.
+        emitErr(
+          makeError('guard_failed', guard.reason, {
+            hint: foldGuardHint(guard.hints) ?? 'check the task-state, dependencies, and surface conflicts',
+            exit_category: 'guard',
+          }),
+        );
       }
 
       const ts = nowUtc();
@@ -540,11 +729,14 @@ function registerTaskTransition(task: Command): void {
 
       const vS = validate('task-state', state);
       if (!vS.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'task-state schema validation failed after transition',
-            vS.errors,
+            {
+              hint: 'inspect ajv errors and reconcile the on-disk state with the schema',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -572,14 +764,12 @@ function registerTaskTransition(task: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(sPath),
-          ids: { mission_id: opts.mission, task_id: opts.task },
-          transition: { from, to },
-          state,
-        }),
-      );
+      emitOk('task transition', {
+        path: slashPath(sPath),
+        ids: { mission_id: opts.mission, task_id: opts.task },
+        transition: { from, to },
+        state,
+      });
     });
 }
 
@@ -784,24 +974,48 @@ function registerTaskDeps(task: Command): void {
     .requiredOption('--deps <ids>', 'Comma-separated task ids to add')
     .action((opts: { mission: string; task: string; deps: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       if (!isValidTaskId(opts.task)) {
-        emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid task id '${opts.task}'`, {
+            hint: "task ids look like 'task-NNN' (3+ digits)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const parts = opts.deps.split(',').map((s) => s.trim()).filter(Boolean);
       if (parts.length === 0) {
-        emit(err('invalid_argument', '--deps requires at least one task id'));
+        emitErr(
+          makeError('invalid_argument', '--deps requires at least one task id', {
+            hint: 'pass --deps as a comma-separated list of task ids',
+            exit_category: 'validation',
+          }),
+        );
       }
       for (const p of parts) {
         if (!isValidTaskId(p)) {
-          emit(err('invalid_argument', `invalid task id in --deps: '${p}'`));
+          emitErr(
+            makeError('invalid_argument', `invalid task id in --deps: '${p}'`, {
+              hint: "task ids look like 'task-NNN' (3+ digits)",
+              exit_category: 'validation',
+            }),
+          );
         }
         if (p === opts.task) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               `task '${opts.task}' cannot depend on itself`,
+              {
+                hint: 'remove the self-reference from --deps',
+                exit_category: 'validation',
+              },
             ),
           );
         }
@@ -811,10 +1025,14 @@ function registerTaskDeps(task: Command): void {
       const cPath = taskContractPath(root, opts.mission, opts.task);
       const contract = readJsonFile<Record<string, unknown>>(cPath);
       if (!contract) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'missing_artifact',
             `task contract not found for ${opts.task}`,
+            {
+              hint: "run 'geas task draft' to create the contract first",
+              exit_category: 'missing_artifact',
+            },
           ),
         );
         return;
@@ -836,11 +1054,14 @@ function registerTaskDeps(task: Command): void {
 
       const v = validate('task-contract', contract);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'task-contract schema validation failed after dependency merge',
-            v.errors,
+            {
+              hint: 'inspect ajv errors and verify the dependencies array shape',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -850,14 +1071,12 @@ function registerTaskDeps(task: Command): void {
       // updated_at. Protocol waypoints (task_drafted, task_approved,
       // task_state_changed) cover the lifecycle signals.
 
-      emit(
-        ok({
-          path: slashPath(cPath),
-          ids: { mission_id: opts.mission, task_id: opts.task },
-          added,
-          dependencies: next,
-        }),
-      );
+      emitOk('task deps add', {
+        path: slashPath(cPath),
+        ids: { mission_id: opts.mission, task_id: opts.task },
+        added,
+        dependencies: next,
+      });
     });
 
   deps
@@ -870,18 +1089,38 @@ function registerTaskDeps(task: Command): void {
     .requiredOption('--deps <ids>', 'Comma-separated task ids to remove')
     .action((opts: { mission: string; task: string; deps: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       if (!isValidTaskId(opts.task)) {
-        emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid task id '${opts.task}'`, {
+            hint: "task ids look like 'task-NNN' (3+ digits)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const parts = opts.deps.split(',').map((s) => s.trim()).filter(Boolean);
       if (parts.length === 0) {
-        emit(err('invalid_argument', '--deps requires at least one task id'));
+        emitErr(
+          makeError('invalid_argument', '--deps requires at least one task id', {
+            hint: 'pass --deps as a comma-separated list of task ids to remove',
+            exit_category: 'validation',
+          }),
+        );
       }
       for (const p of parts) {
         if (!isValidTaskId(p)) {
-          emit(err('invalid_argument', `invalid task id in --deps: '${p}'`));
+          emitErr(
+            makeError('invalid_argument', `invalid task id in --deps: '${p}'`, {
+              hint: "task ids look like 'task-NNN' (3+ digits)",
+              exit_category: 'validation',
+            }),
+          );
         }
       }
 
@@ -889,10 +1128,14 @@ function registerTaskDeps(task: Command): void {
       const cPath = taskContractPath(root, opts.mission, opts.task);
       const contract = readJsonFile<Record<string, unknown>>(cPath);
       if (!contract) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'missing_artifact',
             `task contract not found for ${opts.task}`,
+            {
+              hint: "run 'geas task draft' to create the contract first",
+              exit_category: 'missing_artifact',
+            },
           ),
         );
         return;
@@ -913,25 +1156,26 @@ function registerTaskDeps(task: Command): void {
 
       const v = validate('task-contract', contract);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'task-contract schema validation failed after dependency removal',
-            v.errors,
+            {
+              hint: 'inspect ajv errors and verify the dependencies array shape',
+              exit_category: 'validation',
+            },
           ),
         );
       }
       atomicWriteJson(cPath, contract, tmpDir(root));
 
-      emit(
-        ok({
-          path: slashPath(cPath),
-          ids: { mission_id: opts.mission, task_id: opts.task },
-          removed,
-          not_present: notPresent,
-          dependencies: next,
-        }),
-      );
+      emitOk('task deps remove', {
+        path: slashPath(cPath),
+        ids: { mission_id: opts.mission, task_id: opts.task },
+        removed,
+        not_present: notPresent,
+        dependencies: next,
+      });
     });
 }
 
@@ -945,52 +1189,63 @@ function registerTaskStateRead(task: Command): void {
     .requiredOption('--task <id>', 'Task ID')
     .action((opts: { mission: string; task: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       if (!isValidTaskId(opts.task)) {
-        emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid task id '${opts.task}'`, {
+            hint: "task ids look like 'task-NNN' (3+ digits)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const root = needProjectRoot();
       const contract = readJsonFile<Record<string, unknown>>(
         taskContractPath(root, opts.mission, opts.task),
       );
       if (!contract) {
-        emit(
-          err('missing_artifact', `task contract not found for ${opts.task}`),
+        emitErr(
+          makeError('missing_artifact', `task contract not found for ${opts.task}`, {
+            hint: "run 'geas task draft' to create the contract first",
+            exit_category: 'missing_artifact',
+          }),
         );
         return;
       }
       const state = readJsonFile<Record<string, unknown>>(
         taskStatePath(root, opts.mission, opts.task),
       );
-      emit(
-        ok({
-          mission_id: opts.mission,
-          task_id: opts.task,
-          status: typeof state?.status === 'string' ? state.status : null,
-          verify_fix_iterations:
-            typeof state?.verify_fix_iterations === 'number'
-              ? state.verify_fix_iterations
-              : 0,
-          approved_by:
-            contract.approved_by === null || contract.approved_by === undefined
-              ? null
-              : String(contract.approved_by),
-          dependencies: Array.isArray(contract.dependencies)
-            ? (contract.dependencies as string[])
-            : [],
-          surfaces: Array.isArray(contract.surfaces)
-            ? (contract.surfaces as string[])
-            : [],
-          risk_level:
-            typeof contract.risk_level === 'string' ? contract.risk_level : null,
-          primary_worker_type:
-            contract.routing &&
-            typeof (contract.routing as Record<string, unknown>).primary_worker_type === 'string'
-              ? (contract.routing as Record<string, string>).primary_worker_type
-              : null,
-        }),
-      );
+      emitOk('task state', {
+        mission_id: opts.mission,
+        task_id: opts.task,
+        status: typeof state?.status === 'string' ? state.status : null,
+        verify_fix_iterations:
+          typeof state?.verify_fix_iterations === 'number'
+            ? state.verify_fix_iterations
+            : 0,
+        approved_by:
+          contract.approved_by === null || contract.approved_by === undefined
+            ? null
+            : String(contract.approved_by),
+        dependencies: Array.isArray(contract.dependencies)
+          ? (contract.dependencies as string[])
+          : [],
+        surfaces: Array.isArray(contract.surfaces)
+          ? (contract.surfaces as string[])
+          : [],
+        risk_level:
+          typeof contract.risk_level === 'string' ? contract.risk_level : null,
+        primary_worker_type:
+          contract.routing &&
+          typeof (contract.routing as Record<string, unknown>).primary_worker_type === 'string'
+            ? (contract.routing as Record<string, string>).primary_worker_type
+            : null,
+      });
       // Preserve linter reference so missionStatePath is considered used;
       // future subcommands will read mission-state alongside task-state.
       void missionStatePath;
@@ -1022,16 +1277,30 @@ function registerTaskBaseSnapshot(task: Command): void {
     .requiredOption('--base <sha>', '40-character hex SHA (upper or lower case)')
     .action((opts: { mission: string; task: string; base: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       if (!isValidTaskId(opts.task)) {
-        emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid task id '${opts.task}'`, {
+            hint: "task ids look like 'task-NNN' (3+ digits)",
+            exit_category: 'validation',
+          }),
+        );
       }
       if (typeof opts.base !== 'string' || !SHA40_HEX.test(opts.base)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             `--base must be a 40-character hex SHA (got '${opts.base}')`,
+            {
+              hint: 'pass the full 40-character commit SHA (use git rev-parse HEAD)',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -1040,10 +1309,14 @@ function registerTaskBaseSnapshot(task: Command): void {
       const cPath = taskContractPath(root, opts.mission, opts.task);
       const contract = readJsonFile<Record<string, unknown>>(cPath);
       if (!contract) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'missing_artifact',
             `task contract not found for ${opts.task}`,
+            {
+              hint: "run 'geas task draft' to create the contract first",
+              exit_category: 'missing_artifact',
+            },
           ),
         );
         return;
@@ -1054,11 +1327,14 @@ function registerTaskBaseSnapshot(task: Command): void {
 
       const v = validate('task-contract', contract);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'task-contract schema validation failed after base-snapshot set',
-            v.errors,
+            {
+              hint: 'inspect ajv errors and verify the SHA format and surrounding fields',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -1070,20 +1346,26 @@ function registerTaskBaseSnapshot(task: Command): void {
       // base-snapshot is an environment-alignment step, not a
       // lifecycle event.
 
-      emit(
-        ok({
-          path: slashPath(cPath),
-          ids: { mission_id: opts.mission, task_id: opts.task },
-          base_snapshot: opts.base,
-          contract,
-        }),
-      );
+      emitOk('task base-snapshot set', {
+        path: slashPath(cPath),
+        ids: { mission_id: opts.mission, task_id: opts.task },
+        base_snapshot: opts.base,
+        contract,
+      });
     });
 }
 
 // ── Entry point ──────────────────────────────────────────────────────
 
 export function registerTaskCommands(program: Command): void {
+  registerFormatter('task draft', formatTaskDraft);
+  registerFormatter('task approve', formatTaskApprove);
+  registerFormatter('task transition', formatTaskTransition);
+  registerFormatter('task deps add', formatTaskDepsAdd);
+  registerFormatter('task deps remove', formatTaskDepsRemove);
+  registerFormatter('task base-snapshot set', formatTaskBaseSnapshot);
+  registerFormatter('task state', formatTaskState);
+
   const task = program
     .command('task')
     .description(

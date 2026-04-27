@@ -263,7 +263,8 @@ test('task draft writes a drafted contract and task-state', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMissionApproved(dir);
-    const res = runCli(['task', 'draft', '--mission', MID], {
+    // AC3 (task-006): --json envelope for programmatic assertion.
+    const res = runCli(['--json', 'task', 'draft', '--mission', MID], {
       cwd: dir,
       input: JSON.stringify(draftContract()),
       env: { GEAS_MOCK_TASK_ID: 'task-001' },
@@ -299,7 +300,8 @@ test('task draft rejects schema-invalid payloads', () => {
   try {
     setupMissionApproved(dir);
     const bad = draftContract({ risk_level: 'reckless' });
-    const res = runCli(['task', 'draft', '--mission', MID], {
+    // AC3 (task-006): --json envelope for programmatic assertion.
+    const res = runCli(['--json', 'task', 'draft', '--mission', MID], {
       cwd: dir,
       input: JSON.stringify(bad),
       env: { GEAS_MOCK_TASK_ID: 'task-001' },
@@ -317,7 +319,8 @@ test('task draft rejects missing required fields', () => {
   try {
     setupMissionApproved(dir);
     const incomplete = { title: 'x' }; // missing goal, risk_level, etc.
-    const res = runCli(['task', 'draft', '--mission', MID], {
+    // AC3 (task-006): --json envelope for programmatic assertion.
+    const res = runCli(['--json', 'task', 'draft', '--mission', MID], {
       cwd: dir,
       input: JSON.stringify(incomplete),
       env: { GEAS_MOCK_TASK_ID: 'task-001' },
@@ -395,9 +398,10 @@ test('transition drafted -> implementing rejected (must go through ready)', () =
       input: JSON.stringify(draftContract()),
       env: { GEAS_MOCK_TASK_ID: 'task-001' },
     });
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const res = runCli(
       [
-        'task', 'transition', '--mission', MID, '--task', 'task-001',
+        '--json', 'task', 'transition', '--mission', MID, '--task', 'task-001',
         '--to', 'implementing',
       ],
       { cwd: dir },
@@ -433,9 +437,10 @@ test('transition ready -> implementing rejected when dependencies not passed', (
     });
     runCli(['task', 'approve', '--mission', MID, '--task', 'task-002'], { cwd: dir });
 
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const res = runCli(
       [
-        'task', 'transition', '--mission', MID, '--task', 'task-002',
+        '--json', 'task', 'transition', '--mission', MID, '--task', 'task-002',
         '--to', 'implementing',
       ],
       { cwd: dir },
@@ -443,9 +448,24 @@ test('transition ready -> implementing rejected when dependencies not passed', (
     assert.notEqual(res.status, 0);
     assert.equal(res.json.error.code, 'guard_failed');
     assert.match(res.json.error.message, /dependency/);
-    assert.deepEqual(
-      res.json.error.hints.unsatisfied_dependencies,
-      ['task-001'],
+    // T2.8 path (b) (task-006): the structured guard hint
+    // {unsatisfied_dependencies: ['task-001']} from
+    // canTransitionTaskState is folded into the singular `hint` string
+    // by foldGuardHint in commands/task.ts. The structural data
+    // (task-001 dependency name) is preserved in human-readable form;
+    // callers parse the hint substring instead of an array. The
+    // alternative path (a) — extending CliErrorV2.hint to support
+    // guard-category structured objects — would have required modifying
+    // lib/errors.ts which is out of contract.surfaces for task-006.
+    assert.equal(typeof res.json.error.hint, 'string');
+    assert.match(
+      res.json.error.hint,
+      /unsatisfied dependencies: task-001/,
+      `expected hint to mention 'unsatisfied dependencies: task-001'; got: ${res.json.error.hint}`,
+    );
+    assert.ok(
+      !('hints' in res.json.error),
+      'legacy structured `hints` plural is gone post-T2.b',
     );
   } finally {
     cleanup();
@@ -579,8 +599,9 @@ test('implementing -> reviewing rejected without self-check', () => {
       ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'implementing'],
       { cwd: dir },
     );
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const res = runCli(
-      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'reviewing'],
+      ['--json', 'task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'reviewing'],
       { cwd: dir },
     );
     assert.notEqual(res.status, 0);
@@ -678,9 +699,10 @@ test('cancelled and passed are terminal; further transitions rejected', () => {
       { cwd: dir },
     );
     assert.equal(r.status, 0, `drafted->cancelled failed: ${r.stderr}`);
-    // attempt cancelled -> ready should fail
+    // attempt cancelled -> ready should fail. AC3 (task-006): --json
+    // envelope for programmatic assertion.
     r = runCli(
-      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'ready'],
+      ['--json', 'task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'ready'],
       { cwd: dir },
     );
     assert.notEqual(r.status, 0);
@@ -715,9 +737,10 @@ test('escalated branch: blocked -> escalated -> passed (closure approved)', () =
     );
     assert.equal(r.status, 0, `blocked->escalated failed: ${r.stderr}`);
 
-    // No closure yet — escalated->passed rejected
+    // No closure yet — escalated->passed rejected. AC3 (task-006):
+    // --json envelope for programmatic assertion.
     r = runCli(
-      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'passed'],
+      ['--json', 'task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'passed'],
       { cwd: dir },
     );
     assert.notEqual(r.status, 0);
@@ -802,8 +825,9 @@ test('unknown task state is rejected at argument parsing', () => {
       env: { GEAS_MOCK_TASK_ID: 'task-001' },
     });
     runCli(['task', 'approve', '--mission', MID, '--task', 'task-001'], { cwd: dir });
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const res = runCli(
-      ['task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'dancing'],
+      ['--json', 'task', 'transition', '--mission', MID, '--task', 'task-001', '--to', 'dancing'],
       { cwd: dir },
     );
     assert.notEqual(res.status, 0);
@@ -838,17 +862,29 @@ test('surface-overlap conflict blocks second ready -> implementing', () => {
     );
     assert.equal(r.status, 0, `first implementing failed: ${r.stderr}`);
 
-    // task-002 must fail.
+    // task-002 must fail. AC3 (task-006): --json envelope for assertion.
     r = runCli(
-      ['task', 'transition', '--mission', MID, '--task', 'task-002', '--to', 'implementing'],
+      ['--json', 'task', 'transition', '--mission', MID, '--task', 'task-002', '--to', 'implementing'],
       { cwd: dir },
     );
     assert.notEqual(r.status, 0);
     assert.equal(r.json.error.code, 'guard_failed');
     assert.match(r.json.error.message, /surface/);
-    assert.deepEqual(
-      r.json.error.hints.conflicting_surfaces,
-      ['shared-surface'],
+    // T2.8 path (b) (task-006): the structured guard hint
+    // {conflicting_surfaces: ['shared-surface']} from
+    // canTransitionTaskState is folded into the singular `hint` string
+    // by foldGuardHint in commands/task.ts. Same rationale as the
+    // unsatisfied_dependencies test above — lib/errors.ts is out of
+    // contract.surfaces so the carve-out path (a) is unavailable.
+    assert.equal(typeof r.json.error.hint, 'string');
+    assert.match(
+      r.json.error.hint,
+      /conflicting surfaces: shared-surface/,
+      `expected hint to mention 'conflicting surfaces: shared-surface'; got: ${r.json.error.hint}`,
+    );
+    assert.ok(
+      !('hints' in r.json.error),
+      'legacy structured `hints` plural is gone post-T2.b',
     );
   } finally {
     cleanup();
@@ -864,8 +900,9 @@ test('task deps add merges deduplicated dependencies', () => {
       input: JSON.stringify(draftContract({ dependencies: ['task-001'] })),
       env: { GEAS_MOCK_TASK_ID: 'task-002' },
     });
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const r = runCli(
-      ['task', 'deps', 'add', '--mission', MID, '--task', 'task-002',
+      ['--json', 'task', 'deps', 'add', '--mission', MID, '--task', 'task-002',
        '--deps', 'task-001,task-003'],
       { cwd: dir },
     );
@@ -889,8 +926,9 @@ test('task deps remove drops listed deps and reports missing ones', () => {
       env: { GEAS_MOCK_TASK_ID: 'task-002' },
     });
     // Remove one present + one absent. Present is dropped; absent reported.
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const r = runCli(
-      ['task', 'deps', 'remove', '--mission', MID, '--task', 'task-002',
+      ['--json', 'task', 'deps', 'remove', '--mission', MID, '--task', 'task-002',
        '--deps', 'task-001,task-099'],
       { cwd: dir },
     );
@@ -901,7 +939,7 @@ test('task deps remove drops listed deps and reports missing ones', () => {
 
     // Re-running with the same args is idempotent: nothing removed, same list.
     const r2 = runCli(
-      ['task', 'deps', 'remove', '--mission', MID, '--task', 'task-002',
+      ['--json', 'task', 'deps', 'remove', '--mission', MID, '--task', 'task-002',
        '--deps', 'task-001'],
       { cwd: dir },
     );
@@ -923,8 +961,9 @@ test('task deps remove rejects invalid task ids in --deps', () => {
       input: JSON.stringify(draftContract()),
       env: { GEAS_MOCK_TASK_ID: 'task-002' },
     });
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const r = runCli(
-      ['task', 'deps', 'remove', '--mission', MID, '--task', 'task-002',
+      ['--json', 'task', 'deps', 'remove', '--mission', MID, '--task', 'task-002',
        '--deps', 'not-a-task-id'],
       { cwd: dir },
     );
@@ -939,7 +978,8 @@ test('GEAS_MOCK_TASK_ID env var produces deterministic ids', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMissionApproved(dir);
-    const r = runCli(['task', 'draft', '--mission', MID], {
+    // AC3 (task-006): --json envelope for programmatic assertion.
+    const r = runCli(['--json', 'task', 'draft', '--mission', MID], {
       cwd: dir,
       input: JSON.stringify(draftContract()),
       env: { GEAS_MOCK_TASK_ID: 'task-042' },
@@ -973,8 +1013,9 @@ test('task state summary reports contract fields and task-state status', () => {
     });
     runCli(['task', 'approve', '--mission', MID, '--task', 'task-007'], { cwd: dir });
 
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const r = runCli(
-      ['task', 'state', '--mission', MID, '--task', 'task-007'],
+      ['--json', 'task', 'state', '--mission', MID, '--task', 'task-007'],
       { cwd: dir },
     );
     assert.equal(r.status, 0);
@@ -1030,9 +1071,10 @@ test('task base-snapshot set accepts a 40-hex SHA and updates contract.base_snap
   const { dir, cleanup } = makeTempRoot();
   try {
     const tid = setupTaskInDrafted(dir);
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const res = runCli(
       [
-        'task',
+        '--json', 'task',
         'base-snapshot',
         'set',
         '--mission',
@@ -1106,9 +1148,10 @@ test('task base-snapshot set rejects malformed SHAs without mutating the contrac
       '',
     ];
     for (const bad of badInputs) {
+      // AC3 (task-006): --json envelope for programmatic assertion.
       const res = runCli(
         [
-          'task',
+          '--json', 'task',
           'base-snapshot',
           'set',
           '--mission',
@@ -1157,9 +1200,10 @@ test('task base-snapshot set surfaces missing_artifact for unknown task', () => 
   const { dir, cleanup } = makeTempRoot();
   try {
     setupMissionApproved(dir);
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const res = runCli(
       [
-        'task',
+        '--json', 'task',
         'base-snapshot',
         'set',
         '--mission',
