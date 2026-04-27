@@ -240,7 +240,7 @@ test('geas schema dump returns a map of every schema', () => {
   }
 });
 
-test('geas state mission-get reports missing artifact cleanly', () => {
+test('geas state mission-get reports missing artifact cleanly — exit 4 (missing_artifact) with hint', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     runCli(['setup'], { cwd: dir });
@@ -248,10 +248,38 @@ test('geas state mission-get reports missing artifact cleanly', () => {
       ['state', 'mission-get', '--mission', 'mission-20260420-abcdefgh'],
       { cwd: dir },
     );
-    assert.notEqual(res.status, 0);
+    // T2.a (mission-20260427-xIPG1sDY task-002 / AC2): missing_artifact
+    // rotates from legacy exit=1 to category exit=4
+    // (EXIT_CATEGORY_CODE.missing_artifact). Single-system lock-in:
+    // every error site in state.ts goes through emitErr + makeError.
+    assert.equal(res.status, 4, `missing_artifact must exit 4 after T2.a: got ${res.status}`);
     assert.ok(res.json);
     assert.equal(res.json.ok, false);
     assert.equal(res.json.error.code, 'missing_artifact');
+    assert.equal(typeof res.json.error.hint, 'string');
+    assert.match(res.json.error.hint, /mission create/);
+    assert.ok(!('hints' in res.json.error), 'legacy `hints` must not appear in migrated commands');
+  } finally {
+    cleanup();
+  }
+});
+
+test('geas state mission-get rejects an invalid mission id — exit 2 (validation) with hint', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    runCli(['setup'], { cwd: dir });
+    const res = runCli(
+      ['state', 'mission-get', '--mission', 'not-a-mission-id'],
+      { cwd: dir },
+    );
+    // T2.a / AC2: invalid_argument rotates from legacy exit=1 to
+    // category exit=2 (validation).
+    assert.equal(res.status, 2, `invalid_argument must exit 2 after T2.a: got ${res.status}`);
+    assert.ok(res.json);
+    assert.equal(res.json.ok, false);
+    assert.equal(res.json.error.code, 'invalid_argument');
+    assert.equal(typeof res.json.error.hint, 'string');
+    assert.ok(!('hints' in res.json.error));
   } finally {
     cleanup();
   }
@@ -285,7 +313,38 @@ test('geas state mission-set writes and validates mission-state', () => {
   }
 });
 
-test('geas state mission-set rejects schema-invalid payloads', () => {
+test('geas state mission-set accepts the AC1 --payload-from-file flag (cross-check vs --file)', () => {
+  // T2.a / AC1: free-body fields use --<field>-from-file. state-set's
+  // payload IS the artifact body, so --payload-from-file is the
+  // explicit alias; --file remains as functional alias for back-compat.
+  const { dir, cleanup } = makeTempRoot();
+  const fs = require('fs');
+  const path = require('path');
+  try {
+    runCli(['setup'], { cwd: dir });
+    const mid = 'mission-20260420-payldfil';
+    const body = {
+      mission_id: mid,
+      phase: 'specifying',
+      active_tasks: [],
+    };
+    const tmpPath = path.join(dir, 'payload.json');
+    fs.writeFileSync(tmpPath, JSON.stringify(body), 'utf-8');
+    const res = runCli(
+      ['state', 'mission-set', '--mission', mid, '--payload-from-file', tmpPath],
+      { cwd: dir },
+    );
+    assert.equal(res.status, 0, `--payload-from-file mission-set failed: ${res.stderr}`);
+    assert.equal(res.json.ok, true);
+    const written = readArtifact(dir, `.geas/missions/${mid}/mission-state.json`);
+    assert.equal(written.mission_id, mid);
+    assert.equal(written.phase, 'specifying');
+  } finally {
+    cleanup();
+  }
+});
+
+test('geas state mission-set rejects schema-invalid payloads — exit 2 (validation)', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     runCli(['setup'], { cwd: dir });
@@ -295,10 +354,15 @@ test('geas state mission-set rejects schema-invalid payloads', () => {
       cwd: dir,
       input: badPayload,
     });
-    assert.notEqual(res.status, 0);
+    // T2.a / AC2: schema_validation_failed maps to category 'validation';
+    // exit code value 2 unchanged from legacy but the error envelope now
+    // carries `hint` (singular) + the legacy `hints` (plural) is gone.
+    assert.equal(res.status, 2, `schema_validation_failed must exit 2: got ${res.status}`);
     assert.ok(res.json);
     assert.equal(res.json.ok, false);
     assert.equal(res.json.error.code, 'schema_validation_failed');
+    assert.equal(typeof res.json.error.hint, 'string');
+    assert.ok(!('hints' in res.json.error));
   } finally {
     cleanup();
   }

@@ -8,13 +8,25 @@
  *
  * Subcommands:
  *   geas state mission-get  --mission <id>
- *   geas state mission-set  --mission <id>      (stdin JSON)
+ *   geas state mission-set  --mission <id>  [--payload-from-file <p> | --file <p> | stdin]
  *   geas state task-get     --mission <id> --task <id>
- *   geas state task-set     --mission <id> --task <id>  (stdin JSON)
+ *   geas state task-set     --mission <id> --task <id>  [--payload-from-file <p> | --file <p> | stdin]
+ *
+ * T2.a (mission-20260427-xIPG1sDY task-002): migrated off the legacy
+ * envelope.emit/err/ok bridge to call output.emitOk / output.emitErr +
+ * errors.makeError directly. Per AC1 the set subcommands gain
+ * --payload-from-file as the explicit free-body inline-flag fallback;
+ * the historical --file option is preserved as a functional alias so
+ * existing scripts and skills keep working through T2/T3. Per AC2 the
+ * error category mapping rotates exit codes:
+ *   - missing_artifact: legacy 1 → category 4
+ *   - invalid_argument: legacy 1 → category 2 (validation)
+ *   - schema_validation_failed: legacy 2 → category 2 (validation, value unchanged)
  */
 
 import type { Command } from 'commander';
-import { emit, err, ok } from '../lib/envelope';
+import { emitErr, emitOk } from '../lib/output';
+import { makeError } from '../lib/errors';
 import { readJsonFile, atomicWriteJson, ensureDir } from '../lib/fs-atomic';
 import * as path from 'path';
 import {
@@ -31,13 +43,33 @@ import { validate } from '../lib/schema';
 function needProjectRoot(): string {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(err('missing_artifact', `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`));
+    emitErr(
+      makeError(
+        'missing_artifact',
+        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: 'missing_artifact',
+        },
+      ),
+    );
   }
   return root as string;
 }
 
 function nowUtc(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
+/**
+ * Resolve the source path for a JSON write payload. Per AC1 inline-flag
+ * precedence: --payload-from-file (the explicit, AC1-named option) wins
+ * over --file (the legacy alias kept for back-compat through T2/T3).
+ * Returns undefined when neither was provided, so readPayloadJson falls
+ * back to stdin.
+ */
+function resolvePayloadFile(opts: { payloadFromFile?: string; file?: string }): string | undefined {
+  return opts.payloadFromFile ?? opts.file;
 }
 
 export function registerStateCommands(program: Command): void {
@@ -49,30 +81,60 @@ export function registerStateCommands(program: Command): void {
     .requiredOption('--mission <id>', 'Mission ID')
     .action((opts: { mission: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const root = needProjectRoot();
       const p = missionStatePath(root, opts.mission);
       const data = readJsonFile<Record<string, unknown>>(p);
-      if (!data) emit(err('missing_artifact', `mission-state.json not found for ${opts.mission}`));
-      emit(ok({ path: p.replace(/\\/g, '/'), state: data }));
+      if (!data) {
+        emitErr(
+          makeError('missing_artifact', `mission-state.json not found for ${opts.mission}`, {
+            hint: "run 'geas mission create' to create the mission, or check the --mission id",
+            exit_category: 'missing_artifact',
+          }),
+        );
+      }
+      emitOk('state mission-get', { path: p.replace(/\\/g, '/'), state: data });
     });
 
   state
     .command('mission-set')
-    .description('Replace mission-state.json (payload via --file or stdin; validated against mission-state schema)')
+    .description(
+      'Replace mission-state.json (payload via --payload-from-file, --file, or stdin; validated against mission-state schema)',
+    )
     .requiredOption('--mission <id>', 'Mission ID')
-    .option('--file <path>', 'Read JSON payload from file instead of stdin')
-    .action((opts: { mission: string; file?: string }) => {
+    .option(
+      '--payload-from-file <path>',
+      'Read JSON payload from file (preferred per AC1; takes precedence over --file)',
+    )
+    .option('--file <path>', 'Legacy alias for --payload-from-file (kept for back-compat)')
+    .action((opts: { mission: string; payloadFromFile?: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const root = needProjectRoot();
       let payload: Record<string, unknown>;
       try {
-        payload = readPayloadJson(opts.file) as Record<string, unknown>;
+        payload = readPayloadJson(resolvePayloadFile(opts)) as Record<string, unknown>;
       } catch (e) {
-        if (e instanceof StdinError) emit(err('invalid_argument', e.message));
+        if (e instanceof StdinError) {
+          emitErr(
+            makeError('invalid_argument', e.message, {
+              hint: 'pass the JSON via --payload-from-file <path>, --file <path>, or pipe through stdin',
+              exit_category: 'validation',
+            }),
+          );
+        }
         throw e;
       }
       // Inject bookkeeping timestamps and mission_id.
@@ -85,14 +147,23 @@ export function registerStateCommands(program: Command): void {
 
       const v = validate('mission-state', payload);
       if (!v.ok) {
-        emit(err('schema_validation_failed', 'mission-state schema validation failed', v.errors));
+        emitErr(
+          makeError(
+            'schema_validation_failed',
+            'mission-state schema validation failed',
+            {
+              hint: 'inspect ajv errors to fix the payload, then retry',
+              exit_category: 'validation',
+            },
+          ),
+        );
       }
       ensureDir(path.dirname(p));
       atomicWriteJson(p, payload, tmpDir(root));
       // Automation-scope discipline: raw state-set is a low-level
       // primitive; protocol-level transitions (e.g. mission phase
       // advance) emit their own event. No event here.
-      emit(ok({ path: p.replace(/\\/g, '/'), state: payload }));
+      emitOk('state mission-set', { path: p.replace(/\\/g, '/'), state: payload });
     });
 
   state
@@ -101,49 +172,104 @@ export function registerStateCommands(program: Command): void {
     .requiredOption('--mission <id>', 'Mission ID')
     .requiredOption('--task <id>', 'Task ID')
     .action((opts: { mission: string; task: string }) => {
-      if (!isValidMissionId(opts.mission)) emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
-      if (!isValidTaskId(opts.task)) emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+      if (!isValidMissionId(opts.mission)) {
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
+      }
+      if (!isValidTaskId(opts.task)) {
+        emitErr(
+          makeError('invalid_argument', `invalid task id '${opts.task}'`, {
+            hint: "task ids look like 'task-NNN' (3+ digits)",
+            exit_category: 'validation',
+          }),
+        );
+      }
       const root = needProjectRoot();
       const p = taskStatePath(root, opts.mission, opts.task);
       const data = readJsonFile<Record<string, unknown>>(p);
-      if (!data) emit(err('missing_artifact', `task-state.json not found for ${opts.task}`));
-      emit(ok({ path: p.replace(/\\/g, '/'), state: data }));
+      if (!data) {
+        emitErr(
+          makeError('missing_artifact', `task-state.json not found for ${opts.task}`, {
+            hint: "run 'geas task draft' to create the task, or check the --task id",
+            exit_category: 'missing_artifact',
+          }),
+        );
+      }
+      emitOk('state task-get', { path: p.replace(/\\/g, '/'), state: data });
     });
 
   state
     .command('task-set')
-    .description('Replace task-state.json (payload via --file or stdin; validated against task-state schema)')
+    .description(
+      'Replace task-state.json (payload via --payload-from-file, --file, or stdin; validated against task-state schema)',
+    )
     .requiredOption('--mission <id>', 'Mission ID')
     .requiredOption('--task <id>', 'Task ID')
-    .option('--file <path>', 'Read JSON payload from file instead of stdin')
-    .action((opts: { mission: string; task: string; file?: string }) => {
-      if (!isValidMissionId(opts.mission)) emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
-      if (!isValidTaskId(opts.task)) emit(err('invalid_argument', `invalid task id '${opts.task}'`));
-      const root = needProjectRoot();
-      let payload: Record<string, unknown>;
-      try {
-        payload = readPayloadJson(opts.file) as Record<string, unknown>;
-      } catch (e) {
-        if (e instanceof StdinError) emit(err('invalid_argument', e.message));
-        throw e;
-      }
-      const p = taskStatePath(root, opts.mission, opts.task);
-      const existing = readJsonFile<Record<string, unknown>>(p);
-      const ts = nowUtc();
-      payload.mission_id = opts.mission;
-      payload.task_id = opts.task;
-      payload.updated_at = ts;
-      payload.created_at = (existing?.created_at as string | undefined) ?? ts;
+    .option(
+      '--payload-from-file <path>',
+      'Read JSON payload from file (preferred per AC1; takes precedence over --file)',
+    )
+    .option('--file <path>', 'Legacy alias for --payload-from-file (kept for back-compat)')
+    .action(
+      (opts: { mission: string; task: string; payloadFromFile?: string; file?: string }) => {
+        if (!isValidMissionId(opts.mission)) {
+          emitErr(
+            makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+              hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+              exit_category: 'validation',
+            }),
+          );
+        }
+        if (!isValidTaskId(opts.task)) {
+          emitErr(
+            makeError('invalid_argument', `invalid task id '${opts.task}'`, {
+              hint: "task ids look like 'task-NNN' (3+ digits)",
+              exit_category: 'validation',
+            }),
+          );
+        }
+        const root = needProjectRoot();
+        let payload: Record<string, unknown>;
+        try {
+          payload = readPayloadJson(resolvePayloadFile(opts)) as Record<string, unknown>;
+        } catch (e) {
+          if (e instanceof StdinError) {
+            emitErr(
+              makeError('invalid_argument', e.message, {
+                hint: 'pass the JSON via --payload-from-file <path>, --file <path>, or pipe through stdin',
+                exit_category: 'validation',
+              }),
+            );
+          }
+          throw e;
+        }
+        const p = taskStatePath(root, opts.mission, opts.task);
+        const existing = readJsonFile<Record<string, unknown>>(p);
+        const ts = nowUtc();
+        payload.mission_id = opts.mission;
+        payload.task_id = opts.task;
+        payload.updated_at = ts;
+        payload.created_at = (existing?.created_at as string | undefined) ?? ts;
 
-      const v = validate('task-state', payload);
-      if (!v.ok) {
-        emit(err('schema_validation_failed', 'task-state schema validation failed', v.errors));
-      }
-      ensureDir(path.dirname(p));
-      atomicWriteJson(p, payload, tmpDir(root));
-      // Automation-scope discipline: raw state-set is a low-level
-      // primitive; lifecycle transitions (e.g. task state transition)
-      // emit their own event. No event here.
-      emit(ok({ path: p.replace(/\\/g, '/'), state: payload }));
-    });
+        const v = validate('task-state', payload);
+        if (!v.ok) {
+          emitErr(
+            makeError('schema_validation_failed', 'task-state schema validation failed', {
+              hint: 'inspect ajv errors to fix the payload, then retry',
+              exit_category: 'validation',
+            }),
+          );
+        }
+        ensureDir(path.dirname(p));
+        atomicWriteJson(p, payload, tmpDir(root));
+        // Automation-scope discipline: raw state-set is a low-level
+        // primitive; lifecycle transitions (e.g. task state transition)
+        // emit their own event. No event here.
+        emitOk('state task-set', { path: p.replace(/\\/g, '/'), state: payload });
+      },
+    );
 }
