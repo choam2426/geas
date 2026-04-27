@@ -15091,8 +15091,75 @@ function registerImplContractCommands(program2) {
   });
 }
 
+// src/lib/output.ts
+var activeState = {
+  mode: "default",
+  verbose: false,
+  debug: false
+};
+function setOutputMode(state) {
+  activeState = {
+    mode: state.mode ?? activeState.mode,
+    verbose: state.verbose ?? activeState.verbose,
+    debug: state.debug ?? activeState.debug
+  };
+}
+
 // src/main.ts
 var VERSION = "0.13.0";
+var GLOBAL_FLAG_FIELDS = ["json", "verbose", "debug"];
+function makeGlobalFlagOption(field) {
+  switch (field) {
+    case "json":
+      return new Option("--json", "emit machine-readable JSON envelope on stdout");
+    case "verbose":
+      return new Option("--verbose", "include extra context in human-readable output");
+    case "debug":
+      return new Option("--debug", "include diagnostic detail (pairs with --json)");
+  }
+}
+function attachGlobalFlagsRecursive(cmd) {
+  for (const field of GLOBAL_FLAG_FIELDS) {
+    const flagName = `--${field}`;
+    const alreadyRegistered = cmd.options.some((o) => o.long === flagName);
+    if (!alreadyRegistered) {
+      cmd.addOption(makeGlobalFlagOption(field));
+    }
+  }
+  for (const sub of cmd.commands) {
+    attachGlobalFlagsRecursive(sub);
+  }
+}
+function resolveGlobalFlags(leaf) {
+  let json = false;
+  let verbose = false;
+  let debug = false;
+  const chain = [];
+  let cursor = leaf;
+  while (cursor) {
+    chain.unshift(cursor);
+    cursor = cursor.parent;
+  }
+  for (const node of chain) {
+    const opts = node.opts();
+    if (opts.json === true) json = true;
+    if (opts.verbose === true) verbose = true;
+    if (opts.debug === true) debug = true;
+  }
+  return {
+    mode: json ? "json" : "default",
+    verbose,
+    debug
+  };
+}
+function installFlagPropagationHooks(cmd) {
+  cmd.hook("preAction", (_thisCommand, actionCommand) => {
+    setOutputMode(resolveGlobalFlags(actionCommand));
+  });
+  for (const sub of cmd.commands) {
+    installFlagPropagationHooks(sub);
+  }
+}
 function run() {
   const program2 = new Command();
   program2.name("geas").description("Geas CLI \u2014 atomic actuator for .geas/ runtime artifacts").version(VERSION);
@@ -15113,6 +15180,8 @@ function run() {
   registerEventCommands(program2);
   registerConsolidationCommands(program2);
   registerImplContractCommands(program2);
+  attachGlobalFlagsRecursive(program2);
+  installFlagPropagationHooks(program2);
   program2.parse(process.argv);
 }
 
