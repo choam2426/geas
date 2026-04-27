@@ -219,10 +219,12 @@ test('geas context default mode (no --json) writes scalar error to stderr post-A
   }
 });
 
-test('geas schema list returns every embedded schema name', () => {
+test('geas schema list returns every embedded schema name (--json envelope)', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
-    const res = runCli(['schema', 'list'], { cwd: dir });
+    // AC3 (task-006): --json keeps envelope on stdout; default mode now
+    // emits a one-line scalar summary via the registered formatter.
+    const res = runCli(['--json', 'schema', 'list'], { cwd: dir });
     assert.equal(res.status, 0, `schema list failed: ${res.stderr}`);
     assert.ok(res.json);
     assert.equal(res.json.ok, true);
@@ -250,16 +252,34 @@ test('geas schema list returns every embedded schema name', () => {
   }
 });
 
-test('geas schema show dumps the requested schema as JSON', () => {
+test('geas schema show dumps the requested schema as JSON (--json envelope)', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
-    const res = runCli(['schema', 'show', 'debts'], { cwd: dir });
+    // AC3 (task-006): --json to access the full schema body; default
+    // mode emits a one-line summary.
+    const res = runCli(['--json', 'schema', 'show', 'debts'], { cwd: dir });
     assert.equal(res.status, 0);
     assert.ok(res.json);
     assert.equal(res.json.ok, true);
     const schema = res.json.data.schema;
     assert.equal(schema.title, 'Geas Debts');
     assert.ok(schema.properties.entries);
+  } finally {
+    cleanup();
+  }
+});
+
+test('geas schema list default-mode emits scalar text via registered formatter (post-AC3)', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    const res = runCli(['schema', 'list'], { cwd: dir });
+    assert.equal(res.status, 0, `schema list failed: ${res.stderr}`);
+    assert.equal(res.json, null, `default-mode stdout should be scalar; got: ${res.stdout}`);
+    assert.match(res.stdout, /^schemas \(\d+\): /m);
+    // Sanity: a few expected schema names appear in the comma list.
+    for (const name of ['debts', 'evidence', 'task-contract']) {
+      assert.ok(res.stdout.includes(name), `expected '${name}' in scalar output: ${res.stdout}`);
+    }
   } finally {
     cleanup();
   }
@@ -286,10 +306,12 @@ test('geas schema show rejects unknown schemas — exit 2 (validation) with hint
   }
 });
 
-test('geas schema dump returns a map of every schema', () => {
+test('geas schema dump returns a map of every schema (--json envelope)', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
-    const res = runCli(['schema', 'dump'], { cwd: dir });
+    // AC3 (task-006): --json to access the full schema map; default
+    // mode emits a one-line summary.
+    const res = runCli(['--json', 'schema', 'dump'], { cwd: dir });
     assert.equal(res.status, 0);
     assert.ok(res.json);
     assert.equal(res.json.ok, true);
@@ -462,8 +484,10 @@ test('geas state mission-set rejects schema-invalid payloads — exit 2 (validat
 test('schema template mission-spec --op create returns required fields without envelope', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
+    // AC3 (task-006): --json to access the full template body; default
+    // mode emits a one-line summary via the registered formatter.
     const res = runCli(
-      ['schema', 'template', 'mission-spec', '--op', 'create'],
+      ['--json', 'schema', 'template', 'mission-spec', '--op', 'create'],
       { cwd: dir },
     );
     assert.equal(res.status, 0, `schema template failed: ${res.stderr}`);
@@ -506,8 +530,9 @@ test('schema template mission-spec --op create returns required fields without e
 test('schema template evidence --op append --kind review returns review-specific fields', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
+    // AC3 (task-006): --json to access the full template body.
     const res = runCli(
-      ['schema', 'template', 'evidence', '--op', 'append', '--kind', 'review'],
+      ['--json', 'schema', 'template', 'evidence', '--op', 'append', '--kind', 'review'],
       { cwd: dir },
     );
     assert.equal(res.status, 0, `review template failed: ${res.stderr}`);
@@ -543,16 +568,17 @@ test('schema template evidence --op append --kind review returns review-specific
 test('schema template evidence verification branch differs from review branch', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
+    // AC3 (task-006): --json to compare full template bodies.
     const rv = runCli(
-      ['schema', 'template', 'evidence', '--op', 'append', '--kind', 'review'],
+      ['--json', 'schema', 'template', 'evidence', '--op', 'append', '--kind', 'review'],
       { cwd: dir },
     );
     const vv = runCli(
-      ['schema', 'template', 'evidence', '--op', 'append', '--kind', 'verification'],
+      ['--json', 'schema', 'template', 'evidence', '--op', 'append', '--kind', 'verification'],
       { cwd: dir },
     );
     const cv = runCli(
-      ['schema', 'template', 'evidence', '--op', 'append', '--kind', 'closure'],
+      ['--json', 'schema', 'template', 'evidence', '--op', 'append', '--kind', 'closure'],
       { cwd: dir },
     );
     assert.equal(rv.status, 0);
@@ -649,8 +675,9 @@ test('schema template rejects unknown schema / op / kind — exit 2 (validation)
 test('schema template task-contract --op draft enumerates agent-facing fields', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
+    // AC3 (task-006): --json to access the full template body.
     const res = runCli(
-      ['schema', 'template', 'task-contract', '--op', 'draft'],
+      ['--json', 'schema', 'template', 'task-contract', '--op', 'draft'],
       { cwd: dir },
     );
     assert.equal(res.status, 0, res.stderr);
@@ -684,8 +711,9 @@ test('schema template task-contract --op draft enumerates agent-facing fields', 
 test('schema template implementation-contract --op set produces correct envelope', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
+    // AC3 (task-006): --json to access the full template body.
     const res = runCli(
-      ['schema', 'template', 'implementation-contract', '--op', 'set'],
+      ['--json', 'schema', 'template', 'implementation-contract', '--op', 'set'],
       { cwd: dir },
     );
     assert.equal(res.status, 0, res.stderr);
@@ -714,8 +742,9 @@ test('schema template implementation-contract --op set produces correct envelope
 test('schema template debts --op register templates the debt entry shape', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
+    // AC3 (task-006): --json to access the full template body.
     const res = runCli(
-      ['schema', 'template', 'debts', '--op', 'register'],
+      ['--json', 'schema', 'template', 'debts', '--op', 'register'],
       { cwd: dir },
     );
     assert.equal(res.status, 0, res.stderr);

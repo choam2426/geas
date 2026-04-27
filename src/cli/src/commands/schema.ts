@@ -22,7 +22,7 @@
 
 import type { Command } from 'commander';
 import { SCHEMAS, SCHEMA_NAMES } from '../lib/schemas-embedded';
-import { emitErr, emitOk } from '../lib/output';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
 import { makeError } from '../lib/errors';
 import {
   findSpec,
@@ -298,7 +298,43 @@ function buildPlainTemplate(
   return out;
 }
 
+/**
+ * AC3 (mission-20260427-xIPG1sDY task-006): scalar formatters for the
+ * four schema subcommands. Each renders a compact summary instead of
+ * dumping the full schema body — `--json` gives the full envelope.
+ */
+function formatSchemaList(data: unknown): string {
+  const d = data as { schemas?: string[] };
+  const names = Array.isArray(d.schemas) ? d.schemas : [];
+  return `schemas (${names.length}): ${names.join(', ')}`;
+}
+function formatSchemaShow(data: unknown): string {
+  const d = data as { name?: string; schema?: { title?: string; properties?: Record<string, unknown>; required?: string[] } };
+  const props = d.schema?.properties ? Object.keys(d.schema.properties).length : 0;
+  const required = d.schema?.required ?? [];
+  return `schema ${d.name ?? '<unknown>'}: title=${d.schema?.title ?? '<none>'} props=${props} required=[${required.join(', ')}]`;
+}
+function formatSchemaDump(data: unknown): string {
+  const d = data as { schemas?: Record<string, unknown> };
+  const names = d.schemas ? Object.keys(d.schemas) : [];
+  return `schemas dump (${names.length}): ${names.join(', ')}`;
+}
+function formatSchemaTemplate(data: unknown): string {
+  const d = data as { you_must_fill?: Record<string, unknown>; cli_will_inject?: string[]; notes?: { schema?: string; op?: string; kind?: string | null } };
+  const fillKeys = d.you_must_fill ? Object.keys(d.you_must_fill) : [];
+  const inject = Array.isArray(d.cli_will_inject) ? d.cli_will_inject : [];
+  const lines: string[] = [];
+  lines.push(`schema template: ${d.notes?.schema ?? '<schema>'} --op ${d.notes?.op ?? '<op>'}${d.notes?.kind ? ` --kind ${d.notes.kind}` : ''}`);
+  lines.push(`you_must_fill: ${fillKeys.join(', ')}`);
+  lines.push(`cli_will_inject: ${inject.join(', ')}`);
+  return lines.join('\n');
+}
+
 export function registerSchemaCommands(program: Command): void {
+  registerFormatter('schema list', formatSchemaList);
+  registerFormatter('schema show', formatSchemaShow);
+  registerFormatter('schema dump', formatSchemaDump);
+  registerFormatter('schema template', formatSchemaTemplate);
   const schema = program.command('schema').description('Inspect embedded JSON schemas');
 
   schema

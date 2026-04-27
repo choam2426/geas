@@ -11369,7 +11369,37 @@ function buildPlainTemplate(root, schemaName, op, envelope) {
   }
   return out;
 }
+function formatSchemaList(data) {
+  const d = data;
+  const names = Array.isArray(d.schemas) ? d.schemas : [];
+  return `schemas (${names.length}): ${names.join(", ")}`;
+}
+function formatSchemaShow(data) {
+  const d = data;
+  const props = d.schema?.properties ? Object.keys(d.schema.properties).length : 0;
+  const required = d.schema?.required ?? [];
+  return `schema ${d.name ?? "<unknown>"}: title=${d.schema?.title ?? "<none>"} props=${props} required=[${required.join(", ")}]`;
+}
+function formatSchemaDump(data) {
+  const d = data;
+  const names = d.schemas ? Object.keys(d.schemas) : [];
+  return `schemas dump (${names.length}): ${names.join(", ")}`;
+}
+function formatSchemaTemplate(data) {
+  const d = data;
+  const fillKeys = d.you_must_fill ? Object.keys(d.you_must_fill) : [];
+  const inject = Array.isArray(d.cli_will_inject) ? d.cli_will_inject : [];
+  const lines = [];
+  lines.push(`schema template: ${d.notes?.schema ?? "<schema>"} --op ${d.notes?.op ?? "<op>"}${d.notes?.kind ? ` --kind ${d.notes.kind}` : ""}`);
+  lines.push(`you_must_fill: ${fillKeys.join(", ")}`);
+  lines.push(`cli_will_inject: ${inject.join(", ")}`);
+  return lines.join("\n");
+}
 function registerSchemaCommands(program2) {
+  registerFormatter("schema list", formatSchemaList);
+  registerFormatter("schema show", formatSchemaShow);
+  registerFormatter("schema dump", formatSchemaDump);
+  registerFormatter("schema template", formatSchemaTemplate);
   const schema = program2.command("schema").description("Inspect embedded JSON schemas");
   schema.command("list").description("List embedded schema names").action(() => {
     emitOk("schema list", { schemas: [...SCHEMA_NAMES].sort() });
