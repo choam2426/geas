@@ -25,7 +25,9 @@
 import type { Command } from 'commander';
 import * as path from 'path';
 
-import { emit, err, ok, recordEvent } from '../lib/envelope';
+import { recordEvent } from '../lib/envelope';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
+import { makeError } from '../lib/errors';
 import { atomicWriteJson, ensureDir, readJsonFile } from '../lib/fs-atomic';
 import {
   debtsPath,
@@ -48,14 +50,37 @@ function slashPath(p: string): string {
 function needProjectRoot(): string {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         'missing_artifact',
-        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`,
+        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: 'missing_artifact',
+        },
       ),
     );
   }
   return root as string;
+}
+
+/** AC3: scalar formatters for the three debt subcommands. */
+function formatDebtRegister(data: unknown): string {
+  const d = data as { ids?: { debt_id?: string }; entry?: { severity?: string; kind?: string; title?: string } };
+  return [
+    `debt registered: ${d.ids?.debt_id ?? '<unknown>'} severity=${d.entry?.severity ?? '?'} kind=${d.entry?.kind ?? '?'}`,
+    `title: ${d.entry?.title ?? '<unknown>'}`,
+  ].join('\n');
+}
+function formatDebtUpdateStatus(data: unknown): string {
+  const d = data as { ids?: { debt_id?: string }; entry?: { status?: string; resolved_by?: { mission_id?: string; task_id?: string } | null } };
+  const rb = d.entry?.resolved_by;
+  const resolution = rb && typeof rb === 'object' ? `${rb.mission_id ?? '?'}/${rb.task_id ?? '?'}` : '(unset)';
+  return `debt status updated: ${d.ids?.debt_id ?? '<unknown>'} status=${d.entry?.status ?? '?'} resolved_by=${resolution}`;
+}
+function formatDebtList(data: unknown): string {
+  const d = data as { total?: number; counts?: { open?: number; resolved?: number; dropped?: number } };
+  return `debt list: total=${d.total ?? 0} open=${d.counts?.open ?? 0} resolved=${d.counts?.resolved ?? 0} dropped=${d.counts?.dropped ?? 0}`;
 }
 
 /** Shape of the on-disk debts ledger. */
@@ -123,14 +148,25 @@ function registerRegister(debt: Command): void {
       try {
         payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
-        if (e instanceof StdinError) emit(err('invalid_argument', e.message));
+        if (e instanceof StdinError) {
+          emitErr(
+            makeError('invalid_argument', e.message, {
+              hint: 'pass the JSON via --file <path> or pipe through stdin',
+              exit_category: 'validation',
+            }),
+          );
+        }
         throw e;
       }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             'debt register expects a JSON object payload (one entry body)',
+            {
+              hint: 'wrap the debt fields in a single JSON object',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -145,26 +181,38 @@ function registerRegister(debt: Command): void {
         typeof introduced.mission_id !== 'string' ||
         typeof introduced.task_id !== 'string'
       ) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             'introduced_by is required with mission_id and task_id (project-level ledger traces each debt back to its origin mission/task)',
+            {
+              hint: 'add introduced_by: { mission_id, task_id } to the payload',
+              exit_category: 'validation',
+            },
           ),
         );
       }
       if (!isValidMissionId(introduced.mission_id as string)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             `invalid introduced_by.mission_id '${introduced.mission_id as string}'`,
+            {
+              hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+              exit_category: 'validation',
+            },
           ),
         );
       }
       if (!isValidTaskId(introduced.task_id as string)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             `invalid introduced_by.task_id '${introduced.task_id as string}'`,
+            {
+              hint: "task ids look like 'task-NNN' (3+ digits)",
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -174,18 +222,26 @@ function registerRegister(debt: Command): void {
         typeof payload.severity !== 'string' ||
         !SEVERITY_ENUM.has(payload.severity)
       ) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             `severity must be one of ${[...SEVERITY_ENUM].join(', ')}`,
+            {
+              hint: `valid severities: ${[...SEVERITY_ENUM].join(', ')}`,
+              exit_category: 'validation',
+            },
           ),
         );
       }
       if (typeof payload.kind !== 'string' || !KIND_ENUM.has(payload.kind)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             `kind must be one of ${[...KIND_ENUM].join(', ')}`,
+            {
+              hint: `valid kinds: ${[...KIND_ENUM].join(', ')}`,
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -220,11 +276,14 @@ function registerRegister(debt: Command): void {
 
       const v = validate('debts', next);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'debts schema validation failed',
-            v.errors,
+            {
+              hint: 'inspect ajv errors and fix the entry body, then retry',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -246,13 +305,11 @@ function registerRegister(debt: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(target),
-          ids: { debt_id: debtId },
-          entry,
-        }),
-      );
+      emitOk('debt register', {
+        path: slashPath(target),
+        ids: { debt_id: debtId },
+        entry,
+      });
     });
 }
 
@@ -266,10 +323,14 @@ function registerUpdateStatus(debt: Command): void {
     .option('--file <path>', 'Read JSON payload from file instead of stdin')
     .action((opts: { debt: string; file?: string }) => {
       if (!DEBT_ID_RE.test(opts.debt)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             `invalid debt id '${opts.debt}' (expected ^debt-[0-9]{3}$)`,
+            {
+              hint: "debt ids look like 'debt-NNN' (3 digits)",
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -280,28 +341,44 @@ function registerUpdateStatus(debt: Command): void {
       try {
         payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
-        if (e instanceof StdinError) emit(err('invalid_argument', e.message));
+        if (e instanceof StdinError) {
+          emitErr(
+            makeError('invalid_argument', e.message, {
+              hint: 'pass the JSON via --file <path> or pipe through stdin',
+              exit_category: 'validation',
+            }),
+          );
+        }
         throw e;
       }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             'debt update-status expects a JSON object payload',
+            {
+              hint: 'wrap status, resolved_by, resolution_rationale in a single JSON object',
+              exit_category: 'validation',
+            },
           ),
         );
       }
 
       // Only three fields are legal in the patch. Anything else is a hard
       // error — CLI.md §9 forbids debts mutations outside this narrow set.
+      // AC2: legacy append_only_violation (exit 5) rotates to category
+      // 'guard' (exit 3) per design Decision 2.
       const allowedKeys = new Set(['status', 'resolved_by', 'resolution_rationale']);
       for (const k of Object.keys(payload)) {
         if (!allowedKeys.has(k)) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'append_only_violation',
               `debt update-status only accepts status, resolved_by, resolution_rationale — got '${k}'`,
-              { field: k },
+              {
+                hint: `field '${k}' is not mutable on existing debt entries; only status/resolved_by/resolution_rationale are`,
+                exit_category: 'guard',
+              },
             ),
           );
         }
@@ -311,10 +388,14 @@ function registerUpdateStatus(debt: Command): void {
         typeof payload.status !== 'string' ||
         !STATUS_ENUM.has(payload.status)
       ) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             `status must be one of ${[...STATUS_ENUM].join(', ')}`,
+            {
+              hint: `valid statuses: ${[...STATUS_ENUM].join(', ')}`,
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -323,10 +404,14 @@ function registerUpdateStatus(debt: Command): void {
       // open must clear them.
       if (payload.status === 'open') {
         if (payload.resolved_by !== undefined && payload.resolved_by !== null) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               'resolved_by must be null when status is open',
+              {
+                hint: 'set resolved_by to null when reverting a debt to open',
+                exit_category: 'validation',
+              },
             ),
           );
         }
@@ -334,10 +419,14 @@ function registerUpdateStatus(debt: Command): void {
           payload.resolution_rationale !== undefined &&
           payload.resolution_rationale !== null
         ) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               'resolution_rationale must be null when status is open',
+              {
+                hint: 'set resolution_rationale to null when reverting a debt to open',
+                exit_category: 'validation',
+              },
             ),
           );
         }
@@ -353,26 +442,38 @@ function registerUpdateStatus(debt: Command): void {
           typeof rb.mission_id !== 'string' ||
           typeof rb.task_id !== 'string'
         ) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               'resolved_by must include mission_id and task_id when status is resolved or dropped',
+              {
+                hint: 'add resolved_by: { mission_id, task_id } pointing to the resolving mission/task',
+                exit_category: 'validation',
+              },
             ),
           );
         }
         if (!isValidMissionId(rb.mission_id as string)) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               `invalid resolved_by.mission_id '${rb.mission_id as string}'`,
+              {
+                hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+                exit_category: 'validation',
+              },
             ),
           );
         }
         if (!isValidTaskId(rb.task_id as string)) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               `invalid resolved_by.task_id '${rb.task_id as string}'`,
+              {
+                hint: "task ids look like 'task-NNN' (3+ digits)",
+                exit_category: 'validation',
+              },
             ),
           );
         }
@@ -380,10 +481,14 @@ function registerUpdateStatus(debt: Command): void {
           typeof payload.resolution_rationale !== 'string' ||
           payload.resolution_rationale.length === 0
         ) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               'resolution_rationale is required (non-empty string) when status is resolved or dropped',
+              {
+                hint: 'add a non-empty resolution_rationale string',
+                exit_category: 'validation',
+              },
             ),
           );
         }
@@ -394,11 +499,14 @@ function registerUpdateStatus(debt: Command): void {
         (e) => (e as { debt_id?: unknown }).debt_id === opts.debt,
       );
       if (idx < 0) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'missing_artifact',
             `debt '${opts.debt}' not found in ledger`,
-            { debt_id: opts.debt },
+            {
+              hint: `run 'geas debt list' to see available debt ids`,
+              exit_category: 'missing_artifact',
+            },
           ),
         );
       }
@@ -431,11 +539,14 @@ function registerUpdateStatus(debt: Command): void {
 
       const v = validate('debts', next);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'debts schema validation failed',
-            v.errors,
+            {
+              hint: 'inspect ajv errors and fix the patch body, then retry',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -455,13 +566,11 @@ function registerUpdateStatus(debt: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(target),
-          ids: { debt_id: opts.debt },
-          entry: updated,
-        }),
-      );
+      emitOk('debt update-status', {
+        path: slashPath(target),
+        ids: { debt_id: opts.debt },
+        entry: updated,
+      });
     });
 }
 
@@ -475,15 +584,24 @@ function registerList(debt: Command): void {
     .option('--mission <id>', 'Filter by mission (matches origin or resolution)')
     .action((opts: { status?: string; mission?: string }) => {
       if (opts.status !== undefined && !STATUS_ENUM.has(opts.status)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             `--status must be one of ${[...STATUS_ENUM].join(', ')}`,
+            {
+              hint: `valid --status values: ${[...STATUS_ENUM].join(', ')}`,
+              exit_category: 'validation',
+            },
           ),
         );
       }
       if (opts.mission !== undefined && !isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
 
       const root = needProjectRoot();
@@ -514,18 +632,19 @@ function registerList(debt: Command): void {
         if (counts[s] !== undefined) counts[s]++;
       }
 
-      emit(
-        ok({
-          path: slashPath(debtsPath(root)),
-          total: entries.length,
-          counts,
-          entries,
-        }),
-      );
+      emitOk('debt list', {
+        path: slashPath(debtsPath(root)),
+        total: entries.length,
+        counts,
+        entries,
+      });
     });
 }
 
 export function registerDebtCommands(program: Command): void {
+  registerFormatter('debt register', formatDebtRegister);
+  registerFormatter('debt update-status', formatDebtUpdateStatus);
+  registerFormatter('debt list', formatDebtList);
   const debt = program
     .command('debt')
     .description(

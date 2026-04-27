@@ -208,8 +208,9 @@ function writeVerifierEvidenceStub(dir, taskId, opts = {}) {
 
 function runGatePass(dir, taskId) {
   // Gate computes tiers from files on disk; no stdin.
+  // AC3 (task-006): --json envelope for programmatic verdict assertion.
   const res = runCli(
-    ['gate', 'run', '--mission', MID, '--task', taskId],
+    ['--json', 'gate', 'run', '--mission', MID, '--task', taskId],
     { cwd: dir },
   );
   if (res.status !== 0) {

@@ -296,7 +296,8 @@ function fullTaskRun(dir, missionId, taskId, opts = {}) {
   transition(dir, missionId, taskId, 'reviewing');
 
   // gate run — no stdin; gate reads evidence files and computes tiers.
-  r = runCli(['gate', 'run', '--mission', missionId, '--task', taskId], {
+  // AC3 (task-006): --json envelope to inspect r.json.data.verdict.
+  r = runCli(['--json', 'gate', 'run', '--mission', missionId, '--task', taskId], {
     cwd: dir,
   });
   assert.equal(r.status, 0, `gate run failed: ${r.stderr}\n${r.stdout}`);
@@ -453,7 +454,8 @@ test('E2E: full mission lifecycle (3 building tasks + polishing + consolidating 
     );
 
     // Step 10b: consolidating — debts, gap, memory-update, memory writes.
-    r = runCli(['debt', 'register'], {
+    // AC3 (task-006): --json envelope for programmatic assertion.
+    r = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify({
         severity: 'normal',
@@ -849,7 +851,8 @@ test('E2E verify-fix loop: reviewing -> implementing increments verify_fix_itera
     transition(dir, MID, 'task-001', 'reviewing');
 
     // Gate run: tier 2 reviewer=changes_requested → overall fail.
-    r = runCli(['gate', 'run', '--mission', MID, '--task', 'task-001'], {
+    // AC3 (task-006): --json envelope to inspect r.json.data.verdict.
+    r = runCli(['--json', 'gate', 'run', '--mission', MID, '--task', 'task-001'], {
       cwd: dir,
     });
     assert.equal(r.status, 0);
@@ -915,7 +918,8 @@ test('E2E verify-fix loop: reviewing -> implementing increments verify_fix_itera
 
     // Second gate run: reviewer now approved, verifier still approved from
     // first round → Tier 1 pass, Tier 2 pass, overall pass.
-    r = runCli(['gate', 'run', '--mission', MID, '--task', 'task-001'], {
+    // AC3 (task-006): --json envelope to inspect r.json.data.verdict.
+    r = runCli(['--json', 'gate', 'run', '--mission', MID, '--task', 'task-001'], {
       cwd: dir,
     });
     assert.equal(r.status, 0);
@@ -984,8 +988,10 @@ test('E2E deliberation: full_depth accepts; standard rejects', () => {
       ],
       result: 'agree',
     };
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const r = runCli(
       [
+        '--json',
         'deliberation',
         'append',
         '--mission',
@@ -1023,8 +1029,10 @@ test('E2E deliberation: full_depth accepts; standard rejects', () => {
       ],
       result: 'agree',
     };
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const r = runCli(
       [
+        '--json',
         'deliberation',
         'append',
         '--mission',

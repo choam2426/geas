@@ -1367,9 +1367,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
         if (fn) {
           this._exitCallback = fn;
         } else {
-          this._exitCallback = (err2) => {
-            if (err2.code !== "commander.executeSubCommandAsync") {
-              throw err2;
+          this._exitCallback = (err) => {
+            if (err.code !== "commander.executeSubCommandAsync") {
+              throw err;
             } else {
             }
           };
@@ -1445,12 +1445,12 @@ Expecting one of '${allowedValues.join("', '")}'`);
       _callParseArg(target, value, previous, invalidArgumentMessage) {
         try {
           return target.parseArg(value, previous);
-        } catch (err2) {
-          if (err2.code === "commander.invalidArgument") {
-            const message = `${invalidArgumentMessage} ${err2.message}`;
-            this.error(message, { exitCode: err2.exitCode, code: err2.code });
+        } catch (err) {
+          if (err.code === "commander.invalidArgument") {
+            const message = `${invalidArgumentMessage} ${err.message}`;
+            this.error(message, { exitCode: err.exitCode, code: err.code });
           }
-          throw err2;
+          throw err;
         }
       }
       /**
@@ -1909,7 +1909,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
           let resolvedScriptPath;
           try {
             resolvedScriptPath = fs11.realpathSync(this._scriptPath);
-          } catch (err2) {
+          } catch (err) {
             resolvedScriptPath = this._scriptPath;
           }
           executableDir = path17.resolve(
@@ -1973,15 +1973,15 @@ Expecting one of '${allowedValues.join("', '")}'`);
             );
           }
         });
-        proc.on("error", (err2) => {
-          if (err2.code === "ENOENT") {
+        proc.on("error", (err) => {
+          if (err.code === "ENOENT") {
             const executableDirMessage = executableDir ? `searched for local subcommand relative to directory '${executableDir}'` : "no directory for search for local subcommand, use .executableDir() to supply a custom directory";
             const executableMissing = `'${executableFile}' does not exist
  - if '${subcommand._name}' is not meant to be an executable command, remove description parameter from '.command()' and use '.description()' instead
  - if the default executable name is not suitable, use the executableFile option to supply a custom name or path
  - ${executableDirMessage}`;
             throw new Error(executableMissing);
-          } else if (err2.code === "EACCES") {
+          } else if (err.code === "EACCES") {
             throw new Error(`'${executableFile}' not executable`);
           }
           if (!exitCallback) {
@@ -1992,7 +1992,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
               "commander.executeSubCommandAsync",
               "(error)"
             );
-            wrappedError.nestedError = err2;
+            wrappedError.nestedError = err;
             exitCallback(wrappedError);
           }
         });
@@ -4288,21 +4288,21 @@ var require_errors = __commonJS({
     function extendErrors({ gen, keyword, schemaValue, data, errsCount, it }) {
       if (errsCount === void 0)
         throw new Error("ajv implementation error");
-      const err2 = gen.name("err");
+      const err = gen.name("err");
       gen.forRange("i", errsCount, names_1.default.errors, (i) => {
-        gen.const(err2, (0, codegen_1._)`${names_1.default.vErrors}[${i}]`);
-        gen.if((0, codegen_1._)`${err2}.instancePath === undefined`, () => gen.assign((0, codegen_1._)`${err2}.instancePath`, (0, codegen_1.strConcat)(names_1.default.instancePath, it.errorPath)));
-        gen.assign((0, codegen_1._)`${err2}.schemaPath`, (0, codegen_1.str)`${it.errSchemaPath}/${keyword}`);
+        gen.const(err, (0, codegen_1._)`${names_1.default.vErrors}[${i}]`);
+        gen.if((0, codegen_1._)`${err}.instancePath === undefined`, () => gen.assign((0, codegen_1._)`${err}.instancePath`, (0, codegen_1.strConcat)(names_1.default.instancePath, it.errorPath)));
+        gen.assign((0, codegen_1._)`${err}.schemaPath`, (0, codegen_1.str)`${it.errSchemaPath}/${keyword}`);
         if (it.opts.verbose) {
-          gen.assign((0, codegen_1._)`${err2}.schema`, schemaValue);
-          gen.assign((0, codegen_1._)`${err2}.data`, data);
+          gen.assign((0, codegen_1._)`${err}.schema`, schemaValue);
+          gen.assign((0, codegen_1._)`${err}.data`, data);
         }
       });
     }
     exports2.extendErrors = extendErrors;
     function addError(gen, errObj) {
-      const err2 = gen.const("err", errObj);
-      gen.if((0, codegen_1._)`${names_1.default.vErrors} === null`, () => gen.assign(names_1.default.vErrors, (0, codegen_1._)`[${err2}]`), (0, codegen_1._)`${names_1.default.vErrors}.push(${err2})`);
+      const err = gen.const("err", errObj);
+      gen.if((0, codegen_1._)`${names_1.default.vErrors} === null`, () => gen.assign(names_1.default.vErrors, (0, codegen_1._)`[${err}]`), (0, codegen_1._)`${names_1.default.vErrors}.push(${err})`);
       gen.code((0, codegen_1._)`${names_1.default.errors}++`);
     }
     function returnErrors(it, errs) {
@@ -10643,20 +10643,20 @@ function readJsonFile(filePath) {
   let content;
   try {
     content = fs.readFileSync(filePath, "utf-8");
-  } catch (err2) {
-    const e = err2;
+  } catch (err) {
+    const e = err;
     if (e.code === "ENOENT") return null;
-    throw err2;
+    throw err;
   }
   try {
     return JSON.parse(content);
-  } catch (err2) {
-    if (err2 instanceof SyntaxError) {
+  } catch (err) {
+    if (err instanceof SyntaxError) {
       throw new Error(
-        `Failed to parse JSON at ${filePath.replace(/\\/g, "/")}: ${err2.message}`
+        `Failed to parse JSON at ${filePath.replace(/\\/g, "/")}: ${err.message}`
       );
     }
-    throw err2;
+    throw err;
   }
 }
 function makeTempPath(targetPath, tmpRoot) {
@@ -10682,16 +10682,16 @@ function atomicWrite(targetPath, content, tmpRoot = null) {
     fd = null;
     try {
       fs.renameSync(tmpPath, targetPath);
-    } catch (err2) {
-      const e = err2;
+    } catch (err) {
+      const e = err;
       if (e.code === "EXDEV" || e.code === "EPERM") {
         fs.copyFileSync(tmpPath, targetPath);
         fs.unlinkSync(tmpPath);
       } else {
-        throw err2;
+        throw err;
       }
     }
-  } catch (err2) {
+  } catch (err) {
     if (fd !== null) {
       try {
         fs.closeSync(fd);
@@ -10702,7 +10702,7 @@ function atomicWrite(targetPath, content, tmpRoot = null) {
       fs.unlinkSync(tmpPath);
     } catch {
     }
-    throw err2;
+    throw err;
   }
 }
 function atomicWriteJson(targetPath, data, tmpRoot = null) {
@@ -10811,10 +10811,6 @@ function writeErrEnvelope(error) {
 function emitErr(error) {
   writeErrEnvelope(error);
   process.exit(exitCodeForCategory(error.exit_category));
-}
-function writeLegacyErrEnvelope(envelope) {
-  const state = getOutputMode();
-  process.stdout.write(jsonStringify(envelope, state.debug) + "\n");
 }
 
 // src/lib/paths.ts
@@ -11527,8 +11523,8 @@ function readFileUtf8(filePath) {
   let raw;
   try {
     raw = fs4.readFileSync(filePath, "utf-8");
-  } catch (err2) {
-    const e = err2;
+  } catch (err) {
+    const e = err;
     throw new StdinError(
       `failed to read --file '${filePath}': ${e.code ?? "unknown"}`
     );
@@ -11542,8 +11538,8 @@ function readStdinUtf8() {
   let raw;
   try {
     raw = fs4.readFileSync(0, "utf-8");
-  } catch (err2) {
-    const e = err2;
+  } catch (err) {
+    const e = err;
     throw new StdinError(`failed to read stdin: ${e.code ?? "unknown"}`);
   }
   return stripBom(raw);
@@ -11617,8 +11613,8 @@ function getValidator(name) {
 }
 function validate(name, data) {
   const validator = getValidator(name);
-  const ok2 = validator(data);
-  return { ok: ok2, errors: ok2 ? null : validator.errors ?? null };
+  const ok = validator(data);
+  return { ok, errors: ok ? null : validator.errors ?? null };
 }
 
 // src/commands/state.ts
@@ -11844,30 +11840,6 @@ var path5 = __toESM(require("path"));
 
 // src/lib/envelope.ts
 var fs5 = __toESM(require("fs"));
-var EXIT_CODES = {
-  schema_validation_failed: 2,
-  guard_failed: 3,
-  append_only_violation: 5,
-  path_collision: 1,
-  missing_artifact: 1,
-  invalid_argument: 1,
-  io_error: 4,
-  internal_error: 1
-};
-function ok(data) {
-  return { ok: true, data };
-}
-function err(code, message, hints) {
-  return { ok: false, error: hints !== void 0 ? { code, message, hints } : { code, message } };
-}
-function emit(envelope) {
-  if (envelope.ok) {
-    writeOkEnvelope("", envelope.data);
-    process.exit(0);
-  }
-  writeLegacyErrEnvelope(envelope);
-  process.exit(EXIT_CODES[envelope.error.code] ?? 1);
-}
 var SLOT_ACTORS = [
   "decision-maker",
   "orchestrator",
@@ -14402,14 +14374,41 @@ function slashPath5(p) {
 function needProjectRoot6() {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         "missing_artifact",
-        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: "missing_artifact"
+        }
       )
     );
   }
   return root;
+}
+function formatDeliberationAppend(data) {
+  const d = data;
+  const taskPart = d.ids?.task_id ? ` task=${d.ids.task_id}` : "";
+  return `deliberation appended: ${d.ids?.mission_id ?? "<unknown>"}${taskPart} level=${d.level ?? "?"} result=${d.result ?? "?"} entries=${d.entries_count ?? 0}`;
+}
+function foldGuardHint4(hints) {
+  if (hints === void 0 || hints === null) return void 0;
+  if (typeof hints === "string") return hints;
+  if (typeof hints !== "object") return String(hints);
+  const obj = hints;
+  const parts = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const key = k.replace(/_/g, " ");
+    if (Array.isArray(v)) {
+      parts.push(`${key}: ${v.join(", ")}`);
+    } else if (v !== null && typeof v === "object") {
+      parts.push(`${key}: ${JSON.stringify(v)}`);
+    } else {
+      parts.push(`${key}: ${String(v)}`);
+    }
+  }
+  return parts.length > 0 ? parts.join("; ") : void 0;
 }
 function aggregateExpected(votes) {
   if (!Array.isArray(votes) || votes.length < 2) return "inconclusive";
@@ -14430,25 +14429,43 @@ function registerDeliberationAppend(cmd) {
   ).requiredOption("--mission <id>", "Mission ID").requiredOption("--level <level>", '"mission" or "task"').option("--task <id>", "Task ID (required when --level task)").option("--file <path>", "Read JSON payload from file instead of stdin").action(
     (opts) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError("invalid_argument", `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: "validation"
+          })
+        );
       }
       if (opts.level !== "mission" && opts.level !== "task") {
-        emit(err("invalid_argument", `--level must be 'mission' or 'task'`));
+        emitErr(
+          makeError("invalid_argument", `--level must be 'mission' or 'task'`, {
+            hint: "valid --level values: 'mission' or 'task'",
+            exit_category: "validation"
+          })
+        );
       }
       if (opts.level === "task") {
         if (!opts.task || !isValidTaskId(opts.task)) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               "invalid_argument",
-              "--task <id> is required when --level is task"
+              "--task <id> is required when --level is task",
+              {
+                hint: "pass --task task-NNN when --level is task",
+                exit_category: "validation"
+              }
             )
           );
         }
       } else if (opts.task) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             "invalid_argument",
-            "--task must not be set when --level is mission"
+            "--task must not be set when --level is mission",
+            {
+              hint: "omit --task or change --level to task",
+              exit_category: "validation"
+            }
           )
         );
       }
@@ -14457,20 +14474,23 @@ function registerDeliberationAppend(cmd) {
         missionSpecPath(root, opts.mission)
       );
       if (!spec) {
-        emit(
-          err(
-            "missing_artifact",
-            `mission spec not found for ${opts.mission}`
-          )
+        emitErr(
+          makeError("missing_artifact", `mission spec not found for ${opts.mission}`, {
+            hint: "run 'geas mission create' to bootstrap the mission first",
+            exit_category: "missing_artifact"
+          })
         );
       }
       const mode = typeof spec.mode === "string" ? spec.mode : "";
       if (mode !== "full_depth") {
-        emit(
-          err(
+        emitErr(
+          makeError(
             "guard_failed",
             `deliberation is only permitted when mission mode is 'full_depth' (mission '${opts.mission}' mode is '${mode || "unset"}')`,
-            { mission_mode: mode || null, required_mode: "full_depth" }
+            {
+              hint: foldGuardHint4({ mission_mode: mode || null, required_mode: "full_depth" }) ?? "set mission mode to 'full_depth' or skip the deliberation",
+              exit_category: "guard"
+            }
           )
         );
       }
@@ -14478,14 +14498,25 @@ function registerDeliberationAppend(cmd) {
       try {
         payload = readPayloadJson(opts.file);
       } catch (e) {
-        if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+        if (e instanceof StdinError) {
+          emitErr(
+            makeError("invalid_argument", e.message, {
+              hint: "pass the JSON via --file <path> or pipe through stdin",
+              exit_category: "validation"
+            })
+          );
+        }
         throw e;
       }
       if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             "invalid_argument",
-            "deliberation append expects a JSON object payload"
+            "deliberation append expects a JSON object payload",
+            {
+              hint: "wrap the entry fields in a single JSON object",
+              exit_category: "validation"
+            }
           )
         );
       }
@@ -14495,13 +14526,13 @@ function registerDeliberationAppend(cmd) {
       const expectedResult = aggregateExpected(votes);
       const providedResult = typeof payload.result === "string" ? payload.result : "";
       if (providedResult !== expectedResult) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             "guard_failed",
             `deliberation result '${providedResult || "(unset)"}' is inconsistent with votes; expected '${expectedResult}' per protocol 03 aggregation rule`,
             {
-              expected_result: expectedResult,
-              provided_result: providedResult || null
+              hint: foldGuardHint4({ expected_result: expectedResult, provided_result: providedResult || null }) ?? `set result to '${expectedResult}' to match the votes`,
+              exit_category: "guard"
             }
           )
         );
@@ -14519,11 +14550,14 @@ function registerDeliberationAppend(cmd) {
       };
       const v = validate("deliberation", merged);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             "schema_validation_failed",
             "deliberation schema validation failed",
-            v.errors
+            {
+              hint: "inspect ajv errors and fix the entry body, then retry",
+              exit_category: "validation"
+            }
           )
         );
       }
@@ -14540,22 +14574,21 @@ function registerDeliberationAppend(cmd) {
           result: expectedResult
         }
       });
-      emit(
-        ok({
-          path: slashPath5(filePath),
-          ids: {
-            mission_id: opts.mission,
-            task_id: opts.task ?? null
-          },
-          level: opts.level,
-          result: expectedResult,
-          entries_count: merged.entries.length
-        })
-      );
+      emitOk("deliberation append", {
+        path: slashPath5(filePath),
+        ids: {
+          mission_id: opts.mission,
+          task_id: opts.task ?? null
+        },
+        level: opts.level,
+        result: expectedResult,
+        entries_count: merged.entries.length
+      });
     }
   );
 }
 function registerDeliberationCommands(program2) {
+  registerFormatter("deliberation append", formatDeliberationAppend);
   const d = program2.command("deliberation").description(
     "Append-only deliberation log. Mission or task level. Requires full_depth mode."
   );
@@ -14574,14 +14607,28 @@ function slashPath6(p) {
 function needProjectRoot7() {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         "missing_artifact",
-        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: "missing_artifact"
+        }
       )
     );
   }
   return root;
+}
+function formatGateRun(data) {
+  const d = data;
+  const lines = [];
+  lines.push(`gate ${d.ids?.gate_run_id ?? "?"}: ${d.ids?.task_id ?? "<unknown>"} verdict=${d.verdict ?? "?"}`);
+  lines.push(`tier_0=${d.tier_results?.tier_0?.status ?? "?"} tier_1=${d.tier_results?.tier_1?.status ?? "?"} tier_2=${d.tier_results?.tier_2?.status ?? "?"}`);
+  if (d.suggested_next_transition?.command) {
+    lines.push(`next: ${d.suggested_next_transition.command}`);
+  }
+  return lines.join("\n");
 }
 function overallFromTiers(tier0, tier1, tier2) {
   for (const s of [tier0, tier1, tier2]) {
@@ -14810,32 +14857,49 @@ function registerGateRun(cmd) {
     "Record an evidence gate run. Reads task artifacts directly and computes tier statuses itself \u2014 no stdin payload."
   ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
-      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+      emitErr(
+        makeError("invalid_argument", `invalid mission id '${opts.mission}'`, {
+          hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+          exit_category: "validation"
+        })
+      );
     }
     if (!isValidTaskId(opts.task)) {
-      emit(err("invalid_argument", `invalid task id '${opts.task}'`));
+      emitErr(
+        makeError("invalid_argument", `invalid task id '${opts.task}'`, {
+          hint: "task ids look like 'task-NNN' (3+ digits)",
+          exit_category: "validation"
+        })
+      );
     }
     const root = needProjectRoot7();
     if (!exists(missionSpecPath(root, opts.mission))) {
-      emit(
-        err(
-          "missing_artifact",
-          `mission spec not found for ${opts.mission}`
-        )
+      emitErr(
+        makeError("missing_artifact", `mission spec not found for ${opts.mission}`, {
+          hint: "run 'geas mission create' to bootstrap the mission first",
+          exit_category: "missing_artifact"
+        })
       );
     }
     const contractPath = taskContractPath(root, opts.mission, opts.task);
     if (!exists(contractPath)) {
-      emit(
-        err("missing_artifact", `task contract not found for ${opts.task}`)
+      emitErr(
+        makeError("missing_artifact", `task contract not found for ${opts.task}`, {
+          hint: "run 'geas task draft' to create the contract first",
+          exit_category: "missing_artifact"
+        })
       );
     }
     const contract = readJsonFile(contractPath);
     if (!contract) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "missing_artifact",
-          `task contract unreadable for ${opts.task}`
+          `task contract unreadable for ${opts.task}`,
+          {
+            hint: "check filesystem permissions on the contract.json file",
+            exit_category: "missing_artifact"
+          }
         )
       );
     }
@@ -14881,11 +14945,14 @@ function registerGateRun(cmd) {
     };
     const v = validate("gate-results", merged);
     if (!v.ok) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "schema_validation_failed",
           "gate-results schema validation failed",
-          v.errors
+          {
+            hint: "inspect ajv errors and reconcile the gate-results body with the schema",
+            exit_category: "validation"
+          }
         )
       );
     }
@@ -14914,23 +14981,22 @@ function registerGateRun(cmd) {
       suggested.target_state = "blocked";
       suggested.command = `geas task transition --mission ${opts.mission} --task ${opts.task} --to blocked`;
     }
-    emit(
-      ok({
-        path: slashPath6(filePath),
-        ids: {
-          mission_id: opts.mission,
-          task_id: opts.task,
-          gate_run_id: gateRunId
-        },
-        verdict: overall,
-        tier_results: run2.tier_results,
-        suggested_next_transition: suggested,
-        runs_count: merged.runs.length
-      })
-    );
+    emitOk("gate run", {
+      path: slashPath6(filePath),
+      ids: {
+        mission_id: opts.mission,
+        task_id: opts.task,
+        gate_run_id: gateRunId
+      },
+      verdict: overall,
+      tier_results: run2.tier_results,
+      suggested_next_transition: suggested,
+      runs_count: merged.runs.length
+    });
   });
 }
 function registerGateCommands(program2) {
+  registerFormatter("gate run", formatGateRun);
   const g = program2.command("gate").description("Evidence gate run recording (gate-results.json).");
   registerGateRun(g);
 }
@@ -14943,14 +15009,44 @@ function slashPath7(p) {
 function needProjectRoot8() {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         "missing_artifact",
-        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: "missing_artifact"
+        }
       )
     );
   }
   return root;
+}
+function formatMemorySharedSet(data) {
+  const d = data;
+  return `memory shared set: ${d.path ?? "<unknown>"} (${d.bytes ?? 0} bytes)`;
+}
+function formatMemoryAgentSet(data) {
+  const d = data;
+  return `memory agent set: ${d.agent ?? "<unknown>"} \u2192 ${d.path ?? "<unknown>"} (${d.bytes ?? 0} bytes)`;
+}
+function foldGuardHint5(hints) {
+  if (hints === void 0 || hints === null) return void 0;
+  if (typeof hints === "string") return hints;
+  if (typeof hints !== "object") return String(hints);
+  const obj = hints;
+  const parts = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const key = k.replace(/_/g, " ");
+    if (Array.isArray(v)) {
+      parts.push(`${key}: ${v.join(", ")}`);
+    } else if (v !== null && typeof v === "object") {
+      parts.push(`${key}: ${JSON.stringify(v)}`);
+    } else {
+      parts.push(`${key}: ${String(v)}`);
+    }
+  }
+  return parts.length > 0 ? parts.join("; ") : void 0;
 }
 var SLOT_IDS = /* @__PURE__ */ new Set([
   "orchestrator",
@@ -14968,7 +15064,12 @@ function readContent(filePath) {
     return readPayloadText(filePath);
   } catch (e) {
     if (e instanceof StdinError) {
-      emit(err("invalid_argument", e.message));
+      emitErr(
+        makeError("invalid_argument", e.message, {
+          hint: "pass the markdown via --file <path> or pipe through stdin",
+          exit_category: "validation"
+        })
+      );
     }
     throw e;
   }
@@ -14989,13 +15090,11 @@ function registerSharedSet(mem) {
         bytes: Buffer.byteLength(content, "utf-8")
       }
     });
-    emit(
-      ok({
-        path: slashPath7(targetPath),
-        scope: "shared",
-        bytes: Buffer.byteLength(content, "utf-8")
-      })
-    );
+    emitOk("memory shared-set", {
+      path: slashPath7(targetPath),
+      scope: "shared",
+      bytes: Buffer.byteLength(content, "utf-8")
+    });
   });
 }
 function registerAgentSet(mem) {
@@ -15007,19 +15106,26 @@ function registerAgentSet(mem) {
   ).option("--file <path>", "Read markdown from file instead of stdin").action((opts) => {
     const agent = opts.agent;
     if (!isValidAgentOrSlot(agent)) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          `invalid --agent '${agent}' (expected kebab-case: ${"^[a-z0-9][a-z0-9-]*$"})`
+          `invalid --agent '${agent}' (expected kebab-case: ${"^[a-z0-9][a-z0-9-]*$"})`,
+          {
+            hint: "agent ids must match ^[a-z0-9][a-z0-9-]*$",
+            exit_category: "validation"
+          }
         )
       );
     }
     if (SLOT_IDS.has(agent)) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
           `--agent '${agent}' names a protocol slot, not a concrete agent type. Agent memory is namespaced by concrete agent type (protocol 06 \xA7Agent Memory). For authority slots where the slot and the concrete type happen to share a name, pass the concrete type explicitly.`,
-          { slot_ids: [...SLOT_IDS] }
+          {
+            hint: foldGuardHint5({ slot_ids: [...SLOT_IDS] }) ?? "pass a concrete agent type, not a slot id",
+            exit_category: "validation"
+          }
         )
       );
     }
@@ -15037,17 +15143,17 @@ function registerAgentSet(mem) {
         bytes: Buffer.byteLength(content, "utf-8")
       }
     });
-    emit(
-      ok({
-        path: slashPath7(targetPath),
-        scope: "agent",
-        agent,
-        bytes: Buffer.byteLength(content, "utf-8")
-      })
-    );
+    emitOk("memory agent-set", {
+      path: slashPath7(targetPath),
+      scope: "agent",
+      agent,
+      bytes: Buffer.byteLength(content, "utf-8")
+    });
   });
 }
 function registerMemoryCommands(program2) {
+  registerFormatter("memory shared-set", formatMemorySharedSet);
+  registerFormatter("memory agent-set", formatMemoryAgentSet);
   const mem = program2.command("memory").description("Memory markdown writers (shared.md and agents/{type}.md).");
   registerSharedSet(mem);
   registerAgentSet(mem);
@@ -15064,14 +15170,35 @@ function slashPath8(p) {
 function needProjectRoot9() {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         "missing_artifact",
-        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: "missing_artifact"
+        }
       )
     );
   }
   return root;
+}
+function formatDebtRegister(data) {
+  const d = data;
+  return [
+    `debt registered: ${d.ids?.debt_id ?? "<unknown>"} severity=${d.entry?.severity ?? "?"} kind=${d.entry?.kind ?? "?"}`,
+    `title: ${d.entry?.title ?? "<unknown>"}`
+  ].join("\n");
+}
+function formatDebtUpdateStatus(data) {
+  const d = data;
+  const rb = d.entry?.resolved_by;
+  const resolution = rb && typeof rb === "object" ? `${rb.mission_id ?? "?"}/${rb.task_id ?? "?"}` : "(unset)";
+  return `debt status updated: ${d.ids?.debt_id ?? "<unknown>"} status=${d.entry?.status ?? "?"} resolved_by=${resolution}`;
+}
+function formatDebtList(data) {
+  const d = data;
+  return `debt list: total=${d.total ?? 0} open=${d.counts?.open ?? 0} resolved=${d.counts?.resolved ?? 0} dropped=${d.counts?.dropped ?? 0}`;
 }
 var SEVERITY_ENUM = /* @__PURE__ */ new Set(["low", "normal", "high", "critical"]);
 var KIND_ENUM = /* @__PURE__ */ new Set([
@@ -15115,55 +15242,86 @@ function registerRegister(debt) {
     try {
       payload = readPayloadJson(opts.file);
     } catch (e) {
-      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError("invalid_argument", e.message, {
+            hint: "pass the JSON via --file <path> or pipe through stdin",
+            exit_category: "validation"
+          })
+        );
+      }
       throw e;
     }
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          "debt register expects a JSON object payload (one entry body)"
+          "debt register expects a JSON object payload (one entry body)",
+          {
+            hint: "wrap the debt fields in a single JSON object",
+            exit_category: "validation"
+          }
         )
       );
     }
     const introduced = payload.introduced_by;
     if (!introduced || typeof introduced !== "object" || typeof introduced.mission_id !== "string" || typeof introduced.task_id !== "string") {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          "introduced_by is required with mission_id and task_id (project-level ledger traces each debt back to its origin mission/task)"
+          "introduced_by is required with mission_id and task_id (project-level ledger traces each debt back to its origin mission/task)",
+          {
+            hint: "add introduced_by: { mission_id, task_id } to the payload",
+            exit_category: "validation"
+          }
         )
       );
     }
     if (!isValidMissionId(introduced.mission_id)) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          `invalid introduced_by.mission_id '${introduced.mission_id}'`
+          `invalid introduced_by.mission_id '${introduced.mission_id}'`,
+          {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: "validation"
+          }
         )
       );
     }
     if (!isValidTaskId(introduced.task_id)) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          `invalid introduced_by.task_id '${introduced.task_id}'`
+          `invalid introduced_by.task_id '${introduced.task_id}'`,
+          {
+            hint: "task ids look like 'task-NNN' (3+ digits)",
+            exit_category: "validation"
+          }
         )
       );
     }
     if (typeof payload.severity !== "string" || !SEVERITY_ENUM.has(payload.severity)) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          `severity must be one of ${[...SEVERITY_ENUM].join(", ")}`
+          `severity must be one of ${[...SEVERITY_ENUM].join(", ")}`,
+          {
+            hint: `valid severities: ${[...SEVERITY_ENUM].join(", ")}`,
+            exit_category: "validation"
+          }
         )
       );
     }
     if (typeof payload.kind !== "string" || !KIND_ENUM.has(payload.kind)) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          `kind must be one of ${[...KIND_ENUM].join(", ")}`
+          `kind must be one of ${[...KIND_ENUM].join(", ")}`,
+          {
+            hint: `valid kinds: ${[...KIND_ENUM].join(", ")}`,
+            exit_category: "validation"
+          }
         )
       );
     }
@@ -15191,11 +15349,14 @@ function registerRegister(debt) {
     };
     const v = validate("debts", next);
     if (!v.ok) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "schema_validation_failed",
           "debts schema validation failed",
-          v.errors
+          {
+            hint: "inspect ajv errors and fix the entry body, then retry",
+            exit_category: "validation"
+          }
         )
       );
     }
@@ -15214,13 +15375,11 @@ function registerRegister(debt) {
         kind: payload.kind
       }
     });
-    emit(
-      ok({
-        path: slashPath8(target),
-        ids: { debt_id: debtId },
-        entry
-      })
-    );
+    emitOk("debt register", {
+      path: slashPath8(target),
+      ids: { debt_id: debtId },
+      entry
+    });
   });
 }
 function registerUpdateStatus(debt) {
@@ -15228,10 +15387,14 @@ function registerUpdateStatus(debt) {
     "Update status + resolved_by + resolution_rationale on an existing debt entry. Payload via --file or stdin: { status, resolved_by, resolution_rationale }."
   ).requiredOption("--debt <id>", "Debt ID (debt-NNN)").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     if (!DEBT_ID_RE.test(opts.debt)) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          `invalid debt id '${opts.debt}' (expected ^debt-[0-9]{3}$)`
+          `invalid debt id '${opts.debt}' (expected ^debt-[0-9]{3}$)`,
+          {
+            hint: "debt ids look like 'debt-NNN' (3 digits)",
+            exit_category: "validation"
+          }
         )
       );
     }
@@ -15240,85 +15403,127 @@ function registerUpdateStatus(debt) {
     try {
       payload = readPayloadJson(opts.file);
     } catch (e) {
-      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError("invalid_argument", e.message, {
+            hint: "pass the JSON via --file <path> or pipe through stdin",
+            exit_category: "validation"
+          })
+        );
+      }
       throw e;
     }
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          "debt update-status expects a JSON object payload"
+          "debt update-status expects a JSON object payload",
+          {
+            hint: "wrap status, resolved_by, resolution_rationale in a single JSON object",
+            exit_category: "validation"
+          }
         )
       );
     }
     const allowedKeys = /* @__PURE__ */ new Set(["status", "resolved_by", "resolution_rationale"]);
     for (const k of Object.keys(payload)) {
       if (!allowedKeys.has(k)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             "append_only_violation",
             `debt update-status only accepts status, resolved_by, resolution_rationale \u2014 got '${k}'`,
-            { field: k }
+            {
+              hint: `field '${k}' is not mutable on existing debt entries; only status/resolved_by/resolution_rationale are`,
+              exit_category: "guard"
+            }
           )
         );
       }
     }
     if (typeof payload.status !== "string" || !STATUS_ENUM.has(payload.status)) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          `status must be one of ${[...STATUS_ENUM].join(", ")}`
+          `status must be one of ${[...STATUS_ENUM].join(", ")}`,
+          {
+            hint: `valid statuses: ${[...STATUS_ENUM].join(", ")}`,
+            exit_category: "validation"
+          }
         )
       );
     }
     if (payload.status === "open") {
       if (payload.resolved_by !== void 0 && payload.resolved_by !== null) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             "invalid_argument",
-            "resolved_by must be null when status is open"
+            "resolved_by must be null when status is open",
+            {
+              hint: "set resolved_by to null when reverting a debt to open",
+              exit_category: "validation"
+            }
           )
         );
       }
       if (payload.resolution_rationale !== void 0 && payload.resolution_rationale !== null) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             "invalid_argument",
-            "resolution_rationale must be null when status is open"
+            "resolution_rationale must be null when status is open",
+            {
+              hint: "set resolution_rationale to null when reverting a debt to open",
+              exit_category: "validation"
+            }
           )
         );
       }
     } else {
       const rb = payload.resolved_by;
       if (!rb || typeof rb !== "object" || typeof rb.mission_id !== "string" || typeof rb.task_id !== "string") {
-        emit(
-          err(
+        emitErr(
+          makeError(
             "invalid_argument",
-            "resolved_by must include mission_id and task_id when status is resolved or dropped"
+            "resolved_by must include mission_id and task_id when status is resolved or dropped",
+            {
+              hint: "add resolved_by: { mission_id, task_id } pointing to the resolving mission/task",
+              exit_category: "validation"
+            }
           )
         );
       }
       if (!isValidMissionId(rb.mission_id)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             "invalid_argument",
-            `invalid resolved_by.mission_id '${rb.mission_id}'`
+            `invalid resolved_by.mission_id '${rb.mission_id}'`,
+            {
+              hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+              exit_category: "validation"
+            }
           )
         );
       }
       if (!isValidTaskId(rb.task_id)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             "invalid_argument",
-            `invalid resolved_by.task_id '${rb.task_id}'`
+            `invalid resolved_by.task_id '${rb.task_id}'`,
+            {
+              hint: "task ids look like 'task-NNN' (3+ digits)",
+              exit_category: "validation"
+            }
           )
         );
       }
       if (typeof payload.resolution_rationale !== "string" || payload.resolution_rationale.length === 0) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             "invalid_argument",
-            "resolution_rationale is required (non-empty string) when status is resolved or dropped"
+            "resolution_rationale is required (non-empty string) when status is resolved or dropped",
+            {
+              hint: "add a non-empty resolution_rationale string",
+              exit_category: "validation"
+            }
           )
         );
       }
@@ -15328,11 +15533,14 @@ function registerUpdateStatus(debt) {
       (e) => e.debt_id === opts.debt
     );
     if (idx < 0) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "missing_artifact",
           `debt '${opts.debt}' not found in ledger`,
-          { debt_id: opts.debt }
+          {
+            hint: `run 'geas debt list' to see available debt ids`,
+            exit_category: "missing_artifact"
+          }
         )
       );
     }
@@ -15356,11 +15564,14 @@ function registerUpdateStatus(debt) {
     };
     const v = validate("debts", next);
     if (!v.ok) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "schema_validation_failed",
           "debts schema validation failed",
-          v.errors
+          {
+            hint: "inspect ajv errors and fix the patch body, then retry",
+            exit_category: "validation"
+          }
         )
       );
     }
@@ -15377,13 +15588,11 @@ function registerUpdateStatus(debt) {
         to_status: payload.status
       }
     });
-    emit(
-      ok({
-        path: slashPath8(target),
-        ids: { debt_id: opts.debt },
-        entry: updated
-      })
-    );
+    emitOk("debt update-status", {
+      path: slashPath8(target),
+      ids: { debt_id: opts.debt },
+      entry: updated
+    });
   });
 }
 function registerList(debt) {
@@ -15391,15 +15600,24 @@ function registerList(debt) {
     "Read-only query over `.geas/debts.json`. Filters on --status and/or --mission (matches introduced_by.mission_id OR resolved_by.mission_id)."
   ).option("--status <status>", "Filter by status (open|resolved|dropped)").option("--mission <id>", "Filter by mission (matches origin or resolution)").action((opts) => {
     if (opts.status !== void 0 && !STATUS_ENUM.has(opts.status)) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          `--status must be one of ${[...STATUS_ENUM].join(", ")}`
+          `--status must be one of ${[...STATUS_ENUM].join(", ")}`,
+          {
+            hint: `valid --status values: ${[...STATUS_ENUM].join(", ")}`,
+            exit_category: "validation"
+          }
         )
       );
     }
     if (opts.mission !== void 0 && !isValidMissionId(opts.mission)) {
-      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+      emitErr(
+        makeError("invalid_argument", `invalid mission id '${opts.mission}'`, {
+          hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+          exit_category: "validation"
+        })
+      );
     }
     const root = needProjectRoot9();
     const ledger = loadLedger(root);
@@ -15424,17 +15642,18 @@ function registerList(debt) {
       const s = e.status ?? "";
       if (counts[s] !== void 0) counts[s]++;
     }
-    emit(
-      ok({
-        path: slashPath8(debtsPath(root)),
-        total: entries.length,
-        counts,
-        entries
-      })
-    );
+    emitOk("debt list", {
+      path: slashPath8(debtsPath(root)),
+      total: entries.length,
+      counts,
+      entries
+    });
   });
 }
 function registerDebtCommands(program2) {
+  registerFormatter("debt register", formatDebtRegister);
+  registerFormatter("debt update-status", formatDebtUpdateStatus);
+  registerFormatter("debt list", formatDebtList);
   const debt = program2.command("debt").description(
     "Project-level debts ledger (.geas/debts.json) \u2014 register, update-status, list."
   );
@@ -15454,16 +15673,32 @@ function slashPath9(p) {
 function needProjectRoot10() {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         "missing_artifact",
-        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: "missing_artifact"
+        }
       )
     );
   }
   return root;
 }
+function formatGapSet(data) {
+  const d = data;
+  const fd = Array.isArray(d.gap?.fully_delivered) ? d.gap.fully_delivered.length : 0;
+  const pd = Array.isArray(d.gap?.partially_delivered) ? d.gap.partially_delivered.length : 0;
+  const nd = Array.isArray(d.gap?.not_delivered) ? d.gap.not_delivered.length : 0;
+  const ua = Array.isArray(d.gap?.unexpected_additions) ? d.gap.unexpected_additions.length : 0;
+  return [
+    `gap set: ${d.ids?.mission_id ?? "<unknown>"} \u2192 ${d.path ?? "<unknown>"}`,
+    `fully=${fd} partial=${pd} not_delivered=${nd} unexpected=${ua}`
+  ].join("\n");
+}
 function registerGapCommands(program2) {
+  registerFormatter("gap set", formatGapSet);
   const gap = program2.command("gap").description(
     "Mission-level gap artifact (missions/{id}/consolidation/gap.json)."
   );
@@ -15471,27 +15706,42 @@ function registerGapCommands(program2) {
     "Write gap.json for a mission (full-replace; payload via --file or stdin). Allowed during consolidating phase."
   ).requiredOption("--mission <id>", "Mission ID").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
-      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+      emitErr(
+        makeError("invalid_argument", `invalid mission id '${opts.mission}'`, {
+          hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+          exit_category: "validation"
+        })
+      );
     }
     const root = needProjectRoot10();
     if (!exists(missionSpecPath(root, opts.mission))) {
-      emit(
-        err(
-          "missing_artifact",
-          `mission spec not found for ${opts.mission}`
-        )
+      emitErr(
+        makeError("missing_artifact", `mission spec not found for ${opts.mission}`, {
+          hint: "run 'geas mission create' to bootstrap the mission first",
+          exit_category: "missing_artifact"
+        })
       );
     }
     let payload;
     try {
       payload = readPayloadJson(opts.file);
     } catch (e) {
-      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError("invalid_argument", e.message, {
+            hint: "pass the JSON via --file <path> or pipe through stdin",
+            exit_category: "validation"
+          })
+        );
+      }
       throw e;
     }
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      emit(
-        err("invalid_argument", "gap set expects a JSON object payload")
+      emitErr(
+        makeError("invalid_argument", "gap set expects a JSON object payload", {
+          hint: "wrap the gap fields in a single JSON object",
+          exit_category: "validation"
+        })
       );
     }
     if (payload.fully_delivered === void 0) payload.fully_delivered = [];
@@ -15506,11 +15756,14 @@ function registerGapCommands(program2) {
     payload.updated_at = ts;
     const v = validate("gap", payload);
     if (!v.ok) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "schema_validation_failed",
           "gap schema validation failed",
-          v.errors
+          {
+            hint: "inspect ajv errors and fix the gap body, then retry",
+            exit_category: "validation"
+          }
         )
       );
     }
@@ -15524,13 +15777,11 @@ function registerGapCommands(program2) {
         artifact: slashPath9(path13.relative(root, target))
       }
     });
-    emit(
-      ok({
-        path: slashPath9(target),
-        ids: { mission_id: opts.mission },
-        gap: payload
-      })
-    );
+    emitOk("gap set", {
+      path: slashPath9(target),
+      ids: { mission_id: opts.mission },
+      gap: payload
+    });
   });
 }
 
@@ -15545,19 +15796,28 @@ function slashPath10(p) {
 function needProjectRoot11() {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         "missing_artifact",
-        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: "missing_artifact"
+        }
       )
     );
   }
   return root;
 }
+function formatMemoryUpdateSet(data) {
+  const d = data;
+  return `memory-update set: ${d.ids?.mission_id ?? "<unknown>"} \u2192 ${d.path ?? "<unknown>"}`;
+}
 function emptySharedBlock() {
   return { added: [], modified: [], removed: [] };
 }
 function registerMemoryUpdateCommands(program2) {
+  registerFormatter("memory-update set", formatMemoryUpdateSet);
   const mu = program2.command("memory-update").description(
     "Mission consolidation memory change log (missions/{id}/consolidation/memory-update.json)."
   );
@@ -15565,29 +15825,45 @@ function registerMemoryUpdateCommands(program2) {
     "Write memory-update.json for a mission (full-replace; payload via --file or stdin). Records what shared + agent memory changed this mission."
   ).requiredOption("--mission <id>", "Mission ID").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
-      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+      emitErr(
+        makeError("invalid_argument", `invalid mission id '${opts.mission}'`, {
+          hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+          exit_category: "validation"
+        })
+      );
     }
     const root = needProjectRoot11();
     if (!exists(missionSpecPath(root, opts.mission))) {
-      emit(
-        err(
-          "missing_artifact",
-          `mission spec not found for ${opts.mission}`
-        )
+      emitErr(
+        makeError("missing_artifact", `mission spec not found for ${opts.mission}`, {
+          hint: "run 'geas mission create' to bootstrap the mission first",
+          exit_category: "missing_artifact"
+        })
       );
     }
     let payload;
     try {
       payload = readPayloadJson(opts.file);
     } catch (e) {
-      if (e instanceof StdinError) emit(err("invalid_argument", e.message));
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError("invalid_argument", e.message, {
+            hint: "pass the JSON via --file <path> or pipe through stdin",
+            exit_category: "validation"
+          })
+        );
+      }
       throw e;
     }
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          "memory-update set expects a JSON object payload"
+          "memory-update set expects a JSON object payload",
+          {
+            hint: "wrap the change-log fields in a single JSON object",
+            exit_category: "validation"
+          }
         )
       );
     }
@@ -15601,11 +15877,14 @@ function registerMemoryUpdateCommands(program2) {
     payload.updated_at = ts;
     const v = validate("memory-update", payload);
     if (!v.ok) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "schema_validation_failed",
           "memory-update schema validation failed",
-          v.errors
+          {
+            hint: "inspect ajv errors and fix the change-log shape, then retry",
+            exit_category: "validation"
+          }
         )
       );
     }
@@ -15619,13 +15898,11 @@ function registerMemoryUpdateCommands(program2) {
         artifact: slashPath10(path14.relative(root, target))
       }
     });
-    emit(
-      ok({
-        path: slashPath10(target),
-        ids: { mission_id: opts.mission },
-        memory_update: payload
-      })
-    );
+    emitOk("memory-update set", {
+      path: slashPath10(target),
+      ids: { mission_id: opts.mission },
+      memory_update: payload
+    });
   });
 }
 
@@ -15726,14 +16003,43 @@ function slashPath11(p) {
 function needProjectRoot13() {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         "missing_artifact",
-        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+        `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: "missing_artifact"
+        }
       )
     );
   }
   return root;
+}
+function formatConsolidationScaffold(data) {
+  const d = data;
+  return [
+    `consolidation scaffolded: ${d.ids?.mission_id ?? "<unknown>"} \u2192 ${d.path ?? "<unknown>"}`,
+    `debts=${d.counts?.debt_candidates ?? 0} memory=${d.counts?.memory_suggestions ?? 0} gaps=${d.counts?.gap_signals ?? 0}`
+  ].join("\n");
+}
+function foldGuardHint6(hints) {
+  if (hints === void 0 || hints === null) return void 0;
+  if (typeof hints === "string") return hints;
+  if (typeof hints !== "object") return String(hints);
+  const obj = hints;
+  const parts = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const key = k.replace(/_/g, " ");
+    if (Array.isArray(v)) {
+      parts.push(`${key}: ${v.join(", ")}`);
+    } else if (v !== null && typeof v === "object") {
+      parts.push(`${key}: ${JSON.stringify(v)}`);
+    } else {
+      parts.push(`${key}: ${String(v)}`);
+    }
+  }
+  return parts.length > 0 ? parts.join("; ") : void 0;
 }
 var SCAFFOLD_PHASES = /* @__PURE__ */ new Set(["polishing", "consolidating"]);
 function harvestFile(filePath, taskId, buckets) {
@@ -15784,35 +16090,47 @@ function registerScaffold(root) {
     "Harvest debt_candidate / memory_suggestion / gap_signals fields from every task evidence file under a mission into consolidation/candidates.json (convenience cache, not a protocol artifact)."
   ).requiredOption("--mission <id>", "Mission ID").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
-      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+      emitErr(
+        makeError("invalid_argument", `invalid mission id '${opts.mission}'`, {
+          hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+          exit_category: "validation"
+        })
+      );
     }
     const projectRoot = needProjectRoot13();
     if (!exists(missionSpecPath(projectRoot, opts.mission))) {
-      emit(
-        err(
-          "missing_artifact",
-          `mission spec not found for ${opts.mission}`
-        )
+      emitErr(
+        makeError("missing_artifact", `mission spec not found for ${opts.mission}`, {
+          hint: "run 'geas mission create' to bootstrap the mission first",
+          exit_category: "missing_artifact"
+        })
       );
     }
     const state = readJsonFile(
       missionStatePath(projectRoot, opts.mission)
     );
     if (!state) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "missing_artifact",
-          `mission-state.json not found for ${opts.mission}`
+          `mission-state.json not found for ${opts.mission}`,
+          {
+            hint: "mission-state is created automatically by mission create; check the --mission id",
+            exit_category: "missing_artifact"
+          }
         )
       );
     }
     const phase = state.phase ?? "";
     if (!SCAFFOLD_PHASES.has(phase)) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "guard_failed",
           `consolidation scaffold requires mission phase polishing or consolidating (current: ${phase || "unknown"})`,
-          { phase, allowed: [...SCAFFOLD_PHASES] }
+          {
+            hint: foldGuardHint6({ phase, allowed: [...SCAFFOLD_PHASES] }) ?? "advance the mission to polishing or consolidating first",
+            exit_category: "guard"
+          }
         )
       );
     }
@@ -15860,21 +16178,20 @@ function registerScaffold(root) {
         }
       }
     });
-    emit(
-      ok({
-        path: slashPath11(target),
-        ids: { mission_id: opts.mission },
-        counts: {
-          debt_candidates: buckets.debt_candidates.length,
-          memory_suggestions: buckets.memory_suggestions.length,
-          gap_signals: buckets.gap_signals.length
-        },
-        candidates: payload
-      })
-    );
+    emitOk("consolidation scaffold", {
+      path: slashPath11(target),
+      ids: { mission_id: opts.mission },
+      counts: {
+        debt_candidates: buckets.debt_candidates.length,
+        memory_suggestions: buckets.memory_suggestions.length,
+        gap_signals: buckets.gap_signals.length
+      },
+      candidates: payload
+    });
   });
 }
 function registerConsolidationCommands(program2) {
+  registerFormatter("consolidation scaffold", formatConsolidationScaffold);
   const root = program2.command("consolidation").description(
     "Consolidation-phase scaffolding (convenience cache for consolidating phase)."
   );
@@ -15914,7 +16231,7 @@ function formatImplContractSet(data) {
     `change_scope: ${scopeCount} surface(s)`
   ].join("\n");
 }
-function foldGuardHint4(hints) {
+function foldGuardHint7(hints) {
   if (hints === void 0 || hints === null) return void 0;
   if (typeof hints === "string") return hints;
   if (typeof hints !== "object") return String(hints);
@@ -16023,7 +16340,7 @@ function registerImplContractCommands(program2) {
           "guard_failed",
           `impl-contract set requires task state implementing (current: ${status || "unknown"})`,
           {
-            hint: foldGuardHint4({ current_status: status, allowed: [...IMPL_CONTRACT_WRITABLE_STATES] }) ?? "task must be in implementing state to write impl-contract",
+            hint: foldGuardHint7({ current_status: status, allowed: [...IMPL_CONTRACT_WRITABLE_STATES] }) ?? "task must be in implementing state to write impl-contract",
             exit_category: "guard"
           }
         )

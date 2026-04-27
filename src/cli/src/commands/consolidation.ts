@@ -23,7 +23,9 @@ import type { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { emit, err, ok, recordEvent } from '../lib/envelope';
+import { recordEvent } from '../lib/envelope';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
+import { makeError } from '../lib/errors';
 import { atomicWriteJson, ensureDir, exists, readJsonFile } from '../lib/fs-atomic';
 import {
   evidenceDir,
@@ -47,14 +49,47 @@ function slashPath(p: string): string {
 function needProjectRoot(): string {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         'missing_artifact',
-        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`,
+        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: 'missing_artifact',
+        },
       ),
     );
   }
   return root as string;
+}
+
+/** AC3: scalar formatter for consolidation scaffold. */
+function formatConsolidationScaffold(data: unknown): string {
+  const d = data as { ids?: { mission_id?: string }; path?: string; counts?: { debt_candidates?: number; memory_suggestions?: number; gap_signals?: number } };
+  return [
+    `consolidation scaffolded: ${d.ids?.mission_id ?? '<unknown>'} → ${d.path ?? '<unknown>'}`,
+    `debts=${d.counts?.debt_candidates ?? 0} memory=${d.counts?.memory_suggestions ?? 0} gaps=${d.counts?.gap_signals ?? 0}`,
+  ].join('\n');
+}
+
+/** T2.8 path (b): structural guard hint folded to single string. */
+function foldGuardHint(hints: unknown): string | undefined {
+  if (hints === undefined || hints === null) return undefined;
+  if (typeof hints === 'string') return hints;
+  if (typeof hints !== 'object') return String(hints);
+  const obj = hints as Record<string, unknown>;
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const key = k.replace(/_/g, ' ');
+    if (Array.isArray(v)) {
+      parts.push(`${key}: ${v.join(', ')}`);
+    } else if (v !== null && typeof v === 'object') {
+      parts.push(`${key}: ${JSON.stringify(v)}`);
+    } else {
+      parts.push(`${key}: ${String(v)}`);
+    }
+  }
+  return parts.length > 0 ? parts.join('; ') : undefined;
 }
 
 /** Phases in which scaffold is meaningful. */
@@ -151,36 +186,48 @@ function registerScaffold(root: Command): void {
     .requiredOption('--mission <id>', 'Mission ID')
     .action((opts: { mission: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const projectRoot = needProjectRoot();
 
       if (!exists(missionSpecPath(projectRoot, opts.mission))) {
-        emit(
-          err(
-            'missing_artifact',
-            `mission spec not found for ${opts.mission}`,
-          ),
+        emitErr(
+          makeError('missing_artifact', `mission spec not found for ${opts.mission}`, {
+            hint: "run 'geas mission create' to bootstrap the mission first",
+            exit_category: 'missing_artifact',
+          }),
         );
       }
       const state = readJsonFile<{ phase?: string }>(
         missionStatePath(projectRoot, opts.mission),
       );
       if (!state) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'missing_artifact',
             `mission-state.json not found for ${opts.mission}`,
+            {
+              hint: 'mission-state is created automatically by mission create; check the --mission id',
+              exit_category: 'missing_artifact',
+            },
           ),
         );
       }
       const phase = (state as { phase?: string }).phase ?? '';
       if (!SCAFFOLD_PHASES.has(phase)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'guard_failed',
             `consolidation scaffold requires mission phase polishing or consolidating (current: ${phase || 'unknown'})`,
-            { phase, allowed: [...SCAFFOLD_PHASES] },
+            {
+              hint: foldGuardHint({ phase, allowed: [...SCAFFOLD_PHASES] }) ?? 'advance the mission to polishing or consolidating first',
+              exit_category: 'guard',
+            },
           ),
         );
       }
@@ -236,22 +283,21 @@ function registerScaffold(root: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(target),
-          ids: { mission_id: opts.mission },
-          counts: {
-            debt_candidates: buckets.debt_candidates.length,
-            memory_suggestions: buckets.memory_suggestions.length,
-            gap_signals: buckets.gap_signals.length,
-          },
-          candidates: payload,
-        }),
-      );
+      emitOk('consolidation scaffold', {
+        path: slashPath(target),
+        ids: { mission_id: opts.mission },
+        counts: {
+          debt_candidates: buckets.debt_candidates.length,
+          memory_suggestions: buckets.memory_suggestions.length,
+          gap_signals: buckets.gap_signals.length,
+        },
+        candidates: payload,
+      });
     });
 }
 
 export function registerConsolidationCommands(program: Command): void {
+  registerFormatter('consolidation scaffold', formatConsolidationScaffold);
   const root = program
     .command('consolidation')
     .description(

@@ -125,7 +125,7 @@ test('debt register writes an entry to project-level .geas/debts.json', () => {
     setupMission(dir, MID);
     draftTask(dir, MID, 'task-001');
 
-    const r = runCli(['debt', 'register'], {
+    const r = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify(validDebtBody()),
     });
@@ -160,7 +160,7 @@ test('debt register assigns monotonic debt-NNN ids and never mutates earlier ent
     draftTask(dir, MID, 'task-001');
     draftTask(dir, MID, 'task-002');
 
-    const r1 = runCli(['debt', 'register'], {
+    const r1 = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify(validDebtBody({ title: 'first' })),
     });
@@ -169,7 +169,7 @@ test('debt register assigns monotonic debt-NNN ids and never mutates earlier ent
 
     const ledgerBefore = readArtifact(dir, '.geas/debts.json');
 
-    const r2 = runCli(['debt', 'register'], {
+    const r2 = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify(
         validDebtBody({
@@ -193,7 +193,7 @@ test('debt register assigns monotonic debt-NNN ids and never mutates earlier ent
     assert.equal(ledgerAfter.entries[1].title, 'second');
     assert.equal(ledgerAfter.entries[1].introduced_by.task_id, 'task-002');
 
-    const r3 = runCli(['debt', 'register'], {
+    const r3 = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify(validDebtBody({ title: 'third' })),
     });
@@ -210,8 +210,8 @@ test('debt register rejects entries missing required fields', () => {
     setupMission(dir, MID);
     draftTask(dir, MID, 'task-001');
 
-    // missing introduced_by
-    let r = runCli(['debt', 'register'], {
+    // missing introduced_by. AC2 (task-006): invalid_argument 1 → 2.
+    let r = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify({
         severity: 'normal',
@@ -220,30 +220,30 @@ test('debt register rejects entries missing required fields', () => {
         description: 'd',
       }),
     });
-    assert.equal(r.status, 1);
+    assert.equal(r.status, 2);
     assert.equal(r.json.error.code, 'invalid_argument');
     assert.match(r.json.error.message, /introduced_by/);
 
     // invalid severity
-    r = runCli(['debt', 'register'], {
+    r = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify(validDebtBody({ severity: 'urgent' })),
     });
-    assert.equal(r.status, 1);
+    assert.equal(r.status, 2);
     assert.equal(r.json.error.code, 'invalid_argument');
     assert.match(r.json.error.message, /severity/);
 
     // invalid kind
-    r = runCli(['debt', 'register'], {
+    r = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify(validDebtBody({ kind: 'techdebt' })),
     });
-    assert.equal(r.status, 1);
+    assert.equal(r.status, 2);
     assert.equal(r.json.error.code, 'invalid_argument');
     assert.match(r.json.error.message, /kind/);
 
     // missing title (schema-level failure after upfront checks pass)
-    r = runCli(['debt', 'register'], {
+    r = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify({
         severity: 'normal',
@@ -265,7 +265,7 @@ test('debt register ignores caller-supplied debt_id and status (CLI owns them)',
     setupMission(dir, MID);
     draftTask(dir, MID, 'task-001');
 
-    const r = runCli(['debt', 'register'], {
+    const r = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify(
         validDebtBody({
@@ -296,14 +296,14 @@ test('debt update-status flips open -> resolved with resolved_by + rationale', (
     draftTask(dir, MID, 'task-001');
     draftTask(dir, MID, 'task-002');
 
-    let r = runCli(['debt', 'register'], {
+    let r = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify(validDebtBody()),
     });
     assert.equal(r.status, 0, r.stderr);
     const debtId = r.json.data.ids.debt_id;
 
-    r = runCli(['debt', 'update-status', '--debt', debtId], {
+    r = runCli(['--json', 'debt', 'update-status', '--debt', debtId], {
       cwd: dir,
       input: JSON.stringify({
         status: 'resolved',
@@ -331,13 +331,13 @@ test('debt update-status rejects patches containing disallowed fields', () => {
     setupMission(dir, MID);
     draftTask(dir, MID, 'task-001');
 
-    let r = runCli(['debt', 'register'], {
+    let r = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify(validDebtBody()),
     });
     assert.equal(r.status, 0, r.stderr);
 
-    r = runCli(['debt', 'update-status', '--debt', 'debt-001'], {
+    r = runCli(['--json', 'debt', 'update-status', '--debt', 'debt-001'], {
       cwd: dir,
       input: JSON.stringify({
         status: 'resolved',
@@ -346,7 +346,9 @@ test('debt update-status rejects patches containing disallowed fields', () => {
         severity: 'critical', // <-- disallowed field
       }),
     });
-    assert.equal(r.status, 5, `expected append_only_violation, got ${r.stderr}`);
+    // AC2 (task-006) + design Decision 2: legacy append_only_violation
+    // (exit 5) rotates to category 'guard' (exit 3) post-T2.d.
+    assert.equal(r.status, 3, `expected guard category for append_only_violation, got ${r.stderr}`);
     assert.equal(r.json.error.code, 'append_only_violation');
     assert.match(r.json.error.message, /severity/);
   } finally {
@@ -359,7 +361,7 @@ test('debt update-status rejects missing debt ids', () => {
   try {
     setupMission(dir, MID);
 
-    const r = runCli(['debt', 'update-status', '--debt', 'debt-042'], {
+    const r = runCli(['--json', 'debt', 'update-status', '--debt', 'debt-042'], {
       cwd: dir,
       input: JSON.stringify({
         status: 'resolved',
@@ -381,17 +383,18 @@ test('debt update-status requires resolved_by + rationale for non-open status', 
     setupMission(dir, MID);
     draftTask(dir, MID, 'task-001');
 
-    let r = runCli(['debt', 'register'], {
+    let r = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify(validDebtBody()),
     });
     assert.equal(r.status, 0, r.stderr);
 
-    r = runCli(['debt', 'update-status', '--debt', 'debt-001'], {
+    r = runCli(['--json', 'debt', 'update-status', '--debt', 'debt-001'], {
       cwd: dir,
       input: JSON.stringify({ status: 'dropped' }),
     });
-    assert.equal(r.status, 1);
+    // AC2 (task-006): invalid_argument rotates 1 → 2 (validation).
+    assert.equal(r.status, 2);
     assert.equal(r.json.error.code, 'invalid_argument');
     assert.match(r.json.error.message, /resolved_by/);
   } finally {
@@ -409,7 +412,7 @@ test('debt list filters by status and mission', () => {
     draftTask(dir, MID, 'task-002');
 
     // Two entries for MID, different tasks.
-    let r = runCli(['debt', 'register'], {
+    let r = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify(
         validDebtBody({
@@ -420,7 +423,7 @@ test('debt list filters by status and mission', () => {
     });
     assert.equal(r.status, 0, r.stderr);
 
-    r = runCli(['debt', 'register'], {
+    r = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify(
         validDebtBody({
@@ -431,7 +434,7 @@ test('debt list filters by status and mission', () => {
     });
     assert.equal(r.status, 0, r.stderr);
 
-    r = runCli(['debt', 'update-status', '--debt', 'debt-002'], {
+    r = runCli(['--json', 'debt', 'update-status', '--debt', 'debt-002'], {
       cwd: dir,
       input: JSON.stringify({
         status: 'resolved',
@@ -442,25 +445,25 @@ test('debt list filters by status and mission', () => {
     assert.equal(r.status, 0, r.stderr);
 
     // list everything
-    r = runCli(['debt', 'list'], { cwd: dir });
+    r = runCli(['--json', 'debt', 'list'], { cwd: dir });
     assert.equal(r.status, 0, r.stderr);
     assert.equal(r.json.data.total, 2);
     assert.deepEqual(r.json.data.counts, { open: 1, resolved: 1, dropped: 0 });
 
     // list by status
-    r = runCli(['debt', 'list', '--status', 'open'], { cwd: dir });
+    r = runCli(['--json', 'debt', 'list', '--status', 'open'], { cwd: dir });
     assert.equal(r.status, 0, r.stderr);
     assert.equal(r.json.data.total, 1);
     assert.equal(r.json.data.entries[0].debt_id, 'debt-001');
 
     // list by mission
-    r = runCli(['debt', 'list', '--mission', MID], { cwd: dir });
+    r = runCli(['--json', 'debt', 'list', '--mission', MID], { cwd: dir });
     assert.equal(r.status, 0, r.stderr);
     assert.equal(r.json.data.total, 2);
 
     // list by mission that never owned any debt -> 0
     r = runCli(
-      ['debt', 'list', '--mission', 'mission-20260101-unknown0'],
+      ['--json', 'debt', 'list', '--mission', 'mission-20260101-unknown0'],
       { cwd: dir },
     );
     assert.equal(r.status, 0, r.stderr);
@@ -485,7 +488,7 @@ test('gap set writes consolidation/gap.json with schema validation', () => {
       not_delivered: ['dashboard integration (intentionally cut: out of scope)'],
       unexpected_additions: ['debt update-status rejection of disallowed fields'],
     };
-    const r = runCli(['gap', 'set', '--mission', MID], {
+    const r = runCli(['--json', 'gap', 'set', '--mission', MID], {
       cwd: dir,
       input: JSON.stringify(body),
     });
@@ -512,7 +515,7 @@ test('gap set is full-replace (second call overwrites)', () => {
   try {
     setupMission(dir, MID);
 
-    let r = runCli(['gap', 'set', '--mission', MID], {
+    let r = runCli(['--json', 'gap', 'set', '--mission', MID], {
       cwd: dir,
       input: JSON.stringify({
         scope_in_summary: 'first',
@@ -529,7 +532,7 @@ test('gap set is full-replace (second call overwrites)', () => {
       '.geas/missions/mission-20260420-g6debts0/consolidation/gap.json',
     ).created_at;
 
-    r = runCli(['gap', 'set', '--mission', MID], {
+    r = runCli(['--json', 'gap', 'set', '--mission', MID], {
       cwd: dir,
       input: JSON.stringify({
         scope_in_summary: 'second',
@@ -563,7 +566,7 @@ test('gap set rejects payloads missing required fields', () => {
   try {
     setupMission(dir, MID);
     // missing scope_in_summary
-    const r = runCli(['gap', 'set', '--mission', MID], {
+    const r = runCli(['--json', 'gap', 'set', '--mission', MID], {
       cwd: dir,
       input: JSON.stringify({
         scope_out_summary: 'out only',
@@ -610,7 +613,7 @@ test('memory-update set writes consolidation/memory-update.json', () => {
         },
       ],
     };
-    const r = runCli(['memory-update', 'set', '--mission', MID], {
+    const r = runCli(['--json', 'memory-update', 'set', '--mission', MID], {
       cwd: dir,
       input: JSON.stringify(body),
     });
@@ -637,7 +640,7 @@ test('memory-update set defaults shared/agents to empty when omitted', () => {
     setupMission(dir, MID);
     // caller supplies nothing beyond an object — the CLI supplies empty
     // `shared` and `agents` blocks so the schema passes.
-    const r = runCli(['memory-update', 'set', '--mission', MID], {
+    const r = runCli(['--json', 'memory-update', 'set', '--mission', MID], {
       cwd: dir,
       input: JSON.stringify({}),
     });
@@ -658,7 +661,7 @@ test('memory-update set rejects malformed change entries', () => {
   try {
     setupMission(dir, MID);
     // change entry missing required fields (reason + evidence_refs)
-    const r = runCli(['memory-update', 'set', '--mission', MID], {
+    const r = runCli(['--json', 'memory-update', 'set', '--mission', MID], {
       cwd: dir,
       input: JSON.stringify({
         shared: {
@@ -684,13 +687,13 @@ test('debt/gap/memory-update mutations append events.jsonl entries with cli:auto
     setupMission(dir, MID);
     draftTask(dir, MID, 'task-001');
 
-    let r = runCli(['debt', 'register'], {
+    let r = runCli(['--json', 'debt', 'register'], {
       cwd: dir,
       input: JSON.stringify(validDebtBody()),
     });
     assert.equal(r.status, 0, r.stderr);
 
-    r = runCli(['debt', 'update-status', '--debt', 'debt-001'], {
+    r = runCli(['--json', 'debt', 'update-status', '--debt', 'debt-001'], {
       cwd: dir,
       input: JSON.stringify({
         status: 'dropped',
@@ -700,7 +703,7 @@ test('debt/gap/memory-update mutations append events.jsonl entries with cli:auto
     });
     assert.equal(r.status, 0, r.stderr);
 
-    r = runCli(['gap', 'set', '--mission', MID], {
+    r = runCli(['--json', 'gap', 'set', '--mission', MID], {
       cwd: dir,
       input: JSON.stringify({
         scope_in_summary: 's',
@@ -713,7 +716,7 @@ test('debt/gap/memory-update mutations append events.jsonl entries with cli:auto
     });
     assert.equal(r.status, 0, r.stderr);
 
-    r = runCli(['memory-update', 'set', '--mission', MID], {
+    r = runCli(['--json', 'memory-update', 'set', '--mission', MID], {
       cwd: dir,
       input: JSON.stringify({}),
     });
@@ -790,7 +793,7 @@ test('consolidating flow: closure gap_signals -> debt register retains source ta
     ];
 
     for (const s of signals) {
-      const r = runCli(['debt', 'register'], {
+      const r = runCli(['--json', 'debt', 'register'], {
         cwd: dir,
         input: JSON.stringify(s),
       });
@@ -811,7 +814,7 @@ test('consolidating flow: closure gap_signals -> debt register retains source ta
 
     // Ledger is project-level: filtering by mission returns both debts
     // introduced during MID_B, no matter which task.
-    const r = runCli(['debt', 'list', '--mission', MID_B], { cwd: dir });
+    const r = runCli(['--json', 'debt', 'list', '--mission', MID_B], { cwd: dir });
     assert.equal(r.status, 0, r.stderr);
     assert.equal(r.json.data.total, 2);
     const sourceTasks = r.json.data.entries.map(

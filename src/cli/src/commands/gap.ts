@@ -20,7 +20,9 @@
 import type { Command } from 'commander';
 import * as path from 'path';
 
-import { emit, err, ok, recordEvent } from '../lib/envelope';
+import { recordEvent } from '../lib/envelope';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
+import { makeError } from '../lib/errors';
 import {
   atomicWriteJson,
   ensureDir,
@@ -48,17 +50,35 @@ function slashPath(p: string): string {
 function needProjectRoot(): string {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         'missing_artifact',
-        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`,
+        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: 'missing_artifact',
+        },
       ),
     );
   }
   return root as string;
 }
 
+/** AC3: scalar formatter for gap set. */
+function formatGapSet(data: unknown): string {
+  const d = data as { ids?: { mission_id?: string }; path?: string; gap?: { fully_delivered?: unknown[]; partially_delivered?: unknown[]; not_delivered?: unknown[]; unexpected_additions?: unknown[] } };
+  const fd = Array.isArray(d.gap?.fully_delivered) ? d.gap!.fully_delivered.length : 0;
+  const pd = Array.isArray(d.gap?.partially_delivered) ? d.gap!.partially_delivered.length : 0;
+  const nd = Array.isArray(d.gap?.not_delivered) ? d.gap!.not_delivered.length : 0;
+  const ua = Array.isArray(d.gap?.unexpected_additions) ? d.gap!.unexpected_additions.length : 0;
+  return [
+    `gap set: ${d.ids?.mission_id ?? '<unknown>'} → ${d.path ?? '<unknown>'}`,
+    `fully=${fd} partial=${pd} not_delivered=${nd} unexpected=${ua}`,
+  ].join('\n');
+}
+
 export function registerGapCommands(program: Command): void {
+  registerFormatter('gap set', formatGapSet);
   const gap = program
     .command('gap')
     .description(
@@ -74,16 +94,21 @@ export function registerGapCommands(program: Command): void {
     .option('--file <path>', 'Read JSON payload from file instead of stdin')
     .action((opts: { mission: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const root = needProjectRoot();
 
       if (!exists(missionSpecPath(root, opts.mission))) {
-        emit(
-          err(
-            'missing_artifact',
-            `mission spec not found for ${opts.mission}`,
-          ),
+        emitErr(
+          makeError('missing_artifact', `mission spec not found for ${opts.mission}`, {
+            hint: "run 'geas mission create' to bootstrap the mission first",
+            exit_category: 'missing_artifact',
+          }),
         );
       }
 
@@ -91,12 +116,22 @@ export function registerGapCommands(program: Command): void {
       try {
         payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
-        if (e instanceof StdinError) emit(err('invalid_argument', e.message));
+        if (e instanceof StdinError) {
+          emitErr(
+            makeError('invalid_argument', e.message, {
+              hint: 'pass the JSON via --file <path> or pipe through stdin',
+              exit_category: 'validation',
+            }),
+          );
+        }
         throw e;
       }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-        emit(
-          err('invalid_argument', 'gap set expects a JSON object payload'),
+        emitErr(
+          makeError('invalid_argument', 'gap set expects a JSON object payload', {
+            hint: 'wrap the gap fields in a single JSON object',
+            exit_category: 'validation',
+          }),
         );
       }
 
@@ -116,11 +151,14 @@ export function registerGapCommands(program: Command): void {
 
       const v = validate('gap', payload);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'gap schema validation failed',
-            v.errors,
+            {
+              hint: 'inspect ajv errors and fix the gap body, then retry',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -137,12 +175,10 @@ export function registerGapCommands(program: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(target),
-          ids: { mission_id: opts.mission },
-          gap: payload,
-        }),
-      );
+      emitOk('gap set', {
+        path: slashPath(target),
+        ids: { mission_id: opts.mission },
+        gap: payload,
+      });
     });
 }

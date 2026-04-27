@@ -145,11 +145,12 @@ test('consolidation scaffold rejects when mission missing', () => {
   try {
     const r = runCli(['setup'], { cwd: dir });
     assert.equal(r.status, 0);
+    // AC3 (task-006): --json envelope; AC2: missing_artifact 1 → 4.
     const r2 = runCli(
-      ['consolidation', 'scaffold', '--mission', 'mission-20260101-zzzzzzzz'],
+      ['--json', 'consolidation', 'scaffold', '--mission', 'mission-20260101-zzzzzzzz'],
       { cwd: dir },
     );
-    assert.notEqual(r2.status, 0);
+    assert.equal(r2.status, 4);
     assert.equal(r2.json.ok, false);
     assert.equal(r2.json.error.code, 'missing_artifact');
   } finally {
@@ -163,7 +164,7 @@ test('consolidation scaffold rejects when phase is specifying', () => {
     setupMission(dir, MID);
     // Mission is in `specifying` after setup+approve.
     const r = runCli(
-      ['consolidation', 'scaffold', '--mission', MID],
+      ['--json', 'consolidation', 'scaffold', '--mission', MID],
       { cwd: dir },
     );
     assert.equal(r.status, 3, `expected guard_failed, got ${r.stderr}`);
@@ -180,7 +181,7 @@ test('consolidation scaffold rejects when phase is building', () => {
     setupMission(dir, MID);
     setPhase(dir, MID, 'building');
     const r = runCli(
-      ['consolidation', 'scaffold', '--mission', MID],
+      ['--json', 'consolidation', 'scaffold', '--mission', MID],
       { cwd: dir },
     );
     assert.equal(r.status, 3);
@@ -200,7 +201,7 @@ test('consolidation scaffold writes empty buckets when no evidence has candidate
     setPhase(dir, MID, 'polishing');
 
     const r = runCli(
-      ['consolidation', 'scaffold', '--mission', MID],
+      ['--json', 'consolidation', 'scaffold', '--mission', MID],
       { cwd: dir },
     );
     assert.equal(r.status, 0, `scaffold failed: ${r.stderr}`);
@@ -328,7 +329,7 @@ test('consolidation scaffold harvests debt_candidate / memory_suggestion / gap_s
     setPhase(dir, MID, 'consolidating');
 
     const r = runCli(
-      ['consolidation', 'scaffold', '--mission', MID],
+      ['--json', 'consolidation', 'scaffold', '--mission', MID],
       { cwd: dir },
     );
     assert.equal(r.status, 0, `scaffold failed: ${r.stderr}`);
@@ -409,7 +410,7 @@ test('consolidation scaffold re-run fully overwrites the cache', () => {
     setPhase(dir, MID, 'polishing');
 
     let r = runCli(
-      ['consolidation', 'scaffold', '--mission', MID],
+      ['--json', 'consolidation', 'scaffold', '--mission', MID],
       { cwd: dir },
     );
     assert.equal(r.status, 0, r.stderr);
@@ -488,7 +489,7 @@ test('consolidation scaffold skips tasks with no evidence directory', () => {
     setPhase(dir, MID, 'polishing');
 
     const r = runCli(
-      ['consolidation', 'scaffold', '--mission', MID],
+      ['--json', 'consolidation', 'scaffold', '--mission', MID],
       { cwd: dir },
     );
     assert.equal(r.status, 0, `scaffold failed: ${r.stderr}`);
@@ -510,7 +511,7 @@ test('consolidation scaffold emits consolidation_scaffolded event', () => {
     setPhase(dir, MID, 'consolidating');
 
     const r = runCli(
-      ['consolidation', 'scaffold', '--mission', MID],
+      ['--json', 'consolidation', 'scaffold', '--mission', MID],
       { cwd: dir },
     );
     assert.equal(r.status, 0, r.stderr);

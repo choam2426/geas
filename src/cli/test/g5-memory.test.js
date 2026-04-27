@@ -55,7 +55,7 @@ test('memory shared-set writes stdin bytes verbatim to shared.md', () => {
       '# Shared memory\n\n' +
       '## rule-001 — prefer atomic writes\n' +
       'Body paragraph with _markdown_ and a trailing newline.\n';
-    const r = runCli(['memory', 'shared-set'], { cwd: dir, input: body });
+    const r = runCli(['--json', 'memory', 'shared-set'], { cwd: dir, input: body });
     assert.equal(r.status, 0, `shared-set failed: ${r.stderr}`);
     assert.equal(r.json.ok, true, r.stdout);
     assert.equal(r.json.data.scope, 'shared');
@@ -75,11 +75,11 @@ test('memory shared-set is full-replace (not patch): second call overwrites', ()
     bootstrap(dir);
     const first = '# first body\n\nline A\nline B\n';
     const second = '# second body\n\nonly this line\n';
-    let r = runCli(['memory', 'shared-set'], { cwd: dir, input: first });
+    let r = runCli(['--json', 'memory', 'shared-set'], { cwd: dir, input: first });
     assert.equal(r.status, 0, `first shared-set failed: ${r.stderr}`);
     assert.equal(readFile(dir, '.geas/memory/shared.md'), first);
 
-    r = runCli(['memory', 'shared-set'], { cwd: dir, input: second });
+    r = runCli(['--json', 'memory', 'shared-set'], { cwd: dir, input: second });
     assert.equal(r.status, 0, `second shared-set failed: ${r.stderr}`);
     const onDisk = readFile(dir, '.geas/memory/shared.md');
     assert.equal(onDisk, second, 'second write must fully replace, not append');
@@ -98,7 +98,7 @@ test('memory agent-set writes to agents/{agent_type}.md', () => {
       '# software-engineer memory\n\n' +
       '- tip: run the bundle before testing the CLI\n';
     const r = runCli(
-      ['memory', 'agent-set', '--agent', 'software-engineer'],
+      ['--json', 'memory', 'agent-set', '--agent', 'software-engineer'],
       { cwd: dir, input: body },
     );
     assert.equal(r.status, 0, `agent-set failed: ${r.stderr}`);
@@ -123,14 +123,16 @@ test('memory agent-set rejects every protocol slot id', () => {
   try {
     bootstrap(dir);
     for (const slotId of SLOT_IDS) {
+      // AC3 (task-006): --json envelope for programmatic assertion;
+      // AC2: invalid_argument rotates legacy 1 → category 2 (validation).
       const r = runCli(
-        ['memory', 'agent-set', '--agent', slotId],
+        ['--json', 'memory', 'agent-set', '--agent', slotId],
         { cwd: dir, input: `# attempted ${slotId}\n` },
       );
       assert.equal(
         r.status,
-        1,
-        `agent-set with slot '${slotId}' should fail: ${r.stderr}`,
+        2,
+        `agent-set with slot '${slotId}' should fail with exit 2 (validation): ${r.stderr}`,
       );
       assert.equal(r.json.ok, false);
       assert.equal(r.json.error.code, 'invalid_argument');
@@ -178,8 +180,9 @@ test('memory shared-set rejects empty stdin', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     bootstrap(dir);
-    const r = runCli(['memory', 'shared-set'], { cwd: dir, input: '' });
-    assert.equal(r.status, 1);
+    // AC2 (task-006): invalid_argument rotates legacy 1 → category 2.
+    const r = runCli(['--json', 'memory', 'shared-set'], { cwd: dir, input: '' });
+    assert.equal(r.status, 2);
     assert.equal(r.json.ok, false);
     assert.equal(r.json.error.code, 'invalid_argument');
     assert.match(r.json.error.message, /stdin/i);
@@ -192,11 +195,12 @@ test('memory agent-set rejects empty stdin', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     bootstrap(dir);
+    // AC2 (task-006): invalid_argument rotates legacy 1 → category 2.
     const r = runCli(
-      ['memory', 'agent-set', '--agent', 'software-engineer'],
+      ['--json', 'memory', 'agent-set', '--agent', 'software-engineer'],
       { cwd: dir, input: '' },
     );
-    assert.equal(r.status, 1);
+    assert.equal(r.status, 2);
     assert.equal(r.json.ok, false);
     assert.equal(r.json.error.code, 'invalid_argument');
   } finally {
@@ -226,14 +230,15 @@ test('memory agent-set rejects non-kebab-case agent identifiers', () => {
     bootstrap(dir);
     const bad = ['Software-Engineer', 'software_engineer', 'software engineer', '-leading', '../traversal'];
     for (const id of bad) {
+      // AC3 (task-006): --json envelope; AC2: invalid_argument 1 → 2.
       const r = runCli(
-        ['memory', 'agent-set', '--agent', id],
+        ['--json', 'memory', 'agent-set', '--agent', id],
         { cwd: dir, input: '# x\n' },
       );
       assert.equal(
         r.status,
-        1,
-        `agent identifier '${id}' should be rejected: ${r.stderr}`,
+        2,
+        `agent identifier '${id}' should be rejected with exit 2: ${r.stderr}`,
       );
       assert.equal(r.json && r.json.ok, false);
       assert.equal(r.json.error.code, 'invalid_argument');
@@ -250,10 +255,10 @@ test('memory shared-set preserves existing content when called again with new bo
     bootstrap(dir);
     const a = '# A\n\nentry-a\n';
     const b = '# B\n\nentry-b\n';
-    let r = runCli(['memory', 'shared-set'], { cwd: dir, input: a });
+    let r = runCli(['--json', 'memory', 'shared-set'], { cwd: dir, input: a });
     assert.equal(r.status, 0, `a-set failed: ${r.stderr}`);
     assert.equal(readFile(dir, '.geas/memory/shared.md'), a);
-    r = runCli(['memory', 'shared-set'], { cwd: dir, input: b });
+    r = runCli(['--json', 'memory', 'shared-set'], { cwd: dir, input: b });
     assert.equal(r.status, 0, `b-set failed: ${r.stderr}`);
     assert.equal(readFile(dir, '.geas/memory/shared.md'), b);
   } finally {
@@ -266,12 +271,12 @@ test('memory writes do not break geas context read-back', () => {
   try {
     bootstrap(dir);
     let r = runCli(
-      ['memory', 'shared-set'],
+      ['--json', 'memory', 'shared-set'],
       { cwd: dir, input: '# shared\n' },
     );
     assert.equal(r.status, 0, `shared-set failed: ${r.stderr}`);
     r = runCli(
-      ['memory', 'agent-set', '--agent', 'software-engineer'],
+      ['--json', 'memory', 'agent-set', '--agent', 'software-engineer'],
       { cwd: dir, input: '# se\n' },
     );
     assert.equal(r.status, 0, `agent-set failed: ${r.stderr}`);
@@ -295,12 +300,12 @@ test('memory writes append events to events.jsonl with cli:auto actor', () => {
   try {
     bootstrap(dir);
     let r = runCli(
-      ['memory', 'shared-set'],
+      ['--json', 'memory', 'shared-set'],
       { cwd: dir, input: '# shared\n' },
     );
     assert.equal(r.status, 0, `shared-set failed: ${r.stderr}`);
     r = runCli(
-      ['memory', 'agent-set', '--agent', 'software-engineer'],
+      ['--json', 'memory', 'agent-set', '--agent', 'software-engineer'],
       { cwd: dir, input: '# se\n' },
     );
     assert.equal(r.status, 0, `agent-set failed: ${r.stderr}`);

@@ -33,7 +33,9 @@
 import type { Command } from 'commander';
 import * as path from 'path';
 
-import { emit, err, ok, recordEvent } from '../lib/envelope';
+import { recordEvent } from '../lib/envelope';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
+import { makeError } from '../lib/errors';
 import { atomicWrite, ensureDir } from '../lib/fs-atomic';
 import {
   agentMemoryPath,
@@ -52,14 +54,51 @@ function slashPath(p: string): string {
 function needProjectRoot(): string {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         'missing_artifact',
-        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`,
+        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: 'missing_artifact',
+        },
       ),
     );
   }
   return root as string;
+}
+
+/**
+ * AC3 (mission-20260427-xIPG1sDY task-006): scalar formatters for the
+ * two memory subcommands.
+ */
+function formatMemorySharedSet(data: unknown): string {
+  const d = data as { path?: string; bytes?: number };
+  return `memory shared set: ${d.path ?? '<unknown>'} (${d.bytes ?? 0} bytes)`;
+}
+function formatMemoryAgentSet(data: unknown): string {
+  const d = data as { path?: string; agent?: string; bytes?: number };
+  return `memory agent set: ${d.agent ?? '<unknown>'} → ${d.path ?? '<unknown>'} (${d.bytes ?? 0} bytes)`;
+}
+
+/** T2.8 path (b): structural guard hint folded to single string. */
+function foldGuardHint(hints: unknown): string | undefined {
+  if (hints === undefined || hints === null) return undefined;
+  if (typeof hints === 'string') return hints;
+  if (typeof hints !== 'object') return String(hints);
+  const obj = hints as Record<string, unknown>;
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const key = k.replace(/_/g, ' ');
+    if (Array.isArray(v)) {
+      parts.push(`${key}: ${v.join(', ')}`);
+    } else if (v !== null && typeof v === 'object') {
+      parts.push(`${key}: ${JSON.stringify(v)}`);
+    } else {
+      parts.push(`${key}: ${String(v)}`);
+    }
+  }
+  return parts.length > 0 ? parts.join('; ') : undefined;
 }
 
 /**
@@ -84,7 +123,12 @@ function readContent(filePath?: string): string {
     return readPayloadText(filePath);
   } catch (e) {
     if (e instanceof StdinError) {
-      emit(err('invalid_argument', e.message));
+      emitErr(
+        makeError('invalid_argument', e.message, {
+          hint: 'pass the markdown via --file <path> or pipe through stdin',
+          exit_category: 'validation',
+        }),
+      );
     }
     throw e;
   }
@@ -113,13 +157,11 @@ function registerSharedSet(mem: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(targetPath),
-          scope: 'shared',
-          bytes: Buffer.byteLength(content, 'utf-8'),
-        }),
-      );
+      emitOk('memory shared-set', {
+        path: slashPath(targetPath),
+        scope: 'shared',
+        bytes: Buffer.byteLength(content, 'utf-8'),
+      });
     });
 }
 
@@ -137,19 +179,26 @@ function registerAgentSet(mem: Command): void {
     .action((opts: { agent: string; file?: string }) => {
       const agent = opts.agent;
       if (!isValidAgentOrSlot(agent)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             `invalid --agent '${agent}' (expected kebab-case: ${'^[a-z0-9][a-z0-9-]*$'})`,
+            {
+              hint: 'agent ids must match ^[a-z0-9][a-z0-9-]*$',
+              exit_category: 'validation',
+            },
           ),
         );
       }
       if (SLOT_IDS.has(agent)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             `--agent '${agent}' names a protocol slot, not a concrete agent type. Agent memory is namespaced by concrete agent type (protocol 06 §Agent Memory). For authority slots where the slot and the concrete type happen to share a name, pass the concrete type explicitly.`,
-            { slot_ids: [...SLOT_IDS] },
+            {
+              hint: foldGuardHint({ slot_ids: [...SLOT_IDS] }) ?? 'pass a concrete agent type, not a slot id',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -171,18 +220,18 @@ function registerAgentSet(mem: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(targetPath),
-          scope: 'agent',
-          agent,
-          bytes: Buffer.byteLength(content, 'utf-8'),
-        }),
-      );
+      emitOk('memory agent-set', {
+        path: slashPath(targetPath),
+        scope: 'agent',
+        agent,
+        bytes: Buffer.byteLength(content, 'utf-8'),
+      });
     });
 }
 
 export function registerMemoryCommands(program: Command): void {
+  registerFormatter('memory shared-set', formatMemorySharedSet);
+  registerFormatter('memory agent-set', formatMemoryAgentSet);
   const mem = program
     .command('memory')
     .description('Memory markdown writers (shared.md and agents/{type}.md).');

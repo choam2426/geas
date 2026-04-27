@@ -43,7 +43,9 @@ import type { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { emit, err, ok, recordEvent } from '../lib/envelope';
+import { recordEvent } from '../lib/envelope';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
+import { makeError } from '../lib/errors';
 import {
   atomicWriteJson,
   ensureDir,
@@ -144,14 +146,30 @@ function slashPath(p: string): string {
 function needProjectRoot(): string {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         'missing_artifact',
-        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`,
+        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: 'missing_artifact',
+        },
       ),
     );
   }
   return root as string;
+}
+
+/** AC3: scalar formatter for gate run. */
+function formatGateRun(data: unknown): string {
+  const d = data as { ids?: { task_id?: string; gate_run_id?: string }; verdict?: string; tier_results?: { tier_0?: { status?: string }; tier_1?: { status?: string }; tier_2?: { status?: string } }; suggested_next_transition?: { command?: string | null }; runs_count?: number };
+  const lines: string[] = [];
+  lines.push(`gate ${d.ids?.gate_run_id ?? '?'}: ${d.ids?.task_id ?? '<unknown>'} verdict=${d.verdict ?? '?'}`);
+  lines.push(`tier_0=${d.tier_results?.tier_0?.status ?? '?'} tier_1=${d.tier_results?.tier_1?.status ?? '?'} tier_2=${d.tier_results?.tier_2?.status ?? '?'}`);
+  if (d.suggested_next_transition?.command) {
+    lines.push(`next: ${d.suggested_next_transition.command}`);
+  }
+  return lines.join('\n');
 }
 
 /**
@@ -484,34 +502,51 @@ function registerGateRun(cmd: Command): void {
     .requiredOption('--task <id>', 'Task ID')
     .action((opts: { mission: string; task: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       if (!isValidTaskId(opts.task)) {
-        emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid task id '${opts.task}'`, {
+            hint: "task ids look like 'task-NNN' (3+ digits)",
+            exit_category: 'validation',
+          }),
+        );
       }
 
       const root = needProjectRoot();
       if (!exists(missionSpecPath(root, opts.mission))) {
-        emit(
-          err(
-            'missing_artifact',
-            `mission spec not found for ${opts.mission}`,
-          ),
+        emitErr(
+          makeError('missing_artifact', `mission spec not found for ${opts.mission}`, {
+            hint: "run 'geas mission create' to bootstrap the mission first",
+            exit_category: 'missing_artifact',
+          }),
         );
       }
       const contractPath = taskContractPath(root, opts.mission, opts.task);
       if (!exists(contractPath)) {
-        emit(
-          err('missing_artifact', `task contract not found for ${opts.task}`),
+        emitErr(
+          makeError('missing_artifact', `task contract not found for ${opts.task}`, {
+            hint: "run 'geas task draft' to create the contract first",
+            exit_category: 'missing_artifact',
+          }),
         );
       }
 
       const contract = readJsonFile<TaskContractFile>(contractPath);
       if (!contract) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'missing_artifact',
             `task contract unreadable for ${opts.task}`,
+            {
+              hint: 'check filesystem permissions on the contract.json file',
+              exit_category: 'missing_artifact',
+            },
           ),
         );
       }
@@ -567,11 +602,14 @@ function registerGateRun(cmd: Command): void {
 
       const v = validate('gate-results', merged);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'gate-results schema validation failed',
-            v.errors,
+            {
+              hint: 'inspect ajv errors and reconcile the gate-results body with the schema',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -609,24 +647,23 @@ function registerGateRun(cmd: Command): void {
         suggested.command = `geas task transition --mission ${opts.mission} --task ${opts.task} --to blocked`;
       }
 
-      emit(
-        ok({
-          path: slashPath(filePath),
-          ids: {
-            mission_id: opts.mission,
-            task_id: opts.task,
-            gate_run_id: gateRunId,
-          },
-          verdict: overall,
-          tier_results: run.tier_results,
-          suggested_next_transition: suggested,
-          runs_count: merged.runs.length,
-        }),
-      );
+      emitOk('gate run', {
+        path: slashPath(filePath),
+        ids: {
+          mission_id: opts.mission,
+          task_id: opts.task,
+          gate_run_id: gateRunId,
+        },
+        verdict: overall,
+        tier_results: run.tier_results,
+        suggested_next_transition: suggested,
+        runs_count: merged.runs.length,
+      });
     });
 }
 
 export function registerGateCommands(program: Command): void {
+  registerFormatter('gate run', formatGateRun);
   const g = program
     .command('gate')
     .description('Evidence gate run recording (gate-results.json).');

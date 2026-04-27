@@ -21,7 +21,9 @@
 import type { Command } from 'commander';
 import * as path from 'path';
 
-import { emit, err, ok, recordEvent } from '../lib/envelope';
+import { recordEvent } from '../lib/envelope';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
+import { makeError } from '../lib/errors';
 import {
   atomicWriteJson,
   ensureDir,
@@ -50,14 +52,45 @@ function slashPath(p: string): string {
 function needProjectRoot(): string {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         'missing_artifact',
-        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`,
+        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: 'missing_artifact',
+        },
       ),
     );
   }
   return root as string;
+}
+
+/** AC3: scalar formatter for deliberation append. */
+function formatDeliberationAppend(data: unknown): string {
+  const d = data as { ids?: { mission_id?: string; task_id?: string | null }; level?: string; result?: string; entries_count?: number };
+  const taskPart = d.ids?.task_id ? ` task=${d.ids.task_id}` : '';
+  return `deliberation appended: ${d.ids?.mission_id ?? '<unknown>'}${taskPart} level=${d.level ?? '?'} result=${d.result ?? '?'} entries=${d.entries_count ?? 0}`;
+}
+
+/** T2.8 path (b): structural guard hint folded to single string. */
+function foldGuardHint(hints: unknown): string | undefined {
+  if (hints === undefined || hints === null) return undefined;
+  if (typeof hints === 'string') return hints;
+  if (typeof hints !== 'object') return String(hints);
+  const obj = hints as Record<string, unknown>;
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const key = k.replace(/_/g, ' ');
+    if (Array.isArray(v)) {
+      parts.push(`${key}: ${v.join(', ')}`);
+    } else if (v !== null && typeof v === 'object') {
+      parts.push(`${key}: ${JSON.stringify(v)}`);
+    } else {
+      parts.push(`${key}: ${String(v)}`);
+    }
+  }
+  return parts.length > 0 ? parts.join('; ') : undefined;
 }
 
 interface DeliberationsFile {
@@ -111,25 +144,43 @@ function registerDeliberationAppend(cmd: Command): void {
     .action(
       (opts: { mission: string; level: string; task?: string; file?: string }) => {
         if (!isValidMissionId(opts.mission)) {
-          emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+          emitErr(
+            makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+              hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+              exit_category: 'validation',
+            }),
+          );
         }
         if (opts.level !== 'mission' && opts.level !== 'task') {
-          emit(err('invalid_argument', `--level must be 'mission' or 'task'`));
+          emitErr(
+            makeError('invalid_argument', `--level must be 'mission' or 'task'`, {
+              hint: "valid --level values: 'mission' or 'task'",
+              exit_category: 'validation',
+            }),
+          );
         }
         if (opts.level === 'task') {
           if (!opts.task || !isValidTaskId(opts.task)) {
-            emit(
-              err(
+            emitErr(
+              makeError(
                 'invalid_argument',
                 '--task <id> is required when --level is task',
+                {
+                  hint: "pass --task task-NNN when --level is task",
+                  exit_category: 'validation',
+                },
               ),
             );
           }
         } else if (opts.task) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               '--task must not be set when --level is mission',
+              {
+                hint: 'omit --task or change --level to task',
+                exit_category: 'validation',
+              },
             ),
           );
         }
@@ -139,22 +190,25 @@ function registerDeliberationAppend(cmd: Command): void {
           missionSpecPath(root, opts.mission),
         );
         if (!spec) {
-          emit(
-            err(
-              'missing_artifact',
-              `mission spec not found for ${opts.mission}`,
-            ),
+          emitErr(
+            makeError('missing_artifact', `mission spec not found for ${opts.mission}`, {
+              hint: "run 'geas mission create' to bootstrap the mission first",
+              exit_category: 'missing_artifact',
+            }),
           );
         }
 
         // Mode gate — deliberation is permitted only in full_depth missions.
         const mode = typeof spec!.mode === 'string' ? (spec!.mode as string) : '';
         if (mode !== 'full_depth') {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'guard_failed',
               `deliberation is only permitted when mission mode is 'full_depth' (mission '${opts.mission}' mode is '${mode || 'unset'}')`,
-              { mission_mode: mode || null, required_mode: 'full_depth' },
+              {
+                hint: foldGuardHint({ mission_mode: mode || null, required_mode: 'full_depth' }) ?? "set mission mode to 'full_depth' or skip the deliberation",
+                exit_category: 'guard',
+              },
             ),
           );
         }
@@ -163,14 +217,25 @@ function registerDeliberationAppend(cmd: Command): void {
         try {
           payload = readPayloadJson(opts.file) as Record<string, unknown>;
         } catch (e) {
-          if (e instanceof StdinError) emit(err('invalid_argument', e.message));
+          if (e instanceof StdinError) {
+            emitErr(
+              makeError('invalid_argument', e.message, {
+                hint: 'pass the JSON via --file <path> or pipe through stdin',
+                exit_category: 'validation',
+              }),
+            );
+          }
           throw e;
         }
         if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               'deliberation append expects a JSON object payload',
+              {
+                hint: 'wrap the entry fields in a single JSON object',
+                exit_category: 'validation',
+              },
             ),
           );
         }
@@ -185,13 +250,13 @@ function registerDeliberationAppend(cmd: Command): void {
         const expectedResult = aggregateExpected(votes);
         const providedResult = typeof payload.result === 'string' ? payload.result : '';
         if (providedResult !== expectedResult) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'guard_failed',
               `deliberation result '${providedResult || '(unset)'}' is inconsistent with votes; expected '${expectedResult}' per protocol 03 aggregation rule`,
               {
-                expected_result: expectedResult,
-                provided_result: providedResult || null,
+                hint: foldGuardHint({ expected_result: expectedResult, provided_result: providedResult || null }) ?? `set result to '${expectedResult}' to match the votes`,
+                exit_category: 'guard',
               },
             ),
           );
@@ -217,11 +282,14 @@ function registerDeliberationAppend(cmd: Command): void {
 
         const v = validate('deliberation', merged);
         if (!v.ok) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'schema_validation_failed',
               'deliberation schema validation failed',
-              v.errors,
+              {
+                hint: 'inspect ajv errors and fix the entry body, then retry',
+                exit_category: 'validation',
+              },
             ),
           );
         }
@@ -241,23 +309,22 @@ function registerDeliberationAppend(cmd: Command): void {
           },
         });
 
-        emit(
-          ok({
-            path: slashPath(filePath),
-            ids: {
-              mission_id: opts.mission,
-              task_id: opts.task ?? null,
-            },
-            level: opts.level,
-            result: expectedResult,
-            entries_count: merged.entries.length,
-          }),
-        );
+        emitOk('deliberation append', {
+          path: slashPath(filePath),
+          ids: {
+            mission_id: opts.mission,
+            task_id: opts.task ?? null,
+          },
+          level: opts.level,
+          result: expectedResult,
+          entries_count: merged.entries.length,
+        });
       },
     );
 }
 
 export function registerDeliberationCommands(program: Command): void {
+  registerFormatter('deliberation append', formatDeliberationAppend);
   const d = program
     .command('deliberation')
     .description(

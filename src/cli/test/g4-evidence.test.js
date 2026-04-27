@@ -678,7 +678,7 @@ test('gate run aggregates overall verdict from tier statuses', () => {
 
     // Run 1: everything approved → pass.
     r = runCli(
-      ['gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['--json', 'gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir },
     );
     assert.equal(r.status, 0, `gate run 1 failed: ${r.stderr}`);
@@ -688,7 +688,7 @@ test('gate run aggregates overall verdict from tier statuses', () => {
     // Run 2: append challenger changes_requested (now latest) → fail.
     appendChallenger('changes_requested', 'reviewer saw a gap');
     r = runCli(
-      ['gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['--json', 'gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir },
     );
     assert.equal(r.status, 0);
@@ -698,7 +698,7 @@ test('gate run aggregates overall verdict from tier statuses', () => {
     // Run 3: append challenger blocked → block.
     appendChallenger('blocked', 'structural issue');
     r = runCli(
-      ['gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['--json', 'gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir },
     );
     assert.equal(r.status, 0);
@@ -838,7 +838,7 @@ test('reviewing -> deciding requires gate-results last run verdict=pass (G4 tigh
     assert.equal(r.status, 0);
 
     // First gate run → fail (verifier changes_requested at Tier 1).
-    r = runCli(['gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'], {
+    r = runCli(['--json', 'gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'], {
       cwd: dir,
     });
     assert.equal(r.status, 0);
@@ -856,7 +856,7 @@ test('reviewing -> deciding requires gate-results last run verdict=pass (G4 tigh
     // Append a revised verifier entry with approved verdict → latest
     // verification entry is now approved → Tier 1 pass.
     writeVerifierEvidence(dir, MID_STANDARD, 'task-001');
-    r = runCli(['gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'], {
+    r = runCli(['--json', 'gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'], {
       cwd: dir,
     });
     assert.equal(r.status, 0);
@@ -906,7 +906,7 @@ test('deciding -> passed requires approved closure evidence validating the schem
       { cwd: dir },
     );
     assert.equal(r.status, 0);
-    r = runCli(['gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'], {
+    r = runCli(['--json', 'gate', 'run', '--mission', MID_STANDARD, '--task', 'task-001'], {
       cwd: dir,
     });
     assert.equal(r.status, 0);
@@ -974,6 +974,7 @@ test('deliberation rejected when mission mode is not full_depth', () => {
     };
     const r = runCli(
       [
+        '--json',
         'deliberation',
         'append',
         '--mission',
@@ -1010,6 +1011,7 @@ test('deliberation accepted when mission mode is full_depth', () => {
     };
     const r = runCli(
       [
+        '--json',
         'deliberation',
         'append',
         '--mission',
@@ -1053,6 +1055,7 @@ test('deliberation result must match vote aggregation rule', () => {
     };
     const r = runCli(
       [
+        '--json',
         'deliberation',
         'append',
         '--mission',
@@ -1088,6 +1091,7 @@ test('deliberation with any escalate vote forces result=escalate', () => {
     };
     const r = runCli(
       [
+        '--json',
         'deliberation',
         'append',
         '--mission',
