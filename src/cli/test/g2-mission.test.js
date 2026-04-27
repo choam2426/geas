@@ -156,6 +156,65 @@ test('mission create writes a drafted (unapproved) mission spec', () => {
   }
 });
 
+test('mission create works inline-flag-only without stdin or --file (AC1, task-006 verify-fix)', () => {
+  // AC1 (task-006): inline-flag-only invokability for the 11 listed core
+  // commands. mission create must work with --name/--mode/etc. without
+  // any stdin or --file payload. Free-body fields (description,
+  // definition_of_done) accept both inline --<field> and --<field>-from-file.
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    runCli(['setup'], { cwd: dir });
+    const res = runCli(
+      [
+        '--json',
+        'mission',
+        'create',
+        '--name',
+        'Inline Mission',
+        '--mode',
+        'standard',
+        '--description',
+        'A mission constructed entirely from inline flags.',
+        '--definition-of-done',
+        'AC1 inline-flag-only path verified.',
+        '--scope-in',
+        'src/cli/',
+        '--scope-out',
+        'docs/',
+        '--acceptance-criterion',
+        'mission spec is written',
+        '--acceptance-criterion',
+        'mission-state initialized to specifying',
+        '--constraint',
+        'no external network',
+        '--affected-surface',
+        'src/cli/',
+        '--risk',
+        'inline flag plumbing regression',
+      ],
+      { cwd: dir, env: { GEAS_MOCK_MISSION_ID: MID } },
+    );
+    assert.equal(res.status, 0, `inline-flag mission create failed: ${res.stderr}\n${res.stdout}`);
+    assert.equal(res.json.ok, true);
+    const spec = readArtifact(dir, `.geas/missions/${MID}/spec.json`);
+    assert.equal(spec.id, MID);
+    assert.equal(spec.name, 'Inline Mission');
+    assert.equal(spec.mode, 'standard');
+    assert.equal(spec.user_approved, false);
+    assert.deepEqual(spec.scope.in, ['src/cli/']);
+    assert.deepEqual(spec.scope.out, ['docs/']);
+    assert.deepEqual(spec.acceptance_criteria, [
+      'mission spec is written',
+      'mission-state initialized to specifying',
+    ]);
+    assert.deepEqual(spec.constraints, ['no external network']);
+    assert.deepEqual(spec.affected_surfaces, ['src/cli/']);
+    assert.deepEqual(spec.risks, ['inline flag plumbing regression']);
+  } finally {
+    cleanup();
+  }
+});
+
 test('mission create rejects schema-invalid payloads', () => {
   const { dir, cleanup } = makeTempRoot();
   try {

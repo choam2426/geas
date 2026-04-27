@@ -264,34 +264,175 @@ function missionVerdictExists(projectRoot: string, missionId: string): boolean {
 
 // ── `geas mission create` ───────────────────────────────────────────────
 
+interface MissionCreateInlineOpts {
+  file?: string;
+  id?: string;
+  name?: string;
+  mode?: string;
+  description?: string;
+  descriptionFromFile?: string;
+  definitionOfDone?: string;
+  definitionOfDoneFromFile?: string;
+  scopeIn?: string[];
+  scopeOut?: string[];
+  acceptanceCriterion?: string[];
+  constraint?: string[];
+  affectedSurface?: string[];
+  risk?: string[];
+  userApproved?: boolean;
+}
+
+/**
+ * AC1 (task-006 verify-fix iteration 1): build a mission-spec payload
+ * from inline Commander flags. Free-body fields (description,
+ * definition-of-done) accept both --<field> inline and
+ * --<field>-from-file path per AC1 wording. Returns null when no inline
+ * flags are present, signaling the caller should fall back to --file or
+ * stdin.
+ */
+function buildMissionCreatePayloadFromFlags(
+  opts: MissionCreateInlineOpts,
+): Record<string, unknown> | null {
+  const inlineFlagPresent =
+    opts.id !== undefined ||
+    opts.name !== undefined ||
+    opts.mode !== undefined ||
+    opts.description !== undefined ||
+    opts.descriptionFromFile !== undefined ||
+    opts.definitionOfDone !== undefined ||
+    opts.definitionOfDoneFromFile !== undefined ||
+    (Array.isArray(opts.scopeIn) && opts.scopeIn.length > 0) ||
+    (Array.isArray(opts.scopeOut) && opts.scopeOut.length > 0) ||
+    (Array.isArray(opts.acceptanceCriterion) && opts.acceptanceCriterion.length > 0) ||
+    (Array.isArray(opts.constraint) && opts.constraint.length > 0) ||
+    (Array.isArray(opts.affectedSurface) && opts.affectedSurface.length > 0) ||
+    (Array.isArray(opts.risk) && opts.risk.length > 0) ||
+    opts.userApproved !== undefined;
+  if (!inlineFlagPresent) return null;
+
+  const payload: Record<string, unknown> = {};
+  if (opts.id !== undefined) payload.id = opts.id;
+  if (opts.name !== undefined) payload.name = opts.name;
+  if (opts.mode !== undefined) payload.mode = opts.mode;
+  if (opts.descriptionFromFile !== undefined) {
+    try {
+      payload.description = readPayloadText(opts.descriptionFromFile);
+    } catch (e) {
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError('invalid_argument', e.message, {
+            hint: 'pass --description <text> inline or --description-from-file <path>',
+            exit_category: 'validation',
+          }),
+        );
+      }
+      throw e;
+    }
+  } else if (opts.description !== undefined) {
+    payload.description = opts.description;
+  }
+  if (opts.definitionOfDoneFromFile !== undefined) {
+    try {
+      payload.definition_of_done = readPayloadText(opts.definitionOfDoneFromFile);
+    } catch (e) {
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError('invalid_argument', e.message, {
+            hint: 'pass --definition-of-done <text> inline or --definition-of-done-from-file <path>',
+            exit_category: 'validation',
+          }),
+        );
+      }
+      throw e;
+    }
+  } else if (opts.definitionOfDone !== undefined) {
+    payload.definition_of_done = opts.definitionOfDone;
+  }
+  // scope is required by schema; fill in/out if either provided.
+  if (
+    (Array.isArray(opts.scopeIn) && opts.scopeIn.length > 0) ||
+    (Array.isArray(opts.scopeOut) && opts.scopeOut.length > 0)
+  ) {
+    payload.scope = {
+      in: Array.isArray(opts.scopeIn) ? opts.scopeIn : [],
+      out: Array.isArray(opts.scopeOut) ? opts.scopeOut : [],
+    };
+  }
+  if (Array.isArray(opts.acceptanceCriterion) && opts.acceptanceCriterion.length > 0) {
+    payload.acceptance_criteria = opts.acceptanceCriterion;
+  }
+  if (Array.isArray(opts.constraint)) payload.constraints = opts.constraint;
+  if (Array.isArray(opts.affectedSurface)) payload.affected_surfaces = opts.affectedSurface;
+  if (Array.isArray(opts.risk)) payload.risks = opts.risk;
+  if (opts.userApproved !== undefined) payload.user_approved = opts.userApproved;
+  return payload;
+}
+
 function registerMissionCreate(mission: Command): void {
   mission
     .command('create')
     .description(
-      'Create a new mission from JSON (spec fields) via --file or stdin; scaffolds the mission tree.',
+      'Create a new mission from inline flags or JSON payload (--file or stdin). With inline flags only, builds the spec from --name/--mode/--description/--definition-of-done/--scope-in/--scope-out/--acceptance-criterion/etc. Use --description-from-file/--definition-of-done-from-file for prose-heavy free-body fields.',
     )
-    .option('--file <path>', 'Read JSON payload from file instead of stdin')
-    .action((opts: { file?: string }) => {
+    .option('--id <id>', 'Mission id (auto-generated if absent)')
+    .option('--name <name>', 'Short human-readable mission name')
+    .option('--mode <mode>', 'Operating mode: lightweight, standard, or full_depth')
+    .option('--description <text>', 'Mission description (free-body — short prose)')
+    .option('--description-from-file <path>', 'Read description markdown/text from file (preferred for prose-heavy free-body)')
+    .option('--definition-of-done <text>', 'Definition of done (free-body — short prose)')
+    .option('--definition-of-done-from-file <path>', 'Read definition_of_done markdown/text from file')
+    .option('--scope-in <surface...>', 'In-scope surfaces (repeatable)')
+    .option('--scope-out <surface...>', 'Out-of-scope surfaces (repeatable)')
+    .option('--acceptance-criterion <text...>', 'Acceptance criterion (repeatable)')
+    .option('--constraint <text...>', 'Constraint (repeatable)')
+    .option('--affected-surface <text...>', 'Affected surface (repeatable)')
+    .option('--risk <text...>', 'Mission risk (repeatable)')
+    .option('--user-approved', 'Mark spec as user_approved on create (defaults to false)')
+    .option('--file <path>', 'Read full JSON payload from file (overrides inline flags) instead of stdin')
+    .action((opts: MissionCreateInlineOpts) => {
       const root = needProjectRoot();
 
       let payload: Record<string, unknown>;
-      try {
-        payload = readPayloadJson(opts.file) as Record<string, unknown>;
-      } catch (e) {
-        if (e instanceof StdinError) {
-          emitErr(
-            makeError('invalid_argument', e.message, {
-              hint: 'pass the JSON via --file <path> or pipe through stdin',
-              exit_category: 'validation',
-            }),
-          );
+      // --file always wins (full-payload bypass). Otherwise prefer inline
+      // flags when any inline flag is present; else fall back to stdin.
+      if (opts.file !== undefined) {
+        try {
+          payload = readPayloadJson(opts.file) as Record<string, unknown>;
+        } catch (e) {
+          if (e instanceof StdinError) {
+            emitErr(
+              makeError('invalid_argument', e.message, {
+                hint: 'pass the JSON via --file <path> or use inline flags (--name, --mode, --description, ...)',
+                exit_category: 'validation',
+              }),
+            );
+          }
+          throw e;
         }
-        throw e;
+      } else {
+        const inline = buildMissionCreatePayloadFromFlags(opts);
+        if (inline !== null) {
+          payload = inline;
+        } else {
+          try {
+            payload = readPayloadJson(undefined) as Record<string, unknown>;
+          } catch (e) {
+            if (e instanceof StdinError) {
+              emitErr(
+                makeError('invalid_argument', e.message, {
+                  hint: 'use inline flags (--name, --mode, --description, ...) or pass the JSON via --file <path> or stdin',
+                  exit_category: 'validation',
+                }),
+              );
+            }
+            throw e;
+          }
+        }
       }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
         emitErr(
           makeError('invalid_argument', 'mission create expects a JSON object payload', {
-            hint: 'pass a single JSON object containing the mission spec fields',
+            hint: 'pass a single JSON object containing the mission spec fields, or use inline flags',
             exit_category: 'validation',
           }),
         );
