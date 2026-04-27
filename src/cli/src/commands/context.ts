@@ -8,6 +8,15 @@
  *
  * G1 ships a minimal view. G2 extends this with active mission selection
  * and phase detail.
+ *
+ * T2.a (mission-20260427-xIPG1sDY task-002): migrated off the legacy
+ * envelope.emit/err/ok bridge to call output.emitOk / output.emitErr +
+ * errors.makeError directly. Per AC2 the missing_artifact error rotates
+ * exit code 1 → 4 (EXIT_CATEGORY_CODE.missing_artifact). Per AC1 + impl
+ * contract Q5 (AC3 deferred — out-of-surface dependencies on
+ * lib/output.ts and main-flags.test.js), no ScalarFormatter is
+ * registered yet — emitOk falls through to the JSON envelope so
+ * default-mode stdout stays byte-stable from T1.
  */
 
 import type { Command } from 'commander';
@@ -19,7 +28,8 @@ import {
   missionStatePath,
 } from '../lib/paths';
 import { readJsonFile } from '../lib/fs-atomic';
-import { emit, err, ok } from '../lib/envelope';
+import { emitErr, emitOk } from '../lib/output';
+import { makeError } from '../lib/errors';
 
 interface MissionSummary {
   mission_id: string;
@@ -27,17 +37,23 @@ interface MissionSummary {
   active_tasks: string[];
 }
 
+const COMMAND_NAME = 'context';
+
 export function registerContextCommand(program: Command): void {
   program
-    .command('context')
+    .command(COMMAND_NAME)
     .description('Print a JSON summary of the current .geas/ state')
     .action(() => {
       const root = findProjectRoot(process.cwd());
       if (!root) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'missing_artifact',
-            `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`,
+            `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}.`,
+            {
+              hint: "run 'geas setup' to bootstrap the .geas/ tree",
+              exit_category: 'missing_artifact',
+            },
           ),
         );
       }
@@ -61,12 +77,10 @@ export function registerContextCommand(program: Command): void {
         }
       }
 
-      emit(
-        ok({
-          project_root: projectRoot.replace(/\\/g, '/'),
-          geas_dir: geasDir(projectRoot).replace(/\\/g, '/'),
-          missions,
-        }),
-      );
+      emitOk(COMMAND_NAME, {
+        project_root: projectRoot.replace(/\\/g, '/'),
+        geas_dir: geasDir(projectRoot).replace(/\\/g, '/'),
+        missions,
+      });
     });
 }

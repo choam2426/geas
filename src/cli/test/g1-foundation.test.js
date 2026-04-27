@@ -135,14 +135,31 @@ test('geas context reports empty missions after setup', () => {
   }
 });
 
-test('geas context fails clearly when .geas/ is missing', () => {
+test('geas context fails clearly when .geas/ is missing — exit 4 (missing_artifact) with hint', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
+    // T2.a (mission-20260427-xIPG1sDY task-002 / AC2): missing_artifact
+    // rotates from legacy exit=1 to category exit=4
+    // (EXIT_CATEGORY_CODE.missing_artifact). The error envelope now
+    // carries `hint` (singular) per CliErrorV2 instead of legacy `hints`
+    // (plural). Single-system lock-in: this command's success and error
+    // paths both flow through output.emit* — no envelope.emit calls
+    // remain.
     const ctx = runCli(['context'], { cwd: dir });
-    assert.notEqual(ctx.status, 0);
-    assert.ok(ctx.json, 'context should still emit an envelope');
+    assert.equal(
+      ctx.status,
+      4,
+      `missing_artifact must exit 4 (category) after T2.a migration; got ${ctx.status}: ${ctx.stdout}`,
+    );
+    assert.ok(ctx.json, 'context should still emit a JSON envelope');
     assert.equal(ctx.json.ok, false);
     assert.equal(ctx.json.error.code, 'missing_artifact');
+    assert.equal(typeof ctx.json.error.hint, 'string', 'AC2 mandates next-step hint on every error');
+    assert.match(ctx.json.error.hint, /geas setup/);
+    assert.ok(
+      !('hints' in ctx.json.error),
+      'legacy `hints` (plural) field must not appear in migrated command output',
+    );
   } finally {
     cleanup();
   }

@@ -10721,6 +10721,32 @@ function exists(filePath) {
 // src/lib/envelope.ts
 var fs3 = __toESM(require("fs"));
 
+// src/lib/errors.ts
+var EXIT_CATEGORY_CODE = {
+  validation: 2,
+  guard: 3,
+  missing_artifact: 4,
+  io: 5,
+  internal: 1
+};
+function exitCodeForCategory(category) {
+  if (Object.prototype.hasOwnProperty.call(EXIT_CATEGORY_CODE, category)) {
+    return EXIT_CATEGORY_CODE[category];
+  }
+  return EXIT_CATEGORY_CODE.internal;
+}
+function makeError(code, message, options = {}) {
+  const error = {
+    code,
+    message,
+    exit_category: options.exit_category ?? "internal"
+  };
+  if (options.hint !== void 0) {
+    error.hint = options.hint;
+  }
+  return error;
+}
+
 // src/lib/output.ts
 var activeState = {
   mode: "default",
@@ -10754,6 +10780,37 @@ function writeOkEnvelope(commandName, data) {
     const text = fmt ? fmt(data) : jsonStringify({ ok: true, data }, state.debug);
     process.stdout.write(text.endsWith("\n") ? text : text + "\n");
   }
+}
+function emitOk(commandName, data) {
+  writeOkEnvelope(commandName, data);
+  process.exit(0);
+}
+function writeErrEnvelope(error) {
+  const state = getOutputMode();
+  if (state.mode === "json" || state.mode === "default") {
+    const payload = {
+      ok: false,
+      error: {
+        code: error.code,
+        message: error.message
+      }
+    };
+    if (error.hint !== void 0) {
+      payload.error.hint = error.hint;
+    }
+    process.stdout.write(jsonStringify(payload, state.debug) + "\n");
+  } else {
+    process.stderr.write(`error: ${error.message}
+`);
+    if (error.hint !== void 0) {
+      process.stderr.write(`hint: ${error.hint}
+`);
+    }
+  }
+}
+function emitErr(error) {
+  writeErrEnvelope(error);
+  process.exit(exitCodeForCategory(error.exit_category));
 }
 function writeLegacyErrEnvelope(envelope) {
   const state = getOutputMode();
@@ -11033,14 +11090,19 @@ function relToRoot(root, target) {
 
 // src/commands/context.ts
 var fs4 = __toESM(require("fs"));
+var COMMAND_NAME = "context";
 function registerContextCommand(program2) {
-  program2.command("context").description("Print a JSON summary of the current .geas/ state").action(() => {
+  program2.command(COMMAND_NAME).description("Print a JSON summary of the current .geas/ state").action(() => {
     const root = findProjectRoot(process.cwd());
     if (!root) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "missing_artifact",
-          `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}. Run 'geas setup' first.`
+          `.geas/ not found at ${process.cwd().replace(/\\/g, "/")}.`,
+          {
+            hint: "run 'geas setup' to bootstrap the .geas/ tree",
+            exit_category: "missing_artifact"
+          }
         )
       );
     }
@@ -11060,13 +11122,11 @@ function registerContextCommand(program2) {
         });
       }
     }
-    emit(
-      ok({
-        project_root: projectRoot.replace(/\\/g, "/"),
-        geas_dir: geasDir(projectRoot).replace(/\\/g, "/"),
-        missions
-      })
-    );
+    emitOk(COMMAND_NAME, {
+      project_root: projectRoot.replace(/\\/g, "/"),
+      geas_dir: geasDir(projectRoot).replace(/\\/g, "/"),
+      missions
+    });
   });
 }
 
