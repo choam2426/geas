@@ -16,6 +16,16 @@
  * The mission spec is immutable after the user approves it (protocol 02).
  * `geas mission create` refuses to overwrite an existing spec; `geas
  * mission approve` refuses to flip an already-approved spec back.
+ *
+ * T2.b (mission-20260427-xIPG1sDY task-006): migrated off the legacy
+ * envelope.emit/err/ok bridge to call output.emitOk / output.emitErr +
+ * errors.makeError directly. Per AC2 every error site rotates exit code
+ * through EXIT_CATEGORY_CODE: invalid_argument 1→2, missing_artifact 1→4,
+ * schema_validation_failed 2 unchanged, guard_failed 3 unchanged,
+ * path_collision 1→2. Guard hint structures from canAdvanceMissionPhase
+ * are folded to single-line hint strings via foldGuardHint (T2.8 path b).
+ * Per AC3 each emitOk site has a registered ScalarFormatter so default
+ * mode produces human-readable text.
  */
 
 import type { Command } from 'commander';
@@ -23,7 +33,9 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { emit, err, ok, recordEvent } from '../lib/envelope';
+import { recordEvent } from '../lib/envelope';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
+import { makeError } from '../lib/errors';
 import {
   atomicWrite,
   atomicWriteJson,
@@ -54,6 +66,86 @@ import {
   type MissionPhaseHints,
 } from '../lib/transition-guards';
 
+/**
+ * Fold a structured guard hint object (e.g. { allowed_transitions: [...]
+ * } or { open_task_count: 3 }) into a single human-readable string for
+ * the v2 CliErrorV2 hint field. T2.8 path (b): the lib/errors.ts
+ * CliErrorV2 type carries `hint` as a single string, so structured
+ * guard data is encoded as `key: value; key: value` pairs. Arrays are
+ * comma-joined; objects are JSON-stringified as a fallback.
+ */
+function foldGuardHint(hints: unknown): string | undefined {
+  if (hints === undefined || hints === null) return undefined;
+  if (typeof hints === 'string') return hints;
+  if (typeof hints !== 'object') return String(hints);
+  const obj = hints as Record<string, unknown>;
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const key = k.replace(/_/g, ' ');
+    if (Array.isArray(v)) {
+      parts.push(`${key}: ${v.join(', ')}`);
+    } else if (v !== null && typeof v === 'object') {
+      parts.push(`${key}: ${JSON.stringify(v)}`);
+    } else {
+      parts.push(`${key}: ${String(v)}`);
+    }
+  }
+  return parts.length > 0 ? parts.join('; ') : undefined;
+}
+
+/**
+ * AC3 scalar formatters for the seven `mission` / `mission-state` /
+ * `phase-review` / `mission-verdict` subcommands. Each renders a short
+ * human-readable summary; full body via --json.
+ */
+function formatMissionCreate(data: unknown): string {
+  const d = data as { path?: string; ids?: { mission_id?: string }; spec?: { name?: string; mode?: string } };
+  return [
+    `mission created: ${d.ids?.mission_id ?? '<unknown>'}`,
+    `path: ${d.path ?? '<unknown>'}`,
+    `name: ${d.spec?.name ?? '<unknown>'} mode: ${d.spec?.mode ?? '<unknown>'}`,
+  ].join('\n');
+}
+function formatMissionApprove(data: unknown): string {
+  const d = data as { ids?: { mission_id?: string }; already_approved?: boolean };
+  return `mission approved: ${d.ids?.mission_id ?? '<unknown>'} already_approved=${Boolean(d.already_approved)}`;
+}
+function formatMissionDesignSet(data: unknown): string {
+  const d = data as { path?: string; replaced?: boolean; bytes?: number };
+  return `mission-design ${d.replaced ? 'replaced' : 'written'}: ${d.path ?? '<unknown>'} (${d.bytes ?? 0} bytes)`;
+}
+function formatMissionState(data: unknown): string {
+  const d = data as {
+    mission_id?: string;
+    phase?: string | null;
+    user_approved?: boolean;
+    mode?: string | null;
+    name?: string | null;
+    approved_task_count?: number;
+    open_task_count?: number;
+    active_tasks?: string[];
+  };
+  const lines: string[] = [];
+  lines.push(`mission: ${d.mission_id ?? '<unknown>'} phase=${d.phase ?? 'unknown'} mode=${d.mode ?? 'unknown'}`);
+  lines.push(`name: ${d.name ?? '<unknown>'}`);
+  lines.push(`approved: ${d.user_approved === true} approved_tasks=${d.approved_task_count ?? 0} open_tasks=${d.open_task_count ?? 0}`);
+  const active = Array.isArray(d.active_tasks) ? d.active_tasks : [];
+  lines.push(`active_tasks: ${active.length === 0 ? '(none)' : active.join(', ')}`);
+  return lines.join('\n');
+}
+function formatMissionStateUpdate(data: unknown): string {
+  const d = data as { ids?: { mission_id?: string }; phase?: { from?: string; to?: string } };
+  return `mission phase: ${d.ids?.mission_id ?? '<unknown>'} ${d.phase?.from ?? '?'} -> ${d.phase?.to ?? '?'}`;
+}
+function formatPhaseReviewAppend(data: unknown): string {
+  const d = data as { path?: string; ids?: { mission_id?: string; entry_index?: number }; entry?: { mission_phase?: string; status?: string; next_phase?: string } };
+  return `phase-review appended: ${d.ids?.mission_id ?? '<unknown>'} index=${d.ids?.entry_index ?? '?'} phase=${d.entry?.mission_phase ?? '?'} status=${d.entry?.status ?? '?'} next=${d.entry?.next_phase ?? '?'}`;
+}
+function formatMissionVerdictAppend(data: unknown): string {
+  const d = data as { path?: string; ids?: { mission_id?: string; entry_index?: number }; entry?: { verdict?: string } };
+  return `mission-verdict appended: ${d.ids?.mission_id ?? '<unknown>'} index=${d.ids?.entry_index ?? '?'} verdict=${d.entry?.verdict ?? '?'}`;
+}
+
 function nowUtc(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
@@ -61,10 +153,14 @@ function nowUtc(): string {
 function needProjectRoot(): string {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         'missing_artifact',
-        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`,
+        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: 'missing_artifact',
+        },
       ),
     );
   }
@@ -182,18 +278,35 @@ function registerMissionCreate(mission: Command): void {
       try {
         payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
-        if (e instanceof StdinError) emit(err('invalid_argument', e.message));
+        if (e instanceof StdinError) {
+          emitErr(
+            makeError('invalid_argument', e.message, {
+              hint: 'pass the JSON via --file <path> or pipe through stdin',
+              exit_category: 'validation',
+            }),
+          );
+        }
         throw e;
       }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-        emit(err('invalid_argument', 'mission create expects a JSON object payload'));
+        emitErr(
+          makeError('invalid_argument', 'mission create expects a JSON object payload', {
+            hint: 'pass a single JSON object containing the mission spec fields',
+            exit_category: 'validation',
+          }),
+        );
       }
 
       // id is caller-supplied or CLI-generated.
       const providedId = typeof payload.id === 'string' ? payload.id : undefined;
       const missionId = providedId ?? generateMissionId();
       if (!isValidMissionId(missionId)) {
-        emit(err('invalid_argument', `invalid mission id '${missionId}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${missionId}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       payload.id = missionId;
 
@@ -208,21 +321,28 @@ function registerMissionCreate(mission: Command): void {
       // Main artifact collision check.
       const specPath = missionSpecPath(root, missionId);
       if (exists(specPath)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'path_collision',
             `mission spec already exists at ${slashPath(specPath)}`,
+            {
+              hint: `inspect the existing spec or pick a different mission id`,
+              exit_category: 'validation',
+            },
           ),
         );
       }
 
       const v = validate('mission-spec', payload);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'mission-spec schema validation failed',
-            v.errors,
+            {
+              hint: 'inspect ajv errors to fix the payload, then retry',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -286,14 +406,12 @@ function registerMissionCreate(mission: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(specPath),
-          ids: { mission_id: missionId },
-          spec: payload,
-          state,
-        }),
-      );
+      emitOk('mission create', {
+        path: slashPath(specPath),
+        ids: { mission_id: missionId },
+        spec: payload,
+        state,
+      });
     });
 }
 
@@ -306,28 +424,35 @@ function registerMissionApprove(mission: Command): void {
     .requiredOption('--mission <id>', 'Mission ID')
     .action((opts: { mission: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const root = needProjectRoot();
       const specPath = missionSpecPath(root, opts.mission);
       const spec = readJsonFile<Record<string, unknown>>(specPath);
       if (!spec) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'missing_artifact',
             `mission spec not found for ${opts.mission} at ${slashPath(specPath)}`,
+            {
+              hint: "run 'geas mission create' first or check the --mission id",
+              exit_category: 'missing_artifact',
+            },
           ),
         );
         return;
       }
       if (spec.user_approved === true) {
-        emit(
-          ok({
-            path: slashPath(specPath),
-            ids: { mission_id: opts.mission },
-            already_approved: true,
-          }),
-        );
+        emitOk('mission approve', {
+          path: slashPath(specPath),
+          ids: { mission_id: opts.mission },
+          already_approved: true,
+        });
         return;
       }
       spec.user_approved = true;
@@ -335,11 +460,14 @@ function registerMissionApprove(mission: Command): void {
 
       const v = validate('mission-spec', spec);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'mission-spec schema validation failed after setting user_approved',
-            v.errors,
+            {
+              hint: 'fix the spec body and re-run mission create, or restore from a prior version',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -351,14 +479,12 @@ function registerMissionApprove(mission: Command): void {
         payload: { mission_id: opts.mission, artifact: slashPath(specPath) },
       });
 
-      emit(
-        ok({
-          path: slashPath(specPath),
-          ids: { mission_id: opts.mission },
-          already_approved: false,
-          spec,
-        }),
-      );
+      emitOk('mission approve', {
+        path: slashPath(specPath),
+        ids: { mission_id: opts.mission },
+        already_approved: false,
+        spec,
+      });
     });
 }
 
@@ -374,26 +500,39 @@ function registerMissionDesignSet(mission: Command): void {
     .option('--file <path>', 'Read markdown from file instead of stdin (preferred for prose-heavy payloads)')
     .action((opts: { mission: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const root = needProjectRoot();
 
       const specPath = missionSpecPath(root, opts.mission);
       const spec = readJsonFile<Record<string, unknown>>(specPath);
       if (!spec) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'missing_artifact',
             `mission spec not found for ${opts.mission} at ${slashPath(specPath)}`,
+            {
+              hint: "run 'geas mission create' first or check the --mission id",
+              exit_category: 'missing_artifact',
+            },
           ),
         );
         return;
       }
       if (spec.user_approved !== true) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'guard_failed',
-            `mission spec is not user_approved; run 'geas mission approve --mission ${opts.mission}' first`,
+            `mission spec is not user_approved`,
+            {
+              hint: `run 'geas mission approve --mission ${opts.mission}' first`,
+              exit_category: 'guard',
+            },
           ),
         );
         return;
@@ -402,20 +541,28 @@ function registerMissionDesignSet(mission: Command): void {
       const statePath = missionStatePath(root, opts.mission);
       const state = readJsonFile<Record<string, unknown>>(statePath);
       if (!state) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'missing_artifact',
             `mission-state not found for ${opts.mission} at ${slashPath(statePath)}`,
+            {
+              hint: 'mission-state is created automatically by mission create; check the --mission id or restore the artifact',
+              exit_category: 'missing_artifact',
+            },
           ),
         );
         return;
       }
       const phase = typeof state.phase === 'string' ? state.phase : null;
       if (phase !== 'specifying') {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'guard_failed',
             `mission-design is immutable after specifying phase; current phase is '${phase ?? 'unknown'}'`,
+            {
+              hint: 'roll the mission back to specifying via a passed phase-review if a design rewrite is required',
+              exit_category: 'guard',
+            },
           ),
         );
         return;
@@ -426,7 +573,12 @@ function registerMissionDesignSet(mission: Command): void {
         content = readPayloadText(opts.file);
       } catch (e) {
         if (e instanceof StdinError) {
-          emit(err('invalid_argument', e.message));
+          emitErr(
+            makeError('invalid_argument', e.message, {
+              hint: 'pass the markdown via --file <path> or pipe through stdin',
+              exit_category: 'validation',
+            }),
+          );
           return;
         }
         throw e;
@@ -448,14 +600,12 @@ function registerMissionDesignSet(mission: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(designPath),
-          ids: { mission_id: opts.mission },
-          replaced: wasPresent,
-          bytes: Buffer.byteLength(content, 'utf-8'),
-        }),
-      );
+      emitOk('mission design-set', {
+        path: slashPath(designPath),
+        ids: { mission_id: opts.mission },
+        replaced: wasPresent,
+        bytes: Buffer.byteLength(content, 'utf-8'),
+      });
     });
 }
 
@@ -468,14 +618,24 @@ function registerMissionStateRead(mission: Command): void {
     .requiredOption('--mission <id>', 'Mission ID')
     .action((opts: { mission: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const root = needProjectRoot();
       const spec = readJsonFile<Record<string, unknown>>(
         missionSpecPath(root, opts.mission),
       );
       if (!spec) {
-        emit(err('missing_artifact', `mission spec not found for ${opts.mission}`));
+        emitErr(
+          makeError('missing_artifact', `mission spec not found for ${opts.mission}`, {
+            hint: "run 'geas mission create' first or check the --mission id",
+            exit_category: 'missing_artifact',
+          }),
+        );
         return;
       }
       const state = readJsonFile<Record<string, unknown>>(
@@ -484,20 +644,18 @@ function registerMissionStateRead(mission: Command): void {
       const approvedTasks = countApprovedTasks(root, opts.mission);
       const openTasks = countOpenTasks(root, opts.mission);
 
-      emit(
-        ok({
-          mission_id: opts.mission,
-          phase: typeof state?.phase === 'string' ? state.phase : null,
-          user_approved: spec.user_approved === true,
-          mode: typeof spec.mode === 'string' ? spec.mode : null,
-          name: typeof spec.name === 'string' ? spec.name : null,
-          approved_task_count: approvedTasks,
-          open_task_count: openTasks,
-          active_tasks: Array.isArray(state?.active_tasks)
-            ? (state!.active_tasks as string[])
-            : [],
-        }),
-      );
+      emitOk('mission state', {
+        mission_id: opts.mission,
+        phase: typeof state?.phase === 'string' ? state.phase : null,
+        user_approved: spec.user_approved === true,
+        mode: typeof spec.mode === 'string' ? spec.mode : null,
+        name: typeof spec.name === 'string' ? spec.name : null,
+        approved_task_count: approvedTasks,
+        open_task_count: openTasks,
+        active_tasks: Array.isArray(state?.active_tasks)
+          ? (state!.active_tasks as string[])
+          : [],
+      });
     });
 }
 
@@ -517,29 +675,47 @@ function registerMissionStateUpdatePhase(program: Command): void {
     .option('--phase <phase>', 'Target mission phase')
     .action((opts: { mission: string; phase?: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       if (!opts.phase) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             'mission-state update requires --phase <phase>',
+            {
+              hint: 'pass --phase with one of: specifying, building, polishing, consolidating, complete',
+              exit_category: 'validation',
+            },
           ),
         );
         return;
       }
       if (!isValidMissionPhase(opts.phase)) {
-        emit(err('invalid_argument', `unknown phase '${opts.phase}'`));
+        emitErr(
+          makeError('invalid_argument', `unknown phase '${opts.phase}'`, {
+            hint: 'valid phases: specifying, building, polishing, consolidating, complete',
+            exit_category: 'validation',
+          }),
+        );
       }
 
       const root = needProjectRoot();
       const statePath = missionStatePath(root, opts.mission);
       const state = readJsonFile<Record<string, unknown>>(statePath);
       if (!state) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'missing_artifact',
             `mission-state.json not found for ${opts.mission}`,
+            {
+              hint: 'mission-state is created automatically by mission create; check the --mission id',
+              exit_category: 'missing_artifact',
+            },
           ),
         );
         return;
@@ -548,7 +724,12 @@ function registerMissionStateUpdatePhase(program: Command): void {
         missionSpecPath(root, opts.mission),
       );
       if (!spec) {
-        emit(err('missing_artifact', `mission spec not found for ${opts.mission}`));
+        emitErr(
+          makeError('missing_artifact', `mission spec not found for ${opts.mission}`, {
+            hint: "run 'geas mission create' first or check the --mission id",
+            exit_category: 'missing_artifact',
+          }),
+        );
         return;
       }
 
@@ -571,7 +752,12 @@ function registerMissionStateUpdatePhase(program: Command): void {
 
       const guard = canAdvanceMissionPhase(from, to, hints);
       if (!guard.ok) {
-        emit(err('guard_failed', guard.reason, guard.hints));
+        emitErr(
+          makeError('guard_failed', guard.reason, {
+            hint: foldGuardHint(guard.hints) ?? 'check the mission spec, prior phase-review, and open task count',
+            exit_category: 'guard',
+          }),
+        );
       }
 
       const ts = nowUtc();
@@ -582,11 +768,14 @@ function registerMissionStateUpdatePhase(program: Command): void {
 
       const v = validate('mission-state', state);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'mission-state schema validation failed',
-            v.errors,
+            {
+              hint: 'inspect ajv errors and reconcile the on-disk state with the schema',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -603,14 +792,12 @@ function registerMissionStateUpdatePhase(program: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(statePath),
-          ids: { mission_id: opts.mission },
-          phase: { from, to },
-          state,
-        }),
-      );
+      emitOk('mission-state update', {
+        path: slashPath(statePath),
+        ids: { mission_id: opts.mission },
+        phase: { from, to },
+        state,
+      });
     });
 }
 
@@ -628,7 +815,12 @@ function registerPhaseReviewAppend(program: Command): void {
     .option('--file <path>', 'Read JSON payload from file instead of stdin')
     .action((opts: { mission: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const root = needProjectRoot();
 
@@ -636,7 +828,14 @@ function registerPhaseReviewAppend(program: Command): void {
       try {
         entry = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
-        if (e instanceof StdinError) emit(err('invalid_argument', e.message));
+        if (e instanceof StdinError) {
+          emitErr(
+            makeError('invalid_argument', e.message, {
+              hint: 'pass the JSON via --file <path> or pipe through stdin',
+              exit_category: 'validation',
+            }),
+          );
+        }
         throw e;
       }
 
@@ -666,11 +865,14 @@ function registerPhaseReviewAppend(program: Command): void {
 
       const v = validate('phase-reviews', updated);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'phase-reviews schema validation failed',
-            v.errors,
+            {
+              hint: 'inspect ajv errors and fix the entry body, then retry',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -688,13 +890,11 @@ function registerPhaseReviewAppend(program: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(p),
-          ids: { mission_id: opts.mission, entry_index: updated.reviews.length - 1 },
-          entry,
-        }),
-      );
+      emitOk('phase-review append', {
+        path: slashPath(p),
+        ids: { mission_id: opts.mission, entry_index: updated.reviews.length - 1 },
+        entry,
+      });
     });
 }
 
@@ -712,7 +912,12 @@ function registerMissionVerdictAppend(program: Command): void {
     .option('--file <path>', 'Read JSON payload from file instead of stdin')
     .action((opts: { mission: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const root = needProjectRoot();
 
@@ -720,7 +925,14 @@ function registerMissionVerdictAppend(program: Command): void {
       try {
         entry = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
-        if (e instanceof StdinError) emit(err('invalid_argument', e.message));
+        if (e instanceof StdinError) {
+          emitErr(
+            makeError('invalid_argument', e.message, {
+              hint: 'pass the JSON via --file <path> or pipe through stdin',
+              exit_category: 'validation',
+            }),
+          );
+        }
         throw e;
       }
 
@@ -748,11 +960,14 @@ function registerMissionVerdictAppend(program: Command): void {
 
       const v = validate('mission-verdicts', updated);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'mission-verdicts schema validation failed',
-            v.errors,
+            {
+              hint: 'inspect ajv errors and fix the entry body, then retry',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -768,22 +983,28 @@ function registerMissionVerdictAppend(program: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(p),
-          ids: {
-            mission_id: opts.mission,
-            entry_index: updated.verdicts.length - 1,
-          },
-          entry,
-        }),
-      );
+      emitOk('mission-verdict append', {
+        path: slashPath(p),
+        ids: {
+          mission_id: opts.mission,
+          entry_index: updated.verdicts.length - 1,
+        },
+        entry,
+      });
     });
 }
 
 // ── Entry point ────────────────────────────────────────────────────────
 
 export function registerMissionCommands(program: Command): void {
+  registerFormatter('mission create', formatMissionCreate);
+  registerFormatter('mission approve', formatMissionApprove);
+  registerFormatter('mission design-set', formatMissionDesignSet);
+  registerFormatter('mission state', formatMissionState);
+  registerFormatter('mission-state update', formatMissionStateUpdate);
+  registerFormatter('phase-review append', formatPhaseReviewAppend);
+  registerFormatter('mission-verdict append', formatMissionVerdictAppend);
+
   const mission = program
     .command('mission')
     .description('Mission-level artifact commands (spec, approve, state summary)');

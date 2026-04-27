@@ -47,9 +47,11 @@ const VALID_SPEC = {
 };
 
 function setupWithMission(dir) {
+  // AC3 (task-006): --json keeps the JSON envelope on stdout for assertion;
+  // default mode now produces scalar text via the registered formatter.
   const r1 = runCli(['setup'], { cwd: dir });
   assert.equal(r1.status, 0, `setup failed: ${r1.stderr}`);
-  const r2 = runCli(['mission', 'create'], {
+  const r2 = runCli(['--json', 'mission', 'create'], {
     cwd: dir,
     input: JSON.stringify(VALID_SPEC),
     env: { GEAS_MOCK_MISSION_ID: MID },
@@ -120,7 +122,8 @@ test('mission create writes a drafted (unapproved) mission spec', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     runCli(['setup'], { cwd: dir });
-    const res = runCli(['mission', 'create'], {
+    // AC3 (task-006): --json envelope for programmatic assertion.
+    const res = runCli(['--json', 'mission', 'create'], {
       cwd: dir,
       input: JSON.stringify(VALID_SPEC),
       env: { GEAS_MOCK_MISSION_ID: MID },
@@ -158,7 +161,8 @@ test('mission create rejects schema-invalid payloads', () => {
   try {
     runCli(['setup'], { cwd: dir });
     const badSpec = { ...VALID_SPEC, mode: 'reckless' };
-    const res = runCli(['mission', 'create'], {
+    // AC3 (task-006): --json envelope for programmatic assertion.
+    const res = runCli(['--json', 'mission', 'create'], {
       cwd: dir,
       input: JSON.stringify(badSpec),
       env: { GEAS_MOCK_MISSION_ID: MID },
@@ -175,8 +179,9 @@ test('mission phase advance rejected without approval', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupWithMission(dir);
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const res = runCli(
-      ['mission-state', 'update', '--mission', MID, '--phase', 'building'],
+      ['--json', 'mission-state', 'update', '--mission', MID, '--phase', 'building'],
       { cwd: dir },
     );
     assert.notEqual(res.status, 0);
@@ -192,14 +197,15 @@ test('mission approve flips user_approved and is idempotent', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupWithMission(dir);
-    const r1 = runCli(['mission', 'approve', '--mission', MID], { cwd: dir });
+    // AC3 (task-006): --json envelope for programmatic assertion.
+    const r1 = runCli(['--json', 'mission', 'approve', '--mission', MID], { cwd: dir });
     assert.equal(r1.status, 0);
     assert.equal(r1.json.ok, true);
     assert.equal(r1.json.data.already_approved, false);
     const spec = readArtifact(dir, `.geas/missions/${MID}/spec.json`);
     assert.equal(spec.user_approved, true);
 
-    const r2 = runCli(['mission', 'approve', '--mission', MID], { cwd: dir });
+    const r2 = runCli(['--json', 'mission', 'approve', '--mission', MID], { cwd: dir });
     assert.equal(r2.status, 0);
     assert.equal(r2.json.data.already_approved, true);
   } finally {
@@ -212,14 +218,18 @@ test('mission create is rejected after approve (spec immutable)', () => {
   try {
     setupWithMission(dir);
     runCli(['mission', 'approve', '--mission', MID], { cwd: dir });
-    // Re-creating the same mission id must collide.
-    const res = runCli(['mission', 'create'], {
+    // Re-creating the same mission id must collide. AC3 (task-006):
+    // --json envelope for programmatic assertion.
+    const res = runCli(['--json', 'mission', 'create'], {
       cwd: dir,
       input: JSON.stringify(VALID_SPEC),
       env: { GEAS_MOCK_MISSION_ID: MID },
     });
     assert.notEqual(res.status, 0);
     assert.equal(res.json.error.code, 'path_collision');
+    // AC2 mapping (task-006): path_collision rotates from legacy exit=1 to
+    // category exit=2 (validation).
+    assert.equal(res.status, 2, `path_collision must exit 2 after T2.b: got ${res.status}`);
   } finally {
     cleanup();
   }
@@ -231,7 +241,8 @@ test('mission design-set writes mission-design.md after approve', () => {
     setupWithMission(dir);
     runCli(['mission', 'approve', '--mission', MID], { cwd: dir });
     const content = '# Mission design\n\nStrategy paragraph here.\n';
-    const res = runCli(['mission', 'design-set', '--mission', MID], {
+    // AC3 (task-006): --json envelope for programmatic assertion.
+    const res = runCli(['--json', 'mission', 'design-set', '--mission', MID], {
       cwd: dir,
       input: content,
     });
@@ -271,8 +282,9 @@ test('mission design-set accepts --file as an alternative to stdin (prose-safe)'
     const payloadPath = path.join(dir, 'design.md');
     fs.writeFileSync(payloadPath, proseContent, 'utf-8');
 
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const res = runCli(
-      ['mission', 'design-set', '--mission', MID, '--file', payloadPath],
+      ['--json', 'mission', 'design-set', '--mission', MID, '--file', payloadPath],
       { cwd: dir }, // NO stdin input
     );
     assert.equal(res.status, 0, `--file design-set failed: ${res.stderr}\n${res.stdout}`);
@@ -317,7 +329,8 @@ test('mission design-set full-replaces on second call', () => {
       cwd: dir,
       input: '# First\n',
     });
-    const res2 = runCli(['mission', 'design-set', '--mission', MID], {
+    // AC3 (task-006): --json envelope for programmatic assertion.
+    const res2 = runCli(['--json', 'mission', 'design-set', '--mission', MID], {
       cwd: dir,
       input: '# Second\n',
     });
@@ -338,12 +351,15 @@ test('mission design-set rejects empty stdin', () => {
   try {
     setupWithMission(dir);
     runCli(['mission', 'approve', '--mission', MID], { cwd: dir });
-    const res = runCli(['mission', 'design-set', '--mission', MID], {
+    // AC3 (task-006): --json envelope for programmatic assertion.
+    const res = runCli(['--json', 'mission', 'design-set', '--mission', MID], {
       cwd: dir,
       input: '',
     });
     assert.notEqual(res.status, 0);
     assert.equal(res.json.error.code, 'invalid_argument');
+    // AC2 mapping: invalid_argument exits 2 (validation) post-T2.b.
+    assert.equal(res.status, 2);
   } finally {
     cleanup();
   }
@@ -353,14 +369,16 @@ test('mission design-set rejected before mission is approved', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupWithMission(dir);
-    // no approve call
-    const res = runCli(['mission', 'design-set', '--mission', MID], {
+    // no approve call. AC3 (task-006): --json envelope for assertion.
+    const res = runCli(['--json', 'mission', 'design-set', '--mission', MID], {
       cwd: dir,
       input: '# Design\n',
     });
     assert.notEqual(res.status, 0);
     assert.equal(res.json.error.code, 'guard_failed');
     assert.match(res.json.error.message, /user_approved/);
+    // AC2: guard_failed stays exit 3 (legacy = new = 3).
+    assert.equal(res.status, 3);
   } finally {
     cleanup();
   }
@@ -377,7 +395,8 @@ test('mission design-set rejected once phase has advanced past specifying', () =
       { cwd: dir },
     );
     assert.equal(r.status, 0, `phase advance failed: ${r.stderr}`);
-    const res = runCli(['mission', 'design-set', '--mission', MID], {
+    // AC3 (task-006): --json envelope for programmatic assertion.
+    const res = runCli(['--json', 'mission', 'design-set', '--mission', MID], {
       cwd: dir,
       input: '# Too late\n',
     });
@@ -393,12 +412,15 @@ test('mission design-set rejects invalid mission id', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupWithMission(dir);
-    const res = runCli(['mission', 'design-set', '--mission', 'not-a-mission'], {
+    // AC3 (task-006): --json envelope for programmatic assertion.
+    const res = runCli(['--json', 'mission', 'design-set', '--mission', 'not-a-mission'], {
       cwd: dir,
       input: '# Design\n',
     });
     assert.notEqual(res.status, 0);
     assert.equal(res.json.error.code, 'invalid_argument');
+    // AC2: invalid_argument rotates 1 → 2 (validation) post-T2.b.
+    assert.equal(res.status, 2);
   } finally {
     cleanup();
   }
@@ -409,8 +431,9 @@ test('specifying -> building rejected when no approved task exists', () => {
   try {
     setupWithMission(dir);
     runCli(['mission', 'approve', '--mission', MID], { cwd: dir });
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const res = runCli(
-      ['mission-state', 'update', '--mission', MID, '--phase', 'building'],
+      ['--json', 'mission-state', 'update', '--mission', MID, '--phase', 'building'],
       { cwd: dir },
     );
     assert.notEqual(res.status, 0);
@@ -429,8 +452,9 @@ test('specifying -> building succeeds once an approved task exists', () => {
     // task in implementing so open_task_count > 0 but building guard
     // only requires an approved contract.
     insertApprovedTask(dir, MID, 1, { status: 'implementing' });
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const res = runCli(
-      ['mission-state', 'update', '--mission', MID, '--phase', 'building'],
+      ['--json', 'mission-state', 'update', '--mission', MID, '--phase', 'building'],
       { cwd: dir },
     );
     assert.equal(res.status, 0, `advance failed: ${res.stderr}\n${res.stdout}`);
@@ -453,9 +477,10 @@ test('building -> polishing requires a matching phase-review', () => {
       { cwd: dir },
     );
 
-    // No phase-review yet — advance refused.
+    // No phase-review yet — advance refused. AC3 (task-006): --json
+    // envelope for programmatic assertion.
     const reject = runCli(
-      ['mission-state', 'update', '--mission', MID, '--phase', 'polishing'],
+      ['--json', 'mission-state', 'update', '--mission', MID, '--phase', 'polishing'],
       { cwd: dir },
     );
     assert.notEqual(reject.status, 0);
@@ -539,8 +564,9 @@ test('consolidating -> complete requires a mission-verdict', () => {
       }),
     });
 
+    // AC3 (task-006): --json envelope for programmatic assertion.
     const reject = runCli(
-      ['mission-state', 'update', '--mission', MID, '--phase', 'complete'],
+      ['--json', 'mission-state', 'update', '--mission', MID, '--phase', 'complete'],
       { cwd: dir },
     );
     assert.notEqual(reject.status, 0);
@@ -581,9 +607,10 @@ test('unknown phase transitions are rejected (rewind, skip)', () => {
       { cwd: dir },
     );
 
+    // AC3 (task-006): --json envelope for programmatic assertions below.
     // Rewind to specifying is never allowed.
     const rewind = runCli(
-      ['mission-state', 'update', '--mission', MID, '--phase', 'specifying'],
+      ['--json', 'mission-state', 'update', '--mission', MID, '--phase', 'specifying'],
       { cwd: dir },
     );
     assert.notEqual(rewind.status, 0);
@@ -591,7 +618,7 @@ test('unknown phase transitions are rejected (rewind, skip)', () => {
 
     // Skipping polishing to consolidating is not allowed.
     const skip = runCli(
-      ['mission-state', 'update', '--mission', MID, '--phase', 'consolidating'],
+      ['--json', 'mission-state', 'update', '--mission', MID, '--phase', 'consolidating'],
       { cwd: dir },
     );
     assert.notEqual(skip.status, 0);
@@ -599,7 +626,7 @@ test('unknown phase transitions are rejected (rewind, skip)', () => {
 
     // Unknown phase name
     const bogus = runCli(
-      ['mission-state', 'update', '--mission', MID, '--phase', 'snacking'],
+      ['--json', 'mission-state', 'update', '--mission', MID, '--phase', 'snacking'],
       { cwd: dir },
     );
     assert.notEqual(bogus.status, 0);
@@ -617,7 +644,8 @@ test('mission state summary reports phase, approval, task counts', () => {
     insertApprovedTask(dir, MID, 1, { status: 'implementing' });
     insertApprovedTask(dir, MID, 2, { status: 'passed' });
 
-    const res = runCli(['mission', 'state', '--mission', MID], { cwd: dir });
+    // AC3 (task-006): --json envelope for programmatic assertion.
+    const res = runCli(['--json', 'mission', 'state', '--mission', MID], { cwd: dir });
     assert.equal(res.status, 0);
     assert.equal(res.json.data.phase, 'specifying');
     assert.equal(res.json.data.user_approved, true);
@@ -633,8 +661,9 @@ test('phase-review append validates entry shape', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     setupWithMission(dir);
-    // Missing summary — schema must reject.
-    const res = runCli(['phase-review', 'append', '--mission', MID], {
+    // Missing summary — schema must reject. AC3 (task-006): --json
+    // envelope for programmatic assertion.
+    const res = runCli(['--json', 'phase-review', 'append', '--mission', MID], {
       cwd: dir,
       input: JSON.stringify({
         mission_phase: 'specifying',
