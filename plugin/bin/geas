@@ -10938,8 +10938,20 @@ var COMMAND_NAME = "setup";
 function nowUtc() {
   return (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z");
 }
+function formatSetup(data) {
+  const d = data;
+  const lines = [];
+  lines.push(`project_root: ${d.project_root ?? "<unknown>"}`);
+  lines.push(`geas_dir: ${d.geas_dir ?? "<unknown>"}`);
+  const created = Array.isArray(d.created) ? d.created : [];
+  const existed = Array.isArray(d.existed) ? d.existed : [];
+  lines.push(`created: ${created.length}${created.length > 0 ? ` (${created.join(", ")})` : ""}`);
+  lines.push(`existed: ${existed.length}${existed.length > 0 ? ` (${existed.join(", ")})` : ""}`);
+  return lines.join("\n");
+}
 function registerSetupCommand(program2) {
-  program2.command(COMMAND_NAME).description("Initialize the .geas/ runtime tree for the current project").action(() => {
+  registerFormatter(COMMAND_NAME, formatSetup);
+  program2.command(COMMAND_NAME).description("Initialize the .geas/ runtime tree for the current project (scalar text by default; --json for envelope)").action(() => {
     try {
       const root = process.cwd();
       const created = [];

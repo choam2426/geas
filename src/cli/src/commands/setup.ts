@@ -33,7 +33,7 @@
 import type { Command } from 'commander';
 import * as path from 'path';
 import { atomicWrite, atomicWriteJson, ensureDir, exists } from '../lib/fs-atomic';
-import { emitErr, emitOk } from '../lib/output';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
 import { makeError } from '../lib/errors';
 import {
   agentsMemoryDir,
@@ -53,10 +53,34 @@ function nowUtc(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
+/**
+ * AC3 (mission-20260427-xIPG1sDY task-006): scalar formatter for the
+ * setup payload. Renders project_root + per-bucket counts (created,
+ * existed) plus the bucket contents on subsequent lines. Token target
+ * ≤200; collapses empty buckets to a single line.
+ */
+function formatSetup(data: unknown): string {
+  const d = data as {
+    project_root?: string;
+    geas_dir?: string;
+    created?: string[];
+    existed?: string[];
+  };
+  const lines: string[] = [];
+  lines.push(`project_root: ${d.project_root ?? '<unknown>'}`);
+  lines.push(`geas_dir: ${d.geas_dir ?? '<unknown>'}`);
+  const created = Array.isArray(d.created) ? d.created : [];
+  const existed = Array.isArray(d.existed) ? d.existed : [];
+  lines.push(`created: ${created.length}${created.length > 0 ? ` (${created.join(', ')})` : ''}`);
+  lines.push(`existed: ${existed.length}${existed.length > 0 ? ` (${existed.join(', ')})` : ''}`);
+  return lines.join('\n');
+}
+
 export function registerSetupCommand(program: Command): void {
+  registerFormatter(COMMAND_NAME, formatSetup);
   program
     .command(COMMAND_NAME)
-    .description('Initialize the .geas/ runtime tree for the current project')
+    .description('Initialize the .geas/ runtime tree for the current project (scalar text by default; --json for envelope)')
     .action(() => {
       try {
         const root = process.cwd();

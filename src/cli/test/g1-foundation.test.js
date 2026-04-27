@@ -41,12 +41,13 @@ test('geas --version prints the CLI version', () => {
   }
 });
 
-test('geas setup creates the canonical .geas/ tree', () => {
+test('geas setup creates the canonical .geas/ tree (--json envelope)', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
-    const res = runCli(['setup'], { cwd: dir });
+    // AC3 (task-006): --json keeps the envelope on stdout for assertion.
+    const res = runCli(['--json', 'setup'], { cwd: dir });
     assert.equal(res.status, 0, `setup failed: ${res.stderr}`);
-    assert.ok(res.json, 'setup should emit a JSON envelope');
+    assert.ok(res.json, 'setup with --json should emit a JSON envelope');
     assert.equal(res.json.ok, true);
 
     // Directories
@@ -97,14 +98,15 @@ test('geas setup creates the canonical .geas/ tree', () => {
   }
 });
 
-test('geas setup is idempotent on re-run', () => {
+test('geas setup is idempotent on re-run (--json envelope)', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     const first = runCli(['setup'], { cwd: dir });
     assert.equal(first.status, 0);
     const debtsBefore = readArtifact(dir, '.geas/debts.json');
 
-    const second = runCli(['setup'], { cwd: dir });
+    // AC3 (task-006): --json to inspect the existed[] envelope field.
+    const second = runCli(['--json', 'setup'], { cwd: dir });
     assert.equal(second.status, 0);
     assert.equal(second.json.ok, true);
     // Existing paths should be reported as existed[] rather than created[]
@@ -112,6 +114,21 @@ test('geas setup is idempotent on re-run', () => {
 
     const debtsAfter = readArtifact(dir, '.geas/debts.json');
     assert.deepEqual(debtsAfter, debtsBefore, 'debts.json preserved on re-run');
+  } finally {
+    cleanup();
+  }
+});
+
+test('geas setup default-mode emits scalar text via registered formatter (post-AC3)', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    const res = runCli(['setup'], { cwd: dir });
+    assert.equal(res.status, 0, `setup failed: ${res.stderr}`);
+    assert.equal(res.json, null, `default-mode stdout should be scalar; got: ${res.stdout}`);
+    assert.match(res.stdout, /^project_root: /m);
+    assert.match(res.stdout, /^geas_dir: /m);
+    assert.match(res.stdout, /^created: /m);
+    assert.match(res.stdout, /^existed: /m);
   } finally {
     cleanup();
   }
