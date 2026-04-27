@@ -14759,10 +14759,70 @@ function aggregateExpected(votes) {
   if (disagree > agree) return "disagree";
   return "inconclusive";
 }
+function buildDeliberationPayloadFromFlags(opts) {
+  const inlineFlagPresent = opts.proposalSummary !== void 0 || opts.proposalSummaryFromFile !== void 0 || Array.isArray(opts.vote) && opts.vote.length > 0 || opts.result !== void 0;
+  if (!inlineFlagPresent) return null;
+  const payload = {};
+  if (opts.proposalSummaryFromFile !== void 0) {
+    try {
+      payload.proposal_summary = readPayloadText(opts.proposalSummaryFromFile);
+    } catch (e) {
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError("invalid_argument", e.message, {
+            hint: "pass --proposal-summary <text> inline or --proposal-summary-from-file <path>",
+            exit_category: "validation"
+          })
+        );
+      }
+      throw e;
+    }
+  } else if (opts.proposalSummary !== void 0) {
+    payload.proposal_summary = opts.proposalSummary;
+  }
+  if (Array.isArray(opts.vote) && opts.vote.length > 0) {
+    payload.votes = opts.vote.map((raw) => parseVoteShorthand(raw));
+  }
+  if (opts.result !== void 0) payload.result = opts.result;
+  return payload;
+}
+function parseVoteShorthand(raw) {
+  const firstColon = raw.indexOf(":");
+  if (firstColon < 0) {
+    emitErr(
+      makeError(
+        "invalid_argument",
+        `--vote must be voter:vote:rationale (got '${raw}')`,
+        {
+          hint: "format: --vote 'challenger:agree:short rationale text'",
+          exit_category: "validation"
+        }
+      )
+    );
+  }
+  const voter = raw.slice(0, firstColon);
+  const rest = raw.slice(firstColon + 1);
+  const secondColon = rest.indexOf(":");
+  if (secondColon < 0) {
+    emitErr(
+      makeError(
+        "invalid_argument",
+        `--vote must be voter:vote:rationale (got '${raw}')`,
+        {
+          hint: "format: --vote 'challenger:agree:short rationale text'",
+          exit_category: "validation"
+        }
+      )
+    );
+  }
+  const vote = rest.slice(0, secondColon);
+  const rationale = rest.slice(secondColon + 1);
+  return { voter, vote, rationale };
+}
 function registerDeliberationAppend(cmd) {
   cmd.command("append").description(
-    "Append a deliberation entry. Requires mission mode = full_depth."
-  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--level <level>", '"mission" or "task"').option("--task <id>", "Task ID (required when --level task)").option("--file <path>", "Read JSON payload from file instead of stdin").action(
+    "Append a deliberation entry. Accepts inline flags (--proposal-summary, --vote voter:vote:rationale..., --result) or full JSON via --file/stdin/--entry-from-file. Free-body --proposal-summary also accepts --proposal-summary-from-file. Requires mission mode = full_depth."
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--level <level>", '"mission" or "task"').option("--task <id>", "Task ID (required when --level task)").option("--file <path>", "Read full JSON entry from file (overrides inline flags) instead of stdin").option("--entry-from-file <path>", "Named alias for --file (free-body entry payload)").option("--proposal-summary <text>", "Short summary of the question (free-body \u2014 short prose)").option("--proposal-summary-from-file <path>", "Read proposal_summary text from file").option("--vote <voter:vote:rationale...>", "Vote shorthand (repeatable; e.g. challenger:agree:rationale text)").option("--result <result>", "Result: agree, disagree, escalate, or inconclusive").action(
     (opts) => {
       if (!isValidMissionId(opts.mission)) {
         emitErr(
@@ -14831,18 +14891,40 @@ function registerDeliberationAppend(cmd) {
         );
       }
       let payload;
-      try {
-        payload = readPayloadJson(opts.file);
-      } catch (e) {
-        if (e instanceof StdinError) {
-          emitErr(
-            makeError("invalid_argument", e.message, {
-              hint: "pass the JSON via --file <path> or pipe through stdin",
-              exit_category: "validation"
-            })
-          );
+      const payloadSrcFile = opts.file ?? opts.entryFromFile;
+      if (payloadSrcFile !== void 0) {
+        try {
+          payload = readPayloadJson(payloadSrcFile);
+        } catch (e) {
+          if (e instanceof StdinError) {
+            emitErr(
+              makeError("invalid_argument", e.message, {
+                hint: "pass JSON via --file/--entry-from-file <path> or use inline flags (--proposal-summary, --vote..., --result)",
+                exit_category: "validation"
+              })
+            );
+          }
+          throw e;
         }
-        throw e;
+      } else {
+        const inline = buildDeliberationPayloadFromFlags(opts);
+        if (inline !== null) {
+          payload = inline;
+        } else {
+          try {
+            payload = readPayloadJson(void 0);
+          } catch (e) {
+            if (e instanceof StdinError) {
+              emitErr(
+                makeError("invalid_argument", e.message, {
+                  hint: "use inline flags (--proposal-summary, --vote..., --result) or pass JSON via --file/--entry-from-file <path> or stdin",
+                  exit_category: "validation"
+                })
+              );
+            }
+            throw e;
+          }
+        }
       }
       if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
         emitErr(
@@ -14850,7 +14932,7 @@ function registerDeliberationAppend(cmd) {
             "invalid_argument",
             "deliberation append expects a JSON object payload",
             {
-              hint: "wrap the entry fields in a single JSON object",
+              hint: "wrap the entry fields in a single JSON object, or use inline flags",
               exit_category: "validation"
             }
           )

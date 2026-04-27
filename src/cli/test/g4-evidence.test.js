@@ -1152,6 +1152,61 @@ test('deliberation accepted when mission mode is full_depth', () => {
   }
 });
 
+test('deliberation append works inline-flag-only with --vote shorthand (AC1, task-006 verify-fix)', () => {
+  // AC1 (task-006): deliberation append must be invokable purely from
+  // inline flags. --vote uses voter:vote:rationale shorthand (split on
+  // first two colons; rationale may contain colons).
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMission(dir, MID_FULL, { mode: 'full_depth' });
+    draftTaskReady(dir, MID_FULL, 'task-001');
+    const r = runCli(
+      [
+        '--json',
+        'deliberation',
+        'append',
+        '--mission',
+        MID_FULL,
+        '--level',
+        'task',
+        '--task',
+        'task-001',
+        '--proposal-summary',
+        'Inline-flag deliberation appended via AC1 path.',
+        '--vote',
+        'challenger:agree:Inline rationale a:b colon-bearing text',
+        '--vote',
+        'risk-assessor:agree:Inline rationale b',
+        '--vote',
+        'operator:agree:Inline rationale c',
+        '--result',
+        'agree',
+      ],
+      { cwd: dir },
+    );
+    assert.equal(r.status, 0, `inline-flag deliberation append failed: ${r.stderr}\n${r.stdout}`);
+    assert.equal(r.json.ok, true);
+    assert.equal(r.json.data.result, 'agree');
+    assert.equal(r.json.data.entries_count, 1);
+    const file = readArtifact(
+      dir,
+      `.geas/missions/${MID_FULL}/tasks/task-001/deliberations.json`,
+    );
+    assert.equal(file.level, 'task');
+    assert.equal(file.entries.length, 1);
+    const e = file.entries[0];
+    assert.equal(e.proposal_summary, 'Inline-flag deliberation appended via AC1 path.');
+    assert.equal(e.votes.length, 3);
+    assert.equal(e.votes[0].voter, 'challenger');
+    assert.equal(e.votes[0].vote, 'agree');
+    // Rationale preserves colons after the first two delimiters.
+    assert.equal(e.votes[0].rationale, 'Inline rationale a:b colon-bearing text');
+    assert.equal(e.result, 'agree');
+  } finally {
+    cleanup();
+  }
+});
+
 test('deliberation result must match vote aggregation rule', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
