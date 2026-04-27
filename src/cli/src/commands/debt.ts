@@ -36,7 +36,7 @@ import {
   isValidTaskId,
   tmpDir,
 } from '../lib/paths';
-import { readPayloadJson, StdinError } from '../lib/input';
+import { readPayloadJson, readPayloadText, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 
 function nowUtc(): string {
@@ -134,29 +134,115 @@ function nextDebtId(entries: Array<Record<string, unknown>>): string {
   return `debt-${next.toString().padStart(3, '0')}`;
 }
 
+interface DebtRegisterInlineOpts {
+  file?: string;
+  severity?: string;
+  kind?: string;
+  title?: string;
+  description?: string;
+  descriptionFromFile?: string;
+  introducedByMission?: string;
+  introducedByTask?: string;
+}
+
+/**
+ * AC1 (task-006 verify-fix iteration 1): build a debt register payload
+ * from inline flags. Returns null if no inline flag is present.
+ */
+function buildDebtRegisterPayloadFromFlags(
+  opts: DebtRegisterInlineOpts,
+): Record<string, unknown> | null {
+  const inlineFlagPresent =
+    opts.severity !== undefined ||
+    opts.kind !== undefined ||
+    opts.title !== undefined ||
+    opts.description !== undefined ||
+    opts.descriptionFromFile !== undefined ||
+    opts.introducedByMission !== undefined ||
+    opts.introducedByTask !== undefined;
+  if (!inlineFlagPresent) return null;
+
+  const payload: Record<string, unknown> = {};
+  if (opts.severity !== undefined) payload.severity = opts.severity;
+  if (opts.kind !== undefined) payload.kind = opts.kind;
+  if (opts.title !== undefined) payload.title = opts.title;
+  if (opts.descriptionFromFile !== undefined) {
+    try {
+      payload.description = readPayloadText(opts.descriptionFromFile);
+    } catch (e) {
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError('invalid_argument', e.message, {
+            hint: 'pass --description <text> inline or --description-from-file <path>',
+            exit_category: 'validation',
+          }),
+        );
+      }
+      throw e;
+    }
+  } else if (opts.description !== undefined) {
+    payload.description = opts.description;
+  }
+  if (opts.introducedByMission !== undefined || opts.introducedByTask !== undefined) {
+    payload.introduced_by = {
+      mission_id: opts.introducedByMission,
+      task_id: opts.introducedByTask,
+    };
+  }
+  return payload;
+}
+
 function registerRegister(debt: Command): void {
   debt
     .command('register')
     .description(
-      'Append a new entry to `.geas/debts.json` (project-level). Payload via --file or stdin: debt body (debt_id auto-assigned, status forced to open).',
+      'Append a new entry to `.geas/debts.json` (project-level). Accepts inline flags (--severity, --kind, --title, --description, --introduced-by-mission, --introduced-by-task) or full JSON via --file/stdin. Free-body --description also accepts --description-from-file. debt_id auto-assigned, status forced to open.',
     )
-    .option('--file <path>', 'Read JSON payload from file instead of stdin')
-    .action((opts: { file?: string }) => {
+    .option('--file <path>', 'Read full JSON payload from file (overrides inline flags) instead of stdin')
+    .option('--severity <severity>', 'Severity: low, normal, high, or critical')
+    .option('--kind <kind>', 'Kind: output_quality, verification_gap, structural, risk, process, documentation, or operations')
+    .option('--title <text>', 'Short title for the debt entry')
+    .option('--description <text>', 'Description (free-body — short prose)')
+    .option('--description-from-file <path>', 'Read description text from file')
+    .option('--introduced-by-mission <id>', 'Origin mission id (mission-YYYYMMDD-XXXXXXXX)')
+    .option('--introduced-by-task <id>', 'Origin task id (task-NNN)')
+    .action((opts: DebtRegisterInlineOpts) => {
       const root = needProjectRoot();
 
       let payload: Record<string, unknown>;
-      try {
-        payload = readPayloadJson(opts.file) as Record<string, unknown>;
-      } catch (e) {
-        if (e instanceof StdinError) {
-          emitErr(
-            makeError('invalid_argument', e.message, {
-              hint: 'pass the JSON via --file <path> or pipe through stdin',
-              exit_category: 'validation',
-            }),
-          );
+      if (opts.file !== undefined) {
+        try {
+          payload = readPayloadJson(opts.file) as Record<string, unknown>;
+        } catch (e) {
+          if (e instanceof StdinError) {
+            emitErr(
+              makeError('invalid_argument', e.message, {
+                hint: 'pass JSON via --file <path> or use inline flags (--severity, --kind, --title, ...)',
+                exit_category: 'validation',
+              }),
+            );
+          }
+          throw e;
         }
-        throw e;
+      } else {
+        const inline = buildDebtRegisterPayloadFromFlags(opts);
+        if (inline !== null) {
+          payload = inline;
+        } else {
+          try {
+            payload = readPayloadJson(undefined) as Record<string, unknown>;
+          } catch (e) {
+            if (e instanceof StdinError) {
+              emitErr(
+                makeError('invalid_argument', e.message, {
+                  hint: 'use inline flags (--severity, --kind, --title, ...) or pass JSON via --file <path> or stdin',
+                  exit_category: 'validation',
+                }),
+              );
+            }
+            throw e;
+          }
+        }
       }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
         emitErr(
@@ -164,7 +250,7 @@ function registerRegister(debt: Command): void {
             'invalid_argument',
             'debt register expects a JSON object payload (one entry body)',
             {
-              hint: 'wrap the debt fields in a single JSON object',
+              hint: 'wrap the debt fields in a single JSON object, or use inline flags',
               exit_category: 'validation',
             },
           ),

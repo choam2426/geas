@@ -153,6 +153,51 @@ test('debt register writes an entry to project-level .geas/debts.json', () => {
   }
 });
 
+test('debt register works inline-flag-only without stdin or --file (AC1, task-006 verify-fix)', () => {
+  // AC1 (task-006): debt register must be invokable purely from inline
+  // flags. Free-body --description also accepts --description-from-file.
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMission(dir, MID);
+    draftTask(dir, MID, 'task-001');
+    const r = runCli(
+      [
+        '--json',
+        'debt',
+        'register',
+        '--severity',
+        'normal',
+        '--kind',
+        'process',
+        '--title',
+        'Inline debt registration',
+        '--description',
+        'Verifying AC1 inline-flag debt register path.',
+        '--introduced-by-mission',
+        MID,
+        '--introduced-by-task',
+        'task-001',
+      ],
+      { cwd: dir },
+    );
+    assert.equal(r.status, 0, `inline-flag debt register failed: ${r.stderr}\n${r.stdout}`);
+    assert.equal(r.json.ok, true);
+    assert.match(r.json.data.ids.debt_id, /^debt-001$/);
+    const ledger = readArtifact(dir, '.geas/debts.json');
+    assert.equal(ledger.entries.length, 1);
+    const entry = ledger.entries[0];
+    assert.equal(entry.severity, 'normal');
+    assert.equal(entry.kind, 'process');
+    assert.equal(entry.title, 'Inline debt registration');
+    assert.equal(entry.description, 'Verifying AC1 inline-flag debt register path.');
+    assert.equal(entry.status, 'open');
+    assert.equal(entry.introduced_by.mission_id, MID);
+    assert.equal(entry.introduced_by.task_id, 'task-001');
+  } finally {
+    cleanup();
+  }
+});
+
 test('debt register assigns monotonic debt-NNN ids and never mutates earlier entries', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
