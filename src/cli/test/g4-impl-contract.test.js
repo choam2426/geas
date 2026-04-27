@@ -125,7 +125,7 @@ test('impl-contract set rejects task in ready state (implementer not spawned yet
     // then the implementer writes the contract).
 
     const r = runCli(
-      ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
+      ['--json', 'impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validImplBody()) },
     );
     assert.equal(r.status, 3, `expected guard_failed, got ${r.stderr}`);
@@ -144,7 +144,7 @@ test('impl-contract set writes a valid contract in implementing state', () => {
     transitionTask(dir, MID, 'task-001', 'implementing');
 
     const r = runCli(
-      ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
+      ['--json', 'impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validImplBody()) },
     );
     assert.equal(r.status, 0, `impl-contract set failed: ${r.stderr}`);
@@ -179,7 +179,7 @@ test('impl-contract set rejects schema-invalid body (missing required fields)', 
 
     // Missing summary / rationale / change_scope / planned_actions
     const r = runCli(
-      ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
+      ['--json', 'impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify({ summary: 'only this' }) },
     );
     assert.equal(r.status, 2, `expected schema_validation_failed, got ${r.stderr}`);
@@ -211,7 +211,7 @@ test('impl-contract set rejects when mission is not approved', () => {
     assert.equal(r.status, 0);
 
     r = runCli(
-      ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
+      ['--json', 'impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validImplBody()) },
     );
     assert.equal(r.status, 3, `expected guard_failed, got ${r.stderr}`);
@@ -235,7 +235,7 @@ test('impl-contract set rejects when task contract is not approved', () => {
     assert.equal(r.status, 0);
 
     const r2 = runCli(
-      ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
+      ['--json', 'impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validImplBody()) },
     );
     assert.equal(r2.status, 3, `expected guard_failed, got ${r2.stderr}`);
@@ -265,7 +265,7 @@ test('impl-contract set rejects when task state is reviewing (later-stage)', () 
     assert.equal(r.status, 0, `state task-set failed: ${r.stderr}`);
 
     const r2 = runCli(
-      ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
+      ['--json', 'impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validImplBody()) },
     );
     assert.equal(r2.status, 3, `expected guard_failed, got ${r2.stderr}`);
@@ -294,7 +294,7 @@ test('impl-contract set rejects when task state is cancelled (terminal)', () => 
     assert.equal(r.status, 0, r.stderr);
 
     const r2 = runCli(
-      ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
+      ['--json', 'impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validImplBody()) },
     );
     assert.equal(r2.status, 3);
@@ -312,7 +312,7 @@ test('impl-contract set full-replaces on second call', () => {
     transitionTask(dir, MID, 'task-001', 'implementing');
 
     let r = runCli(
-      ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
+      ['--json', 'impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validImplBody({ summary: 'first draft' })) },
     );
     assert.equal(r.status, 0, r.stderr);
@@ -322,7 +322,7 @@ test('impl-contract set full-replaces on second call', () => {
     );
 
     r = runCli(
-      ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
+      ['--json', 'impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
       {
         cwd: dir,
         input: JSON.stringify(
@@ -360,7 +360,7 @@ test('impl-contract set strips client-provided envelope fields', () => {
     transitionTask(dir, MID, 'task-001', 'implementing');
 
     const r = runCli(
-      ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
+      ['--json', 'impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
       {
         cwd: dir,
         input: JSON.stringify({
@@ -397,7 +397,7 @@ test('impl-contract set emits impl_contract_set event', () => {
     transitionTask(dir, MID, 'task-001', 'implementing');
 
     const r = runCli(
-      ['impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
+      ['--json', 'impl-contract', 'set', '--mission', MID, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validImplBody()) },
     );
     assert.equal(r.status, 0, r.stderr);

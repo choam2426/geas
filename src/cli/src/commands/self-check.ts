@@ -17,7 +17,9 @@
 import type { Command } from 'commander';
 import * as path from 'path';
 
-import { emit, err, ok, recordEvent } from '../lib/envelope';
+import { recordEvent } from '../lib/envelope';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
+import { makeError } from '../lib/errors';
 import {
   atomicWriteJson,
   ensureDir,
@@ -47,14 +49,30 @@ function slashPath(p: string): string {
 function needProjectRoot(): string {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         'missing_artifact',
-        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`,
+        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: 'missing_artifact',
+        },
       ),
     );
   }
   return root as string;
+}
+
+/**
+ * AC3 (mission-20260427-xIPG1sDY task-006): scalar formatter for
+ * `self-check append`. Renders task + entry id summary.
+ */
+function formatSelfCheckAppend(data: unknown): string {
+  const d = data as { ids?: { mission_id?: string; task_id?: string; entry_id?: number }; path?: string };
+  return [
+    `self-check appended: ${d.ids?.task_id ?? '<unknown>'} entry_id=${d.ids?.entry_id ?? '?'}`,
+    `path: ${d.path ?? '<unknown>'}`,
+  ].join('\n');
 }
 
 interface SelfCheckFile {
@@ -66,6 +84,7 @@ interface SelfCheckFile {
 }
 
 export function registerSelfCheckCommands(program: Command): void {
+  registerFormatter('self-check append', formatSelfCheckAppend);
   const sc = program
     .command('self-check')
     .description('Implementer self-check artifact (self-check.json) commands.');
@@ -79,27 +98,37 @@ export function registerSelfCheckCommands(program: Command): void {
     .option('--file <path>', 'Read JSON payload from file instead of stdin')
     .action((opts: { mission: string; task: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       if (!isValidTaskId(opts.task)) {
-        emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid task id '${opts.task}'`, {
+            hint: "task ids look like 'task-NNN' (3+ digits)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const root = needProjectRoot();
 
       if (!exists(missionSpecPath(root, opts.mission))) {
-        emit(
-          err(
-            'missing_artifact',
-            `mission spec not found for ${opts.mission}`,
-          ),
+        emitErr(
+          makeError('missing_artifact', `mission spec not found for ${opts.mission}`, {
+            hint: "run 'geas mission create' to bootstrap the mission first",
+            exit_category: 'missing_artifact',
+          }),
         );
       }
       if (!exists(taskContractPath(root, opts.mission, opts.task))) {
-        emit(
-          err(
-            'missing_artifact',
-            `task contract not found for ${opts.task}`,
-          ),
+        emitErr(
+          makeError('missing_artifact', `task contract not found for ${opts.task}`, {
+            hint: "run 'geas task draft' to create the contract first",
+            exit_category: 'missing_artifact',
+          }),
         );
       }
 
@@ -107,14 +136,25 @@ export function registerSelfCheckCommands(program: Command): void {
       try {
         payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
-        if (e instanceof StdinError) emit(err('invalid_argument', e.message));
+        if (e instanceof StdinError) {
+          emitErr(
+            makeError('invalid_argument', e.message, {
+              hint: 'pass the JSON via --file <path> or pipe through stdin',
+              exit_category: 'validation',
+            }),
+          );
+        }
         throw e;
       }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             'self-check append expects a JSON object on stdin',
+            {
+              hint: 'wrap the entry fields in a single JSON object',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -162,11 +202,14 @@ export function registerSelfCheckCommands(program: Command): void {
 
       const v = validate('self-check', merged);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'self-check schema validation failed',
-            v.errors,
+            {
+              hint: 'inspect ajv errors and fix the entry body, then retry',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -185,16 +228,14 @@ export function registerSelfCheckCommands(program: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(p),
-          ids: {
-            mission_id: opts.mission,
-            task_id: opts.task,
-            entry_id: nextEntryId,
-          },
-          self_check: merged,
-        }),
-      );
+      emitOk('self-check append', {
+        path: slashPath(p),
+        ids: {
+          mission_id: opts.mission,
+          task_id: opts.task,
+          entry_id: nextEntryId,
+        },
+        self_check: merged,
+      });
     });
 }

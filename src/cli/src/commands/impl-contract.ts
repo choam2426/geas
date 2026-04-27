@@ -31,7 +31,9 @@
 import type { Command } from 'commander';
 import * as path from 'path';
 
-import { emit, err, ok, recordEvent } from '../lib/envelope';
+import { recordEvent } from '../lib/envelope';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
+import { makeError } from '../lib/errors';
 import {
   atomicWriteJson,
   ensureDir,
@@ -62,14 +64,54 @@ function slashPath(p: string): string {
 function needProjectRoot(): string {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         'missing_artifact',
-        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`,
+        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: 'missing_artifact',
+        },
       ),
     );
   }
   return root as string;
+}
+
+/**
+ * AC3 (mission-20260427-xIPG1sDY task-006): scalar formatter for
+ * `impl-contract set`. Renders the path + a one-line summary header.
+ */
+function formatImplContractSet(data: unknown): string {
+  const d = data as { path?: string; ids?: { mission_id?: string; task_id?: string }; implementation_contract?: { summary?: string; change_scope?: unknown[] } };
+  const scopeCount = Array.isArray(d.implementation_contract?.change_scope) ? d.implementation_contract!.change_scope.length : 0;
+  return [
+    `impl-contract set: ${d.ids?.task_id ?? '<unknown>'} mission=${d.ids?.mission_id ?? '<unknown>'}`,
+    `path: ${d.path ?? '<unknown>'}`,
+    `change_scope: ${scopeCount} surface(s)`,
+  ].join('\n');
+}
+
+/**
+ * T2.8 path (b) (task-006): structural guard hint folded to single string.
+ */
+function foldGuardHint(hints: unknown): string | undefined {
+  if (hints === undefined || hints === null) return undefined;
+  if (typeof hints === 'string') return hints;
+  if (typeof hints !== 'object') return String(hints);
+  const obj = hints as Record<string, unknown>;
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const key = k.replace(/_/g, ' ');
+    if (Array.isArray(v)) {
+      parts.push(`${key}: ${v.join(', ')}`);
+    } else if (v !== null && typeof v === 'object') {
+      parts.push(`${key}: ${JSON.stringify(v)}`);
+    } else {
+      parts.push(`${key}: ${String(v)}`);
+    }
+  }
+  return parts.length > 0 ? parts.join('; ') : undefined;
 }
 
 /**
@@ -87,6 +129,7 @@ const IMPL_CONTRACT_WRITABLE_STATES = new Set(['implementing']);
 const ENVELOPE_FIELDS = ['mission_id', 'task_id', 'created_at', 'updated_at'];
 
 export function registerImplContractCommands(program: Command): void {
+  registerFormatter('impl-contract set', formatImplContractSet);
   const ic = program
     .command('impl-contract')
     .description(
@@ -102,10 +145,20 @@ export function registerImplContractCommands(program: Command): void {
     .option('--file <path>', 'Read JSON payload from file instead of stdin')
     .action((opts: { mission: string; task: string; file?: string }) => {
       if (!isValidMissionId(opts.mission)) {
-        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+            hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+            exit_category: 'validation',
+          }),
+        );
       }
       if (!isValidTaskId(opts.task)) {
-        emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+        emitErr(
+          makeError('invalid_argument', `invalid task id '${opts.task}'`, {
+            hint: "task ids look like 'task-NNN' (3+ digits)",
+            exit_category: 'validation',
+          }),
+        );
       }
       const root = needProjectRoot();
 
@@ -114,18 +167,22 @@ export function registerImplContractCommands(program: Command): void {
         missionSpecPath(root, opts.mission),
       );
       if (!spec) {
-        emit(
-          err(
-            'missing_artifact',
-            `mission spec not found for ${opts.mission}`,
-          ),
+        emitErr(
+          makeError('missing_artifact', `mission spec not found for ${opts.mission}`, {
+            hint: "run 'geas mission create' to bootstrap the mission first",
+            exit_category: 'missing_artifact',
+          }),
         );
       }
       if (spec && spec.user_approved !== true) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'guard_failed',
-            `mission spec for ${opts.mission} is not user-approved; run 'geas mission approve' first`,
+            `mission spec for ${opts.mission} is not user-approved`,
+            {
+              hint: `run 'geas mission approve --mission ${opts.mission}' first`,
+              exit_category: 'guard',
+            },
           ),
         );
       }
@@ -135,18 +192,22 @@ export function registerImplContractCommands(program: Command): void {
         taskContractPath(root, opts.mission, opts.task),
       );
       if (!contract) {
-        emit(
-          err(
-            'missing_artifact',
-            `task contract not found for ${opts.task}`,
-          ),
+        emitErr(
+          makeError('missing_artifact', `task contract not found for ${opts.task}`, {
+            hint: "run 'geas task draft' to create the contract first",
+            exit_category: 'missing_artifact',
+          }),
         );
       }
       if (contract && contract.approved_by == null) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'guard_failed',
-            `task ${opts.task} is not approved; run 'geas task approve' first`,
+            `task ${opts.task} is not approved`,
+            {
+              hint: `run 'geas task approve --mission ${opts.mission} --task ${opts.task}' first`,
+              exit_category: 'guard',
+            },
           ),
         );
       }
@@ -156,20 +217,23 @@ export function registerImplContractCommands(program: Command): void {
         taskStatePath(root, opts.mission, opts.task),
       );
       if (!state) {
-        emit(
-          err(
-            'missing_artifact',
-            `task-state.json not found for ${opts.task}`,
-          ),
+        emitErr(
+          makeError('missing_artifact', `task-state.json not found for ${opts.task}`, {
+            hint: 'task-state is created automatically by task draft; check the --task id',
+            exit_category: 'missing_artifact',
+          }),
         );
       }
       const status = (state as { status?: string }).status ?? '';
       if (!IMPL_CONTRACT_WRITABLE_STATES.has(status)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'guard_failed',
             `impl-contract set requires task state implementing (current: ${status || 'unknown'})`,
-            { current_status: status, allowed: [...IMPL_CONTRACT_WRITABLE_STATES] },
+            {
+              hint: foldGuardHint({ current_status: status, allowed: [...IMPL_CONTRACT_WRITABLE_STATES] }) ?? 'task must be in implementing state to write impl-contract',
+              exit_category: 'guard',
+            },
           ),
         );
       }
@@ -178,14 +242,25 @@ export function registerImplContractCommands(program: Command): void {
       try {
         payload = readPayloadJson(opts.file) as Record<string, unknown>;
       } catch (e) {
-        if (e instanceof StdinError) emit(err('invalid_argument', e.message));
+        if (e instanceof StdinError) {
+          emitErr(
+            makeError('invalid_argument', e.message, {
+              hint: 'pass the JSON via --file <path> or pipe through stdin',
+              exit_category: 'validation',
+            }),
+          );
+        }
         throw e;
       }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             'impl-contract set expects a JSON object on stdin',
+            {
+              hint: 'wrap the contract fields in a single JSON object',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -217,11 +292,14 @@ export function registerImplContractCommands(program: Command): void {
 
       const v = validate('implementation-contract', payload);
       if (!v.ok) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'schema_validation_failed',
             'implementation-contract schema validation failed',
-            v.errors,
+            {
+              hint: 'inspect ajv errors and fix the contract body, then retry',
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -239,12 +317,10 @@ export function registerImplContractCommands(program: Command): void {
         },
       });
 
-      emit(
-        ok({
-          path: slashPath(target),
-          ids: { mission_id: opts.mission, task_id: opts.task },
-          implementation_contract: payload,
-        }),
-      );
+      emitOk('impl-contract set', {
+        path: slashPath(target),
+        ids: { mission_id: opts.mission, task_id: opts.task },
+        implementation_contract: payload,
+      });
     });
 }

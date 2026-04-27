@@ -175,7 +175,7 @@ function validVerifierEntry(overrides = {}) {
 
 function writeImplContract(dir, missionId, taskId) {
   const r = runCli(
-    ['impl-contract', 'set', '--mission', missionId, '--task', taskId],
+    ['--json', 'impl-contract', 'set', '--mission', missionId, '--task', taskId],
     { cwd: dir, input: JSON.stringify(validImplContract()) },
   );
   assert.equal(r.status, 0, `impl-contract set failed: ${r.stderr}\n${r.stdout}`);
@@ -224,6 +224,7 @@ test('evidence append assigns entry_id sequentially from 1', () => {
 
     let r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -242,6 +243,7 @@ test('evidence append assigns entry_id sequentially from 1', () => {
 
     r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -282,6 +284,7 @@ test('evidence append accepts --file as an alternative to stdin', () => {
 
     const r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -319,6 +322,7 @@ test('evidence append --file rejects unreadable file path', () => {
 
     const r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -354,6 +358,7 @@ test('evidence append strips client-provided entry_id and created_at', () => {
     };
     const r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -391,6 +396,7 @@ test('evidence append rejects implementer + other slot for same agent', () => {
     // software-engineer becomes the implementer.
     let r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -409,6 +415,7 @@ test('evidence append rejects implementer + other slot for same agent', () => {
     // Same agent cannot also take challenger on this task.
     r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -444,6 +451,7 @@ test('evidence append allows one agent across two reviewer slots', () => {
     // Implementer evidence first, but from a DIFFERENT concrete agent.
     let r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -462,6 +470,7 @@ test('evidence append allows one agent across two reviewer slots', () => {
     // security-engineer covers both risk-assessor and operator.
     r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -479,6 +488,7 @@ test('evidence append allows one agent across two reviewer slots', () => {
 
     r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -505,6 +515,7 @@ test('evidence append rejects unknown slot', () => {
     draftTaskReady(dir, MID_STANDARD, 'task-001');
     const r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -532,6 +543,7 @@ test('evidence append infers implementer agent from contract primary_worker_type
     draftTaskReady(dir, MID_STANDARD, 'task-001');
     const r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -559,7 +571,7 @@ test('self-check append writes entries array; second call appends entry_id=2', (
     draftTaskReady(dir, MID_STANDARD, 'task-001');
 
     let r = runCli(
-      ['self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['--json', 'self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validSelfCheck()) },
     );
     assert.equal(r.status, 0, `self-check append failed: ${r.stderr}`);
@@ -569,7 +581,7 @@ test('self-check append writes entries array; second call appends entry_id=2', (
     assert.equal(r.json.data.self_check.entries[0].revision_ref, null);
 
     r = runCli(
-      ['self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['--json', 'self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
       {
         cwd: dir,
         input: JSON.stringify({ ...validSelfCheck(), revision_ref: 1 }),
@@ -592,7 +604,7 @@ test('self-check append rejects schema-invalid body', () => {
     draftTaskReady(dir, MID_STANDARD, 'task-001');
 
     const r = runCli(
-      ['self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['--json', 'self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify({ completed_work: '' }) },
     );
     assert.notEqual(r.status, 0);
@@ -613,7 +625,7 @@ test('gate run aggregates overall verdict from tier statuses', () => {
     // Seed Tier 0 prerequisites.
     writeImplContract(dir, MID_STANDARD, 'task-001');
     let r = runCli(
-      ['self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['--json', 'self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validSelfCheck()) },
     );
     assert.equal(r.status, 0);
@@ -728,6 +740,7 @@ test('implementing -> reviewing requires schema-valid self-check (G4 tightening)
     // Add a review entry so only self-check is the missing guard.
     let r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -765,7 +778,7 @@ test('implementing -> reviewing allowed with only self-check — reviewer eviden
 
     // Valid self-check via CLI.
     let r = runCli(
-      ['self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['--json', 'self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validSelfCheck()) },
     );
     assert.equal(r.status, 0);
@@ -793,12 +806,13 @@ test('reviewing -> deciding requires gate-results last run verdict=pass (G4 tigh
     // so the first gate run yields fail (Tier 1 fail).
     writeImplContract(dir, MID_STANDARD, 'task-001');
     let r = runCli(
-      ['self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['--json', 'self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validSelfCheck()) },
     );
     assert.equal(r.status, 0);
     r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -865,12 +879,13 @@ test('deciding -> passed requires approved closure evidence validating the schem
 
     writeImplContract(dir, MID_STANDARD, 'task-001');
     let r = runCli(
-      ['self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
+      ['--json', 'self-check', 'append', '--mission', MID_STANDARD, '--task', 'task-001'],
       { cwd: dir, input: JSON.stringify(validSelfCheck()) },
     );
     assert.equal(r.status, 0);
     r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',
@@ -915,6 +930,7 @@ test('deciding -> passed requires approved closure evidence validating the schem
     // Append closure evidence via CLI.
     r = runCli(
       [
+        '--json',
         'evidence',
         'append',
         '--mission',

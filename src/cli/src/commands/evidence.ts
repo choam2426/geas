@@ -30,7 +30,9 @@ import type { Command } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { emit, err, ok, recordEvent } from '../lib/envelope';
+import { recordEvent } from '../lib/envelope';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
+import { makeError } from '../lib/errors';
 import {
   atomicWriteJson,
   ensureDir,
@@ -51,6 +53,43 @@ import {
 import { readPayloadJson, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 
+/**
+ * AC3 (mission-20260427-xIPG1sDY task-006): scalar formatter for
+ * `evidence append`. Renders task + agent/slot + entry id summary.
+ */
+function formatEvidenceAppend(data: unknown): string {
+  const d = data as { ids?: { mission_id?: string; task_id?: string; entry_id?: number }; agent?: string; slot?: string; path?: string };
+  return [
+    `evidence appended: ${d.agent ?? '<unknown>'}.${d.slot ?? '<unknown>'} entry_id=${d.ids?.entry_id ?? '?'}`,
+    `task: ${d.ids?.task_id ?? '<unknown>'} mission=${d.ids?.mission_id ?? '<unknown>'}`,
+    `path: ${d.path ?? '<unknown>'}`,
+  ].join('\n');
+}
+
+/**
+ * T2.8 path (b) (task-006): structural guard hint folded to single
+ * human-readable string for CliErrorV2.hint. lib/errors.ts is out of
+ * surfaces so the carve-out path (a) is unavailable.
+ */
+function foldGuardHint(hints: unknown): string | undefined {
+  if (hints === undefined || hints === null) return undefined;
+  if (typeof hints === 'string') return hints;
+  if (typeof hints !== 'object') return String(hints);
+  const obj = hints as Record<string, unknown>;
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(obj)) {
+    const key = k.replace(/_/g, ' ');
+    if (Array.isArray(v)) {
+      parts.push(`${key}: ${v.join(', ')}`);
+    } else if (v !== null && typeof v === 'object') {
+      parts.push(`${key}: ${JSON.stringify(v)}`);
+    } else {
+      parts.push(`${key}: ${String(v)}`);
+    }
+  }
+  return parts.length > 0 ? parts.join('; ') : undefined;
+}
+
 function nowUtc(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
@@ -62,10 +101,14 @@ function slashPath(p: string): string {
 function needProjectRoot(): string {
   const root = findProjectRoot(process.cwd());
   if (!root) {
-    emit(
-      err(
+    emitErr(
+      makeError(
         'missing_artifact',
-        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}. Run 'geas setup' first.`,
+        `.geas/ not found at ${process.cwd().replace(/\\/g, '/')}.`,
+        {
+          hint: "run 'geas setup' to bootstrap the .geas/ tree",
+          exit_category: 'missing_artifact',
+        },
       ),
     );
   }
@@ -190,16 +233,30 @@ function registerEvidenceAppend(ev: Command): void {
         file?: string;
       }) => {
         if (!isValidMissionId(opts.mission)) {
-          emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+          emitErr(
+            makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
+              hint: "mission ids look like 'mission-YYYYMMDD-XXXXXXXX' (8 alphanumerics)",
+              exit_category: 'validation',
+            }),
+          );
         }
         if (!isValidTaskId(opts.task)) {
-          emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+          emitErr(
+            makeError('invalid_argument', `invalid task id '${opts.task}'`, {
+              hint: "task ids look like 'task-NNN' (3+ digits)",
+              exit_category: 'validation',
+            }),
+          );
         }
         if (!SLOT_ENUM.has(opts.slot)) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               `unknown slot '${opts.slot}' (allowed: ${[...SLOT_ENUM].join(', ')})`,
+              {
+                hint: `valid --slot values: ${[...SLOT_ENUM].join(', ')}`,
+                exit_category: 'validation',
+              },
             ),
           );
         }
@@ -207,18 +264,26 @@ function registerEvidenceAppend(ev: Command): void {
 
         // Check the mission spec exists as a sanity signal (no content check).
         if (!exists(missionSpecPath(root, opts.mission))) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'missing_artifact',
-              `mission spec not found for ${opts.mission}; run 'geas mission create'`,
+              `mission spec not found for ${opts.mission}`,
+              {
+                hint: "run 'geas mission create' to bootstrap the mission first",
+                exit_category: 'missing_artifact',
+              },
             ),
           );
         }
         if (!exists(taskContractPath(root, opts.mission, opts.task))) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'missing_artifact',
-              `task contract not found for ${opts.task}; run 'geas task draft'`,
+              `task contract not found for ${opts.task}`,
+              {
+                hint: "run 'geas task draft' to create the contract first",
+                exit_category: 'missing_artifact',
+              },
             ),
           );
         }
@@ -231,18 +296,26 @@ function registerEvidenceAppend(ev: Command): void {
           opts.agent,
         );
         if (!agent) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               `--agent is required for slot '${opts.slot}' (could not infer from task contract)`,
+              {
+                hint: 'pass --agent <concrete-agent-type> explicitly; only implementer slot infers from routing.primary_worker_type',
+                exit_category: 'validation',
+              },
             ),
           );
         }
         if (!isValidAgentOrSlot(agent as string)) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               `invalid agent identifier '${agent}' (expected kebab-case)`,
+              {
+                hint: 'agent ids must match ^[a-z0-9][a-z0-9-]*$',
+                exit_category: 'validation',
+              },
             ),
           );
         }
@@ -251,14 +324,25 @@ function registerEvidenceAppend(ev: Command): void {
         try {
           payload = readPayloadJson(opts.file) as Record<string, unknown>;
         } catch (e) {
-          if (e instanceof StdinError) emit(err('invalid_argument', e.message));
+          if (e instanceof StdinError) {
+            emitErr(
+              makeError('invalid_argument', e.message, {
+                hint: 'pass the JSON via --file <path> or pipe through stdin',
+                exit_category: 'validation',
+              }),
+            );
+          }
           throw e;
         }
         if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               'evidence append expects a JSON object on stdin (one entry body)',
+              {
+                hint: 'wrap the entry fields in a single JSON object',
+                exit_category: 'validation',
+              },
             ),
           );
         }
@@ -272,7 +356,12 @@ function registerEvidenceAppend(ev: Command): void {
           opts.slot,
         );
         if (clash) {
-          emit(err('guard_failed', clash.reason, clash.hints));
+          emitErr(
+            makeError('guard_failed', clash.reason, {
+              hint: foldGuardHint(clash.hints) ?? 'pick a different agent for this slot or use the existing slot for this agent',
+              exit_category: 'guard',
+            }),
+          );
         }
 
         const filePath = evidenceFilePath(
@@ -319,11 +408,14 @@ function registerEvidenceAppend(ev: Command): void {
 
         const v = validate('evidence', merged);
         if (!v.ok) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'schema_validation_failed',
               'evidence schema validation failed',
-              v.errors,
+              {
+                hint: 'inspect ajv errors and fix the entry body, then retry',
+                exit_category: 'validation',
+              },
             ),
           );
         }
@@ -345,24 +437,23 @@ function registerEvidenceAppend(ev: Command): void {
           },
         });
 
-        emit(
-          ok({
-            path: slashPath(filePath),
-            ids: {
-              mission_id: opts.mission,
-              task_id: opts.task,
-              entry_id: nextId,
-            },
-            agent,
-            slot: opts.slot,
-            file: merged,
-          }),
-        );
+        emitOk('evidence append', {
+          path: slashPath(filePath),
+          ids: {
+            mission_id: opts.mission,
+            task_id: opts.task,
+            entry_id: nextId,
+          },
+          agent,
+          slot: opts.slot,
+          file: merged,
+        });
       },
     );
 }
 
 export function registerEvidenceCommands(program: Command): void {
+  registerFormatter('evidence append', formatEvidenceAppend);
   const ev = program
     .command('evidence')
     .description('Append-only task evidence (evidence/{agent}.{slot}.json).');
