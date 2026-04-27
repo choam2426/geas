@@ -22,12 +22,28 @@
 
 import type { Command } from 'commander';
 import { SCHEMAS, SCHEMA_NAMES } from '../lib/schemas-embedded';
-import { emit, err, ok } from '../lib/envelope';
+import { emitErr, emitOk } from '../lib/output';
+import { makeError } from '../lib/errors';
 import {
   findSpec,
   supportedOpsForSchema,
   supportedSchemas,
 } from '../lib/envelope-fields';
+
+/*
+ * T2.a (mission-20260427-xIPG1sDY task-002): migrated off the legacy
+ * envelope.emit/err/ok bridge to call output.emitOk / output.emitErr +
+ * errors.makeError directly. Per AC2, every invalid_argument error
+ * site rotates exit code from legacy 1 to category 2 (validation).
+ *
+ * Note on structured hints: the legacy `err()` accepted a free-form
+ * `hints` payload (e.g. {valid_kinds: [...]}) for invalid-kind
+ * errors. The new CliErrorV2 shape carries `hint` as a single string,
+ * so the structured info is folded into the hint message itself
+ * (the message line already contains the same data, so no
+ * information is lost — only the JSON consumer's hints object key
+ * changes).
+ */
 
 // ── Schema-shape helpers ──────────────────────────────────────────────
 
@@ -289,7 +305,7 @@ export function registerSchemaCommands(program: Command): void {
     .command('list')
     .description('List embedded schema names')
     .action(() => {
-      emit(ok({ schemas: [...SCHEMA_NAMES].sort() }));
+      emitOk('schema list', { schemas: [...SCHEMA_NAMES].sort() });
     });
 
   schema
@@ -298,21 +314,25 @@ export function registerSchemaCommands(program: Command): void {
     .action((name: string) => {
       const s = SCHEMAS[name];
       if (!s) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             `unknown schema '${name}'. Available: ${SCHEMA_NAMES.join(', ')}`,
+            {
+              hint: `pick one of: ${SCHEMA_NAMES.join(', ')}`,
+              exit_category: 'validation',
+            },
           ),
         );
       }
-      emit(ok({ name, schema: s }));
+      emitOk('schema show', { name, schema: s });
     });
 
   schema
     .command('dump')
     .description('Dump every embedded schema as {name: schema}')
     .action(() => {
-      emit(ok({ schemas: SCHEMAS }));
+      emitOk('schema dump', { schemas: SCHEMAS });
     });
 
   schema
@@ -324,10 +344,14 @@ export function registerSchemaCommands(program: Command): void {
     .option('--kind <kind>', 'Discriminator (e.g. review, verification, closure, implementation for evidence)')
     .action((name: string, opts: { op: string; kind?: string }) => {
       if (!SCHEMAS[name]) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             'invalid_argument',
             `unknown schema '${name}'. Available: ${SCHEMA_NAMES.join(', ')}`,
+            {
+              hint: `pick one of: ${SCHEMA_NAMES.join(', ')}`,
+              exit_category: 'validation',
+            },
           ),
         );
       }
@@ -337,7 +361,15 @@ export function registerSchemaCommands(program: Command): void {
         const msg = validOps.length === 0
           ? `schema '${name}' has no registered template ops. Supported schemas: ${supportedSchemas().join(', ')}`
           : `op '${opts.op}' is not registered for schema '${name}'. Valid ops: ${validOps.join(', ')}`;
-        emit(err('invalid_argument', msg, { schema: name, op: opts.op, valid_ops: validOps }));
+        const hint = validOps.length === 0
+          ? `try one of these schemas instead: ${supportedSchemas().join(', ')}`
+          : `valid ops for '${name}': ${validOps.join(', ')}`;
+        emitErr(
+          makeError('invalid_argument', msg, {
+            hint,
+            exit_category: 'validation',
+          }),
+        );
       }
 
       const root = SCHEMAS[name] as JsonSchema;
@@ -351,20 +383,26 @@ export function registerSchemaCommands(program: Command): void {
         const entry = defs['entry'] as JsonProp | undefined;
         valid_kinds = allOfKinds(entry);
         if (!opts.kind) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               `schema 'evidence' requires --kind (evidence_kind discriminator). Valid kinds: ${valid_kinds.join(', ')}`,
-              { valid_kinds },
+              {
+                hint: `re-run with --kind <one of: ${valid_kinds.join(', ')}>`,
+                exit_category: 'validation',
+              },
             ),
           );
         }
         if (!valid_kinds.includes(opts.kind as string)) {
-          emit(
-            err(
+          emitErr(
+            makeError(
               'invalid_argument',
               `unknown kind '${opts.kind}' for schema 'evidence'. Valid kinds: ${valid_kinds.join(', ')}`,
-              { valid_kinds },
+              {
+                hint: `--kind must be one of: ${valid_kinds.join(', ')}`,
+                exit_category: 'validation',
+              },
             ),
           );
         }
@@ -385,18 +423,16 @@ export function registerSchemaCommands(program: Command): void {
         );
       }
 
-      emit(
-        ok({
-          you_must_fill,
-          cli_will_inject: [...(spec as { envelope: readonly string[] }).envelope],
-          notes: {
-            schema: name,
-            op: opts.op,
-            kind: opts.kind ?? null,
-            valid_kinds: valid_kinds.length > 0 ? valid_kinds : undefined,
-            example_hint: (spec as { hint?: string }).hint ?? '',
-          },
-        }),
-      );
+      emitOk('schema template', {
+        you_must_fill,
+        cli_will_inject: [...(spec as { envelope: readonly string[] }).envelope],
+        notes: {
+          schema: name,
+          op: opts.op,
+          kind: opts.kind ?? null,
+          valid_kinds: valid_kinds.length > 0 ? valid_kinds : undefined,
+          example_hint: (spec as { hint?: string }).hint ?? '',
+        },
+      });
     });
 }

@@ -211,14 +211,19 @@ test('geas schema show dumps the requested schema as JSON', () => {
   }
 });
 
-test('geas schema show rejects unknown schemas', () => {
+test('geas schema show rejects unknown schemas — exit 2 (validation) with hint', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     const res = runCli(['schema', 'show', 'not-a-real-schema'], { cwd: dir });
-    assert.notEqual(res.status, 0);
+    // T2.a (mission-20260427-xIPG1sDY task-002 / AC2): invalid_argument
+    // rotates from legacy exit=1 to category exit=2 (validation).
+    assert.equal(res.status, 2, `invalid_argument must exit 2 after T2.a: got ${res.status}`);
     assert.ok(res.json);
     assert.equal(res.json.ok, false);
     assert.equal(res.json.error.code, 'invalid_argument');
+    assert.equal(typeof res.json.error.hint, 'string');
+    assert.match(res.json.error.hint, /pick one of/);
+    assert.ok(!('hints' in res.json.error), 'legacy `hints` plural is gone after T2.a');
   } finally {
     cleanup();
   }
@@ -492,53 +497,64 @@ test('schema template evidence verification branch differs from review branch', 
   }
 });
 
-test('schema template evidence --op append rejects missing --kind', () => {
+test('schema template evidence --op append rejects missing --kind — exit 2 with hint listing valid kinds', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     const res = runCli(
       ['schema', 'template', 'evidence', '--op', 'append'],
       { cwd: dir },
     );
-    assert.notEqual(res.status, 0);
+    // T2.a / AC2: invalid_argument rotates 1 → 2 (validation). The
+    // legacy `hints.valid_kinds` structured payload is folded into the
+    // singular `hint` string per CliErrorV2 shape; the same data
+    // (allowed kinds enumeration) is still reachable for callers, just
+    // as a parseable hint message instead of a separate JSON field.
+    assert.equal(res.status, 2, `invalid_argument must exit 2 after T2.a: got ${res.status}`);
     assert.equal(res.json.error.code, 'invalid_argument');
     assert.match(res.json.error.message, /requires --kind/);
-    const hints = res.json.error.hints;
-    assert.ok(hints && Array.isArray(hints.valid_kinds));
-    // allOf branches are keyed on review / verification / closure
-    // (implementation has no kind-specific narrowing).
+    assert.equal(typeof res.json.error.hint, 'string');
+    // Hint message contains the valid-kinds enumeration so callers can
+    // still extract them by parsing the hint.
     for (const k of ['review', 'verification', 'closure']) {
-      assert.ok(hints.valid_kinds.includes(k));
+      assert.ok(
+        res.json.error.hint.includes(k),
+        `hint must mention valid kind '${k}'; got: ${res.json.error.hint}`,
+      );
     }
+    assert.ok(!('hints' in res.json.error), 'legacy `hints` plural is gone after T2.a');
   } finally {
     cleanup();
   }
 });
 
-test('schema template rejects unknown schema / op / kind', () => {
+test('schema template rejects unknown schema / op / kind — exit 2 (validation) for each', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     let res = runCli(
       ['schema', 'template', 'not-a-schema', '--op', 'create'],
       { cwd: dir },
     );
-    assert.notEqual(res.status, 0);
+    assert.equal(res.status, 2);
     assert.equal(res.json.error.code, 'invalid_argument');
+    assert.equal(typeof res.json.error.hint, 'string');
 
     res = runCli(
       ['schema', 'template', 'mission-spec', '--op', 'nonsense'],
       { cwd: dir },
     );
-    assert.notEqual(res.status, 0);
+    assert.equal(res.status, 2);
     assert.equal(res.json.error.code, 'invalid_argument');
     assert.match(res.json.error.message, /not registered/);
+    assert.equal(typeof res.json.error.hint, 'string');
 
     res = runCli(
       ['schema', 'template', 'evidence', '--op', 'append', '--kind', 'bogus'],
       { cwd: dir },
     );
-    assert.notEqual(res.status, 0);
+    assert.equal(res.status, 2);
     assert.equal(res.json.error.code, 'invalid_argument');
     assert.match(res.json.error.message, /unknown kind/);
+    assert.equal(typeof res.json.error.hint, 'string');
   } finally {
     cleanup();
   }

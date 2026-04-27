@@ -11078,94 +11078,6 @@ var SCHEMA_NAMES = [
   "task-state"
 ];
 
-// src/lib/envelope.ts
-var fs4 = __toESM(require("fs"));
-var EXIT_CODES = {
-  schema_validation_failed: 2,
-  guard_failed: 3,
-  append_only_violation: 5,
-  path_collision: 1,
-  missing_artifact: 1,
-  invalid_argument: 1,
-  io_error: 4,
-  internal_error: 1
-};
-function ok(data) {
-  return { ok: true, data };
-}
-function err(code, message, hints) {
-  return { ok: false, error: hints !== void 0 ? { code, message, hints } : { code, message } };
-}
-function emit(envelope) {
-  if (envelope.ok) {
-    writeOkEnvelope("", envelope.data);
-    process.exit(0);
-  }
-  writeLegacyErrEnvelope(envelope);
-  process.exit(EXIT_CODES[envelope.error.code] ?? 1);
-}
-var SLOT_ACTORS = [
-  "decision-maker",
-  "orchestrator",
-  "design-authority",
-  "challenger",
-  "implementer",
-  "verifier",
-  "risk-assessor",
-  "operator",
-  "communicator"
-];
-var SPECIAL_ACTORS = ["user", "cli:auto"];
-var SLOT_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
-function isValidActor(value) {
-  if (typeof value !== "string" || value.length === 0) return false;
-  if (SPECIAL_ACTORS.includes(value)) return true;
-  if (SLOT_ACTORS.includes(value)) return true;
-  return SLOT_RE.test(value);
-}
-function nextEntryId(filePath) {
-  try {
-    if (!fs4.existsSync(filePath)) return 1;
-    const content = fs4.readFileSync(filePath, "utf-8");
-    if (!content) return 1;
-    const lines = content.split("\n").filter((l) => l.length > 0);
-    let maxId = 0;
-    for (const line of lines) {
-      try {
-        const parsed = JSON.parse(line);
-        if (parsed && typeof parsed.entry_id === "number" && parsed.entry_id > maxId) {
-          maxId = parsed.entry_id;
-        }
-      } catch {
-      }
-    }
-    return maxId + 1;
-  } catch {
-    return 1;
-  }
-}
-function recordEvent(projectRoot, event) {
-  try {
-    const filePath = eventsPath(projectRoot);
-    const kind = typeof event.kind === "string" ? event.kind : void 0;
-    const actor = event.actor;
-    if (!kind) return;
-    if (!isValidActor(actor)) return;
-    const { entry_id: _ignoredId, created_at: _ignoredTs, ...rest } = event;
-    void _ignoredId;
-    void _ignoredTs;
-    const entry = {
-      entry_id: nextEntryId(filePath),
-      kind,
-      actor,
-      created_at: (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z"),
-      ...rest
-    };
-    appendJsonl(filePath, entry);
-  } catch {
-  }
-}
-
 // src/lib/envelope-fields.ts
 var ENVELOPE_SPECS = [
   {
@@ -11427,31 +11339,39 @@ function buildPlainTemplate(root, schemaName, op, envelope) {
 function registerSchemaCommands(program2) {
   const schema = program2.command("schema").description("Inspect embedded JSON schemas");
   schema.command("list").description("List embedded schema names").action(() => {
-    emit(ok({ schemas: [...SCHEMA_NAMES].sort() }));
+    emitOk("schema list", { schemas: [...SCHEMA_NAMES].sort() });
   });
   schema.command("show <name>").description("Print a single embedded schema as JSON").action((name) => {
     const s = SCHEMAS[name];
     if (!s) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          `unknown schema '${name}'. Available: ${SCHEMA_NAMES.join(", ")}`
+          `unknown schema '${name}'. Available: ${SCHEMA_NAMES.join(", ")}`,
+          {
+            hint: `pick one of: ${SCHEMA_NAMES.join(", ")}`,
+            exit_category: "validation"
+          }
         )
       );
     }
-    emit(ok({ name, schema: s }));
+    emitOk("schema show", { name, schema: s });
   });
   schema.command("dump").description("Dump every embedded schema as {name: schema}").action(() => {
-    emit(ok({ schemas: SCHEMAS }));
+    emitOk("schema dump", { schemas: SCHEMAS });
   });
   schema.command("template <name>").description(
     "Emit an agent-facing write scaffold: { you_must_fill, cli_will_inject, notes }. --op selects the operation; --kind selects allOf variants (e.g. evidence_kind)."
   ).requiredOption("--op <op>", "Operation (create|set|append|update|draft|register|update-status|run)").option("--kind <kind>", "Discriminator (e.g. review, verification, closure, implementation for evidence)").action((name, opts) => {
     if (!SCHEMAS[name]) {
-      emit(
-        err(
+      emitErr(
+        makeError(
           "invalid_argument",
-          `unknown schema '${name}'. Available: ${SCHEMA_NAMES.join(", ")}`
+          `unknown schema '${name}'. Available: ${SCHEMA_NAMES.join(", ")}`,
+          {
+            hint: `pick one of: ${SCHEMA_NAMES.join(", ")}`,
+            exit_category: "validation"
+          }
         )
       );
     }
@@ -11459,7 +11379,13 @@ function registerSchemaCommands(program2) {
     if (!spec) {
       const validOps = supportedOpsForSchema(name);
       const msg = validOps.length === 0 ? `schema '${name}' has no registered template ops. Supported schemas: ${supportedSchemas().join(", ")}` : `op '${opts.op}' is not registered for schema '${name}'. Valid ops: ${validOps.join(", ")}`;
-      emit(err("invalid_argument", msg, { schema: name, op: opts.op, valid_ops: validOps }));
+      const hint = validOps.length === 0 ? `try one of these schemas instead: ${supportedSchemas().join(", ")}` : `valid ops for '${name}': ${validOps.join(", ")}`;
+      emitErr(
+        makeError("invalid_argument", msg, {
+          hint,
+          exit_category: "validation"
+        })
+      );
     }
     const root = SCHEMAS[name];
     let you_must_fill;
@@ -11469,20 +11395,26 @@ function registerSchemaCommands(program2) {
       const entry = defs["entry"];
       valid_kinds = allOfKinds(entry);
       if (!opts.kind) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             "invalid_argument",
             `schema 'evidence' requires --kind (evidence_kind discriminator). Valid kinds: ${valid_kinds.join(", ")}`,
-            { valid_kinds }
+            {
+              hint: `re-run with --kind <one of: ${valid_kinds.join(", ")}>`,
+              exit_category: "validation"
+            }
           )
         );
       }
       if (!valid_kinds.includes(opts.kind)) {
-        emit(
-          err(
+        emitErr(
+          makeError(
             "invalid_argument",
             `unknown kind '${opts.kind}' for schema 'evidence'. Valid kinds: ${valid_kinds.join(", ")}`,
-            { valid_kinds }
+            {
+              hint: `--kind must be one of: ${valid_kinds.join(", ")}`,
+              exit_category: "validation"
+            }
           )
         );
       }
@@ -11500,19 +11432,17 @@ function registerSchemaCommands(program2) {
         spec.envelope
       );
     }
-    emit(
-      ok({
-        you_must_fill,
-        cli_will_inject: [...spec.envelope],
-        notes: {
-          schema: name,
-          op: opts.op,
-          kind: opts.kind ?? null,
-          valid_kinds: valid_kinds.length > 0 ? valid_kinds : void 0,
-          example_hint: spec.hint ?? ""
-        }
-      })
-    );
+    emitOk("schema template", {
+      you_must_fill,
+      cli_will_inject: [...spec.envelope],
+      notes: {
+        schema: name,
+        op: opts.op,
+        kind: opts.kind ?? null,
+        valid_kinds: valid_kinds.length > 0 ? valid_kinds : void 0,
+        example_hint: spec.hint ?? ""
+      }
+    });
   });
 }
 
@@ -11520,7 +11450,7 @@ function registerSchemaCommands(program2) {
 var path4 = __toESM(require("path"));
 
 // src/lib/input.ts
-var fs5 = __toESM(require("fs"));
+var fs4 = __toESM(require("fs"));
 var StdinError = class extends Error {
   constructor(message) {
     super(message);
@@ -11533,7 +11463,7 @@ function stripBom(raw) {
 function readFileUtf8(filePath) {
   let raw;
   try {
-    raw = fs5.readFileSync(filePath, "utf-8");
+    raw = fs4.readFileSync(filePath, "utf-8");
   } catch (err2) {
     const e = err2;
     throw new StdinError(
@@ -11548,7 +11478,7 @@ function readStdinUtf8() {
   }
   let raw;
   try {
-    raw = fs5.readFileSync(0, "utf-8");
+    raw = fs4.readFileSync(0, "utf-8");
   } catch (err2) {
     const e = err2;
     throw new StdinError(`failed to read stdin: ${e.code ?? "unknown"}`);
@@ -11822,6 +11752,94 @@ function registerStateCommands(program2) {
 var crypto2 = __toESM(require("crypto"));
 var fs6 = __toESM(require("fs"));
 var path5 = __toESM(require("path"));
+
+// src/lib/envelope.ts
+var fs5 = __toESM(require("fs"));
+var EXIT_CODES = {
+  schema_validation_failed: 2,
+  guard_failed: 3,
+  append_only_violation: 5,
+  path_collision: 1,
+  missing_artifact: 1,
+  invalid_argument: 1,
+  io_error: 4,
+  internal_error: 1
+};
+function ok(data) {
+  return { ok: true, data };
+}
+function err(code, message, hints) {
+  return { ok: false, error: hints !== void 0 ? { code, message, hints } : { code, message } };
+}
+function emit(envelope) {
+  if (envelope.ok) {
+    writeOkEnvelope("", envelope.data);
+    process.exit(0);
+  }
+  writeLegacyErrEnvelope(envelope);
+  process.exit(EXIT_CODES[envelope.error.code] ?? 1);
+}
+var SLOT_ACTORS = [
+  "decision-maker",
+  "orchestrator",
+  "design-authority",
+  "challenger",
+  "implementer",
+  "verifier",
+  "risk-assessor",
+  "operator",
+  "communicator"
+];
+var SPECIAL_ACTORS = ["user", "cli:auto"];
+var SLOT_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+function isValidActor(value) {
+  if (typeof value !== "string" || value.length === 0) return false;
+  if (SPECIAL_ACTORS.includes(value)) return true;
+  if (SLOT_ACTORS.includes(value)) return true;
+  return SLOT_RE.test(value);
+}
+function nextEntryId(filePath) {
+  try {
+    if (!fs5.existsSync(filePath)) return 1;
+    const content = fs5.readFileSync(filePath, "utf-8");
+    if (!content) return 1;
+    const lines = content.split("\n").filter((l) => l.length > 0);
+    let maxId = 0;
+    for (const line of lines) {
+      try {
+        const parsed = JSON.parse(line);
+        if (parsed && typeof parsed.entry_id === "number" && parsed.entry_id > maxId) {
+          maxId = parsed.entry_id;
+        }
+      } catch {
+      }
+    }
+    return maxId + 1;
+  } catch {
+    return 1;
+  }
+}
+function recordEvent(projectRoot, event) {
+  try {
+    const filePath = eventsPath(projectRoot);
+    const kind = typeof event.kind === "string" ? event.kind : void 0;
+    const actor = event.actor;
+    if (!kind) return;
+    if (!isValidActor(actor)) return;
+    const { entry_id: _ignoredId, created_at: _ignoredTs, ...rest } = event;
+    void _ignoredId;
+    void _ignoredTs;
+    const entry = {
+      entry_id: nextEntryId(filePath),
+      kind,
+      actor,
+      created_at: (/* @__PURE__ */ new Date()).toISOString().replace(/\.\d{3}Z$/, "Z"),
+      ...rest
+    };
+    appendJsonl(filePath, entry);
+  } catch {
+  }
+}
 
 // src/lib/transition-guards.ts
 function pass() {
