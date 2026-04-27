@@ -361,7 +361,8 @@ test('geas state mission-set writes and validates mission-state', () => {
       phase: 'specifying',
       active_tasks: [],
     });
-    const res = runCli(['state', 'mission-set', '--mission', mid], {
+    // AC3 (task-006): --json keeps the envelope on stdout for assertion.
+    const res = runCli(['--json', 'state', 'mission-set', '--mission', mid], {
       cwd: dir,
       input: payload,
     });
@@ -396,8 +397,9 @@ test('geas state mission-set accepts the AC1 --payload-from-file flag (cross-che
     };
     const tmpPath = path.join(dir, 'payload.json');
     fs.writeFileSync(tmpPath, JSON.stringify(body), 'utf-8');
+    // AC3 (task-006): --json keeps envelope on stdout for assertion.
     const res = runCli(
-      ['state', 'mission-set', '--mission', mid, '--payload-from-file', tmpPath],
+      ['--json', 'state', 'mission-set', '--mission', mid, '--payload-from-file', tmpPath],
       { cwd: dir },
     );
     assert.equal(res.status, 0, `--payload-from-file mission-set failed: ${res.stderr}`);
@@ -405,6 +407,26 @@ test('geas state mission-set accepts the AC1 --payload-from-file flag (cross-che
     const written = readArtifact(dir, `.geas/missions/${mid}/mission-state.json`);
     assert.equal(written.mission_id, mid);
     assert.equal(written.phase, 'specifying');
+  } finally {
+    cleanup();
+  }
+});
+
+test('geas state mission-get default-mode emits scalar text via registered formatter (post-AC3)', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    runCli(['setup'], { cwd: dir });
+    const mid = 'mission-20260420-abcdefgh';
+    runCli(['state', 'mission-set', '--mission', mid], {
+      cwd: dir,
+      input: JSON.stringify({ mission_id: mid, phase: 'specifying', active_tasks: [] }),
+    });
+    const res = runCli(['state', 'mission-get', '--mission', mid], { cwd: dir });
+    assert.equal(res.status, 0, `mission-get failed: ${res.stderr}`);
+    assert.equal(res.json, null, `default-mode stdout should be scalar; got: ${res.stdout}`);
+    assert.match(res.stdout, /^path: /m);
+    assert.match(res.stdout, /^phase: specifying$/m);
+    assert.match(res.stdout, new RegExp(`^mission_id: ${mid}$`, 'm'));
   } finally {
     cleanup();
   }

@@ -11614,7 +11614,33 @@ function nowUtc2() {
 function resolvePayloadFile(opts) {
   return opts.payloadFromFile ?? opts.file;
 }
+function formatStateGet(data) {
+  const d = data;
+  const lines = [];
+  lines.push(`path: ${d.path ?? "<unknown>"}`);
+  if (d.state && typeof d.state === "object") {
+    if (typeof d.state.phase === "string") lines.push(`phase: ${d.state.phase}`);
+    if (typeof d.state.status === "string") lines.push(`status: ${d.state.status}`);
+    if (typeof d.state.mission_id === "string") lines.push(`mission_id: ${d.state.mission_id}`);
+    if (typeof d.state.task_id === "string") lines.push(`task_id: ${d.state.task_id}`);
+  }
+  return lines.join("\n");
+}
+function formatStateSet(data) {
+  const d = data;
+  const lines = [];
+  lines.push(`written: ${d.path ?? "<unknown>"}`);
+  if (d.state && typeof d.state === "object") {
+    if (typeof d.state.phase === "string") lines.push(`phase: ${d.state.phase}`);
+    if (typeof d.state.status === "string") lines.push(`status: ${d.state.status}`);
+  }
+  return lines.join("\n");
+}
 function registerStateCommands(program2) {
+  registerFormatter("state mission-get", formatStateGet);
+  registerFormatter("state task-get", formatStateGet);
+  registerFormatter("state mission-set", formatStateSet);
+  registerFormatter("state task-set", formatStateSet);
   const state = program2.command("state").description("Low-level mission/task state read and write");
   state.command("mission-get").description("Print mission-state.json for a mission").requiredOption("--mission <id>", "Mission ID").action((opts) => {
     if (!isValidMissionId(opts.mission)) {

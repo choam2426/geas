@@ -25,7 +25,7 @@
  */
 
 import type { Command } from 'commander';
-import { emitErr, emitOk } from '../lib/output';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
 import { makeError } from '../lib/errors';
 import { readJsonFile, atomicWriteJson, ensureDir } from '../lib/fs-atomic';
 import * as path from 'path';
@@ -72,7 +72,39 @@ function resolvePayloadFile(opts: { payloadFromFile?: string; file?: string }): 
   return opts.payloadFromFile ?? opts.file;
 }
 
+/**
+ * AC3 (mission-20260427-xIPG1sDY task-006): scalar formatters for the
+ * four state subcommands. Each renders path + a one-line summary of the
+ * state body so default-mode stdout stays compact.
+ */
+function formatStateGet(data: unknown): string {
+  const d = data as { path?: string; state?: Record<string, unknown> };
+  const lines: string[] = [];
+  lines.push(`path: ${d.path ?? '<unknown>'}`);
+  if (d.state && typeof d.state === 'object') {
+    if (typeof d.state.phase === 'string') lines.push(`phase: ${d.state.phase}`);
+    if (typeof d.state.status === 'string') lines.push(`status: ${d.state.status}`);
+    if (typeof d.state.mission_id === 'string') lines.push(`mission_id: ${d.state.mission_id}`);
+    if (typeof d.state.task_id === 'string') lines.push(`task_id: ${d.state.task_id}`);
+  }
+  return lines.join('\n');
+}
+function formatStateSet(data: unknown): string {
+  const d = data as { path?: string; state?: Record<string, unknown> };
+  const lines: string[] = [];
+  lines.push(`written: ${d.path ?? '<unknown>'}`);
+  if (d.state && typeof d.state === 'object') {
+    if (typeof d.state.phase === 'string') lines.push(`phase: ${d.state.phase}`);
+    if (typeof d.state.status === 'string') lines.push(`status: ${d.state.status}`);
+  }
+  return lines.join('\n');
+}
+
 export function registerStateCommands(program: Command): void {
+  registerFormatter('state mission-get', formatStateGet);
+  registerFormatter('state task-get', formatStateGet);
+  registerFormatter('state mission-set', formatStateSet);
+  registerFormatter('state task-set', formatStateSet);
   const state = program.command('state').description('Low-level mission/task state read and write');
 
   state
