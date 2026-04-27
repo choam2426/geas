@@ -276,7 +276,9 @@ test('memory writes do not break geas context read-back', () => {
     );
     assert.equal(r.status, 0, `agent-set failed: ${r.stderr}`);
 
-    const ctx = runCli(['context'], { cwd: dir });
+    // AC3 (task-006): --json to inspect the envelope; default mode now
+    // produces scalar text via the registered context formatter.
+    const ctx = runCli(['--json', 'context'], { cwd: dir });
     assert.equal(
       ctx.status,
       0,

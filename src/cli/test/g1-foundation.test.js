@@ -117,19 +117,38 @@ test('geas setup is idempotent on re-run', () => {
   }
 });
 
-test('geas context reports empty missions after setup', () => {
+test('geas context reports empty missions after setup (--json envelope)', () => {
   const { dir, cleanup } = makeTempRoot();
   try {
     const s = runCli(['setup'], { cwd: dir });
     assert.equal(s.status, 0);
 
-    const ctx = runCli(['context'], { cwd: dir });
+    // AC3 (task-006): --json keeps the envelope on stdout; default
+    // mode now produces scalar text via the registered formatter.
+    const ctx = runCli(['--json', 'context'], { cwd: dir });
     assert.equal(ctx.status, 0, `context failed: ${ctx.stderr}`);
     assert.ok(ctx.json);
     assert.equal(ctx.json.ok, true);
     assert.deepEqual(ctx.json.data.missions, []);
     assert.equal(typeof ctx.json.data.project_root, 'string');
     assert.equal(typeof ctx.json.data.geas_dir, 'string');
+  } finally {
+    cleanup();
+  }
+});
+
+test('geas context default-mode emits scalar text via registered formatter (post-AC3)', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    runCli(['setup'], { cwd: dir });
+    const ctx = runCli(['context'], { cwd: dir });
+    assert.equal(ctx.status, 0, `context failed: ${ctx.stderr}`);
+    // Scalar formatter output: project_root + geas_dir + missions header
+    // lines on stdout; no JSON envelope.
+    assert.equal(ctx.json, null, `default-mode stdout should be scalar, not JSON; got: ${ctx.stdout}`);
+    assert.match(ctx.stdout, /^project_root: /m);
+    assert.match(ctx.stdout, /^geas_dir: /m);
+    assert.match(ctx.stdout, /^missions: \(none\)$/m);
   } finally {
     cleanup();
   }

@@ -28,7 +28,7 @@ import {
   missionStatePath,
 } from '../lib/paths';
 import { readJsonFile } from '../lib/fs-atomic';
-import { emitErr, emitOk } from '../lib/output';
+import { emitErr, emitOk, registerFormatter } from '../lib/output';
 import { makeError } from '../lib/errors';
 
 interface MissionSummary {
@@ -39,10 +39,39 @@ interface MissionSummary {
 
 const COMMAND_NAME = 'context';
 
+/**
+ * AC3 (mission-20260427-xIPG1sDY task-006): scalar formatter producing
+ * a short human-readable summary on default-mode stdout. The data shape
+ * mirrors the emitOk payload below (project_root, geas_dir, missions[]).
+ * Token target: ≤200 tokens (1 header line + N mission summary lines).
+ */
+function formatContext(data: unknown): string {
+  const d = data as {
+    project_root?: string;
+    geas_dir?: string;
+    missions?: MissionSummary[];
+  };
+  const lines: string[] = [];
+  lines.push(`project_root: ${d.project_root ?? '<unknown>'}`);
+  lines.push(`geas_dir: ${d.geas_dir ?? '<unknown>'}`);
+  const missions = Array.isArray(d.missions) ? d.missions : [];
+  if (missions.length === 0) {
+    lines.push('missions: (none)');
+  } else {
+    lines.push(`missions: ${missions.length}`);
+    for (const m of missions) {
+      const active = (m.active_tasks ?? []).join(', ') || '(none)';
+      lines.push(`  - ${m.mission_id} phase=${m.phase ?? 'unknown'} active=[${active}]`);
+    }
+  }
+  return lines.join('\n');
+}
+
 export function registerContextCommand(program: Command): void {
+  registerFormatter(COMMAND_NAME, formatContext);
   program
     .command(COMMAND_NAME)
-    .description('Print a JSON summary of the current .geas/ state')
+    .description('Print a summary of the current .geas/ state (scalar text by default; --json for envelope)')
     .action(() => {
       const root = findProjectRoot(process.cwd());
       if (!root) {

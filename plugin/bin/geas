@@ -10761,6 +10761,9 @@ function getOutputMode() {
   return { ...activeState };
 }
 var formatterRegistry = /* @__PURE__ */ new Map();
+function registerFormatter(commandName, fn) {
+  formatterRegistry.set(commandName, fn);
+}
 function lookupFormatter(commandName) {
   return formatterRegistry.get(commandName);
 }
@@ -11005,8 +11008,26 @@ function relToRoot(root, target) {
 // src/commands/context.ts
 var fs3 = __toESM(require("fs"));
 var COMMAND_NAME2 = "context";
+function formatContext(data) {
+  const d = data;
+  const lines = [];
+  lines.push(`project_root: ${d.project_root ?? "<unknown>"}`);
+  lines.push(`geas_dir: ${d.geas_dir ?? "<unknown>"}`);
+  const missions = Array.isArray(d.missions) ? d.missions : [];
+  if (missions.length === 0) {
+    lines.push("missions: (none)");
+  } else {
+    lines.push(`missions: ${missions.length}`);
+    for (const m of missions) {
+      const active = (m.active_tasks ?? []).join(", ") || "(none)";
+      lines.push(`  - ${m.mission_id} phase=${m.phase ?? "unknown"} active=[${active}]`);
+    }
+  }
+  return lines.join("\n");
+}
 function registerContextCommand(program2) {
-  program2.command(COMMAND_NAME2).description("Print a JSON summary of the current .geas/ state").action(() => {
+  registerFormatter(COMMAND_NAME2, formatContext);
+  program2.command(COMMAND_NAME2).description("Print a summary of the current .geas/ state (scalar text by default; --json for envelope)").action(() => {
     const root = findProjectRoot(process.cwd());
     if (!root) {
       emitErr(
