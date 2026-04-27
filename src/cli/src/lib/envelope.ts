@@ -37,6 +37,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { appendJsonl } from './fs-atomic';
+import { writeLegacyErrEnvelope, writeOkEnvelope } from './output';
 import { eventsPath } from './paths';
 
 export type ErrorCode =
@@ -89,10 +90,37 @@ export function err(code: ErrorCode, message: string, hints?: unknown): ErrEnvel
 /**
  * Print `envelope` on stdout (JSON, trailing newline) and exit with the
  * appropriate code.
+ *
+ * T1 bridge (mission-20260427-xIPG1sDY task-001, Option A): the body of
+ * this function delegates the stdout write to the unified output layer
+ * (`lib/output.ts`) so all 17 unmigrated commands share the same
+ * OutputState-aware emission — debug pretty-print, mode handling, and
+ * any future formatter dispatch live in one place. The exit code,
+ * however, is still picked from the legacy {@link EXIT_CODES} table so
+ * external consumers (test fixtures, hook scripts, the bundled launcher)
+ * see byte-identical behavior at T1 merge. The new five-category exit
+ * codes (`lib/errors.EXIT_CATEGORY_CODE`) only take effect when a
+ * command migrates its call sites to `makeError` + `emitErr` directly
+ * (T2 batches).
+ *
+ * The error path still emits the legacy envelope shape
+ * `{ok:false, error:{code, message, hints?}}` (note: `hints` plural) —
+ * the v2 layer uses `hint` (singular) so we cannot funnel through
+ * `output.emitErr` without changing observable JSON. {@link
+ * writeLegacyErrEnvelope} is the transitional helper that preserves the
+ * legacy field naming while still flowing through the OutputState-aware
+ * stdout writer.
  */
 export function emit(envelope: Envelope): never {
-  process.stdout.write(JSON.stringify(envelope) + '\n');
-  if (envelope.ok) process.exit(0);
+  if (envelope.ok) {
+    // commandName is unused in JSON mode (which is the T2 invariant
+    // until per-command scalar formatters land); pass an empty string so
+    // formatter lookup misses and the JSON-envelope fallback fires —
+    // identical to the pre-bridge behavior.
+    writeOkEnvelope('', envelope.data);
+    process.exit(0);
+  }
+  writeLegacyErrEnvelope(envelope);
   process.exit(EXIT_CODES[envelope.error.code] ?? 1);
 }
 

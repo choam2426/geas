@@ -10721,6 +10721,45 @@ function exists(filePath) {
 // src/lib/envelope.ts
 var fs3 = __toESM(require("fs"));
 
+// src/lib/output.ts
+var activeState = {
+  mode: "default",
+  verbose: false,
+  debug: false
+};
+function setOutputMode(state) {
+  activeState = {
+    mode: state.mode ?? activeState.mode,
+    verbose: state.verbose ?? activeState.verbose,
+    debug: state.debug ?? activeState.debug
+  };
+}
+function getOutputMode() {
+  return { ...activeState };
+}
+var formatterRegistry = /* @__PURE__ */ new Map();
+function lookupFormatter(commandName) {
+  return formatterRegistry.get(commandName);
+}
+function jsonStringify(value, debug) {
+  return debug ? JSON.stringify(value, null, 2) : JSON.stringify(value);
+}
+function writeOkEnvelope(commandName, data) {
+  const state = getOutputMode();
+  const useJson = state.mode === "json" || !lookupFormatter(commandName);
+  if (useJson) {
+    process.stdout.write(jsonStringify({ ok: true, data }, state.debug) + "\n");
+  } else {
+    const fmt = lookupFormatter(commandName);
+    const text = fmt ? fmt(data) : jsonStringify({ ok: true, data }, state.debug);
+    process.stdout.write(text.endsWith("\n") ? text : text + "\n");
+  }
+}
+function writeLegacyErrEnvelope(envelope) {
+  const state = getOutputMode();
+  process.stdout.write(jsonStringify(envelope, state.debug) + "\n");
+}
+
 // src/lib/paths.ts
 var path2 = __toESM(require("path"));
 var fs2 = __toESM(require("fs"));
@@ -10855,8 +10894,11 @@ function err(code, message, hints) {
   return { ok: false, error: hints !== void 0 ? { code, message, hints } : { code, message } };
 }
 function emit(envelope) {
-  process.stdout.write(JSON.stringify(envelope) + "\n");
-  if (envelope.ok) process.exit(0);
+  if (envelope.ok) {
+    writeOkEnvelope("", envelope.data);
+    process.exit(0);
+  }
+  writeLegacyErrEnvelope(envelope);
   process.exit(EXIT_CODES[envelope.error.code] ?? 1);
 }
 var SLOT_ACTORS = [
@@ -13112,6 +13154,61 @@ function registerTaskStateRead(task) {
     void missionStatePath;
   });
 }
+var SHA40_HEX = /^[0-9a-fA-F]{40}$/;
+function registerTaskBaseSnapshot(task) {
+  const baseSnapshot = task.command("base-snapshot").description("Manipulate task contract.base_snapshot");
+  baseSnapshot.command("set").description(
+    "Set contract.base_snapshot to a 40-character hex SHA (format-only check)."
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").requiredOption("--base <sha>", "40-character hex SHA (upper or lower case)").action((opts) => {
+    if (!isValidMissionId(opts.mission)) {
+      emit(err("invalid_argument", `invalid mission id '${opts.mission}'`));
+    }
+    if (!isValidTaskId(opts.task)) {
+      emit(err("invalid_argument", `invalid task id '${opts.task}'`));
+    }
+    if (typeof opts.base !== "string" || !SHA40_HEX.test(opts.base)) {
+      emit(
+        err(
+          "invalid_argument",
+          `--base must be a 40-character hex SHA (got '${opts.base}')`
+        )
+      );
+    }
+    const root = needProjectRoot3();
+    const cPath = taskContractPath(root, opts.mission, opts.task);
+    const contract = readJsonFile(cPath);
+    if (!contract) {
+      emit(
+        err(
+          "missing_artifact",
+          `task contract not found for ${opts.task}`
+        )
+      );
+      return;
+    }
+    contract.base_snapshot = opts.base;
+    contract.updated_at = nowUtc4();
+    const v = validate("task-contract", contract);
+    if (!v.ok) {
+      emit(
+        err(
+          "schema_validation_failed",
+          "task-contract schema validation failed after base-snapshot set",
+          v.errors
+        )
+      );
+    }
+    atomicWriteJson(cPath, contract, tmpDir(root));
+    emit(
+      ok({
+        path: slashPath2(cPath),
+        ids: { mission_id: opts.mission, task_id: opts.task },
+        base_snapshot: opts.base,
+        contract
+      })
+    );
+  });
+}
 function registerTaskCommands(program2) {
   const task = program2.command("task").description(
     "Task-level artifact commands (draft, approve, transition, deps, state)"
@@ -13121,6 +13218,7 @@ function registerTaskCommands(program2) {
   registerTaskTransition(task);
   registerTaskDeps(task);
   registerTaskStateRead(task);
+  registerTaskBaseSnapshot(task);
 }
 
 // src/commands/evidence.ts
@@ -15089,20 +15187,6 @@ function registerImplContractCommands(program2) {
       })
     );
   });
-}
-
-// src/lib/output.ts
-var activeState = {
-  mode: "default",
-  verbose: false,
-  debug: false
-};
-function setOutputMode(state) {
-  activeState = {
-    mode: state.mode ?? activeState.mode,
-    verbose: state.verbose ?? activeState.verbose,
-    debug: state.debug ?? activeState.debug
-  };
 }
 
 // src/main.ts

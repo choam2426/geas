@@ -135,15 +135,16 @@ function jsonStringify(value: unknown, debug: boolean): string {
 }
 
 /**
- * Emit a successful response. In JSON mode (T2 default) writes a
- * `{ok:true,data}` envelope on stdout and exits 0. In scalar mode looks
- * up a formatter for `commandName`; if none is registered, falls back
- * to the JSON envelope (T2 invariant — keeps existing tests green).
+ * Non-exiting variant of {@link emitOk}'s output write. Performs the
+ * stdout emission step (formatter lookup + JSON-fallback + trailing
+ * newline) but does NOT call process.exit. Exposed so the legacy
+ * envelope.ts bridge can route success-path emission through the same
+ * OutputState-aware logic without losing control of the exit step.
  *
- * Always exits the process. Callers should not place code after this
- * call expecting it to run.
+ * Callers that just want the standard "emit + exit 0" semantics should
+ * prefer {@link emitOk}. The split exists for the bridge layer only.
  */
-export function emitOk(commandName: string, data: unknown): never {
+export function writeOkEnvelope(commandName: string, data: unknown): void {
   const state = getOutputMode();
   const useJson = state.mode === 'json' || !lookupFormatter(commandName);
   if (useJson) {
@@ -155,22 +156,35 @@ export function emitOk(commandName: string, data: unknown): never {
     const text = fmt ? fmt(data) : jsonStringify({ ok: true, data }, state.debug);
     process.stdout.write(text.endsWith('\n') ? text : text + '\n');
   }
+}
+
+/**
+ * Emit a successful response. In JSON mode (T2 default) writes a
+ * `{ok:true,data}` envelope on stdout and exits 0. In scalar mode looks
+ * up a formatter for `commandName`; if none is registered, falls back
+ * to the JSON envelope (T2 invariant — keeps existing tests green).
+ *
+ * Always exits the process. Callers should not place code after this
+ * call expecting it to run.
+ */
+export function emitOk(commandName: string, data: unknown): never {
+  writeOkEnvelope(commandName, data);
   process.exit(0);
 }
 
 /**
- * Emit an error response. In JSON mode writes a
- * `{ok:false,error:{code,message,hint?}}` envelope on stdout and exits
- * with the per-category exit code. In scalar mode writes a one-line
- * `error: <message>` plus optional `hint: <hint>` on stderr.
+ * Non-exiting variant of {@link emitErr}'s output write. Performs the
+ * mode-aware stdout (JSON envelope) or stderr (scalar) emission but does
+ * NOT call process.exit. Exposed so the legacy envelope.ts bridge can
+ * decide its own exit code (legacy {@link
+ * import('./envelope').EXIT_CODES} integer) while still routing the
+ * stdout shape through the unified output layer's debug + mode logic.
  *
- * Always exits the process. The exit code is derived from
- * `error.exit_category` via `exitCodeForCategory()` — callers cannot
- * override it.
+ * Callers that just want the standard "emit + exit per category"
+ * semantics should prefer {@link emitErr}.
  */
-export function emitErr(error: CliErrorV2): never {
+export function writeErrEnvelope(error: CliErrorV2): void {
   const state = getOutputMode();
-  const exitCode = exitCodeForCategory(error.exit_category);
   if (state.mode === 'json' || state.mode === 'default') {
     // T2: default also goes through JSON for back-compat. T3 will
     // switch the default branch to scalar stderr+stdout once the
@@ -192,5 +206,46 @@ export function emitErr(error: CliErrorV2): never {
       process.stderr.write(`hint: ${error.hint}\n`);
     }
   }
-  process.exit(exitCode);
+}
+
+/**
+ * Emit an error response. In JSON mode writes a
+ * `{ok:false,error:{code,message,hint?}}` envelope on stdout and exits
+ * with the per-category exit code. In scalar mode writes a one-line
+ * `error: <message>` plus optional `hint: <hint>` on stderr.
+ *
+ * Always exits the process. The exit code is derived from
+ * `error.exit_category` via `exitCodeForCategory()` — callers cannot
+ * override it.
+ */
+export function emitErr(error: CliErrorV2): never {
+  writeErrEnvelope(error);
+  process.exit(exitCodeForCategory(error.exit_category));
+}
+
+/**
+ * Write a legacy-shaped error envelope. Distinct from
+ * {@link writeErrEnvelope} because the legacy envelope (envelope.ts
+ * `err()`) carries a `hints` (plural, free-form) field rather than the
+ * v2 `hint` (singular string) field, and emits the legacy `ErrorCode`
+ * tag verbatim. The bridge in envelope.ts calls this so 17 unmigrated
+ * commands continue to produce byte-identical stdout — it only routes
+ * the OutputState debug-mode pretty-print through this layer.
+ *
+ * Does NOT call process.exit. The bridge picks the legacy
+ * `EXIT_CODES[code]` integer itself, preserving the T1 invariant
+ * "external exit code values unchanged at T1 merge" (mission-design
+ * Decision 1, Option A).
+ *
+ * Wider note: this writer is a transitional artifact. Once all 17
+ * commands migrate to `makeError` + `emitErr` (T2 batches), this writer
+ * loses its caller and is removed in T5 alongside legacy `EXIT_CODES`
+ * (mission-design Decision 12, A3 binary verification fixture).
+ */
+export function writeLegacyErrEnvelope(envelope: {
+  ok: false;
+  error: { code: string; message: string; hints?: unknown };
+}): void {
+  const state = getOutputMode();
+  process.stdout.write(jsonStringify(envelope, state.debug) + '\n');
 }

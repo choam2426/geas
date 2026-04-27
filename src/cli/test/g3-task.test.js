@@ -988,3 +988,225 @@ test('task state summary reports contract fields and task-state status', () => {
     cleanup();
   }
 });
+
+// ── T1 base-snapshot set ──────────────────────────────────────────────
+//
+// mission-20260427-xIPG1sDY task-001 / acceptance criterion T1.2.
+// Validates the new `geas task base-snapshot set` subcommand:
+//   (a) format-pass: 40-hex SHA mutates contract.base_snapshot + bumps
+//       updated_at; the underlying write is atomic and the contract
+//       still validates against the task-contract schema.
+//   (b) format-fail: short SHA, oversize SHA, non-hex char, empty all
+//       reject with invalid_argument and leave contract untouched.
+//   (c) missing artifact: command on an unknown task surfaces
+//       missing_artifact (not invalid_argument).
+//   (d) no event: events.jsonl line count is identical before/after the
+//       successful call (mission-design B2.1 — single-field mutation
+//       policy mirrors `task deps add/remove`).
+
+const VALID_SHA_LOWER = '1234567890abcdef1234567890abcdef12345678';
+const VALID_SHA_UPPER = 'ABCDEF1234567890ABCDEF1234567890ABCDEF12';
+
+function setupTaskInDrafted(dir, taskId = 'task-001') {
+  setupMissionApproved(dir);
+  const r = runCli(['task', 'draft', '--mission', MID], {
+    cwd: dir,
+    input: JSON.stringify(draftContract({ base_snapshot: 'initial-base' })),
+    env: { GEAS_MOCK_TASK_ID: taskId },
+  });
+  assert.equal(r.status, 0, `draft failed: ${r.stderr}\n${r.stdout}`);
+  return taskId;
+}
+
+function readEventsLineCount(dir) {
+  const eventsPath = path.join(dir, '.geas', 'events.jsonl');
+  if (!fs.existsSync(eventsPath)) return 0;
+  const content = fs.readFileSync(eventsPath, 'utf-8');
+  if (!content) return 0;
+  return content.split('\n').filter((l) => l.length > 0).length;
+}
+
+test('task base-snapshot set accepts a 40-hex SHA and updates contract.base_snapshot', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    const tid = setupTaskInDrafted(dir);
+    const res = runCli(
+      [
+        'task',
+        'base-snapshot',
+        'set',
+        '--mission',
+        MID,
+        '--task',
+        tid,
+        '--base',
+        VALID_SHA_LOWER,
+      ],
+      { cwd: dir },
+    );
+    assert.equal(res.status, 0, `set failed: ${res.stderr}\n${res.stdout}`);
+    assert.equal(res.json.ok, true);
+    assert.equal(res.json.data.base_snapshot, VALID_SHA_LOWER);
+
+    const contract = readArtifact(
+      dir,
+      `.geas/missions/${MID}/tasks/${tid}/contract.json`,
+    );
+    assert.equal(contract.base_snapshot, VALID_SHA_LOWER);
+    // updated_at should advance (was set by draft, then by set).
+    assert.ok(typeof contract.updated_at === 'string' && contract.updated_at.length > 0);
+  } finally {
+    cleanup();
+  }
+});
+
+test('task base-snapshot set accepts upper-case 40-hex SHA', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    const tid = setupTaskInDrafted(dir);
+    const res = runCli(
+      [
+        'task',
+        'base-snapshot',
+        'set',
+        '--mission',
+        MID,
+        '--task',
+        tid,
+        '--base',
+        VALID_SHA_UPPER,
+      ],
+      { cwd: dir },
+    );
+    assert.equal(res.status, 0, `upper-case set failed: ${res.stderr}\n${res.stdout}`);
+    const contract = readArtifact(
+      dir,
+      `.geas/missions/${MID}/tasks/${tid}/contract.json`,
+    );
+    assert.equal(contract.base_snapshot, VALID_SHA_UPPER);
+  } finally {
+    cleanup();
+  }
+});
+
+test('task base-snapshot set rejects malformed SHAs without mutating the contract', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    const tid = setupTaskInDrafted(dir);
+    const before = readArtifact(
+      dir,
+      `.geas/missions/${MID}/tasks/${tid}/contract.json`,
+    );
+
+    const badInputs = [
+      '1234567890abcdef1234567890abcdef1234567', // 39 chars
+      '1234567890abcdef1234567890abcdef123456789', // 41 chars
+      '1234567890abcdef1234567890abcdef1234567g', // non-hex char 'g'
+      'not-a-sha',
+      '',
+    ];
+    for (const bad of badInputs) {
+      const res = runCli(
+        [
+          'task',
+          'base-snapshot',
+          'set',
+          '--mission',
+          MID,
+          '--task',
+          tid,
+          '--base',
+          bad,
+        ],
+        { cwd: dir },
+      );
+      assert.notEqual(
+        res.status,
+        0,
+        `bad SHA '${bad}' should be rejected (got status=${res.status})`,
+      );
+      assert.ok(res.json, `bad SHA '${bad}' should still emit JSON envelope`);
+      assert.equal(res.json.ok, false);
+      assert.equal(
+        res.json.error.code,
+        'invalid_argument',
+        `bad SHA '${bad}' code mismatch`,
+      );
+    }
+
+    const after = readArtifact(
+      dir,
+      `.geas/missions/${MID}/tasks/${tid}/contract.json`,
+    );
+    assert.equal(
+      after.base_snapshot,
+      before.base_snapshot,
+      'rejected SHAs must leave base_snapshot unchanged',
+    );
+    assert.equal(
+      after.updated_at,
+      before.updated_at,
+      'rejected SHAs must leave updated_at unchanged',
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test('task base-snapshot set surfaces missing_artifact for unknown task', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMissionApproved(dir);
+    const res = runCli(
+      [
+        'task',
+        'base-snapshot',
+        'set',
+        '--mission',
+        MID,
+        '--task',
+        'task-999',
+        '--base',
+        VALID_SHA_LOWER,
+      ],
+      { cwd: dir },
+    );
+    assert.notEqual(res.status, 0);
+    assert.ok(res.json);
+    assert.equal(res.json.ok, false);
+    assert.equal(res.json.error.code, 'missing_artifact');
+  } finally {
+    cleanup();
+  }
+});
+
+test('task base-snapshot set does NOT append a new event (single-field mutation policy)', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    const tid = setupTaskInDrafted(dir);
+    const before = readEventsLineCount(dir);
+    const res = runCli(
+      [
+        'task',
+        'base-snapshot',
+        'set',
+        '--mission',
+        MID,
+        '--task',
+        tid,
+        '--base',
+        VALID_SHA_LOWER,
+      ],
+      { cwd: dir },
+    );
+    assert.equal(res.status, 0, `set failed: ${res.stderr}\n${res.stdout}`);
+    const after = readEventsLineCount(dir);
+    assert.equal(
+      after,
+      before,
+      `events.jsonl line count changed (${before} -> ${after}); base-snapshot set must not append events`,
+    );
+  } finally {
+    cleanup();
+  }
+});

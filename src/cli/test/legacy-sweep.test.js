@@ -131,3 +131,51 @@ test('no legacy v1/v2 terms remain in v3 surfaces', () => {
       .join('\n')}`,
   );
 });
+
+// ── T1 bridge code-level delegation pattern (envelope -> output) ──────
+//
+// mission-20260427-xIPG1sDY task-001 / verification_plan step 6.
+// Asserts that envelope.ts source declares an import from './output' AND
+// references the writer helpers in the bridge body. Pairs with the
+// runtime equivalence tests in output.test.js (T1 bridge equivalence
+// section): one proves the bytes on stdout match, this one proves the
+// code path actually flows through output.ts. A future regression that
+// reverts the bridge to envelope.ts's own JSON.stringify+process.exit
+// would still pass the runtime tests today (because stdout bytes are
+// identical) but would silently strip the bridge's central premise
+// (unified OutputState routing). This grep catches that.
+
+test('envelope.ts bridge: emit() delegates to output.ts writer helpers', () => {
+  const envelopePath = path.join(
+    REPO_ROOT,
+    'src',
+    'cli',
+    'src',
+    'lib',
+    'envelope.ts',
+  );
+  const src = fs.readFileSync(envelopePath, 'utf-8');
+
+  // (1) Imports from output.ts
+  assert.ok(
+    /from ['"]\.\/output['"]/.test(src),
+    'envelope.ts must import from ./output (bridge delegation pattern)',
+  );
+
+  // (2) Bridge body references the non-exiting writer helpers
+  assert.ok(
+    /writeOkEnvelope\s*\(/.test(src),
+    'envelope.ts emit() must call writeOkEnvelope on the success path',
+  );
+  assert.ok(
+    /writeLegacyErrEnvelope\s*\(/.test(src),
+    'envelope.ts emit() must call writeLegacyErrEnvelope on the error path',
+  );
+
+  // (3) Legacy EXIT_CODES still drives process.exit on the error path —
+  // proving Option A (legacy exit code preservation at T1 merge).
+  assert.ok(
+    /process\.exit\(EXIT_CODES\[/.test(src),
+    'envelope.ts emit() must still exit with EXIT_CODES[code] (Option A)',
+  );
+});

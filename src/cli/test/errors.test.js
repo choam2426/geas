@@ -18,6 +18,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('path');
 
+const { makeTempRoot, runCli } = require('./helpers/setup');
+
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const errors = require(path.join(REPO_ROOT, 'src', 'cli', 'dist', 'lib', 'errors'));
 
@@ -154,4 +156,76 @@ test('cliErrorFromException stringifies non-Error throws into internal-category'
   assert.equal(env.code, 'internal_error');
   assert.equal(env.message, 'a bare string');
   assert.equal(env.exit_category, 'internal');
+});
+
+// ── T1 bridge regression: 17 commands keep legacy EXIT_CODES values ───
+//
+// mission-20260427-xIPG1sDY task-001 acceptance criterion T1.5.
+// At T1 merge, all unmigrated commands route their err() emissions
+// through envelope.emit -> the bridge -> output.writeLegacyErrEnvelope,
+// then exit with the LEGACY EXIT_CODES integer. This guards the
+// 17-command "external appearance unchanged" invariant — a regression
+// here means a command's exit code rotated to the new category before
+// its T2 batch lock-in.
+//
+// missing_artifact: legacy=1, new=4. We assert legacy.
+
+test('bridge regression: missing_artifact via a real command exits 1 (legacy), not 4 (new category)', () => {
+  // `geas task state --mission ... --task ...` against an unknown task
+  // emits err('missing_artifact', ...). The bridge must keep it at 1.
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    // setup must succeed first so .geas/ exists; otherwise the
+    // missing_artifact would be the .geas tree itself, which is also
+    // valid for this test — but explicit setup makes the failure
+    // location clear.
+    const r1 = runCli(['setup'], { cwd: dir });
+    assert.equal(r1.status, 0, `setup failed: ${r1.stderr}`);
+
+    const r2 = runCli(
+      [
+        'task',
+        'state',
+        '--mission',
+        'mission-20260101-deadbeef',
+        '--task',
+        'task-001',
+      ],
+      { cwd: dir },
+    );
+    assert.equal(
+      r2.status,
+      1,
+      `missing_artifact must exit 1 (legacy) at T1 merge; got ${r2.status}: ${r2.stdout}`,
+    );
+    assert.ok(r2.json, `expected JSON envelope on stdout, got: ${r2.stdout}`);
+    assert.equal(r2.json.ok, false);
+    assert.equal(r2.json.error.code, 'missing_artifact');
+  } finally {
+    cleanup();
+  }
+});
+
+test('bridge regression: invalid_argument via a real command exits 1 (legacy), not 2 (new category)', () => {
+  // invalid_argument: legacy=1, new=2 (validation). Verify legacy at T1.
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    const r1 = runCli(['setup'], { cwd: dir });
+    assert.equal(r1.status, 0, `setup failed: ${r1.stderr}`);
+
+    const r2 = runCli(
+      ['task', 'state', '--mission', 'not-a-mission-id', '--task', 'task-001'],
+      { cwd: dir },
+    );
+    assert.equal(
+      r2.status,
+      1,
+      `invalid_argument must exit 1 (legacy) at T1 merge; got ${r2.status}`,
+    );
+    assert.ok(r2.json);
+    assert.equal(r2.json.ok, false);
+    assert.equal(r2.json.error.code, 'invalid_argument');
+  } finally {
+    cleanup();
+  }
 });

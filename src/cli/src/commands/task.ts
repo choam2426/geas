@@ -16,6 +16,9 @@
  *     Adds dependency task ids to contract.dependencies (merge+dedupe).
  *   geas task deps remove  --mission <id> --task <id> --deps <id[,id...]>
  *     Removes dependency task ids from contract.dependencies (missing ignored).
+ *   geas task base-snapshot set
+ *                          --mission <id> --task <id> --base <40-hex sha>
+ *     Sets contract.base_snapshot to the supplied SHA (format-only check).
  *   geas task state        --mission <id> --task <id>
  *     Read-only summary.
  *
@@ -994,6 +997,90 @@ function registerTaskStateRead(task: Command): void {
     });
 }
 
+// ── `geas task base-snapshot set` ────────────────────────────────────
+
+/**
+ * 40-character hex SHA validator. Accepts upper or lower case. Format-only —
+ * mission-design B2.2 explicitly excludes any git rev-list verification
+ * (offline policy, C5). Real existence of the SHA is the orchestrator /
+ * design-authority's responsibility at contract-review time.
+ */
+const SHA40_HEX = /^[0-9a-fA-F]{40}$/;
+
+function registerTaskBaseSnapshot(task: Command): void {
+  const baseSnapshot = task
+    .command('base-snapshot')
+    .description('Manipulate task contract.base_snapshot');
+
+  baseSnapshot
+    .command('set')
+    .description(
+      'Set contract.base_snapshot to a 40-character hex SHA (format-only check).',
+    )
+    .requiredOption('--mission <id>', 'Mission ID')
+    .requiredOption('--task <id>', 'Task ID')
+    .requiredOption('--base <sha>', '40-character hex SHA (upper or lower case)')
+    .action((opts: { mission: string; task: string; base: string }) => {
+      if (!isValidMissionId(opts.mission)) {
+        emit(err('invalid_argument', `invalid mission id '${opts.mission}'`));
+      }
+      if (!isValidTaskId(opts.task)) {
+        emit(err('invalid_argument', `invalid task id '${opts.task}'`));
+      }
+      if (typeof opts.base !== 'string' || !SHA40_HEX.test(opts.base)) {
+        emit(
+          err(
+            'invalid_argument',
+            `--base must be a 40-character hex SHA (got '${opts.base}')`,
+          ),
+        );
+      }
+
+      const root = needProjectRoot();
+      const cPath = taskContractPath(root, opts.mission, opts.task);
+      const contract = readJsonFile<Record<string, unknown>>(cPath);
+      if (!contract) {
+        emit(
+          err(
+            'missing_artifact',
+            `task contract not found for ${opts.task}`,
+          ),
+        );
+        return;
+      }
+
+      contract.base_snapshot = opts.base;
+      contract.updated_at = nowUtc();
+
+      const v = validate('task-contract', contract);
+      if (!v.ok) {
+        emit(
+          err(
+            'schema_validation_failed',
+            'task-contract schema validation failed after base-snapshot set',
+            v.errors,
+          ),
+        );
+      }
+      atomicWriteJson(cPath, contract, tmpDir(root));
+      // Single-field-mutation policy mirrors `task deps add/remove`
+      // (mission-design B2.1): contract.updated_at is the protocol
+      // signal. Lifecycle waypoints (task_drafted, task_approved,
+      // task_state_changed) cover real state changes; rotating a
+      // base-snapshot is an environment-alignment step, not a
+      // lifecycle event.
+
+      emit(
+        ok({
+          path: slashPath(cPath),
+          ids: { mission_id: opts.mission, task_id: opts.task },
+          base_snapshot: opts.base,
+          contract,
+        }),
+      );
+    });
+}
+
 // ── Entry point ──────────────────────────────────────────────────────
 
 export function registerTaskCommands(program: Command): void {
@@ -1008,4 +1095,5 @@ export function registerTaskCommands(program: Command): void {
   registerTaskTransition(task);
   registerTaskDeps(task);
   registerTaskStateRead(task);
+  registerTaskBaseSnapshot(task);
 }
