@@ -663,6 +663,55 @@ test('self-check append writes entries array; second call appends entry_id=2', (
   }
 });
 
+test('self-check append works inline-flag-only without stdin or --file (AC1, task-006 verify-fix)', () => {
+  // AC1 (task-006): self-check append must be invokable purely from
+  // inline flags. completed_work is the only required content field;
+  // arrays default to [] and revision_ref defaults to null.
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMission(dir, MID_STANDARD);
+    draftTaskReady(dir, MID_STANDARD, 'task-001');
+    const r = runCli(
+      [
+        '--json',
+        'self-check',
+        'append',
+        '--mission',
+        MID_STANDARD,
+        '--task',
+        'task-001',
+        '--completed-work',
+        'Inline-flag self-check verifying AC1 path.',
+        '--reviewer-focus',
+        'inline-flag plumbing',
+        '--reviewer-focus',
+        'gap_signal handling',
+        '--known-risk',
+        'fixture-only coverage of inline path',
+        '--gap-signal',
+        'AC1 inline-flag adoption',
+      ],
+      { cwd: dir },
+    );
+    assert.equal(r.status, 0, `inline-flag self-check append failed: ${r.stderr}\n${r.stdout}`);
+    assert.equal(r.json.ok, true);
+    assert.equal(r.json.data.ids.entry_id, 1);
+    assert.equal(r.json.data.self_check.entries.length, 1);
+    const entry = r.json.data.self_check.entries[0];
+    assert.equal(entry.completed_work, 'Inline-flag self-check verifying AC1 path.');
+    assert.deepEqual(entry.reviewer_focus, [
+      'inline-flag plumbing',
+      'gap_signal handling',
+    ]);
+    assert.deepEqual(entry.known_risks, ['fixture-only coverage of inline path']);
+    assert.deepEqual(entry.deviations_from_plan, []);
+    assert.deepEqual(entry.gap_signals, ['AC1 inline-flag adoption']);
+    assert.equal(entry.revision_ref, null);
+  } finally {
+    cleanup();
+  }
+});
+
 test('self-check append rejects schema-invalid body', () => {
   const { dir, cleanup } = makeTempRoot();
   try {

@@ -14506,12 +14506,56 @@ function formatSelfCheckAppend(data) {
     `path: ${d.path ?? "<unknown>"}`
   ].join("\n");
 }
+function buildSelfCheckPayloadFromFlags(opts) {
+  const inlineFlagPresent = opts.completedWork !== void 0 || opts.completedWorkFromFile !== void 0 || Array.isArray(opts.reviewerFocus) && opts.reviewerFocus.length > 0 || Array.isArray(opts.knownRisk) && opts.knownRisk.length > 0 || Array.isArray(opts.deviationFromPlan) && opts.deviationFromPlan.length > 0 || Array.isArray(opts.gapSignal) && opts.gapSignal.length > 0 || opts.revisionRef !== void 0;
+  if (!inlineFlagPresent) return null;
+  const payload = {};
+  if (opts.completedWorkFromFile !== void 0) {
+    try {
+      payload.completed_work = readPayloadText(opts.completedWorkFromFile);
+    } catch (e) {
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError("invalid_argument", e.message, {
+            hint: "pass --completed-work <text> inline or --completed-work-from-file <path>",
+            exit_category: "validation"
+          })
+        );
+      }
+      throw e;
+    }
+  } else if (opts.completedWork !== void 0) {
+    payload.completed_work = opts.completedWork;
+  }
+  if (Array.isArray(opts.reviewerFocus)) payload.reviewer_focus = opts.reviewerFocus;
+  if (Array.isArray(opts.knownRisk)) payload.known_risks = opts.knownRisk;
+  if (Array.isArray(opts.deviationFromPlan)) payload.deviations_from_plan = opts.deviationFromPlan;
+  if (Array.isArray(opts.gapSignal)) payload.gap_signals = opts.gapSignal;
+  if (opts.revisionRef !== void 0) {
+    if (opts.revisionRef === "null" || opts.revisionRef === "") {
+      payload.revision_ref = null;
+    } else {
+      const n = parseInt(opts.revisionRef, 10);
+      if (!Number.isFinite(n) || n < 1) {
+        emitErr(
+          makeError(
+            "invalid_argument",
+            `--revision-ref must be a positive integer or 'null' (got '${opts.revisionRef}')`,
+            { hint: "pass --revision-ref <int> with a value \u22651, or omit for null", exit_category: "validation" }
+          )
+        );
+      }
+      payload.revision_ref = n;
+    }
+  }
+  return payload;
+}
 function registerSelfCheckCommands(program2) {
   registerFormatter("self-check append", formatSelfCheckAppend);
   const sc = program2.command("self-check").description("Implementer self-check artifact (self-check.json) commands.");
   sc.command("append").description(
-    "Append a self-check entry for a task (payload via --file or stdin: entry content fields). Creates the file on first append; subsequent appends push new entries to entries[]. One entry per implementer pass."
-  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").option("--file <path>", "Read JSON payload from file instead of stdin").action((opts) => {
+    "Append a self-check entry for a task. Accepts inline flags (--completed-work, --reviewer-focus..., --known-risk..., --deviation-from-plan..., --gap-signal..., --revision-ref) or full JSON via --file/stdin/--entry-from-file. Free-body --completed-work also accepts --completed-work-from-file. Creates the file on first append; subsequent appends push new entries. One entry per implementer pass."
+  ).requiredOption("--mission <id>", "Mission ID").requiredOption("--task <id>", "Task ID").option("--file <path>", "Read full JSON entry from file (overrides inline flags) instead of stdin").option("--entry-from-file <path>", "Named alias for --file (free-body entry payload)").option("--completed-work <text>", "What was completed in this pass (free-body \u2014 short prose)").option("--completed-work-from-file <path>", "Read completed_work text from file").option("--reviewer-focus <text...>", "Area reviewers should inspect first (repeatable)").option("--known-risk <text...>", "Forward-looking risk that remains after this pass (repeatable)").option("--deviation-from-plan <text...>", "Deviation between plan and what happened (repeatable)").option("--gap-signal <text...>", "Early scope or expectation gap signal (repeatable)").option("--revision-ref <int>", "Prior entry_id this revises, or 'null' for first/non-revision").action((opts) => {
     if (!isValidMissionId(opts.mission)) {
       emitErr(
         makeError("invalid_argument", `invalid mission id '${opts.mission}'`, {
@@ -14546,26 +14590,48 @@ function registerSelfCheckCommands(program2) {
       );
     }
     let payload;
-    try {
-      payload = readPayloadJson(opts.file);
-    } catch (e) {
-      if (e instanceof StdinError) {
-        emitErr(
-          makeError("invalid_argument", e.message, {
-            hint: "pass the JSON via --file <path> or pipe through stdin",
-            exit_category: "validation"
-          })
-        );
+    const payloadSrcFile = opts.file ?? opts.entryFromFile;
+    if (payloadSrcFile !== void 0) {
+      try {
+        payload = readPayloadJson(payloadSrcFile);
+      } catch (e) {
+        if (e instanceof StdinError) {
+          emitErr(
+            makeError("invalid_argument", e.message, {
+              hint: "pass JSON via --file/--entry-from-file <path> or use inline flags (--completed-work, ...)",
+              exit_category: "validation"
+            })
+          );
+        }
+        throw e;
       }
-      throw e;
+    } else {
+      const inline = buildSelfCheckPayloadFromFlags(opts);
+      if (inline !== null) {
+        payload = inline;
+      } else {
+        try {
+          payload = readPayloadJson(void 0);
+        } catch (e) {
+          if (e instanceof StdinError) {
+            emitErr(
+              makeError("invalid_argument", e.message, {
+                hint: "use inline flags (--completed-work, ...) or pass JSON via --file/--entry-from-file <path> or stdin",
+                exit_category: "validation"
+              })
+            );
+          }
+          throw e;
+        }
+      }
     }
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
       emitErr(
         makeError(
           "invalid_argument",
-          "self-check append expects a JSON object on stdin",
+          "self-check append expects a JSON object payload",
           {
-            hint: "wrap the entry fields in a single JSON object",
+            hint: "wrap the entry fields in a single JSON object, or use inline flags",
             exit_category: "validation"
           }
         )

@@ -35,7 +35,7 @@ import {
   taskContractPath,
   tmpDir,
 } from '../lib/paths';
-import { readPayloadJson, StdinError } from '../lib/input';
+import { readPayloadJson, readPayloadText, StdinError } from '../lib/input';
 import { validate } from '../lib/schema';
 
 function nowUtc(): string {
@@ -83,6 +83,79 @@ interface SelfCheckFile {
   updated_at: string;
 }
 
+interface SelfCheckAppendInlineOpts {
+  mission: string;
+  task: string;
+  file?: string;
+  entryFromFile?: string;
+  completedWork?: string;
+  completedWorkFromFile?: string;
+  reviewerFocus?: string[];
+  knownRisk?: string[];
+  deviationFromPlan?: string[];
+  gapSignal?: string[];
+  revisionRef?: string;
+}
+
+/**
+ * AC1 (task-006 verify-fix iteration 1): build a self-check entry
+ * payload from inline flags. Returns null if no inline flag is present.
+ */
+function buildSelfCheckPayloadFromFlags(
+  opts: SelfCheckAppendInlineOpts,
+): Record<string, unknown> | null {
+  const inlineFlagPresent =
+    opts.completedWork !== undefined ||
+    opts.completedWorkFromFile !== undefined ||
+    (Array.isArray(opts.reviewerFocus) && opts.reviewerFocus.length > 0) ||
+    (Array.isArray(opts.knownRisk) && opts.knownRisk.length > 0) ||
+    (Array.isArray(opts.deviationFromPlan) && opts.deviationFromPlan.length > 0) ||
+    (Array.isArray(opts.gapSignal) && opts.gapSignal.length > 0) ||
+    opts.revisionRef !== undefined;
+  if (!inlineFlagPresent) return null;
+
+  const payload: Record<string, unknown> = {};
+  if (opts.completedWorkFromFile !== undefined) {
+    try {
+      payload.completed_work = readPayloadText(opts.completedWorkFromFile);
+    } catch (e) {
+      if (e instanceof StdinError) {
+        emitErr(
+          makeError('invalid_argument', e.message, {
+            hint: 'pass --completed-work <text> inline or --completed-work-from-file <path>',
+            exit_category: 'validation',
+          }),
+        );
+      }
+      throw e;
+    }
+  } else if (opts.completedWork !== undefined) {
+    payload.completed_work = opts.completedWork;
+  }
+  if (Array.isArray(opts.reviewerFocus)) payload.reviewer_focus = opts.reviewerFocus;
+  if (Array.isArray(opts.knownRisk)) payload.known_risks = opts.knownRisk;
+  if (Array.isArray(opts.deviationFromPlan)) payload.deviations_from_plan = opts.deviationFromPlan;
+  if (Array.isArray(opts.gapSignal)) payload.gap_signals = opts.gapSignal;
+  if (opts.revisionRef !== undefined) {
+    if (opts.revisionRef === 'null' || opts.revisionRef === '') {
+      payload.revision_ref = null;
+    } else {
+      const n = parseInt(opts.revisionRef, 10);
+      if (!Number.isFinite(n) || n < 1) {
+        emitErr(
+          makeError(
+            'invalid_argument',
+            `--revision-ref must be a positive integer or 'null' (got '${opts.revisionRef}')`,
+            { hint: 'pass --revision-ref <int> with a value ≥1, or omit for null', exit_category: 'validation' },
+          ),
+        );
+      }
+      payload.revision_ref = n;
+    }
+  }
+  return payload;
+}
+
 export function registerSelfCheckCommands(program: Command): void {
   registerFormatter('self-check append', formatSelfCheckAppend);
   const sc = program
@@ -91,12 +164,20 @@ export function registerSelfCheckCommands(program: Command): void {
 
   sc.command('append')
     .description(
-      'Append a self-check entry for a task (payload via --file or stdin: entry content fields). Creates the file on first append; subsequent appends push new entries to entries[]. One entry per implementer pass.',
+      'Append a self-check entry for a task. Accepts inline flags (--completed-work, --reviewer-focus..., --known-risk..., --deviation-from-plan..., --gap-signal..., --revision-ref) or full JSON via --file/stdin/--entry-from-file. Free-body --completed-work also accepts --completed-work-from-file. Creates the file on first append; subsequent appends push new entries. One entry per implementer pass.',
     )
     .requiredOption('--mission <id>', 'Mission ID')
     .requiredOption('--task <id>', 'Task ID')
-    .option('--file <path>', 'Read JSON payload from file instead of stdin')
-    .action((opts: { mission: string; task: string; file?: string }) => {
+    .option('--file <path>', 'Read full JSON entry from file (overrides inline flags) instead of stdin')
+    .option('--entry-from-file <path>', 'Named alias for --file (free-body entry payload)')
+    .option('--completed-work <text>', 'What was completed in this pass (free-body — short prose)')
+    .option('--completed-work-from-file <path>', 'Read completed_work text from file')
+    .option('--reviewer-focus <text...>', 'Area reviewers should inspect first (repeatable)')
+    .option('--known-risk <text...>', 'Forward-looking risk that remains after this pass (repeatable)')
+    .option('--deviation-from-plan <text...>', 'Deviation between plan and what happened (repeatable)')
+    .option('--gap-signal <text...>', 'Early scope or expectation gap signal (repeatable)')
+    .option('--revision-ref <int>', "Prior entry_id this revises, or 'null' for first/non-revision")
+    .action((opts: SelfCheckAppendInlineOpts) => {
       if (!isValidMissionId(opts.mission)) {
         emitErr(
           makeError('invalid_argument', `invalid mission id '${opts.mission}'`, {
@@ -133,26 +214,48 @@ export function registerSelfCheckCommands(program: Command): void {
       }
 
       let payload: Record<string, unknown>;
-      try {
-        payload = readPayloadJson(opts.file) as Record<string, unknown>;
-      } catch (e) {
-        if (e instanceof StdinError) {
-          emitErr(
-            makeError('invalid_argument', e.message, {
-              hint: 'pass the JSON via --file <path> or pipe through stdin',
-              exit_category: 'validation',
-            }),
-          );
+      const payloadSrcFile = opts.file ?? opts.entryFromFile;
+      if (payloadSrcFile !== undefined) {
+        try {
+          payload = readPayloadJson(payloadSrcFile) as Record<string, unknown>;
+        } catch (e) {
+          if (e instanceof StdinError) {
+            emitErr(
+              makeError('invalid_argument', e.message, {
+                hint: 'pass JSON via --file/--entry-from-file <path> or use inline flags (--completed-work, ...)',
+                exit_category: 'validation',
+              }),
+            );
+          }
+          throw e;
         }
-        throw e;
+      } else {
+        const inline = buildSelfCheckPayloadFromFlags(opts);
+        if (inline !== null) {
+          payload = inline;
+        } else {
+          try {
+            payload = readPayloadJson(undefined) as Record<string, unknown>;
+          } catch (e) {
+            if (e instanceof StdinError) {
+              emitErr(
+                makeError('invalid_argument', e.message, {
+                  hint: 'use inline flags (--completed-work, ...) or pass JSON via --file/--entry-from-file <path> or stdin',
+                  exit_category: 'validation',
+                }),
+              );
+            }
+            throw e;
+          }
+        }
       }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
         emitErr(
           makeError(
             'invalid_argument',
-            'self-check append expects a JSON object on stdin',
+            'self-check append expects a JSON object payload',
             {
-              hint: 'wrap the entry fields in a single JSON object',
+              hint: 'wrap the entry fields in a single JSON object, or use inline flags',
               exit_category: 'validation',
             },
           ),
