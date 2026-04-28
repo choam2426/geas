@@ -30,77 +30,71 @@ You have been spawned as the implementer for an approved task. You own the full 
 ## Process
 
 1. **Read everything in your lane.** Contract, mission spec, mission design (if present), `shared.md`, `agents/{your_agent_type}.md`, any prior evidence on this task (revisions), and the supersedes chain if present.
-2. **Write the implementation contract** as an `implementation-contract` payload. This is the plan reviewers will read post-work to trace what you intended vs. what you delivered:
-   ```json
-   {
-     "summary": "...",
-     "rationale": "...",
-     "change_scope": ["<surface>", "..."],
-     "planned_actions": ["step 1", "step 2", "..."],
-     "non_goals": ["...", "..."],
-     "alternatives_considered": ["..."],
-     "assumptions": ["..."],
-     "open_questions": ["..."]
-   }
-   ```
+2. **Write the implementation contract** as an `implementation-contract` payload. This is the plan reviewers will read post-work to trace what you intended vs. what you delivered.
+
+   For the exact field list and CLI-injected fields, run `geas schema template implementation-contract --op set`. The template enumerates `you_must_fill` (the fields you author) and `cli_will_inject` (mission_id / task_id / timestamps).
+
    - `change_scope` must stay inside `contract.surfaces`.
    - `planned_actions` must be specific enough for a reviewer to inspect.
    - `non_goals` names things tempting but out of scope.
    - `open_questions` names every real ambiguity; do not silently pick an interpretation.
-   **Stage to a file with the Write tool, then pass `--file`.** Do not use heredoc — prose in `rationale` / `planned_actions` routinely breaks bash parsing:
+
+   `geas impl-contract set` is full-payload only (no inline flags), so use the Write tool to stage the JSON body and pass `--file`. Do not use heredoc — prose in `rationale` / `planned_actions` routinely breaks bash parsing:
    ```bash
-   # Step 1: Write tool → e.g. <workspace>/.tmp/impl-contract.json (body above)
+   # Step 1: Write tool → e.g. <workspace>/.tmp/impl-contract.json (body matches the schema template)
    # Step 2: hand the file to the CLI
    geas impl-contract set --mission <id> --task <id> --file <workspace>/.tmp/impl-contract.json
    ```
-   The CLI injects `mission_id` / `task_id` / timestamps and validates against `implementation-contract.schema`.
+   The CLI validates against `implementation-contract.schema`.
 3. **Do the work per the plan.** Stay inside `change_scope`. The implementation-contract is a live document — if reality forces a material deviation (plan needs to touch outside `change_scope`, an assumption broke, risk rose, a non-goal must come in-scope), pause and amend before pushing ahead (step 4). Minor adjustments that stay within scope do not require amendment; record them in `deviations_from_plan` at self-check time.
 4. **Amend the contract when direction shifts materially.** Run `geas impl-contract set` again with the revised body; the CLI replaces the prior contract (full-replace semantics) so reviewers later see the current plan. Amendment is NOT gated on reviewer approval — keeping the document current is an obligation to future readers, not a concurrence checkpoint. If the amendment itself is so structural it should pause the task, stop and hand back to the orchestrator; they decide whether to open a task-level deliberation via `convening-deliberation`.
 5. **Clean up work byproducts before evidence.** Remove anything that isn't part of the final deliverable: scratch files and temp payloads staged outside `.geas/`, experimental code paths abandoned mid-way, debug-only logs / prints, commented-out alternatives, backup copies, unused imports, TODO markers for work already completed. The tree reviewers read should reflect the committed deliverable only — not the exploration path that got you there. `.geas/` runtime artifacts are NOT byproducts; they are the audit trail and must stay intact. If a byproduct is deliberately preserved (e.g. a test fixture), record it in the implementation evidence's `scope_examined` or in `deviations_from_plan` at self-check time so its presence is explicit, not accidental.
-6. **Append implementation evidence** when the work is ready for review. **Use the Write tool to stage the payload to a file outside `.geas/`, then hand it to the CLI with `--file`.** Never write the JSON body inside a bash heredoc — prose inside the body (rationale, summary) breaks shell parsing on apostrophes/quotes/non-ASCII.
-   ```bash
-   # Step 1: Write tool → e.g. <workspace>/.tmp/impl-evidence.json
-   {
-     "evidence_kind": "implementation",
-     "summary": "what you did",
-     "rationale": "<why these changes, in this shape>",
-     "scope_examined": "<surfaces actually touched>",
-     "methods_used": ["<concrete tools/procedures>"],
-     "revision_ref": null
-   }
+6. **Append implementation evidence** when the work is ready for review. `geas evidence append` accepts inline flags (preferred for short prose) or a full JSON payload via `--file`. For the exact field list, run `geas schema template evidence --op append --kind implementation`.
 
-   # Step 2: hand the file to the CLI
-   geas evidence append --mission {mission_id} --task {task_id} \
-       --agent {your_concrete_agent} --slot implementer \
-       --file <workspace>/.tmp/impl-evidence.json
-   ```
-   On a revision run (verify-fix rewind), set `revision_ref` to the prior implementation entry's `entry_id`. The CLI auto-injects `entry_id`, `artifacts: []`, `memory_suggestions: []`, `debt_candidates: []`, `gap_signals: []`, `created_at`; you only need to supply the semantic fields above.
-7. **Append the self-check entry.** The self-check is an append-only log: one entry per implementer pass. It is a worker-side factual record, not a confidence score. The reviewer and the gate read the latest entry to orient their own checks. **Same pattern: Write tool → `--file`.**
+   Inline-flag form (preferred when summary / rationale / scope_examined fit on one line each):
    ```bash
-   # Step 1: Write tool → e.g. <workspace>/.tmp/self-check.json
-   {
-     "completed_work": "<one paragraph: what you actually landed on which surfaces>",
-     "reviewer_focus": [
-       "<area reviewers should inspect first — your own known weak spot 1>",
-       "<area 2>"
-     ],
-     "known_risks": [
-       "<forward-looking risk or unresolved concern that remains after implementation>"
-     ],
-     "deviations_from_plan": [
-       "<how the actual work diverged from implementation-contract.planned_actions, if at all>"
-     ],
-     "gap_signals": [
-       "<early signal of scope or expectation gap noticed during work>"
-     ],
-     "revision_ref": null
-   }
-
-   # Step 2: hand the file to the CLI
-   geas self-check append --mission {mission_id} --task {task_id} \
-       --file <workspace>/.tmp/self-check.json
+   geas evidence append --mission <id> --task <id> \
+       --agent <your_concrete_agent> --slot implementer \
+       --evidence-kind implementation \
+       --summary "what you did" \
+       --rationale "why these changes, in this shape" \
+       --scope-examined "surfaces actually touched" \
+       --method-used "tool 1" --method-used "tool 2" \
+       --revision-ref null
    ```
-   On a verify-fix re-entry, set `revision_ref` to the prior self-check entry's `entry_id` so reviewers can trace iteration history. The CLI assigns `entry_id` and `created_at` automatically; prior entries are preserved so the iteration log stays intact.
+
+   Free-body fallback for prose-heavy fields (use the named `--<field>-from-file` aliases when summary / rationale / scope_examined run long):
+   ```bash
+   # Stage prose with the Write tool, then point named flags at the files:
+   geas evidence append --mission <id> --task <id> \
+       --agent <your_concrete_agent> --slot implementer \
+       --evidence-kind implementation \
+       --summary-from-file <workspace>/.tmp/summary.md \
+       --rationale-from-file <workspace>/.tmp/rationale.md \
+       --scope-examined-from-file <workspace>/.tmp/scope.md \
+       --method-used "tool 1" --revision-ref null
+   ```
+
+   Full-payload `--file <path>` form is also accepted as a back-compat alias when the entry is heavily nested or you have already authored the full JSON. Never write the JSON body inside a bash heredoc — embedded apostrophes / quotes / non-ASCII in prose break shell parsing.
+
+   On a revision run (verify-fix rewind), set `--revision-ref <prior_entry_id>` (or `null` for a first / non-revision pass). The CLI auto-injects `entry_id`, `artifacts: []`, `memory_suggestions: []`, `debt_candidates: []`, `gap_signals: []`, `created_at`.
+7. **Append the self-check entry.** The self-check is an append-only log: one entry per implementer pass. It is a worker-side factual record, not a confidence score. The reviewer and the gate read the latest entry to orient their own checks. `geas self-check append` accepts inline flags (preferred) or a full JSON payload via `--file`. For the exact field list, run `geas schema template self-check --op append`.
+
+   Inline-flag form (preferred):
+   ```bash
+   geas self-check append --mission <id> --task <id> \
+       --completed-work "one paragraph: what you actually landed on which surfaces" \
+       --reviewer-focus "area reviewers should inspect first — own known weak spot 1" \
+       --reviewer-focus "area 2" \
+       --known-risk "forward-looking risk that remains after implementation" \
+       --deviation-from-plan "how the actual work diverged from impl-contract.planned_actions" \
+       --gap-signal "early signal of scope or expectation gap noticed during work" \
+       --revision-ref null
+   ```
+
+   Use `--completed-work-from-file <path>` (Write tool stages the prose) when `completed_work` runs longer than one line. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; in that case never use a bash heredoc — apostrophes / quotes / non-ASCII in prose break shell parsing.
+
+   On a verify-fix re-entry, pass `--revision-ref <prior_entry_id>` so reviewers can trace iteration history. The CLI assigns `entry_id` and `created_at` automatically; prior entries are preserved so the iteration log stays intact.
    - `completed_work` is a factual statement of what landed in this pass, not a confidence claim. No "mostly done", no 1–5 score.
    - `reviewer_focus` is the main honesty test: name the areas you yourself are least sure about. An empty array on a non-trivial task is a red flag.
    - `known_risks` are forward-looking (what could still break); `deviations_from_plan` and `gap_signals` are backward-looking (what actually happened vs. the plan / vs. the scope).

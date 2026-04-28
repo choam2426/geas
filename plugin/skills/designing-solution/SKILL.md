@@ -38,44 +38,34 @@ You are the design-authority. Your identity + judgment protocol live in your age
    - Draft `mission-design.md` with the required headings, in order:
      `## Strategy`, `## Architecture & Integration`, `## Task Breakdown Rationale`, `## Verification Plan`, `## Key Design Decisions`, `## Assumptions`, `## Unknowns`, `## Risks`, `## Failure Modes`, `## Migration / Rollout`.
    - For any section that does not apply, write `해당 없음 ({reason})` on one line — do not omit the heading.
-   - Record via `geas mission design-set --mission <id>` (stdin = full markdown). Allowed only during specifying phase; requires the mission spec to be `user_approved`. Writes are atomic full-replace. The CLI does not enforce heading structure — the ten-section discipline above is yours to uphold.
+   - Record via `geas mission design-set --mission <id> --file <workspace>/.tmp/mission-design.md` (markdown via `--file <path>`; full-replace). Allowed only during specifying phase; requires the mission spec to be `user_approved`. The CLI does not enforce heading structure — the ten-section discipline above is yours to uphold.
 3. **Branch B — Contract structural review.**
    - Read the contract (task or implementation): `scope.surfaces`, `acceptance_criteria`, `verification_plan`, `dependencies`, `base_snapshot`, `routing`, `risk_level`.
    - Walk the judgment order: boundaries clean → interfaces stable → dependencies safe → complexity justified → stubs bounded (scope, exit condition, debt registered).
    - Choose a verdict: `approved` / `changes_requested` / `blocked`.
-   - Append a review-kind evidence entry via CLI. **Stage to a file with the Write tool, then pass `--file`** — `rationale` and `concerns` are prose that bash heredoc can corrupt:
+   - Append a review-kind evidence entry via CLI. For the exact field list, run `geas schema template evidence --op append --kind review`. `geas evidence append` accepts inline flags (preferred for short prose) or a full JSON payload via `--file`. Inline form:
      ```bash
-     # Step 1: Write tool → e.g. <workspace>/.tmp/da-review.json
-     {
-       "evidence_kind": "review",
-       "summary": "structural review of <contract|implementation-contract>",
-       "verdict": "approved | changes_requested | blocked",
-       "concerns": [{"severity": "...", "text": "..."}],
-       "rationale": "<why, citing boundaries / interfaces / dependencies>",
-       "scope_examined": "<contract fields + surfaces inspected>",
-       "methods_used": ["read contract", "traced surface overlaps", "..."]
-     }
-
-     # Step 2: hand the file to the CLI
-     geas evidence append --mission {mission_id} --task {task_id} \
-         --agent {your_concrete_agent} --slot design-authority \
-         --file <workspace>/.tmp/da-review.json
+     geas evidence append --mission <id> --task <id> \
+         --agent <your_concrete_agent> --slot design-authority \
+         --evidence-kind review \
+         --summary "structural review of <contract|implementation-contract>" \
+         --verdict approved \
+         --concern "boundary issue in surface X — describe specifically" \
+         --concern "interface drift between Y and Z — describe specifically" \
+         --rationale "why, citing boundaries / interfaces / dependencies" \
+         --scope-examined "contract fields + surfaces inspected" \
+         --method-used "read contract" --method-used "traced surface overlaps"
      ```
+     `--concern` is repeatable; each concern is a plain-text string (the schema rejects `{severity,text}` objects — severity lives in `verdict`). Use `--rationale-from-file <path>` (Write tool stages prose) for long rationale; the full-payload `--file <path>` form remains as a back-compat alias for callers authoring the full JSON, never via bash heredoc (apostrophes / quotes corrupt shell parsing).
 4. **Branch C — Gap analysis.**
    - Read every phase-review, closure evidence (gap_signals), and mission-design trajectory.
    - Identify gaps: design ≠ delivery, acceptance criteria partially met, stubs without exit condition, surfaces the mission touched that the design did not anticipate.
    - Classify each gap: should it resolve inside this mission's consolidating phase, land as a debt, or appear in the mission-verdict's `carry_forward`?
-   - Write the gap payload via CLI. **Stage to a file with the Write tool, then pass `--file`**:
+   - Write the gap payload via CLI. `geas gap set` is full-payload only (no inline flags), so use the Write tool to stage the JSON body and pass `--file`. For the exact field list, run `geas schema template gap --op set`.
      ```bash
-     # Step 1: Write tool → e.g. <workspace>/.tmp/gap.json
-     {
-       "gaps": [
-         {"id": "...", "summary": "...", "category": "design-vs-delivery|scope|quality|operability", "severity": "low|normal|high|critical", "disposition": "resolve|debt|carry_forward", "rationale": "..."}
-       ]
-     }
-
+     # Step 1: Write tool → e.g. <workspace>/.tmp/gap.json (body matches the schema template)
      # Step 2: hand the file to the CLI
-     geas gap set --mission {mission_id} --file <workspace>/.tmp/gap.json
+     geas gap set --mission <id> --file <workspace>/.tmp/gap.json
      ```
    - `geas gap set` is full-replace; one payload per mission.
 5. **Return.** Orchestrator re-enters briefing and invokes the next phase-appropriate skill.

@@ -39,15 +39,7 @@ You have been summoned as a voter in a Geas deliberation. Read the proposal and 
    - `escalate` — the decision belongs above deliberation (mission verdict, user call, or a different slot's sole judgment).
 5. **Write rationale.** One or more sentences stating why, citing the artifact paths you read. Keep it plain; do not hedge.
 6. **Note dissent or concerns even when agreeing.** If you vote `agree` but see caveats, state them in the rationale. The convening skill preserves dissent as part of the audit trail.
-7. **Return the vote object** to the convening skill. Shape:
-   ```json
-   {
-     "voter": "<your slot id>",
-     "vote": "agree | disagree | escalate",
-     "rationale": "<why, citing artifacts>"
-   }
-   ```
-   Do not call `geas deliberation append` yourself. The convening skill aggregates all voters and writes the single entry.
+7. **Return the vote to the convening skill.** Hand back three fields: `voter` (your slot id), `vote` (`agree` / `disagree` / `escalate`), and `rationale` (one or more sentences citing the artifacts you read). The convening skill collects every voter's return and writes the single deliberation entry via `geas deliberation append`. Do not call `geas deliberation append` yourself, and do not attempt to write to `.geas/` from the voter context.
 
 ## Red Flags
 

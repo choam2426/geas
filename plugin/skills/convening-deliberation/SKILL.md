@@ -41,24 +41,20 @@ Thin convening wrapper over `geas deliberation append`. Spawns the voter set for
    - else majority `disagree` → `disagree`
    - else (tie or fewer than two voters) → `inconclusive`
 4. **Handle inconclusive locally.** If the expected result is `inconclusive`, do NOT call the CLI. Revise the composition or the proposal, return to step 1.
-5. **Record the entry via CLI.** **Stage to a file with the Write tool, then pass `--file`** — each voter's `rationale` is prose that can contain apostrophes/quotes.
-   ```bash
-   # Step 1: Write tool → e.g. <workspace>/.tmp/deliberation.json
-   {
-     "proposal_summary": "one-line summary of the question",
-     "votes": [
-       {"voter": "challenger", "vote": "disagree", "rationale": "..."},
-       {"voter": "risk-assessor", "vote": "agree", "rationale": "..."},
-       {"voter": "decision-maker", "vote": "agree", "rationale": "..."}
-     ],
-     "result": "agree"
-   }
+5. **Record the entry via CLI.** `geas deliberation append` accepts inline flags (preferred for short rationales) or a full JSON payload via `--file`. For the exact field list, run `geas schema template deliberation --op append`.
 
-   # Step 2: hand the file to the CLI
-   geas deliberation append --mission {mission_id} --level task --task {task_id} \
-       --file <workspace>/.tmp/deliberation.json
+   Inline form — `--vote` is repeatable and takes a `voter:vote:rationale` shorthand triple per voter:
+   ```bash
+   geas deliberation append --mission <id> --level task --task <id> \
+       --proposal-summary "one-line summary of the question" \
+       --vote "challenger:disagree:rationale text from challenger" \
+       --vote "risk-assessor:agree:rationale text from risk-assessor" \
+       --vote "decision-maker:agree:rationale text from decision-maker" \
+       --result agree
    ```
-   For mission-level deliberation drop `--task` and use `--level mission`. CLI checks: mode gate, ≥2 voters, voter slots in enum, rationales non-empty, `result` matches aggregation. Mismatch → `guard_failed`.
+   For mission-level deliberation drop `--task` and use `--level mission`. Use `--proposal-summary-from-file <path>` (Write tool stages the prose) when the summary runs long. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc — apostrophes / quotes inside any voter's rationale break shell parsing.
+
+   CLI checks: mode gate, ≥2 voters, voter slots in enum, rationales non-empty, `result` matches aggregation. Mismatch → `guard_failed`.
 6. **Feed the result back to the caller.**
    - `agree` → proposal becomes the path forward; caller (running-gate, reviewing-phase, specifying-mission) acts on it.
    - `disagree` → proposal is rejected; caller revises or escalates to a decision-maker call.
