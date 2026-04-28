@@ -68,6 +68,8 @@ Commands are organized along two axes: **artifact** (which file they act on) and
 | `geas task approve` | update | `contract.approved_by` |
 | `geas task transition` | update | `task-state.json` (lifecycle transition) |
 | `geas task-state update` | update | `task-state.json` (`active_agent`, iterations) |
+| `geas task deps add` / `geas task deps remove` | update | `contract.dependencies` (rotate dependency list mid-mission) |
+| `geas task base-snapshot set` | update | `contract.base_snapshot` (rotate the shared baseline sha after upstream tasks land) |
 | `geas impl-contract set` | set | `tasks/{id}/implementation-contract.json` |
 | `geas self-check append` | append | `tasks/{id}/self-check.json` |
 | `geas evidence append` | append | `tasks/{id}/evidence/{agent}.{slot}.json` |
@@ -97,14 +99,25 @@ Commands are organized along two axes: **artifact** (which file they act on) and
 
 ### Payload Delivery
 
-Payload-taking commands accept the payload via one of two channels:
+Most write-path commands accept their payload through a layered trio. The first form that resolves wins; the others remain as fallbacks.
 
-- **`--file <path>`** (recommended for large or prose-heavy content). The CLI reads the full file content at the given path as UTF-8 text. The shell never parses the content, so apostrophes, non-ASCII prose, newlines, and backticks inside the payload cannot corrupt it. Any local path works — direct writes under `.geas/` are blocked by the hook, so callers should stage the payload at a path outside `.geas/` (for example `/tmp/` or a project-local scratch file).
-- **stdin**. The CLI reads from stdin when no `--file` is provided. Safe when the content is produced by a reliable pipe (`cat file | geas cmd`). Not safe for prose payload passed inline via bash heredoc — embedded quotes, apostrophes, or non-ASCII text routinely break shell parsing before the bytes reach the CLI.
+- **Inline flags** (preferred for the common case). Each scalar field of the payload is exposed as a `--<field>` long flag. Repeatable scalar fields use `--<field> <value>` multiple times (Commander's variadic form). The eleven core write commands listed in the dispatch tables above support inline-flag invocation end-to-end so a single shell call can construct the artifact without staging a file. Free-body fields (`goal`, `verification_plan`, `summary`, `rationale`, `body`, …) are exposed both as `--<field> <text>` (acceptable for one-line prose) and as `--<field>-from-file <path>` (preferred for multi-line prose, markdown, or any content that includes apostrophes, backticks, or non-ASCII characters that the shell would otherwise have to escape).
+- **`--file <path>`** (full payload from file). When the caller already has a full JSON payload staged on disk, `--file` reads that path verbatim as UTF-8 text. The shell never parses the content, so apostrophes, non-ASCII prose, newlines, and backticks inside the payload cannot corrupt it. Direct writes under `.geas/` are blocked by the hook, so callers should stage the payload outside `.geas/` (for example `/tmp/` or a project-local scratch file). When `--file` is provided, inline scalar flags on the same call are ignored — `--file` wins.
+- **stdin**. When neither inline flags nor `--file` are provided, the CLI reads the full payload from stdin. Safe when the content is produced by a reliable pipe (`cat file | geas cmd`). Avoid bash heredoc with prose body — embedded quotes, apostrophes, or non-ASCII text routinely break shell parsing before the bytes reach the CLI.
 
-Exactly one channel must supply the payload. If both `--file` and stdin are provided, `--file` wins (the stdin content is ignored). If neither is provided, the call fails with `invalid_argument` (exit code `1`). JSON-payload commands parse the content as UTF-8 JSON; parse failures use the same error code. Text-payload commands (`mission design-set`, `memory shared-set`, `memory agent-set`) write the content verbatim after BOM strip and trailing-newline normalization.
+Exactly one channel must resolve. If a write-path command receives no inline flags, no `--file`, and no stdin payload, the call fails with `invalid_argument` (exit code `1`). JSON-payload commands parse the resolved content as UTF-8 JSON; parse failures use the same error code. Text-payload commands (`mission design-set`, `memory shared-set`, `memory agent-set`) write the content verbatim after BOM strip and trailing-newline normalization.
 
-This contract goes no further than "receive UTF-8 content via `--file` or stdin." How a shell or runtime prepares that content is the caller's concern. Section 4.4 shows invocation patterns verified by the reference implementation.
+This contract goes no further than "receive UTF-8 content via inline flags, `--file`, or stdin." How a shell or runtime prepares that content is the caller's concern. Section 4.4 shows invocation patterns verified by the reference implementation.
+
+### Global Flags
+
+Three orthogonal flags compose with every command and may appear at any subcommand depth. They are resolved leaf-first so the most-specific occurrence wins.
+
+| Flag | Effect |
+|---|---|
+| `--json` | Force a single-line `{ok, data}` / `{ok:false, error}` envelope on stdout. Without this flag the command emits the default scalar shape described in Section 5. |
+| `--verbose` | Include extra context in scalar output (extra fields, longer hints). Composes with default mode; in `--json` mode it is a no-op because the envelope already carries every field. |
+| `--debug` | Pair with `--json` to pretty-indent the envelope. Pair with default mode to surface diagnostic detail (stack hints, internal step labels) on stderr. |
 
 ### Identifier Flags
 
@@ -126,9 +139,36 @@ Only explicit long flags are used, never positional arguments.
 
 The contract stops at the points above. This subsection shows invocation patterns verified by the reference implementation. Adapters for fish, PowerShell, cmd, or other environments may use any equivalent way of staging content in a file or producing a clean pipe.
 
-**Preferred: stage to a file, pass `--file`**
+**Preferred: inline flags (single-call write)**
 
-The most reliable pattern across every shell and every agent environment. Payload bytes never traverse the shell parser.
+For the eleven core write commands (`mission create/approve`, `task draft/approve/transition`, `evidence append`, `self-check append`, `gate run`, `debt register`, `memory shared-set`, `deliberation append`) every scalar field is reachable via `--<field>` so the artifact can be authored in one shell call without a staging file.
+
+```bash
+geas task draft \
+  --title "Wire envelope export removal" \
+  --goal "Drop legacy emit/err/ok/EXIT_CODES exports from envelope.ts" \
+  --risk-level critical \
+  --verification-plan "binary fixture asserts the four exports are undefined" \
+  --surface src/cli/src/lib/envelope.ts \
+  --surface src/cli/test/envelope-no-legacy-exports.test.js \
+  --dependency task-004 \
+  --acceptance-criterion "env.emit, env.err, env.ok, env.EXIT_CODES are undefined" \
+  --base-snapshot 64a74fb073ec88de04ce0118c11e412ab40edbda
+```
+
+Free-body prose fields (`goal`, `verification_plan`, `summary`, `rationale`, `body`, …) are still safer to stage when they contain apostrophes, backticks, non-ASCII text, or run beyond a couple of lines:
+
+```bash
+printf '%s' "$verification_plan" > /tmp/vp.md
+geas task draft \
+  --title "..." --goal "short outcome line" --risk-level high \
+  --verification-plan-from-file /tmp/vp.md \
+  --surface ... --acceptance-criterion ...
+```
+
+**Acceptable: stage to a file, pass `--file` (full JSON)**
+
+When the caller already has a fully-formed JSON payload (for example because an upstream tool produced it), `--file` is the safest channel because no payload bytes traverse the shell parser.
 
 ```bash
 # Stage the payload to any path outside .geas/
@@ -182,34 +222,45 @@ The quoted delimiter (`<<'EOF'`) disables `$` expansion and backtick evaluation,
 
 ## 5. Output Contract
 
-### Success Response
+### Output Modes
 
-Every successful response is a single JSON object in this format.
+Every command's stdout / stderr shape is a function of the global flags resolved at parse time.
+
+| Mode | Success path | Error path |
+|---|---|---|
+| default (no flag) | One short scalar line on stdout: `<command>: <key facts>` (per-command formatter). When no formatter is registered the success envelope falls back to JSON on stdout. | `error: <message>` on stderr; if the error carries a hint, an additional `hint: <next action>` line on stderr. stdout is empty. |
+| `--json` | Single-line `{ok:true, data:{...}}` envelope on stdout. | Single-line `{ok:false, error:{code, message, hint?}}` envelope on stdout. |
+| `--json --debug` | Pretty-indented JSON envelope on stdout. | Pretty-indented JSON envelope on stdout (same shape; multi-line). |
+
+Skills and agents that consume the JSON envelope should pass `--json` explicitly. The default scalar mode targets human-facing readers (and the user-facing briefing layer in `plugin/skills/mission/references/briefing-templates.md`); programmatic consumers should never assume the default shape because it is allowed to drift toward terser phrasing as commands evolve.
+
+### Success Response (--json mode)
 
 ```json
 {
   "ok": true,
-  "path": ".geas/missions/mission-20260419-abcd1234/spec.json",
-  "ids": {
-    "mission_id": "mission-20260419-abcd1234"
-  },
-  "written": {
-    "bytes": 4213,
-    "fields_injected": ["created_at", "updated_at"]
+  "data": {
+    "path": ".geas/missions/mission-20260419-abcd1234/spec.json",
+    "ids": {
+      "mission_id": "mission-20260419-abcd1234"
+    },
+    "written": {
+      "bytes": 4213,
+      "fields_injected": ["created_at", "updated_at"]
+    }
   }
 }
 ```
 
-Fields:
+Fields inside `data`:
 
-- `ok: true` - fixed.
 - `path` - the primary file touched by this invocation.
 - `ids` - the identifiers created or finalized by this invocation.
 - `written` - auxiliary information such as which fields the CLI injected, useful when an agent wants to confirm what was written.
 
 Append commands include new identifiers such as `entry_id` or `gate_run_id` in `ids`.
 
-### Error Response
+### Error Response (--json mode)
 
 ```json
 {
@@ -217,17 +268,14 @@ Append commands include new identifiers such as `entry_id` or `gate_run_id` in `
   "error": {
     "code": "schema_validation_failed",
     "message": "mission-spec.schema.json: required field 'name' missing",
-    "hints": {
-      "missing_required": ["name"],
-      "invalid_enum": [],
-      "wrong_pattern": [],
-      "additional_not_allowed": []
-    }
+    "hint": "add the missing field to the payload and retry"
   }
 }
 ```
 
-Error codes are a fixed enum:
+Every error envelope carries `code`, `message`, and an optional `hint` (singular string). Schema-validation failures additionally surface a structured hint object on stderr in default mode (Section 6.7) so the agent can act on the precise validation defect without re-running with `--json`.
+
+Error codes are descriptive tags chosen by each command. Common values:
 
 | code | Meaning |
 |---|---|
@@ -240,18 +288,19 @@ Error codes are a fixed enum:
 | `io_error` | A filesystem error occurred |
 | `internal_error` | Any other failure; treated as a bug |
 
-### Exit Codes
+### Exit Codes (Error Categories)
 
-| code | Meaning |
-|---|---|
-| 0 | success |
-| 1 | general error (`invalid_argument`, `internal_error`) |
-| 2 | schema validation failed |
-| 3 | guard failed |
-| 4 | I/O error |
-| 5 | append-only violation |
+Every error attaches to one of five routing categories. The category determines the process exit code; the descriptive `code` tag is independent.
 
-Skills and agents should primarily branch on the JSON `ok` field. Exit codes exist only for shell-level failure detection.
+| Category | Exit code | Typical codes |
+|---|---|---|
+| `validation` | 2 | `schema_validation_failed`, `invalid_argument` (payload shape) |
+| `guard` | 3 | `guard_failed`, `append_only_violation`, `path_collision` |
+| `missing_artifact` | 4 | `missing_artifact`, `task_not_found`, `mission_not_found` |
+| `io` | 5 | `io_error` (filesystem failure) |
+| `internal` | 1 | `internal_error`, unknown / unrouted |
+
+Exit code `0` is reserved for success. Skills and agents should primarily branch on the JSON `ok` field; exit codes exist for shell-level failure detection and CI gates that need a single integer signal.
 
 ## 6. Write Pipeline
 
@@ -721,3 +770,31 @@ The following actions always require an explicit Orchestrator call. The CLI does
 - promotion from `consolidation/candidates.json` into official `debts.json`, `gap.json`, and `memory-update.json`
 
 That separation preserves the rule from Section 2: the CLI owns formal structure and deterministic aggregation, while judgment remains with the Orchestrator and agents.
+
+## 15. Skill-Layer Conventions
+
+The CLI is one half of the agent UX surface. The other half is the skill layer (`plugin/skills/`), which the dispatcher reads to drive each phase. The conventions below live in the skill layer but exist to interact cleanly with the CLI guarantees in Sections 1-14; they are mentioned here so a CLI-centric reader knows where to look when a skill body references them.
+
+### 15.1 Inline-Flag-First Invocation
+
+Every SKILL.md that triggers a write-path command names the inline-flag form first and reserves `--file <path>` / stdin only for free-body fields where prose-staging is genuinely safer (apostrophes, multi-line markdown, non-ASCII text). Concrete inline-flag forms for the eleven core commands are documented inside each SKILL.md and exercised by the integration scenario fixture (`src/cli/test/integration-scenario.test.js`).
+
+### 15.2 IN-8 Drafting Preflight
+
+`plugin/skills/drafting-task/SKILL.md` and `plugin/skills/specifying-mission/SKILL.md` carry a preflight ritual that the drafter must run before approving a task contract:
+
+- enumerate the test fixtures that the task's production-code surfaces will break, and include them in `contract.surfaces` (or call out that a downstream task will own them via `contract.dependencies`)
+- check that no `cancelled` or `escalated` task is left dangling in any other task's `contract.dependencies` — if so, run `geas task deps remove --task <id> --dep <cancelled-id>` before the new approval
+
+The preflight catches a class of drafting flaws that previously surfaced only at gate time (mission-20260427-xIPG1sDY task-006 closure registered the AC↔surfaces preflight as a follow-up debt).
+
+### 15.3 Mission Dispatch Table
+
+`plugin/skills/mission/SKILL.md` carries the dispatch table the orchestrator reads to route the mission state machine. The rows that interact with this CLI document:
+
+- `implementing → reviewing` — orchestrator transitions the task after the implementer's self-check lands; reviewers and the verifier are dispatched in the new state.
+- reviewer/verifier dispatch — for each `routing.required_reviewers` slot the orchestrator spawns a concrete agent in the `reviewing-task` skill; the verifier is dispatched in parallel via `verifying-task`. The CLI does not manage the dispatch — it only provides the artifacts (`evidence/{agent}.{slot}.json`) the spawned agents append to.
+
+### 15.4 User-Facing Briefing Vocabulary
+
+Four user-facing briefings (`current-status`, `task-completion`, `phase-transition`, `mission-verdict`) are emitted as Korean narrative prose, not field-colon JSON dumps. The vocabulary they may use is enumerated as a jargon allowlist in `plugin/skills/mission/references/briefing-templates.md`; CLI-emitted text that flows into a briefing should respect the allowlist (core protocol terms `phase`, `gate`, `task`, `mission`, `evidence`, `verdict` are allowed; deeper jargon like `tier`, `verify-fix`, `rewind` is not). The CLI's default scalar output mode (Section 5) is the surface that feeds this layer.
