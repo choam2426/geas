@@ -35,7 +35,7 @@ import { registerConsolidationCommands } from './commands/consolidation';
 import { registerImplContractCommands } from './commands/impl-contract';
 import { setOutputMode, type OutputMode } from './lib/output';
 
-const VERSION = '0.13.0';
+const VERSION = '0.14.0';
 
 /**
  * Names of the global flags. Kept here as the single source of truth so

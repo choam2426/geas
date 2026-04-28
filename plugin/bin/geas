@@ -16903,7 +16903,7 @@ function registerImplContractCommands(program2) {
 }
 
 // src/main.ts
-var VERSION = "0.13.0";
+var VERSION = "0.14.0";
 var GLOBAL_FLAG_FIELDS = ["json", "verbose", "debug"];
 function makeGlobalFlagOption(field) {
   switch (field) {
