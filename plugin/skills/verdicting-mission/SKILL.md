@@ -39,7 +39,7 @@ Writes the final mission-level verdict — the decision-maker's assessment of wh
    geas mission-verdict append --mission <id> --file <workspace>/.tmp/mission-verdict.json
    ```
    CLI injects `entry_id`, `created_at`; appends to `mission-verdicts.verdicts`.
-6. **Return to dispatcher.** The dispatcher then emits the mission-verdict briefing, collects user confirmation, and on confirmation runs `geas mission-state update --mission <id> --phase complete`. This skill does not make the `complete` transition itself.
+6. **Return to the mission caller.** This skill does not emit the briefing or transition the mission. The mission caller will render the **Mission-verdict** narrative template from `plugin/skills/mission/references/briefing-templates.md` (section 4) in Korean — naming the mission, the task counts, the definition-of-done outcome, the open debt and memory carried forward, and the user final-confirmation prompt — collect the user's approve, and only then run `geas mission-state update --mission <id> --phase complete`. The user-facing vocabulary allowlist at the top of that templates file constrains the emitted briefing.
 
 ## Red Flags
 
