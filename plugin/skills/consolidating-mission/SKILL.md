@@ -39,7 +39,7 @@ Converts the mission's accumulated `memory_suggestions`, `debt_candidates`, and 
 3. **Register debts.** For each `debt_candidates` entry that the orchestrator promotes: `geas debt register` with the payload shape `{severity, kind, title, description, introduced_by}`. CLI assigns `debt_id`, sets `status=open`. For debts resolved by this mission, `geas debt update-status --debt <id>`.
 4. **Write the gap artifact.** Collect design-authority's unresolved technical questions + risk-assessor's unaddressed risks from the gap_signals into a single payload. `geas gap set --mission <id>` writes `.geas/missions/{mid}/consolidation/gap.json`.
 5. **Build the edited memory markdowns.** For each changed scope (shared + each changed agent type): read current file, apply `added` / `modified` / `removed` edits in-memory, mark newly added entries with `[DRAFT]` prefix unless the candidate came from 2+ independent tasks with strong evidence, preserve stable `memory_id` labels on headings.
-6. **Write memory markdown via CLI.** For shared: `cat new-shared.md | geas memory shared-set`. For each changed agent type: `cat new-<type>.md | geas memory agent-set --agent <type>`. CLI atomically replaces; `--agent` must be a concrete type (no raw slot ids).
+6. **Write memory markdown via CLI.** For shared: `geas memory shared-set --body-from-file <workspace>/.tmp/new-shared.md` (or `--body "<short markdown>"` when the body fits inline; `--file <path>` survives as a back-compat alias). For each changed agent type: `geas memory agent-set --agent <type> --file <workspace>/.tmp/new-<type>.md` (this command accepts only `--file`). CLI atomically replaces; `--agent` must be a concrete type (no raw slot ids).
 7. **Write the memory-update change log.** Immediately after markdown writes succeed: `geas memory-update set --mission <id>` with the `added` / `modified` / `removed` entries per scope, each carrying `memory_id`, `reason`, `evidence_refs`. Markdown + changelog must pair.
 8. **Return to dispatcher.** Leave the `verdicting-mission` step to a separate dispatch; consolidation's last step here is the memory-update write, not the mission verdict.
 
@@ -61,8 +61,8 @@ Converts the mission's accumulated `memory_suggestions`, `debt_candidates`, and 
 | `geas debt register` | Write a new debt entry. |
 | `geas debt update-status --debt <id>` | Update a debt's status (resolved / dropped). |
 | `geas gap set --mission <id>` | Write mission-level gap artifact. |
-| `geas memory shared-set` | Atomically replace `.geas/memory/shared.md` (stdin is full markdown). |
-| `geas memory agent-set --agent <type>` | Atomically replace `.geas/memory/agents/{type}.md` (stdin is full markdown). |
+| `geas memory shared-set` | Atomically replace `.geas/memory/shared.md`. Accepts `--body <text>` (inline) / `--body-from-file <path>` (preferred for prose) / `--file <path>` (back-compat alias). |
+| `geas memory agent-set --agent <type>` | Atomically replace `.geas/memory/agents/{type}.md` (markdown via `--file <path>`). |
 | `geas memory-update set --mission <id>` | Write the semantic change log paired with the markdown writes. |
 
 ## Outputs
