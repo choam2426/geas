@@ -47,6 +47,8 @@ None. The dispatcher handles `.geas/` bootstrap, so it is safe to call in a fres
    | specifying | no mission spec OR spec not yet user-approved | `specifying-mission` |
    | specifying | spec approved, initial tasks not all approved | `drafting-task` (per task) |
    | building | tasks ready with deps satisfied | `scheduling-work` |
+   | building | task is `implementing`, implementer has appended self-check | transition `implementing → reviewing` via `geas task transition --to reviewing`, then dispatch reviewer + verifier (next row) |
+   | building | task is `reviewing`, no reviewer or verifier evidence yet | spawn each `routing.required_reviewers` slot via `reviewing-task`, in parallel with the verifier slot via `verifying-task` |
    | building | required reviewers + verifier evidence present for a task | `running-gate` |
    | building | gate verdict pass on a task | `closing-task` |
    | building | all mission-scope tasks terminal | `reviewing-phase` |
