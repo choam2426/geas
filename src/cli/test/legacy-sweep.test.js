@@ -179,3 +179,112 @@ test('envelope.ts bridge: emit() delegates to output.ts writer helpers', () => {
     'envelope.ts emit() must still exit with EXIT_CODES[code] (Option A)',
   );
 });
+
+// ── T3.1 / AC4: SKILL.md migration sweep ──────────────────────────────
+//
+// mission-20260427-xIPG1sDY task-003 / verification_plan step 1.
+//
+// After T2 framework ships and T3 migrates the 17 SKILL.md files, no
+// SKILL.md body should still promote the legacy CLI patterns:
+//   (a) `cat <<EOF` / `<<'EOF'` heredoc-style payload injection
+//   (b) `cat <something>.json | geas <command>` stdin-pipe form
+//
+// The grep is intentionally narrow: bare `--file <path>` mentions are
+// allowed (it remains a back-compat alias and several commands accept
+// only `--file`); only the heredoc and stdin-pipe forms are flagged. A
+// SKILL.md may still mention "stdin" descriptively (e.g. "this command
+// accepts JSON via --file or stdin") — what we forbid is the actual
+// invocation pattern that pipes a file or heredoc into the CLI.
+//
+// references/*.md is INCLUDED in the sweep because per T3.1 the legacy
+// invocation patterns are forbidden everywhere in plugin/skills/, not
+// just in the SKILL.md bodies.
+
+const SKILLS_ROOT = path.join(REPO_ROOT, 'plugin', 'skills');
+
+function listSkillMarkdown() {
+  const out = [];
+  function walk(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        walk(full);
+      } else if (e.isFile() && full.endsWith('.md')) {
+        out.push(full);
+      }
+    }
+  }
+  walk(SKILLS_ROOT);
+  return out;
+}
+
+test('T3.1 / AC4: no `cat <<EOF` heredoc invocations remain in plugin/skills/', () => {
+  const files = listSkillMarkdown();
+  assert.ok(files.length > 0, 'expected at least one SKILL.md / reference under plugin/skills/');
+
+  const findings = [];
+  // Match `cat <<EOF`, `cat <<'EOF'`, `cat <<"EOF"`, with any whitespace
+  // between cat and <<. The closing EOF is not required to match here —
+  // the open marker alone is enough to prove a heredoc invocation pattern.
+  const heredoc = /cat\s+<<-?\s*['"]?EOF['"]?/;
+
+  for (const file of files) {
+    const lines = fs.readFileSync(file, 'utf-8').split(/\r?\n/);
+    lines.forEach((line, idx) => {
+      if (heredoc.test(line)) {
+        findings.push({
+          file: path.relative(REPO_ROOT, file),
+          line: idx + 1,
+          text: line.trim(),
+        });
+      }
+    });
+  }
+
+  assert.deepEqual(
+    findings,
+    [],
+    `legacy heredoc invocations remain in plugin/skills/:\n${findings
+      .map((f) => `  ${f.file}:${f.line}  ${f.text}`)
+      .join('\n')}`,
+  );
+});
+
+test('T3.1 / AC4: no `cat <file>.json | geas` stdin-pipe invocations remain in plugin/skills/', () => {
+  const files = listSkillMarkdown();
+  assert.ok(files.length > 0, 'expected at least one SKILL.md / reference under plugin/skills/');
+
+  const findings = [];
+  // Match `cat <something> | geas` — captures the actual invocation
+  // pattern. We intentionally ignore prose mentions of "stdin" because
+  // running-gate/SKILL.md legitimately reminds the reader that
+  // `geas gate run` does NOT take stdin (anti-pattern callout).
+  const pipeIntoGeas = /\bcat\s+\S+\s*\|\s*geas\s/;
+
+  for (const file of files) {
+    const lines = fs.readFileSync(file, 'utf-8').split(/\r?\n/);
+    lines.forEach((line, idx) => {
+      if (pipeIntoGeas.test(line)) {
+        findings.push({
+          file: path.relative(REPO_ROOT, file),
+          line: idx + 1,
+          text: line.trim(),
+        });
+      }
+    });
+  }
+
+  assert.deepEqual(
+    findings,
+    [],
+    `legacy stdin-pipe invocations remain in plugin/skills/:\n${findings
+      .map((f) => `  ${f.file}:${f.line}  ${f.text}`)
+      .join('\n')}`,
+  );
+});
