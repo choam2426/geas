@@ -310,97 +310,20 @@ test('emitErr in default mode without hint writes only the error line on stderr'
   assert.ok(!/hint:/.test(res.stderr), 'hint line absent when hint omitted');
 });
 
-// ── T1 bridge equivalence (mission-20260427-xIPG1sDY task-001) ────────
+// ── Bridge equivalence tests removed in T5.5 ──────────────────────────
 //
-// envelope.emit(envelope) routes through output.writeOkEnvelope /
-// output.writeLegacyErrEnvelope under Option A but exits with the
-// LEGACY EXIT_CODES integer. Validates that:
-//   (a) success path produces a byte-identical {ok:true,data:...}
-//       envelope and exits 0.
-//   (b) error path produces a byte-identical
-//       {ok:false,error:{code,message,hints?}} envelope (note: `hints`
-//       plural — legacy field name), exit code is the legacy integer
-//       (missing_artifact=1 NOT new-category 4; guard_failed=3),
-//       hints field is preserved verbatim.
-//   (c) debug mode pretty-prints the legacy envelope (proves the bridge
-//       routes through output's OutputState).
-
-const ENVELOPE_PATH = path
-  .join(REPO_ROOT, 'src', 'cli', 'dist', 'lib', 'envelope')
-  .replace(/\\/g, '\\\\');
-
-test('envelope.emit (bridge) ok-path produces byte-identical legacy envelope', () => {
-  const snippet = `
-    const env = require('${ENVELOPE_PATH}');
-    env.emit(env.ok({ x: 1, nested: { y: 'two' } }));
-  `;
-  const res = runChild(snippet);
-  assert.equal(res.status, 0);
-  // The exact stdout shape — single-line JSON, trailing newline — is
-  // what 17 unmigrated commands rely on.
-  assert.equal(
-    res.stdout,
-    '{"ok":true,"data":{"x":1,"nested":{"y":"two"}}}\n',
-    'bridge ok-path stdout must match legacy envelope byte-for-byte',
-  );
-});
-
-test('envelope.emit (bridge) err-path uses LEGACY EXIT_CODES integer and preserves `hints` plural', () => {
-  // missing_artifact = 1 in legacy EXIT_CODES vs 4 in new EXIT_CATEGORY_CODE.
-  // Bridge MUST exit 1 at T1 merge (Option A — fixture compatibility).
-  const snippet = `
-    const env = require('${ENVELOPE_PATH}');
-    env.emit(env.err('missing_artifact', 'no artifact', { detail: 1 }));
-  `;
-  const res = runChild(snippet);
-  assert.equal(
-    res.status,
-    1,
-    'missing_artifact must exit 1 (legacy) at T1 merge, not 4 (new category)',
-  );
-  assert.equal(
-    res.stdout,
-    '{"ok":false,"error":{"code":"missing_artifact","message":"no artifact","hints":{"detail":1}}}\n',
-    'bridge err-path stdout must match legacy envelope (note: `hints` plural)',
-  );
-});
-
-test('envelope.emit (bridge) err-path: guard_failed exits 3 (legacy)', () => {
-  const snippet = `
-    const env = require('${ENVELOPE_PATH}');
-    env.emit(env.err('guard_failed', 'bad transition'));
-  `;
-  const res = runChild(snippet);
-  assert.equal(res.status, 3, 'guard_failed must exit 3 (legacy=new=3)');
-  assert.ok(res.json);
-  assert.equal(res.json.ok, false);
-  assert.equal(res.json.error.code, 'guard_failed');
-  assert.ok(
-    !('hint' in res.json.error),
-    'legacy envelope error has no `hint` (singular) field',
-  );
-  assert.ok(
-    !('hints' in res.json.error),
-    'optional `hints` is omitted when not provided',
-  );
-});
-
-test('envelope.emit (bridge) honors output.setOutputMode debug for pretty-print', () => {
-  // Routing through output.writeOkEnvelope means the bridge respects
-  // the OutputState debug toggle, just as a v2-migrated command would.
-  const snippet = `
-    const env = require('${ENVELOPE_PATH}');
-    const o = require('${OUTPUT_PATH}');
-    o.setOutputMode({ mode: 'json', verbose: false, debug: true });
-    env.emit(env.ok({ x: 1 }));
-  `;
-  const res = runChild(snippet);
-  assert.equal(res.status, 0);
-  assert.ok(
-    res.stdout.includes('\n  '),
-    `expected pretty-indented JSON, got: ${res.stdout}`,
-  );
-  assert.ok(res.json, 'still parses as JSON');
-  assert.equal(res.json.ok, true);
-  assert.deepEqual(res.json.data, { x: 1 });
-});
+// mission-20260427-xIPG1sDY task-005 / verification_plan step 5.
+//
+// The four bridge equivalence tests below were retired when envelope.ts
+// dropped its emit/err/ok/EXIT_CODES exports (T5.5 export removal).
+// They asserted byte-identical legacy-envelope behavior of envelope.emit
+// routing through writeOkEnvelope / writeLegacyErrEnvelope under Option
+// A — a transitional contract that no longer applies because all 17
+// commands migrated to direct output.emitOk / output.emitErr in T2
+// (task-006), and T5 removed the legacy exports entirely.
+//
+// The replacement coverage is:
+//   - src/cli/test/envelope-no-legacy-exports.test.js binary-asserts
+//     env.emit / env.err / env.ok / env.EXIT_CODES are undefined.
+//   - The emitOk / emitErr / emitErr-default-stderr tests above cover
+//     the canonical write path that all commands now use.

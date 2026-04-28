@@ -132,53 +132,22 @@ test('no legacy v1/v2 terms remain in v3 surfaces', () => {
   );
 });
 
-// ── T1 bridge code-level delegation pattern (envelope -> output) ──────
+// ── T1 bridge test removed in T5.5 ────────────────────────────────────
 //
-// mission-20260427-xIPG1sDY task-001 / verification_plan step 6.
-// Asserts that envelope.ts source declares an import from './output' AND
-// references the writer helpers in the bridge body. Pairs with the
-// runtime equivalence tests in output.test.js (T1 bridge equivalence
-// section): one proves the bytes on stdout match, this one proves the
-// code path actually flows through output.ts. A future regression that
-// reverts the bridge to envelope.ts's own JSON.stringify+process.exit
-// would still pass the runtime tests today (because stdout bytes are
-// identical) but would silently strip the bridge's central premise
-// (unified OutputState routing). This grep catches that.
-
-test('envelope.ts bridge: emit() delegates to output.ts writer helpers', () => {
-  const envelopePath = path.join(
-    REPO_ROOT,
-    'src',
-    'cli',
-    'src',
-    'lib',
-    'envelope.ts',
-  );
-  const src = fs.readFileSync(envelopePath, 'utf-8');
-
-  // (1) Imports from output.ts
-  assert.ok(
-    /from ['"]\.\/output['"]/.test(src),
-    'envelope.ts must import from ./output (bridge delegation pattern)',
-  );
-
-  // (2) Bridge body references the non-exiting writer helpers
-  assert.ok(
-    /writeOkEnvelope\s*\(/.test(src),
-    'envelope.ts emit() must call writeOkEnvelope on the success path',
-  );
-  assert.ok(
-    /writeLegacyErrEnvelope\s*\(/.test(src),
-    'envelope.ts emit() must call writeLegacyErrEnvelope on the error path',
-  );
-
-  // (3) Legacy EXIT_CODES still drives process.exit on the error path —
-  // proving Option A (legacy exit code preservation at T1 merge).
-  assert.ok(
-    /process\.exit\(EXIT_CODES\[/.test(src),
-    'envelope.ts emit() must still exit with EXIT_CODES[code] (Option A)',
-  );
-});
+// mission-20260427-xIPG1sDY task-005 / verification_plan step 5.
+//
+// The original "envelope.ts bridge: emit() delegates to output.ts writer
+// helpers" test asserted that envelope.ts imported from ./output and
+// called writeOkEnvelope / writeLegacyErrEnvelope from inside emit() —
+// the T1 Option A bridge contract. That contract no longer applies:
+// envelope.ts dropped its emit / err / ok / EXIT_CODES exports in T5.5
+// (mission-20260427-xIPG1sDY task-005), leaving the file as solely the
+// events.jsonl recorder. The bridge served its design purpose during
+// the T2 (task-006) migration window and is retired on schedule.
+//
+// Replacement coverage:
+//   - src/cli/test/envelope-no-legacy-exports.test.js binary-asserts
+//     env.emit / env.err / env.ok / env.EXIT_CODES are undefined.
 
 // ── T3.1 / AC4: SKILL.md migration sweep ──────────────────────────────
 //

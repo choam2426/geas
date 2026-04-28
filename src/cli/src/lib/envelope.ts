@@ -1,13 +1,23 @@
 /**
- * Output envelope and events.jsonl auto-append.
+ * Events.jsonl recorder + actor validator.
  *
- * Every CLI command emits one of two JSON objects on stdout:
+ * As of mission-20260427-xIPG1sDY task-005 (T5.5) this module owns one
+ * responsibility: append best-effort entries to `.geas/events.jsonl` and
+ * validate the `actor` field against the protocol's slot+special-actor
+ * allowlist. Every CLI emission concern (stdout envelope shape, exit
+ * codes, debug pretty-print, scalar-vs-JSON mode flip) lives in
+ * `lib/output.ts` and `lib/errors.ts`.
  *
- *   { "ok": true,  "data": { ... } }
- *   { "ok": false, "error": { code, message, hints? } }
- *
- * Write-path commands (mutations) additionally append an event to
- * `.geas/events.jsonl` via recordEvent(). Read-only commands do not.
+ * History:
+ *   - Original v2 contract: this module also exported `emit`, `err`,
+ *     `ok`, and `EXIT_CODES` — the canonical write path for every
+ *     command. Task-001 (T1) installed a bridge so `emit()` delegated
+ *     to lib/output writers while preserving legacy exit codes
+ *     (Option A). Task-006 (T2) migrated all 17 commands to call
+ *     output.emitOk/emitErr directly. Task-005 (T5) removed the four
+ *     legacy exports entirely. The `envelope-no-legacy-exports.test.js`
+ *     fixture binary-asserts the absence; the closure rationale lives
+ *     in mission-20260427-xIPG1sDY task-005 evidence.
  *
  * Event scope:
  *   Every mutation command that advances the protocol emits an event —
@@ -23,106 +33,13 @@
  *   still returns `ok` — rolling back the already-committed artifact
  *   write would be worse than a missing telemetry line. See CLI.md
  *   §14.6 and HOOKS.md §4.3.
- *
- * Exit codes follow CLI.md §5:
- *   0 success
- *   1 invalid_argument / internal_error
- *   2 schema_validation_failed
- *   3 guard_failed
- *   4 io_error
- *   5 append_only_violation
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 
 import { appendJsonl } from './fs-atomic';
-import { writeLegacyErrEnvelope, writeOkEnvelope } from './output';
 import { eventsPath } from './paths';
-
-export type ErrorCode =
-  | 'schema_validation_failed'
-  | 'guard_failed'
-  | 'append_only_violation'
-  | 'path_collision'
-  | 'missing_artifact'
-  | 'invalid_argument'
-  | 'io_error'
-  | 'internal_error';
-
-export interface CliError {
-  code: ErrorCode;
-  message: string;
-  hints?: unknown;
-}
-
-export interface OkEnvelope<T = unknown> {
-  ok: true;
-  data: T;
-}
-
-export interface ErrEnvelope {
-  ok: false;
-  error: CliError;
-}
-
-export type Envelope<T = unknown> = OkEnvelope<T> | ErrEnvelope;
-
-const EXIT_CODES: Record<ErrorCode, number> = {
-  schema_validation_failed: 2,
-  guard_failed: 3,
-  append_only_violation: 5,
-  path_collision: 1,
-  missing_artifact: 1,
-  invalid_argument: 1,
-  io_error: 4,
-  internal_error: 1,
-};
-
-export function ok<T>(data: T): OkEnvelope<T> {
-  return { ok: true, data };
-}
-
-export function err(code: ErrorCode, message: string, hints?: unknown): ErrEnvelope {
-  return { ok: false, error: hints !== undefined ? { code, message, hints } : { code, message } };
-}
-
-/**
- * Print `envelope` on stdout (JSON, trailing newline) and exit with the
- * appropriate code.
- *
- * T1 bridge (mission-20260427-xIPG1sDY task-001, Option A): the body of
- * this function delegates the stdout write to the unified output layer
- * (`lib/output.ts`) so all 17 unmigrated commands share the same
- * OutputState-aware emission — debug pretty-print, mode handling, and
- * any future formatter dispatch live in one place. The exit code,
- * however, is still picked from the legacy {@link EXIT_CODES} table so
- * external consumers (test fixtures, hook scripts, the bundled launcher)
- * see byte-identical behavior at T1 merge. The new five-category exit
- * codes (`lib/errors.EXIT_CATEGORY_CODE`) only take effect when a
- * command migrates its call sites to `makeError` + `emitErr` directly
- * (T2 batches).
- *
- * The error path still emits the legacy envelope shape
- * `{ok:false, error:{code, message, hints?}}` (note: `hints` plural) —
- * the v2 layer uses `hint` (singular) so we cannot funnel through
- * `output.emitErr` without changing observable JSON. {@link
- * writeLegacyErrEnvelope} is the transitional helper that preserves the
- * legacy field naming while still flowing through the OutputState-aware
- * stdout writer.
- */
-export function emit(envelope: Envelope): never {
-  if (envelope.ok) {
-    // commandName is unused in JSON mode (which is the T2 invariant
-    // until per-command scalar formatters land); pass an empty string so
-    // formatter lookup misses and the JSON-envelope fallback fires —
-    // identical to the pre-bridge behavior.
-    writeOkEnvelope('', envelope.data);
-    process.exit(0);
-  }
-  writeLegacyErrEnvelope(envelope);
-  process.exit(EXIT_CODES[envelope.error.code] ?? 1);
-}
 
 // ── Event log ─────────────────────────────────────────────────────────
 
@@ -133,7 +50,7 @@ export function emit(envelope: Envelope): never {
  *     verifier, risk-assessor, operator, communicator)
  *   - `user` — a human decision reflected into the log
  *   - `cli:auto` — the CLI itself; the `:` is a namespace prefix
- *     exception documented in CLI.md §14.7 because events.jsonl is an
+ *     exception documented in CLI.md §14.6 because events.jsonl is an
  *     implementation aux log, not a canonical protocol artifact.
  */
 const SLOT_ACTORS = [
