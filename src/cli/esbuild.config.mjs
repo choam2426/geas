@@ -27,4 +27,6 @@ await esbuild.build({
   },
 });
 
+fs.chmodSync(outfile, 0o755);
+
 console.log(`Bundled → ${outfile}`);
