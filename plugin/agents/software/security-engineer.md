@@ -1,6 +1,5 @@
 ---
 name: security-engineer
-model: opus
 slot: risk-assessor
 domain: software
 ---

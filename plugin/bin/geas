@@ -10833,7 +10833,7 @@ function eventsPath(projectRoot) {
   return path2.join(geasDir(projectRoot), "events.jsonl");
 }
 function tmpDir(projectRoot) {
-  return path2.join(geasDir(projectRoot), ".tmp");
+  return path2.join(geasDir(projectRoot), "tmp");
 }
 function memoryDir(projectRoot) {
   return path2.join(geasDir(projectRoot), "memory");
@@ -12045,6 +12045,18 @@ var TASK_TRANSITIONS = /* @__PURE__ */ new Set([
 function isValidTaskState(v) {
   return typeof v === "string" && TASK_STATES.includes(v);
 }
+var RETRY_BUDGET_BY_RISK = Object.freeze({
+  low: 1,
+  normal: 2,
+  high: 2,
+  critical: 3
+});
+function retryBudgetForRiskLevel(riskLevel) {
+  if (typeof riskLevel === "string" && Object.prototype.hasOwnProperty.call(RETRY_BUDGET_BY_RISK, riskLevel)) {
+    return RETRY_BUDGET_BY_RISK[riskLevel];
+  }
+  return RETRY_BUDGET_BY_RISK.normal;
+}
 function canTransitionTaskState(from, to, hints) {
   if (!isValidTaskState(from)) {
     return fail(`unknown source state '${from}'`);
@@ -12132,6 +12144,23 @@ function canTransitionTaskState(from, to, hints) {
     if (!hints.closureApproved) {
       return fail(
         "escalated -> passed requires orchestrator closure evidence with verdict=approved"
+      );
+    }
+    return pass();
+  }
+  if (from === "reviewing" && to === "implementing") {
+    const budget = retryBudgetForRiskLevel(hints.riskLevel ?? null);
+    const current = typeof hints.verifyFixIterations === "number" ? hints.verifyFixIterations : 0;
+    if (current >= budget) {
+      const risk = typeof hints.riskLevel === "string" ? hints.riskLevel : "normal";
+      return fail(
+        `verify-fix retry-budget exhausted for risk_level='${risk}' (budget=${budget}, verify_fix_iterations=${current}); reviewing -> implementing rewind refused`,
+        {
+          retry_budget: budget,
+          verify_fix_iterations: current,
+          risk_level: risk,
+          hint: "transition the task to blocked or escalated instead; the verify-fix loop has reached its cap"
+        }
       );
     }
     return pass();
@@ -13474,7 +13503,9 @@ function makeApproveHints() {
     reviewEvidenceExists: false,
     missingReviewSlots: [],
     verificationEvidenceExists: false,
-    closureApproved: false
+    closureApproved: false,
+    riskLevel: null,
+    verifyFixIterations: 0
   };
 }
 function recomputeActiveTasks(root, missionId) {
@@ -13572,7 +13603,8 @@ function registerTaskTransition(task) {
       root,
       opts.mission,
       opts.task,
-      contract
+      contract,
+      state
     );
     const guard = canTransitionTaskState(from, to, hints);
     if (!guard.ok) {
@@ -13628,7 +13660,7 @@ function registerTaskTransition(task) {
     });
   });
 }
-function collectTaskStateHints(root, missionId, taskId, contract) {
+function collectTaskStateHints(root, missionId, taskId, contract, state) {
   const deps = Array.isArray(contract.dependencies) ? contract.dependencies : [];
   const surfaces = Array.isArray(contract.surfaces) ? contract.surfaces : [];
   const routing = contract.routing ?? {};
@@ -13710,6 +13742,8 @@ function collectTaskStateHints(root, missionId, taskId, contract) {
     }
   }
   const contractApproved = contract.approved_by !== null && contract.approved_by !== void 0;
+  const riskLevel = typeof contract.risk_level === "string" ? contract.risk_level : null;
+  const verifyFixIterations = state && typeof state.verify_fix_iterations === "number" ? state.verify_fix_iterations : 0;
   return {
     contractApproved,
     dependenciesSatisfied: unsatisfied.length === 0,
@@ -13720,7 +13754,9 @@ function collectTaskStateHints(root, missionId, taskId, contract) {
     reviewEvidenceExists,
     missingReviewSlots,
     verificationEvidenceExists,
-    closureApproved
+    closureApproved,
+    riskLevel,
+    verifyFixIterations
   };
 }
 function registerTaskDeps(task) {

@@ -35,7 +35,21 @@ Transforms a slice of mission scope into a task contract routed to a concrete im
 4. **List `acceptance_criteria`.** ≥1 observable yes/no item; each names the dimension (correctness, scope boundary, regression safety) so reviewers can write useful evidence.
 5. **Write `verification_plan`.** Prose (markdown allowed). Both automated and manual checks go here; do not emit an executable command vector — verification is prose + gate.
 6. **Declare `surfaces`.** Named files, directories, documents, environments. One task per surface at a time.
-7. **Fill `routing`.** `primary_worker_type` = concrete implementer agent type (kebab-case). `required_reviewers` picked from `challenger | risk-assessor | operator | communicator`. Challenger mandatory when `risk_level >= high`. Verifier is implicit. **Mission `mode` does NOT change task-level `required_reviewers`** — `full_depth` changes judgment depth via mission-level deliberation (see `convening-deliberation`), not by adding reviewers to every task. Picking reviewers based on mode instead of the task's actual risk and surfaces produces rubber-stamp reviews and pollutes the real dissent signal.
+7. **Fill `routing`.** `primary_worker_type` = concrete implementer agent type (kebab-case). `required_reviewers` picked from `challenger | risk-assessor | operator | communicator`. Verifier is implicit.
+
+    **Default specialist set.** Recommended starting reviewers: `risk-assessor + operator + communicator`. These three cover the safety/quality, deployability/recoverability, and user-facing-deliverable axes that almost every task touches. Drop one only when the task contract genuinely cannot affect that axis (for example, a pure-internals refactor with no operational surface may omit `operator`); the omission must be defensible against the surfaces and goal.
+
+    **Challenger inclusion (falsifiable rule).** Add `challenger` to `required_reviewers` if and only if AT LEAST ONE of the following holds:
+
+    | Condition | Evaluable from |
+    |---|---|
+    | (a) `risk_level >= high` (i.e. `high` or `critical`) | the contract's `risk_level` field |
+    | (b) the task affects a protocol surface — JSON Schema, mission/task lifecycle, or dispatcher interface | the contract's `surfaces` field |
+    | (c) the user has explicitly asked for challenger on this task | mission spec / intake notes / decision-maker direction |
+
+    None of (a)/(b)/(c) holds → do NOT include challenger. Auto-attaching challenger to every task dilutes dissent into a rubber stamp and pollutes the real challenge signal. A reviewer reading the contract should be able to answer yes/no to "should challenger be here?" purely from `risk_level`, `surfaces`, and the intake record.
+
+    **Mission `mode` does NOT change task-level `required_reviewers`** — `full_depth` changes judgment depth via mission-level deliberation (see `convening-deliberation`), not by adding reviewers to every task. Picking reviewers based on mode instead of the task's actual risk and surfaces produces rubber-stamp reviews and pollutes the real dissent signal.
 8. **Capture `base_snapshot`.** Typically `git rev-parse HEAD`; any stable baseline id works.
 9. **Set `dependencies` and `supersedes`.** `dependencies` lists task ids that must reach `passed` before this leaves `ready`. `supersedes` is non-null only when replacing a cancelled task.
 10. **Submit draft.** Run `geas task draft`. The CLI assigns `task_id` and writes `contract.json` + a drafted `task-state.json`. Do not approve yet.
@@ -55,9 +69,9 @@ Transforms a slice of mission scope into a task contract routed to a concrete im
     Base snapshot: {sha}
     ```
 
-12. **Ask for approval (two-step with `AskUserQuestion`).** First call: header `Task {id}`, options `approve | revise | cancel`. If the user picks `revise`, follow up with a second `AskUserQuestion` whose options name the sections the user may change (≤4 per call; group by theme when more than four fields could be in play, for example: `content (goal, criteria, verification) | routing (reviewers, risk) | surfaces | dependencies`). "Other" is auto-appended to every call for edits that cross sections or don't match any label.
+12. **Ask for approval (two-step structured-prompt sequence).** First prompt: a structured single-choice prompt with header `Task {id}` and options `approve | revise | cancel`. If the user picks `revise`, follow up with a second structured prompt whose options name the sections the user may change (≤4 per round; group by theme when more than four fields could be in play, for example: `content (goal, criteria, verification) | routing (reviewers, risk) | surfaces | dependencies`). Append a free-text escape ("Other" or equivalent) to every round for edits that cross sections or don't match any label.
 13. **Handle revise.** A drafted contract is not yet immutable, but the CLI enforces immutability at `approve`. Treat the current draft as abandoned, call `geas task draft` again with the corrected payload, and re-render the card. Loop until the user returns `approve` at Step 12. Approve only after every surfaced concern is resolved.
-14. **Dependency-status preflight (IN-8 — mandatory before approve).** Before calling `geas task approve`, walk every task id in the drafted contract's `dependencies` array and read `.geas/missions/<mission-id>/tasks/<dep-id>/task-state.json`. Inspect the `status` field on each. If any dependency's status is `cancelled`, `escalated`, or `void`, **halt the approve call** and escalate to the user via `AskUserQuestion` (header: `Dep status`, options: `repoint-deps | redraft-task | cancel-this-task`). The user's explicit decision drives the next move — never auto-substitute the dependency, never silently approve over a terminated dep. After the user resolves the conflict (e.g., points the dep to a passed successor task or accepts the redraft), re-run this preflight before retrying approve. The design-authority's contract review (when one is dispatched) re-checks the `dependencies` array against terminal-task-state status as part of structural inspection.
+14. **Dependency-status preflight (IN-8 — mandatory before approve).** Before calling `geas task approve`, walk every task id in the drafted contract's `dependencies` array and read `.geas/missions/<mission-id>/tasks/<dep-id>/task-state.json`. Inspect the `status` field on each. If any dependency's status is `cancelled`, `escalated`, or `void`, **halt the approve call** and escalate to the user via a structured single-choice prompt (header: `Dep status`, options: `repoint-deps | redraft-task | cancel-this-task`). The user's explicit decision drives the next move — never auto-substitute the dependency, never silently approve over a terminated dep. After the user resolves the conflict (e.g., points the dep to a passed successor task or accepts the redraft), re-run this preflight before retrying approve. The design-authority's contract review (when one is dispatched) re-checks the `dependencies` array against terminal-task-state status as part of structural inspection.
 15. **Approve.** Run `geas task approve --mission <id> --task <id> --by user` (or `--by decision-maker` for mid-mission in-scope additions). Per Step 14, this call must not fire while any dependency is in a non-passing terminal state.
 
 `geas task draft` accepts inline flags (preferred for short payloads) or a full JSON payload via `--file`. For the exact field list, run `geas schema template task-contract --op draft`. The CLI injects `mission_id`, `task_id`, `created_at`, `updated_at`; defaults `approved_by=null`; writes `contract.json` and a drafted `task-state.json`.
@@ -73,11 +87,13 @@ geas task draft --mission <id> \
     --verification-plan "one-paragraph verification procedure" \
     --surface "src/foo.ts" --surface "test/foo.test.js" \
     --primary-worker-type software-engineer \
-    --reviewer challenger \
+    --reviewer risk-assessor --reviewer operator --reviewer communicator \
     --base-snapshot "<git sha or equivalent>"
+# Add `--reviewer challenger` ONLY when one of (a) risk_level >= high,
+# (b) task affects a protocol surface, or (c) explicit user request holds.
 ```
 
-Use `--goal-from-file <path>` and `--verification-plan-from-file <path>` (Write tool stages prose) for prose-heavy free-body fields. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc for the body.
+Use `--goal-from-file <path>` and `--verification-plan-from-file <path>` (Write tool stages prose) for prose-heavy free-body fields. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc for the body. See `mission/SKILL.md` § Tmp file lifecycle for staging location and cleanup.
 
 ## Red Flags
 
@@ -85,6 +101,7 @@ Use `--goal-from-file <path>` and `--verification-plan-from-file <path>` (Write 
 |---|---|
 | "Just list `src/` — the exact files will become clear during work" | `surfaces` is the concurrency contract. Broad roots block every other task; be specific. |
 | "Risk is high but challenger isn't needed this time" | Challenger is mandatory at `risk_level >= high`. No exceptions. |
+| "Just attach challenger to every task by default — better safe than sorry" | Challenger inclusion is conditional. Auto-attaching to all tasks dilutes dissent into a rubber stamp. Include challenger only when (a) `risk_level >= high`, (b) the task affects a protocol surface, or (c) the user explicitly asked. Otherwise leave challenger off the task and let the default specialist set carry the review. |
 | "Mission is `full_depth` so every task gets challenger" | Mode affects mission-level deliberation, not task-level reviewers. Task reviewers are chosen from `risk_level` and surface impact, independent of mode. Blanket challenger assignment dilutes real dissent into rubber stamps. |
 | "Goal is `improve scheduling`" | That is an activity, not an observable outcome. Rewrite as an observable end-state a reviewer can grade. |
 | "Contract is wrong — let me edit `contract.json` to fix it" | Contracts are immutable on approval. Cancel the task and draft a replacement with `supersedes`. |
@@ -123,8 +140,9 @@ Use `--goal-from-file <path>` and `--verification-plan-from-file <path>` (Write 
 
 - Goal names an observable change, not an activity.
 - Surfaces are an allowlist — name specific files, not broad roots.
-- Challenger is mandatory at `risk_level >= high`; verifier is implicit.
+- Default reviewer set is `risk-assessor + operator + communicator`; verifier is implicit. Drop one only when the task's surfaces and goal genuinely cannot affect that axis.
+- Challenger is included only when one of (a) `risk_level >= high`, (b) the task affects a protocol surface (JSON Schema, lifecycle, dispatcher interface), or (c) the user explicitly requested challenger. Do NOT auto-attach challenger to every task.
 - Mission `mode` does not change task-level `required_reviewers`. `full_depth` drives depth through mission-level deliberation, not by attaching challenger to every task.
 - Contract is immutable after approve; replace via `supersedes` if wrong.
-- Approval is section-scoped — render the full card (every locked field), not a title-plus-goal summary. Use a two-step `AskUserQuestion` (approve|revise|cancel → section picker) so the audit trail records which section drove each revision.
+- Approval is section-scoped — render the full card (every locked field), not a title-plus-goal summary. Use a two-step structured-prompt sequence (approve|revise|cancel → section picker) so the audit trail records which section drove each revision.
 - Tasks outside `spec.scope.in` are not drafted here — route back to the dispatcher.

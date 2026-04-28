@@ -41,14 +41,14 @@ You have been spawned as the implementer for an approved task. You own the full 
 
    `geas impl-contract set` is full-payload only (no inline flags), so use the Write tool to stage the JSON body and pass `--file`. Do not use heredoc — prose in `rationale` / `planned_actions` routinely breaks bash parsing:
    ```bash
-   # Step 1: Write tool → e.g. <workspace>/.tmp/impl-contract.json (body matches the schema template)
+   # Step 1: Write tool → e.g. .geas/tmp/impl-contract.json (body matches the schema template)
    # Step 2: hand the file to the CLI
-   geas impl-contract set --mission <id> --task <id> --file <workspace>/.tmp/impl-contract.json
+   geas impl-contract set --mission <id> --task <id> --file .geas/tmp/impl-contract.json
    ```
    The CLI validates against `implementation-contract.schema`.
 3. **Do the work per the plan.** Stay inside `change_scope`. The implementation-contract is a live document — if reality forces a material deviation (plan needs to touch outside `change_scope`, an assumption broke, risk rose, a non-goal must come in-scope), pause and amend before pushing ahead (step 4). Minor adjustments that stay within scope do not require amendment; record them in `deviations_from_plan` at self-check time.
 4. **Amend the contract when direction shifts materially.** Run `geas impl-contract set` again with the revised body; the CLI replaces the prior contract (full-replace semantics) so reviewers later see the current plan. Amendment is NOT gated on reviewer approval — keeping the document current is an obligation to future readers, not a concurrence checkpoint. If the amendment itself is so structural it should pause the task, stop and hand back to the orchestrator; they decide whether to open a task-level deliberation via `convening-deliberation`.
-5. **Clean up work byproducts before evidence.** Remove anything that isn't part of the final deliverable: scratch files and temp payloads staged outside `.geas/`, experimental code paths abandoned mid-way, debug-only logs / prints, commented-out alternatives, backup copies, unused imports, TODO markers for work already completed. The tree reviewers read should reflect the committed deliverable only — not the exploration path that got you there. `.geas/` runtime artifacts are NOT byproducts; they are the audit trail and must stay intact. If a byproduct is deliberately preserved (e.g. a test fixture), record it in the implementation evidence's `scope_examined` or in `deviations_from_plan` at self-check time so its presence is explicit, not accidental.
+5. **Clean up work byproducts before evidence.** Remove anything that isn't part of the final deliverable: scratch files and temp payloads (typically staged under `.geas/tmp/`), experimental code paths abandoned mid-way, debug-only logs / prints, commented-out alternatives, backup copies, unused imports, TODO markers for work already completed. The tree reviewers read should reflect the committed deliverable only — not the exploration path that got you there. `.geas/tmp/` is the only writable scratch area inside `.geas/` (per `mission/SKILL.md` § Tmp file lifecycle); the rest of `.geas/` is runtime audit trail and must stay intact. If a byproduct is deliberately preserved (e.g. a test fixture), record it in the implementation evidence's `scope_examined` or in `deviations_from_plan` at self-check time so its presence is explicit, not accidental.
 6. **Append implementation evidence** when the work is ready for review. `geas evidence append` accepts inline flags (preferred for short prose) or a full JSON payload via `--file`. For the exact field list, run `geas schema template evidence --op append --kind implementation`.
 
    Inline-flag form (preferred when summary / rationale / scope_examined fit on one line each):
@@ -69,9 +69,9 @@ You have been spawned as the implementer for an approved task. You own the full 
    geas evidence append --mission <id> --task <id> \
        --agent <your_concrete_agent> --slot implementer \
        --evidence-kind implementation \
-       --summary-from-file <workspace>/.tmp/summary.md \
-       --rationale-from-file <workspace>/.tmp/rationale.md \
-       --scope-examined-from-file <workspace>/.tmp/scope.md \
+       --summary-from-file .geas/tmp/summary.md \
+       --rationale-from-file .geas/tmp/rationale.md \
+       --scope-examined-from-file .geas/tmp/scope.md \
        --method-used "tool 1" --revision-ref null
    ```
 

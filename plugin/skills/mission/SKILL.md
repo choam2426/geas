@@ -76,6 +76,15 @@ None. The dispatcher handles `.geas/` bootstrap, so it is safe to call in a fres
 - Phase-transition approval: on every phase boundary, user sees the transition briefing before the next dispatch.
 - Mission-verdict final confirmation: mandatory full briefing; user approves before `mission-state update --phase complete`.
 
+## Tmp file lifecycle
+
+Sub-skills sometimes need to stage prose-heavy CLI input (free-body fields like `--goal-from-file`) or short-lived scratch artifacts. The conventions below are mandatory; the hook and the dispatcher both rely on them.
+
+- **Staging location.** All sub-skill scratch files go under `.geas/tmp/` only. No top-level `tmp/`, no `.tmp/`, no per-skill scratch directories.
+- **Immediate cleanup by sub-skills.** A sub-skill that stages a tmp file must delete it as soon as the CLI consumes it (typically right after the `geas ... --file <path>` call returns). Tmp files are not artifacts; they are not part of the audit trail.
+- **Bulk cleanup by the dispatcher.** This dispatcher triggers a bulk cleanup of `.geas/tmp/` after `verdicting-mission` returns (mission verdict authored) and at every phase-review boundary. Sub-skills that crashed before their own cleanup are reaped here.
+- **Hook allowlist scope.** The pre-tool-use write-block hook (`geas-write-block`) permits direct Write/Edit only under `.geas/tmp/`. Everything else under `.geas/` remains CLI-only — no exceptions.
+
 ## Red Flags
 
 | Excuse | Reality |

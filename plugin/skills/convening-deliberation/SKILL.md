@@ -35,6 +35,7 @@ Thin convening wrapper over `geas deliberation append`. Spawns the voter set for
 2. **Brief each voter in parallel.**
    - Spawn the concrete agent for each slot. Hand them: the proposal text, pointers to supporting artifacts, and the instruction to invoke `deliberating-on-proposal` and return a vote (`agree` / `disagree` / `escalate`) + rationale.
    - Voters dispatch concurrently where practical. They do NOT receive each other's votes before voting.
+   - Use the slot→tier dispatch policy that `scheduling-work` defines: authority slots (`challenger`, `decision-maker`, `design-authority`) get `high-capability`; specialist slots (`risk-assessor`, `operator`, `communicator`, `verifier`, `implementer`) get `balanced`, promoted to `high-capability` when the task or proposal under deliberation has `risk_level` of `high` or `critical`. Mission-level deliberations inherit the proposal's effective risk; if unclear, treat them as high. A per-task contract override wins. The canonical mapping table lives in [scheduling-work/SKILL.md](../scheduling-work/SKILL.md) under "Dispatch Model".
 3. **Collect votes and compute expected `result`** per the CLI aggregation rule:
    - any `escalate` → `escalate`
    - else majority `agree` → `agree`

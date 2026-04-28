@@ -1,6 +1,5 @@
 ---
 name: research-integrity-reviewer
-model: opus
 slot: risk-assessor
 domain: research
 ---

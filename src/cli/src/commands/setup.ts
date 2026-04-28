@@ -11,7 +11,7 @@
  *       shared.md      — empty shared memory
  *       agents/        — (directory)
  *     missions/        — (directory)
- *     .tmp/            — (directory)
+ *     tmp/             — (directory)
  *
  * Existing files are preserved (no-op on re-run). Only missing pieces
  * are created.

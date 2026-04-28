@@ -63,7 +63,7 @@ You have been spawned as a reviewer for a task. Your slot's system prompt define
        --method-used "read contract" --method-used "diff implementation" --method-used "run verification_plan step 2" \
        --scope-excluded "performance envelope — that is the operator's lens, not mine"
    ```
-   `--concern`, `--method-used`, `--scope-excluded` are repeatable. Free-body `--<field>-from-file` aliases (`--summary-from-file`, `--rationale-from-file`, `--scope-examined-from-file`) cover prose-heavy fields. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc — apostrophes / quotes inside concerns or rationale break shell parsing.
+   `--concern`, `--method-used`, `--scope-excluded` are repeatable. Free-body `--<field>-from-file` aliases (`--summary-from-file`, `--rationale-from-file`, `--scope-examined-from-file`) cover prose-heavy fields. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc — apostrophes / quotes inside concerns or rationale break shell parsing. See `mission/SKILL.md` § Tmp file lifecycle for staging location and cleanup.
 
    - `concerns` is `string[]` — each concern is one plain-text sentence (or a short paragraph). No `{severity, text}` objects; the schema rejects them. Severity is conveyed by `verdict`: if a concern is blocking, the whole verdict is `blocked`; if it requires rework, `changes_requested`; otherwise `approved` with the concern still recorded for the audit trail. Write specific concerns — "line 142" beats "performance looks sketchy".
    - `scope_excluded` is `string[]` — omit (or empty) when nothing is excluded; never a single string.

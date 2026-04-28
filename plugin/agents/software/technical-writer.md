@@ -1,6 +1,5 @@
 ---
 name: technical-writer
-model: opus
 slot: communicator
 domain: software
 ---

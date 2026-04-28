@@ -1,6 +1,5 @@
 ---
 name: research-engineer
-model: opus
 slot: operator
 domain: research
 ---

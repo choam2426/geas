@@ -1,6 +1,5 @@
 ---
 name: qa-engineer
-model: opus
 slot: verifier
 domain: software
 ---

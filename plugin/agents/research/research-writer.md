@@ -1,6 +1,5 @@
 ---
 name: research-writer
-model: opus
 slot: communicator
 domain: research
 ---

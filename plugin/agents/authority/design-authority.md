@@ -1,6 +1,5 @@
 ---
 name: design-authority
-model: opus
 slot: design-authority
 ---
 

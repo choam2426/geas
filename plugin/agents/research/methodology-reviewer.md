@@ -1,6 +1,5 @@
 ---
 name: methodology-reviewer
-model: opus
 slot: verifier
 domain: research
 ---

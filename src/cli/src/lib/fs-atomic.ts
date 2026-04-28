@@ -9,7 +9,7 @@
  *   4. close(fd)
  *   5. rename(temp, target)
  *
- * Temp files live in `.geas/.tmp/`. If that directory is unavailable
+ * Temp files live in `.geas/tmp/`. If that directory is unavailable
  * (e.g. `.geas/` is not yet set up for the setup command itself) callers
  * fall back to same-directory temps. Rename is atomic within a single
  * POSIX volume and atomic on Windows via MoveFileExW.

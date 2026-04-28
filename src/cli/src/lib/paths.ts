@@ -37,7 +37,7 @@
  *             gate-results.json
  *             evidence/
  *               {agent}.{slot}.json
- *     .tmp/
+ *     tmp/
  *       (used by fs-atomic)
  *
  * This module only assembles paths; it does NOT enforce existence.
@@ -90,7 +90,7 @@ export function eventsPath(projectRoot: string): string {
 }
 
 export function tmpDir(projectRoot: string): string {
-  return path.join(geasDir(projectRoot), '.tmp');
+  return path.join(geasDir(projectRoot), 'tmp');
 }
 
 // ── Memory ──────────────────────────────────────────────────────────────

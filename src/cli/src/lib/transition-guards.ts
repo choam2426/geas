@@ -329,6 +329,35 @@ export function isValidTaskState(v: unknown): v is TaskState {
 }
 
 /**
+ * Risk-tiered retry-budget mapping (mission-design issue 3, task-004).
+ *
+ * The retry-budget is the maximum value of `verify_fix_iterations` that the
+ * task can reach via the `reviewing -> implementing` rewind. Once
+ * `verify_fix_iterations >= budget`, the next `reviewing -> implementing`
+ * transition is rejected; the orchestrator must then escalate or block.
+ *
+ *   low      = 1
+ *   normal   = 2
+ *   high     = 2
+ *   critical = 3
+ *
+ * An unrecognised or absent risk_level falls back to the `normal` budget.
+ */
+export const RETRY_BUDGET_BY_RISK: Readonly<Record<string, number>> = Object.freeze({
+  low: 1,
+  normal: 2,
+  high: 2,
+  critical: 3,
+});
+
+export function retryBudgetForRiskLevel(riskLevel: string | null | undefined): number {
+  if (typeof riskLevel === 'string' && Object.prototype.hasOwnProperty.call(RETRY_BUDGET_BY_RISK, riskLevel)) {
+    return RETRY_BUDGET_BY_RISK[riskLevel];
+  }
+  return RETRY_BUDGET_BY_RISK.normal;
+}
+
+/**
  * Hints a caller supplies describing the task's artifact situation.
  * The guard uses these (rather than re-reading files) so callers can
  * compose the check from state they already have.
@@ -395,6 +424,19 @@ export interface TaskStateHints {
    * escalated -> passed.
    */
   closureApproved: boolean;
+  /**
+   * Task contract `risk_level`. Used by the reviewing -> implementing
+   * verify-fix rewind to pick the retry-budget per RETRY_BUDGET_BY_RISK.
+   * Absent or unknown values fall back to the `normal` budget.
+   */
+  riskLevel?: string | null;
+  /**
+   * Current `task-state.verify_fix_iterations`. Used by the reviewing ->
+   * implementing rewind to compare against the risk-tiered budget; the
+   * transition is rejected when this value already meets or exceeds the
+   * budget for the contract's risk_level.
+   */
+  verifyFixIterations?: number;
 }
 
 /**
@@ -518,6 +560,34 @@ export function canTransitionTaskState(
     if (!hints.closureApproved) {
       return fail(
         'escalated -> passed requires orchestrator closure evidence with verdict=approved',
+      );
+    }
+    return pass();
+  }
+
+  // ── reviewing -> implementing: verify-fix rewind, gated by the
+  // risk-tiered retry-budget (task-004). The budget caps how many times
+  // `verify_fix_iterations` can grow via this edge; once the count meets
+  // or exceeds the budget, the transition is rejected so the orchestrator
+  // can route the task to `blocked` or `escalated` instead of looping
+  // indefinitely. The CLI auto-increments verify_fix_iterations AFTER
+  // this guard passes (see commands/task.ts), so the guard compares the
+  // CURRENT iteration count against the budget — current >= budget ⇒
+  // the next rewind would push past the cap and is refused.
+  if (from === 'reviewing' && to === 'implementing') {
+    const budget = retryBudgetForRiskLevel(hints.riskLevel ?? null);
+    const current =
+      typeof hints.verifyFixIterations === 'number' ? hints.verifyFixIterations : 0;
+    if (current >= budget) {
+      const risk = typeof hints.riskLevel === 'string' ? hints.riskLevel : 'normal';
+      return fail(
+        `verify-fix retry-budget exhausted for risk_level='${risk}' (budget=${budget}, verify_fix_iterations=${current}); reviewing -> implementing rewind refused`,
+        {
+          retry_budget: budget,
+          verify_fix_iterations: current,
+          risk_level: risk,
+          hint: 'transition the task to blocked or escalated instead; the verify-fix loop has reached its cap',
+        },
       );
     }
     return pass();

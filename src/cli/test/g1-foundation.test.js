@@ -51,18 +51,26 @@ test('geas setup creates the canonical .geas/ tree (--json envelope)', () => {
     assert.equal(res.json.ok, true);
 
     // Directories
+    // mission-20260428-ava973xA task-005 (AC4.1): the canonical temp
+    // directory is `.geas/tmp/` (no leading dot). The legacy `.geas/.tmp/`
+    // path must NOT be created on a fresh `geas setup`; the negative
+    // assertion below pins that contract so future drift is caught.
     for (const d of [
       '.geas',
       '.geas/memory',
       '.geas/memory/agents',
       '.geas/missions',
-      '.geas/.tmp',
+      '.geas/tmp',
     ]) {
       assert.ok(
         fs.existsSync(path.join(dir, d)),
         `expected directory ${d} to exist after setup`,
       );
     }
+    assert.ok(
+      !fs.existsSync(path.join(dir, '.geas/.tmp')),
+      'AC4.1: legacy `.geas/.tmp` directory must not be created (renamed to `.geas/tmp` in task-005)',
+    );
 
     // Files
     for (const f of [

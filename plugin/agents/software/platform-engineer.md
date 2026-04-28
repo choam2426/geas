@@ -1,6 +1,5 @@
 ---
 name: platform-engineer
-model: opus
 slot: implementer
 domain: software
 ---

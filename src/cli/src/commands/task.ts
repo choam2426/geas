@@ -703,6 +703,8 @@ function registerTaskApprove(task: Command): void {
 
 function makeApproveHints(): TaskStateHints {
   // drafted -> ready requires only contractApproved, which we just set.
+  // task-004: risk-tiered retry-budget hints are not consulted on this
+  // edge, but populated with safe defaults for type completeness.
   return {
     contractApproved: true,
     dependenciesSatisfied: true,
@@ -714,6 +716,8 @@ function makeApproveHints(): TaskStateHints {
     missingReviewSlots: [],
     verificationEvidenceExists: false,
     closureApproved: false,
+    riskLevel: null,
+    verifyFixIterations: 0,
   };
 }
 
@@ -847,6 +851,7 @@ function registerTaskTransition(task: Command): void {
         opts.mission,
         opts.task,
         contract,
+        state,
       );
 
       const guard = canTransitionTaskState(from, to, hints);
@@ -927,12 +932,18 @@ function registerTaskTransition(task: Command): void {
  *
  * G3 uses file-presence checks for evidence-driven fields. G4 tightens
  * them into verdict-aware inspection.
+ *
+ * task-004: also threads `risk_level` (from contract) and
+ * `verify_fix_iterations` (from task-state) into the hints so the
+ * reviewing -> implementing edge can enforce the risk-tiered retry-budget
+ * (low=1, normal=2, high=2, critical=3) defined in lib/transition-guards.
  */
 function collectTaskStateHints(
   root: string,
   missionId: string,
   taskId: string,
   contract: Record<string, unknown>,
+  state?: Record<string, unknown> | null,
 ): TaskStateHints {
   const deps = Array.isArray(contract.dependencies)
     ? (contract.dependencies as string[])
@@ -1092,6 +1103,17 @@ function collectTaskStateHints(
   const contractApproved =
     contract.approved_by !== null && contract.approved_by !== undefined;
 
+  // task-004: risk-tiered retry-budget inputs. risk_level comes from the
+  // contract; verify_fix_iterations comes from task-state. The guard in
+  // canTransitionTaskState reads these to refuse reviewing -> implementing
+  // once the budget for the contract's risk_level is reached.
+  const riskLevel =
+    typeof contract.risk_level === 'string' ? (contract.risk_level as string) : null;
+  const verifyFixIterations =
+    state && typeof state.verify_fix_iterations === 'number'
+      ? (state.verify_fix_iterations as number)
+      : 0;
+
   return {
     contractApproved,
     dependenciesSatisfied: unsatisfied.length === 0,
@@ -1103,6 +1125,8 @@ function collectTaskStateHints(
     missingReviewSlots,
     verificationEvidenceExists,
     closureApproved,
+    riskLevel,
+    verifyFixIterations,
   };
 }
 

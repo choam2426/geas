@@ -1,6 +1,5 @@
 ---
 name: decision-maker
-model: opus
 slot: decision-maker
 ---
 

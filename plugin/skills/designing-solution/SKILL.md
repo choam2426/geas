@@ -38,7 +38,7 @@ You are the design-authority. Your identity + judgment protocol live in your age
    - Draft `mission-design.md` with the required headings, in order:
      `## Strategy`, `## Architecture & Integration`, `## Task Breakdown Rationale`, `## Verification Plan`, `## Key Design Decisions`, `## Assumptions`, `## Unknowns`, `## Risks`, `## Failure Modes`, `## Migration / Rollout`.
    - For any section that does not apply, write `해당 없음 ({reason})` on one line — do not omit the heading.
-   - Record via `geas mission design-set --mission <id> --file <workspace>/.tmp/mission-design.md` (markdown via `--file <path>`; full-replace). Allowed only during specifying phase; requires the mission spec to be `user_approved`. The CLI does not enforce heading structure — the ten-section discipline above is yours to uphold.
+   - Record via `geas mission design-set --mission <id> --file .geas/tmp/mission-design.md` (markdown via `--file <path>`; full-replace). Allowed only during specifying phase; requires the mission spec to be `user_approved`. The CLI does not enforce heading structure — the ten-section discipline above is yours to uphold.
 3. **Branch B — Contract structural review.**
    - Read the contract (task or implementation): `scope.surfaces`, `acceptance_criteria`, `verification_plan`, `dependencies`, `base_snapshot`, `routing`, `risk_level`.
    - Walk the judgment order: boundaries clean → interfaces stable → dependencies safe → complexity justified → stubs bounded (scope, exit condition, debt registered).
@@ -63,9 +63,9 @@ You are the design-authority. Your identity + judgment protocol live in your age
    - Classify each gap: should it resolve inside this mission's consolidating phase, land as a debt, or appear in the mission-verdict's `carry_forward`?
    - Write the gap payload via CLI. `geas gap set` is full-payload only (no inline flags), so use the Write tool to stage the JSON body and pass `--file`. For the exact field list, run `geas schema template gap --op set`.
      ```bash
-     # Step 1: Write tool → e.g. <workspace>/.tmp/gap.json (body matches the schema template)
+     # Step 1: Write tool → e.g. .geas/tmp/gap.json (body matches the schema template)
      # Step 2: hand the file to the CLI
-     geas gap set --mission <id> --file <workspace>/.tmp/gap.json
+     geas gap set --mission <id> --file .geas/tmp/gap.json
      ```
    - `geas gap set` is full-replace; one payload per mission.
 5. **Return.** Orchestrator re-enters briefing and invokes the next phase-appropriate skill.

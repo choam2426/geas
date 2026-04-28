@@ -353,7 +353,7 @@ See Section 9 for details. This stage runs only for commands that target append-
 ### 6.6 Atomic Write
 
 ```
-1. temp_path = .geas/.tmp/{target-basename}.{pid}.{rand}
+1. temp_path = .geas/tmp/{target-basename}.{pid}.{rand}
 2. fd = open(temp_path, O_WRONLY | O_CREAT | O_EXCL, 0600)
 3. write(fd, content)
 4. fsync(fd)
@@ -361,7 +361,7 @@ See Section 9 for details. This stage runs only for commands that target append-
 6. rename(temp_path, target_path)
 ```
 
-The temp directory `.geas/.tmp/` is created on demand during root detection if it does not already exist. The rename is atomic within the same volume, using POSIX `rename(2)` or `MoveFileExW(MOVEFILE_REPLACE_EXISTING)` on Windows. In a crash, the worst case is a leftover temp file while the target remains in its prior state.
+The temp directory `.geas/tmp/` is created on demand during root detection if it does not already exist. The rename is atomic within the same volume, using POSIX `rename(2)` or `MoveFileExW(MOVEFILE_REPLACE_EXISTING)` on Windows. In a crash, the worst case is a leftover temp file while the target remains in its prior state.
 
 ### 6.7 Hints
 

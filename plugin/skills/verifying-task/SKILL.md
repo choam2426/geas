@@ -60,7 +60,7 @@ You have been spawned as the verifier for a task. Your job is to run the contrac
    ```
    `--criterion-result` is repeatable; pass one per acceptance criterion in `contract.acceptance_criteria`. Each value is a single-line JSON object (the inline-flag form keeps it on one line; for very long `details`, switch to the full-payload `--file` form).
 
-   Free-body `--<field>-from-file` aliases (`--summary-from-file`, `--rationale-from-file`, `--scope-examined-from-file`) handle prose-heavy fields when needed. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc for the body — embedded quotes / apostrophes / non-ASCII in `details` text break shell parsing.
+   Free-body `--<field>-from-file` aliases (`--summary-from-file`, `--rationale-from-file`, `--scope-examined-from-file`) handle prose-heavy fields when needed. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc for the body — embedded quotes / apostrophes / non-ASCII in `details` text break shell parsing. See `mission/SKILL.md` § Tmp file lifecycle for staging location and cleanup.
 
    `scope_excluded` is an array of strings (empty / omitted if nothing was excluded); never a single string. `concerns` is an array of strings (empty / omitted if none). `criteria_results[].passed` is a boolean (`true` / `false`), not the string `"pass"` / `"fail"`.
 7. **Return.** The orchestrator runs `running-gate`; the gate reads your latest verification entry and produces a Tier 1 status from its verdict + `criteria_results` consistency.

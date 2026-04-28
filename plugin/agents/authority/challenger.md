@@ -1,6 +1,5 @@
 ---
 name: challenger
-model: opus
 slot: challenger
 ---
 

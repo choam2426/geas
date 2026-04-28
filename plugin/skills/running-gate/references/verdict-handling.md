@@ -25,10 +25,21 @@ Collecting self-check without consuming it in all three tiers is non-conformant.
 
 - The loop runs only on gate verdict `fail`.
 - `verify_fix_iterations` is CLI-incremented automatically on each `reviewing → implementing` transition. Agents and skills never edit this field directly.
-- Default budget = 3. `risk_level = critical` tightens the budget to 1.
+- The retry-budget is risk-tiered (see table below). The CLI enforces it on the `reviewing → implementing` edge: when `verify_fix_iterations` already meets or exceeds the budget for the contract's `risk_level`, the rewind is refused with `guard_failed`.
 - A fix without updated reviewer evidence is not a fix. Every iteration re-collects reviewer entries before the next gate run.
 - Budget exhaustion path: `* → blocked` (unconditional) → `blocked → escalated`. Decision-maker then writes closure evidence with verdict `escalated` or `cancelled`. A follow-up task with a `supersedes` link may be drafted by the dispatcher + `drafting-task`.
 - Gate runs are append-only: each re-run adds a new record to `gate-results.runs`; earlier runs are preserved for audit.
+
+## Retry-budget by risk_level
+
+| `risk_level` | retry-budget |
+|---|---|
+| `low` | 1 |
+| `normal` | 2 |
+| `high` | 2 |
+| `critical` | 3 |
+
+The retry-budget is the maximum value `verify_fix_iterations` may reach via `reviewing → implementing`. Once that count meets or exceeds the budget, the next rewind is refused at the CLI guard layer (`canTransitionTaskState` in `src/cli/src/lib/transition-guards.ts`). An unrecognised or missing `risk_level` falls back to the `normal` budget.
 
 ## Loop summary
 

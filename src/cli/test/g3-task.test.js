@@ -890,6 +890,154 @@ test('reviewing -> implementing (changes_requested) increments verify_fix_iterat
   }
 });
 
+// ── task-004: risk-tiered retry-budget for the verify-fix loop ─────────
+//
+// Budget table (lib/transition-guards.RETRY_BUDGET_BY_RISK):
+//   low=1, normal=2, high=2, critical=3
+//
+// Each test drafts a contract with one risk_level, drives
+// implementing -> reviewing -> implementing repeatedly until
+// verify_fix_iterations equals the budget, then asserts the next
+// reviewing -> implementing rewind is refused with guard_failed and a
+// budget-exhausted hint suggesting blocked/escalated.
+function exhaustRetryBudget(dir, taskId, riskLevel, budget) {
+  // Stand up the task in `implementing` so the loop can begin.
+  runCli(['task', 'draft', '--mission', MID], {
+    cwd: dir,
+    input: JSON.stringify(draftContract({ risk_level: riskLevel })),
+    env: { GEAS_MOCK_TASK_ID: taskId },
+  });
+  runCli(['task', 'approve', '--mission', MID, '--task', taskId], { cwd: dir });
+  let r = runCli(
+    ['task', 'transition', '--mission', MID, '--task', taskId, '--to', 'implementing'],
+    { cwd: dir },
+  );
+  assert.equal(r.status, 0, `ready->implementing failed: ${r.stderr}`);
+  writeSelfCheckStub(dir, taskId);
+  writeReviewEvidenceStub(dir, taskId, 'challenger-a', 'challenger');
+
+  // Iterate until verify_fix_iterations === budget. Each loop iteration
+  // is one (implementing -> reviewing) + (reviewing -> implementing) pair;
+  // the second half bumps the counter by one.
+  for (let i = 1; i <= budget; i += 1) {
+    r = runCli(
+      ['task', 'transition', '--mission', MID, '--task', taskId, '--to', 'reviewing'],
+      { cwd: dir },
+    );
+    assert.equal(r.status, 0, `iter ${i}: implementing->reviewing failed: ${r.stderr}\n${r.stdout}`);
+    r = runCli(
+      ['task', 'transition', '--mission', MID, '--task', taskId, '--to', 'implementing'],
+      { cwd: dir },
+    );
+    assert.equal(
+      r.status,
+      0,
+      `iter ${i}: reviewing->implementing within budget should pass: ${r.stderr}\n${r.stdout}`,
+    );
+    const state = readArtifact(
+      dir,
+      `.geas/missions/${MID}/tasks/${taskId}/task-state.json`,
+    );
+    assert.equal(
+      state.verify_fix_iterations,
+      i,
+      `iter ${i}: expected verify_fix_iterations=${i}, got ${state.verify_fix_iterations}`,
+    );
+  }
+
+  // Push back to reviewing one more time so the next attempt is the
+  // rewind that should be refused.
+  r = runCli(
+    ['task', 'transition', '--mission', MID, '--task', taskId, '--to', 'reviewing'],
+    { cwd: dir },
+  );
+  assert.equal(r.status, 0, `final implementing->reviewing failed: ${r.stderr}\n${r.stdout}`);
+
+  // Budget-exhausted: reviewing -> implementing must be rejected.
+  r = runCli(
+    ['--json', 'task', 'transition', '--mission', MID, '--task', taskId, '--to', 'implementing'],
+    { cwd: dir },
+  );
+  assert.notEqual(r.status, 0, `budget exhaustion did not reject the rewind: ${r.stdout}`);
+  assert.equal(r.json.ok, false);
+  assert.equal(r.json.error.code, 'guard_failed');
+  assert.match(
+    r.json.error.message,
+    /retry-budget exhausted/i,
+    `expected budget-exhausted message; got: ${r.json.error.message}`,
+  );
+  assert.match(
+    r.json.error.message,
+    new RegExp(`risk_level='${riskLevel}'`),
+    `expected risk_level='${riskLevel}' in message; got: ${r.json.error.message}`,
+  );
+  assert.match(
+    r.json.error.message,
+    new RegExp(`budget=${budget}`),
+    `expected budget=${budget} in message; got: ${r.json.error.message}`,
+  );
+  assert.equal(typeof r.json.error.hint, 'string');
+  assert.match(
+    r.json.error.hint,
+    /blocked|escalated/i,
+    `expected hint to suggest blocked/escalated; got: ${r.json.error.hint}`,
+  );
+
+  // verify_fix_iterations must NOT have been incremented past the budget.
+  const finalState = readArtifact(
+    dir,
+    `.geas/missions/${MID}/tasks/${taskId}/task-state.json`,
+  );
+  assert.equal(
+    finalState.verify_fix_iterations,
+    budget,
+    `verify_fix_iterations advanced past budget=${budget}: got ${finalState.verify_fix_iterations}`,
+  );
+  // The task must still be in `reviewing` (the rejected transition is a
+  // no-op on state).
+  assert.equal(finalState.status, 'reviewing');
+}
+
+test('retry-budget: risk_level=low caps verify-fix loop at 1 rewind', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMissionApproved(dir);
+    exhaustRetryBudget(dir, 'task-001', 'low', 1);
+  } finally {
+    cleanup();
+  }
+});
+
+test('retry-budget: risk_level=normal caps verify-fix loop at 2 rewinds', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMissionApproved(dir);
+    exhaustRetryBudget(dir, 'task-001', 'normal', 2);
+  } finally {
+    cleanup();
+  }
+});
+
+test('retry-budget: risk_level=high caps verify-fix loop at 2 rewinds', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMissionApproved(dir);
+    exhaustRetryBudget(dir, 'task-001', 'high', 2);
+  } finally {
+    cleanup();
+  }
+});
+
+test('retry-budget: risk_level=critical caps verify-fix loop at 3 rewinds', () => {
+  const { dir, cleanup } = makeTempRoot();
+  try {
+    setupMissionApproved(dir);
+    exhaustRetryBudget(dir, 'task-001', 'critical', 3);
+  } finally {
+    cleanup();
+  }
+});
+
 test('unknown task state is rejected at argument parsing', () => {
   const { dir, cleanup } = makeTempRoot();
   try {

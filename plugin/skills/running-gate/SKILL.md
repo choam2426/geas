@@ -43,7 +43,7 @@ Required for the gate to produce a non-`fail` / non-`error` verdict (the CLI sti
    - `fail` → enter the verify-fix inner loop (step 4 below).
    - `block` → transition the task to `blocked`; halt; return to dispatcher.
    - `error` → inspect `tier_results.*.details` to identify the cause (missing artifact, corrupt envelope, verifier internal contradiction). Resolve the root cause and re-run. After three consecutive `error` verdicts on the same task, move to `blocked`.
-4. **Verify-fix inner loop (on `fail` only).** Bounded by budget (`default 3`; `critical` = 1):
+4. **Verify-fix inner loop (on `fail` only).** Bounded by the risk-tiered retry-budget (see "Retry-budget" subsection below):
    - Diagnose: read the failing run's `tier_results` details and the cited evidence entries (`entry_id` references). Build a fix brief naming failed criteria, specific reviewer concerns, implicated surfaces.
    - `geas task transition --to implementing` — CLI auto-increments `verify_fix_iterations`.
    - Dispatch the primary implementer with the fix brief. Implementer appends a new `implementation` evidence entry with `revision_ref` back to the prior entry. If the plan itself changed, implementer also appends a new `impl-contract set` amendment.
@@ -87,6 +87,19 @@ Sub-skill invoked: `convening-deliberation` (only when reviewer verdicts conflic
 
 The gate never creates evidence. It reads.
 
+## Retry-budget
+
+The verify-fix inner loop is bounded by a risk-tiered retry-budget that caps how far `verify_fix_iterations` may grow via the `reviewing -> implementing` rewind. The mapping is keyed off the task contract's `risk_level`:
+
+| `risk_level` | retry-budget |
+|---|---|
+| `low` | 1 |
+| `normal` | 2 |
+| `high` | 2 |
+| `critical` | 3 |
+
+The CLI enforces this on every `reviewing -> implementing` transition: when `verify_fix_iterations >= budget(risk_level)`, the rewind is refused with `guard_failed` and a hint suggesting `blocked` or `escalated`. The gate itself does not pick the budget — it observes the rewind refusal and routes the task downstream. Budget exhaustion follows the documented path in step 4 of Process and in Failure Handling: `* -> blocked -> escalated`, with the decision-maker writing closure evidence (`escalated` or `cancelled`). An unrecognised or absent `risk_level` falls back to the `normal` budget. The mapping also appears in [references/verdict-handling.md](references/verdict-handling.md).
+
 ## Failure Handling
 
 - **Tier 0 `fail` (missing artifact)**: return to dispatcher; the missing precondition must be supplied (usually a reviewer or the verifier forgot to append). Re-running the gate without supplying the missing artifact returns the same `fail`.
@@ -95,6 +108,12 @@ The gate never creates evidence. It reads.
 - **Tier 2 conflict** (reviewers disagree on incompatible grounds): invoke `convening-deliberation` before re-running the gate; the deliberation result feeds the next review round's verdicts.
 - **Budget exhaustion**: `blocked` → `escalated`. Decision-maker reviews the full trail and writes closure evidence with verdict `escalated` or `cancelled`. Rationale states whether a supersedes-linked successor is needed.
 - **CLI `missing_artifact` on `gate run`**: mission spec or task contract missing. Scheduler bug — return to dispatcher.
+
+## Dispatch Model
+
+When the verify-fix loop re-dispatches the implementer (and re-spawns reviewers + verifier), it follows the same slot→tier policy that `scheduling-work` uses on first dispatch: authority slots default to `high-capability`; specialist slots default to `balanced`; on `task.risk_level` of `high` or `critical`, specialist slots are promoted to `high-capability`. A per-task contract override, when present, wins over both the default and the promotion.
+
+The canonical policy lives in [scheduling-work/SKILL.md](../scheduling-work/SKILL.md) under "Dispatch Model". The gate does not pick the tier itself — it inherits whatever the dispatcher resolves at re-spawn time. Iterations across the verify-fix loop must use the same tier the original dispatch used, unless the contract was amended (rare; record the change in the implementation contract).
 
 ## Related Skills
 

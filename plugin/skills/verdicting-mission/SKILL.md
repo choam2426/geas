@@ -34,9 +34,9 @@ Writes the final mission-level verdict — the decision-maker's assessment of wh
 4. **Draft `carry_forward` notes.** One or more pointers to future work. Each pointer either references an open debt (`debt_id`) or a `gap.json` entry. Vague or aspirational items are not recorded.
 5. **Append the mission-verdict entry.** `geas mission-verdict append` is full-payload only (no inline flags), so use the Write tool to stage the JSON body and pass `--file`. For the exact field list, run `geas schema template mission-verdicts --op append`.
    ```bash
-   # Step 1: Write tool → e.g. <workspace>/.tmp/mission-verdict.json (body matches the schema template)
+   # Step 1: Write tool → e.g. .geas/tmp/mission-verdict.json (body matches the schema template)
    # Step 2: hand the file to the CLI
-   geas mission-verdict append --mission <id> --file <workspace>/.tmp/mission-verdict.json
+   geas mission-verdict append --mission <id> --file .geas/tmp/mission-verdict.json
    ```
    CLI injects `entry_id`, `created_at`; appends to `mission-verdicts.verdicts`.
 6. **Return to the mission caller.** This skill does not emit the briefing or transition the mission. The mission caller will render the **Mission-verdict** narrative template from `plugin/skills/mission/references/briefing-templates.md` (section 4) in Korean — naming the mission, the task counts, the definition-of-done outcome, the open debt and memory carried forward, and the user final-confirmation prompt — collect the user's approve, and only then run `geas mission-state update --mission <id> --phase complete`. The user-facing vocabulary allowlist at the top of that templates file constrains the emitted briefing.

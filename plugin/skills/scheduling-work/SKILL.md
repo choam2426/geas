@@ -36,6 +36,27 @@ Constructs a task-level parallel batch and dispatches implementers for the selec
 6. **Batch size cap.** Max 4 tasks per batch. Tie-break by `task_id` ascending. Defer the rest.
 7. **Dispatch.** For each task in the final batch: `geas task transition --task <id> --to implementing`. On success, spawn the primary implementer. The CLI guard re-checks dependencies and surface conflict; a guard failure here means the candidate filter missed a constraint — that is a scheduling bug, not a CLI bug.
 
+## Dispatch Model
+
+Agent frontmatter does not pin a model. The scheduler resolves a **capability tier** for each dispatch from the slot the spawned agent holds and the risk profile of the task, and the orchestrator translates that tier to a concrete harness model at dispatch time. Other dispatcher skills (`running-gate` verify-fix re-dispatch, `convening-deliberation` voter dispatch) follow the same rule.
+
+**Capability tiers.** Three tiers in order of decreasing capability and cost: `high-capability`, `balanced`, `fast`.
+
+**Default mapping.**
+
+| Slot family | Slot ids | Default tier |
+|---|---|---|
+| Authority | `challenger`, `decision-maker`, `design-authority` | `high-capability` |
+| Specialist | `risk-assessor`, `operator`, `communicator`, `verifier`, `implementer` (research/* + software/* concrete agents) | `balanced` |
+
+**High/critical specialist promotion.** When `task.risk_level` is `high` or `critical` AND the slot being dispatched is in the specialist family, override the default and resolve to `high-capability` instead of `balanced`. Rationale: the cost of a missed risk on high/critical work outweighs the inference savings from a lower tier. Authority slots already default to `high-capability`, so the promotion is a no-op for them.
+
+**Per-task contract override.** A task contract may carry an explicit tier override (for example, an unusual research task that legitimately needs `high-capability` on a specialist slot, or a low-risk doc task where `fast` on an authority slot is acceptable). When present, the contract override wins over both the default mapping and the high/critical promotion. Record the rationale in the contract, not in the dispatch event.
+
+**Tier-to-model resolution.** The orchestrator resolves a tier to a concrete harness model identifier at dispatch time. The mapping infrastructure (project config, harness adapter convention, etc.) is out of scope for this skill — when a mapping is absent, the dispatched agent inherits the orchestrator's own model.
+
+**Operational note.** When the candidate filter (steps 1–6) finishes, attach the resolved tier to each dispatch alongside the slot. Passing `fast` to an authority slot is a scheduling bug, not a CLI rejection — the CLI does not validate tier strings.
+
 ## Red Flags
 
 | Excuse | Reality |

@@ -36,9 +36,9 @@ Closes a phase with an append-only phase-review entry, then advances `mission-st
    - Phase duration (first task transition → last closure).
 3. **Write the phase-review entry.** `geas phase-review append` is full-payload only (no inline flags), so use the Write tool to stage the JSON body and pass `--file`. For the exact field list, run `geas schema template phase-reviews --op append`.
    ```bash
-   # Step 1: Write tool → e.g. <workspace>/.tmp/phase-review.json (body matches the schema template)
+   # Step 1: Write tool → e.g. .geas/tmp/phase-review.json (body matches the schema template)
    # Step 2: hand the file to the CLI
-   geas phase-review append --mission <id> --file <workspace>/.tmp/phase-review.json
+   geas phase-review append --mission <id> --file .geas/tmp/phase-review.json
    ```
    CLI injects `entry_id`, `created_at`; appends to `phase-reviews.reviews`.
 4. **Advance the phase.** `geas mission-state update --mission <id> --phase <next>`. The CLI guards that the last `phase-reviews.reviews` entry has `next_phase` matching the target. For `--phase building`, the CLI also bulk-transitions approved drafted tasks to `ready` (per CLI.md §14.2).
