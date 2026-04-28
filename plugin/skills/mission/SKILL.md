@@ -37,8 +37,8 @@ None. The dispatcher handles `.geas/` bootstrap, so it is safe to call in a fres
    - Validate artifact consistency with state. If drift is detected (state claims a phase incompatible with existing phase-reviews, or references a mission spec that is missing), halt and surface a ⚠ block.
 
 3. **Current-status briefing.**
-   - Emit the Current-status template from `references/briefing-templates.md` (Korean).
-   - Always full briefing on a decision point (approval needed, drift, corruption); `--brief` flag otherwise honored.
+   - Render the **Current-status** narrative template from `references/briefing-templates.md` (section 1) and emit it to the user in Korean. The template is 2-4 short sentences naming the current `phase`, the task counts (passed / active / blocked), the most recent activity, and the next intended action. Stay inside the user-facing vocabulary allowlist defined at the top of `references/briefing-templates.md`; words in the blacklist there must not appear in the emitted text.
+   - Always emit the full briefing on a decision point (approval needed, drift, corruption); `--brief` flag otherwise honored.
 
 4. **Dispatch decision.** Map `(phase, state)` to a sub-skill:
 
@@ -60,10 +60,10 @@ None. The dispatcher handles `.geas/` bootstrap, so it is safe to call in a fres
 
    Anti-pattern: never advance phase without the matching phase-review; never invoke a sub-skill outside the table above.
 
-5. **Post-dispatch briefing.** When a sub-skill returns, emit the appropriate template:
-   - Task completion (after `closing-task` or `running-gate` returning cancelled/escalated).
-   - Phase transition (after `reviewing-phase` followed by successful `mission-state update --phase`).
-   - Mission verdict (after `verdicting-mission`; requires user final confirmation before transitioning to `complete`).
+5. **Post-dispatch briefing.** When a sub-skill returns, render the matching narrative template from `references/briefing-templates.md` (sections 2-4) in Korean and emit it. Each template is a short narration; the user-facing vocabulary allowlist + blacklist at the top of that file constrains the emitted text in every case.
+   - **Task-completion** narrative (section 2) after `closing-task`, or after gate runs back to `cancelled` / `escalated`.
+   - **Phase-transition** narrative (section 3) after `reviewing-phase` and the matching phase advance both succeed.
+   - **Mission-verdict** narrative (section 4) after `verdicting-mission`; this one requires user final confirmation before transitioning to `complete`.
 
 6. **Loop or return control.**
    - If the next dispatch is automatic (next task in a batch, gate → closure), continue.
