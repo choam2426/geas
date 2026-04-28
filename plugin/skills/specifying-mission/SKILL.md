@@ -44,26 +44,28 @@ Drives the specifying phase end-to-end. Turns a natural-language request into an
     |----|-------|------|---------------------|------|
     ```
 
-9. **Per-task approval.** Walk each drafted task in dependency order. `drafting-task` Step 11 renders the full card and Step 12 runs the section-scoped approval via `AskUserQuestion`. Approve via `geas task approve --by user` per `drafting-task` Step 14 (or `--by decision-maker` for mid-mission in-scope additions).
+9. **Per-task approval.** Walk each drafted task in dependency order. `drafting-task` Step 11 renders the full card and Step 12 runs the section-scoped approval via `AskUserQuestion`. Before each `geas task approve --by user` call, run the dependency-status preflight (IN-8): for every task id in the drafted contract's `dependencies` array, read `.geas/missions/<mission-id>/tasks/<dep-id>/task-state.json` and inspect the `status` field. If any dependency's status is `cancelled`, `escalated`, or `void`, **halt the approve call** and escalate to the user via `AskUserQuestion` (header: `Dep status`, options: `repoint-deps | redraft-task | cancel-this-task`). Initial task sets rarely hit this case — every dep is normally another initial task in `drafted` — but the rule still applies during specifying-phase resume after a partial cancellation, when prior tasks may have moved to terminal status. Re-run the preflight after the user resolves the conflict (e.g., the user repoints the dependency to a passed successor). Approve via `geas task approve --by user` per `drafting-task` Step 15 (or `--by decision-maker` for mid-mission in-scope additions).
 10. **Close the phase.** Append a specifying phase-review and return control. The dispatcher advances the phase.
 
-CLI payload shape (mission create):
+`geas mission create` accepts inline flags (preferred for short payloads) or a full JSON payload via `--file`. For the exact field list, run `geas schema template mission-spec --op create`. The CLI injects `id`, `user_approved=false`, `created_at`, `updated_at`.
 
-```json
-{
-  "name": "<approved name>",
-  "description": "<approved description>",
-  "mode": "<lightweight|standard|full_depth>",
-  "definition_of_done": "<one sentence>",
-  "scope": { "in": ["..."], "out": ["..."] },
-  "acceptance_criteria": ["...", "...", "..."],
-  "constraints": ["..."],
-  "affected_surfaces": ["..."],
-  "risks": ["..."]
-}
+Inline form:
+
+```bash
+geas mission create \
+    --name "approved name" \
+    --mode standard \
+    --description "approved description" \
+    --definition-of-done "one sentence" \
+    --scope-in "in-scope surface 1" --scope-in "in-scope surface 2" \
+    --scope-out "out-of-scope surface 1" \
+    --acceptance-criterion "criterion 1" --acceptance-criterion "criterion 2" --acceptance-criterion "criterion 3" \
+    --constraint "constraint 1" \
+    --affected-surface "surface 1" \
+    --risk "risk 1"
 ```
 
-The CLI injects `id`, `user_approved=false`, `created_at`, `updated_at`.
+Use `--description-from-file <path>` and `--definition-of-done-from-file <path>` (Write tool stages prose) for prose-heavy free-body fields. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON.
 
 ## Red Flags
 
