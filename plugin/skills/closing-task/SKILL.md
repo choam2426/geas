@@ -37,7 +37,7 @@ Writes the closure evidence that finalizes a task. Closure is an orchestrator-au
 3. **Promote signals.** Copy the aggregated `memory_suggestions`, `debt_candidates`, `gap_signals` into the closure entry (the orchestrator is the single collection point for consolidation).
 4. **Append the closure evidence.** `geas evidence append --task <id> --agent orchestrator --slot orchestrator` with `evidence_kind=closure`, `verdict=approved`.
 5. **Transition to `passed`.** `geas task transition --task <id> --to passed`. CLI guard checks that the last orchestrator closure entry has `verdict=approved`.
-6. **Return to dispatcher.** Emit nothing else; the dispatcher will format the task-completion briefing and pick the next candidate.
+6. **Return to the mission caller.** Emit nothing else from this skill. The mission caller will render the **Task-completion** narrative template from `plugin/skills/mission/references/briefing-templates.md` (section 2) in Korean — naming the task, its result, key deliverable, memory and debt counts, and the next candidate — and pick up the next step. The user-facing vocabulary allowlist at the top of that templates file constrains the emitted briefing.
 
 `geas evidence append` accepts inline flags (preferred for short prose) or a full JSON payload via `--file`. For the exact field list of a closure entry, run `geas schema template evidence --op append --kind closure`. The CLI injects `entry_id`, `created_at`; the agent/slot come from flags.
 
