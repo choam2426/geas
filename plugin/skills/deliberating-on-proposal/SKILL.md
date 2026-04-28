@@ -31,7 +31,7 @@ You have been summoned as a voter in a Geas deliberation. Read the proposal and 
 1. **Read the proposal.** Understand exactly what is being decided. If ambiguous, that is itself input to your rationale.
 2. **Read every supporting artifact.**
    - Task contract, implementation evidence, prior review entries, phase-review, and any prior deliberation on the same topic.
-   - Use the read-only CLI surfaces where helpful: `geas mission state`, `geas evidence list`, `geas event query`.
+   - Use the read-only CLI surface `geas mission state` to confirm phase / approval. For prior evidence walk `.geas/missions/{mission_id}/tasks/{task_id}/evidence/*.json` directly; trace the sequence of actions via `.geas/events.jsonl` if a history view is needed.
 3. **Form your judgment from your slot's stance.** Your system prompt defines the lens (challenger = adversarial, risk-assessor = failure modes, operator = operability, design-authority = structural, decision-maker = mission-level acceptance, etc.).
 4. **Pick one vote**:
    - `agree` — the proposal should become the path forward as stated.
@@ -59,8 +59,8 @@ Read-only CLI helpers allowed while forming the vote:
 | CLI command | Purpose |
 |---|---|
 | `geas mission state --mission <id>` | Confirm current phase / approval flags. |
-| `geas evidence list --mission <id> --task <id>` | Pull evidence history for the task under deliberation. |
-| `geas event query --mission <id>` | Trace the sequence of actions that led to the proposal. |
+
+(There is no `geas evidence list` or `geas event query`. Walk prior evidence by reading `.geas/missions/{id}/tasks/{id}/evidence/*.json` directly; trace transitions by reading `.geas/events.jsonl` if a history view is needed.)
 
 ## Outputs
 
