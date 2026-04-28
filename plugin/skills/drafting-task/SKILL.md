@@ -57,29 +57,27 @@ Transforms a slice of mission scope into a task contract routed to a concrete im
 
 12. **Ask for approval (two-step with `AskUserQuestion`).** First call: header `Task {id}`, options `approve | revise | cancel`. If the user picks `revise`, follow up with a second `AskUserQuestion` whose options name the sections the user may change (≤4 per call; group by theme when more than four fields could be in play, for example: `content (goal, criteria, verification) | routing (reviewers, risk) | surfaces | dependencies`). "Other" is auto-appended to every call for edits that cross sections or don't match any label.
 13. **Handle revise.** A drafted contract is not yet immutable, but the CLI enforces immutability at `approve`. Treat the current draft as abandoned, call `geas task draft` again with the corrected payload, and re-render the card. Loop until the user returns `approve` at Step 12. Approve only after every surfaced concern is resolved.
-14. **Approve.** Run `geas task approve --mission <id> --task <id> --by user` (or `--by decision-maker` for mid-mission in-scope additions).
+14. **Dependency-status preflight (IN-8 — mandatory before approve).** Before calling `geas task approve`, walk every task id in the drafted contract's `dependencies` array and read `.geas/missions/<mission-id>/tasks/<dep-id>/task-state.json`. Inspect the `status` field on each. If any dependency's status is `cancelled`, `escalated`, or `void`, **halt the approve call** and escalate to the user via `AskUserQuestion` (header: `Dep status`, options: `repoint-deps | redraft-task | cancel-this-task`). The user's explicit decision drives the next move — never auto-substitute the dependency, never silently approve over a terminated dep. After the user resolves the conflict (e.g., points the dep to a passed successor task or accepts the redraft), re-run this preflight before retrying approve. The design-authority's contract review (when one is dispatched) re-checks the `dependencies` array against terminal-task-state status as part of structural inspection.
+15. **Approve.** Run `geas task approve --mission <id> --task <id> --by user` (or `--by decision-maker` for mid-mission in-scope additions). Per Step 14, this call must not fire while any dependency is in a non-passing terminal state.
 
-CLI payload shape (task draft):
+`geas task draft` accepts inline flags (preferred for short payloads) or a full JSON payload via `--file`. For the exact field list, run `geas schema template task-contract --op draft`. The CLI injects `mission_id`, `task_id`, `created_at`, `updated_at`; defaults `approved_by=null`; writes `contract.json` and a drafted `task-state.json`.
 
-```json
-{
-  "title": "...",
-  "goal": "...",
-  "risk_level": "normal",
-  "acceptance_criteria": ["..."],
-  "verification_plan": "...",
-  "surfaces": ["..."],
-  "routing": {
-    "primary_worker_type": "software-engineer",
-    "required_reviewers": ["challenger"]
-  },
-  "base_snapshot": "<git sha or equivalent>",
-  "dependencies": [],
-  "supersedes": null
-}
+Inline form:
+
+```bash
+geas task draft --mission <id> \
+    --title "Short human-readable label" \
+    --goal "Concrete observable outcome" \
+    --risk-level normal \
+    --acceptance-criterion "criterion 1" --acceptance-criterion "criterion 2" \
+    --verification-plan "one-paragraph verification procedure" \
+    --surface "src/foo.ts" --surface "test/foo.test.js" \
+    --primary-worker-type software-engineer \
+    --reviewer challenger \
+    --base-snapshot "<git sha or equivalent>"
 ```
 
-The CLI injects `mission_id`, `task_id`, `created_at`, `updated_at`; defaults `approved_by=null`; writes `contract.json` and a drafted `task-state.json`.
+Use `--goal-from-file <path>` and `--verification-plan-from-file <path>` (Write tool stages prose) for prose-heavy free-body fields. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc for the body.
 
 ## Red Flags
 

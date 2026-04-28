@@ -39,27 +39,29 @@ Writes the closure evidence that finalizes a task. Closure is an orchestrator-au
 5. **Transition to `passed`.** `geas task transition --task <id> --to passed`. CLI guard checks that the last orchestrator closure entry has `verdict=approved`.
 6. **Return to dispatcher.** Emit nothing else; the dispatcher will format the task-completion briefing and pick the next candidate.
 
-CLI payload shape (closure evidence append):
+`geas evidence append` accepts inline flags (preferred for short prose) or a full JSON payload via `--file`. For the exact field list of a closure entry, run `geas schema template evidence --op append --kind closure`. The CLI injects `entry_id`, `created_at`; the agent/slot come from flags.
 
-```json
-{
-  "evidence_kind": "closure",
-  "verdict": "approved",
-  "summary": "<one-sentence task outcome>",
-  "rationale": "<why approved; references gate run>",
-  "scope_examined": "<what the closure covered>",
-  "methods_used": ["gate-run-review", "evidence-trail-read"],
-  "what_went_well": "...",
-  "what_broke": "...",
-  "what_was_surprising": "...",
-  "next_time_guidance": "...",
-  "memory_suggestions": [],
-  "debt_candidates": [],
-  "gap_signals": []
-}
+Inline form (closure-specific flags `--what-went-well`, `--what-broke`, `--what-was-surprising`, `--next-time-guidance` are repeatable; promote signals via repeatable `--memory-suggestion`, `--debt-candidate <json>`, `--gap-signal <json>`):
+
+```bash
+geas evidence append --mission <id> --task <id> \
+    --agent orchestrator --slot orchestrator \
+    --evidence-kind closure \
+    --verdict approved \
+    --summary "one-sentence task outcome" \
+    --rationale "why approved; references gate run" \
+    --scope-examined "what the closure covered" \
+    --method-used gate-run-review --method-used evidence-trail-read \
+    --what-went-well "concrete observation 1" --what-went-well "observation 2" \
+    --what-broke "failure mode encountered, even if recovered" \
+    --what-was-surprising "unexpected finding" \
+    --next-time-guidance "actionable hint for future similar tasks" \
+    --memory-suggestion "candidate memory entry" \
+    --debt-candidate '{"title":"...","kind":"process","severity":"normal","summary":"..."}' \
+    --gap-signal '{"kind":"learning_gain","summary":"..."}'
 ```
 
-The CLI injects `entry_id`, `created_at`; the agent/slot come from flags.
+Use `--summary-from-file <path>`, `--rationale-from-file <path>`, `--scope-examined-from-file <path>` (Write tool stages prose) for prose-heavy fields. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc — apostrophes / quotes / non-ASCII in retrospective prose break shell parsing.
 
 ## Red Flags
 

@@ -32,21 +32,12 @@ Writes the final mission-level verdict — the decision-maker's assessment of wh
 2. **Grade each acceptance criterion.** For each criterion in `spec.acceptance_criteria`, mark ✓ or ✗ with a short rationale pointing to the gate run / closure / phase-review that established the result. Do not infer; cite.
 3. **Formulate the overall verdict.** One of `approved | approved_with_carry_forward | not_approved`. "Carry forward" is used when DoD is met but specific gaps should be addressed by the next mission (referenced by `gap.json` entries).
 4. **Draft `carry_forward` notes.** One or more pointers to future work. Each pointer either references an open debt (`debt_id`) or a `gap.json` entry. Vague or aspirational items are not recorded.
-5. **Append the mission-verdict entry.** `geas mission-verdict append --mission <id>` with payload:
-
-```json
-{
-  "verdict": "approved|approved_with_carry_forward|not_approved",
-  "summary": "<one-sentence verdict>",
-  "acceptance_criteria_results": [
-    {"criterion": "<...>", "status": "pass|fail", "rationale": "<cite evidence>"}
-  ],
-  "definition_of_done_met": true,
-  "carry_forward": ["<debt_id or gap entry ref>"],
-  "rationale": "<full reasoning>"
-}
-```
-
+5. **Append the mission-verdict entry.** `geas mission-verdict append` is full-payload only (no inline flags), so use the Write tool to stage the JSON body and pass `--file`. For the exact field list, run `geas schema template mission-verdicts --op append`.
+   ```bash
+   # Step 1: Write tool → e.g. <workspace>/.tmp/mission-verdict.json (body matches the schema template)
+   # Step 2: hand the file to the CLI
+   geas mission-verdict append --mission <id> --file <workspace>/.tmp/mission-verdict.json
+   ```
    CLI injects `entry_id`, `created_at`; appends to `mission-verdicts.verdicts`.
 6. **Return to dispatcher.** The dispatcher then emits the mission-verdict briefing, collects user confirmation, and on confirmation runs `geas mission-state update --mission <id> --phase complete`. This skill does not make the `complete` transition itself.
 
