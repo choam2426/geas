@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 > **Note**: Tags were restructured in v0.5.1. Previous major versions (v1.x, v2.x) have been flattened to v0.x.y to reflect that the project is pre-1.0.
 
+## [2.1.1] — 2026-04-29
+
+**Dispatch policy relaxation.** The 2.1.0 formal `high-capability / balanced / fast` tier vocabulary documented tier→harness-model resolution as "out of scope" with no actual passing path, so every spawn fell through to "inherit the orchestrator's own model" — observed empirically as a single mission running 12/12 specialist spawns on the orchestrator's Opus instead of the intended balanced choice. This patch drops the formal tier system in favor of vendor-neutral orchestrator-judgment guidance keyed off slot family + task `risk_level`. No protocol-surface changes (schemas, lifecycle, dispatcher interface, agent frontmatter, CLI all unchanged); no new CLI subcommand or config artifact.
+
+### Changed
+
+- `scheduling-work/SKILL.md` Dispatch Model section rewritten. Formal `high-capability / balanced / fast` tier vocabulary and the "tier-to-model resolution is out of scope" fall-through removed. Defaults now expressed as intent ("the most capable model the harness exposes" for authority slots, "a balanced choice" for specialist slots). High/critical specialist promotion preserved as a "lift" toward the most-capable end. Per-task override preserved as contract prose. Vendor neutrality clause added: failing to pass an explicit per-spawn override is a dispatch bug, not documented behavior.
+- `running-gate/SKILL.md` Dispatch Model section mirrors the new vocabulary; verify-fix re-dispatch inherits the orchestrator's choice.
+- `convening-deliberation/SKILL.md` voter-dispatch instruction (Process step 2) mirrors the new vocabulary.
+
 ## [2.1.0] — 2026-04-29
 
 **UX + CLI ergonomics release.** Errors framework + scalar default for the CLI, inline flags on every payload-taking write command, slot-aware dispatch tiers, risk-tiered retry budget, Korean narrative briefings, and a `specifying-mission` flow rework that aligns with protocol spawn boundaries.
