@@ -36,22 +36,5 @@
   ],
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
-  "mcpServers": "./.mcp.json",
-  "settings": {
-    "permissions": {
-      "allow": [
-        "Read",
-        "Write",
-        "Edit",
-        "Bash",
-        "Glob",
-        "Grep",
-        "WebSearch",
-        "WebFetch",
-        "Agent",
-        "mcp__playwright__*",
-        "mcp__context7__*"
-      ]
-    }
-  }
+  "mcpServers": "./.mcp.json"
 }
