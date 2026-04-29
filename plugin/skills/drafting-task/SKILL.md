@@ -1,6 +1,6 @@
 ---
 name: drafting-task
-description: Invoked by the mission dispatcher when a task contract needs authoring — either as part of the initial task set during specifying, or mid-mission for scope expansion within the approved spec, or as a replacement for a cancelled task; produces a drafted task contract and moves the task to ready once approved.
+description: Invoked by a spawned design-authority when a task contract needs authoring — initial task set during specifying, mid-mission scope expansion within the approved spec, or replacement for a cancelled task. Produces a drafted task contract; approval is handled by the orchestrating skill.
 user-invocable: false
 ---
 
@@ -14,7 +14,7 @@ Transforms a slice of mission scope into a task contract routed to a concrete im
 
 ## When to Use
 
-- Specifying phase: initial task set authoring (called by `specifying-mission`).
+- Specifying phase: initial task set authoring (in design-authority's spawned context, under specifying-mission's orchestration).
 - Building/polishing phase: dispatcher requests a new task in the current mission scope.
 - Replacement: previous task was cancelled and a successor is needed (`supersedes` link).
 - Do NOT use for work outside the current mission scope — surface to the user; that is a new mission, not a new task.
@@ -53,26 +53,36 @@ Transforms a slice of mission scope into a task contract routed to a concrete im
 8. **Capture `base_snapshot`.** Typically `git rev-parse HEAD`; any stable baseline id works.
 9. **Set `dependencies` and `supersedes`.** `dependencies` lists task ids that must reach `passed` before this leaves `ready`. `supersedes` is non-null only when replacing a cancelled task.
 10. **Submit draft.** Run `geas task draft`. The CLI assigns `task_id` and writes `contract.json` + a drafted `task-state.json`. Do not approve yet.
-11. **Render the task card.** Before requesting approval, output a structured card that covers every field the approval will lock in — not just title and goal. Approval commits to an immutable contract; a title-plus-goal summary turns approval into rubber-stamping.
+11. **Render the task card with dep preflight result.** Before requesting approval, run the dep-status preflight (folded from former Step 14) and output a structured card. The card covers every field approval will lock in, plus a `Dependencies` line showing each dep's `task-state.status`. For the first task in an initial task set, prepend a compact decomposition-table header above the card so the user audits slicing at the set level; subsequent tasks omit the table.
 
     ```
+    [Decomposition table — first task of initial set only]
+    | id      | title       | risk    | surfaces (summary)  | deps    |
+    |---------|-------------|---------|---------------------|---------|
+    | task-01 | ...         | ...     | ...                 | —       |
+
     Task {id} — {title}
     Goal: {one-line observable change}
-    Risk: {level}          Implementer: {primary_worker_type}
+    Risk: {level}              Implementer: {primary_worker_type}
     Surfaces: {list}
     Reviewers: verifier (implicit){, other slots from required_reviewers}
     Acceptance criteria:
       1. ...
       2. ...
     Verification plan: {one- to three-line summary; reference the full text if long}
-    Dependencies: {task ids or "none"}
+    Dependencies: {task-id (status), ...} or "none"
     Base snapshot: {sha}
     ```
 
-12. **Ask for approval (two-step structured-prompt sequence).** First prompt: a structured single-choice prompt with header `Task {id}` and options `approve | revise | cancel`. If the user picks `revise`, follow up with a second structured prompt whose options name the sections the user may change (≤4 per round; group by theme when more than four fields could be in play, for example: `content (goal, criteria, verification) | routing (reviewers, risk) | surfaces | dependencies`). Append a free-text escape ("Other" or equivalent) to every round for edits that cross sections or don't match any label.
+12. **Ask for approval (single round, options branched on preflight).** Issue one structured-prompt round with header `Task {id}`. Options branch on the preflight result rendered in Step 11:
+    - **All deps OK**: `approve | revise | cancel`. On `revise`, follow up with a section-picker (`content (goal, criteria, verification) | routing (reviewers, risk) | surfaces | dependencies`). Free-text escape on every round.
+    - **Any dep `cancelled` / `escalated` / `void`**: `repoint-deps | redraft-task | cancel-this-task`. The user's explicit decision drives the next move — never auto-substitute the dependency, never silently approve over a terminated dep.
+
+    For initial task set authoring, the free-text escape on the first task's card may carry set-level adjustments (`redecompose set`, `drop task-XX`, `reorder`). Approval round runs in main-session (orchestrator-side); a spawned design-authority hands the drafted contract back before the approval round begins.
+
 13. **Handle revise.** A drafted contract is not yet immutable, but the CLI enforces immutability at `approve`. Treat the current draft as abandoned, call `geas task draft` again with the corrected payload, and re-render the card. Loop until the user returns `approve` at Step 12. Approve only after every surfaced concern is resolved.
-14. **Dependency-status preflight (IN-8 — mandatory before approve).** Before calling `geas task approve`, walk every task id in the drafted contract's `dependencies` array and read `.geas/missions/<mission-id>/tasks/<dep-id>/task-state.json`. Inspect the `status` field on each. If any dependency's status is `cancelled`, `escalated`, or `void`, **halt the approve call** and escalate to the user via a structured single-choice prompt (header: `Dep status`, options: `repoint-deps | redraft-task | cancel-this-task`). The user's explicit decision drives the next move — never auto-substitute the dependency, never silently approve over a terminated dep. After the user resolves the conflict (e.g., points the dep to a passed successor task or accepts the redraft), re-run this preflight before retrying approve. The design-authority's contract review (when one is dispatched) re-checks the `dependencies` array against terminal-task-state status as part of structural inspection.
-15. **Approve.** Run `geas task approve --mission <id> --task <id> --by user` (or `--by decision-maker` for mid-mission in-scope additions). Per Step 14, this call must not fire while any dependency is in a non-passing terminal state.
+
+14. **Approve.** Run `geas task approve --mission <id> --task <id> --by user` (or `--by decision-maker` for mid-mission in-scope additions). Per the preflight folded into Step 11, this call must not fire while any dependency is in a non-passing terminal state. The orchestrating skill (`specifying-mission` for the initial set, the dispatcher for mid-mission) issues this call from main-session; the spawned design-authority does not.
 
 `geas task draft` accepts inline flags (preferred for short payloads) or a full JSON payload via `--file`. For the exact field list, run `geas schema template task-contract --op draft`. The CLI injects `mission_id`, `task_id`, `created_at`, `updated_at`; defaults `approved_by=null`; writes `contract.json` and a drafted `task-state.json`.
 
@@ -132,7 +142,7 @@ Use `--goal-from-file <path>` and `--verification-plan-from-file <path>` (Write 
 
 ## Related Skills
 
-- **Invoked by**: mission dispatcher for initial task set during specifying, for scope expansion mid-mission, or for cancelled-task replacement. Also called by `specifying-mission` during initial task set authoring.
+- **Invoked by**: a spawned `design-authority`. Approval (`--by user` or `--by decision-maker`) is issued in main-session by the orchestrating skill (`specifying-mission` for the initial set, the dispatcher for mid-mission), not by this skill's spawned context.
 - **Invokes**: none.
 - **Do NOT invoke**: `scheduling-work` — drafting does not schedule; the dispatcher picks the next action after approval. `running-gate` — gates live in the reviewing state, not the draft stage.
 
@@ -144,5 +154,5 @@ Use `--goal-from-file <path>` and `--verification-plan-from-file <path>` (Write 
 - Challenger is included only when one of (a) `risk_level >= high`, (b) the task affects a protocol surface (JSON Schema, lifecycle, dispatcher interface), or (c) the user explicitly requested challenger. Do NOT auto-attach challenger to every task.
 - Mission `mode` does not change task-level `required_reviewers`. `full_depth` drives depth through mission-level deliberation, not by attaching challenger to every task.
 - Contract is immutable after approve; replace via `supersedes` if wrong.
-- Approval is section-scoped — render the full card (every locked field), not a title-plus-goal summary. Use a two-step structured-prompt sequence (approve|revise|cancel → section picker) so the audit trail records which section drove each revision.
+- Approval is a single round per task: card + dep preflight + options branched on preflight outcome (per Step 12). Render the full card (every locked field), not a title-plus-goal summary.
 - Tasks outside `spec.scope.in` are not drafted here — route back to the dispatcher.

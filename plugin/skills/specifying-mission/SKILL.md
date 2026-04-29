@@ -8,7 +8,7 @@ user-invocable: false
 
 ## Overview
 
-Drives the specifying phase end-to-end. Turns a natural-language request into an immutable mission spec, a mission-design artifact, and at least one approved task contract. Hands control back to the dispatcher after a specifying→building phase-review is appended.
+Drives the specifying phase end-to-end. Turns a natural-language request into an immutable mission spec, an approved mission design, and at least one approved task contract. Hands control back to the dispatcher after a specifying→building phase-review is appended.
 
 <HARD-GATE> Mission spec is immutable after user approval. Every question must aim at something the user will sign off on as a fixed contract. Do not invent; if unknown, ask.
 
@@ -30,21 +30,63 @@ Drives the specifying phase end-to-end. Turns a natural-language request into an
 
 ## Process
 
+0. **Pre-scan repo (skill memory only).** Before any user prompt, run a quick read-only sweep that captures facts to turn open intake questions into confirm-this prompts. Glob/Grep targets:
+
+    - **Manifests / build**: `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Makefile`
+    - **Test runners**: `vitest.config*`, `jest.config*`, `pytest.ini`, `tests/`, `*_test.go`
+    - **Lint / format**: `.eslintrc*`, `.prettierrc*`, `ruff.toml`, `.golangci*`
+    - **Surface candidates**: grep keywords from the user's request to narrow probable `affected_surfaces`.
+
+    Hold the result as a skill-local working note. Do NOT surface it as a separate user round — it feeds Step 2 reframing only.
+
 1. **Size the request.** Decide: single mission or multi-mission? If multi, propose decomposition and run this skill against the first mission.
-2. **Select the mode (mandatory ask).** Explicitly ask the user to pick `lightweight | standard | full_depth`. Recommend one based on request signal (scope clarity, risk, cross-module impact) and state why in the question body. Issue a structured single-choice prompt with the three options (header: "Mode") so the choice is recorded as a structured pick, not inferred from prose. Do not infer silently.
-3. **Explore requirements, one question at a time.** Cover: scope boundary (in/out), target user, definition_of_done (one sentence), acceptance_criteria (≥3 observable/falsifiable), constraints, affected_surfaces, risks. Issue a structured single-choice prompt for every structured choice — keep it one-at-a-time, surface 2–4 options with labels, and append a free-text escape ("Other" or equivalent) so the user can answer outside the offered options. Skip unambiguous items. If user says "just build it", fill best-effort and note `intake-skipped` in the description.
-4. **Section-by-section approval.** Before the CLI call, confirm each section: name, description, scope in/out, DoD, acceptance_criteria, constraints, risks. A structured-prompt round can carry up to four related questions, so batch related approvals (for example: name + description, or constraints + risks) instead of serial prose. Each question offers `approve | revise` with a free-text escape ("Other" or equivalent) for substantive edits.
-5. **Create + approve the mission spec.** Run `geas mission create` (payload shape below). Show the summary. On user confirm, run `geas mission approve`. Spec becomes immutable.
-6. **Author the mission design.** For `lightweight` the orchestrator may write `mission-design.md` directly via `geas mission design-set`. For `standard` ask decision-maker to review before user sign-off. For `full_depth` record a mission-level deliberation (via `convening-deliberation`) with challenger + decision-maker + ≥1 specialist before user approval.
-7. **Draft the initial task set.** Plan the decomposition, then for each planned task delegate to `drafting-task` to author the contract. `drafting-task` writes the draft and returns control here BEFORE approving — approval happens in Step 9, after the user has audited the decomposition.
-8. **Present the task-set overview.** Once every task in the initial set is drafted, render a decomposition table so the user audits the slicing itself before committing to individual contracts. Issue a structured single-choice prompt (header: `Task set`) with options `approve-set | redecompose | drop-one`; the free-text escape covers targeted adjustments (split one, reorder, rename). Do not skip this step — set-level decomposition (which slices exist, which surfaces overlap, which dependencies form the order) is a separate audit from per-task contract fields, and collapsing the two hides scope errors behind card-level wording.
 
-    ```
-    | id | title | risk | surfaces (summary) | deps |
-    |----|-------|------|---------------------|------|
-    ```
+2. **Explore requirements, one question at a time.** Cover: scope boundary (in/out), target user, definition_of_done (one sentence), acceptance_criteria (≥3 observable/falsifiable), constraints, affected_surfaces, risks. Issue a structured single-choice prompt for every structured choice — keep it one-at-a-time, surface 2–4 options with labels, and append a free-text escape ("Other" or equivalent) so the user can answer outside the offered options. Use the Step 0 pre-scan note: when a fact already exists for an intake item (e.g., the test runner), reframe the open question as a confirm-this prompt ("vitest detected — confirm?") rather than asking blank. Skip unambiguous items. If user says "just build it", fill best-effort and note `intake-skipped` in the description.
 
-9. **Per-task approval.** Walk each drafted task in dependency order. `drafting-task` Step 11 renders the full card and Step 12 runs the section-scoped approval as a structured-prompt sequence. Before each `geas task approve --by user` call, run the dependency-status preflight (IN-8): for every task id in the drafted contract's `dependencies` array, read `.geas/missions/<mission-id>/tasks/<dep-id>/task-state.json` and inspect the `status` field. If any dependency's status is `cancelled`, `escalated`, or `void`, **halt the approve call** and escalate to the user via a structured single-choice prompt (header: `Dep status`, options: `repoint-deps | redraft-task | cancel-this-task`). Initial task sets rarely hit this case — every dep is normally another initial task in `drafted` — but the rule still applies during specifying-phase resume after a partial cancellation, when prior tasks may have moved to terminal status. Re-run the preflight after the user resolves the conflict (e.g., the user repoints the dependency to a passed successor). Approve via `geas task approve --by user` per `drafting-task` Step 15 (or `--by decision-maker` for mid-mission in-scope additions).
+3. **Spec self-check (skill-level).** Before assembling the unified review round, run a self-check across two axes. This is an LLM-level inspection that does NOT produce a `self_check` evidence file (which belongs to task lifecycle, not mission spec) — it stays in skill memory and feeds Step 4's display.
+
+    - **AC ↔ DoD alignment**: is `definition_of_done` a single, externally-agreeable sentence? Are all `acceptance_criteria` (≥3) testable and observable? When every AC holds, does DoD automatically hold (no bypass path that satisfies every AC while sidestepping the DoD intent)?
+    - **Scope ↔ Surface alignment**: do `scope_in` items map onto entries in `affected_surfaces`? Flag scope_in items with no surface match (abstract scope), and surfaces appearing without scope coverage (silent expansion).
+
+    Generic noise (placeholders like "TBD" / "TODO", vague qualifiers like "appropriately" / "as needed") is absorbed into these axes — placeholders in AC fail the testable check, vague qualifiers fail the falsifiable check. Self-check is a recommendation surface, not a gate; findings appear in Step 4 and the user may choose proceed or revise.
+
+4. **Unified review round.** Present a single round combining: spec preview (every section in `spec.json`), self-check findings from Step 3, and a mode recommendation with reasoning. Issue a structured-prompt round carrying two related questions in one batch (per the "up to four related questions" rule):
+
+    1. **Mode** — `lightweight | standard | full_depth`, with a free-text escape. Recommend one based on scope width, AC testability, surface count, and self-check signal; state the reasoning in the prompt body.
+    2. **Decision** — `proceed | revise`, with free-text escape for "which section, what change".
+
+    On `revise`, return to Step 2 for the named section only, re-run Step 3 self-check, and re-display Step 4. On `proceed`, advance to Step 5 carrying the user's mode pick.
+
+    Self-check is a recommendation, not a gate — even with non-OK findings, the user may proceed. Mode is a user pick, not the recommendation — the recommendation is reasoning material, never substituted for the answer.
+
+5. **Create + approve the mission spec.** Run `geas mission create` with the user-selected mode from Step 4 (payload shape below). On user `proceed` in Step 4, run `geas mission approve`. Spec becomes immutable.
+
+6. **Author the mission design.** specifying-mission spawns `design-authority` to author `mission-design.md` (the spawned agent runs `designing-solution` Branch A and calls `geas mission design-set` itself).
+
+    Mode-dependent prereq before user approval (doc 02 § Operating Mode Requirements):
+    - `lightweight`: user approves directly. Open ad-hoc deliberation via `convening-deliberation` only when disagreement surfaces.
+    - `standard`: spawn `decision-maker` (Agent tool, subagent_type: `geas:authority:decision-maker`); the spawned agent runs `deciding-on-approval` and writes review-kind evidence before user sign-off.
+    - `full_depth`: mission-level deliberation via `convening-deliberation` with decision-maker + challenger + ≥1 specialist (minimum 3 voters). Passing deliberation may substitute for the separate decision-maker review.
+
+    Orchestrator collects design output, runs the prereq, then takes user approval — main-session does not write the design itself, and does not approve on the user's behalf (doc 01 § Orchestrator).
+
+7. **Author the initial task contract set.** specifying-mission spawns `design-authority` a second time. The spawned agent plans decomposition from the approved mission-design and authors each task contract by invoking `drafting-task` (one task per call, in dependency order). main-session collects the drafted contracts when the spawned agent returns.
+
+    Task contract authoring is design-authority's responsibility, not the orchestrator's (doc 01 § Design Authority, doc 03 § drafted state).
+
+8. **Mode-dependent prereq for the initial task contract set.** Same rule as Step 6's design prereq (doc 02 § Operating Mode Requirements):
+    - `lightweight`: none. Ad-hoc deliberation via `convening-deliberation` only on disagreement.
+    - `standard`: spawn `decision-maker` (same mechanism as Step 6) to review the task set; the spawned agent runs `deciding-on-approval` and writes review-kind evidence before user approval.
+    - `full_depth`: mission-level deliberation on the task set (decision-maker + challenger + ≥1 specialist, minimum 3 voters). Passing deliberation may substitute for the separate decision-maker review.
+
+9. **Per-task user approval.** For each drafted task in dependency order, run the unified approval round defined by `drafting-task` Step 11+12: card rendered together with the dep-status preflight result. The first task's card carries a compact decomposition-table header so the user can audit the slicing before committing to individual contracts; subsequent tasks' cards omit the table.
+
+    Prompt options branch on preflight outcome:
+    - all deps OK → `approve | revise | cancel`
+    - any dep `cancelled` / `escalated` / `void` → `repoint-deps | redraft-task | cancel-this-task`
+
+    Free-text escape on every round; for set-level adjustments (redecompose the set, drop a task, reorder), the user may use escape on any task card. On `approve`, main-session issues `geas task approve --by user` (or `--by decision-maker` for mid-mission in-scope additions).
+
 10. **Close the phase.** Append a specifying phase-review and return control. The dispatcher advances the phase.
 
 `geas mission create` accepts inline flags (preferred for short payloads) or a full JSON payload via `--file`. For the exact field list, run `geas schema template mission-spec --op create`. The CLI injects `id`, `user_approved=false`, `created_at`, `updated_at`.
@@ -71,24 +113,27 @@ Use `--description-from-file <path>` and `--definition-of-done-from-file <path>`
 
 | Excuse | Reality |
 |---|---|
-| "The user is in a hurry — skip mode selection and default to standard" | Mode is a mandatory explicit ask; silent defaults produce missions governed by wrong gates. |
-| "Acceptance criteria repeat the DoD — drop them" | Acceptance criteria are the falsifiable tests reviewers measure against; DoD alone gives nothing to grade. |
-| "User sounded certain — skip section-by-section approval" | Section approval is the user's last chance to touch a soon-immutable contract. Skipping it bakes in misreads. |
-| "Spec approved — retroactively edit it because scope slipped" | The spec is immutable after approval. Use `drafting-task` for in-scope additions or start a new mission. |
+| "Recommendation looks unambiguous — pick mode without waiting for the user" | The recommendation is reasoning material; the user must make the actual pick in Step 4. Filling it in silently bypasses the explicit ask and produces missions governed by the wrong gates. |
+| "Acceptance criteria repeat the DoD — drop them" | AC are the falsifiable tests reviewers measure against; DoD alone gives nothing to grade. |
+| "Pre-scan found the test runner — write it into the spec without asking" | Pre-scan facts feed Step 2 reframing as confirm-this prompts. Only user-confirmed answers reach the spec. |
+| "Self-check found issues — block the unified review (or persist findings as evidence)" | Spec self-check is a recommendation surface, not a gate. Findings appear in Step 4; the user decides proceed or revise. Mission-level self-check is skill-internal — no `self_check` evidence file (those belong to task lifecycle). |
+| "Orchestrator writes mission-design or drafts task contracts directly" | Both are design-authority's responsibility in every mode. Spawn design-authority via the Agent tool; main-session does not author these artifacts. |
+| "Spec approved — retroactively edit because scope slipped" | The spec is immutable after approval. Use `drafting-task` for in-scope additions or start a new mission. |
 | "Just dump the whole intake as a prose block — it's faster" | Unstructured prose loses answers and invites the user to skim. A structured single-choice prompt forces a structured pick per question and keeps the audit trail clean. |
-| "Draft the tasks, list them in a bullet, get one 'approve' for the whole set" | The task set has two audit layers: decomposition (set-level — which slices exist, surface overlap, dependency order) and contract (per-task — routing, criteria, verification). Collapsing them loses the surface/dependency check and locks contracts the user never saw. Overview table first, then per-task card via `drafting-task`. |
+| "Skip the decomposition-table header on the first task card" | The header is the user's chance to audit slicing, surface overlap, and dependency order at set level before locking individual contracts. Without it, set-level errors hide behind card-level wording. |
 
 ## Invokes
 
-| CLI command | Purpose |
+| Tool / target | Purpose |
 |---|---|
-| `geas mission create` | Write the initial mission spec (scaffold + spec.json). |
+| `geas mission create` | Write the initial mission spec. |
 | `geas mission approve --mission <id>` | Flip `user_approved` to true; lock the spec. |
-| `geas mission design-set --mission <id>` | Write `mission-design.md` content (CLI.md §3 mission-level). |
 | `geas task approve --mission <id> --task <id> --by user\|decision-maker` | Approve each drafted initial task. |
 | `geas phase-review append --mission <id>` | Close the specifying phase with `status=passed`, `next_phase=building`. |
+| Agent tool (`subagent_type: geas:authority:design-authority`) | Spawn design-authority for mission-design (Step 6) and initial task contract set (Step 7). Two spawns per specifying phase. The spawned agent calls `geas mission design-set` and invokes `drafting-task` itself. |
+| Agent tool (`subagent_type: geas:authority:decision-maker`) | Spawn decision-maker for standard-mode review of mission-design (Step 6) and task set (Step 8). The spawned agent runs `deciding-on-approval` and writes review-kind evidence. |
 
-Sub-skills invoked: `drafting-task` (per initial task), `convening-deliberation` (full_depth design approval only).
+Sub-skills invoked from main-session: `convening-deliberation` — full_depth design and task-set deliberations (Steps 6, 8), and ad-hoc deliberation in any mode when disagreement surfaces.
 
 ## Outputs
 
@@ -99,23 +144,29 @@ Sub-skills invoked: `drafting-task` (per initial task), `convening-deliberation`
 
 ## Failure Handling
 
-- **Schema rejection** on `mission create`: read hints (`missing_required`, `invalid_enum`, `wrong_pattern`); fix payload and retry. Do not bypass.
-- **Design approval stalls** in full_depth: escalate to deliberation (`convening-deliberation`); record the result before re-asking the user.
-- **User declines a section**: revise that section only; re-present for approval. Never silent-skip.
-- **Ambiguous mission boundary**: halt and return to dispatcher with a decomposition proposal; do not force-create a spec.
-- **`geas mission design-set` guard rejection** (`guard_failed`): check that the mission spec is `user_approved` and the current phase is `specifying`; after building starts, the design is frozen and must not be edited from this skill.
+- **Schema rejection** on `mission create`: read CLI hints (`missing_required` / `invalid_enum` / `wrong_pattern`); fix payload and retry. Do not bypass.
+- **User chooses `revise` in Step 4**: return to Step 2 for the named section only, re-run Step 3 self-check, re-display Step 4. Never silent-skip.
+- **Self-check finds issues but user accepts**: self-check is a recommendation. Record the user's pick and advance. Findings stay in skill memory only.
+- **`design-authority` spawn fails (timeout / empty / error)**: re-spawn once with the same prompt. On second failure, surface the spawn output to the user with options: retry, decompose differently, or cancel the mission.
+- **`decision-maker` spawn fails (standard-mode review)**: re-spawn once. On second failure, surface to the user with options: retry, escalate to a `convening-deliberation` (full_depth-equivalent), or proceed without the review (record the chosen path explicitly).
+- **Mode prereq stalls in `full_depth`**: deliberation has not closed; do not advance to user approval. Re-attempt `convening-deliberation`.
+- **Ambiguous mission boundary at Step 1**: halt and return to dispatcher with a decomposition proposal; do not force-create a spec spanning multiple subsystems.
 
 ## Related Skills
 
 - **Invoked by**: mission dispatcher when `phase=specifying` and the spec/design/initial-task sequence is incomplete.
-- **Invokes**: `drafting-task` (per initial task), `convening-deliberation` (design approval in `full_depth`).
-- **Do NOT invoke**: `scheduling-work`, `running-gate`, `closing-task` — those belong to later phases. `reviewing-phase` writes the phase-review through this skill's closing step, not as a separate invocation.
+- **Invokes from main-session**: `convening-deliberation` (mode prereq + ad-hoc on disagreement), Agent tool spawn for `design-authority` (Steps 6, 7).
+- **Do NOT invoke directly from main-session**: `designing-solution` (spawned-only; called from inside the design-authority spawn), `drafting-task` (called from inside the design-authority spawn at Step 7), `deciding-on-approval` (spawned-only; called from inside the decision-maker spawn for standard-mode review). Phase-later skills (`scheduling-work`, `running-gate`, `closing-task`, `reviewing-phase`) belong to building/later phases.
 
 ## Remember
 
-- Mode selection is an explicit ask, never inferred. Use a structured single-choice prompt for it.
-- One question at a time for exploration; batch up to 4 questions in a single structured-prompt round when approvals are independent and related.
-- Section-by-section approval before CLI writes; immutable after approve.
-- At least one approved task contract must exist before the specifying phase-review.
-- Task set has two audit layers — decomposition (overview table, set-level) then contract (per-task card via `drafting-task`). Never collapse them into one approval.
-- Return control to the dispatcher after appending the phase-review — do not call `mission-state update --phase` from here.
+- Pre-scan first; reframe blank intake questions as confirm-this prompts.
+- One question at a time during intake.
+- Spec self-check is a recommendation surface, not a gate.
+- Mode is the user's pick in Step 4; the recommendation accompanies, never substitutes.
+- Spec is immutable after approve.
+- Mission-design and initial task contract set are design-authority's responsibility (spawned via Agent tool). Standard-mode review of both is decision-maker's responsibility (also spawned). Main-session does not write the design, draft contracts, or perform mode-prereq reviews directly — all three are spawn-based.
+- Mode-dependent prereq applies to both mission-design (Step 6) and task set (Step 8) under the same rule.
+- The decomposition-table header on the first task card is the set-level audit; do not omit.
+- Per-task approval is one unified round per task: card + dep preflight + options branched on preflight outcome.
+- Return control to dispatcher after appending the phase-review — do not call `mission-state update --phase` from here.
