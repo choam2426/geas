@@ -38,24 +38,20 @@ Constructs a task-level parallel batch and dispatches implementers for the selec
 
 ## Dispatch Model
 
-Agent frontmatter does not pin a model. The scheduler resolves a **capability tier** for each dispatch from the slot the spawned agent holds and the risk profile of the task, and the orchestrator translates that tier to a concrete harness model at dispatch time. Other dispatcher skills (`running-gate` verify-fix re-dispatch, `convening-deliberation` voter dispatch) follow the same rule.
+The orchestrator chooses the harness model when spawning each agent and passes that choice through the harness's per-spawn model override at dispatch time. Selection is a judgment call guided by the slot the spawned agent holds and the task's risk profile — there is no formal tier system the skill resolves through. Other dispatcher skills (`running-gate` verify-fix re-dispatch, `convening-deliberation` voter dispatch) follow the same pattern.
 
-**Capability tiers.** Three tiers in order of decreasing capability and cost: `high-capability`, `balanced`, `fast`.
+**Default intent.**
 
-**Default mapping.**
-
-| Slot family | Slot ids | Default tier |
+| Slot family | Slot ids | Default intent |
 |---|---|---|
-| Authority | `challenger`, `decision-maker`, `design-authority` | `high-capability` |
-| Specialist | `risk-assessor`, `operator`, `communicator`, `verifier`, `implementer` (research/* + software/* concrete agents) | `balanced` |
+| Authority | `challenger`, `decision-maker`, `design-authority` | The most capable model the harness exposes |
+| Specialist | `risk-assessor`, `operator`, `communicator`, `verifier`, `implementer` (research/* + software/* concrete agents) | A balanced choice — capable enough for the task without spending top-tier inference on routine specialist work |
 
-**High/critical specialist promotion.** When `task.risk_level` is `high` or `critical` AND the slot being dispatched is in the specialist family, override the default and resolve to `high-capability` instead of `balanced`. Rationale: the cost of a missed risk on high/critical work outweighs the inference savings from a lower tier. Authority slots already default to `high-capability`, so the promotion is a no-op for them.
+**High/critical risk specialist lift.** When `task.risk_level` is `high` or `critical` AND the slot being dispatched is in the specialist family, lift the choice toward the most-capable end. Rationale: the cost of a missed risk on high/critical work outweighs the inference savings. Authority slots already aim for the top, so the lift is a no-op for them.
 
-**Per-task contract override.** A task contract may carry an explicit tier override (for example, an unusual research task that legitimately needs `high-capability` on a specialist slot, or a low-risk doc task where `fast` on an authority slot is acceptable). When present, the contract override wins over both the default mapping and the high/critical promotion. Record the rationale in the contract, not in the dispatch event.
+**Per-task rationale.** A task contract may carry prose explaining why a non-default choice is appropriate (an unusual research task that wants the most-capable model on a specialist slot, or a low-risk doc task where a faster choice on an authority slot is acceptable). The orchestrator reads the contract before dispatching and respects the rationale.
 
-**Tier-to-model resolution.** The orchestrator resolves a tier to a concrete harness model identifier at dispatch time. The mapping infrastructure (project config, harness adapter convention, etc.) is out of scope for this skill — when a mapping is absent, the dispatched agent inherits the orchestrator's own model.
-
-**Operational note.** When the candidate filter (steps 1–6) finishes, attach the resolved tier to each dispatch alongside the slot. Passing `fast` to an authority slot is a scheduling bug, not a CLI rejection — the CLI does not validate tier strings.
+**Vendor neutrality.** Concrete model identifiers are a harness concern, not a skill concern. The skill speaks in slot + risk terms; the orchestrator translates to whatever its harness expects at dispatch time. Failing to pass an explicit per-spawn override leaves the spawn inheriting the orchestrator's own model — that is a dispatch bug, not the documented behavior.
 
 ## Red Flags
 

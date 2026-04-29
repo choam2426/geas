@@ -111,9 +111,9 @@ The CLI enforces this on every `reviewing -> implementing` transition: when `ver
 
 ## Dispatch Model
 
-When the verify-fix loop re-dispatches the implementer (and re-spawns reviewers + verifier), it follows the same slot→tier policy that `scheduling-work` uses on first dispatch: authority slots default to `high-capability`; specialist slots default to `balanced`; on `task.risk_level` of `high` or `critical`, specialist slots are promoted to `high-capability`. A per-task contract override, when present, wins over both the default and the promotion.
+When the verify-fix loop re-dispatches the implementer (and re-spawns reviewers + verifier), it follows the same slot- and risk-driven dispatch pattern that `scheduling-work` describes: authority slots aim for the most capable model the harness exposes; specialist slots aim for a balanced choice; on `task.risk_level` of `high` or `critical`, specialist slots are lifted toward the most-capable end. A task contract's per-task rationale, when present, takes precedence.
 
-The canonical policy lives in [scheduling-work/SKILL.md](../scheduling-work/SKILL.md) under "Dispatch Model". The gate does not pick the tier itself — it inherits whatever the dispatcher resolves at re-spawn time. Iterations across the verify-fix loop must use the same tier the original dispatch used, unless the contract was amended (rare; record the change in the implementation contract).
+The canonical guidance lives in [scheduling-work/SKILL.md](../scheduling-work/SKILL.md) under "Dispatch Model". The gate does not pick the model itself — it inherits whatever the orchestrator chooses at re-spawn time. Iterations across the verify-fix loop normally use the same choice as the original dispatch unless the contract was amended (rare; record the change in the implementation contract).
 
 ## Related Skills
 
