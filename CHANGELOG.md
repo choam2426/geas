@@ -4,6 +4,60 @@ All notable changes to this project are documented in this file.
 
 > **Note**: Tags were restructured in v0.5.1. Previous major versions (v1.x, v2.x) have been flattened to v0.x.y to reflect that the project is pre-1.0.
 
+## [2.1.0] — 2026-04-29
+
+**UX + CLI ergonomics release.** Errors framework + scalar default for the CLI, inline flags on every payload-taking write command, slot-aware dispatch tiers, risk-tiered retry budget, Korean narrative briefings, and a `specifying-mission` flow rework that aligns with protocol spawn boundaries.
+
+### BREAKING
+
+- **CLI default-mode error path is now scalar stderr.** `--format json` keeps the structured envelope, but the envelope shape changes too: the legacy `emit/err/ok/EXIT_CODES` exports are removed and every write command routes through the new errors framework.
+- **`append_only_violation` error code folded into `guard`.** Guard hint payloads are now string-shaped (was an object).
+- **`.geas/.tmp/` → `.geas/tmp/`.** `paths.tmpDir()` returns `.geas/tmp`. Hook `geas-write-block.js` rewritten with POSIX-normalized segment-walk so `.geas/tmp/<file>` is allowed and every other `.geas/` path (including the legacy `.geas/.tmp/`, prefix imitations like `.geas/tmpfoo`, and traversal escapes) is blocked. No migration path — start fresh.
+
+### Added
+
+**CLI**
+- Output formatter, errors framework, and global `--format` flag — scalar default, JSON opt-in. Scalar formatters registered for `context`, `setup`, `state`, `event log`, and `schema` subcommands.
+- **Inline flags on every payload-taking write command** so prose bodies don't have to round-trip through bash heredocs: `mission create`, `task draft`, `evidence append`, `self-check append`, `debt register`, `memory shared-set`, `memory agent-set`, `deliberation append`. Stdin and `--file` retained as fallbacks.
+- `task base-snapshot set` — set/replace task base snapshot SHA out of band.
+- `task deps remove` — strip dependencies (e.g. when a dep is cancelled) without rewriting the contract.
+- **Risk-tiered retry budget** in `transition-guards.ts`: `RETRY_BUDGET_BY_RISK` (low=1, normal=2, high=2, critical=3), enforced on every `reviewing → implementing` rewind. Unknown risk falls back to `normal=2`. CLI guard hint surfaces risk_level + iterations and routes exhausted budgets to `blocked` or `escalated`.
+
+**Skills**
+- **Slot-aware Dispatch Model** in `scheduling-work/SKILL.md`: 3-tier vocabulary `high-capability / balanced / fast`. Authority slot defaults to high-capability; specialist slot defaults to balanced; high/critical specialist tasks promote to high-capability; per-task contract may override either. Tier→concrete-model resolution is left to the orchestrator. Cited from `running-gate` (verify-fix re-dispatch) and `convening-deliberation` (voter dispatch).
+- **Reviewer selection rule** in `drafting-task/SKILL.md` step 7: default reviewer set = `risk-assessor + operator + communicator`. Challenger only when (a) `risk_level ≥ high`, (b) the task affects a protocol surface, or (c) the user explicitly requests it. Replaces the prior auto-attach challenger pattern.
+- **Korean narrative briefings.** 4 user-facing briefings (current-status, task-completion, phase-transition, mission-verdict) rewritten as Korean narrative templates with a jargon allowlist. `mission/SKILL.md` emission steps + `closing-task` step 6 + `reviewing-phase` step 5 + `verdicting-mission` step 6 cite the templates by section.
+- **Tmp file lifecycle** section in `mission/SKILL.md` documenting `.geas/tmp/` staging, sub-skill cleanup, dispatcher bulk cleanup at `verdicting-mission` + `phase-review`, and the hook allowlist scope. Cross-link sentences added to 5 task-side skills.
+- **`specifying-mission` flow rework**: pre-scan reframe, unified review batching of mode+proceed, separate set-audit removed. Aligned with protocol spawn boundaries — design-authority spawned for mission-design and task-set authoring, decision-maker spawned for standard-mode review.
+- **`drafting-task` spawn boundary**: dep preflight folded into the card render with options branched on the preflight outcome. New IN-8 preflight added.
+- `mission/SKILL.md` dispatch table augmented with the `implementing → reviewing` transition row and reviewer/verifier dispatch rows.
+
+**Tests**
+- End-to-end lightweight mission walkthrough integration fixture (T5.2).
+- 4 retry-budget unit tests in `g3-task.test.js` (one per risk_level). Suite at 245/245 pass.
+- New `geas-write-block.test.js`: 8 tests (6 contract cases + 2 regressions) for `.geas/tmp/` allowlist semantics.
+- Briefing-snapshot fixture asserting AC5 + structural-invariant for emission SKILL.md (T4).
+- 3 grep fixtures asserting T3 SKILL.md migration.
+- Binary fixture asserting legacy `emit/err/ok/EXIT_CODES` exports removed.
+
+### Changed
+
+- All 14 agent files drop `model:` frontmatter; agents now inherit the orchestrator model unless dispatch overrides.
+- 7 spawned-agent + 4 dispatcher-side + 2 mission-level SKILL.md migrated to inline-flag CLI form. `consolidating-mission` stdin-pipe memory writes replaced with inline-flag form; `deliberating-on-proposal` phantom CLI subcommand refs corrected.
+- 13 `<workspace>/.tmp/` references across 6 skills (`designing-solution`, `deciding-on-approval`, `verdicting-mission`, `reviewing-phase`, `consolidating-mission`, `implementing-task`) replaced with `.geas/tmp/`.
+- Skill bodies made harness-agnostic: `AskUserQuestion` / `TodoWrite` / `EnterPlanMode` / `ExitPlanMode` / `PreToolUse` references in `specifying-mission`, `drafting-task`, `mission` SKILL.md replaced with abstract phrasing (`structured single-choice prompt`, `structured-prompt round`, `structured-prompt sequence`, `pre-tool-use write-block hook`).
+- Platform-specific `opus` / `sonnet` model names in `scheduling-work` / `running-gate` / `convening-deliberation` Dispatch Model sections replaced with the tier vocabulary above.
+- 3 `docs/` cross-links removed from skill bodies (`scheduling-work` L50, `running-gate` L101 + L116) so the runtime constraint "skills cannot access `docs/`" holds.
+- Pre-defined plugin permissions removed from `plugin/plugin.json` — defer to user / local settings.
+- `docs/{ko/,}architecture/CLI.md` synchronized with mission inline-flag + scalar-default error + envelope changes.
+- `plugin/bin/geas` bundle regenerated; CLI version `0.13.0` → `0.14.0`; `plugin.json` + `marketplace.json` version `2.0.0` → `2.1.0`.
+
+### Fixed
+
+- Hook scripts and bundled `plugin/bin/geas` binary now have the executable bit set.
+- Dashboard: unused Toast infrastructure removed.
+- README Dashboard section updated for v2.0.0 console direction; per-sub-tab + Debt/Memory screenshots mirrored to the English README.
+
 ## [2.0.0] — 2026-04-23
 
 **Major release — Protocol v3 clean rewrite + Skill layer redesign.**
