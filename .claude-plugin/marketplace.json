@@ -4,9 +4,7 @@
         "name": "choam2426",
         "email": "choam2426@gmail.com"
     },
-    "metadata": {
-        "description": "A governance protocol that makes AI agents work as a professional team — contract-driven execution, evidence-based verification, and cross-session learning."
-    },
+    "description": "A governance protocol that makes AI agents work as a professional team — contract-driven execution, evidence-based verification, and cross-session learning.",
     "plugins": [
         {
             "name": "geas",
@@ -16,19 +14,7 @@
                 "name": "choam2426",
                 "email": "choam2426@gmail.com"
             },
-            "category": "development",
-            "keywords": [
-                "governance-protocol",
-                "contract-driven",
-                "evidence-gate",
-                "multi-agent",
-                "orchestration",
-                "verification",
-                "memory-system"
-            ],
-            "homepage": "https://github.com/choam2426/geas",
-            "repository": "https://github.com/choam2426/geas",
-            "license": "Apache-2.0"
+            "version": "2.1.0"
         }
     ]
 }
