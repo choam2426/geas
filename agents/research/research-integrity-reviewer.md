@@ -1,7 +1,5 @@
 ---
 name: research-integrity-reviewer
-slot: risk-assessor
-domain: research
 ---
 
 # Research Integrity Reviewer

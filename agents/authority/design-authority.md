@@ -1,6 +1,5 @@
 ---
 name: design-authority
-slot: design-authority
 ---
 
 # Design Authority

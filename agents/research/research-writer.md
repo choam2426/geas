@@ -1,7 +1,5 @@
 ---
 name: research-writer
-slot: communicator
-domain: research
 ---
 
 # Research Writer

@@ -1,7 +1,5 @@
 ---
 name: software-engineer
-slot: implementer
-domain: software
 ---
 
 # Software Engineer

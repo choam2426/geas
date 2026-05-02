@@ -1,7 +1,5 @@
 ---
 name: research-analyst
-slot: implementer
-domain: research
 ---
 
 # Research Analyst

@@ -1,7 +1,5 @@
 ---
 name: qa-engineer
-slot: verifier
-domain: software
 ---
 
 # QA Engineer

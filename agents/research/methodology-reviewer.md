@@ -1,7 +1,5 @@
 ---
 name: methodology-reviewer
-slot: verifier
-domain: research
 ---
 
 # Methodology Reviewer

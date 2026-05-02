@@ -1,7 +1,5 @@
 ---
 name: security-engineer
-slot: risk-assessor
-domain: software
 ---
 
 # Security Engineer

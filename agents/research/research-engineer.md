@@ -1,7 +1,5 @@
 ---
 name: research-engineer
-slot: operator
-domain: research
 ---
 
 # Research Engineer

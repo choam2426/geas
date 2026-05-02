@@ -1,6 +1,5 @@
 ---
 name: decision-maker
-slot: decision-maker
 ---
 
 # Decision Maker
