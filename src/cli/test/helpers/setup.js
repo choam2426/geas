@@ -2,7 +2,7 @@
  * Shared test primitives for G1+ test suite.
  *
  * Each test creates its own `.geas/` root under os.tmpdir() so test
- * runs are isolated. The CLI bundle at plugin/bin/geas is invoked as
+ * runs are isolated. The CLI bundle at bin/geas is invoked as
  * a child process; stdout/stderr are captured.
  */
 
@@ -15,7 +15,7 @@ const crypto = require('crypto');
 const { spawnSync } = require('child_process');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
-const BUNDLE = path.join(REPO_ROOT, 'plugin', 'bin', 'geas');
+const BUNDLE = path.join(REPO_ROOT, 'bin', 'geas');
 
 /**
  * Create a fresh temp directory to act as the project root. The caller

@@ -1,8 +1,8 @@
 /**
  * Legacy term sweep — Phase 1 closure gate P1.end.3.
  *
- * Asserts the v3 surfaces (src/cli/, plugin/skills/, plugin/agents/,
- * plugin/hooks/) contain no occurrences of terminology that was retired
+ * Asserts the v3 surfaces (src/cli/, skills/, agents/,
+ * hooks/) contain no occurrences of terminology that was retired
  * by the v3 protocol rewrite.
  *
  * `docs/superpowers/specs/` is explicitly excluded because it contains
@@ -43,9 +43,9 @@ const LEGACY_TERMS = [
 
 const SCAN_ROOTS = [
   'src/cli',
-  'plugin/skills',
-  'plugin/agents',
-  'plugin/hooks',
+  'skills',
+  'agents',
+  'hooks',
 ];
 
 // These paths are excluded from the sweep because they are build
@@ -166,10 +166,10 @@ test('no legacy v1/v2 terms remain in v3 surfaces', () => {
 // invocation pattern that pipes a file or heredoc into the CLI.
 //
 // references/*.md is INCLUDED in the sweep because per T3.1 the legacy
-// invocation patterns are forbidden everywhere in plugin/skills/, not
+// invocation patterns are forbidden everywhere in skills/, not
 // just in the SKILL.md bodies.
 
-const SKILLS_ROOT = path.join(REPO_ROOT, 'plugin', 'skills');
+const SKILLS_ROOT = path.join(REPO_ROOT, 'skills');
 
 function listSkillMarkdown() {
   const out = [];
@@ -193,9 +193,9 @@ function listSkillMarkdown() {
   return out;
 }
 
-test('T3.1 / AC4: no `cat <<EOF` heredoc invocations remain in plugin/skills/', () => {
+test('T3.1 / AC4: no `cat <<EOF` heredoc invocations remain in skills/', () => {
   const files = listSkillMarkdown();
-  assert.ok(files.length > 0, 'expected at least one SKILL.md / reference under plugin/skills/');
+  assert.ok(files.length > 0, 'expected at least one SKILL.md / reference under skills/');
 
   const findings = [];
   // Match `cat <<EOF`, `cat <<'EOF'`, `cat <<"EOF"`, with any whitespace
@@ -219,15 +219,15 @@ test('T3.1 / AC4: no `cat <<EOF` heredoc invocations remain in plugin/skills/', 
   assert.deepEqual(
     findings,
     [],
-    `legacy heredoc invocations remain in plugin/skills/:\n${findings
+    `legacy heredoc invocations remain in skills/:\n${findings
       .map((f) => `  ${f.file}:${f.line}  ${f.text}`)
       .join('\n')}`,
   );
 });
 
-test('T3.1 / AC4: no `cat <file>.json | geas` stdin-pipe invocations remain in plugin/skills/', () => {
+test('T3.1 / AC4: no `cat <file>.json | geas` stdin-pipe invocations remain in skills/', () => {
   const files = listSkillMarkdown();
-  assert.ok(files.length > 0, 'expected at least one SKILL.md / reference under plugin/skills/');
+  assert.ok(files.length > 0, 'expected at least one SKILL.md / reference under skills/');
 
   const findings = [];
   // Match `cat <something> | geas` — captures the actual invocation
@@ -252,7 +252,7 @@ test('T3.1 / AC4: no `cat <file>.json | geas` stdin-pipe invocations remain in p
   assert.deepEqual(
     findings,
     [],
-    `legacy stdin-pipe invocations remain in plugin/skills/:\n${findings
+    `legacy stdin-pipe invocations remain in skills/:\n${findings
       .map((f) => `  ${f.file}:${f.line}  ${f.text}`)
       .join('\n')}`,
   );
