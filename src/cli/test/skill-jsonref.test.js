@@ -3,14 +3,14 @@
  *
  * mission-20260427-xIPG1sDY task-003 / verification_plan step 2.
  *
- * After T3.2 migration, plugin/skills/<name>/SKILL.md bodies must NOT
+ * After T3.2 migration, skills/<name>/SKILL.md bodies must NOT
  * contain inline JSON template blocks (a `^\s*\{\s*$` line followed
  * eventually by a `^\s*\}\s*$` line with at least 3 lines total in the
  * block). Such templates are replaced by `geas schema template <name>
  * --op <op> [--kind <kind>]` invocation directives.
  *
  * Per the contract, the carve-out is intentional:
- *   - plugin/skills/*\/references/*.md is allowed to contain inline JSON
+ *   - skills/*\/references/*.md is allowed to contain inline JSON
  *     (the references files are explanatory, not procedural). This test
  *     scans SKILL.md only.
  *   - Single-line JSON object snippets used inside inline-flag examples
@@ -32,7 +32,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
-const SKILLS_ROOT = path.join(REPO_ROOT, 'plugin', 'skills');
+const SKILLS_ROOT = path.join(REPO_ROOT, 'skills');
 
 function listSkillMdBodies() {
   // Only top-level SKILL.md per skill folder; skip references/.
@@ -73,12 +73,12 @@ function findMultilineJsonBlocks(content) {
   return blocks;
 }
 
-test('T3.2 / AC6: no multi-line inline JSON template blocks remain in plugin/skills/*/SKILL.md', () => {
+test('T3.2 / AC6: no multi-line inline JSON template blocks remain in skills/*/SKILL.md', () => {
   const files = listSkillMdBodies();
   assert.equal(
     files.length,
     17,
-    `expected exactly 17 SKILL.md files under plugin/skills/, got ${files.length}`,
+    `expected exactly 17 SKILL.md files under skills/, got ${files.length}`,
   );
 
   const findings = [];
