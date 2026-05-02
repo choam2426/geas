@@ -3,7 +3,7 @@
 Geas uses a **slot-based role architecture**. The protocol defines abstract **slots**; concrete agent types declare which slot they fill in their frontmatter. This separation lets the same governance pipeline serve different domains — software engineering, research, or any future profile — without rewriting the contract layer.
 
 **Canonical slot definitions:** [`docs/protocol/01_AGENTS_AND_AUTHORITY.md`](../protocol/01_AGENTS_AND_AUTHORITY.md)
-**Agent files:** `plugin/agents/`
+**Agent files:** `agents/`
 
 ## Slot Families
 
@@ -13,7 +13,7 @@ Geas uses a **slot-based role architecture**. The protocol defines abstract **sl
 
 Slots are role positions. Evidence, review routing, and gate rules refer to slots — not concrete agent names — so the same pipeline works across domains.
 
-The **Orchestrator** is the mission skill (the main-session driver), not a spawnable agent. It coordinates phases, dispatches specialists, and records task closure decisions. It does not appear under `plugin/agents/`.
+The **Orchestrator** is the mission skill (the main-session driver), not a spawnable agent. It coordinates phases, dispatches specialists, and records task closure decisions. It does not appear under `agents/`.
 
 ---
 
@@ -55,7 +55,7 @@ The adversarial reviewer who asks "why might this still be wrong?" while everyon
 
 ## Software Profile
 
-For software engineering missions. Defined in `plugin/agents/software/`.
+For software engineering missions. Defined in `agents/software/`.
 
 | Slot | Agent | Key Responsibility |
 |---|---|---|
@@ -91,7 +91,7 @@ Clarity specialist ensuring the deliverable can be understood. Checks documentat
 
 ## Research Profile
 
-For research and analysis missions. Defined in `plugin/agents/research/`.
+For research and analysis missions. Defined in `agents/research/`.
 
 | Slot | Agent | Key Responsibility |
 |---|---|---|

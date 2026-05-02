@@ -2,9 +2,9 @@
 
 Hooks are Claude Code runtime scripts that the harness executes at defined lifecycle events. Geas uses them to surface `.geas/` state at session start, inject memory into sub-agents, and block raw writes into the runtime tree. Hooks are best-effort — if a hook fails or is absent, the mission still proceeds. The canonical runtime tree is owned by the `geas` CLI; hooks only observe and surface state.
 
-Configuration: `plugin/hooks/hooks.json`
-Scripts: `plugin/hooks/scripts/`
-Shared helper: `plugin/hooks/scripts/lib/geas-hooks.js`
+Configuration: `hooks/hooks.json`
+Scripts: `hooks/scripts/`
+Shared helper: `hooks/scripts/lib/geas-hooks.js`
 
 For the broader automation story (what `.geas/events.jsonl` records, and which CLI commands emit events), see `architecture/CLI.md` §14.7 and `architecture/DESIGN.md`.
 
@@ -205,5 +205,5 @@ A project that wants additional lifecycle behavior on top of Geas can add its ow
 - `architecture/CLI.md` §14.7 — events.jsonl contract, event kinds, actor namespace.
 - `architecture/DESIGN.md` — how automation, hooks, and the CLI relate.
 - `SKILLS.md` — which skills invoke which CLI commands.
-- `plugin/hooks/hooks.json` — the current registration.
-- `plugin/hooks/scripts/` — the script bodies themselves.
+- `hooks/hooks.json` — the current registration.
+- `hooks/scripts/` — the script bodies themselves.
