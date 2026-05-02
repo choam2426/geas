@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 > **Note**: Tags were restructured in v0.5.1. Previous major versions (v1.x, v2.x) have been flattened to v0.x.y to reflect that the project is pre-1.0.
 
+## Unreleased
+
+### Changed
+- Reworked the plugin package layout for Claude Code and Codex: shared `skills/`, `agents/`, `bin/`, `hooks/`, and `.mcp.json` now live at the repository root instead of under `plugin/`.
+- Added runtime-specific manifests under `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`.
+- Updated prompt wording and docs to use client-neutral dispatch and staging language.
+
 ## [2.1.1] — 2026-04-29
 
 **Dispatch policy relaxation.** The 2.1.0 formal `high-capability / balanced / fast` tier vocabulary documented tier→harness-model resolution as "out of scope" with no actual passing path, so every spawn fell through to "inherit the orchestrator's own model" — observed empirically as a single mission running 12/12 specialist spawns on the orchestrator's Opus instead of the intended balanced choice. This patch drops the formal tier system in favor of vendor-neutral orchestrator-judgment guidance keyed off slot family + task `risk_level`. No protocol-surface changes (schemas, lifecycle, dispatcher interface, agent frontmatter, CLI all unchanged); no new CLI subcommand or config artifact.

@@ -24,12 +24,14 @@ Geas is a protocol that makes AI agents work as a professional team. Evidence pr
 
 ## Quick Start
 
-Install as a Claude Code plugin.
+Install as a Claude Code or Codex plugin.
 
 ```bash
 /plugin marketplace add choam2426/geas
 /plugin install geas@choam2426-geas
 ```
+
+For Codex, install the repository as a Codex plugin so Codex reads `.codex-plugin/plugin.json` and exposes the Geas skills from `skills/`.
 
 | Command | What it does |
 |---|---|
