@@ -53,7 +53,8 @@ Thin convening wrapper over `geas deliberation append`. Spawns the voter set for
        --vote "decision-maker:agree:rationale text from decision-maker" \
        --result agree
    ```
-   For mission-level deliberation drop `--task` and use `--level mission`. Use `--proposal-summary-from-file <path>` (stage the prose in .geas/tmp/ using the current client's file-write mechanism) when the summary runs long. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc — apostrophes / quotes inside any voter's rationale break shell parsing.
+   For mission-level deliberation drop `--task` and use `--level mission`. Use `--proposal-summary-from-file <path>` (stage the prose in .geas/tmp/ using the current client's file-write mechanism) when the summary runs long.
+   The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc — apostrophes / quotes inside any voter's rationale break shell parsing.
 
    CLI checks: mode gate, ≥2 voters, voter slots in enum, rationales non-empty, `result` matches aggregation. Mismatch → `guard_failed`.
 6. **Feed the result back to the caller.**

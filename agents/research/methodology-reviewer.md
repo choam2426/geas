@@ -56,10 +56,10 @@ Verifier evidence file:
 .geas/missions/{mission_id}/tasks/{task_id}/evidence/methodology-reviewer.verifier.json
 ```
 
-Append via CLI (kind `verification`). Stage the prose in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
+Append via CLI (kind `verification`). Stage the JSON body in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
 
 ```bash
-# Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/verification-entry.json
+# Step 1: stage the JSON body in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/verification-entry.json
 {
   "evidence_kind": "verification",
   "summary": "independent verification of methods and results",
@@ -77,7 +77,7 @@ Append via CLI (kind `verification`). Stage the prose in .geas/tmp/ using the cu
 # Step 2:
 geas evidence append --mission {mission_id} --task {task_id} \
     --agent methodology-reviewer --slot verifier \
-    --file <workspace>/.tmp/verification-entry.json
+    --file <workspace>/.geas/tmp/verification-entry.json
 ```
 
 When acting as a reviewer slot on a different task, evidence lands at `methodology-reviewer.{slot}.json` with `evidence_kind=review`.

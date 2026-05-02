@@ -57,10 +57,10 @@ Reviewer evidence file:
 .geas/missions/{mission_id}/tasks/{task_id}/evidence/research-writer.communicator.json
 ```
 
-Append via CLI (kind `review`). Stage the prose in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
+Append via CLI (kind `review`). Stage the JSON body in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
 
 ```bash
-# Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/review-entry.json
+# Step 1: stage the JSON body in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/review-entry.json
 {
   "evidence_kind": "review",
   "summary": "communication review of deliverable accuracy and audience fit",
@@ -75,7 +75,7 @@ Append via CLI (kind `review`). Stage the prose in .geas/tmp/ using the current 
 # Step 2:
 geas evidence append --mission {mission_id} --task {task_id} \
     --agent research-writer --slot communicator \
-    --file <workspace>/.tmp/review-entry.json
+    --file <workspace>/.geas/tmp/review-entry.json
 ```
 
 When acting as an implementer on a writing task, evidence kind is `implementation` under the `implementer` slot.
