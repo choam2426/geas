@@ -107,15 +107,15 @@ Verdict entry shape (validated by the CLI's embedded schema):
 }
 ```
 
-Append it. Stage the prose in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
+Append it. Stage the JSON body in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
 
 ```bash
-# Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/mission-verdict.json
+# Step 1: stage the JSON body in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/mission-verdict.json
 { ... }
 
 # Step 2:
 geas mission-verdict append --mission <mission_id> \
-    --file <workspace>/.tmp/mission-verdict.json
+    --file <workspace>/.geas/tmp/mission-verdict.json
 ```
 
 Then (once a passed `consolidating` phase-review is also on file) the

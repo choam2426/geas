@@ -39,9 +39,9 @@ You have been spawned as the implementer for an approved task. You own the full 
    - `non_goals` names things tempting but out of scope.
    - `open_questions` names every real ambiguity; do not silently pick an interpretation.
 
-   `geas impl-contract set` is full-payload only (no inline flags), so stage the prose in .geas/tmp/ using the current client's file-write mechanism and pass `--file`. Do not use heredoc — prose in `rationale` / `planned_actions` routinely breaks bash parsing:
+   `geas impl-contract set` is full-payload only (no inline flags), so stage the JSON body in .geas/tmp/ using the current client's file-write mechanism and pass `--file`. Do not use heredoc — prose in `rationale` / `planned_actions` routinely breaks bash parsing:
    ```bash
-   # Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. .geas/tmp/impl-contract.json (body matches the schema template)
+   # Step 1: stage the JSON body in .geas/tmp/ using the current client's file-write mechanism, e.g. .geas/tmp/impl-contract.json (body matches the schema template)
    # Step 2: hand the file to the CLI
    geas impl-contract set --mission <id> --task <id> --file .geas/tmp/impl-contract.json
    ```
@@ -92,7 +92,8 @@ You have been spawned as the implementer for an approved task. You own the full 
        --revision-ref null
    ```
 
-   Use `--completed-work-from-file <path>` (stage the prose in .geas/tmp/ using the current client's file-write mechanism) when `completed_work` runs longer than one line. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; in that case never use a bash heredoc — apostrophes / quotes / non-ASCII in prose break shell parsing.
+   Use `--completed-work-from-file <path>` (stage the prose in .geas/tmp/ using the current client's file-write mechanism) when `completed_work` runs longer than one line.
+   The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; in that case never use a bash heredoc — apostrophes / quotes / non-ASCII in prose break shell parsing.
 
    On a verify-fix re-entry, pass `--revision-ref <prior_entry_id>` so reviewers can trace iteration history. The CLI assigns `entry_id` and `created_at` automatically; prior entries are preserved so the iteration log stays intact.
    - `completed_work` is a factual statement of what landed in this pass, not a confidence claim. No "mostly done", no 1–5 score.

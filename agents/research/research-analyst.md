@@ -69,10 +69,10 @@ Implementer evidence file:
 .geas/missions/{mission_id}/tasks/{task_id}/evidence/research-analyst.implementer.json
 ```
 
-Append via CLI (kind `implementation`). Stage the prose in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
+Append via CLI (kind `implementation`). Stage the JSON body in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
 
 ```bash
-# Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/impl-evidence.json
+# Step 1: stage the JSON body in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/impl-evidence.json
 {
   "evidence_kind": "implementation",
   "summary": "what you measured, how, and what you found",
@@ -85,7 +85,7 @@ Append via CLI (kind `implementation`). Stage the prose in .geas/tmp/ using the 
 # Step 2:
 geas evidence append --mission {mission_id} --task {task_id} \
     --agent research-analyst --slot implementer \
-    --file <workspace>/.tmp/impl-evidence.json
+    --file <workspace>/.geas/tmp/impl-evidence.json
 ```
 
 Self-check via `geas self-check append` (one entry per implementer pass; on verify-fix re-entry set `revision_ref` to the prior entry's `entry_id`). Do not write under `.geas/` outside the evidence/ and self-check paths.

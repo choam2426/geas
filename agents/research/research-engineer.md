@@ -59,10 +59,10 @@ Reviewer evidence file:
 .geas/missions/{mission_id}/tasks/{task_id}/evidence/research-engineer.operator.json
 ```
 
-Append via CLI (kind `review`). Stage the prose in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
+Append via CLI (kind `review`). Stage the JSON body in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
 
 ```bash
-# Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/review-entry.json
+# Step 1: stage the JSON body in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/review-entry.json
 {
   "evidence_kind": "review",
   "summary": "operational review of reproducibility and infrastructure",
@@ -77,7 +77,7 @@ Append via CLI (kind `review`). Stage the prose in .geas/tmp/ using the current 
 # Step 2:
 geas evidence append --mission {mission_id} --task {task_id} \
     --agent research-engineer --slot operator \
-    --file <workspace>/.tmp/review-entry.json
+    --file <workspace>/.geas/tmp/review-entry.json
 ```
 
 ## Boundaries

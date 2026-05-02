@@ -34,9 +34,9 @@ Closes a phase with an append-only phase-review entry, then advances `mission-st
    - Evidence counts by kind across the phase.
    - `gap_signals` and `debt_candidates` surfaced in closures.
    - Phase duration (first task transition → last closure).
-3. **Write the phase-review entry.** `geas phase-review append` is full-payload only (no inline flags), so stage the prose in .geas/tmp/ using the current client's file-write mechanism and pass `--file`. For the exact field list, run `geas schema template phase-reviews --op append`.
+3. **Write the phase-review entry.** `geas phase-review append` is full-payload only (no inline flags), so stage the JSON body in .geas/tmp/ using the current client's file-write mechanism and pass `--file`. For the exact field list, run `geas schema template phase-reviews --op append`.
    ```bash
-   # Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. .geas/tmp/phase-review.json (body matches the schema template)
+   # Step 1: stage the JSON body in .geas/tmp/ using the current client's file-write mechanism, e.g. .geas/tmp/phase-review.json (body matches the schema template)
    # Step 2: hand the file to the CLI
    geas phase-review append --mission <id> --file .geas/tmp/phase-review.json
    ```

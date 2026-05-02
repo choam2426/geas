@@ -107,7 +107,8 @@ geas mission create \
     --risk "risk 1"
 ```
 
-Use `--description-from-file <path>` and `--definition-of-done-from-file <path>` (stage the prose in .geas/tmp/ using the current client's file-write mechanism) for prose-heavy free-body fields. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON. See `mission/SKILL.md` § Tmp file lifecycle for staging location and cleanup.
+Use `--description-from-file <path>` and `--definition-of-done-from-file <path>` (stage the prose in .geas/tmp/ using the current client's file-write mechanism) for prose-heavy free-body fields.
+The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON. See `mission/SKILL.md` § Tmp file lifecycle for staging location and cleanup.
 
 ## Red Flags
 

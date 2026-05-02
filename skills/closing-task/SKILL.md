@@ -61,7 +61,8 @@ geas evidence append --mission <id> --task <id> \
     --gap-signal '{"kind":"learning_gain","summary":"..."}'
 ```
 
-Use `--summary-from-file <path>`, `--rationale-from-file <path>`, `--scope-examined-from-file <path>` (stage the prose in .geas/tmp/ using the current client's file-write mechanism) for prose-heavy fields. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc — apostrophes / quotes / non-ASCII in retrospective prose break shell parsing.
+Use `--summary-from-file <path>`, `--rationale-from-file <path>`, `--scope-examined-from-file <path>` (stage the prose in .geas/tmp/ using the current client's file-write mechanism) for prose-heavy fields.
+The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc — apostrophes / quotes / non-ASCII in retrospective prose break shell parsing.
 
 ## Red Flags
 

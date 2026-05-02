@@ -47,9 +47,9 @@ You are the decision-maker. Your identity + judgment protocol live in your agent
 4. **Branch C — Phase-review verdict.**
    - Read all task contracts, gate runs, closure evidence, and deliberations scoped to the phase.
    - Determine the phase outcome: all mission-scope tasks terminal? exit criteria met? outstanding structural or operator concerns?
-   - Append the phase-review via CLI. `geas phase-review append` is full-payload only (no inline flags), so stage the prose in .geas/tmp/ using the current client's file-write mechanism and pass `--file`. For the exact field list, run `geas schema template phase-reviews --op append`.
+   - Append the phase-review via CLI. `geas phase-review append` is full-payload only (no inline flags), so stage the JSON body in .geas/tmp/ using the current client's file-write mechanism and pass `--file`. For the exact field list, run `geas schema template phase-reviews --op append`.
      ```bash
-     # Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. .geas/tmp/phase-review.json (body matches the schema template)
+     # Step 1: stage the JSON body in .geas/tmp/ using the current client's file-write mechanism, e.g. .geas/tmp/phase-review.json (body matches the schema template)
      # Step 2: hand the file to the CLI
      geas phase-review append --mission <id> --file .geas/tmp/phase-review.json
      ```
@@ -57,9 +57,9 @@ You are the decision-maker. Your identity + judgment protocol live in your agent
 5. **Branch D — Mission verdict.**
    - Read everything in your lane: mission spec, mission design, every phase-review, every mission-level deliberation, each task's contract + evidence bundle + closure, `gap.json`, mission-scope debts, and `memory-update.json`.
    - Apply the judgment protocol: was the spec satisfied? was out-of-scope respected? was the design executed? are blocking specialist/challenger concerns resolved or explicitly accepted? what is handed forward?
-   - Append the mission verdict via CLI. `geas mission-verdict append` is full-payload only (no inline flags), so stage the prose in .geas/tmp/ using the current client's file-write mechanism and pass `--file`. For the exact field list, run `geas schema template mission-verdicts --op append`.
+   - Append the mission verdict via CLI. `geas mission-verdict append` is full-payload only (no inline flags), so stage the JSON body in .geas/tmp/ using the current client's file-write mechanism and pass `--file`. For the exact field list, run `geas schema template mission-verdicts --op append`.
      ```bash
-     # Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. .geas/tmp/mission-verdict.json (body matches the schema template)
+     # Step 1: stage the JSON body in .geas/tmp/ using the current client's file-write mechanism, e.g. .geas/tmp/mission-verdict.json (body matches the schema template)
      # Step 2: hand the file to the CLI
      geas mission-verdict append --mission <id> --file .geas/tmp/mission-verdict.json
      ```
