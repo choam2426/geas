@@ -8,7 +8,7 @@
     "plugins": [
         {
             "name": "geas",
-            "source": ".",
+            "source": "./",
             "description": "A governance protocol that makes AI agents work as a professional team — contract-driven execution, evidence-based verification, and cross-session learning.",
             "author": {
                 "name": "choam2426",
