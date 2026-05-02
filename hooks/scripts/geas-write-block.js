@@ -140,7 +140,7 @@ if (!verdict.allow) {
       'All .geas/ file modifications must use geas CLI commands. ' +
       'Examples: geas mission create, geas task draft, geas evidence append, ' +
       'geas memory shared-set, geas debt register, geas event log. ' +
-      'Use Bash tool to invoke CLI commands instead. ' +
+      'Use a shell command to invoke CLI commands instead. ' +
       '(Note: writes under .geas/tmp/ are allowed for sub-skill staging.)'
   };
   process.stdout.write(JSON.stringify(result) + '\n');

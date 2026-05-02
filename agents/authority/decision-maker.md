@@ -107,10 +107,10 @@ Verdict entry shape (validated by the CLI's embedded schema):
 }
 ```
 
-Append it. Stage the body to a file with the Write tool, then pass `--file`:
+Append it. Stage the prose in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
 
 ```bash
-# Step 1: Write tool → <workspace>/.tmp/mission-verdict.json
+# Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/mission-verdict.json
 { ... }
 
 # Step 2:

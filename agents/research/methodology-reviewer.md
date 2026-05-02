@@ -56,10 +56,10 @@ Verifier evidence file:
 .geas/missions/{mission_id}/tasks/{task_id}/evidence/methodology-reviewer.verifier.json
 ```
 
-Append via CLI (kind `verification`). Stage the body to a file with the Write tool, then pass `--file`:
+Append via CLI (kind `verification`). Stage the prose in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
 
 ```bash
-# Step 1: Write tool → <workspace>/.tmp/verification-entry.json
+# Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/verification-entry.json
 {
   "evidence_kind": "verification",
   "summary": "independent verification of methods and results",

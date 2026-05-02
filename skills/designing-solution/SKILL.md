@@ -56,14 +56,14 @@ You are the design-authority. Your identity + judgment protocol live in your age
          --scope-examined "contract fields + surfaces inspected" \
          --method-used "read contract" --method-used "traced surface overlaps"
      ```
-     `--concern` is repeatable; each concern is a plain-text string (the schema rejects `{severity,text}` objects — severity lives in `verdict`). Use `--rationale-from-file <path>` (Write tool stages prose) for long rationale; the full-payload `--file <path>` form remains as a back-compat alias for callers authoring the full JSON, never via bash heredoc (apostrophes / quotes corrupt shell parsing).
+     `--concern` is repeatable; each concern is a plain-text string (the schema rejects `{severity,text}` objects — severity lives in `verdict`). Use `--rationale-from-file <path>` (stage the prose in .geas/tmp/ using the current client's file-write mechanism) for long rationale; the full-payload `--file <path>` form remains as a back-compat alias for callers authoring the full JSON, never via bash heredoc (apostrophes / quotes corrupt shell parsing).
 4. **Branch C — Gap analysis.**
    - Read every phase-review, closure evidence (gap_signals), and mission-design trajectory.
    - Identify gaps: design ≠ delivery, acceptance criteria partially met, stubs without exit condition, surfaces the mission touched that the design did not anticipate.
    - Classify each gap: should it resolve inside this mission's consolidating phase, land as a debt, or appear in the mission-verdict's `carry_forward`?
-   - Write the gap payload via CLI. `geas gap set` is full-payload only (no inline flags), so use the Write tool to stage the JSON body and pass `--file`. For the exact field list, run `geas schema template gap --op set`.
+   - Write the gap payload via CLI. `geas gap set` is full-payload only (no inline flags), so stage the prose in .geas/tmp/ using the current client's file-write mechanism and pass `--file`. For the exact field list, run `geas schema template gap --op set`.
      ```bash
-     # Step 1: Write tool → e.g. .geas/tmp/gap.json (body matches the schema template)
+     # Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. .geas/tmp/gap.json (body matches the schema template)
      # Step 2: hand the file to the CLI
      geas gap set --mission <id> --file .geas/tmp/gap.json
      ```
