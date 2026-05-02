@@ -1,7 +1,5 @@
 ---
 name: literature-analyst
-slot: implementer
-domain: research
 ---
 
 # Literature Analyst

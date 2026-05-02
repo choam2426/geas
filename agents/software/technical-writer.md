@@ -1,7 +1,5 @@
 ---
 name: technical-writer
-slot: communicator
-domain: software
 ---
 
 # Technical Writer

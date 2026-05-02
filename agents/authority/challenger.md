@@ -1,6 +1,5 @@
 ---
 name: challenger
-slot: challenger
 ---
 
 # Challenger

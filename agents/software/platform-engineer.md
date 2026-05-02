@@ -1,7 +1,5 @@
 ---
 name: platform-engineer
-slot: implementer
-domain: software
 ---
 
 # Platform Engineer
