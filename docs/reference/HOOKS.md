@@ -119,7 +119,7 @@ Or nothing if neither memory source has content.
   ```json
   {
     "decision": "block",
-    "reason": "[Geas] BLOCKED: Direct Write/Edit to .geas/ is not allowed. All .geas/ file modifications must use geas CLI commands. Examples: geas mission create, geas task draft, geas evidence append, geas memory shared-set, geas debt register, geas event log. Use Bash tool to invoke CLI commands instead."
+    "reason": "[Geas] BLOCKED: Direct Write/Edit to .geas/ is not allowed. All .geas/ file modifications must use geas CLI commands. Examples: geas mission create, geas task draft, geas evidence append, geas memory shared-set, geas debt register, geas event log. Invoke CLI commands instead."
   }
   ```
 - Otherwise exit 0 silently (allow).

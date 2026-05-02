@@ -172,7 +172,7 @@ When the caller already has a fully-formed JSON payload (for example because an 
 
 ```bash
 # Stage the payload to any path outside .geas/
-#   (agents: use the Write tool; humans: use an editor, heredoc, or redirection)
+#   (agents: create the file outside .geas/; humans: use an editor, heredoc, or redirection)
 cat > /tmp/mission-design.md <<'DONE'
 # Mission Design
 

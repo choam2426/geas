@@ -472,7 +472,7 @@ In particular, automatic enforcement points such as blocking direct `.geas/` wri
 ## 11. Disallowed Changes
 
 - **Bypassing the protocol** - omitting or short-circuiting the states, transitions, or artifacts defined by the protocol.
-- **Bypassing the CLI for writes** - letting agents modify `.geas/` files directly with edit or write tools.
+- **Bypassing the CLI for writes** - letting agents modify `.geas/` files directly instead of using `geas` commands.
 - **Mutating append-only logs** - changing or deleting past review, verdict, run, or entry objects. Corrections are appended as new items instead.
 - **Forging slot identity** - allowing an agent to submit evidence under a slot name that is not the one it actually held.
 - **Redefining core skill meaning** - client-specific names or invocation patterns may differ, but the per-step responsibilities and output relationships must remain protocol-aligned.

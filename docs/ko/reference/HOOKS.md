@@ -118,7 +118,7 @@ Mission · task 컨텍스트는 의도적으로 주입하지 않는다. Mission 
   ```json
   {
     "decision": "block",
-    "reason": "[Geas] BLOCKED: Direct Write/Edit to .geas/ is not allowed. All .geas/ file modifications must use geas CLI commands. Examples: geas mission create, geas task draft, geas evidence append, geas memory shared-set, geas debt register, geas event log. Use Bash tool to invoke CLI commands instead."
+    "reason": "[Geas] BLOCKED: Direct Write/Edit to .geas/ is not allowed. All .geas/ file modifications must use geas CLI commands. Examples: geas mission create, geas task draft, geas evidence append, geas memory shared-set, geas debt register, geas event log. Invoke CLI commands instead."
   }
   ```
 - 그 외에는 exit 0으로 조용히 통과(허용).
