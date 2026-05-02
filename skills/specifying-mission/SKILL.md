@@ -65,7 +65,7 @@ Drives the specifying phase end-to-end. Turns a natural-language request into an
 
     Mode-dependent prereq before user approval (doc 02 § Operating Mode Requirements):
     - `lightweight`: user approves directly. Open ad-hoc deliberation via `convening-deliberation` only when disagreement surfaces.
-    - `standard`: spawn `decision-maker` (Agent tool, subagent_type: `geas:authority:decision-maker`); the spawned agent runs `deciding-on-approval` and writes review-kind evidence before user sign-off.
+    - `standard`: spawn `decision-maker` through the current client adapter; Claude uses registered Geas agent type `geas:authority:decision-maker`, while Codex reads `agents/authority/decision-maker.md` and spawns with that prompt plus context. The spawned agent runs `deciding-on-approval` and writes review-kind evidence before user sign-off.
     - `full_depth`: mission-level deliberation via `convening-deliberation` with decision-maker + challenger + ≥1 specialist (minimum 3 voters). Passing deliberation may substitute for the separate decision-maker review.
 
     Orchestrator collects design output, runs the prereq, then takes user approval — main-session does not write the design itself, and does not approve on the user's behalf (doc 01 § Orchestrator).
@@ -107,7 +107,7 @@ geas mission create \
     --risk "risk 1"
 ```
 
-Use `--description-from-file <path>` and `--definition-of-done-from-file <path>` (Write tool stages prose) for prose-heavy free-body fields. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON. See `mission/SKILL.md` § Tmp file lifecycle for staging location and cleanup.
+Use `--description-from-file <path>` and `--definition-of-done-from-file <path>` (stage the prose in .geas/tmp/ using the current client's file-write mechanism) for prose-heavy free-body fields. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON. See `mission/SKILL.md` § Tmp file lifecycle for staging location and cleanup.
 
 ## Red Flags
 
@@ -117,7 +117,7 @@ Use `--description-from-file <path>` and `--definition-of-done-from-file <path>`
 | "Acceptance criteria repeat the DoD — drop them" | AC are the falsifiable tests reviewers measure against; DoD alone gives nothing to grade. |
 | "Pre-scan found the test runner — write it into the spec without asking" | Pre-scan facts feed Step 2 reframing as confirm-this prompts. Only user-confirmed answers reach the spec. |
 | "Self-check found issues — block the unified review (or persist findings as evidence)" | Spec self-check is a recommendation surface, not a gate. Findings appear in Step 4; the user decides proceed or revise. Mission-level self-check is skill-internal — no `self_check` evidence file (those belong to task lifecycle). |
-| "Orchestrator writes mission-design or drafts task contracts directly" | Both are design-authority's responsibility in every mode. Spawn design-authority via the Agent tool; main-session does not author these artifacts. |
+| "Orchestrator writes mission-design or drafts task contracts directly" | Both are design-authority's responsibility in every mode. Spawn design-authority through the current client adapter; main-session does not author these artifacts. |
 | "Spec approved — retroactively edit because scope slipped" | The spec is immutable after approval. Use `drafting-task` for in-scope additions or start a new mission. |
 | "Just dump the whole intake as a prose block — it's faster" | Unstructured prose loses answers and invites the user to skim. A structured single-choice prompt forces a structured pick per question and keeps the audit trail clean. |
 | "Skip the decomposition-table header on the first task card" | The header is the user's chance to audit slicing, surface overlap, and dependency order at set level before locking individual contracts. Without it, set-level errors hide behind card-level wording. |
@@ -130,8 +130,8 @@ Use `--description-from-file <path>` and `--definition-of-done-from-file <path>`
 | `geas mission approve --mission <id>` | Flip `user_approved` to true; lock the spec. |
 | `geas task approve --mission <id> --task <id> --by user\|decision-maker` | Approve each drafted initial task. |
 | `geas phase-review append --mission <id>` | Close the specifying phase with `status=passed`, `next_phase=building`. |
-| Agent tool (`subagent_type: geas:authority:design-authority`) | Spawn design-authority for mission-design (Step 6) and initial task contract set (Step 7). Two spawns per specifying phase. The spawned agent calls `geas mission design-set` and invokes `drafting-task` itself. |
-| Agent tool (`subagent_type: geas:authority:decision-maker`) | Spawn decision-maker for standard-mode review of mission-design (Step 6) and task set (Step 8). The spawned agent runs `deciding-on-approval` and writes review-kind evidence. |
+| Client adapter dispatch (`design-authority`) | Spawn design-authority for mission-design (Step 6) and initial task contract set (Step 7). Claude uses registered Geas agent type `geas:authority:design-authority`; Codex reads `agents/authority/design-authority.md` and spawns with that prompt plus context. Two spawns per specifying phase. The spawned agent calls `geas mission design-set` and invokes `drafting-task` itself. |
+| Client adapter dispatch (`decision-maker`) | Spawn decision-maker for standard-mode review of mission-design (Step 6) and task set (Step 8). Claude uses registered Geas agent type `geas:authority:decision-maker`; Codex reads `agents/authority/decision-maker.md` and spawns with that prompt plus context. The spawned agent runs `deciding-on-approval` and writes review-kind evidence. |
 
 Sub-skills invoked from main-session: `convening-deliberation` — full_depth design and task-set deliberations (Steps 6, 8), and ad-hoc deliberation in any mode when disagreement surfaces.
 
@@ -155,7 +155,7 @@ Sub-skills invoked from main-session: `convening-deliberation` — full_depth de
 ## Related Skills
 
 - **Invoked by**: mission dispatcher when `phase=specifying` and the spec/design/initial-task sequence is incomplete.
-- **Invokes from main-session**: `convening-deliberation` (mode prereq + ad-hoc on disagreement), Agent tool spawn for `design-authority` (Steps 6, 7).
+- **Invokes from main-session**: `convening-deliberation` (mode prereq + ad-hoc on disagreement), current client adapter dispatch for `design-authority` (Steps 6, 7).
 - **Do NOT invoke directly from main-session**: `designing-solution` (spawned-only; called from inside the design-authority spawn), `drafting-task` (called from inside the design-authority spawn at Step 7), `deciding-on-approval` (spawned-only; called from inside the decision-maker spawn for standard-mode review). Phase-later skills (`scheduling-work`, `running-gate`, `closing-task`, `reviewing-phase`) belong to building/later phases.
 
 ## Remember
@@ -165,7 +165,7 @@ Sub-skills invoked from main-session: `convening-deliberation` — full_depth de
 - Spec self-check is a recommendation surface, not a gate.
 - Mode is the user's pick in Step 4; the recommendation accompanies, never substitutes.
 - Spec is immutable after approve.
-- Mission-design and initial task contract set are design-authority's responsibility (spawned via Agent tool). Standard-mode review of both is decision-maker's responsibility (also spawned). Main-session does not write the design, draft contracts, or perform mode-prereq reviews directly — all three are spawn-based.
+- Mission-design and initial task contract set are design-authority's responsibility (spawned through the current client adapter). Standard-mode review of both is decision-maker's responsibility (also spawned). Main-session does not write the design, draft contracts, or perform mode-prereq reviews directly — all three are spawn-based.
 - Mode-dependent prereq applies to both mission-design (Step 6) and task set (Step 8) under the same rule.
 - The decomposition-table header on the first task card is the set-level audit; do not omit.
 - Per-task approval is one unified round per task: card + dep preflight + options branched on preflight outcome.

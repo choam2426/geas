@@ -103,7 +103,7 @@ geas task draft --mission <id> \
 # (b) task affects a protocol surface, or (c) explicit user request holds.
 ```
 
-Use `--goal-from-file <path>` and `--verification-plan-from-file <path>` (Write tool stages prose) for prose-heavy free-body fields. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc for the body. See `mission/SKILL.md` § Tmp file lifecycle for staging location and cleanup.
+Use `--goal-from-file <path>` and `--verification-plan-from-file <path>` (stage the prose in .geas/tmp/ using the current client's file-write mechanism) for prose-heavy free-body fields. The full-payload `--file <path>` form remains as a back-compat alias for callers who already author the full JSON; never use a bash heredoc for the body. See `mission/SKILL.md` § Tmp file lifecycle for staging location and cleanup.
 
 ## Red Flags
 

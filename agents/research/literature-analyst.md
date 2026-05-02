@@ -70,10 +70,10 @@ Implementer evidence file:
 .geas/missions/{mission_id}/tasks/{task_id}/evidence/literature-analyst.implementer.json
 ```
 
-Append via CLI (kind `implementation`). Stage the body to a file with the Write tool, then pass `--file`:
+Append via CLI (kind `implementation`). Stage the prose in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
 
 ```bash
-# Step 1: Write tool → <workspace>/.tmp/impl-evidence.json
+# Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/impl-evidence.json
 {
   "evidence_kind": "implementation",
   "summary": "what you synthesized and on what evidence base",
@@ -94,7 +94,7 @@ geas evidence append --mission {mission_id} --task {task_id} \
 Append a self-check entry per implementer pass via `geas self-check append` (same `--file` pattern):
 
 ```bash
-# Step 1: Write tool → <workspace>/.tmp/self-check.json
+# Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/self-check.json
 {
   "completed_work": "…",
   "reviewer_focus": ["…"],

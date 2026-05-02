@@ -1,5 +1,5 @@
 /**
- * Unit tests for plugin/hooks/scripts/geas-write-block.js
+ * Unit tests for hooks/scripts/geas-write-block.js
  *
  * Mission mission-20260428-ava973xA, task-006 (issue 4 / AC5.2):
  * spawn the hook as a subprocess (matching how Claude Code's PreToolUse
@@ -7,7 +7,7 @@
  * required cases plus a bonus traversal case.
  *
  * Run with:
- *   node --test plugin/hooks/scripts/geas-write-block.test.js
+ *   node --test hooks/scripts/geas-write-block.test.js
  *
  * No third-party deps. Uses node:test (Node >=18).
  */

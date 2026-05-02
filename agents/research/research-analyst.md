@@ -69,10 +69,10 @@ Implementer evidence file:
 .geas/missions/{mission_id}/tasks/{task_id}/evidence/research-analyst.implementer.json
 ```
 
-Append via CLI (kind `implementation`). Stage the body to a file with the Write tool, then pass `--file`:
+Append via CLI (kind `implementation`). Stage the prose in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
 
 ```bash
-# Step 1: Write tool → <workspace>/.tmp/impl-evidence.json
+# Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/impl-evidence.json
 {
   "evidence_kind": "implementation",
   "summary": "what you measured, how, and what you found",

@@ -57,10 +57,10 @@ Reviewer evidence file:
 .geas/missions/{mission_id}/tasks/{task_id}/evidence/research-writer.communicator.json
 ```
 
-Append via CLI (kind `review`). Stage the body to a file with the Write tool, then pass `--file`:
+Append via CLI (kind `review`). Stage the prose in .geas/tmp/ using the current client's file-write mechanism, then pass `--file`:
 
 ```bash
-# Step 1: Write tool → <workspace>/.tmp/review-entry.json
+# Step 1: stage the prose in .geas/tmp/ using the current client's file-write mechanism, e.g. <workspace>/.geas/tmp/review-entry.json
 {
   "evidence_kind": "review",
   "summary": "communication review of deliverable accuracy and audience fit",
