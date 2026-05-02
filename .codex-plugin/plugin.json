@@ -1,0 +1,45 @@
+{
+  "name": "geas",
+  "version": "2.1.1",
+  "description": "A governance protocol that makes AI agents work as a professional team — contract-driven execution, evidence-based verification, and cross-session learning.",
+  "author": {
+    "name": "choam2426",
+    "email": "choam2426@gmail.com",
+    "url": "https://github.com/choam2426"
+  },
+  "homepage": "https://github.com/choam2426/geas",
+  "repository": "https://github.com/choam2426/geas",
+  "license": "Apache-2.0",
+  "keywords": [
+    "governance",
+    "agents",
+    "skills",
+    "verification",
+    "codex",
+    "claude"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Geas",
+    "shortDescription": "Contract-driven execution and evidence-based verification for agent teams",
+    "longDescription": "Use Geas to run multi-step missions with explicit scope, task contracts, specialist agents, evidence gates, and cross-session memory.",
+    "developerName": "choam2426",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Start a Geas mission for this project.",
+      "Help me plan and verify this change with Geas."
+    ],
+    "websiteURL": "https://github.com/choam2426/geas",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "brandColor": "#2563EB",
+    "composerIcon": "./docs/images/icon.png",
+    "logo": "./docs/images/icon.png",
+    "screenshots": []
+  }
+}
