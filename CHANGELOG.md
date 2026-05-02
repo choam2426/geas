@@ -7,8 +7,9 @@ All notable changes to this project are documented in this file.
 ## Unreleased
 
 ### Changed
-- Reworked the plugin package layout for Claude Code and Codex: shared `skills/`, `agents/`, `bin/`, `hooks/`, and `.mcp.json` now live at the repository root instead of under `plugin/`.
-- Added runtime-specific manifests under `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json`.
+- Reworked the repository into a Codex marketplace layout: `.agents/plugins/marketplace.json` points to the plugin package under `plugins/geas/`.
+- Moved shared `skills/`, `agents/`, `bin/`, `hooks/`, and `.mcp.json` into `plugins/geas/` for marketplace installation.
+- Added runtime-specific manifests under `plugins/geas/.claude-plugin/plugin.json` and `plugins/geas/.codex-plugin/plugin.json`.
 - Updated prompt wording and docs to use client-neutral dispatch and staging language.
 
 ## [2.1.1] — 2026-04-29

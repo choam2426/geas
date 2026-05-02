@@ -2,7 +2,7 @@
 
 Skills are the dispatcher's playbook. Each skill encodes one step of the Geas protocol as a prompt reused across missions. Skills never write `.geas/` directly — every write goes through the `geas` CLI. This reference describes the v3 skill surface: which skills exist, when each one runs, which CLI commands it invokes, and which artifacts it produces.
 
-Authoritative sources: the shared catalog in `architecture/DESIGN.md §7.5`, the full CLI contract in `architecture/CLI.md`, and the actual skill bodies under `skills/{name}/SKILL.md`. This file is a consumer-side index — it does not repeat the CLI reference or re-derive protocol semantics.
+Authoritative sources: the shared catalog in `architecture/DESIGN.md §7.5`, the full CLI contract in `architecture/CLI.md`, and the actual skill bodies under `plugins/geas/skills/{name}/SKILL.md`. This file is a consumer-side index — it does not repeat the CLI reference or re-derive protocol semantics.
 
 ---
 
@@ -221,7 +221,7 @@ Two skills are user-invocable:
 - `/mission` — the single entry point for mission work. Starts, continues, or resumes a mission; dispatches every other lifecycle skill.
 - `/navigating-geas` — the framework map. Explains skills, CLI, and workflow. Safe to call any time; never writes.
 
-Everything else in `skills/` is dispatched by `mission` and must not be invoked directly — sub-skills carry `user-invocable: false` in their frontmatter.
+Everything else in `plugins/geas/skills/` is dispatched by `mission` and must not be invoked directly — sub-skills carry `user-invocable: false` in their frontmatter.
 
 For inspecting `.geas/` state without going through a skill, a handful of CLI commands are read-only and safe to run manually:
 
@@ -244,4 +244,4 @@ All other writes to `.geas/` must flow through a skill-driven CLI call. Direct `
 - `architecture/DESIGN.md §7.5` — authoritative 17-skill catalog grouped by execution role.
 - `protocol/01`–`protocol/08` — protocol layers the skills implement.
 - `HOOKS.md` — hook surface and what runs automatically around skill invocations.
-- `skills/{name}/SKILL.md` — per-skill body with the actual prompt text.
+- `plugins/geas/skills/{name}/SKILL.md` — per-skill body with the actual prompt text.

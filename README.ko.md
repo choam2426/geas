@@ -28,10 +28,10 @@ Claude Code 또는 Codex 플러그인으로 설치합니다.
 
 ```bash
 /plugin marketplace add choam2426/geas
-/plugin install geas@choam2426-geas
+/plugin install geas@geas
 ```
 
-Codex에서는 이 저장소를 Codex 플러그인으로 설치해 `.codex-plugin/plugin.json`이 루트 `skills/`를 읽도록 합니다.
+Codex에서는 이 저장소가 marketplace 역할을 합니다. `/.agents/plugins/marketplace.json`이 `plugins/geas/`의 plugin package를 가리키고, 그 안의 `.codex-plugin/plugin.json`이 Geas skills를 노출합니다.
 
 | 명령어 | 하는 일 |
 |---|---|

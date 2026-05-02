@@ -133,7 +133,7 @@ This document covers only the CLI's responsibility and boundary within the layer
         └── {agent_type}.md
 ```
 
-`.geas/` has two layers. **Protocol artifacts** are the spec, contract, state, and log files governed by schemas; they are part of the contract and are validated by `geas validate`. **Implementation support files** live alongside them under `.geas/`, but are not part of the protocol contract and are not schema-validated. `geas validate` checks only protocol artifacts. In the tree above, every file without a special note is a protocol artifact.
+`.geas/` has two layers. **Protocol artifacts** are the spec, contract, state, and log files governed by schemas; they are part of the contract and are validated before write by the CLI. **Implementation support files** live alongside them under `.geas/`, but are not part of the protocol contract and are not schema-validated. Schema validation applies only to protocol artifacts. In the tree above, every file without a special note is a protocol artifact.
 
 The current implementation support files are these two:
 
@@ -208,10 +208,10 @@ These details may still be fixed in the shared contract, but they belong to the 
 
 ### 7.3 Shared Source Format
 
-In the shared repo, the canonical source for each core skill lives at `skills/{name}/SKILL.md`. If supporting explanation is needed, it can live under `references/`; if executable code is needed, it can live under `scripts/`. This is less a protocol contract than a shared source format that lets multiple adapters reuse the same skill content.
+In the shared repo, the canonical source for each core skill lives at `plugins/geas/skills/{name}/SKILL.md`. If supporting explanation is needed, it can live under `references/`; if executable code is needed, it can live under `scripts/`. This is less a protocol contract than a shared source format that lets multiple adapters reuse the same skill content.
 
 ```
-skills/
+plugins/geas/skills/
 ├── mission/
 │   ├── SKILL.md
 │   └── references/
@@ -397,23 +397,24 @@ Among the authority slots, the three non-Orchestrator roles (`decision-maker`, `
 ### Agent File Layout
 
 ```
-agents/
+plugins/geas/agents/
 ├── authority/
 │   ├── decision-maker.md
 │   ├── design-authority.md
 │   └── challenger.md
-└── specialist/
-    ├── software/
-    │   ├── software-engineer.md
-    │   ├── platform-engineer.md
-    │   ├── qa-engineer.md
-    │   ├── security-engineer.md
-    │   └── technical-writer.md
-    └── research/
-        ├── research-engineer.md
-        ├── evaluator.md
-        ├── research-operator.md
-        └── research-writer.md
+├── software/
+│   ├── software-engineer.md
+│   ├── platform-engineer.md
+│   ├── qa-engineer.md
+│   ├── security-engineer.md
+│   └── technical-writer.md
+└── research/
+    ├── literature-analyst.md
+    ├── research-analyst.md
+    ├── methodology-reviewer.md
+    ├── research-integrity-reviewer.md
+    ├── research-engineer.md
+    └── research-writer.md
 ```
 
 ### Agent File Format (Portable Core)
@@ -423,9 +424,6 @@ The actual runtime format of agent files differs by client. In the shared repo, 
 ```yaml
 ---
 name: decision-maker        # required; slot name for authority agents, concrete type name for specialists
-description: >              # required; third person; explains when this agent is used
-  Issues mission final verdicts, approves mid-mission scope-inside tasks,
-  and pre-approves mission design in standard mode.
 ---
 
 # Role body
@@ -434,7 +432,7 @@ boundaries, default stance, and the posture it should take when running
 its skills.
 ```
 
-Only `name` and `description` are required. The body is free-form Markdown. For authority agent definitions, the slot is determined by the file path (`agents/authority/{slot}.md`). For specialist definitions, the domain and concrete type are determined by the file path (`agents/specialist/{domain}/{type}.md`), while the slot they bind to is decided at runtime by the task contract's `routing` and the adapter. Cross-references between agent files and runtime tool declarations such as `allowed_tools` are added during adapter-specific rewrapping.
+Only `name` is required in the shared source frontmatter. The body is free-form Markdown. For authority agent definitions, the slot is determined by the file path (`plugins/geas/agents/authority/{slot}.md`). For specialist definitions, the domain is determined by the immediate directory (`plugins/geas/agents/software/` or `plugins/geas/agents/research/`) and the concrete type is determined by the file name, while the slot they bind to is decided at runtime by the task contract's `routing` and the adapter. Cross-references between agent files and runtime tool declarations such as `allowed_tools` are added during adapter-specific rewrapping.
 
 ### Domain Profiles
 
@@ -464,7 +462,7 @@ In particular, automatic enforcement points such as blocking direct `.geas/` wri
 
 ## 10. Extension Points
 
-- **Extend the specialist catalog** - an implementation may add new specialist concrete agent types, new combinations of types, or new task-specific binding strategies. In implementations using the shared source layout, these usually live under `agents/specialist/`.
+- **Extend the specialist catalog** - an implementation may add new specialist concrete agent types, new combinations of types, or new task-specific binding strategies. In implementations using the shared source layout, these usually live under `plugins/geas/agents/{domain}/`.
 - **Add a new client adapter** - an implementation may add an adapter for another agent runtime. The key requirement is to satisfy the minimum responsibilities in Section 9, not to copy another implementation's session model or transport.
 - **Add new utility skills** - implementations may freely add project-convenience skills beyond the core set. Their names, registration model, and exposure format are implementation-specific, so long as they do not replace mandatory protocol-step skills.
 - **Add dashboards or observability tools** - read-only tools that consume `.geas/` artifacts are always allowed. Their storage location and observation model are implementation-specific. If they need to write, they do so through the CLI.

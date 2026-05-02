@@ -3,8 +3,8 @@
  *
  * mission-20260427-xIPG1sDY task-003 / verification_plan step 4.
  *
- * Asserts that skills/drafting-task/SKILL.md and
- * skills/specifying-mission/SKILL.md both carry the IN-8
+ * Asserts that plugins/geas/skills/drafting-task/SKILL.md and
+ * plugins/geas/skills/specifying-mission/SKILL.md both carry the IN-8
  * dependency-status preflight prose:
  *
  *   (i) the file mentions a preflight section/keyword
@@ -29,7 +29,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
-const SKILLS_ROOT = path.join(REPO_ROOT, 'skills');
+const SKILLS_ROOT = path.join(REPO_ROOT, 'plugins', 'geas', 'skills');
 
 const TARGETS = ['drafting-task', 'specifying-mission'];
 

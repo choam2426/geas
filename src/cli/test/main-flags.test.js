@@ -2,7 +2,7 @@
  * Integration tests — global --json / --verbose / --debug flags wired
  * through main.ts.
  *
- * Strategy: spawn the bundle at bin/geas with `--json` etc. at
+ * Strategy: spawn the bundle at plugins/geas/bin/geas with `--json` etc. at
  * different positions in the argv (before vs. after the subcommand,
  * deeply nested subcommands) and assert that the CLI accepts them
  * without error AND that the new default-mode behavior (post-AC3) holds

@@ -28,10 +28,10 @@ Install as a Claude Code or Codex plugin.
 
 ```bash
 /plugin marketplace add choam2426/geas
-/plugin install geas@choam2426-geas
+/plugin install geas@geas
 ```
 
-For Codex, install the repository as a Codex plugin so Codex reads `.codex-plugin/plugin.json` and exposes the Geas skills from `skills/`.
+For Codex, this repository is a marketplace: `/.agents/plugins/marketplace.json` points Codex at the plugin package under `plugins/geas/`, where `.codex-plugin/plugin.json` exposes the Geas skills.
 
 | Command | What it does |
 |---|---|

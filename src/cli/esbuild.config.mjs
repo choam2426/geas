@@ -4,7 +4,7 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const outfile = path.resolve(__dirname, '..', '..', 'bin', 'geas');
+const outfile = path.resolve(__dirname, '..', '..', 'plugins', 'geas', 'bin', 'geas');
 
 // Ensure output directory exists
 fs.mkdirSync(path.dirname(outfile), { recursive: true });

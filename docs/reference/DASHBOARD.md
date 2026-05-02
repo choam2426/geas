@@ -15,7 +15,7 @@ It is *not*:
 - An editor. No field on screen writes back to `.geas/`.
 - A CLI wrapper. No button invokes `geas` commands.
 - A multi-user surface. No authentication, no permissions, no remote access.
-- A replacement for `geas status` / `geas context`. Those give single-shot JSON; the dashboard gives an interactive, aggregated view.
+- A replacement for `geas context` / `geas state get`. Those give single-shot JSON; the dashboard gives an interactive, aggregated view.
 
 The dashboard's value is in correlating artifacts (task state + evidence + gate runs + debts + events) and presenting them in views that answer questions the raw JSON does not answer directly.
 
@@ -211,7 +211,7 @@ The dashboard organizes nine views. Each view is specified as: *what it shows*, 
 - No authentication / multi-user support / remote access.
 - No analytics, usage collection, or background reporting.
 - No task or evidence editing.
-- No replacement for the CLI's own `status` and `context` endpoints for scripting — the dashboard is for humans.
+- No replacement for the CLI's own `context` and `state get` endpoints for scripting — the dashboard is for humans.
 - No scheduled reports or emailed summaries.
 
 ---

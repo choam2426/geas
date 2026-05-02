@@ -232,7 +232,7 @@ Every command's stdout / stderr shape is a function of the global flags resolved
 | `--json` | Single-line `{ok:true, data:{...}}` envelope on stdout. | Single-line `{ok:false, error:{code, message, hint?}}` envelope on stdout. |
 | `--json --debug` | Pretty-indented JSON envelope on stdout. | Pretty-indented JSON envelope on stdout (same shape; multi-line). |
 
-Skills and agents that consume the JSON envelope should pass `--json` explicitly. The default scalar mode targets human-facing readers (and the user-facing briefing layer in `skills/mission/references/briefing-templates.md`); programmatic consumers should never assume the default shape because it is allowed to drift toward terser phrasing as commands evolve.
+Skills and agents that consume the JSON envelope should pass `--json` explicitly. The default scalar mode targets human-facing readers (and the user-facing briefing layer in `plugins/geas/skills/mission/references/briefing-templates.md`); programmatic consumers should never assume the default shape because it is allowed to drift toward terser phrasing as commands evolve.
 
 ### Success Response (--json mode)
 
@@ -773,7 +773,7 @@ That separation preserves the rule from Section 2: the CLI owns formal structure
 
 ## 15. Skill-Layer Conventions
 
-The CLI is one half of the agent UX surface. The other half is the skill layer (`skills/`), which the dispatcher reads to drive each phase. The conventions below live in the skill layer but exist to interact cleanly with the CLI guarantees in Sections 1-14; they are mentioned here so a CLI-centric reader knows where to look when a skill body references them.
+The CLI is one half of the agent UX surface. The other half is the skill layer (`plugins/geas/skills/`), which the dispatcher reads to drive each phase. The conventions below live in the skill layer but exist to interact cleanly with the CLI guarantees in Sections 1-14; they are mentioned here so a CLI-centric reader knows where to look when a skill body references them.
 
 ### 15.1 Inline-Flag-First Invocation
 
@@ -781,7 +781,7 @@ Every SKILL.md that triggers a write-path command names the inline-flag form fir
 
 ### 15.2 IN-8 Drafting Preflight
 
-`skills/drafting-task/SKILL.md` and `skills/specifying-mission/SKILL.md` carry a preflight ritual that the drafter must run before approving a task contract:
+`plugins/geas/skills/drafting-task/SKILL.md` and `plugins/geas/skills/specifying-mission/SKILL.md` carry a preflight ritual that the drafter must run before approving a task contract:
 
 - enumerate the test fixtures that the task's production-code surfaces will break, and include them in `contract.surfaces` (or call out that a downstream task will own them via `contract.dependencies`)
 - check that no `cancelled` or `escalated` task is left dangling in any other task's `contract.dependencies` — if so, run `geas task deps remove --task <id> --dep <cancelled-id>` before the new approval
@@ -790,11 +790,11 @@ The preflight catches a class of drafting flaws that previously surfaced only at
 
 ### 15.3 Mission Dispatch Table
 
-`skills/mission/SKILL.md` carries the dispatch table the orchestrator reads to route the mission state machine. The rows that interact with this CLI document:
+`plugins/geas/skills/mission/SKILL.md` carries the dispatch table the orchestrator reads to route the mission state machine. The rows that interact with this CLI document:
 
 - `implementing → reviewing` — orchestrator transitions the task after the implementer's self-check lands; reviewers and the verifier are dispatched in the new state.
 - reviewer/verifier dispatch — for each `routing.required_reviewers` slot the orchestrator spawns a concrete agent in the `reviewing-task` skill; the verifier is dispatched in parallel via `verifying-task`. The CLI does not manage the dispatch — it only provides the artifacts (`evidence/{agent}.{slot}.json`) the spawned agents append to.
 
 ### 15.4 User-Facing Briefing Vocabulary
 
-Four user-facing briefings (`current-status`, `task-completion`, `phase-transition`, `mission-verdict`) are emitted as Korean narrative prose, not field-colon JSON dumps. The vocabulary they may use is enumerated as a jargon allowlist in `skills/mission/references/briefing-templates.md`; CLI-emitted text that flows into a briefing should respect the allowlist (core protocol terms `phase`, `gate`, `task`, `mission`, `evidence`, `verdict` are allowed; deeper jargon like `tier`, `verify-fix`, `rewind` is not). The CLI's default scalar output mode (Section 5) is the surface that feeds this layer.
+Four user-facing briefings (`current-status`, `task-completion`, `phase-transition`, `mission-verdict`) are emitted as Korean narrative prose, not field-colon JSON dumps. The vocabulary they may use is enumerated as a jargon allowlist in `plugins/geas/skills/mission/references/briefing-templates.md`; CLI-emitted text that flows into a briefing should respect the allowlist (core protocol terms `phase`, `gate`, `task`, `mission`, `evidence`, `verdict` are allowed; deeper jargon like `tier`, `verify-fix`, `rewind` is not). The CLI's default scalar output mode (Section 5) is the surface that feeds this layer.

@@ -1,0 +1,20 @@
+{
+  "name": "geas",
+  "interface": {
+    "displayName": "Geas"
+  },
+  "plugins": [
+    {
+      "name": "geas",
+      "source": {
+        "source": "local",
+        "path": "./plugins/geas"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Coding"
+    }
+  ]
+}

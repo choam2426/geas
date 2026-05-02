@@ -91,7 +91,7 @@ test('T5.2 integration scenario: lightweight mission specifying → complete via
         '--description', 'T5.2 fixture exercising lightweight mission walkthrough',
         '--definition-of-done', 'task-001 passed and mission complete',
         '--scope-in', 'src/cli/test/integration-scenario.test.js',
-        '--scope-out', 'skills/',
+        '--scope-out', 'plugins/geas/skills/',
         '--acceptance-criterion', 'walkthrough reaches phase=complete',
         '--constraint', 'inline-flag-only (no --file, no stdin)',
         '--affected-surface', 'src/cli/test/integration-scenario.test.js',

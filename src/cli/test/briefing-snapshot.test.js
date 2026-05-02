@@ -4,7 +4,7 @@
  * mission-20260427-xIPG1sDY task-004 / verification_plan steps 1-5.
  *
  * Asserts the four user-facing briefing templates in
- * skills/mission/references/briefing-templates.md are written
+ * plugins/geas/skills/mission/references/briefing-templates.md are written
  * as Korean narrative prose (not ASCII-boxed field dumps), that they
  * stay inside the user-facing vocabulary allowlist defined in the same
  * file, and that the four emission SKILL.md files actually reference
@@ -51,7 +51,7 @@
  *
  *   (e) Structural invariant (folds task-003 closure gap-signal #2,
  *       pattern-regression vs structural-invariant fixtures): each
- *       of skills/{mission,closing-task,reviewing-phase,
+ *       of plugins/geas/skills/{mission,closing-task,reviewing-phase,
  *       verdicting-mission}/SKILL.md references briefing-templates.md
  *       AND names at least one of the four narrative templates by
  *       its section title. — verification_plan step 5.
@@ -72,7 +72,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
-const SKILLS_ROOT = path.join(REPO_ROOT, 'skills');
+const SKILLS_ROOT = path.join(REPO_ROOT, 'plugins', 'geas', 'skills');
 const TEMPLATES_FILE = path.join(
   SKILLS_ROOT,
   'mission',
