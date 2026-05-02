@@ -1,20 +1,22 @@
-node_modules/
+# Local environment
 .env
 .env.local
+
+# Logs and OS noise
 *.log
 .DS_Store
 Thumbs.db
-**/__pycache__/
-*.png
-!docs/images/*.png
-!plugins/geas/assets/*.png
 
-# Dashboard
-src/dashboard/node_modules/
-src/dashboard/src-tauri/target/
-src/dashboard/dist/
-src/dashboard/src-tauri/icons/*.png
+# Dependency and language caches
+node_modules/
+**/node_modules/
+**/__pycache__/
+
+# Build outputs
+dist/
+build/
+target/
+coverage/
+
+# Local agent/runtime state
 .claude/
-src/cli/dist/
-src/cli/node_modules/
-.geas/
