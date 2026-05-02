@@ -27,6 +27,7 @@ Drives the specifying phase end-to-end. Turns a natural-language request into an
 - Active `mission_id` is known, or no mission exists yet and the user is starting fresh.
 - CLI is the sole writer to `.geas/`; no direct file edits at any step.
 - If the request spans multiple independent subsystems, return to the dispatcher with a decomposition proposal instead of forcing one mission.
+- Codex adapter: every spawned `design-authority` or `decision-maker` prompt must be built by loading the concrete agent file per `../mission/references/codex-agent-dispatch.md`. If the file is unavailable, stop with `missing_agent_prompt` instead of spawning a generic agent.
 
 ## Process
 
@@ -131,8 +132,8 @@ The full-payload `--file <path>` form remains as a back-compat alias for callers
 | `geas mission approve --mission <id>` | Flip `user_approved` to true; lock the spec. |
 | `geas task approve --mission <id> --task <id> --by user\|decision-maker` | Approve each drafted initial task. |
 | `geas phase-review append --mission <id>` | Close the specifying phase with `status=passed`, `next_phase=building`. |
-| Client adapter dispatch (`design-authority`) | Spawn design-authority for mission-design (Step 6) and initial task contract set (Step 7). Claude uses registered Geas agent type `geas:authority:design-authority`; Codex reads `agents/authority/design-authority.md` and spawns with that prompt plus context. Two spawns per specifying phase. The spawned agent calls `geas mission design-set` and invokes `drafting-task` itself. |
-| Client adapter dispatch (`decision-maker`) | Spawn decision-maker for standard-mode review of mission-design (Step 6) and task set (Step 8). Claude uses registered Geas agent type `geas:authority:decision-maker`; Codex reads `agents/authority/decision-maker.md` and spawns with that prompt plus context. The spawned agent runs `deciding-on-approval` and writes review-kind evidence. |
+| Client adapter dispatch (`design-authority`) | Spawn design-authority for mission-design (Step 6) and initial task contract set (Step 7). Claude uses registered Geas agent type `geas:authority:design-authority`; Codex follows `../mission/references/codex-agent-dispatch.md`, reads `agents/authority/design-authority.md`, and spawns with that prompt plus context. Two spawns per specifying phase. The spawned agent calls `geas mission design-set` and invokes `drafting-task` itself. |
+| Client adapter dispatch (`decision-maker`) | Spawn decision-maker for standard-mode review of mission-design (Step 6) and task set (Step 8). Claude uses registered Geas agent type `geas:authority:decision-maker`; Codex follows `../mission/references/codex-agent-dispatch.md`, reads `agents/authority/decision-maker.md`, and spawns with that prompt plus context. The spawned agent runs `deciding-on-approval` and writes review-kind evidence. |
 
 Sub-skills invoked from main-session: `convening-deliberation` — full_depth design and task-set deliberations (Steps 6, 8), and ad-hoc deliberation in any mode when disagreement surfaces.
 

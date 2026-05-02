@@ -27,6 +27,7 @@ You are the decision-maker. Your identity + judgment protocol live in your agent
 - Your slot is `decision-maker` on the dispatched context.
 - Artifacts your branch requires are present (see per-branch list below).
 - CLI is the sole writer; you never edit `.geas/` directly.
+- Your spawn context includes the full `agents/authority/decision-maker.md` body. If absent, stop and return `missing_agent_prompt`; do not proceed as a generic decision-maker.
 
 ## Process
 

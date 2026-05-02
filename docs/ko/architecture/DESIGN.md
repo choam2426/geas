@@ -454,6 +454,8 @@ DESIGN 관점에서 adapter의 최소 책임은 다음 다섯 가지다.
 - `spawned` 실행을 해당 런타임의 별도 컨텍스트 또는 동등한 메커니즘에 연결한다.
 - `geas` CLI와 `.geas/` 읽기를 런타임에서 사용할 수 있게 연결한다.
 
+Codex에서는 `.codex-plugin/plugin.json`이 skill을 노출하지만 portable `agents/` 파일을 runtime agent로 자동 등록하지 않는다. 따라서 Codex adapter는 매 spawn 전에 대응하는 `plugins/geas/agents/*.md` 파일을 읽고, 그 전체 본문을 spawned prompt에 포함해야 한다. Agent 파일이 없으면 generic sub-agent로 대체하지 말고 중단한다.
+
 런타임마다 세션 지속성, sub-agent 방식, 자동 interception 지점, source transport 형식은 달라질 수 있다. 이런 차이는 execution strategy와 enforcement strength를 바꿀 수는 있지만, protocol semantics나 artifact 의미를 바꾸어서는 안 된다.
 
 특히 `.geas/` 직접 쓰기 차단, context 복원, session 경계 기록, 외부 수정 감지 같은 자동 enforcement 지점은 런타임마다 강도가 다를 수 있다. 일부 런타임은 위반 시도 자체를 차단할 수 있지만, 일부는 agent discipline과 사후 검사에 더 의존한다.

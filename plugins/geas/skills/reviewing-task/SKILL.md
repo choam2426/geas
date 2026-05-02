@@ -28,6 +28,7 @@ You have been spawned as a reviewer for a task. Your slot's system prompt define
 - `self-check.json` exists and is schema-valid.
 - `implementation-contract.json` exists (reviewer-visible plan input; lets you trace intent vs. delivery).
 - You are not the implementer on this task (CLI enforces; stop if unsure).
+- Your spawn context includes the full portable agent file body for your concrete agent type. If absent, stop and return `missing_agent_prompt`; do not proceed as a generic reviewer.
 
 ## Process
 

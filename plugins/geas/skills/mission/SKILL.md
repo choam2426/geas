@@ -60,6 +60,8 @@ None. The dispatcher handles `.geas/` bootstrap, so it is safe to call in a fres
 
    Anti-pattern: never advance phase without the matching phase-review; never invoke a sub-skill outside the table above.
 
+   Codex adapter: when any dispatched path needs a spawned agent, follow `references/codex-agent-dispatch.md`. Codex does not auto-register `agents/` files from the plugin manifest, so the dispatcher must make sure the relevant agent file body is loaded into the spawned prompt.
+
 5. **Post-dispatch briefing.** When a sub-skill returns, render the matching narrative template from `references/briefing-templates.md` (sections 2-4) in Korean and emit it. Each template is a short narration; the user-facing vocabulary allowlist + blacklist at the top of that file constrains the emitted text in every case.
    - **Task-completion** narrative (section 2) after `closing-task`, or after gate runs back to `cancelled` / `escalated`.
    - **Phase-transition** narrative (section 3) after `reviewing-phase` and the matching phase advance both succeed.

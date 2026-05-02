@@ -25,9 +25,11 @@ Writes the final mission-level verdict — the decision-maker's assessment of wh
 - `gap.json` present.
 - All mission-scope tasks terminal; phase-reviews recorded for each completed phase.
 - CLI is the sole writer to `.geas/`.
+- Codex adapter: if this skill is entered by the main-session orchestrator, first spawn `decision-maker` with the loaded `agents/authority/decision-maker.md` prompt per `../mission/references/codex-agent-dispatch.md`, and instruct that spawn to run this skill. If the agent file is unavailable, stop with `missing_agent_prompt`.
 
 ## Process
 
+0. **Ensure decision-maker authorship.** If you are the main-session orchestrator, do not author the verdict yourself. Spawn `decision-maker` using the current client adapter; in Codex, follow `../mission/references/codex-agent-dispatch.md` so the spawned prompt includes `agents/authority/decision-maker.md` plus mission context. The spawned decision-maker runs the remaining steps and returns. If you are already the spawned decision-maker with its agent prompt loaded, continue.
 1. **Assemble the evidence set.** Read `spec.json` (definition_of_done, acceptance_criteria), all phase-reviews, `gap.json`, `memory-update.json`, and task-count aggregates. The verdict references this evidence.
 2. **Grade each acceptance criterion.** For each criterion in `spec.acceptance_criteria`, mark ✓ or ✗ with a short rationale pointing to the gate run / closure / phase-review that established the result. Do not infer; cite.
 3. **Formulate the overall verdict.** One of `approved | approved_with_carry_forward | not_approved`. "Carry forward" is used when DoD is met but specific gaps should be addressed by the next mission (referenced by `gap.json` entries).

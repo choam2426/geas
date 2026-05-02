@@ -26,6 +26,7 @@ You have been spawned as the implementer for an approved task. You own the full 
 - Mission spec is `user_approved: true` for specifying-phase tasks; `approved_by: decision-maker` for mid-mission scope-in tasks.
 - `base_snapshot` still matches the real workspace (if not, return to orchestrator to rebase).
 - If `supersedes` is non-null, you have read the prior task's closure evidence.
+- Your spawn context includes the full portable agent file body for your concrete agent type. If absent, stop and return `missing_agent_prompt`; do not proceed as a generic implementer.
 
 ## Process
 

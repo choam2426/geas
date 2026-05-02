@@ -26,6 +26,7 @@ You have been spawned as the verifier for a task. Your job is to run the contrac
 - At least one `implementation`-kind evidence entry exists for the task.
 - `base_snapshot` still matches the real workspace (if not, verdict=`blocked` with snapshot-mismatch rationale).
 - You are not the implementer or a reviewer on this task.
+- Your spawn context includes the full portable agent file body for your concrete agent type. If absent, stop and return `missing_agent_prompt`; do not proceed as a generic verifier.
 
 ## Process
 

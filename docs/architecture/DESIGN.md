@@ -456,6 +456,8 @@ From the perspective of this design document, the adapter has five minimum respo
 - map `spawned` execution onto separate runtime contexts or an equivalent mechanism
 - make the `geas` CLI and `.geas/` reads available inside the runtime
 
+For Codex, `.codex-plugin/plugin.json` exposes skills but does not auto-register the portable `agents/` files as runtime agents. The Codex adapter therefore loads the matching `plugins/geas/agents/*.md` file before each spawn and includes that full body in the spawned prompt. If the agent file is missing, the adapter must stop rather than substitute a generic sub-agent.
+
 Different runtimes may vary in session persistence, subagent mechanics, automatic interception points, and source transport format. Those differences may change execution strategy and enforcement strength, but they must never change protocol semantics or artifact meaning.
 
 In particular, automatic enforcement points such as blocking direct `.geas/` writes, restoring context, recording session boundaries, or detecting external edits may be stronger in some runtimes than in others. Some runtimes can block violations before they happen; others rely more on agent discipline and post-hoc checks.

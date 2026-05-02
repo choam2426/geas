@@ -25,6 +25,7 @@ Constructs a task-level parallel batch and dispatches implementers for the selec
 - Every dependency of every candidate has `task-state.status == passed`.
 - `.geas/memory/shared.md` readable; no direct edits.
 - CLI is the sole writer to `.geas/`.
+- Codex adapter: before spawning any implementer, load the concrete agent file and include it in the spawned prompt per `../mission/references/codex-agent-dispatch.md`. If the agent file is unavailable, stop with `missing_agent_prompt`; do not dispatch a generic implementer.
 
 ## Process
 
@@ -39,6 +40,8 @@ Constructs a task-level parallel batch and dispatches implementers for the selec
 ## Dispatch Model
 
 The orchestrator chooses the harness model when spawning each agent and passes that choice through the harness's per-spawn model override at dispatch time. Selection is a judgment call guided by the slot the spawned agent holds and the task's risk profile — there is no formal tier system the skill resolves through. Other dispatcher skills (`running-gate` verify-fix re-dispatch, `convening-deliberation` voter dispatch) follow the same pattern.
+
+In Codex, model selection is not enough: the orchestrator must also load the spawned agent's portable prompt from `agents/{domain}/{type}.md` or `agents/authority/{slot}.md` using `../mission/references/codex-agent-dispatch.md`. The spawned context must include that full agent file body plus the instruction to run `implementing-task`.
 
 **Default intent.**
 

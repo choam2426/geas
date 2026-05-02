@@ -26,6 +26,7 @@ Thin convening wrapper over `geas deliberation append`. Spawns the voter set for
 - Voter roster is ≥2 slots; challenger is included whenever available.
 - Supporting artifacts (contract, evidence, phase-review, prior deliberation) are identified for each voter.
 - `level` is decided: `task` (writes under `tasks/{task_id}/deliberations.json`) or `mission` (writes under `missions/{id}/deliberations.json`).
+- Codex adapter: every voter spawn must include the loaded concrete agent file body per `../mission/references/codex-agent-dispatch.md`. If any required agent file is unavailable, revise the roster or stop with `missing_agent_prompt`; do not spawn a generic voter.
 
 ## Process
 
@@ -33,7 +34,7 @@ Thin convening wrapper over `geas deliberation append`. Spawns the voter set for
    - Pick ≥2 voter slots. Include challenger whenever the proposal has risk-level ≥ high implications or affects mission direction.
    - Resolve each slot to a concrete agent from the profile's agent map; the same concrete agent cannot hold implementer + reviewer on the same task.
 2. **Brief each voter in parallel.**
-   - Spawn the concrete agent for each slot. Hand them: the proposal text, pointers to supporting artifacts, and the instruction to invoke `deliberating-on-proposal` and return a vote (`agree` / `disagree` / `escalate`) + rationale.
+   - Spawn the concrete agent for each slot. In Codex, first load the concrete agent prompt using `../mission/references/codex-agent-dispatch.md`. Hand them: the proposal text, pointers to supporting artifacts, and the instruction to invoke `deliberating-on-proposal` and return a vote (`agree` / `disagree` / `escalate`) + rationale.
    - Voters dispatch concurrently where practical. They do NOT receive each other's votes before voting.
    - Apply the same slot- and risk-driven dispatch pattern that `scheduling-work` describes: authority voters (`challenger`, `decision-maker`, `design-authority`) aim for the most capable model the harness exposes; specialist voters (`risk-assessor`, `operator`, `communicator`, `verifier`, `implementer`) aim for a balanced choice, lifted toward the most-capable end when the task or proposal has `risk_level` of `high` or `critical`. Mission-level deliberations inherit the proposal's effective risk; if unclear, treat them as high. A task contract's per-task rationale, when present, takes precedence. Canonical guidance: [scheduling-work/SKILL.md](../scheduling-work/SKILL.md) under "Dispatch Model".
 3. **Collect votes and compute expected `result`** per the CLI aggregation rule:

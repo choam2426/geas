@@ -28,6 +28,7 @@ You are the design-authority. Your identity + judgment protocol live in your age
 - For branch A: mission spec is approved (`user_approved: true`).
 - For branch B: contract exists under the mission's tasks; you have access to `.geas/`.
 - For branch C: mission is in `consolidating` phase; all building/polishing phase-reviews exist.
+- Your spawn context includes the full `agents/authority/design-authority.md` body. If absent, stop and return `missing_agent_prompt`; do not proceed as a generic design authority.
 
 ## Process
 

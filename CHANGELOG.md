@@ -6,11 +6,14 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## [2.2.0] — 2026-05-02
+
 ### Changed
 - Reworked the repository into a Codex marketplace layout: `.agents/plugins/marketplace.json` points to the plugin package under `plugins/geas/`.
 - Moved shared `skills/`, `agents/`, `bin/`, `hooks/`, and `.mcp.json` into `plugins/geas/` for marketplace installation.
 - Added runtime-specific manifests under `plugins/geas/.claude-plugin/plugin.json` and `plugins/geas/.codex-plugin/plugin.json`.
 - Updated prompt wording and docs to use client-neutral dispatch and staging language.
+- Added a Codex agent-dispatch adapter note so spawned Geas prompts explicitly load `plugins/geas/agents/*.md`; spawned-only skills now fail closed with `missing_agent_prompt` instead of running as generic agents.
 
 ## [2.1.1] — 2026-04-29
 

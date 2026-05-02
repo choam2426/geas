@@ -113,7 +113,7 @@ The CLI enforces this on every `reviewing -> implementing` transition: when `ver
 
 When the verify-fix loop re-dispatches the implementer (and re-spawns reviewers + verifier), it follows the same slot- and risk-driven dispatch pattern that `scheduling-work` describes: authority slots aim for the most capable model the harness exposes; specialist slots aim for a balanced choice; on `task.risk_level` of `high` or `critical`, specialist slots are lifted toward the most-capable end. A task contract's per-task rationale, when present, takes precedence.
 
-The canonical guidance lives in [scheduling-work/SKILL.md](../scheduling-work/SKILL.md) under "Dispatch Model". The gate does not pick the model itself — it inherits whatever the orchestrator chooses at re-spawn time. Iterations across the verify-fix loop normally use the same choice as the original dispatch unless the contract was amended (rare; record the change in the implementation contract).
+The canonical guidance lives in [scheduling-work/SKILL.md](../scheduling-work/SKILL.md) under "Dispatch Model". In Codex, the re-spawn must also follow `../mission/references/codex-agent-dispatch.md` so the implementer, reviewer, and verifier prompts include their concrete `agents/*.md` role files. The gate does not pick the model itself — it inherits whatever the orchestrator chooses at re-spawn time. Iterations across the verify-fix loop normally use the same choice as the original dispatch unless the contract was amended (rare; record the change in the implementation contract).
 
 ## Related Skills
 

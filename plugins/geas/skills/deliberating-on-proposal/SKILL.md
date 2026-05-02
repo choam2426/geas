@@ -25,6 +25,7 @@ You have been summoned as a voter in a Geas deliberation. Read the proposal and 
 - Supporting artifact paths are provided and exist under `.geas/`.
 - Your slot identity is stated (challenger / risk-assessor / operator / communicator / design-authority / decision-maker / etc.).
 - Mission mode is `full_depth` (enforced by the CLI on the convening side, but you can stop and return `escalate` with a note if called in the wrong mode).
+- Your spawn context includes the full portable agent file body for your concrete agent type. If absent, stop and return `missing_agent_prompt`; do not proceed as a generic voter.
 
 ## Process
 
