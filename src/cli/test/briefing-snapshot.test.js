@@ -540,22 +540,22 @@ test('T4.5: emission paragraphs in the four SKILL.md contain zero blacklist toke
     },
     {
       skill: 'closing-task',
-      anchors: [/6\.\s+\*\*Return to the mission caller\.\*\*[\s\S]*?(?=\r?\n\r?\n)/],
+      anchors: [/6\.\s+\*\*Return to the mission caller\.\*\*[\s\S]*?(?=\n\n)/],
     },
     {
       skill: 'reviewing-phase',
-      anchors: [/5\.\s+\*\*Return to the mission caller\.\*\*[\s\S]*?(?=\r?\n\r?\nPhase-gate)/],
+      anchors: [/5\.\s+\*\*Return to the mission caller\.\*\*[\s\S]*?(?=\n\nPhase-gate)/],
     },
     {
       skill: 'verdicting-mission',
-      anchors: [/6\.\s+\*\*Return to the mission caller\.\*\*[\s\S]*?(?=\r?\n\r?\n##\s)/],
+      anchors: [/6\.\s+\*\*Return to the mission caller\.\*\*[\s\S]*?(?=\n\n##\s)/],
     },
   ];
 
   const findings = [];
   for (const region of emissionRegions) {
     const file = path.join(SKILLS_ROOT, region.skill, 'SKILL.md');
-    const content = fs.readFileSync(file, 'utf-8');
+    const content = fs.readFileSync(file, 'utf-8').replace(/\r\n/g, '\n');
     for (const anchor of region.anchors) {
       const m = content.match(anchor);
       if (!m) {
