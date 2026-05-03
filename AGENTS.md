@@ -2,6 +2,15 @@
 
 Geas 문서를 작성하거나 수정하기 전에 `docs/definition.md`와 `docs/problem-and-goals.md`를 먼저 읽고, 현재 정의와 문제의식에 맞춰 작업한다.
 
+# Geas 설계 경계
+
+- 인간의 검토와 수용 판단을 agent의 완료 선언, 자동 판단, 도구 실행 결과로 대체하지 않는다.
+- 단순한 작업까지 과도한 문서, 승인, 역할 분리, 기록 형식을 강제하지 않는다.
+- 빠른 생성을 억제하지 않고, 빠르게 만든 결과가 검토 가능한 작업 상태와 검증 근거로 남게 한다.
+- v2.x의 artifact, 상태, agent roster, dashboard, CLI, plugin 구조를 자동 계승하지 않는다.
+- 특정 agent client, plugin 형식, CLI 구현, dashboard 구현에 종속되도록 정의하지 않는다.
+- 초기 구현에서 CLI, skills, agents, plugin, dashboard의 모든 가능성을 한 번에 구현하려고 하지 않는다.
+
 # Geas 문서 용어 구분
 
 Geas 문서를 작성하거나 수정할 때 `검증`, `검토`, `수용 판단`을 섞어 쓰지 않는다.
