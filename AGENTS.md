@@ -1,6 +1,6 @@
 # Geas 문서 작업 기준
 
-Geas 문서를 작성하거나 수정하기 전에 `docs/definition.md`와 `docs/problem-and-goals.md`를 먼저 읽고, 현재 정의와 문제의식에 맞춰 작업한다.
+Geas 문서를 작성하거나 수정하기 전에 `docs/definition.md`를 먼저 읽고, 현재 정의와 문제의식에 맞춰 작업한다.
 
 # Geas 설계 경계
 
