@@ -21,3 +21,9 @@ Geas 문서를 작성하거나 수정할 때 `검증`, `검토`, `수용 판단`
 - `검토`는 인간 쪽 행위다. 인간이 검증 근거와 미검증 범위를 읽고, 필요한 경우 직접 확인하는 일을 뜻한다.
 - `수용 판단`은 인간 쪽 결정이다. 완료로 받아들일지, 재작업할지, 보류할지, 중단할지 판단하는 일을 뜻한다.
 - 완료는 agent의 선언이 아니라, 검증 근거와 인간의 수용 판단 위에 성립한다.
+
+# Writing rule
+
+- Define in positive form.
+- Put exclusions in a boundary section.
+- Convert corrective feedback into a final baseline.
