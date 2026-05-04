@@ -100,17 +100,17 @@ flowchart LR
 
 주요 활동은 다음과 같다.
 
-- Orchestrator가 수용된 Task contract에 따라 role 호출, handoff, review, verification 흐름을 조율한다.
+- Orchestrator가 수용된 Task contract에 따라 role 호출, handoff, verification, review 흐름을 조율한다.
 - Implementer가 Task를 수행하고 Implementation Evidence를 남긴다.
-- Reviewer가 Task 결과를 검토하고 Review Evidence를 남긴다.
-- Challenger가 검토했다면 Challenger Evidence를 남긴다.
 - Verifier가 Task 결과를 검증하고 Verification Evidence를 남긴다.
+- Reviewer가 Task 결과와 Verification Evidence를 검토하고 Review Evidence를 남긴다.
+- Challenger가 검토했다면 Challenger Evidence를 남긴다.
 - Orchestrator가 Task Evidence를 User가 판단 가능한 상태로 모은다.
 - User가 각 Task의 Evidence를 검토하고 수용 판단한다.
 - 재작업이 필요하면 building 안에서 반복한다.
 - Mission spec이나 Mission design 변경이 필요하면 specifying으로 돌아간다.
 
-남겨야 할 것은 Task 결과, Implementation Evidence, Review Evidence, Verification Evidence다. Challenger가 참여했다면 Challenger Evidence도 남긴다.
+남겨야 할 것은 Task 결과, Implementation Evidence, Verification Evidence, Review Evidence다. Challenger가 참여했다면 Challenger Evidence도 남긴다.
 
 ### consolidating
 
