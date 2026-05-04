@@ -51,7 +51,7 @@ Evidence는 완료 선언이 아니다. Evidence는 User가 검토하고 수용 
 
 ### Implementation Evidence
 
-Implementer가 실제로 수행한 작업과 self-check를 정리한 Evidence다.
+Implementer가 실제로 수행한 작업과 자기 점검을 정리한 Evidence다.
 
 포함할 내용은 다음과 같다.
 
@@ -59,7 +59,7 @@ Implementer가 실제로 수행한 작업과 self-check를 정리한 Evidence다
 - 변경 또는 생성한 산출물
 - 중요한 판단과 이유
 - 계약과 달라진 점
-- self-check 참조
+- 자기 점검
 
 ### Review Evidence
 

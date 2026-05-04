@@ -118,7 +118,7 @@ User는 Mission spec이 자신의 목표와 맞는지, 초기 Task 목록과 초
 
 building은 승인된 Task contract를 실행 기준으로 삼아 Task를 수행하는 단계다.
 
-이 단계에서 agent는 Task contract를 바탕으로 더 세밀한 execution plan을 세운 뒤 작업하고, self-check, review, verification을 거쳐 Task별 Evidence를 남긴다. 필요한 경우 다음 Task contract를 구체화하거나 갱신한다.
+이 단계에서 agent는 Task contract를 바탕으로 더 세밀한 execution plan을 세운 뒤 작업하고, Implementation Evidence, review, verification을 거쳐 Task별 Evidence를 남긴다. 필요한 경우 다음 Task contract를 구체화하거나 갱신한다.
 
 building의 중심은 Task 수용 루프다.
 
@@ -126,7 +126,7 @@ building의 중심은 Task 수용 루프다.
 Task contract
   -> execution plan
   -> implementation
-  -> self-check
+  -> Implementation Evidence
   -> review / verification
   -> Evidence
   -> Task 수용 판단
@@ -136,7 +136,7 @@ execution plan은 접근 순서, 세부 작업 단계, 예상 위험, 자체 점
 
 building에서는 역할별 책임이 구분된다.
 
-- Implementer는 execution plan을 세우고 Task를 수행하며 self-check를 남긴다.
+- Implementer는 execution plan을 세우고 Task를 수행하며 Implementation Evidence를 남긴다.
 - Reviewer는 Task 결과를 검토하고 Review Evidence를 남긴다.
 - Challenger는 devil's advocate 관점에서 기준선이나 결과를 압박해 보고 Challenger Evidence를 남긴다.
 - Verifier는 Task의 수용 기준과 검증 방법을 확인하고 Verification Evidence를 남긴다.
