@@ -67,29 +67,34 @@ Mission이 수용 판단과 회고로 종료되면 Orchestrator가 Mission Evide
 
 Task Evidence는 Task가 수용 판단으로 종료된 뒤 Orchestrator가 Task 결과, User 수용 판단, 주요 Evidence 참조, 남은 항목을 짧게 정리해 남기는 종료 요약 Evidence다.
 
+Task Evidence는 Task contract의 기준별로 결과, 연결된 Evidence, 미검증 범위, 남은 User 판단 지점을 함께 보여 준다.
+
 포함할 내용은 다음과 같다.
 
 - Task 결과 요약
 - User의 Task 수용 판단
-- Task contract 기준에 대한 결과 요약
-- 주요 Evidence 참조
-- 미검증 범위와 남은 위험
+- Task contract 기준별 결과
+- 기준별 주요 Evidence 참조
+- 기준별 미검증 범위와 남은 위험
+- 남은 User 판단 지점
 - 남은 항목
 
 ### Mission Evidence
 
 Mission Evidence는 Mission이 수용 판단과 회고로 종료된 뒤 Orchestrator가 Mission 기준선, Task 결과, Evidence, User 수용 판단, 남은 항목, 반영한 memory를 종합해 남기는 final report다.
 
+Mission Evidence는 Mission spec의 기준별로 결과, 관련 Task Evidence, 미검증 범위, gap, debt, follow-up을 연결해 보여 준다.
+
 포함할 내용은 다음과 같다.
 
 - Mission 결과 요약
 - User의 Mission 수용 판단
 - Mission spec 기준별 결과
+- 기준별 관련 Task Evidence 참조
+- 기준별 미검증 범위와 남은 위험
 - Mission design과 실제 진행의 차이
 - Task별 결과와 Task Evidence 참조
 - 주요 검증 근거 요약
-- 미검증 범위
-- 남은 위험
 - gap, debt, follow-up 분류
 - 회고 요약
 - 반영한 memory
@@ -186,9 +191,15 @@ verdict 값은 다음 세 가지로 제한한다.
 
 |verdict|의미|
 |---|---|
-|passed|이 Evidence가 맡은 관점에서는 Task 결과가 Task contract를 충족한다고 볼 근거가 있다.|
+|passed|이 Evidence가 맡은 관점에서 필요한 확인을 수행했고, 확인한 범위에서는 Task 결과가 Task contract를 충족한다고 볼 근거가 있다.|
 |changes_requested|Task 결과가 Task contract를 충족하려면 수정이나 재확인이 필요하다.|
 |escalated|Task contract 안에서 판단하기 어려워 User 또는 Mission 수준 판단이 필요하다.|
+
+필수 확인이 수행되지 않았거나 기준별 미검증 범위가 남아 있으면 passed로 표현하지 않는다.
+
+미검증 범위가 재확인이나 수정으로 닫힐 수 있으면 changes_requested로 둔다.
+
+Task contract 안에서 닫기 어렵거나 User 또는 Mission 수준 판단이 필요한 미검증 범위는 escalated로 둔다.
 
 verdict는 agent 측 판단 입력이다. 최종 완료는 User가 Evidence를 검토하고 수용 판단을 남겨야 성립한다.
 

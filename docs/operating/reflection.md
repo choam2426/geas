@@ -104,7 +104,13 @@ Gap에는 다음이 들어갈 수 있다.
 - User 기대와 산출물 사이의 차이
 - Mission scope 안에 있었지만 산출물이나 Evidence에 반영되지 않은 부분
 
-Gap은 User 수용 판단의 대상이다. User는 gap을 받아들이고 Mission을 완료로 수용하거나, gap을 debt나 follow-up으로 돌릴 수 있다.
+Gap은 User 수용 판단의 대상이다. Gap은 이름만 바꿔 debt나 follow-up으로 돌리지 않는다.
+
+Mission 완료 기준이나 scope에 걸린 gap은 추가 Task로 해결하거나, Mission 기준선을 갱신하고 User 수용 판단을 다시 거친다.
+
+User가 비용과 위험을 알고 현재 Mission 안에 남기기로 수용한 항목은 debt로 남긴다.
+
+현재 Mission scope 밖에서 새로 다룰 항목은 follow-up으로 남긴다.
 
 ## Follow-up
 
