@@ -84,13 +84,30 @@ flowchart LR
 
 목적은 사용자 요청을 User가 수용 판단할 수 있는 Mission 기준선으로 바꾸는 것이다.
 
-주요 활동은 다음과 같다.
+주요 흐름은 다음과 같다.
 
-- Orchestrator가 User 요청을 User가 검토할 수 있는 Mission spec 초안으로 구체화한다.
-- Work Designer가 Mission spec을 바탕으로 Mission design을 작성한다.
-- Work Designer가 Mission design을 바탕으로 초기 Task contract를 작성한다.
-- 필요한 경우 Challenger가 Mission 기준선을 검토하고 Challenger Evidence를 남긴다.
-- User가 Mission spec, Mission design, 초기 Task contract를 검토하고 수용 판단한다.
+```mermaid
+flowchart TD
+  R["User request"]
+  O["Orchestrator<br/>Mission spec 초안"]
+  D["Work Designer<br/>Mission design"]
+  T["Work Designer<br/>초기 Task contract"]
+  H["Challenger<br/>기준선 압박 optional"]
+  U["User<br/>Mission 기준선 수용 판단"]
+  B["building"]
+
+  R --> O --> D --> T
+  T --> H --> U
+  T --> U
+  U -->|"수용"| B
+  U -->|"수정 요청"| O
+```
+
+이 흐름에서 Orchestrator는 User 요청을 Mission spec 초안으로 구체화한다. Work Designer는 Mission spec을 Mission design과 초기 Task contract로 이어지게 만든다.
+
+Challenger가 참여하면 Mission 기준선, Task 분해, 초기 검증 전략의 숨은 가정과 장기 위험을 압박하고 Challenger Evidence를 남긴다.
+
+User는 Mission spec, Mission design, 초기 Task contract를 검토하고 수용 판단한다. 수정이 필요하면 specifying 안에서 기준선을 다시 다듬고, 수용되면 building으로 넘어간다.
 
 남겨야 할 것은 Mission spec, Mission design, 초기 Task contract다. Challenger가 검토했다면 Challenger Evidence도 남긴다.
 
@@ -98,18 +115,35 @@ flowchart LR
 
 목적은 수용된 Task contract에 따라 작업을 수행하고, 각 Task에 대해 User가 수용 판단할 수 있도록 Evidence를 남기는 것이다.
 
-주요 활동은 다음과 같다.
+주요 흐름은 다음과 같다.
 
-- Orchestrator가 수용된 Task contract에 따라 role 호출, handoff, verification, review 흐름을 조율한다.
-- Implementer가 Task를 수행하고 Implementation Evidence를 남긴다.
-- Verifier가 Task 결과를 검증하고 Verification Evidence를 남긴다.
-- Reviewer가 Task 결과와 Verification Evidence를 검토하고 Review Evidence를 남긴다.
-- Challenger가 검토했다면 Challenger Evidence를 남긴다.
-- Orchestrator가 산출물, 각 role이 남긴 Evidence, Task contract를 대조해 User가 판단 가능한 입력을 구성한다.
-- User가 각 Task의 Evidence를 검토하고 수용 판단한다.
-- Task가 종료되면 Orchestrator가 Task Evidence를 남긴다.
-- 재작업이 필요하면 building 안에서 반복한다.
-- Mission spec이나 Mission design 변경이 필요하면 specifying으로 돌아간다.
+```mermaid
+flowchart TD
+  C["수용된 Task contract"]
+  E["Task 실행과 role별 Evidence"]
+  I["Orchestrator<br/>Task 수용 판단 입력"]
+  U["User<br/>Task 수용 판단"]
+  TE["Task Evidence<br/>종료 요약"]
+  N["다음 Task"]
+  G["consolidating"]
+  S["specifying"]
+
+  C --> E --> I --> U
+  U -->|"완료 수용"| TE
+  U -->|"재작업"| E
+  U -->|"Task 계약 갱신"| C
+  U -->|"Mission 기준선 재검토"| S
+  TE -->|"남은 Task 있음"| N --> C
+  TE -->|"남은 Task 없음"| G
+```
+
+Mission 문서의 building은 Task 수용 루프를 다룬다. Task 내부의 구현, 검증, review 세부 흐름은 `task.md`가 다룬다.
+
+Orchestrator는 수용된 Task contract를 기준으로 role 호출, handoff, verification, review 흐름을 조율한다. 각 role은 자기 책임 범위에서 Task 결과를 만들거나 확인하고 role별 Evidence를 남긴다.
+
+Orchestrator는 산출물, role별 Evidence, Task contract를 대조해 User가 Task를 수용 판단할 수 있는 입력을 구성한다.
+
+User는 Task 결과와 Evidence를 보고 완료 수용, 재작업, Task 계약 갱신, Mission 기준선 재검토 중 필요한 판단을 내린다. Task가 수용 판단으로 종료되면 Orchestrator가 Task Evidence를 남기고, 남은 Task가 있으면 building 안에서 다음 Task로 이어 간다.
 
 남겨야 할 것은 Task 결과, Implementation Evidence, Verification Evidence, Review Evidence다. Task가 종료되면 Task Evidence도 남긴다. Challenger가 참여했다면 Challenger Evidence도 남긴다.
 
@@ -117,20 +151,42 @@ flowchart LR
 
 목적은 수용된 Task들을 Mission 기준선과 대조하고, User가 Mission 전체를 수용 판단할 수 있는 상태로 정리하는 것이다.
 
-주요 활동은 다음과 같다.
+주요 흐름은 다음과 같다.
 
-- Orchestrator가 수용된 Task 결과와 Task Evidence를 Mission spec과 Mission design에 대조한다.
-- Orchestrator가 gap, debt, follow-up 후보를 정리한다.
-- 추가 Task나 Task contract 갱신이 필요하면 building으로 돌아간다.
-- Mission spec이나 Mission design 수정이 필요하면 specifying으로 돌아간다.
-- Orchestrator가 Task Evidence, 필요한 role별 Evidence, Mission spec, Mission design, gap, debt, follow-up 후보를 대조해 Mission 수용 판단 입력, agent 측 권고, 가능한 선택지를 구성한다.
-- User가 Mission 수용 판단 입력을 검토하고 Mission 수용 판단을 내린다.
-- 수용 판단 이후 User가 받아들인 gap, debt, follow-up을 확인하고 필요한 memory를 업데이트한다.
-- Mission이 종료되면 Orchestrator가 Mission Evidence를 남긴다.
+```mermaid
+flowchart TD
+  T["수용된 Task 결과와 Task Evidence"]
+  C["Mission spec/design과 대조"]
+  R["gap/debt/follow-up 후보 정리"]
+  I["Mission 수용 판단 입력"]
+  U["User<br/>Mission 수용 판단"]
+  M["memory 반영"]
+  E["Mission Evidence<br/>final report"]
+  B["building"]
+  S["specifying"]
 
-남겨야 할 것은 Mission 결과 요약, Mission Evidence, agent 측 권고, User의 수용 판단, 회고 항목, memory 업데이트다.
+  T --> C --> R
+  R -->|"Mission 판단 가능"| I --> U
+  R -->|"추가 Task 필요"| B
+  R -->|"기준선 갱신 필요"| S
+  U -->|"완료 수용"| M --> E
+  U -->|"추가 작업"| B
+  U -->|"Mission 재검토"| S
+```
 
-Mission은 User의 수용 판단이 남고, 필요한 회고와 후속 항목이 정리되었을 때 complete로 볼 수 있다.
+gap, debt, follow-up 후보는 Mission 수용 판단 전에 정리한다. memory는 User의 Mission 수용 판단 이후에 반영한다.
+
+Orchestrator는 수용된 Task 결과와 Task Evidence를 Mission spec, Mission design과 대조한다. 이때 Mission 기준선과 실제 결과 사이의 gap, 수용한 결과 안에 남는 debt, 현재 Mission 밖에서 다룰 follow-up 후보를 정리한다.
+
+추가 Task나 Task contract 갱신이 필요하면 building으로 돌아간다. Mission spec이나 Mission design 수정이 필요하면 specifying으로 돌아간다.
+
+Mission 판단이 가능하면 Orchestrator는 Task Evidence, 필요한 role별 Evidence, Mission 기준선, gap, debt, follow-up 후보를 대조해 Mission 수용 판단 입력, agent 측 권고, 가능한 선택지를 구성한다.
+
+User가 Mission을 수용하면 수용된 gap과 debt, 남기기로 한 follow-up을 확인하고 필요한 memory를 반영한다. 이후 Orchestrator가 Mission Evidence를 final report로 남긴다.
+
+남겨야 할 것은 Mission 결과 요약, Mission Evidence, agent 측 권고, User의 수용 판단, gap, debt, follow-up, memory 업데이트다.
+
+Mission은 User의 수용 판단이 남고, 수용된 gap과 debt, 남기기로 한 follow-up, 필요한 memory가 정리되었을 때 complete로 볼 수 있다.
 
 ## Mission 판단
 
