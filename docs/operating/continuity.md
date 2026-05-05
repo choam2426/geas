@@ -28,8 +28,8 @@ Mission이나 Task가 어떤 상태로 표시되어 있어도, 그 상태는 계
 1. 현재 Mission 목표와 Mission spec을 확인한다.
 2. Mission design이 있으면 현재 작업 기준으로 유효한지 확인한다.
 3. 진행 중이거나 마지막으로 다룬 Task contract를 확인한다.
-4. Task Evidence와 Implementation Evidence를 확인한다.
-5. Evidence 안에 어떤 검증 근거와 미검증 범위가 남았는지 확인한다.
+4. Task Evidence가 있으면 확인하고, role별 Evidence를 확인한다.
+5. Evidence 안에 어떤 검증 근거, 미검증 범위, 수용 판단 맥락이 남았는지 확인한다.
 6. User의 수용 판단이 있었는지 확인한다.
 7. 회고, gap, debt, 후속 항목이 있는지 확인한다.
 8. 현재 이어 갈 위치를 판단한다.

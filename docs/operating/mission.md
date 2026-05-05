@@ -2,7 +2,7 @@
 
 ## 목적
 
-이 문서는 Mission의 의미, Mission spec, Mission design, 운영 깊이, Mission 흐름을 정의한다.
+이 문서는 Mission의 의미, Mission spec, Mission design, Mission 흐름을 정의한다.
 
 Mission은 User가 agent를 사용해 이루고자 하는 목표를 구체화한 것이다.
 
@@ -105,12 +105,13 @@ flowchart LR
 - Verifier가 Task 결과를 검증하고 Verification Evidence를 남긴다.
 - Reviewer가 Task 결과와 Verification Evidence를 검토하고 Review Evidence를 남긴다.
 - Challenger가 검토했다면 Challenger Evidence를 남긴다.
-- Orchestrator가 Task Evidence를 User가 판단 가능한 상태로 모은다.
+- Orchestrator가 산출물, 각 role이 남긴 Evidence, Task contract를 대조해 User가 판단 가능한 입력을 구성한다.
 - User가 각 Task의 Evidence를 검토하고 수용 판단한다.
+- Task가 종료되면 Orchestrator가 Task Evidence를 남긴다.
 - 재작업이 필요하면 building 안에서 반복한다.
 - Mission spec이나 Mission design 변경이 필요하면 specifying으로 돌아간다.
 
-남겨야 할 것은 Task 결과, Implementation Evidence, Verification Evidence, Review Evidence다. Challenger가 참여했다면 Challenger Evidence도 남긴다.
+남겨야 할 것은 Task 결과, Implementation Evidence, Verification Evidence, Review Evidence다. Task가 종료되면 Task Evidence도 남긴다. Challenger가 참여했다면 Challenger Evidence도 남긴다.
 
 ### consolidating
 
@@ -122,9 +123,10 @@ flowchart LR
 - 남은 부족분을 추가 Task, gap, debt, follow-up, no action 중 하나로 분류한다.
 - 추가 Task나 Task contract 갱신이 필요하면 building으로 돌아간다.
 - Mission spec이나 Mission design 수정이 필요하면 specifying으로 돌아간다.
-- Orchestrator가 Mission Evidence, agent 측 권고, 가능한 선택지를 정리한다.
-- User가 Mission Evidence를 검토하고 Mission 수용 판단을 내린다.
+- Orchestrator가 Task Evidence, 필요한 role별 Evidence, Mission spec, Mission design을 대조해 Mission 수용 판단 입력, agent 측 권고, 가능한 선택지를 구성한다.
+- User가 Mission 수용 판단 입력을 검토하고 Mission 수용 판단을 내린다.
 - 수용 판단 이후 회고 항목을 정리하고 필요한 memory를 업데이트한다.
+- Mission이 종료되면 Orchestrator가 Mission Evidence를 남긴다.
 
 남겨야 할 것은 Mission 결과 요약, Mission Evidence, agent 측 권고, User의 수용 판단, 회고 항목, memory 업데이트다.
 
@@ -136,4 +138,4 @@ Mission은 User의 수용 판단이 남고, 필요한 회고와 후속 항목이
 
 Mission 수용 판단에서는 수용된 Task들이 Mission spec과 Mission design을 충족하는지 다시 본다. 이때 전체 목표와 Task 결과 사이의 gap, Evidence에 드러난 미검증 범위, 후속 Mission으로 넘길 항목, 현재 Mission에서 더 진행하지 않을 debt, memory로 남길 교훈이 함께 판단 대상이 된다.
 
-Mission의 최종 판단은 agent의 완료 선언이나 Task 상태가 아니라, Mission Evidence와 User의 수용 판단 위에 성립한다.
+Mission의 최종 판단은 agent의 완료 선언이나 Task 상태가 아니라, 수용 판단 입력과 User의 수용 판단 위에 성립한다. Mission Evidence는 수용 판단, 회고, memory 업데이트 이후 Mission 전체를 다시 열어볼 수 있게 남기는 final report다.

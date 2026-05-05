@@ -55,6 +55,7 @@ flowchart LR
   R["review<br/>Review Evidence"]
   H["challenge<br/>Challenger Evidence"]
   D["Task 수용 판단"]
+  E["Task Evidence<br/>종료 요약"]
 
   C --> I
   I --> V
@@ -62,15 +63,35 @@ flowchart LR
   R --> D
   R --> H
   H --> D
-  D --> I
-  D --> C
+  D -->|"종료"| E
+  D -->|"재작업"| I
+  D -->|"계약 갱신"| C
 ```
 
 ### implementation
 
-Implementer는 수용된 Task contract를 바탕으로 execution plan을 세운 뒤 Task를 수행하고 Implementation Evidence를 남긴다.
+Implementer는 수용된 Task contract를 바탕으로 execution plan을 세운 뒤 Task를 수행한다.
 
-Implementation Evidence에는 작업 결과, 변경 내용, 중요한 판단, 계약과 달라진 점, 자기 점검이 들어간다.
+```mermaid
+flowchart LR
+  P["execution plan"]
+  I["implement"]
+  S["self-check"]
+  F["fix within Task contract"]
+  E["Implementation Evidence"]
+
+  P --> I
+  I --> S
+  S -->|"보정 필요"| F
+  F --> S
+  S -->|"전달 가능"| E
+```
+
+산출물을 넘기기 전에 자기 점검을 수행하고, Task contract 범위 안의 문제를 발견하면 구현을 보정한 뒤 다시 자기 점검한다.
+
+이후 Implementation Evidence를 남긴다.
+
+Implementation Evidence에는 작업 결과, 변경 또는 생성한 산출물, 영향을 받은 범위, 중요한 판단과 이유, 관련 기준선이나 참조, 계약과 달라진 점이나 갱신이 필요한 지점, 자기 점검 범위와 발견한 한계, 회고 후보가 들어간다.
 
 ### verification
 
@@ -98,9 +119,9 @@ Challenger Evidence는 Review Evidence나 Verification Evidence를 대체하지 
 
 ## Task 수용 판단
 
-Orchestrator는 산출물과 Task Evidence를 정리하고, 가능한 선택지를 User가 비교할 수 있게 제시한다. 선택은 User가 한다.
+Orchestrator는 산출물, 각 role이 남긴 Evidence, Task contract를 대조해 판단 입력을 구성하고, 가능한 선택지를 User가 비교할 수 있게 제시한다. 선택은 User가 한다.
 
-User는 Task Evidence를 검토하고 다음 중 하나로 수용 판단한다.
+User는 산출물과 Evidence를 검토하고 다음 중 하나로 수용 판단한다.
 
 |판단|쓰는 경우|
 |---|---|
@@ -111,6 +132,8 @@ User는 Task Evidence를 검토하고 다음 중 하나로 수용 판단한다.
 |Mission 재검토|Task 수준을 넘어 Mission spec이나 Mission design을 다시 봐야 한다.|
 
 Task 수용 판단은 Mission 수용 판단을 대체하지 않는다. 모든 Task가 수용되어도 Mission이 자동으로 완료되는 것은 아니다.
+
+Task가 수용 판단으로 종료되면 Orchestrator는 Task 결과, User 수용 판단, 주요 Evidence 참조, 남은 항목을 Task Evidence로 짧게 정리한다. Task Evidence는 다음 작업, 회고, 컨텍스트 복원을 위한 종료 요약 Evidence다.
 
 ### 재작업
 
