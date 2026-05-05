@@ -90,7 +90,7 @@ Mission Evidence는 Mission이 수용 판단과 회고로 종료된 뒤 Orchestr
 - 주요 검증 근거 요약
 - 미검증 범위
 - 남은 위험
-- gap, debt, follow-up, no action 분류
+- gap, debt, follow-up 분류
 - 회고 요약
 - 반영한 memory
 - 다음 Mission이나 Task에 적용할 운영 기준

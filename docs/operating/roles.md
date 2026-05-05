@@ -94,7 +94,7 @@ Orchestrator의 책임은 다음과 같다.
 - 산출물, 각 role이 남긴 Evidence, Task contract를 대조해 User가 Task 수용 판단할 수 있는 입력을 구성한다.
 - Task가 종료되면 Task Evidence를 남긴다.
 - consolidating에서 Task 결과와 Evidence를 Mission spec과 Mission design에 대조한다.
-- gap, debt, follow-up, no action, agent 측 권고, 가능한 선택지를 User가 비교할 수 있는 형태로 정리한다.
+- gap, debt, follow-up, agent 측 권고, 가능한 선택지를 User가 비교할 수 있는 형태로 정리한다.
 - Mission이 종료되면 final report로 Mission Evidence를 남긴다.
 - Mission spec이나 Mission design 수정이 필요한 상황을 드러내고 specifying으로 돌아갈 근거를 정리한다.
 

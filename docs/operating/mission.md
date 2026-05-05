@@ -120,12 +120,12 @@ flowchart LR
 주요 활동은 다음과 같다.
 
 - Orchestrator가 수용된 Task 결과와 Task Evidence를 Mission spec과 Mission design에 대조한다.
-- 남은 부족분을 추가 Task, gap, debt, follow-up, no action 중 하나로 분류한다.
+- Orchestrator가 gap, debt, follow-up 후보를 정리한다.
 - 추가 Task나 Task contract 갱신이 필요하면 building으로 돌아간다.
 - Mission spec이나 Mission design 수정이 필요하면 specifying으로 돌아간다.
-- Orchestrator가 Task Evidence, 필요한 role별 Evidence, Mission spec, Mission design을 대조해 Mission 수용 판단 입력, agent 측 권고, 가능한 선택지를 구성한다.
+- Orchestrator가 Task Evidence, 필요한 role별 Evidence, Mission spec, Mission design, gap, debt, follow-up 후보를 대조해 Mission 수용 판단 입력, agent 측 권고, 가능한 선택지를 구성한다.
 - User가 Mission 수용 판단 입력을 검토하고 Mission 수용 판단을 내린다.
-- 수용 판단 이후 회고 항목을 정리하고 필요한 memory를 업데이트한다.
+- 수용 판단 이후 User가 받아들인 gap, debt, follow-up을 확인하고 필요한 memory를 업데이트한다.
 - Mission이 종료되면 Orchestrator가 Mission Evidence를 남긴다.
 
 남겨야 할 것은 Mission 결과 요약, Mission Evidence, agent 측 권고, User의 수용 판단, 회고 항목, memory 업데이트다.
@@ -136,6 +136,6 @@ Mission은 User의 수용 판단이 남고, 필요한 회고와 후속 항목이
 
 모든 Task가 수용되어도 Mission이 자동으로 완료되는 것은 아니다.
 
-Mission 수용 판단에서는 수용된 Task들이 Mission spec과 Mission design을 충족하는지 다시 본다. 이때 전체 목표와 Task 결과 사이의 gap, Evidence에 드러난 미검증 범위, 후속 Mission으로 넘길 항목, 현재 Mission에서 더 진행하지 않을 debt, memory로 남길 교훈이 함께 판단 대상이 된다.
+Mission 수용 판단에서는 수용된 Task들이 Mission spec과 Mission design을 충족하는지 다시 본다. 이때 전체 목표와 Task 결과 사이의 gap, Evidence에 드러난 미검증 범위, follow-up, 현재 Mission에서 더 진행하지 않을 debt가 함께 판단 대상이 된다.
 
-Mission의 최종 판단은 agent의 완료 선언이나 Task 상태가 아니라, 수용 판단 입력과 User의 수용 판단 위에 성립한다. Mission Evidence는 수용 판단, 회고, memory 업데이트 이후 Mission 전체를 다시 열어볼 수 있게 남기는 final report다.
+Mission의 최종 판단은 agent의 완료 선언이나 Task 상태가 아니라, 수용 판단 입력과 User의 수용 판단 위에 성립한다. Memory로 반영할 교훈은 수용 판단 이후 회고에서 정리한다. Mission Evidence는 수용 판단, 회고, memory 업데이트 이후 Mission 전체를 다시 열어볼 수 있게 남기는 final report다.
