@@ -2,101 +2,61 @@
 
 ## 목적
 
-이 문서는 중단된 Mission이나 Task를 이어 가기 위한 연속성 원칙과 상태 신뢰 경계를 정의한다.
+이 문서는 중단된 Mission이나 Task를 이어 갈 때 진행 상태 기록을 출발점으로 복귀 지점을 정하는 기준을 정의한다. 진행 상태 기록이 계약, Evidence, User 수용 판단과 어긋나면 복귀 지점은 계약, Evidence, User 수용 판단을 기준으로 다시 정한다.
 
-Continuity의 목표는 agent가 대화 맥락을 잃어도 계약, Evidence, 수용 판단을 기준으로 작업을 다시 이해할 수 있게 하는 것이다.
+Continuity의 목표는 대화 맥락, 세션, 컨텍스트 압축 이후에도 agent가 진행 상태 기록, 계약, Evidence, User 수용 판단, 회고를 기준으로 작업을 다시 이어 갈 수 있게 하는 것이다.
 
 ## 기본 관점
 
-상태 표시는 정본이 아니다.
+Continuity는 작업을 재개하기 전에 진행 상태 기록, 계약, Evidence, User 수용 판단을 대조해 복귀 지점을 정하는 절차다.
 
-Mission이나 Task가 어떤 상태로 표시되어 있어도, 그 상태는 계약과 Evidence를 찾아가기 위한 인덱스일 뿐이다. 실제 판단의 기준은 다음이다.
+진행 상태 기록은 현재 Mission 흐름, 현재 Task, 마지막으로 확인한 계약, 연결된 Evidence, 마지막 User 수용 판단, 대기 중인 판단을 빠르게 찾기 위한 작업 위치 기록이다.
 
-- Mission spec
-- Mission design
-- Task contract
-- Evidence
-- User의 수용 판단
-- 회고와 후속 항목
-
-상태 표시와 근거가 어긋나면 근거를 우선한다.
+복귀 지점은 계약, Evidence, User 수용 판단을 기준으로 정한다.
 
 ## 복원 절차
 
 작업을 이어 갈 때는 다음 순서로 확인한다.
 
-1. 현재 Mission 목표와 Mission spec을 확인한다.
-2. Mission design이 있으면 현재 작업 기준으로 유효한지 확인한다.
+1. 진행 상태 기록에서 현재 흐름, 현재 Task, 마지막으로 확인한 계약, 연결된 Evidence, 마지막 User 수용 판단, 대기 중인 판단을 확인한다.
+2. Mission spec과 Mission design을 확인한다.
 3. 진행 중이거나 마지막으로 다룬 Task contract를 확인한다.
-4. Task Evidence가 있으면 확인하고, role별 Evidence를 확인한다.
-5. Evidence 안에 어떤 검증 근거, 미검증 범위, 수용 판단 맥락이 남았는지 확인한다.
-6. User의 수용 판단이 있었는지 확인한다.
-7. 회고, gap, debt, 후속 항목이 있는지 확인한다.
-8. 현재 이어 갈 위치를 판단한다.
-
-복원 결과는 specifying, building, consolidating 중 어느 단계로 돌아갈지로 표현한다.
+4. 산출물과 작업 트리 변경이 Task contract와 연결되는지 확인한다.
+5. Mission Evidence, Task Evidence, role별 Evidence를 확인한다.
+6. Evidence가 드러내는 검증 근거, 미검증 범위, 남은 위험을 확인한다.
+7. 마지막 User 수용 판단을 확인한다.
+8. 회고나 후속 항목이 복귀 지점에 영향을 주는지 확인한다.
+9. 복귀 지점을 정한다.
 
 ## drift
 
-drift는 상태 표시, 작업 트리, Evidence, 계약이 서로 어긋난 상태를 말한다.
+drift는 진행 상태 기록, 작업 트리, 계약, Evidence, User 수용 판단이 서로 다른 복귀 지점을 가리키는 상태다.
 
 예시는 다음과 같다.
 
-- Task가 passed로 표시되어 있지만 Verification Evidence가 없다.
-- 작업 트리에 변경이 있지만 어떤 Task contract와 연결되는지 알 수 없다.
-- Mission scope 밖 변경이 섞여 있다.
-- User 수용 판단이 없는데 완료로 표시되어 있다.
-- Implementation Evidence는 있지만 review나 verification이 없다.
+- 진행 상태 기록은 Task 수용 완료를 가리키지만 User 수용 판단이나 Task Evidence가 없다.
+- 작업 트리 변경이 어떤 Task contract에 속하는지 불명확하다.
+- 산출물이나 Evidence에 Mission scope 밖 변경이 섞여 있다.
+- Task Evidence가 주요 role별 Evidence를 참조하지만 해당 근거가 남아 있지 않다.
+- 진행 상태 기록은 Task 수용 판단 대기 상태를 가리키지만 필요한 Verification Evidence나 Review Evidence가 없다.
 
-drift가 발견되면 조용히 진행하지 않는다.
-
-## drift 처리 원칙
-
-drift는 다음 순서로 처리한다.
-
-1. 계약과 Evidence를 우선 읽는다.
-2. 상태 표시가 계약과 Evidence에 맞는지 확인한다.
-3. 맞지 않으면 어떤 부분이 어긋났는지 기록한다.
-4. 자동으로 복원할 수 있으면 근거를 남기고 이어 간다.
-5. 자동으로 복원할 수 없으면 blocked 또는 escalated로 다룬다.
-
-복원할 수 없는 상태에서 임의로 완료, passed, accepted를 만들지 않는다.
+drift가 발견되면 계약, Evidence, User 수용 판단을 기준으로 어긋난 부분을 확인하고 복귀 지점을 다시 정한다.
 
 ## 중단과 재개
 
-작업이 중단될 수 있는 이유는 다음과 같다.
+중단은 세션 전환, 컨텍스트 압축, User 수용 판단 대기, 외부 조건 확인, 의도적인 보류처럼 작업 흐름이 잠시 멈춘 상태를 포함한다.
 
-- User 입력 대기
-- 검증 실패
-- 외부 의존성 문제
-- 권한이나 환경 문제
-- scope 변경 필요
-- 판단 근거 부족
-- agent 실행 중단
+작업을 재개할 때의 첫 판단은 복귀 지점이다.
 
-재개할 때는 "무엇을 하던 중이었는가"보다 "어떤 계약과 Evidence를 기준으로 어디까지 판단할 수 있는가"를 먼저 본다.
+재개는 계약, Evidence, User 수용 판단을 기준으로 복귀 지점을 정하는 일에서 시작한다.
 
-## 안전 원칙
+## 상태 신뢰 경계
 
-- 근거 없는 상태 표시는 신뢰하지 않는다.
+Continuity의 상태 신뢰 경계는 다음과 같다.
+
+- 진행 상태 기록은 완료 상태, Evidence verdict, User 수용 판단을 확정하지 않는다.
+- User 수용 판단이 없는 Task나 Mission은 완료로 다루지 않는다.
 - partial Evidence는 완전한 Evidence처럼 소비하지 않는다.
 - dirty workspace는 Task contract와 Evidence에 연결해 읽는다.
-- 완료나 accepted 주장에 User 수용 판단이 없으면 완료로 보지 않는다.
-- 어떤 근거를 신뢰할지 판단할 수 없으면 escalated로 다룬다.
-
-## Continuity 결과
-
-Continuity 결과는 다음 중 하나여야 한다.
-
-|결과|의미|
-|---|---|
-|목표로 복귀|Mission 목표나 scope를 다시 확인해야 한다.|
-|계약으로 복귀|Mission spec, Mission design, Task contract를 갱신해야 한다.|
-|실행으로 복귀|Task 작업을 이어 가거나 재작업해야 한다.|
-|검증으로 복귀|Evidence가 부족해 추가 확인이 필요하다.|
-|결정으로 복귀|Evidence는 있으나 User 수용 판단이 필요하다.|
-|회고로 복귀|수용 판단은 있었고 후속 항목 정리가 필요하다.|
-|blocked|외부 입력이나 조건 없이는 진행할 수 없다.|
-|escalated|agent가 판단할 수 없어 User 또는 상위 Mission 판단이 필요하다.|
-
-Continuity는 별도 완료 선언이 아니다. 이어 갈 위치와 근거를 정하는 절차다.
+- 근거가 부족한 상태에서는 User 또는 상위 Mission 판단으로 올린다.
+- 복원 과정에서 확인한 상태는 Evidence verdict를 자동으로 만들지 않는다.
