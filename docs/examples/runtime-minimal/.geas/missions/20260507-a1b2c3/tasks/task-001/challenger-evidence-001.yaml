@@ -1,5 +1,5 @@
 target:
-  - "task-contract.yaml"
+  - "task-contract-001.yaml"
   - "implementation-evidence-001.yaml"
   - "verification-evidence-001.yaml"
   - "review-evidence-001.yaml"

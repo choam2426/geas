@@ -1,6 +1,6 @@
 target:
-  - "mission-spec.yaml"
-  - "mission-design.yaml"
+  - "mission-spec-001.yaml"
+  - "mission-design-001.yaml"
   - "tasks/task-001/task-evidence.yaml"
 challenge_focus:
   - "Browser storage failure"

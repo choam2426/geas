@@ -94,26 +94,30 @@ flowchart LR
 flowchart TD
   R["User request"]
   O["Orchestrator<br/>Mission spec 초안"]
+  U1["User<br/>Mission spec 합의"]
   D["Work Designer<br/>Mission design"]
+  U2["User<br/>Mission design 합의"]
   T["Work Designer<br/>초기 Task contract"]
   H["Challenger<br/>기준선 압박 optional"]
-  U["User<br/>Mission 기준선 수용 판단"]
+  U3["User<br/>초기 Task contract 합의"]
   B["building"]
 
-  R --> O --> D --> T
-  T --> H --> U
-  T --> U
-  U -->|"수용"| B
-  U -->|"수정 요청"| O
+  R --> O --> U1 --> D --> U2 --> T
+  T --> H --> U3
+  T --> U3
+  U1 -->|"수정 요청"| O
+  U2 -->|"수정 요청"| D
+  U3 -->|"수정 요청"| T
+  U3 -->|"합의"| B
 ```
 
-이 흐름에서 Orchestrator는 User 요청을 Mission spec 초안으로 구체화한다. Work Designer는 Mission spec을 Mission design과 초기 Task contract로 이어지게 만든다.
+이 흐름에서 Orchestrator는 User 요청을 Mission spec 초안으로 구체화한다. Work Designer는 합의된 Mission spec을 Mission design과 초기 Task contract로 이어지게 만든다.
 
 Challenger가 참여하면 Mission 기준선, 핵심 개념, scope, Task 분해와 의존 관계의 숨은 가정과 장기 위험을 압박하고 Challenger Evidence를 남긴다.
 
-User는 Mission spec, Mission design, 초기 Task contract를 검토하고 수용 판단한다. 수정이 필요하면 specifying 안에서 기준선을 다시 다듬고, 수용되면 building으로 넘어간다. 이 판단은 runtime에서 `user-judgment-baseline.yaml`로 남긴다.
+User는 Mission spec, Mission design, 초기 Task contract를 순서대로 검토하고 합의한다. 수정이 필요하면 specifying 안에서 기준선을 다시 다듬고, 합의되면 building으로 넘어간다.
 
-남겨야 할 것은 Mission spec, Mission design, 초기 Task contract다. Challenger가 기준선을 압박했다면 Challenger Evidence도 남긴다.
+남겨야 할 것은 versioned Mission spec, Mission design, 초기 Task contract다. 이 기준선 합의는 별도 User Judgment artifact로 남기지 않는다. Challenger가 기준선을 압박했다면 Challenger Evidence도 남긴다.
 
 ### building
 
@@ -188,7 +192,7 @@ Orchestrator는 수용된 Task 결과와 Task Evidence를 Mission spec, Mission 
 
 추가 Task나 Task contract 갱신이 필요하면 building으로 돌아간다. Mission spec이나 Mission design 수정이 필요하면 specifying으로 돌아간다.
 
-Task 추가, 삭제, 기본 진행 순서, dependency, Mission coverage가 바뀌면 Mission design을 갱신한다. Task의 실행 범위, 산출물, 수용 기준, verification checks, review focus가 바뀌면 Task contract를 갱신한다.
+Task 추가, 삭제, 기본 진행 순서, dependency, Mission coverage가 바뀌면 새 Mission design을 남긴다. Task의 실행 범위, 산출물, 수용 기준, verification checks, review focus가 바뀌면 새 Task contract를 남긴다.
 
 Mission 판단이 가능하면 Orchestrator는 Task Evidence, 필요한 role별 Evidence, Mission 기준선, gap, debt, follow-up 후보를 대조해 Mission 수용 판단 입력, agent 측 권고, 가능한 선택지를 구성한다.
 

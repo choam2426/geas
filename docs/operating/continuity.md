@@ -20,8 +20,8 @@ Continuity는 작업을 재개하기 전에 진행 상태 기록, 계약, Eviden
 
 1. Run State에서 현재 Mission id, 현재 단계, 현재 Task id를 확인한다.
 2. 진행 중인 Task가 있으면 Task State의 phase를 확인한다.
-3. 수용된 현재 Mission spec과 Mission design을 확인한다.
-4. 진행 중인 Task가 있으면 수용된 현재 Task contract를 확인한다.
+3. 최신 versioned Mission spec과 Mission design을 확인한다.
+4. 진행 중인 Task가 있으면 최신 versioned Task contract를 확인한다.
 5. 산출물과 작업 트리 변경이 Task contract와 연결되는지 확인한다.
 6. Mission Evidence, Task Evidence, role별 Evidence를 확인한다.
 7. Evidence가 드러내는 검증 근거, 미검증 범위, 남은 위험을 확인한다.
@@ -29,7 +29,7 @@ Continuity는 작업을 재개하기 전에 진행 상태 기록, 계약, Eviden
 9. 회고나 후속 항목이 복귀 지점에 영향을 주는지 확인한다.
 10. 복귀 지점을 정한다.
 
-현재 기준선은 current Mission Spec, Mission Design, Task Contract다. 기준선, Evidence, User Judgment, 종료 요약이 서로 다른 위치를 가리키면 drift로 다룬다.
+현재 기준선은 각 scope에서 가장 큰 번호의 versioned Mission Spec, Mission Design, Task Contract다. 기준선, Evidence, User Judgment, 종료 요약이 서로 다른 위치를 가리키면 drift로 다룬다.
 
 ## drift
 

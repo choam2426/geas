@@ -8,10 +8,10 @@ The example uses a realistic small product change:
 
 The app source files referenced in the artifacts are illustrative outputs of the example Mission. They are not included in this directory; this directory only shows the Geas runtime artifacts that would be left behind.
 
-The example follows one Mission and one Task from accepted baseline to accepted result summary:
+The example follows one Mission and one Task from versioned baseline artifacts to accepted result summary:
 
-- Mission baseline: `mission-spec.yaml`, `mission-design.yaml`, `user-judgment-baseline.yaml`
-- Task contract: `tasks/task-001/task-contract.yaml`
+- Mission baseline: `mission-spec-001.yaml`, `mission-design-001.yaml`
+- Task contract: `tasks/task-001/task-contract-001.yaml`
 - Task state: `tasks/task-001/task-state.yaml`
 - Task work and evidence: implementation, verification, review, challenger, task summary, result judgment
 - Mission closure: mission challenger, mission result judgment, mission evidence

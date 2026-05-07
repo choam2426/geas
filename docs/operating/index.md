@@ -82,7 +82,9 @@ Evidence는 완료 선언이 아니다. Evidence는 User가 검토하고 수용 
 
 수용 판단은 User가 Evidence를 검토한 뒤 내리는 결정이다.
 
-수용 판단은 Mission과 Task의 기준선을 받아들이는 판단에서 시작한다. User는 Mission spec이 자신의 목표와 맞는지, 초기 Task 목록과 초기 Task contract가 Mission을 판단 가능하게 나누고 있는지 확인하고 받아들이거나 수정한다.
+수용 판단은 Mission과 Task의 기준선을 받아들이는 판단에서 시작한다. User는 Mission spec이 자신의 목표와 맞는지, Mission design이 판단 가능한 Task 구조인지, 초기 Task contract가 실행 기준으로 충분한지 확인하고 받아들이거나 수정한다.
+
+기준선 합의는 별도 User Judgment artifact로 남기지 않는다. runtime에 남은 versioned Mission Spec, Mission Design, Task Contract는 User와 합의된 기준선이다.
 
 작업 결과에 대한 수용 판단은 Evidence를 바탕으로 한다. Task 수용 판단은 해당 Task를 받아들일지, 재작업할지, 보류할지, 중단할지 결정한다. Mission 수용 판단은 수용된 Task들을 전체 목표와 다시 대조한 뒤 Mission을 완료로 받아들일지 판단한다.
 
@@ -106,7 +108,7 @@ specifying은 User의 요청을 Mission 기준선과 Task 계약으로 구체화
 
 Orchestrator는 User 요청을 Mission 기준선으로 구체화하고, Mission spec, Mission design, 초기 Task contract가 이어지도록 조율한다.
 
-이 단계에서는 Mission spec, Mission design, 초기 Task contract 순서로 기준선을 만든다.
+이 단계에서는 Mission spec, Mission design, 초기 Task contract 순서로 기준선을 합의하고 남긴다.
 
 - Mission spec은 User가 agent로 수행하려는 작업을 기획하는 기준선이다. 무엇을 이루려는지, 왜 필요한지, 어디까지 포함하거나 제외하는지, 어떤 결과를 충분하다고 볼지 고정한다.
 - Mission design은 Mission spec을 실행 가능한 작업 계획으로 바꾸는 기준선이다. 수용 판단 비용을 낮추기 위한 접근 전략, 핵심 개념, scope, Task 분해와 의존 관계를 설명한다.
@@ -114,7 +116,7 @@ Orchestrator는 User 요청을 Mission 기준선으로 구체화하고, Mission 
 
 Mission design의 Task 분해는 Mission 수준 planned task graph의 정본이고, Task contract는 각 Task node의 실행 계약이다.
 
-User는 Mission spec이 자신의 목표와 맞는지, 초기 Task 목록과 초기 Task contract가 Mission을 판단 가능하게 나누고 있는지 확인하고 받아들이거나 수정한다. 이 판단은 runtime에서 `user-judgment-baseline.yaml`로 남긴다.
+User는 Mission spec이 자신의 목표와 맞는지, Mission design이 판단 가능한 Task 구조인지, 초기 Task contract가 실행 기준으로 충분한지 확인하고 받아들이거나 수정한다. 합의된 기준선은 runtime에서 versioned Mission Spec, Mission Design, Task Contract로 남긴다.
 
 ### building
 
@@ -152,13 +154,13 @@ User는 산출물과 Evidence를 보고 Task를 받아들일지, 재작업할지
 
 runtime에서 재작업, Task contract 갱신, 추가 Task, Mission 기준선 재검토, 폐기는 `User Judgment.decision: revise`와 `requested_actions`로 표현한다.
 
-building 안에서 다음 Task contract를 구체화하거나 개별 Task contract를 갱신할 수 있다. 갱신된 Task contract는 User가 다시 받아들이거나 수정한다.
+building 안에서 다음 Task contract를 구체화하거나 개별 Task contract를 갱신할 수 있다. 갱신된 Task contract는 새 `task-contract-NNN.yaml`로 남기고, User가 다시 받아들이거나 수정한다.
 
 Task 추가, 삭제, 기본 진행 순서, dependency, Mission coverage가 바뀌면 Mission design을 갱신한다. Task의 실행 범위, 산출물, 수용 기준, verification checks, review focus가 바뀌면 Task contract를 갱신한다.
 
 Mission spec이나 Mission design이 수정되어야 하면 specifying으로 돌아간다.
 
-specifying으로 돌아갈 때 기존 Evidence와 판단 맥락은 새 기준선을 정하는 근거가 된다. 계약은 갱신되지만 근거는 보존된다.
+specifying으로 돌아갈 때 기존 Evidence와 판단 맥락은 새 versioned 기준선을 정하는 근거가 된다. 계약은 갱신되지만 근거는 보존된다.
 
 ### consolidating
 
@@ -166,7 +168,7 @@ consolidating은 수용된 Task들을 Mission 기준선과 대조하고, Mission
 
 Orchestrator는 Task 결과와 Evidence를 Mission spec과 Mission design에 대조한다. gap, debt, follow-up 후보를 정리하고, 추가 Task나 기준선 갱신이 필요한지 확인한다.
 
-추가 Task나 Task contract 갱신이 필요하면 building으로 돌아간다. Mission spec이나 Mission design이 수정되어야 하면 specifying으로 돌아간다. 기존 Evidence와 판단 맥락은 돌아간 단계의 기준선을 갱신하는 근거가 된다.
+추가 Task나 Task contract 갱신이 필요하면 building으로 돌아간다. Mission spec이나 Mission design이 수정되어야 하면 specifying으로 돌아간다. 기존 Evidence와 판단 맥락은 돌아간 단계의 새 versioned 기준선을 정하는 근거가 된다.
 
 모든 Task가 수용된 상태는 Mission 수용 판단을 위한 근거 중 하나다. Mission 수준에서는 전체 목표와 Task 결과 사이의 gap, Evidence에 드러난 미검증 범위, follow-up 후보, 현재 Mission에서 더 진행하지 않을 debt가 남을 수 있다. 반복 가능한 교훈은 Mission 수용 판단 이후 회고에서 memory 후보로 정리한다.
 
