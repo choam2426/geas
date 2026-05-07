@@ -10,7 +10,7 @@ Continuity의 목표는 대화 맥락, 세션, 컨텍스트 압축 이후에도 
 
 Continuity는 작업을 재개하기 전에 진행 상태 기록, 계약, Evidence, User 수용 판단을 대조해 복귀 지점을 정하는 절차다.
 
-진행 상태 기록은 현재 Mission 흐름, 현재 Task, 마지막으로 확인한 계약, 연결된 Evidence, 마지막 User 수용 판단, 대기 중인 판단을 빠르게 찾기 위한 작업 위치 기록이다.
+진행 상태 기록은 현재 Mission id, 현재 단계, 현재 Task id를 빠르게 찾기 위한 작업 위치 기록이다.
 
 복귀 지점은 계약, Evidence, User 수용 판단을 기준으로 정한다.
 
@@ -18,15 +18,17 @@ Continuity는 작업을 재개하기 전에 진행 상태 기록, 계약, Eviden
 
 작업을 이어 갈 때는 다음 순서로 확인한다.
 
-1. 진행 상태 기록에서 현재 흐름, 현재 Task, 마지막으로 확인한 계약, 연결된 Evidence, 마지막 User 수용 판단, 대기 중인 판단을 확인한다.
-2. Mission spec과 Mission design을 확인한다.
-3. 진행 중이거나 마지막으로 다룬 Task contract를 확인한다.
+1. 진행 상태 기록에서 현재 Mission id, 현재 단계, 현재 Task id를 확인한다.
+2. 수용된 현재 Mission spec과 Mission design을 확인한다.
+3. 진행 중인 Task가 있으면 수용된 현재 Task contract를 확인한다.
 4. 산출물과 작업 트리 변경이 Task contract와 연결되는지 확인한다.
 5. Mission Evidence, Task Evidence, role별 Evidence를 확인한다.
 6. Evidence가 드러내는 검증 근거, 미검증 범위, 남은 위험을 확인한다.
-7. 마지막 User 수용 판단을 확인한다.
+7. 관련 User 수용 판단을 확인한다.
 8. 회고나 후속 항목이 복귀 지점에 영향을 주는지 확인한다.
 9. 복귀 지점을 정한다.
+
+현재 기준선은 `accepted` 또는 `accepted_with_limits` User Judgment가 있는 가장 큰 번호의 기준선이다. 기준선, Evidence, User Judgment, 종료 요약이 서로 다른 위치를 가리키면 drift로 다룬다.
 
 ## drift
 

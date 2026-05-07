@@ -109,8 +109,8 @@ Orchestrator는 User 요청을 Mission 기준선으로 구체화하고, Mission 
 이 단계에서는 Mission spec, Mission design, 초기 Task contract 순서로 기준선을 만든다.
 
 - Mission spec은 User가 agent로 수행하려는 작업을 기획하는 기준선이다. 무엇을 이루려는지, 왜 필요한지, 어디까지 포함하거나 제외하는지, 어떤 결과를 충분하다고 볼지 고정한다.
-- Mission design은 Mission spec을 실행 가능한 작업 계획으로 바꾸는 기준선이다. 수용 판단 비용을 낮추기 위한 Task 분해의 구조와 이유, 진행 순서, 의존 관계, Mission 전체의 검증 전략을 설명한다.
-- Task contract는 개별 Task의 실행 계약이다. 해당 Task가 맡는 Mission의 일부, 수행 범위, 산출물, 수용 기준, 남겨야 할 구체적 Evidence를 고정한다.
+- Mission design은 Mission spec을 실행 가능한 작업 계획으로 바꾸는 기준선이다. 수용 판단 비용을 낮추기 위한 접근 전략, 핵심 개념, scope, Task 분해와 의존 관계를 설명한다.
+- Task contract는 개별 Task의 실행 계약이다. 해당 Task가 맡는 Mission의 일부, 수행 범위, 산출물, 수용 기준, verification checks, review focus를 고정한다.
 
 User는 Mission spec이 자신의 목표와 맞는지, 초기 Task 목록과 초기 Task contract가 Mission을 판단 가능하게 나누고 있는지 확인하고 받아들이거나 수정한다.
 
@@ -134,14 +134,14 @@ Task contract
   -> Task Evidence(종료 시)
 ```
 
-execution plan은 접근 순서, 세부 작업 단계, 예상 위험, 자체 점검 포인트를 정리한다. Task의 범위, 산출물, 수용 기준, Evidence 요구가 바뀌면 execution plan이 아니라 Task contract를 갱신한다.
+execution plan은 접근 순서, 세부 작업 단계, 예상 위험, 자체 점검 포인트를 정리한다. Task의 범위, 산출물, 수용 기준, Evidence 초점이 바뀌면 execution plan이 아니라 Task contract를 갱신한다.
 
 building에서는 역할별 책임이 구분된다.
 
 - Implementer는 execution plan을 세우고 Task를 수행하며 Implementation Evidence를 남긴다.
 - Reviewer는 Task 결과를 점검·평가하고 Review Evidence를 남긴다.
 - Challenger는 devil's advocate 관점에서 기준선이나 결과를 압박해 보고 Challenger Evidence를 남긴다.
-- Verifier는 Task의 수용 기준과 검증 방법을 확인하고 Verification Evidence를 남긴다.
+- Verifier는 Task의 acceptance criteria와 verification checks를 확인하고 Verification Evidence를 남긴다.
 - Orchestrator는 산출물, 각 role이 남긴 Evidence, Task contract를 대조해 User가 수용 판단할 수 있는 입력을 구성한다.
 
 User는 산출물과 Evidence를 보고 Task를 받아들일지, 재작업할지, 보류할지, 중단할지 판단한다. agent 측 verdict나 권고는 이 결정을 돕는 근거 자료다. Task가 종료되면 Orchestrator는 Task Evidence를 종료 요약으로 남긴다.
