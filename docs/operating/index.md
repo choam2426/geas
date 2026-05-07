@@ -146,7 +146,7 @@ building에서는 역할별 책임이 구분된다.
 
 - Implementer는 execution plan을 세우고 Task를 수행하며 Implementation Evidence를 남긴다.
 - Reviewer는 Task 결과를 점검·평가하고 Review Evidence를 남긴다.
-- Challenger는 devil's advocate 관점에서 기준선이나 결과를 압박해 보고 Challenger Evidence를 남긴다.
+- Challenger는 devil's advocate 관점에서 Task 결과와 Evidence를 압박해 보고 Challenger Evidence를 남긴다.
 - Verifier는 Task의 acceptance criteria와 verification checks를 확인하고 Verification Evidence를 남긴다.
 - Orchestrator는 산출물, 각 role이 남긴 Evidence, Task contract를 대조해 User가 수용 판단할 수 있는 입력을 구성한다.
 

@@ -129,13 +129,14 @@ Work Designer의 책임 경계는 다음과 같다.
 
 ## Challenger
 
-Challenger는 devil's advocate 관점과 장기 운영 관점에서 Mission과 Task의 기준선, 산출물, Evidence를 흔들어 본다.
+Challenger는 devil's advocate 관점과 장기 운영 관점에서 Mission 기준선 초안, Task 산출물, Evidence를 흔들어 본다.
 
-Challenger의 목적은 Mission spec, Mission design, Task contract, 산출물, Evidence가 과도하게 낙관적이거나 모호하거나 위험을 숨기고 있는지 드러내어, User가 더 낮은 비용으로 수용 판단할 수 있게 만드는 것이다.
+Challenger의 목적은 Mission 기준선 초안, Task 산출물, Evidence가 과도하게 낙관적이거나 모호하거나 위험을 숨기고 있는지 드러내어, User가 더 낮은 비용으로 수용 판단할 수 있게 만드는 것이다.
 
 책임은 다음과 같다.
 
-- Mission spec, Mission design, Task contract의 모호한 가정과 빠진 질문을 finding과 근거로 드러낸다.
+- specifying에서는 Mission spec, Mission design, 초기 Task contract 초안의 모호한 가정과 빠진 질문을 드러낸다.
+- specifying에서 드러난 기준선 위험은 Orchestrator와 User의 토론을 거쳐 합의된 기준선에 반영한다.
 - 과도한 낙관, 암묵적 확장, scope 경계 위반을 finding과 근거로 드러낸다.
 - acceptance criteria, verification checks, review focus의 공백을 finding과 근거로 드러낸다.
 - 단기 산출 뒤에 숨은 장기 운영 비용, 유지보수 위험, 되돌리기 비용, 기술 부채를 finding과 근거로 드러낸다.
@@ -143,7 +144,7 @@ Challenger의 목적은 Mission spec, Mission design, Task contract, 산출물, 
 - 다음 Mission이나 Task의 계약, 실행 방식, verification checks, 기록 방식에 반영할 회고 후보를 드러낸다.
 - 보류, 중단, User 판단으로 올려야 할 위험을 명시한다.
 - 필요한 경우 더 깊은 점검·평가나 verification이 필요하다는 신호를 남긴다.
-- 필요한 경우 devil's advocate 관점과 장기 운영 관점에서 기준선, 산출물, Evidence를 압박하고 Challenger Evidence를 남긴다.
+- building에서는 Task Contract, 산출물, Evidence를 압박하고 Challenger Evidence를 남긴다.
 
 Challenger의 책임 경계는 다음과 같다.
 

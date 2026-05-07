@@ -13,8 +13,8 @@ The example follows one Mission and one Task from versioned baseline artifacts t
 - Mission baseline: `mission-spec-001.yaml`, `mission-design-001.yaml`
 - Task contract: `tasks/task-001/task-contract-001.yaml`
 - Task state: `tasks/task-001/task-state.yaml`
-- Task work and evidence: implementation, verification, review, challenger, task summary, result judgment
-- Mission closure: mission challenger, mission result judgment, mission evidence
+- Task work and evidence: implementation, verification, review, task challenger, Task Evidence, result judgment
+- Mission closure: mission result judgment, mission evidence
 - Continuity: `.geas/run-state.yaml`
 - Memory: `.geas/memory/common.yaml`, `.geas/memory/roles/reviewer.yaml`
 

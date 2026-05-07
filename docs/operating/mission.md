@@ -98,7 +98,7 @@ flowchart TD
   D["Work Designer<br/>Mission design"]
   U2["User<br/>Mission design 합의"]
   T["Work Designer<br/>초기 Task contract"]
-  H["Challenger<br/>기준선 압박 optional"]
+  H["Challenger<br/>기준선 초안 압박 optional"]
   U3["User<br/>초기 Task contract 합의"]
   B["building"]
 
@@ -113,11 +113,11 @@ flowchart TD
 
 이 흐름에서 Orchestrator는 User 요청을 Mission spec 초안으로 구체화한다. Work Designer는 합의된 Mission spec을 Mission design과 초기 Task contract로 이어지게 만든다.
 
-Challenger가 참여하면 Mission 기준선, 핵심 개념, scope, Task 분해와 의존 관계의 숨은 가정과 장기 위험을 압박하고 Challenger Evidence를 남긴다.
+Challenger가 참여하면 Mission spec, Mission design, 초기 Task contract 초안의 숨은 가정, scope 경계, Task 분해와 의존 관계의 장기 위험을 드러낸다. Orchestrator는 드러난 내용을 User와 토론하고 합의된 기준선에 반영한다.
 
 User는 Mission spec, Mission design, 초기 Task contract를 순서대로 검토하고 합의한다. 수정이 필요하면 specifying 안에서 기준선을 다시 다듬고, 합의되면 building으로 넘어간다.
 
-남겨야 할 것은 versioned Mission spec, Mission design, 초기 Task contract다. 이 기준선 합의는 별도 User Judgment artifact로 남기지 않는다. Challenger가 기준선을 압박했다면 Challenger Evidence도 남긴다.
+남겨야 할 것은 versioned Mission spec, Mission design, 초기 Task contract다. 이 기준선 합의는 별도 User Judgment artifact로 남기지 않는다.
 
 ### building
 
