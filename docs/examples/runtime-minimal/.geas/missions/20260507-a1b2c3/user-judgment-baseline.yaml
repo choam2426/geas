@@ -1,0 +1,7 @@
+decision: "accepted_with_limits"
+accepted_unverified_scope:
+  - "Cross-device sync is intentionally outside the Mission."
+accepted_remaining_risks:
+  - "Todos can still be lost if the browser clears localStorage."
+requested_actions:
+  - "Proceed with one Task that adds filters and localStorage persistence."

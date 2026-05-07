@@ -28,7 +28,7 @@ Continuity는 작업을 재개하기 전에 진행 상태 기록, 계약, Eviden
 8. 회고나 후속 항목이 복귀 지점에 영향을 주는지 확인한다.
 9. 복귀 지점을 정한다.
 
-현재 기준선은 `accepted` 또는 `accepted_with_limits` User Judgment가 있는 가장 큰 번호의 기준선이다. 기준선, Evidence, User Judgment, 종료 요약이 서로 다른 위치를 가리키면 drift로 다룬다.
+현재 기준선은 current Mission Spec, Mission Design, Task Contract다. 기준선, Evidence, User Judgment, 종료 요약이 서로 다른 위치를 가리키면 drift로 다룬다.
 
 ## drift
 

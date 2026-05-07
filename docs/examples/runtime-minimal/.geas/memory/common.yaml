@@ -1,0 +1,5 @@
+items:
+  - guideline: "Small product examples should name observable user behavior instead of only naming files changed."
+    applies_when: []
+    source_refs:
+      - "missions/20260507-a1b2c3/mission-evidence.yaml"

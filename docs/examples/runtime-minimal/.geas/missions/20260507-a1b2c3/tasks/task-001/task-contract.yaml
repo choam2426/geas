@@ -1,0 +1,38 @@
+description: "Implement Todo filtering and localStorage persistence in the existing app."
+mission_relation: "This Task delivers the Mission's user-facing filter behavior and browser-local persistence."
+depends_on:
+  - "mission baseline 001 accepted"
+scope_in:
+  - "src/App.tsx"
+  - "src/todoStorage.ts"
+  - "src/App.test.tsx"
+  - "README.md"
+scope_out:
+  - "Backend API"
+  - "User accounts"
+  - "URL query parameter filter state"
+  - "Due dates, tags, and priorities"
+deliverables:
+  - "Filter controls for All, Active, and Completed"
+  - "localStorage load and save behavior for Todo items"
+  - "Tests or documented manual checks for filter and persistence behavior"
+acceptance_criteria:
+  - "All filter shows every Todo item."
+  - "Active filter shows only incomplete Todo items."
+  - "Completed filter shows only completed Todo items."
+  - "Added Todo items and completion state survive browser reload."
+  - "Delete and toggle behavior still works after reload."
+  - "Empty filtered states show a clear message."
+verification_checks:
+  - "Run the existing automated test suite."
+  - "Add and complete Todo items, reload the browser, and confirm state remains."
+  - "Switch each filter and confirm the visible list matches the Todo state."
+  - "Delete a persisted Todo item and confirm it does not return after reload."
+review_focus:
+  - "Whether persisted data parsing is defensive enough"
+  - "Whether filter controls are clear and accessible"
+  - "Whether the feature stays client-side without hidden backend assumptions"
+  - "Whether empty states reduce user confusion"
+risks:
+  - "localStorage data can be malformed or unavailable."
+  - "Filtering can make existing Todos look lost if empty states are unclear."

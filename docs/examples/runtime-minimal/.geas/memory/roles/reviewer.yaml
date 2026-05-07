@@ -1,0 +1,6 @@
+items:
+  - guideline: "For frontend state changes, review persistence behavior separately from visual filtering behavior."
+    applies_when:
+      - "Reviewing a UI change that stores client-side state"
+    source_refs:
+      - "missions/20260507-a1b2c3/tasks/task-001/review-evidence-001.yaml"

@@ -1,0 +1,37 @@
+approach_strategy: "Keep Todo data in one client-side state model, derive the visible list from the selected filter, and persist Todo items to localStorage after each state change."
+alternatives_considered:
+  - approach: "Add a backend API and database"
+    benefit: "Todos could sync across devices."
+    cost: "Adds authentication, API, hosting, and data migration concerns."
+    decision_reason: "The Mission asks for a small local Todo app improvement, so browser storage is enough."
+  - approach: "Represent each filter as a separate route"
+    benefit: "Filter state could be shareable by URL."
+    cost: "Adds routing complexity to a small single-page app."
+    decision_reason: "The current scope only needs in-page filtering."
+key_concepts:
+  - "Todo item: text, completion state, and stable id"
+  - "Filter: selected view over the same Todo state"
+  - "Persistence: localStorage snapshot restored when the app starts"
+scope_in:
+  - "Todo state model"
+  - "Filter controls"
+  - "localStorage load and save behavior"
+  - "Tests or manual checks for persistence and filters"
+scope_out:
+  - "Cross-device sync"
+  - "URL-based filter sharing"
+  - "Undo history"
+task_breakdown:
+  - task_id: "task-001"
+    description: "Implement Todo filtering and localStorage persistence in the existing app."
+    mission_coverage:
+      - "All, Active, Completed filtering"
+      - "Reload persistence"
+      - "Existing add, toggle, delete behavior"
+    depends_on: []
+    reason: "The feature is small enough to verify as one user-facing Task."
+assumptions:
+  - "The existing Todo app has a single state owner where filtering and persistence can be added cleanly."
+risks:
+  - "Persisting malformed localStorage data can break app startup."
+  - "Filter UI can hide existing items and make deletion or completion behavior look broken if empty states are unclear."
