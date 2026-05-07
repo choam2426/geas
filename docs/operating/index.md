@@ -112,11 +112,15 @@ Orchestrator는 User 요청을 Mission 기준선으로 구체화하고, Mission 
 - Mission design은 Mission spec을 실행 가능한 작업 계획으로 바꾸는 기준선이다. 수용 판단 비용을 낮추기 위한 접근 전략, 핵심 개념, scope, Task 분해와 의존 관계를 설명한다.
 - Task contract는 개별 Task의 실행 계약이다. 해당 Task가 맡는 Mission의 일부, 수행 범위, 산출물, 수용 기준, verification checks, review focus를 고정한다.
 
-User는 Mission spec이 자신의 목표와 맞는지, 초기 Task 목록과 초기 Task contract가 Mission을 판단 가능하게 나누고 있는지 확인하고 받아들이거나 수정한다.
+Mission design의 Task 분해는 Mission 수준 planned task graph의 정본이고, Task contract는 각 Task node의 실행 계약이다.
+
+User는 Mission spec이 자신의 목표와 맞는지, 초기 Task 목록과 초기 Task contract가 Mission을 판단 가능하게 나누고 있는지 확인하고 받아들이거나 수정한다. 이 판단은 runtime에서 `user-judgment-baseline.yaml`로 남긴다.
 
 ### building
 
 building은 승인된 Task contract를 실행 기준으로 삼아 Task를 수행하는 단계다.
+
+Run State는 현재 Task를 찾고, Task State는 Task 내부의 현재 phase를 찾는다.
 
 이 단계에서 agent는 Task contract를 바탕으로 더 세밀한 execution plan을 세운 뒤 작업하고, Implementation Evidence, Verification Evidence, Review Evidence를 남긴다. 필요한 경우 다음 Task contract를 구체화하거나 갱신한다.
 
@@ -146,7 +150,11 @@ building에서는 역할별 책임이 구분된다.
 
 User는 산출물과 Evidence를 보고 Task를 받아들일지, 재작업할지, 보류할지, 중단할지 판단한다. agent 측 verdict나 권고는 이 결정을 돕는 근거 자료다. Task가 종료되면 Orchestrator는 Task Evidence를 종료 요약으로 남긴다.
 
+runtime에서 재작업, Task contract 갱신, 추가 Task, Mission 기준선 재검토, 폐기는 `User Judgment.decision: revise`와 `requested_actions`로 표현한다.
+
 building 안에서 다음 Task contract를 구체화하거나 개별 Task contract를 갱신할 수 있다. 갱신된 Task contract는 User가 다시 받아들이거나 수정한다.
+
+Task 추가, 삭제, 기본 진행 순서, dependency, Mission coverage가 바뀌면 Mission design을 갱신한다. Task의 실행 범위, 산출물, 수용 기준, verification checks, review focus가 바뀌면 Task contract를 갱신한다.
 
 Mission spec이나 Mission design이 수정되어야 하면 specifying으로 돌아간다.
 

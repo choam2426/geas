@@ -38,4 +38,4 @@ unverified_scope:
   - "Mobile browser behavior was not checked."
 recheck_needed:
   - "Recheck storage fallback if Todo schema changes."
-verdict: "Within the checked environment, the Task meets its acceptance criteria."
+verdict: "changes_requested"

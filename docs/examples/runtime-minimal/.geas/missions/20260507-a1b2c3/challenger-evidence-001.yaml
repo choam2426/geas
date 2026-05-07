@@ -20,5 +20,5 @@ user_decisions_needed:
   - "Accept that filter selection is in-page state, not a shareable URL."
 deeper_checks_needed:
   - "Check behavior when localStorage contains invalid JSON before using the pattern again."
-verdict: "The Mission can be accepted with explicit limits around browser-local persistence."
+verdict: "escalated"
 overall_recommendation: "Accept with limits and leave server sync or URL filter state as follow-up candidates."

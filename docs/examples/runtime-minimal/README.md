@@ -12,6 +12,7 @@ The example follows one Mission and one Task from accepted baseline to accepted 
 
 - Mission baseline: `mission-spec.yaml`, `mission-design.yaml`, `user-judgment-baseline.yaml`
 - Task contract: `tasks/task-001/task-contract.yaml`
+- Task state: `tasks/task-001/task-state.yaml`
 - Task work and evidence: implementation, verification, review, challenger, task summary, result judgment
 - Mission closure: mission challenger, mission result judgment, mission evidence
 - Continuity: `.geas/run-state.yaml`

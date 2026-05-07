@@ -33,5 +33,5 @@ findings:
     recommendation: "Accept for the small local app, or add a warning if persistence reliability becomes important."
 remaining_risks:
   - "Users may expect saved Todos to sync across devices even though the app is browser-local."
-verdict: "The implementation is acceptable for the stated local Todo app scope."
+verdict: "escalated"
 overall_recommendation: "Accept with limits and keep sync or filter URL state as follow-up options."

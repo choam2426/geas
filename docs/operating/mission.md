@@ -65,6 +65,8 @@ Mission design에는 다음 내용이 들어간다.
 |주요 가정|작업 계획이 의존하는 전제|
 |위험|선택한 Mission 진행 계획과 Task 구조에서 고려해야 하는 위험|
 
+Mission design의 Task 분해는 Mission 수준 planned task graph의 정본이다. Task contract는 각 Task node를 실행 가능한 계약으로 구체화한다.
+
 ## Mission 흐름
 
 Mission은 다음 흐름을 따른다.
@@ -109,13 +111,15 @@ flowchart TD
 
 Challenger가 참여하면 Mission 기준선, 핵심 개념, scope, Task 분해와 의존 관계의 숨은 가정과 장기 위험을 압박하고 Challenger Evidence를 남긴다.
 
-User는 Mission spec, Mission design, 초기 Task contract를 검토하고 수용 판단한다. 수정이 필요하면 specifying 안에서 기준선을 다시 다듬고, 수용되면 building으로 넘어간다.
+User는 Mission spec, Mission design, 초기 Task contract를 검토하고 수용 판단한다. 수정이 필요하면 specifying 안에서 기준선을 다시 다듬고, 수용되면 building으로 넘어간다. 이 판단은 runtime에서 `user-judgment-baseline.yaml`로 남긴다.
 
 남겨야 할 것은 Mission spec, Mission design, 초기 Task contract다. Challenger가 기준선을 압박했다면 Challenger Evidence도 남긴다.
 
 ### building
 
 목적은 수용된 Task contract에 따라 작업을 수행하고, 각 Task에 대해 User가 수용 판단할 수 있도록 Evidence를 남기는 것이다.
+
+Run State는 현재 Task를 찾고, Task State는 Task 내부의 현재 phase를 찾는다.
 
 주요 흐름은 다음과 같다.
 
@@ -146,6 +150,8 @@ Orchestrator는 수용된 Task contract를 기준으로 role 호출, handoff, ve
 Orchestrator는 산출물, role별 Evidence, Task contract를 대조해 User가 Task를 수용 판단할 수 있는 입력을 구성한다.
 
 User는 Task 결과와 Evidence를 보고 완료 수용, 재작업, Task 계약 갱신, Mission 기준선 재검토 중 필요한 판단을 내린다. Task가 수용 판단으로 종료되면 Orchestrator가 Task Evidence를 남기고, 남은 Task가 있으면 building 안에서 다음 Task로 이어 간다.
+
+runtime에서 재작업, Task 계약 갱신, Mission 기준선 재검토는 `User Judgment.decision: revise`와 `requested_actions`로 표현한다.
 
 남겨야 할 것은 Task 결과, Implementation Evidence, Verification Evidence, Review Evidence다. Task가 종료되면 Task Evidence도 남긴다. Challenger가 참여했다면 Challenger Evidence도 남긴다.
 
@@ -182,9 +188,13 @@ Orchestrator는 수용된 Task 결과와 Task Evidence를 Mission spec, Mission 
 
 추가 Task나 Task contract 갱신이 필요하면 building으로 돌아간다. Mission spec이나 Mission design 수정이 필요하면 specifying으로 돌아간다.
 
+Task 추가, 삭제, 기본 진행 순서, dependency, Mission coverage가 바뀌면 Mission design을 갱신한다. Task의 실행 범위, 산출물, 수용 기준, verification checks, review focus가 바뀌면 Task contract를 갱신한다.
+
 Mission 판단이 가능하면 Orchestrator는 Task Evidence, 필요한 role별 Evidence, Mission 기준선, gap, debt, follow-up 후보를 대조해 Mission 수용 판단 입력, agent 측 권고, 가능한 선택지를 구성한다.
 
 User가 Mission을 수용하면 수용된 gap과 debt, 남기기로 한 follow-up을 확인하고 필요한 memory를 반영한다. 이후 Orchestrator가 Mission Evidence를 final report로 남긴다.
+
+runtime에서 추가 Task 요청과 Mission 재검토는 `User Judgment.decision: revise`와 `requested_actions`로 표현한다.
 
 남겨야 할 것은 Mission 결과 요약, Mission Evidence, agent 측 권고, User의 수용 판단, gap, debt, follow-up, memory 업데이트다.
 

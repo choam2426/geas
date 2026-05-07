@@ -22,5 +22,5 @@ user_decisions_needed:
   - "Accept All as the default filter after reload."
 deeper_checks_needed:
   - "Check disabled localStorage behavior before presenting this as reliable persistence."
-verdict: "No blocker inside the agreed scope, but acceptance should name the storage and filter-state limits."
+verdict: "escalated"
 overall_recommendation: "Accept with limits."

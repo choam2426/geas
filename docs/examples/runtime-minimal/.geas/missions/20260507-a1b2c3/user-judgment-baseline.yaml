@@ -5,3 +5,4 @@ accepted_remaining_risks:
   - "Todos can still be lost if the browser clears localStorage."
 requested_actions:
   - "Proceed with one Task that adds filters and localStorage persistence."
+  - "Use tasks/task-001/task-contract.yaml as the initial Task Contract for building."
