@@ -16,13 +16,14 @@ import {
   type FailureResult,
   type SuccessResult,
 } from '../lib/output';
-import { checkMissionCreate, checkMissionDesignRecord, checkMissionSpecRecord } from '../lib/guards';
+import { checkMissionCreate, checkMissionDesignRecord, checkMissionSpecRecord, checkMissionTransition } from '../lib/guards';
 import { validate } from '../lib/schema';
 import { readPayload } from '../lib/io';
 
 const COMMAND_CREATE = 'mission create';
 const COMMAND_SPEC = 'mission spec record';
 const COMMAND_DESIGN = 'mission design record';
+const COMMAND_TRANSITION = 'mission transition';
 
 export type MissionResult = SuccessResult | FailureResult;
 
@@ -185,6 +186,46 @@ export function runMissionDesignRecord(payload: unknown, cwd: string = process.c
   }
 }
 
+export function runMissionTransition(
+  toStage: 'specifying' | 'building' | 'consolidating',
+  taskId?: string,
+  cwd: string = process.cwd(),
+): MissionResult {
+  const runState = readRunState(cwd);
+  const current = runState
+    ? { mission_id: runState.current_mission_id, stage: runState.current_stage, task_id: runState.current_task_id, phase: '' }
+    : emptyLocation();
+
+  const guard = checkMissionTransition(runState, toStage, taskId, cwd);
+  if (!guard.ok) {
+    return { ok: false, command: COMMAND_TRANSITION, current, writes: [], error: { code: 'guard_failed', guards: guard.guards } };
+  }
+
+  const before = { ...runState! };
+  const next = {
+    current_mission_id: runState!.current_mission_id,
+    current_stage: toStage,
+    current_task_id: toStage === 'building' ? taskId! : '',
+  };
+  writeRunState(next, cwd);
+
+  const stateChanges: SuccessResult['state_changes'] = [];
+  if (before.current_stage !== next.current_stage) {
+    stateChanges.push({ pointer: 'current_stage', from: before.current_stage, to: next.current_stage });
+  }
+  if (before.current_task_id !== next.current_task_id) {
+    stateChanges.push({ pointer: 'current_task_id', from: before.current_task_id, to: next.current_task_id });
+  }
+
+  return {
+    ok: true,
+    command: COMMAND_TRANSITION,
+    current: { mission_id: next.current_mission_id, stage: next.current_stage, task_id: next.current_task_id, phase: '' },
+    writes: [],
+    state_changes: stateChanges,
+  };
+}
+
 export function registerMission(program: Command): void {
   const mission = program.command('mission').description('Mission lifecycle commands');
 
@@ -237,6 +278,17 @@ export function registerMission(program: Command): void {
         return;
       }
       const result = runMissionDesignRecord(read.payload);
+      if (result.ok) success(result);
+      else failure(result);
+    });
+
+  mission
+    .command('transition')
+    .requiredOption('--to <stage>', 'Target stage: specifying, building, or consolidating')
+    .option('--task <task-id>', 'Required when --to=building')
+    .description('Transition mission stage')
+    .action((opts: { to: 'specifying' | 'building' | 'consolidating'; task?: string }) => {
+      const result = runMissionTransition(opts.to, opts.task);
       if (result.ok) success(result);
       else failure(result);
     });

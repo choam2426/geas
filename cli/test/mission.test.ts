@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runInit } from '../src/commands/init';
-import { runMissionCreate, runMissionSpecRecord, runMissionDesignRecord } from '../src/commands/mission';
+import { runMissionCreate, runMissionSpecRecord, runMissionDesignRecord, runMissionTransition } from '../src/commands/mission';
 
 let workdir: string;
 let originalCwd: string;
@@ -166,4 +166,28 @@ test('mission design record rejects dependency cycle', () => {
   const result = runMissionDesignRecord(bad);
   assert.equal(result.ok, false);
   if (!result.ok) assert.ok(result.error.guards?.some((g) => g.code === 'dependency_cycle'));
+});
+
+test('mission transition fails when no task contract exists', () => {
+  runMissionCreate();
+  runMissionSpecRecord(minimalSpec);
+  runMissionDesignRecord(minimalDesign);
+  const result = runMissionTransition('building', 'task-001');
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.ok(result.error.guards?.some((g) => g.code === 'task_contract_missing'));
+});
+
+test('mission transition rejects disallowed pair', () => {
+  runMissionCreate();
+  // Try specifying -> consolidating directly (not in allowed set)
+  const result = runMissionTransition('consolidating');
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.ok(result.error.guards?.some((g) => g.code === 'transition_not_allowed'));
+});
+
+test('mission transition specifying -> specifying not allowed', () => {
+  runMissionCreate();
+  const result = runMissionTransition('specifying');
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.ok(result.error.guards?.some((g) => g.code === 'transition_not_allowed'));
 });

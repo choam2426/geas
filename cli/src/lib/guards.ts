@@ -1,6 +1,6 @@
 import { join as pathJoin } from 'node:path';
 import type { GuardFailure } from './output';
-import { missionDir, readLatestNumbered, type RunState } from './runtime';
+import { missionDir, readLatestNumbered, taskDir, readTaskState, listTaskIds, type RunState } from './runtime';
 
 export type GuardResult = { ok: true } | { ok: false; guards: GuardFailure[] };
 
@@ -100,6 +100,98 @@ export function checkMissionDesignRecord(
       if (dfs(id)) {
         failures.push({ code: 'dependency_cycle' });
         break;
+      }
+    }
+  }
+
+  return failures.length === 0 ? ok() : fail(failures);
+}
+
+const ALLOWED_MISSION_TRANSITIONS = new Set<string>([
+  'specifying->building',
+  'building->building',
+  'building->consolidating',
+  'building->specifying',
+  'consolidating->building',
+  'consolidating->specifying',
+]);
+
+type DesignPayload = { task_breakdown: Array<{ task_id: string; depends_on: string[] }> };
+
+function dependencyAccepted(missionId: string, depTaskId: string, cwd?: string): boolean {
+  const td = taskDir(missionId, depTaskId, cwd);
+  // task-evidence.yaml exists
+  const fs = require('node:fs') as typeof import('node:fs');
+  if (!fs.existsSync(`${td}/task-evidence.yaml`)) return false;
+  const judgment = readLatestNumbered<{ decision: string }>(td, 'user-judgment-result');
+  if (!judgment) return false;
+  return ['accepted', 'accepted_with_limits'].includes(judgment.payload.decision);
+}
+
+export function checkMissionTransition(
+  runState: RunState | null,
+  toStage: 'specifying' | 'building' | 'consolidating',
+  taskId: string | undefined,
+  cwd?: string,
+): GuardResult {
+  if (!runState) return fail([{ code: 'run_state_missing' }]);
+  if (runState.current_mission_id === '') return fail([{ code: 'no_current_mission' }]);
+  const from = runState.current_stage;
+  if (!ALLOWED_MISSION_TRANSITIONS.has(`${from}->${toStage}`)) {
+    return fail([{ code: 'transition_not_allowed', detail: `${from}->${toStage}` }]);
+  }
+
+  const failures: GuardFailure[] = [];
+  const mid = runState.current_mission_id;
+  const md = missionDir(mid, cwd);
+
+  if (toStage === 'building') {
+    if (!taskId) {
+      failures.push({ code: 'task_required' });
+    } else {
+      const spec = readLatestNumbered(md, 'mission-spec');
+      const design = readLatestNumbered<DesignPayload>(md, 'mission-design');
+      if (!spec) failures.push({ code: 'mission_spec_missing' });
+      if (!design) failures.push({ code: 'mission_design_missing' });
+      if (design && !design.payload.task_breakdown.some((t) => t.task_id === taskId)) {
+        failures.push({ code: 'task_unknown', detail: taskId });
+      }
+      const td = taskDir(mid, taskId, cwd);
+      const contract = readLatestNumbered(td, 'task-contract');
+      if (!contract) failures.push({ code: 'task_contract_missing', path: pathJoin(td, 'task-contract-001.yaml') });
+
+      if (design) {
+        const node = design.payload.task_breakdown.find((t) => t.task_id === taskId);
+        for (const dep of node?.depends_on ?? []) {
+          if (!dependencyAccepted(mid, dep, cwd)) {
+            failures.push({ code: 'dependency_not_ready', detail: dep });
+          }
+        }
+      }
+
+      if ((from === 'specifying' || from === 'consolidating') && runState.current_task_id !== '') {
+        failures.push({ code: 'task_in_progress', detail: runState.current_task_id });
+      }
+      if (from === 'building' && runState.current_task_id !== taskId) {
+        const prevState = readTaskState(mid, runState.current_task_id, cwd);
+        if (!prevState || prevState.phase !== 'closed') {
+          failures.push({ code: 'previous_task_not_closed', detail: runState.current_task_id });
+        }
+      }
+    }
+  }
+
+  if (toStage === 'consolidating') {
+    const tasks = listTaskIds(mid, cwd);
+    for (const tid of tasks) {
+      const tdir = taskDir(mid, tid, cwd);
+      const fs = require('node:fs') as typeof import('node:fs');
+      if (!fs.existsSync(`${tdir}/task-evidence.yaml`)) {
+        failures.push({ code: 'task_evidence_missing', detail: tid });
+      }
+      const judgment = readLatestNumbered<{ decision: string }>(tdir, 'user-judgment-result');
+      if (!judgment || !['accepted', 'accepted_with_limits'].includes(judgment.payload.decision)) {
+        failures.push({ code: 'task_judgment_not_accepted', detail: tid });
       }
     }
   }
