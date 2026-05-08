@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
-import { join, basename } from 'node:path';
+import { dirname, join } from 'node:path';
 import * as yaml from 'js-yaml';
 
 export type RunState = {
@@ -59,6 +59,7 @@ export function readYaml<T>(path: string): T | null {
 
 export function writeYamlAtomic(path: string, payload: unknown): void {
   const text = yaml.dump(payload, { schema: yaml.CORE_SCHEMA, lineWidth: -1, noRefs: true });
+  ensureDir(dirname(path));
   const tmp = `${path}.tmp.${randomBytes(4).toString('hex')}`;
   writeFileSync(tmp, text, 'utf8');
   renameSync(tmp, path);
@@ -159,5 +160,3 @@ export function relGeasPath(absolute: string, cwd?: string): string {
   }
   return absolute.replace(/\\/g, '/');
 }
-
-void basename;
