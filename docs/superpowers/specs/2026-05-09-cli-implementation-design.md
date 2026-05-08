@@ -319,7 +319,7 @@ JSON output은 `JSON.stringify(result, null, 2)`로 들여쓰기. diagnostic log
 1. payload read, YAML parse, `validate('mission-design', ...)`
 2. `checkMissionDesignRecord(runState, payload)` — 이전 Mission Spec 존재, task_id 중복 없음, dependency가 존재하는 task 가리킴, dependency 순환 없음
 3. `writeNumberedArtifact(missionDir, 'mission-design', payload)`
-4. payload의 각 `task_breakdown` 항목에 대해 `materializeTaskDir(missionId, taskId)`. 해당 Task의 `task-state.yaml`이 없으면 `phase: 'unstarted'`로 생성
+4. payload의 각 `task_breakdown` 항목에 대해 `materializeTaskDir(missionId, taskId)` — Task 디렉토리만 생성. `task-state.yaml`은 `task contract record`가 생성하므로 여기서는 만들지 않는다.
 5. success output
 
 **`geas mission transition --to <stage> [--task <task-id>]`**
