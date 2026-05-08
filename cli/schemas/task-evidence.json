@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "user_judgment_summary", "criteria_results", "accepted_unverified_scope", "accepted_remaining_risks"],
+  "properties": {
+    "summary": { "type": "string" },
+    "user_judgment_summary": { "type": "string" },
+    "criteria_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion", "result", "evidence_refs", "unverified_scope", "remaining_risks"],
+        "properties": {
+          "criterion": { "type": "string" },
+          "result": {
+            "type": "string",
+            "enum": ["satisfied", "satisfied_with_limits", "not_satisfied"]
+          },
+          "evidence_refs": { "type": "array", "items": { "type": "string" } },
+          "unverified_scope": { "type": "array", "items": { "type": "string" } },
+          "remaining_risks": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "accepted_unverified_scope": { "type": "array", "items": { "type": "string" } },
+    "accepted_remaining_risks": { "type": "array", "items": { "type": "string" } }
+  }
+}

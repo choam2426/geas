@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "user_judgment_summary", "mission_criteria_results", "mission_design_deltas", "accepted_unverified_scope", "accepted_remaining_risks", "gaps", "debts", "follow_ups", "reflection_summary", "memory_updates"],
+  "properties": {
+    "summary": { "type": "string" },
+    "user_judgment_summary": { "type": "string" },
+    "mission_criteria_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion", "result", "evidence_refs", "unverified_scope", "remaining_risks"],
+        "properties": {
+          "criterion": { "type": "string" },
+          "result": {
+            "type": "string",
+            "enum": ["satisfied", "satisfied_with_limits", "not_satisfied"]
+          },
+          "evidence_refs": { "type": "array", "items": { "type": "string" } },
+          "unverified_scope": { "type": "array", "items": { "type": "string" } },
+          "remaining_risks": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "mission_design_deltas": { "type": "array", "items": { "type": "string" } },
+    "accepted_unverified_scope": { "type": "array", "items": { "type": "string" } },
+    "accepted_remaining_risks": { "type": "array", "items": { "type": "string" } },
+    "gaps": { "type": "array", "items": { "type": "string" } },
+    "debts": { "type": "array", "items": { "type": "string" } },
+    "follow_ups": { "type": "array", "items": { "type": "string" } },
+    "reflection_summary": { "type": "string" },
+    "memory_updates": { "type": "array", "items": { "type": "string" } }
+  }
+}
