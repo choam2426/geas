@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { existsSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import {
   ALL_ROLES,
   ensureDir,
@@ -30,18 +30,35 @@ export function runInit(cwd: string = process.cwd()): InitResult {
     };
   }
 
-  ensureDir(root);
-  ensureDir(`${root}/memory/roles`);
-  ensureDir(`${root}/missions`);
+  try {
+    ensureDir(root);
+    ensureDir(`${root}/memory/roles`);
+    ensureDir(`${root}/missions`);
 
-  writeYamlAtomic(`${root}/run-state.yaml`, {
-    current_mission_id: '',
-    current_stage: '',
-    current_task_id: '',
-  });
-  writeYamlAtomic(`${root}/memory/common.yaml`, { items: [] });
-  for (const role of ALL_ROLES) {
-    writeYamlAtomic(`${root}/memory/roles/${role}.yaml`, { items: [] });
+    writeYamlAtomic(`${root}/run-state.yaml`, {
+      current_mission_id: '',
+      current_stage: '',
+      current_task_id: '',
+    });
+    writeYamlAtomic(`${root}/memory/common.yaml`, { items: [] });
+    for (const role of ALL_ROLES) {
+      writeYamlAtomic(`${root}/memory/roles/${role}.yaml`, { items: [] });
+    }
+  } catch (e: unknown) {
+    // Roll back partial init so the user can retry.
+    try {
+      rmSync(root, { recursive: true, force: true });
+    } catch {
+      // best-effort rollback; if rmSync also fails, surface the original error below
+    }
+    const detail = e instanceof Error ? e.message : String(e);
+    return {
+      ok: false,
+      command: COMMAND,
+      current: emptyLocation(),
+      writes: [],
+      error: { code: 'init_failed', detail },
+    };
   }
 
   const writes: SuccessResult['writes'] = [
