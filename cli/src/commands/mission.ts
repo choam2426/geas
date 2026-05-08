@@ -147,7 +147,7 @@ export function runMissionDesignRecord(payload: unknown, cwd: string = process.c
   const taskBreakdown = (payload as { task_breakdown: Array<{ task_id: string }> }).task_breakdown;
 
   // Track which task dirs we create for rollback on partial failure
-  const createdTaskDirs: string[] = [];
+  const createdTaskDirs: Array<{ taskId: string; tdir: string }> = [];
   let writtenDesignPath: string | null = null;
 
   try {
@@ -158,15 +158,15 @@ export function runMissionDesignRecord(payload: unknown, cwd: string = process.c
       const tdir = taskDir(runState!.current_mission_id, t.task_id, cwd);
       if (!existsSync(tdir)) {
         ensureDir(tdir);
-        createdTaskDirs.push(tdir);
+        createdTaskDirs.push({ taskId: t.task_id, tdir });
       }
     }
 
     const rel = `.geas/missions/${runState!.current_mission_id}/mission-design-${String(number).padStart(3, '0')}.yaml`;
     const writes: SuccessResult['writes'] = [{ path: rel, type: 'created' }];
-    for (const t of taskBreakdown) {
+    for (const { taskId } of createdTaskDirs) {
       writes.push({
-        path: `.geas/missions/${runState!.current_mission_id}/tasks/${t.task_id}/`,
+        path: `.geas/missions/${runState!.current_mission_id}/tasks/${taskId}/`,
         type: 'created',
       });
     }
@@ -174,8 +174,8 @@ export function runMissionDesignRecord(payload: unknown, cwd: string = process.c
     return { ok: true, command: COMMAND_DESIGN, current, writes, state_changes: [] };
   } catch (e: unknown) {
     // Roll back: remove the design file and any task dirs we just created
-    for (const d of createdTaskDirs) {
-      try { rmSync(d, { recursive: true, force: true }); } catch { /* best-effort */ }
+    for (const { tdir } of createdTaskDirs) {
+      try { rmSync(tdir, { recursive: true, force: true }); } catch { /* best-effort */ }
     }
     if (writtenDesignPath) {
       try { rmSync(writtenDesignPath, { force: true }); } catch { /* best-effort */ }
