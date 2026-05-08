@@ -77,7 +77,6 @@ geas mission evidence record --from mission-evidence.yaml
 
 | code | meaning | fix |
 |---|---|---|
-| `state_conflict` | `--expect-stage`/`--expect-phase`/`--expect-task` mismatched runtime | re-read `.geas/run-state.yaml` and `.geas/missions/<mid>/tasks/<tid>/task-state.yaml`; align expected flags |
 | `task_contract_missing` | tried to enter `building` for a task without a recorded Task Contract | run `geas task contract record --task <tid> --from contract.yaml` first |
 | `phase_not_awaiting_user_judgment` | tried to record `task` evidence or `task-result` judgment outside the awaiting state | record verification + review evidence first; for `task` evidence ensure judgment is also `accepted`/`accepted_with_limits` |
 | `judgment_not_revise` | tried to re-enter `implementing`/`verifying`/`reviewing`/`challenging` from `awaiting_user_judgment` without a `revise` decision | record a new judgment with `decision: revise` first |
