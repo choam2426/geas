@@ -1,6 +1,5 @@
 import { Command } from 'commander';
-import { existsSync, readFileSync, rmSync } from 'node:fs';
-import * as yaml from 'js-yaml';
+import { existsSync, rmSync } from 'node:fs';
 import {
   ensureDir,
   generateMissionId,
@@ -18,6 +17,7 @@ import {
 } from '../lib/output';
 import { checkMissionCreate, checkMissionSpecRecord } from '../lib/guards';
 import { validate } from '../lib/schema';
+import { readPayload } from '../lib/io';
 
 const COMMAND_CREATE = 'mission create';
 const COMMAND_SPEC = 'mission spec record';
@@ -121,11 +121,6 @@ export function runMissionSpecRecord(payload: unknown, cwd: string = process.cwd
   };
 }
 
-function readPayload(from: string): unknown {
-  const text = from === '-' ? readFileSync(0, 'utf8') : readFileSync(from, 'utf8');
-  return yaml.load(text, { schema: yaml.CORE_SCHEMA });
-}
-
 export function registerMission(program: Command): void {
   const mission = program.command('mission').description('Mission lifecycle commands');
 
@@ -144,8 +139,18 @@ export function registerMission(program: Command): void {
     .requiredOption('--from <path>', 'YAML payload path or - for stdin')
     .description('Record Mission Spec baseline')
     .action((opts: { from: string }) => {
-      const payload = readPayload(opts.from);
-      const result = runMissionSpecRecord(payload);
+      const read = readPayload(opts.from);
+      if (!read.ok) {
+        failure({
+          ok: false,
+          command: 'mission spec record',
+          current: emptyLocation(),
+          writes: [],
+          error: { code: read.code, detail: read.detail },
+        });
+        return;
+      }
+      const result = runMissionSpecRecord(read.payload);
       if (result.ok) success(result);
       else failure(result);
     });
