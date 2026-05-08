@@ -1,4 +1,5 @@
 import type { GuardFailure } from './output';
+import type { RunState } from './runtime';
 
 export type GuardResult = { ok: true } | { ok: false; guards: GuardFailure[] };
 
@@ -17,4 +18,21 @@ export function combine(...results: GuardResult[]): GuardResult {
   }
   if (failures.length === 0) return ok();
   return fail(failures);
+}
+
+export function checkMissionCreate(runState: RunState | null): GuardResult {
+  if (!runState) {
+    return fail([{ code: 'run_state_missing', path: '.geas/run-state.yaml', status: 'missing' }]);
+  }
+  const failures: GuardFailure[] = [];
+  if (runState.current_mission_id !== '') {
+    failures.push({ code: 'mission_in_progress', detail: `current_mission_id=${runState.current_mission_id}` });
+  }
+  if (runState.current_stage !== '') {
+    failures.push({ code: 'stage_not_idle', detail: `current_stage=${runState.current_stage}` });
+  }
+  if (runState.current_task_id !== '') {
+    failures.push({ code: 'task_in_progress', detail: `current_task_id=${runState.current_task_id}` });
+  }
+  return failures.length === 0 ? ok() : fail(failures);
 }
