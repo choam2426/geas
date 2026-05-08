@@ -108,6 +108,7 @@ Codex reads `.codex-plugin/plugin.json`.
     "claude"
   ],
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Geas",
     "shortDescription": "Contract-driven agent work with Evidence for User Judgment",
@@ -286,15 +287,12 @@ Codex manifest paths use the same root-relative asset paths.
 }
 ```
 
-## Hooks And MCP
+## MCP
 
-Geas plugin-level MCP and hooks live at the plugin root.
+Geas plugin-level MCP lives at the plugin root.
 
 ```text
 .mcp.json
-hooks/
-  hooks.json
-  scripts/
 ```
 
 `.mcp.json` contains the default MCP servers.
@@ -304,21 +302,20 @@ hooks/
   "mcpServers": {
     "context7": {
       "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"]
+      "args": ["-y", "@upstash/context7-mcp@latest"]
     },
     "playwright": {
       "command": "npx",
-      "args": ["@playwright/mcp@latest"]
+      "args": ["-y", "@playwright/mcp@latest"]
     }
   }
 }
 ```
 
-Claude Code manifest references `.mcp.json` as a root-relative path.
+Client manifests reference `.mcp.json` as a root-relative path.
 
 ```json
 {
-  "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json"
 }
 ```

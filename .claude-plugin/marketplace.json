@@ -1,0 +1,18 @@
+{
+  "name": "geas",
+  "owner": {
+    "name": "Geas"
+  },
+  "description": "Structure agent work as Mission, Task Contract, Evidence, User Judgment, and reflection.",
+  "plugins": [
+    {
+      "name": "geas",
+      "source": "./",
+      "description": "Structure agent work as Mission, Task Contract, Evidence, User Judgment, and reflection.",
+      "author": {
+        "name": "Geas"
+      },
+      "version": "0.1.0"
+    }
+  ]
+}

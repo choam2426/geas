@@ -1,0 +1,44 @@
+{
+  "name": "geas",
+  "version": "0.1.0",
+  "description": "Structure agent work as Mission, Task Contract, Evidence, User Judgment, and reflection.",
+  "author": {
+    "name": "Geas"
+  },
+  "homepage": "https://github.com/choam2426/geas",
+  "repository": "https://github.com/choam2426/geas",
+  "license": "Apache-2.0",
+  "keywords": [
+    "agents",
+    "skills",
+    "verification",
+    "codex",
+    "claude"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Geas",
+    "shortDescription": "Contract-driven agent work with Evidence for User Judgment",
+    "longDescription": "Use Geas to run agent work through Mission, Task Contract, implementation, verification, review, Evidence, User Judgment, and reflection.",
+    "developerName": "Geas",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Start a Geas mission for this project.",
+      "Resume the current Geas mission.",
+      "Prepare Evidence for User Judgment."
+    ],
+    "websiteURL": "https://github.com/choam2426/geas",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "screenshots": []
+  }
+}
