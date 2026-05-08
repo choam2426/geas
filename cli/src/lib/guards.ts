@@ -1,6 +1,6 @@
 import { join as pathJoin } from 'node:path';
 import type { GuardFailure } from './output';
-import { missionDir, readLatestNumbered, taskDir, readTaskState, listTaskIds, type RunState } from './runtime';
+import { missionDir, readLatestNumbered, taskDir, readTaskState, type RunState } from './runtime';
 
 export type GuardResult = { ok: true } | { ok: false; guards: GuardFailure[] };
 
@@ -118,7 +118,7 @@ const ALLOWED_MISSION_TRANSITIONS = new Set<string>([
 
 type DesignPayload = { task_breakdown: Array<{ task_id: string; depends_on: string[] }> };
 
-function dependencyAccepted(missionId: string, depTaskId: string, cwd?: string): boolean {
+export function dependencyAccepted(missionId: string, depTaskId: string, cwd?: string): boolean {
   const td = taskDir(missionId, depTaskId, cwd);
   // task-evidence.yaml exists
   const fs = require('node:fs') as typeof import('node:fs');
@@ -182,16 +182,20 @@ export function checkMissionTransition(
   }
 
   if (toStage === 'consolidating') {
-    const tasks = listTaskIds(mid, cwd);
-    for (const tid of tasks) {
-      const tdir = taskDir(mid, tid, cwd);
-      const fs = require('node:fs') as typeof import('node:fs');
-      if (!fs.existsSync(`${tdir}/task-evidence.yaml`)) {
-        failures.push({ code: 'task_evidence_missing', detail: tid });
-      }
-      const judgment = readLatestNumbered<{ decision: string }>(tdir, 'user-judgment-result');
-      if (!judgment || !['accepted', 'accepted_with_limits'].includes(judgment.payload.decision)) {
-        failures.push({ code: 'task_judgment_not_accepted', detail: tid });
+    const design = readLatestNumbered<DesignPayload>(md, 'mission-design');
+    if (!design) {
+      failures.push({ code: 'mission_design_missing' });
+    } else {
+      for (const t of design.payload.task_breakdown) {
+        const tdir = taskDir(mid, t.task_id, cwd);
+        const fs = require('node:fs') as typeof import('node:fs');
+        if (!fs.existsSync(`${tdir}/task-evidence.yaml`)) {
+          failures.push({ code: 'task_evidence_missing', detail: t.task_id });
+        }
+        const judgment = readLatestNumbered<{ decision: string }>(tdir, 'user-judgment-result');
+        if (!judgment || !['accepted', 'accepted_with_limits'].includes(judgment.payload.decision)) {
+          failures.push({ code: 'task_judgment_not_accepted', detail: t.task_id });
+        }
       }
     }
   }
