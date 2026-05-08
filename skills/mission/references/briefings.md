@@ -237,9 +237,9 @@ If you accept this result, you also accept this unverified scope: {unverified_sc
 
 When Verification, Review, or Challenger Evidence has `changes_requested` or `escalated`, make the revise or escalation path visible before listing acceptance options.
 
-## Task Closure Briefing
+## Accepted Task Closure Briefing
 
-Use after User Judgment and Task Evidence are recorded.
+Use after User Judgment and Task Evidence are recorded for `accepted` or `accepted_with_limits`.
 
 Include:
 
@@ -272,7 +272,43 @@ User decision: `{decision}`
 - {next_task_or_mission_step}
 ```
 
-If the User chose `revise`, `deferred`, or `stopped`, brief what remains unaccepted and which artifact is the safest resume point.
+## Unaccepted Task Closure Briefing
+
+Use after User Judgment records `revise`, `deferred`, or `stopped`.
+
+This briefing is conversation output. It does not claim Task Evidence was recorded.
+
+Include:
+
+- User decision.
+- User Judgment path.
+- Requested actions.
+- Work that remains unaccepted.
+- Evidence that remains useful as context.
+- Safest resume point.
+
+Use this shape:
+
+```text
+**Task Closure**
+Task: {task_id}
+User decision: `{decision}`
+
+**Recorded**
+- User Judgment: {user_judgment_ref}
+- Task Evidence: none
+
+**Unaccepted Work**
+- Requested actions: {requested_actions_or_none}
+- Remaining unaccepted work: {items_or_none}
+
+**Useful Context**
+- Evidence still useful: {evidence_refs_or_none}
+- Safest resume point: {artifact_or_phase}
+
+**Next**
+- {next_task_or_mission_step}
+```
 
 ## Mission Judgment Briefing
 
@@ -365,6 +401,83 @@ User decision: `{decision}`
 
 **Next**
 - {next_recommended_mission_or_none}
+```
+
+## Session Handoff Briefing
+
+Use after specifying records accepted baselines when continuing in a fresh session would lower context risk.
+
+This briefing is conversation output. It is not Evidence, not User Judgment, and not a runtime artifact.
+
+Include:
+
+- Mission id and current stage.
+- Recorded Mission Spec and Mission Design paths.
+- Initial Task Contract paths.
+- First Task id and phase.
+- Memory refs that should be read on resume.
+- The next procedure to run.
+- A short resume prompt for a fresh session.
+
+Use this shape:
+
+```text
+**Session Handoff**
+Mission: {mission_id}
+Stage: {stage}
+Decision needed: continue here or start building in a fresh session.
+
+**Recorded Baseline**
+- Mission Spec: {mission_spec_ref}
+- Mission Design: {mission_design_ref}
+- Task Contracts: {task_contract_refs}
+
+**Resume Point**
+- First Task: {task_id} / {task_phase}
+- Next procedure: {next_procedure}
+- Memory to read: {memory_refs_or_none}
+
+**Why Handoff Helps**
+- {context_risk_or_none}
+
+**Fresh Session Prompt**
+Use the `mission` skill to resume Mission `{mission_id}` from `.geas/run-state.yaml`. Read the latest Mission Spec, Mission Design, current Task Contract, Task State, relevant Memory, and then continue with `{next_procedure}`.
+
+**Choices**
+1. continue here - start building in this session.
+2. fresh session - stop here and resume building from recorded runtime state.
+```
+
+## Git Checkpoint Briefing
+
+Use after an accepted Task closes and the Task-End Git Checkpoint procedure runs.
+
+This briefing reports repository continuity status. It is not Evidence and not User Judgment.
+
+Include:
+
+- Task id.
+- Whether a commit was created, recommended, skipped, or blocked.
+- Commit hash when created.
+- Changed paths considered.
+- Uncommitted or unrelated changes.
+- User decision needed when staging is ambiguous.
+
+Use this shape:
+
+```text
+**Git Checkpoint**
+Task: {task_id}
+State: {created | recommended | skipped | blocked}
+Decision needed: {decision_or_none}
+
+**Repository**
+- Commit: {commit_hash_or_none}
+- Task-owned changes: {paths_or_none}
+- Unrelated changes: {paths_or_none}
+
+**Next**
+- {next_step}
 ```
 
 ## Decision Language

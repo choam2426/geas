@@ -69,7 +69,7 @@ completion_criteria:
   - "All planned Skill and Agent prompt files exist and pass structural validation."
   - "Task Evidence for each implementation Task has been accepted by the User."
 acceptance_criteria:
-  - "The mission skill can route specifying, building, optional challenge, and consolidation using prompt-level handoff."
+  - "The mission skill can route stage Skills, and the building skill can coordinate the Task loop using prompt-level handoff."
   - "Every role Evidence type has a corresponding Skill procedure and Agent role prompt."
 ```
 

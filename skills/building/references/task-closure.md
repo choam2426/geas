@@ -79,6 +79,8 @@ Allowed criteria result values:
 
 Successful recording closes the Task phase.
 
+After accepted Task Evidence is recorded, load `git-checkpoint.md` and use the accepted Task Closure Briefing plus Git Checkpoint Briefing in `../../mission/references/briefings.md`.
+
 ## Revise
 
 When User Judgment is `revise`, choose the next phase based on `requested_actions`.
@@ -98,17 +100,17 @@ Before transition, brief the User on what will be retried or revised and which E
 
 ## Deferred
 
-When User Judgment is `deferred`, preserve the current Task phase and record requested actions. Brief the User on what external input or timing is needed to resume. Do not write Task Evidence.
+When User Judgment is `deferred`, preserve the current Task phase and record requested actions. Brief the User on what external input or timing is needed to resume using the unaccepted Task Closure Briefing. Do not write Task Evidence.
 
 ## Stopped
 
-When User Judgment is `stopped`, record the decision and requested actions. Brief the User on what work remains unaccepted and what artifacts should be considered historical context. Do not write Task Evidence.
+When User Judgment is `stopped`, record the decision and requested actions. Brief the User on what work remains unaccepted and what artifacts should be considered historical context using the unaccepted Task Closure Briefing. Do not write Task Evidence.
 
 ## Closure Quality Checklist
 
 - User Judgment is recorded before Task Evidence.
 - Task Evidence references concrete Evidence artifacts.
 - Criteria results cover all Task Contract acceptance criteria.
-- Accepted unverified scope comes from User Judgment or judgment briefing.
+- Accepted unverified scope and remaining risks come from recorded User Judgment. The Task Judgment Briefing may propose candidates, but it is not an accepted source.
 - Remaining risks are visible.
 - The next Mission or Task pointer is clear.

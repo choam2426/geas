@@ -13,7 +13,7 @@ Reviewing prepares Review Evidence. It is distinct from verification: verificati
 
 - Read Task Contract, changed outputs, Implementation Evidence, and Verification Evidence.
 - Review from the Task Contract's `review_focus`.
-- Apply lenses supplied by `mission`.
+- Apply lenses supplied by the calling procedure, usually `building`.
 - Prioritize concrete findings with basis.
 - Record scope reviewed and scope not reviewed.
 - Treat verdict as agent-side input only.
@@ -32,7 +32,7 @@ Reviewing prepares Review Evidence. It is distinct from verification: verificati
 geas task evidence record --task <task-id> --kind review --from <path|->
 ```
 
-Review Evidence moves the Task toward User Judgment unless `mission` inserts an optional challenge pass.
+Review Evidence moves the Task toward User Judgment unless `building` inserts an optional challenge pass.
 
 ## References
 

@@ -1,13 +1,13 @@
 ---
 name: mission
-description: "Mission entrypoint and orchestrator. Use to start or resume a Mission, inspect runtime state, coordinate internal procedure skills, prepare User briefings, and close Tasks or Missions with Evidence for User Judgment."
+description: "Mission entrypoint and stage orchestrator. Use to start or resume a Mission, inspect runtime state, coordinate specifying, building, and consolidating stage skills, prepare User briefings, and close Missions with Evidence for User Judgment."
 ---
 
 # Mission
 
 Use this skill as the single Geas User entrypoint and Orchestrator procedure.
 
-Mission owns state inspection, User briefing, procedure dispatch, Task closure, Mission closure, and the boundary between agent-side Evidence and User Judgment.
+Mission owns state inspection, User briefing, stage dispatch, Mission closure, and the boundary between agent-side Evidence and User Judgment.
 
 ## Core Rules
 
@@ -33,15 +33,13 @@ Mission owns state inspection, User briefing, procedure dispatch, Task closure, 
 
 3. Dispatch the next procedure.
    - Use `specifying` for Mission baseline formation or baseline revision.
-   - Use `implementing`, `verifying`, `reviewing`, and optionally `challenging` during building.
+   - Use `building` for the building-stage Task loop.
    - Use `consolidating` for Mission-level judgment input.
    - Use role prompts from `agents/` when a separate role pass materially improves Evidence quality.
 
-4. Close Task when the User has judged the Task result.
-   - Use `references/task-closure.md`.
-   - Record `geas judgment record --target task-result --task <task-id> --from <path|->`.
-   - If accepted, record `geas task evidence record --task <task-id> --kind task --from <path|->`.
-   - If revise, route to the appropriate Task phase or baseline update.
+4. Let `building` own Task closure.
+   - Task phase dispatch, Task Judgment briefing, Task result User Judgment, Task Evidence, task-end git checkpointing, and next Task selection happen in `building`.
+   - Mission remains responsible for returning to `specifying` or `consolidating` when the stage-level runtime state requires it.
 
 5. Close Mission when the User has judged the Mission result.
    - Use `references/mission-closure.md`.
@@ -52,18 +50,18 @@ Mission owns state inspection, User briefing, procedure dispatch, Task closure, 
 ## Internal Procedure Order
 
 ```text
-specifying -> building task loop -> consolidating -> Mission User Judgment -> Mission Evidence
+specifying -> building -> consolidating -> Mission User Judgment -> Mission Evidence
 ```
 
 Task loop:
 
 ```text
-implementation -> verification -> review -> optional challenge -> User Judgment -> Task Evidence
+building dispatches implementation -> verification -> review -> optional challenge -> User Judgment -> Task Evidence
 ```
 
 ## References
 
 - `references/dispatch.md`: Select and hand off to internal procedure skills.
 - `references/briefings.md`: Prepare User-facing Mission and Task briefings.
-- `references/task-closure.md`: Prepare Task closure after Task User Judgment.
 - `references/mission-closure.md`: Prepare Mission closure after Mission User Judgment.
+- `references/session-handoff.md`: Prepare specifying-to-building session handoffs.

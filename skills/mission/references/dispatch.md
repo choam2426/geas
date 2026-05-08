@@ -23,34 +23,10 @@ If state and artifacts disagree, treat it as drift. Brief the User and choose th
 | `.geas/` absent and User wants Mission work | Run `geas init`, then continue. |
 | No active Mission and User wants new Mission | `specifying`. |
 | `current_stage: specifying` | `specifying`. |
-| Current Task phase `unstarted` | Transition Task to `implementing`, then `implementing`. |
-| Current Task phase `implementing` | `implementing`. |
-| Current Task phase `verifying` | `verifying`. |
-| Current Task phase `reviewing` | `reviewing`, then decide optional challenge. |
-| Current Task phase `challenging` | `challenging`. |
-| Current Task phase `awaiting_user_judgment` | Prepare Task Judgment Briefing from `briefings.md`, then `task-closure.md` after User decision. |
-| Current Task phase `closed` and another Task is ready | `geas mission transition --to building --task <next-task-id>`. |
-| All required Tasks have accepted Task Evidence | `geas mission transition --to consolidating`, then `consolidating`. |
+| `current_stage: building` | `building`. |
 | `current_stage: consolidating` | `consolidating` until Mission User Judgment is ready. |
 
-## Task Phase Order
-
-Default building order:
-
-```text
-unstarted -> implementing -> verifying -> reviewing -> optional challenging -> awaiting_user_judgment
-```
-
-Evidence recording usually advances the phase:
-
-- `geas task evidence record --kind implementation` advances to `verifying`.
-- `geas task evidence record --kind verification` with `passed` advances to `reviewing`.
-- `geas task evidence record --kind verification` with `changes_requested` or `escalated` advances to `awaiting_user_judgment`.
-- `geas task evidence record --kind review` advances to `awaiting_user_judgment`.
-- `geas task evidence record --kind challenger` advances to `awaiting_user_judgment`.
-- `geas task evidence record --kind task` closes the Task.
-
-Use `geas task transition` for explicit User-directed rewinds or optional challenge insertion.
+Building owns Task phase dispatch, Task Judgment, Task closure, task-end checkpoints, next Task selection, and transition to `consolidating`.
 
 ## Prompt-Level Handoff
 
@@ -75,6 +51,7 @@ When using an Agent role, pass:
 
 - `role`: `work-designer`, `implementer`, `verifier`, `reviewer`, or `challenger`.
 - `lenses`: zero or more lenses such as `documentation`, `software`, `runtime`, `security`, `compatibility`, `operations`, `data`, `research`, `product`, `ux`.
+- Common Memory and the role-specific Memory for the role being invoked, when present.
 - Mission context and artifact paths.
 - Task context and artifact paths.
 - Inputs to inspect.
@@ -82,18 +59,6 @@ When using an Agent role, pass:
 - Focus.
 - Responsibility boundary.
 - Decisions to surface.
-
-## Challenger Decision
-
-Consider Challenger after Review Evidence and before Task User Judgment when:
-
-- The Task touches runtime, CLI, schema, data, permission/security, deployment, migration, or critical baseline.
-- Verification or Review Evidence has meaningful unverified scope.
-- The Task result may silently expand Mission scope.
-- There is a User-level tradeoff.
-- The User requested high confidence or complete coverage.
-
-In specifying, recommend Challenger to the User when baseline risk justifies extra depth. In building, call Challenger when the extra pass is within the Task's expected risk budget; ask the User first if it materially expands cost or scope.
 
 ## Drift Handling
 

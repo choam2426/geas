@@ -58,6 +58,12 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
    - Use `geas task contract record --task <task-id> --from <path|->` for each initial Task Contract.
    - Use `geas mission transition --to building --task <task-id>` only after the first Task Contract is recorded and the User is ready to start building.
 
+8. Consider session handoff before building.
+   - Load `../mission/references/session-handoff.md`.
+   - Recommend a fresh building session when specifying consumed substantial context, required heavy research, produced five or more initial Tasks, or left many baseline decisions that must stay visible.
+   - Use `../mission/references/briefings.md` Session Handoff Briefing.
+   - If the User chooses a fresh session, stop after the briefing and leave building to resume from recorded runtime state.
+
 ## Outputs
 
 - User-reviewed Mission Spec payload.
@@ -74,3 +80,4 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
 - `references/mission-design.md`: Draft Mission Design content.
 - `references/task-contract.md`: Draft Task Contracts from the Mission baseline.
 - `references/baseline-review.md`: Prepare baseline review and optional Challenger recommendation.
+- `../mission/references/session-handoff.md`: Decide whether to recommend a fresh building session after context-heavy specifying.

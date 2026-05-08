@@ -54,7 +54,7 @@ Use examples:
 
 ```yaml
 acceptance_criteria:
-  - "The mission Skill describes dispatch across specifying, building, optional challenge, and consolidating without requiring a separate orchestrator Agent file."
+  - "The mission Skill dispatches stage Skills, and the building Skill coordinates implementation, verification, review, optional challenge, and Task Judgment without requiring a separate orchestrator Agent file."
   - "Each internal Skill includes only the CLI commands it directly uses."
 ```
 
