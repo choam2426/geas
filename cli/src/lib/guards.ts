@@ -203,6 +203,42 @@ export function checkMissionTransition(
   return failures.length === 0 ? ok() : fail(failures);
 }
 
+type TaskContractGuardCtx = {
+  runState: RunState | null;
+  taskId: string;
+};
+
+export function checkTaskContractRecord(ctx: TaskContractGuardCtx, cwd?: string): GuardResult {
+  const { runState, taskId } = ctx;
+  if (!runState) return fail([{ code: 'run_state_missing' }]);
+  if (runState.current_mission_id === '') return fail([{ code: 'no_current_mission' }]);
+  const failures: GuardFailure[] = [];
+  if (!['specifying', 'building'].includes(runState.current_stage)) {
+    failures.push({ code: 'stage_not_specifying_or_building', detail: runState.current_stage });
+  }
+  const md = missionDir(runState.current_mission_id, cwd);
+  const design = readLatestNumbered<DesignPayload>(md, 'mission-design');
+  if (!design) failures.push({ code: 'mission_design_missing' });
+  if (design && !design.payload.task_breakdown.some((t) => t.task_id === taskId)) {
+    failures.push({ code: 'task_unknown_in_design', detail: taskId });
+  }
+  if (runState.current_stage === 'building') {
+    if (runState.current_task_id !== taskId) {
+      failures.push({ code: 'task_not_current', detail: `current=${runState.current_task_id} requested=${taskId}` });
+    }
+    const td = taskDir(runState.current_mission_id, taskId, cwd);
+    const ts = readTaskState(runState.current_mission_id, taskId, cwd);
+    if (!ts || ts.phase !== 'awaiting_user_judgment') {
+      failures.push({ code: 'phase_not_awaiting_user_judgment', detail: ts?.phase ?? 'missing' });
+    }
+    const judgment = readLatestNumbered<{ decision: string }>(td, 'user-judgment-result');
+    if (!judgment || judgment.payload.decision !== 'revise') {
+      failures.push({ code: 'judgment_not_revise' });
+    }
+  }
+  return failures.length === 0 ? ok() : fail(failures);
+}
+
 export function checkMissionEvidenceRecord(runState: RunState | null, cwd?: string): GuardResult {
   if (!runState) return fail([{ code: 'run_state_missing' }]);
   const failures: GuardFailure[] = [];

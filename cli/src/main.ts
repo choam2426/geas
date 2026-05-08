@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { registerInit } from './commands/init';
 import { registerMission } from './commands/mission';
+import { registerTask } from './commands/task';
 
 export function buildProgram(): Command {
   const program = new Command();
@@ -10,6 +11,7 @@ export function buildProgram(): Command {
     .version('3.0.0');
   registerInit(program);
   registerMission(program);
+  registerTask(program);
   return program;
 }
 
