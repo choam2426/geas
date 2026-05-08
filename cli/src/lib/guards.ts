@@ -331,6 +331,35 @@ export function checkTaskEvidenceRecord(
   return failures.length === 0 ? ok() : fail(failures);
 }
 
+type JudgmentTarget = 'task-result' | 'mission-result';
+
+export function checkJudgmentRecord(
+  runState: RunState | null,
+  target: JudgmentTarget,
+  taskId: string | undefined,
+  cwd?: string,
+): GuardResult {
+  if (!runState) return fail([{ code: 'run_state_missing' }]);
+  if (runState.current_mission_id === '') return fail([{ code: 'no_current_mission' }]);
+  const failures: GuardFailure[] = [];
+  if (target === 'task-result') {
+    if (runState.current_stage !== 'building') failures.push({ code: 'stage_not_building', detail: runState.current_stage });
+    if (!taskId) {
+      failures.push({ code: 'task_required' });
+    } else {
+      if (runState.current_task_id !== taskId) failures.push({ code: 'task_not_current', detail: `current=${runState.current_task_id}` });
+      const ts = readTaskState(runState.current_mission_id, taskId, cwd);
+      if (!ts || ts.phase !== 'awaiting_user_judgment') {
+        failures.push({ code: 'phase_not_awaiting_user_judgment', detail: ts?.phase ?? 'missing' });
+      }
+    }
+  }
+  if (target === 'mission-result') {
+    if (runState.current_stage !== 'consolidating') failures.push({ code: 'stage_not_consolidating', detail: runState.current_stage });
+  }
+  return failures.length === 0 ? ok() : fail(failures);
+}
+
 export function checkMissionEvidenceRecord(runState: RunState | null, cwd?: string): GuardResult {
   if (!runState) return fail([{ code: 'run_state_missing' }]);
   const failures: GuardFailure[] = [];
