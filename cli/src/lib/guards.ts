@@ -202,3 +202,21 @@ export function checkMissionTransition(
 
   return failures.length === 0 ? ok() : fail(failures);
 }
+
+export function checkMissionEvidenceRecord(runState: RunState | null, cwd?: string): GuardResult {
+  if (!runState) return fail([{ code: 'run_state_missing' }]);
+  const failures: GuardFailure[] = [];
+  if (runState.current_mission_id === '') failures.push({ code: 'no_current_mission' });
+  if (runState.current_stage !== 'consolidating') failures.push({ code: 'stage_not_consolidating', detail: runState.current_stage });
+  if (runState.current_mission_id !== '') {
+    const md = missionDir(runState.current_mission_id, cwd);
+    const judgment = readLatestNumbered<{ decision: string }>(md, 'user-judgment-result');
+    if (!judgment || !['accepted', 'accepted_with_limits'].includes(judgment.payload.decision)) {
+      failures.push({ code: 'mission_judgment_not_accepted' });
+    }
+    const fs = require('node:fs') as typeof import('node:fs');
+    const evPath = pathJoin(md, 'mission-evidence.yaml');
+    if (fs.existsSync(evPath)) failures.push({ code: 'mission_evidence_already_exists', path: evPath });
+  }
+  return failures.length === 0 ? ok() : fail(failures);
+}

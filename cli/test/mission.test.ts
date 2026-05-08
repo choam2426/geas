@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runInit } from '../src/commands/init';
-import { runMissionCreate, runMissionSpecRecord, runMissionDesignRecord, runMissionTransition } from '../src/commands/mission';
+import { runMissionCreate, runMissionSpecRecord, runMissionDesignRecord, runMissionTransition, runMissionEvidenceRecord } from '../src/commands/mission';
 
 let workdir: string;
 let originalCwd: string;
@@ -190,4 +190,34 @@ test('mission transition specifying -> specifying not allowed', () => {
   const result = runMissionTransition('specifying');
   assert.equal(result.ok, false);
   if (!result.ok) assert.ok(result.error.guards?.some((g) => g.code === 'transition_not_allowed'));
+});
+
+const minimalMissionEvidence = {
+  summary: '',
+  user_judgment_summary: '',
+  mission_criteria_results: [],
+  mission_design_deltas: [],
+  accepted_unverified_scope: [],
+  accepted_remaining_risks: [],
+  gaps: [],
+  debts: [],
+  follow_ups: [],
+  reflection_summary: '',
+  memory_updates: [],
+};
+
+test('mission evidence record fails outside consolidating', () => {
+  runMissionCreate();
+  const result = runMissionEvidenceRecord(minimalMissionEvidence);
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.ok(result.error.guards?.some((g) => g.code === 'stage_not_consolidating'));
+});
+
+test('mission evidence record rejects invalid payload', () => {
+  runMissionCreate();
+  const result = runMissionEvidenceRecord({ summary: 'partial' });
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.error.code, 'schema_invalid');
+  }
 });

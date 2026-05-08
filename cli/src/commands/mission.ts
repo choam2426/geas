@@ -8,6 +8,7 @@ import {
   taskDir,
   writeNumberedArtifact,
   writeRunState,
+  writeYamlAtomic,
 } from '../lib/runtime';
 import {
   emptyLocation,
@@ -16,7 +17,7 @@ import {
   type FailureResult,
   type SuccessResult,
 } from '../lib/output';
-import { checkMissionCreate, checkMissionDesignRecord, checkMissionSpecRecord, checkMissionTransition } from '../lib/guards';
+import { checkMissionCreate, checkMissionDesignRecord, checkMissionEvidenceRecord, checkMissionSpecRecord, checkMissionTransition } from '../lib/guards';
 import { validate } from '../lib/schema';
 import { readPayload } from '../lib/io';
 
@@ -24,6 +25,7 @@ const COMMAND_CREATE = 'mission create';
 const COMMAND_SPEC = 'mission spec record';
 const COMMAND_DESIGN = 'mission design record';
 const COMMAND_TRANSITION = 'mission transition';
+const COMMAND_MISSION_EVIDENCE = 'mission evidence record';
 
 export type MissionResult = SuccessResult | FailureResult;
 
@@ -226,6 +228,61 @@ export function runMissionTransition(
   };
 }
 
+export function runMissionEvidenceRecord(payload: unknown, cwd: string = process.cwd()): MissionResult {
+  const runState = readRunState(cwd);
+  const current = runState
+    ? { mission_id: runState.current_mission_id, stage: runState.current_stage, task_id: runState.current_task_id, phase: '' }
+    : emptyLocation();
+
+  const v = validate('mission-evidence', payload);
+  if (!v.valid) {
+    return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: 'schema_invalid', detail: v.errors.join('; ') } };
+  }
+
+  const guard = checkMissionEvidenceRecord(runState, cwd);
+  if (!guard.ok) {
+    return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: 'guard_failed', guards: guard.guards } };
+  }
+
+  const md = missionDir(runState!.current_mission_id, cwd);
+  const evPath = `${md}/mission-evidence.yaml`;
+  const before = { ...runState! };
+
+  try {
+    writeYamlAtomic(evPath, payload);
+  } catch (e: unknown) {
+    const detail = e instanceof Error ? e.message : String(e);
+    return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: 'mission_evidence_write_failed', detail } };
+  }
+
+  const next = { current_mission_id: '', current_stage: '' as const, current_task_id: '' };
+  try {
+    writeRunState(next, cwd);
+  } catch (e: unknown) {
+    // Rollback the evidence file
+    try {
+      const fs = require('node:fs') as typeof import('node:fs');
+      fs.rmSync(evPath, { force: true });
+    } catch {
+      // best-effort
+    }
+    const detail = e instanceof Error ? e.message : String(e);
+    return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: 'run_state_write_failed', detail } };
+  }
+
+  const rel = `.geas/missions/${before.current_mission_id}/mission-evidence.yaml`;
+  return {
+    ok: true,
+    command: COMMAND_MISSION_EVIDENCE,
+    current: { mission_id: '', stage: '', task_id: '', phase: '' },
+    writes: [{ path: rel, type: 'created' }],
+    state_changes: [
+      { pointer: 'current_mission_id', from: before.current_mission_id, to: '' },
+      { pointer: 'current_stage', from: before.current_stage, to: '' },
+    ],
+  };
+}
+
 export function registerMission(program: Command): void {
   const mission = program.command('mission').description('Mission lifecycle commands');
 
@@ -289,6 +346,28 @@ export function registerMission(program: Command): void {
     .description('Transition mission stage')
     .action((opts: { to: 'specifying' | 'building' | 'consolidating'; task?: string }) => {
       const result = runMissionTransition(opts.to, opts.task);
+      if (result.ok) success(result);
+      else failure(result);
+    });
+
+  const evidence = mission.command('evidence').description('Mission Evidence');
+  evidence
+    .command('record')
+    .requiredOption('--from <path>', 'YAML payload path or - for stdin')
+    .description('Record Mission Evidence (mission closure summary)')
+    .action((opts: { from: string }) => {
+      const read = readPayload(opts.from);
+      if (!read.ok) {
+        failure({
+          ok: false,
+          command: COMMAND_MISSION_EVIDENCE,
+          current: emptyLocation(),
+          writes: [],
+          error: { code: read.code, detail: read.detail },
+        });
+        return;
+      }
+      const result = runMissionEvidenceRecord(read.payload);
       if (result.ok) success(result);
       else failure(result);
     });
