@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { registerInit } from './commands/init';
 
 export function buildProgram(): Command {
   const program = new Command();
@@ -6,6 +7,7 @@ export function buildProgram(): Command {
     .name('geas')
     .description('Geas CLI — atomic actuator for .geas/ runtime artifacts')
     .version('3.0.0');
+  registerInit(program);
   return program;
 }
 
