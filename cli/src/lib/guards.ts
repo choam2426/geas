@@ -36,3 +36,11 @@ export function checkMissionCreate(runState: RunState | null): GuardResult {
   }
   return failures.length === 0 ? ok() : fail(failures);
 }
+
+export function checkMissionSpecRecord(runState: RunState | null): GuardResult {
+  if (!runState) return fail([{ code: 'run_state_missing' }]);
+  const failures: GuardFailure[] = [];
+  if (runState.current_mission_id === '') failures.push({ code: 'no_current_mission' });
+  if (runState.current_stage !== 'specifying') failures.push({ code: 'stage_not_specifying', detail: runState.current_stage });
+  return failures.length === 0 ? ok() : fail(failures);
+}
