@@ -202,7 +202,7 @@ Mission Spec 갱신 이유와 영향은 이후 Evidence, User Judgment, Mission 
 
 조건이 충족되면 다음 번호의 `mission-design-NNN.yaml`을 기록하고, Mission Design의 `task_breakdown`에 필요한 Task directory를 materialize한다.
 
-Task Contract는 `task contract record`가 기록하고, Task State는 Task phase 전이 시점에 생성하거나 갱신한다.
+Task Contract는 `task contract record`가 기록한다. 대상 Task의 `task-state.yaml`이 없으면 이 명령은 Task State를 `phase: unstarted`로 생성한다.
 
 ### task contract record
 
@@ -215,11 +215,11 @@ Task Contract는 `task contract record`가 기록하고, Task State는 Task phas
 - 현재 Mission Design이 존재한다.
 - 지정한 Task id가 현재 Mission Design의 `task_breakdown`에 존재한다.
 - 현재 Mission stage가 `building`이면 지정한 Task id가 `run-state.yaml`의 `current_task_id`와 일치한다.
-- 현재 Mission stage가 `building`이면 대상 Task의 현재 phase가 `contracting`이다.
+- 현재 Mission stage가 `building`이면 대상 Task phase가 `awaiting_user_judgment`이고 current Task result User Judgment의 `decision`이 `revise`다.
 - Task Contract schema가 맞다.
 - 다음 `task-contract-NNN.yaml` 파일명이 충돌하지 않는다.
 
-조건이 충족되면 다음 번호의 `task-contract-NNN.yaml`을 기록한다. 갱신 이유와 영향은 Task 실행 중 Evidence나 종료 요약에 남긴다.
+조건이 충족되면 다음 번호의 `task-contract-NNN.yaml`을 기록한다. 대상 Task의 `task-state.yaml`이 없으면 `phase: unstarted`로 생성한다. 갱신 이유와 영향은 Task 실행 중 Evidence나 종료 요약에 남긴다.
 
 ### task evidence record
 
@@ -374,7 +374,7 @@ consolidating
 Task phase 값은 다음 중 하나다.
 
 ```text
-contracting
+unstarted
 implementing
 verifying
 reviewing
@@ -385,7 +385,7 @@ closed
 
 `task transition`은 Evidence 기록으로 처리되지 않는 명시적 Task phase 전이를 수행한다. 현재 runtime 상태에서 전이 가능한 구조적 조건을 확인하고, 조건이 충족될 때 대상 Task의 `task-state.yaml`을 갱신한다.
 
-대상 Task의 `task-state.yaml`이 없을 때 `task transition --to implementing`은 최초 Task State를 생성하고 `phase: implementing`으로 둔다.
+Task 실행을 시작할 때 `task transition --to implementing`은 `unstarted` Task를 `implementing`으로 전이한다.
 
 `task transition`은 다음 공통 조건을 요구한다.
 
@@ -411,8 +411,7 @@ closed
 
 |from phase|to phase|쓰는 경우|
 |---|---|---|
-|Task State 없음|`implementing`|Task를 처음 시작할 때|
-|`awaiting_user_judgment`|`contracting`|current User Judgment가 `revise`인 뒤 Task Contract 갱신으로 이어갈 때|
+|`unstarted`|`implementing`|Task를 처음 시작할 때|
 |`awaiting_user_judgment`|`implementing`|current User Judgment가 `revise`인 뒤 재작업으로 이어갈 때|
 |`awaiting_user_judgment`|`verifying`|current User Judgment가 `revise`인 뒤 구현 변경 없이 재검증으로 이어갈 때|
 |`awaiting_user_judgment`|`reviewing`|current User Judgment가 `revise`인 뒤 추가 review로 이어갈 때|
@@ -422,7 +421,7 @@ closed
 |`reviewing`|`awaiting_user_judgment`|Review Evidence가 이미 있고 pointer를 User 수용 판단 대기로 맞출 때|
 |`challenging`|`awaiting_user_judgment`|Challenger Evidence가 이미 있고 pointer를 User 수용 판단 대기로 맞출 때|
 
-`contracting`, `implementing`, `verifying`, `reviewing`으로 돌아가는 전이는 current User Judgment의 `decision`이 `revise`일 때 허용한다. `requested_actions`는 Orchestrator가 User와 합의한 다음 조치를 이해하기 위한 판단 맥락이며, CLI는 그 문장 의미를 해석하지 않는다.
+`implementing`, `verifying`, `reviewing`, `challenging`으로 돌아가는 전이는 current User Judgment의 `decision`이 `revise`일 때 허용한다. Task Contract 갱신은 별도 phase가 아니라 `revise` 판단 이후 `task contract record`로 처리한다. `requested_actions`는 Orchestrator가 User와 합의한 다음 조치를 이해하기 위한 판단 맥락이며, CLI는 그 문장 의미를 해석하지 않는다.
 
 `awaiting_user_judgment` 진입은 다음 조건을 요구한다.
 
