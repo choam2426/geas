@@ -285,6 +285,52 @@ export function checkTaskTransition(
   return failures.length === 0 ? ok() : fail(failures);
 }
 
+type EvidenceKind = 'implementation' | 'verification' | 'review' | 'challenger' | 'task';
+
+const KIND_TO_REQUIRED_PHASE: Record<EvidenceKind, string> = {
+  implementation: 'implementing',
+  verification: 'verifying',
+  review: 'reviewing',
+  challenger: 'challenging',
+  task: 'awaiting_user_judgment',
+};
+
+export function checkTaskEvidenceRecord(
+  runState: RunState | null,
+  taskId: string,
+  kind: EvidenceKind,
+  _payload: { verdict?: string },
+  cwd?: string,
+): GuardResult {
+  if (!runState) return fail([{ code: 'run_state_missing' }]);
+  if (runState.current_stage !== 'building') return fail([{ code: 'stage_not_building', detail: runState.current_stage }]);
+  if (runState.current_task_id !== taskId) return fail([{ code: 'task_not_current', detail: `current=${runState.current_task_id}` }]);
+
+  const failures: GuardFailure[] = [];
+  const td = taskDir(runState.current_mission_id, taskId, cwd);
+  const contract = readLatestNumbered(td, 'task-contract');
+  if (!contract) failures.push({ code: 'task_contract_missing' });
+  const ts = readTaskState(runState.current_mission_id, taskId, cwd);
+  if (!ts) failures.push({ code: 'task_state_missing' });
+
+  if (ts && ts.phase !== KIND_TO_REQUIRED_PHASE[kind]) {
+    failures.push({ code: 'phase_does_not_match_kind', detail: `phase=${ts.phase} kind=${kind}` });
+  }
+
+  if (kind === 'task') {
+    const judgment = readLatestNumbered<{ decision: string }>(td, 'user-judgment-result');
+    if (!judgment || !['accepted', 'accepted_with_limits'].includes(judgment.payload.decision)) {
+      failures.push({ code: 'task_judgment_not_accepted', detail: judgment?.payload.decision ?? 'missing' });
+    }
+    const fs = require('node:fs') as typeof import('node:fs');
+    if (fs.existsSync(`${td}/task-evidence.yaml`)) {
+      failures.push({ code: 'task_evidence_already_exists' });
+    }
+  }
+
+  return failures.length === 0 ? ok() : fail(failures);
+}
+
 export function checkMissionEvidenceRecord(runState: RunState | null, cwd?: string): GuardResult {
   if (!runState) return fail([{ code: 'run_state_missing' }]);
   const failures: GuardFailure[] = [];
