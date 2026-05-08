@@ -68,8 +68,7 @@ cli/
     task-evidence.json
     mission-evidence.json
     user-judgment.json
-    common-memory.json
-    role-memory.json
+    memory-file.json
     memory-item.json
     run-state.json
   test/
@@ -115,8 +114,7 @@ bin/
 | `task-evidence` | `task-evidence.yaml` | input + storage | nested: `criteria_results`(task 전용) |
 | `mission-evidence` | `mission-evidence.yaml` | input + storage | nested: `mission_criteria_results` |
 | `user-judgment` | `user-judgment-result-NNN.yaml` | input + storage | task/mission 모두 동일 schema, 위치로 구분 |
-| `common-memory` | `memory/common.yaml` | storage | shape: `{ items: [memory-item] }` |
-| `role-memory` | `memory/roles/<role>.yaml` | storage | `common-memory`와 동일 shape |
+| `memory-file` | `memory/common.yaml`, `memory/roles/<role>.yaml` | storage | shape: `{ items: [memory-item] }`. common/role 동일 shape이므로 schema 통합 |
 | `memory-item` | `memory record` payload | input | 단일 memory item |
 | `run-state` | `run-state.yaml` | storage | CLI가 직접 갱신 |
 
@@ -148,9 +146,9 @@ CLI에서 사용하는 enum 값:
 | `challenger-evidence` | `findings[]` | `finding`, `risk_type`(enum), `basis`, `escalation` |
 | `task-evidence` | `criteria_results[]` | `criterion`, `result`(enum), `evidence_refs`(list), `unverified_scope`(list), `remaining_risks`(list) |
 | `mission-evidence` | `mission_criteria_results[]` | 위 `task-evidence`와 동일 |
-| `common-memory`, `role-memory` | `items[]` | `memory-item` schema와 동일: `guideline`, `applies_when`(list), `source_refs`(list) |
+| `memory-file` | `items[]` | `memory-item` schema와 동일: `guideline`, `applies_when`(list), `source_refs`(list) |
 
-`memory-item` schema는 `common-memory.items[]`의 단일 항목 schema와 동일하다. 입력 검증과 storage 검증의 단위가 달라 별도 schema id를 둔다.
+`memory-item` schema는 `memory-file.items[]`의 단일 항목 schema와 동일하다. 입력 검증(`memory record` payload)과 파일 검증(`common.yaml`, `roles/<role>.yaml`)의 단위가 달라 별도 schema id를 둔다.
 
 ## 의존성
 
@@ -394,7 +392,7 @@ JSON output은 `JSON.stringify(result, null, 2)`로 들여쓰기. diagnostic log
 3. 대상 memory file (`common.yaml` 또는 `roles/<role>.yaml`) read → `items` 배열에 payload append → write
 4. success output
 
-`memory-item.json`은 입력 payload 검증용 schema이고, `common-memory.json`/`role-memory.json`은 파일 전체 구조 (`{items: [...]}`) schema다.
+`memory-item.json`은 입력 payload 검증용 schema이고, `memory-file.json`은 파일 전체 구조 (`{items: [...]}`) schema다 (common/role 공용).
 
 ## 공통 동작
 
