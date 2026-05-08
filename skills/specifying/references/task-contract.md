@@ -74,7 +74,7 @@ Example:
 ```yaml
 verification_checks:
   - "Run skill validator for every Skill directory."
-  - "Search skills/ and agents/ for retired product prefixes and retired shared-reference directory names."
+  - "Search skills/ and skills/mission/references/agents/ for retired product prefixes and retired shared-reference directory names."
 ```
 
 ## Review Focus

@@ -35,7 +35,7 @@ Mission owns state inspection, User briefing, stage dispatch, Mission closure, a
    - Use `specifying` for Mission baseline formation or baseline revision.
    - Use `building` for the building-stage Task loop.
    - Use `consolidating` for Mission-level judgment input.
-   - Use role prompts from `agents/` when a separate role pass materially improves Evidence quality.
+   - Use role prompts from `references/agents/` when a separate role pass materially improves Evidence quality.
 
 4. Let `building` own Task closure.
    - Task phase dispatch, Task Judgment briefing, Task result User Judgment, Task Evidence, task-end git checkpointing, and next Task selection happen in `building`.
