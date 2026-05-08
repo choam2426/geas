@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { existsSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import {
   ensureDir,
   generateMissionId,
@@ -37,14 +37,32 @@ export function runMissionCreate(cwd: string = process.cwd()): MissionResult {
   while (existsSync(missionDir(id, cwd))) {
     id = generateMissionId();
   }
-  ensureDir(missionDir(id, cwd));
+  const dir = missionDir(id, cwd);
 
   const newState = {
     current_mission_id: id,
     current_stage: 'specifying' as const,
     current_task_id: '',
   };
-  writeRunState(newState, cwd);
+
+  try {
+    ensureDir(dir);
+    writeRunState(newState, cwd);
+  } catch (e: unknown) {
+    try {
+      rmSync(dir, { recursive: true, force: true });
+    } catch {
+      // best-effort rollback
+    }
+    const detail = e instanceof Error ? e.message : String(e);
+    return {
+      ok: false,
+      command: COMMAND_CREATE,
+      current: emptyLocation(),
+      writes: [],
+      error: { code: 'mission_create_failed', detail },
+    };
+  }
 
   return {
     ok: true,
