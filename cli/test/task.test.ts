@@ -9,7 +9,8 @@ import {
   runMissionSpecRecord,
   runMissionDesignRecord,
 } from '../src/commands/mission';
-import { runTaskContractRecord } from '../src/commands/task';
+import { runTaskContractRecord, runTaskTransition } from '../src/commands/task';
+import { runMissionTransition } from '../src/commands/mission';
 
 let workdir: string;
 let originalCwd: string;
@@ -76,4 +77,23 @@ test('task contract record fails for unknown task id', () => {
   if (!result.ok) {
     assert.ok(result.error.guards?.some((g) => g.code === 'task_unknown_in_design'));
   }
+});
+
+test('task transition unstarted->implementing succeeds when stage is building', () => {
+  runTaskContractRecord('task-001', minimalContract);
+  const trans = runMissionTransition('building', 'task-001');
+  assert.equal(trans.ok, true);
+  const result = runTaskTransition('task-001', 'implementing');
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  const ts = readFileSync(join(workdir, '.geas', 'missions', missionId, 'tasks', 'task-001', 'task-state.yaml'), 'utf8');
+  assert.match(ts, /phase: implementing/);
+});
+
+test('task transition rejects disallowed pair', () => {
+  runTaskContractRecord('task-001', minimalContract);
+  runMissionTransition('building', 'task-001');
+  const result = runTaskTransition('task-001', 'closed');
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.ok(result.error.guards?.some((g) => g.code === 'transition_not_allowed'));
 });

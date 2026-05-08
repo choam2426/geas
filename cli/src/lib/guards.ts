@@ -239,6 +239,52 @@ export function checkTaskContractRecord(ctx: TaskContractGuardCtx, cwd?: string)
   return failures.length === 0 ? ok() : fail(failures);
 }
 
+const ALLOWED_TASK_TRANSITIONS = new Set<string>([
+  'unstarted->implementing',
+  'awaiting_user_judgment->implementing',
+  'awaiting_user_judgment->verifying',
+  'awaiting_user_judgment->reviewing',
+  'reviewing->challenging',
+  'awaiting_user_judgment->challenging',
+  'verifying->awaiting_user_judgment',
+  'reviewing->awaiting_user_judgment',
+  'challenging->awaiting_user_judgment',
+]);
+
+const REVISE_REQUIRED_TARGETS = new Set<string>(['implementing', 'verifying', 'reviewing', 'challenging']);
+
+export function checkTaskTransition(
+  runState: RunState | null,
+  taskId: string,
+  toPhase: 'unstarted' | 'implementing' | 'verifying' | 'reviewing' | 'challenging' | 'awaiting_user_judgment' | 'closed',
+  cwd?: string,
+): GuardResult {
+  if (!runState) return fail([{ code: 'run_state_missing' }]);
+  if (runState.current_stage !== 'building') return fail([{ code: 'stage_not_building', detail: runState.current_stage }]);
+  if (runState.current_task_id !== taskId) return fail([{ code: 'task_not_current', detail: `current=${runState.current_task_id}` }]);
+  const failures: GuardFailure[] = [];
+  const td = taskDir(runState.current_mission_id, taskId, cwd);
+  const contract = readLatestNumbered(td, 'task-contract');
+  if (!contract) failures.push({ code: 'task_contract_missing' });
+  const ts = readTaskState(runState.current_mission_id, taskId, cwd);
+  if (!ts) {
+    failures.push({ code: 'task_state_missing' });
+    return fail(failures);
+  }
+  const fromPhase = ts.phase;
+  const pair = `${fromPhase}->${toPhase}`;
+  if (!ALLOWED_TASK_TRANSITIONS.has(pair)) {
+    failures.push({ code: 'transition_not_allowed', detail: pair });
+  }
+  if (fromPhase === 'awaiting_user_judgment' && REVISE_REQUIRED_TARGETS.has(toPhase)) {
+    const judgment = readLatestNumbered<{ decision: string }>(td, 'user-judgment-result');
+    if (!judgment || judgment.payload.decision !== 'revise') {
+      failures.push({ code: 'judgment_not_revise', detail: judgment?.payload.decision ?? 'missing' });
+    }
+  }
+  return failures.length === 0 ? ok() : fail(failures);
+}
+
 export function checkMissionEvidenceRecord(runState: RunState | null, cwd?: string): GuardResult {
   if (!runState) return fail([{ code: 'run_state_missing' }]);
   const failures: GuardFailure[] = [];
