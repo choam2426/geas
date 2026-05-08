@@ -360,6 +360,48 @@ export function checkJudgmentRecord(
   return failures.length === 0 ? ok() : fail(failures);
 }
 
+type MemoryItemPayload = { source_refs: string[] };
+
+export function checkMemoryRecord(
+  runState: RunState | null,
+  scope: 'common' | 'role',
+  role: string | undefined,
+  payload: MemoryItemPayload,
+  cwd?: string,
+): GuardResult {
+  if (!runState) return fail([{ code: 'run_state_missing' }]);
+  const failures: GuardFailure[] = [];
+  if (runState.current_mission_id === '') failures.push({ code: 'no_current_mission' });
+  if (runState.current_stage !== 'consolidating') failures.push({ code: 'stage_not_consolidating', detail: runState.current_stage });
+  if (runState.current_mission_id !== '') {
+    const md = missionDir(runState.current_mission_id, cwd);
+    const judgment = readLatestNumbered<{ decision: string }>(md, 'user-judgment-result');
+    if (!judgment || !['accepted', 'accepted_with_limits'].includes(judgment.payload.decision)) {
+      failures.push({ code: 'mission_judgment_not_accepted' });
+    }
+  }
+  if (scope === 'role') {
+    if (!role) failures.push({ code: 'role_required' });
+    else if (!['orchestrator', 'work-designer', 'implementer', 'verifier', 'reviewer', 'challenger'].includes(role)) {
+      failures.push({ code: 'role_invalid', detail: role });
+    }
+  }
+
+  // source_refs must point at existing artifacts under .geas/missions/<mid>/
+  if (runState.current_mission_id !== '') {
+    const fs = require('node:fs') as typeof import('node:fs');
+    const md = missionDir(runState.current_mission_id, cwd);
+    for (const ref of payload.source_refs ?? []) {
+      const abs = pathJoin(md, ref);
+      if (!fs.existsSync(abs)) {
+        failures.push({ code: 'source_ref_missing', path: abs });
+      }
+    }
+  }
+
+  return failures.length === 0 ? ok() : fail(failures);
+}
+
 export function checkMissionEvidenceRecord(runState: RunState | null, cwd?: string): GuardResult {
   if (!runState) return fail([{ code: 'run_state_missing' }]);
   const failures: GuardFailure[] = [];
