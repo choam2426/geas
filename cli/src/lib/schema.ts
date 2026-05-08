@@ -43,7 +43,9 @@ function loadSchemas(): Record<string, unknown> {
   // load from disk.
   try {
     return require('virtual:schemas');
-  } catch {
+  } catch (e: unknown) {
+    const code = (e as NodeJS.ErrnoException)?.code;
+    if (code !== 'MODULE_NOT_FOUND') throw e;
     const schemasDir = join(__dirname, '..', '..', 'schemas');
     const out: Record<string, unknown> = {};
     for (const file of readdirSync(schemasDir)) {
@@ -82,6 +84,12 @@ export function validate(id: SchemaId, payload: unknown): ValidateOk | ValidateE
   }
   const ok = v(payload);
   if (ok) return { valid: true };
-  const errors = (v.errors ?? []).map((e) => `${e.instancePath || '/'} ${e.message ?? 'invalid'}`);
+  const errors = (v.errors ?? []).map((e) => {
+    const path = e.instancePath || '/';
+    const extra = e.keyword === 'additionalProperties'
+      ? ` (${(e.params as { additionalProperty?: string }).additionalProperty})`
+      : '';
+    return `${path} ${e.message ?? 'invalid'}${extra}`;
+  });
   return { valid: false, errors };
 }
