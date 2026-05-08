@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["approach_strategy", "alternatives_considered", "key_concepts", "scope_in", "scope_out", "task_breakdown", "assumptions", "risks"],
+  "properties": {
+    "approach_strategy": { "type": "string" },
+    "alternatives_considered": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["approach", "benefit", "cost", "decision_reason"],
+        "properties": {
+          "approach": { "type": "string" },
+          "benefit": { "type": "string" },
+          "cost": { "type": "string" },
+          "decision_reason": { "type": "string" }
+        }
+      }
+    },
+    "key_concepts": { "type": "array", "items": { "type": "string" } },
+    "scope_in": { "type": "array", "items": { "type": "string" } },
+    "scope_out": { "type": "array", "items": { "type": "string" } },
+    "task_breakdown": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["task_id", "description", "mission_coverage", "depends_on", "reason"],
+        "properties": {
+          "task_id": { "type": "string" },
+          "description": { "type": "string" },
+          "mission_coverage": { "type": "array", "items": { "type": "string" } },
+          "depends_on": { "type": "array", "items": { "type": "string" } },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } }
+  }
+}
