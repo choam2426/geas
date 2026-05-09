@@ -21,8 +21,6 @@ Geas repository root is the installable plugin root.
   LICENSE
 
   skills/
-  bin/
-    geas
   assets/
   cli/
   docs/
@@ -223,9 +221,14 @@ skills/
     references/
       mission-judgment-input.md
       reflection-memory.md
+
+  geas-cli/
+    SKILL.md
+    scripts/
+      geas
 ```
 
-Codex exposes these as plugin Skills under `geas`.
+Codex exposes these procedure and support Skills under `geas`.
 
 Claude Code exposes these as namespaced plugin Skills such as `/geas:mission`.
 
@@ -248,14 +251,16 @@ The template files are not client-native agent definitions. They are prompt sour
 
 ## CLI
 
-Geas exposes the CLI executable from the plugin root.
+Geas exposes the CLI executable as a script packaged with the `geas-cli` Skill.
 
 ```text
-bin/
-  geas
+skills/geas-cli/
+  SKILL.md
+  scripts/
+    geas
 ```
 
-`bin/geas` runs the built Geas CLI.
+`skills/geas-cli/scripts/geas` runs the built Geas CLI.
 
 The CLI source lives in `cli/`.
 

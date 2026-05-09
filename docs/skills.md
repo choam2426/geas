@@ -13,7 +13,8 @@
 - `mission` Skill이 User entrypoint와 Orchestrator 역할을 맡는다.
 - 내부 절차 Skill은 `specifying`, `building`, `implementing`, `verifying`, `reviewing`, `challenging`, `consolidating`으로 구성된다.
 - 각 Skill은 `SKILL.md`와 필요한 `references/` 파일을 가진다.
-- CLI 사용법은 각 Skill의 절차 안에 녹아 있다.
+- `geas-cli` Skill은 CLI 실행 방법과 bundled `scripts/geas`를 제공한다.
+- 각 절차 Skill은 자기 단계에서 직접 쓰는 CLI 명령을 절차 안에 녹이고, 전체 실행 참조는 `geas-cli`가 제공한다.
 - Skill 문서는 절차를 담고, Agent reference 문서는 역할 정의를 담는다.
 - Evidence는 agent가 준비하는 근거이며, 검토와 수용 판단은 User 쪽 행위로 유지된다.
 
@@ -77,6 +78,11 @@ skills/
     references/
       mission-judgment-input.md
       reflection-memory.md
+
+  geas-cli/
+    SKILL.md
+    scripts/
+      geas
 ```
 
 Skill 이름에는 plugin namespace가 붙는 상황을 전제로 하며, 디렉터리 이름은 기능 이름만 사용한다.
@@ -93,6 +99,7 @@ Skill 이름에는 plugin namespace가 붙는 상황을 전제로 하며, 디렉
 | `reviewing` | 내부 절차 | 변경의 위험, 회귀 가능성, 누락, Evidence 품질을 점검하고 Review Evidence를 준비한다. |
 | `challenging` | 내부 절차 | 숨은 가정, 범위 누수, 장기 비용, 약한 성공 기준, 미검증 범위를 압박해 Challenger Evidence를 준비한다. |
 | `consolidating` | 내부 절차 | accepted Task Evidence를 Mission 기준으로 묶고, User의 Mission 수용 판단에 필요한 입력과 Memory 후보를 준비한다. |
+| `geas-cli` | 지원 | Geas CLI 실행 방법과 bundled CLI script를 제공한다. |
 
 ## Skill 파일 작성 기준
 
@@ -201,7 +208,7 @@ CLI는 runtime artifact를 쓰는 수단이다. Skill은 CLI를 절차 안에서
 
 5단계의 검증은 구조 검증까지 수행한다.
 
-- 8개 Skill 디렉터리가 존재하고 각 디렉터리에 `SKILL.md`가 있다.
+- 8개 절차 Skill 디렉터리와 `geas-cli` 지원 Skill 디렉터리가 존재하고 각 디렉터리에 `SKILL.md`가 있다.
 - 각 `SKILL.md`의 frontmatter 이름과 설명이 Skill 책임과 맞는다.
 - 위 구조에 포함된 `references/` 파일과 Agent reference 파일이 존재한다.
 - Skill 이름이 기능 이름으로만 구성되어 있다.

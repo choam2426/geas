@@ -15,7 +15,7 @@ async function main() {
   }
   const schemasModule = `module.exports = ${JSON.stringify(schemas)};`;
 
-  const outFile = resolve(__dirname, '..', 'bin', 'geas');
+  const outFile = resolve(__dirname, '..', 'skills', 'geas-cli', 'scripts', 'geas');
   const outDir = dirname(outFile);
   if (!existsSync(outDir)) {
     mkdirSync(outDir, { recursive: true });

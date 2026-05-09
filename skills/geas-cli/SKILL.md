@@ -1,8 +1,19 @@
-# geas-cli
+---
+name: geas-cli
+description: "Reference and bundled script for invoking the Geas CLI. Use when a Geas procedure needs to write .geas/ runtime artifacts through the CLI."
+---
+
+# Geas CLI
 
 Reference for invoking the `geas` CLI. The CLI is the only writer for `.geas/` runtime artifacts.
 
 Full command surface: see `docs/cli.md`. Artifact schemas: see `docs/runtime.md`.
+
+## Bundled script
+
+The bundled executable lives at `scripts/geas` inside this skill. From the repository root, use `node skills/geas-cli/scripts/geas <command>` unless the client exposes the script as `geas` on PATH.
+
+In the examples below, `geas` means that bundled executable.
 
 ## Calling pattern
 
