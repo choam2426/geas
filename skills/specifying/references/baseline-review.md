@@ -35,6 +35,9 @@ When any blocker is present, the review packet should offer a focused return to 
 - Mission Design was drafted or recorded without an accepted Mission Spec as its basis.
 - A Task Contract was drafted or recorded without an accepted Mission Design task node as its basis.
 - One User choice is used to approve Mission Spec, Mission Design, and Task Contracts together.
+- A role-required artifact review lacks draft source or coordinator edit summary.
+- A role-required artifact was substantively authored, completed, or revised by the specifying context instead of the artifact author role.
+- Initial Task Contracts were created after a role-required Mission Design without work-designer-provided Task Contract candidates.
 - Mission Design does not show approach alternatives that differ in scope, risk, cost, or verification path, or does not state the reason for the selected approach.
 - Acceptance criteria are not connected to verification checks, review focus, or named unverified scope.
 - User-owned decisions are invisible, or agent-delegated decisions lack boundaries.
@@ -129,9 +132,9 @@ Ask the User whether to include Challenger. Make the cost explicit:
 I recommend a Challenger role pass before recording this draft because the scope and acceptance criteria will drive several downstream files. It will add one separate role review round, focused on hidden assumptions and long-term cost. Want to include it?
 ```
 
-If the User accepts, prepare a `challenger` role handoff using the boundary below and the current draft as input. Do not load or execute the challenging procedure locally to author findings. Wait for the challenger role result before presenting `references/briefings.md` Baseline Challenge. Baseline challenge findings are not Challenger Evidence, not User Judgment, and not runtime artifacts.
+If the User accepts, prepare a `challenger` role handoff using the boundary below and the current draft as input. Do not load or execute the challenging procedure locally to author findings. Wait for the challenger role result before presenting `references/briefings.md` Baseline Challenge. Baseline challenge findings are not Challenger Evidence, not User Judgment, not runtime artifacts, and not revised artifact content.
 
-Incorporate only User-accepted findings into the current Mission Spec, Mission Design, or Task Contract draft. If the finding affects an already recorded artifact, return to that artifact's revision path and record a new accepted version before building. If the User declines the challenge or discards a finding, keep the remaining assumption visible where relevant.
+When the User accepts challenge findings, send those findings to the current artifact author for revision. If the current artifact is coordinator-authored, the coordinator may revise it. If it is role-authored, return to the role author and wait for a revised payload. If the finding affects an already recorded artifact, return to that artifact's revision path and record a new accepted version before building. If the User declines the challenge or discards a finding, keep the remaining assumption visible where relevant.
 
 ## Challenge Handoff Boundary
 

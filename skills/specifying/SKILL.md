@@ -19,6 +19,7 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
 - Accept and record Mission Spec, Mission Design, and Task Contracts in sequence; do not treat one User response as approval for all three artifact types.
 - Treat `challenge spec`, `challenge design`, `challenge task contracts`, and `challenge deeper` as requests for a `challenger` role handoff. The specifying context prepares the handoff and briefs the returned result; it does not produce challenge findings itself.
 - Include `read_first` artifact or draft payload paths in specifying-stage role handoffs. The role must read those paths before producing findings or design output.
+- Track the author of every draft. If a role is required for an artifact, the role must return the draft or candidate payload; specifying may render, serialize, and record it, but must not add substantive content.
 - Record agreed baselines with the CLI; never hand-edit `.geas/` runtime artifacts.
 - If the CLI or runtime write is unavailable, keep the accepted payload ready, brief recording unavailable, and wait for caller/User direction instead of inventing a runtime artifact.
 - Keep User review and User Judgment separate from agent-side confidence or recommendations.
@@ -45,9 +46,10 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
 3. Draft the Mission Spec.
    - Load `references/mission-spec.md`.
    - Draft only after the User accepts a Baseline Candidate with no open readiness gates as the basis for a Mission Spec draft.
+   - Treat specifying as the Mission Spec author unless a role handoff was explicitly chosen for Spec drafting.
    - Draft all required Mission Spec fields.
    - Present the draft with `references/briefings.md` Mission Spec Review.
-   - Revise, request a `challenger` role handoff, or stop according to the User's choice.
+   - Revise, request a `challenger` role handoff, or stop according to the User's choice. If Challenger findings are accepted, revise only through the current Spec author.
    - After the User accepts the Mission Spec, use `geas init` if runtime storage is absent, use `geas mission create` if no Mission is active, and record the accepted Spec before drafting Mission Design.
 
 4. Draft the Mission Design.
@@ -55,18 +57,21 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
    - Load `references/mission-design.md`.
    - Make the Design Role Decision from `references/mission-design.md` before drafting.
    - Use `work-designer` as `role_required` when the Design creates or changes approach, Task graph, dependency order, alternatives, risk tradeoffs, or review-cost tradeoffs.
-   - If `work-designer` is required, prepare the handoff packet with `read_first` pointing to the accepted Mission Spec path and wait for the role result. The specifying context does not author the Mission Design payload itself.
+   - If `work-designer` is required, prepare the handoff packet with `read_first` pointing to the accepted Mission Spec path and wait for the role result. The work-designer must return the Mission Design payload and initial Task Contract candidates. The specifying context does not author the Mission Design payload or fill missing candidate content itself.
    - Use `role_omitted` only when the accepted Mission Spec or explicit User decision already supplies the approach and Task graph; include the omission reason in Mission Design Review.
+   - Present Design drafts with draft source and coordinator edits from `references/briefings.md`.
    - Present the draft with `references/briefings.md` Mission Design Review.
-   - Revise, request a `challenger` role handoff, return to Mission Spec, or stop according to the User's choice.
+   - Revise, request a `challenger` role handoff, return to Mission Spec, or stop according to the User's choice. If Challenger findings are accepted for a work-designer-authored draft, return them to work-designer for a revised payload before presenting a new Design Review.
    - After the User accepts the Mission Design, record it before drafting initial Task Contracts.
 
 5. Draft initial Task Contracts.
    - Start only after an accepted Mission Design has been recorded or is the explicit accepted basis for the current revision.
    - Load `references/task-contract.md`.
-   - Create one Task Contract per User-judgment-worthy work unit.
+   - Use initial Task Contract candidates returned by the Mission Design author. If `work-designer` was `role_required` and candidates are missing or incomplete, return to the work-designer author instead of writing them locally.
+   - Create one Task Contract per User-judgment-worthy work unit only when the Design author is specifying through `role_omitted`.
    - Prepare Task Cards so the User can review goal, scope, acceptance, verification, review focus, and dependencies before Task Contract acceptance.
    - Ensure each Task has acceptance criteria, verification checks, review focus, and risks.
+   - Present Task Contract drafts with draft source and coordinator edits from `references/briefings.md`.
    - Present the drafts with `references/briefings.md` Task Contract Review.
    - Initial Task Contracts may be reviewed in one packet after Mission Design acceptance, but this approval is separate from Mission Spec and Mission Design approval.
    - After the User accepts the Task Contracts, record each accepted Task Contract before entering building.

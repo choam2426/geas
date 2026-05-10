@@ -18,7 +18,7 @@ Return:
 ```text
 **Baseline Challenge**
 Mission: {mission_goal}
-Decision needed: decide which challenge findings should change the current draft.
+Decision needed: decide which challenge findings should return to the current artifact author.
 
 **Challenged Draft**
 - {draft_type}: {summary_or_ref}
@@ -33,8 +33,8 @@ Decision needed: decide which challenge findings should change the current draft
 I recommend {incorporating_or_discarding_findings} because {basis}. This is agent-side context, not User Judgment.
 
 **Choices**
-1. incorporate - apply the selected findings to the current draft.
-2. revise finding - adjust the finding or proposed draft change before applying it.
+1. incorporate - send the selected findings to the current artifact author for a revised draft.
+2. revise finding - adjust the finding or proposed draft change before sending it to the author.
 3. challenge deeper - request another focused challenger role pass before recording the current draft.
 4. discard - leave the current draft unchanged for this finding.
 ```

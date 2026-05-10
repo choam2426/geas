@@ -191,7 +191,7 @@ Decision needed: accept this Mission Spec, revise it, challenge it, or stop.
 I recommend {accept_or_revise_or_challenge} because {basis}. This is agent-side context, not User Judgment.
 
 **Choices**
-1. accept spec - record this Mission Spec, then draft Mission Design.
+1. accept spec - record this Mission Spec, then start Mission Design authoring.
 2. revise spec - adjust goal, scope, criteria, constraints, assumptions, or risks before recording.
 3. challenge spec - request a challenger role pass on this Mission Spec draft before recording.
 4. stop - leave the Mission Spec draft unrecorded.
@@ -224,6 +224,8 @@ Decision needed: accept this Mission Design, revise it, challenge it, return to 
 
 **Basis**
 - Mission Spec: {mission_spec_ref_or_summary}
+- Draft source: {work_designer_result_ref | role_omitted_reason}
+- Coordinator edits: {formatting_only | none | user_delegated_mechanical_edits}
 
 **Approach**
 - Selected: {approach_strategy}
@@ -241,7 +243,7 @@ Decision needed: accept this Mission Design, revise it, challenge it, return to 
 I recommend {accept_or_revise_or_challenge_or_return} because {basis}. This is agent-side context, not User Judgment.
 
 **Choices**
-1. accept design - record this Mission Design, then draft initial Task Contracts.
+1. accept design - record this Mission Design, then present initial Task Contracts from the artifact author candidates.
 2. revise design - adjust approach, task structure, dependencies, concepts, assumptions, or risks before recording.
 3. challenge design - request a challenger role pass on this Mission Design draft before recording.
 4. return to spec - revise the accepted Mission Spec before continuing.
@@ -272,6 +274,8 @@ Decision needed: accept these Task Contracts, revise them, return to Mission Des
 
 **Basis**
 - Mission Design: {mission_design_ref_or_summary}
+- Draft source: {work_designer_task_candidates_ref | specifying_role_omitted_reason}
+- Coordinator edits: {formatting_only | none | user_delegated_mechanical_edits}
 
 **Task Cards**
 - {task_id}: Goal: {goal}. Scope: {scope_summary}. Acceptance: {criteria_summary}. Verification: {checks_summary}. Review focus: {focus_summary}. Depends on: {dependencies_or_none}
@@ -338,7 +342,7 @@ I recommend {start_building_or_return} because {basis}. This is agent-side conte
 
 Use during specifying after the User agrees to a Challenger pass before recording the current Spec, Design, or Task Contract draft.
 
-This is conversation output for User review. It is not Challenger Evidence, not User Judgment, and not a runtime artifact. Accepted findings are incorporated into the current Mission Spec, Mission Design, or Task Contract draft before that artifact is recorded.
+This is conversation output for User review. It is not Challenger Evidence, not User Judgment, not a runtime artifact, and not revised artifact content. Accepted findings go back to the current artifact author for revision before that artifact is recorded.
 
 Include:
 
@@ -353,7 +357,7 @@ Use this shape:
 ```text
 **Baseline Challenge**
 Mission: {mission_goal}
-Decision needed: decide which challenge findings should change the current draft.
+Decision needed: decide which challenge findings should return to the current artifact author.
 
 **Challenged Draft**
 - Type: {mission_spec | mission_design | task_contract}
@@ -369,13 +373,13 @@ Decision needed: decide which challenge findings should change the current draft
 I recommend incorporating {finding_ids_or_none} because {basis}. This is agent-side context, not User Judgment.
 
 **Choices**
-1. incorporate - apply the selected findings to the current draft.
-2. revise finding - adjust the finding or proposed draft change before applying it.
+1. incorporate - send the selected findings to the current artifact author for a revised draft.
+2. revise finding - adjust the finding or proposed draft change before sending it to the author.
 3. challenge deeper - request another focused challenger role pass before recording the current draft.
 4. discard - leave the current draft unchanged for this finding.
 ```
 
-When a finding is incorporated, the current baseline artifact should carry the resulting assumption, scope boundary, risk, acceptance criterion, Task split, or verification/review focus. Do not record the briefing itself as runtime Evidence.
+When a finding is incorporated, the revised artifact from the current artifact author should carry the resulting assumption, scope boundary, risk, acceptance criterion, Task split, or verification/review focus. Do not record the briefing itself as runtime Evidence.
 
 ## Task Judgment Briefing
 

@@ -1,12 +1,12 @@
 # Task Contract
 
-Use this reference to draft Task Contracts from the accepted Mission Design.
+Use this reference to prepare Task Contract review packets from the accepted Mission Design and the current artifact author's Task Contract candidates.
 
 ## Purpose
 
 Task Contract turns a Mission Design task node into an execution baseline. It defines what the Task will do, what it will leave out, what it must deliver, how the result will be checked, and what Review Evidence should inspect.
 
-Draft Task Contracts only from accepted Mission Design task nodes. If the Design is still a draft, return to Mission Design review before drafting Task Contracts.
+Prepare Task Contracts only from accepted Mission Design task nodes and the current artifact author's Task Contract candidates. If the Design is still a draft, return to Mission Design review before preparing Task Contracts.
 
 After User review, record each accepted Task Contract with:
 
@@ -28,6 +28,16 @@ verification_checks: []
 review_focus: []
 risks: []
 ```
+
+## Authorship
+
+Task Contract authorship follows Mission Design authorship.
+
+- If Mission Design used `work-designer` as `role_required`, draft Task Contracts from the work-designer's returned initial Task Contract candidates. If candidates are missing or incomplete, return to work-designer instead of filling the gap locally.
+- If Mission Design used `role_omitted`, specifying may draft Task Contracts from the accepted Mission Design task nodes and must name the omission reason in the review packet.
+- If Challenger findings are accepted against Task Contract drafts, return them to the current Task Contract author for revision before presenting a new review.
+
+The specifying context may format Task Cards, serialize accepted payloads, and record through the CLI. It must not add substantive scope, deliverables, acceptance criteria, verification checks, review focus, dependencies, or risks to a role-authored Task Contract candidate.
 
 ## Drafting Procedure
 

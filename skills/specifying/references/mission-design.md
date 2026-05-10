@@ -57,6 +57,16 @@ When `work-designer` is required and handoff is unavailable, surface the recover
 - Proceed without the independent design pass and name the missing role output.
 - Stop before recording Mission Design.
 
+## Authorship
+
+When `work-designer` is `role_required`, the work-designer is the author of the Mission Design draft and initial Task Contract candidates.
+
+The specifying context may render the returned draft for User review and serialize accepted payloads for recording. It must not add substantive approach, alternatives, task graph, dependencies, Task Contract candidate fields, acceptance criteria, verification checks, review focus, assumptions, or risks.
+
+If the work-designer result is incomplete, return to the work-designer, ask the User for a decision, or stop before recording. Do not fill the missing content locally.
+
+If Challenger findings are accepted against a work-designer-authored draft, return those findings to the work-designer for a revised Mission Design payload or Task Contract candidates before presenting the next review.
+
 ## Design Procedure
 
 Use this procedure inside the `work-designer` role context, or in the specifying context only when `role_omitted` has a named omission reason.
@@ -117,9 +127,9 @@ When invoking the `work-designer` role, pass:
 - Known User decisions and constraints.
 - Candidate task boundaries.
 - Risks and ambiguities.
-- Required output: Mission Design payload and initial Task Contract candidates.
+- Required output: Mission Design payload and initial Task Contract candidates, including Task Cards with Goal, Scope, Acceptance, Verification, Review focus, and Depends on.
 - Lenses, if useful, such as `documentation`, `software`, `runtime`, or `product`.
 
 If the role cannot read the accepted Mission Spec path, treat the handoff as unavailable and use the recovery choices above.
 
-The calling context remains responsible for User review and recording. It does not replace the work-designer result with a locally written equivalent when `role_required`.
+The calling context remains responsible for User review and recording. It does not replace, complete, or substantively revise the work-designer result with a locally written equivalent when `role_required`.

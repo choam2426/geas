@@ -75,6 +75,29 @@ The calling context prepares the handoff packet, receives the role result, brief
 
 The role reads every `read_first` path before working. If a required `read_first` path cannot be read, treat the role handoff as unavailable.
 
+## Artifact Authorship Boundary
+
+When a role is `role_required` for an artifact, draft, candidate payload, or Evidence payload, that role is the artifact author for that output.
+
+The calling context may:
+
+- Prepare the handoff packet.
+- Render the returned payload for User review.
+- Serialize an accepted payload into the CLI input shape.
+- Record accepted payloads through the CLI.
+- Apply purely mechanical formatting that does not add scope, criteria, checks, risks, decisions, or findings.
+
+The calling context must not:
+
+- Fill missing substantive fields in a role-authored artifact.
+- Convert role notes into new artifact content without a returned payload.
+- Revise a role-authored artifact after Challenger findings are accepted.
+- Present a coordinator-authored draft as if it came from the role.
+
+If a role-authored payload is missing required content, return to the role author, ask the User for a decision, or stop before recording.
+
+Accepted Challenger findings return to the current artifact author for revision. The Challenger does not rewrite the artifact, and the calling context does not apply substantive findings directly unless the current artifact is explicitly coordinator-authored or the User delegates a mechanical edit.
+
 When role handoff is unavailable, surface the recovery choice to the User:
 
 - Retry the role handoff.
@@ -95,6 +118,7 @@ When using an Agent role, pass:
 - Mission and Task context summaries that help navigation.
 - Inputs to inspect.
 - Expected output type and Evidence kind.
+- Artifact author responsibility: draft payload, candidate payload, Evidence payload, or advisory findings.
 - Write authority: whether the role may record through the CLI or must return output for the caller to review.
 - Return format: Evidence path, briefing input, structured findings, or draft payload.
 - Focus.
