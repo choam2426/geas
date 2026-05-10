@@ -18,7 +18,7 @@ The checkpoint supports continuity. It is not Evidence and not User Judgment.
 4. If all changed paths belong to the Task result or its runtime records, prepare a commit.
 5. If unrelated changes are present, brief the User and ask what to stage.
 6. Use a commit message that includes the Task id and concise result.
-7. Use the Git Checkpoint Briefing in `../../mission/references/briefings.md` with state `recommended`, `created`, `skipped`, or `blocked`.
+7. Use the Git Checkpoint briefing in `briefings.md` with state `recommended`, `created`, `skipped`, or `blocked`.
 8. If commit succeeds, include the commit hash and any uncommitted changes.
 9. If commit is only recommended, skipped, or blocked, brief the reason and the next safe runtime step before moving to another Task or consolidating.
 

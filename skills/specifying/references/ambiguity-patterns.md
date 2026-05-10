@@ -28,7 +28,7 @@ Ask when the ambiguity changes scope, acceptance criteria, verification, User re
 Good questions name the consequence:
 
 ```text
-If we include plugin packaging now, the Mission will move beyond Skill/Agent implementation into step 6. Should packaging stay out of this Mission?
+If we include packaging now, the Mission will move beyond the current procedure changes into release work. Should packaging stay out of this Mission?
 ```
 
 ### Draft an Assumption
@@ -36,7 +36,7 @@ If we include plugin packaging now, the Mission will move beyond Skill/Agent imp
 Draft an assumption when the ambiguity is low risk and easy for the User to correct in review.
 
 ```text
-Assumption: The first implementation target is Codex Skill/Agent source files, while plugin packaging remains outside this Mission.
+Assumption: The first implementation target is the procedure and role-prompt files, while packaging work remains outside this Mission.
 ```
 
 ### Split the Mission

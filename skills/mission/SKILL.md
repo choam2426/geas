@@ -1,11 +1,11 @@
 ---
 name: mission
-description: "Mission entrypoint and stage orchestrator. Use to start or resume a Mission, inspect runtime state, coordinate specifying, building, and consolidating stage skills, prepare User briefings, and close Missions with Evidence for User Judgment."
+description: "Mission entrypoint and stage coordinator. Use to start or resume a Mission, inspect runtime state, coordinate available specifying, building, and consolidating stage procedures, prepare User briefings, and close Missions with Evidence for User Judgment."
 ---
 
 # Mission
 
-Use this skill as the single Geas User entrypoint and Orchestrator procedure.
+Use this skill as the single Geas User entrypoint and stage coordination procedure.
 
 Mission owns state inspection, User briefing, stage dispatch, Mission closure, and the boundary between agent-side Evidence and User Judgment.
 
@@ -14,7 +14,11 @@ Mission owns state inspection, User briefing, stage dispatch, Mission closure, a
 - Start by inspecting context; do not dispatch from stale memory.
 - Treat `run-state.yaml`, Mission baselines, Task Contract, Evidence, and User Judgment as the recovery basis.
 - Keep runtime writes behind the Geas CLI.
+- If the CLI or required procedure is unavailable, prepare the draft or handoff packet that would be recorded, brief the unavailable capability, and wait for caller/User direction instead of inventing a runtime write.
 - Use prompt-level handoff to internal skills and role prompts; product-specific plugin dispatch belongs to packaging.
+- At each role-producing step, decide `role_required`, `role_optional`, or `role_omitted` from `references/dispatch.md`.
+- When a role pass is required or chosen, hand off with the role prompt and procedure skill; Mission receives the role output instead of producing it directly.
+- Include `read_first` artifact paths in every role handoff. The role must read those paths before producing output.
 - Present decisions, tradeoffs, unverified scope, and remaining risk to the User.
 - Record User Judgment only from the User's decision.
 
@@ -32,14 +36,15 @@ Mission owns state inspection, User briefing, stage dispatch, Mission closure, a
    - Surface decisions or drift before doing more work.
 
 3. Dispatch the next procedure.
-   - Use `specifying` for Mission baseline formation or baseline revision.
-   - Use `building` for the building-stage Task loop.
-   - Use `consolidating` for Mission-level judgment input.
-   - Use role prompts from `references/agents/` when a separate role pass materially improves Evidence quality.
+   - Use an available specifying procedure for Mission baseline formation or baseline revision.
+   - Use an available building procedure for the building-stage Task loop.
+   - Use an available consolidating procedure for Mission-level judgment input.
+   - If the required procedure is unavailable, prepare a prompt-level handoff packet and brief the User on the missing capability.
+   - Use role prompts from `references/agents/` only through an explicit role invocation decision.
 
-4. Let `building` own Task closure.
-   - Task phase dispatch, Task Judgment briefing, Task result User Judgment, Task Evidence, task-end git checkpointing, and next Task selection happen in `building`.
-   - Mission remains responsible for returning to `specifying` or `consolidating` when the stage-level runtime state requires it.
+4. Let the building procedure own Task closure when available.
+   - Task phase dispatch, Task Judgment briefing, Task result User Judgment, Task Evidence, task-end git checkpointing, and next Task selection happen in the building procedure.
+   - Mission remains responsible for returning to baseline revision or consolidation when the stage-level runtime state requires it.
 
 5. Close Mission when the User has judged the Mission result.
    - Use `references/mission-closure.md`.

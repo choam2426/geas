@@ -98,4 +98,4 @@ Examples:
 - Findings include basis and recommendation.
 - Scope out is explicit.
 - Verdict does not replace User Judgment.
-- Recommendation is phrased as input to `building` and User.
+- Recommendation is phrased as input to the calling procedure and User.

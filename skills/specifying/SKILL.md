@@ -16,61 +16,74 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
 - Ask one focused question at a time during elicitation unless a small batch of related choices lowers User burden.
 - Prefer confirm-this prompts when repo facts or existing artifacts already suggest a likely answer.
 - Keep drafts outside runtime until the User has reviewed the baseline.
+- Accept and record Mission Spec, Mission Design, and Task Contracts in sequence; do not treat one User response as approval for all three artifact types.
+- Treat `challenge spec`, `challenge design`, `challenge task contracts`, and `challenge deeper` as requests for a `challenger` role handoff. The specifying context prepares the handoff and briefs the returned result; it does not produce challenge findings itself.
+- Include `read_first` artifact or draft payload paths in specifying-stage role handoffs. The role must read those paths before producing findings or design output.
 - Record agreed baselines with the CLI; never hand-edit `.geas/` runtime artifacts.
+- If the CLI or runtime write is unavailable, keep the accepted payload ready, brief recording unavailable, and wait for caller/User direction instead of inventing a runtime artifact.
 - Keep User review and User Judgment separate from agent-side confidence or recommendations.
 
 ## Workflow
 
 1. Prepare context.
-   - Read `docs/definition.md`, `docs/runtime.md`, `docs/cli.md`, and the relevant operating docs when working in the Geas repo.
    - Load `references/interview.md` and `references/ambiguity-patterns.md`.
    - Run the `references/interview.md` Project Pre-Scan before the first intake question.
-   - Use observed project facts to convert blank questions into confirm-this prompts.
+   - Treat project documents found during the scan as target-project facts, not as prerequisites for using this Skill.
+   - Separate observed facts from candidate interpretation.
+   - Use `references/interview.md` Intake Output Flow to choose the next user-facing output.
 
 2. Elicit the Mission.
    - Identify goal, background, success criteria, included scope, excluded scope, constraints, assumptions, risks, decision owners, and expected review burden.
    - Use `references/interview.md` for the interaction loop.
    - Use `references/ambiguity-patterns.md` whenever a request has multiple plausible interpretations.
    - Maintain an intake ledger: readiness gate, current value, source status, target artifact field, and whether it remains open.
-   - If the User asks for a draft while gates are open, show an Intake Sketch with gate status and ask the next gate-closing question.
-   - Move from intake to baseline drafting after the minimum readiness gates in `references/interview.md` have accepted source statuses.
+   - Start user-facing intake with an Intake Sketch when the conversation does not already contain a User-accepted Baseline Candidate.
+   - Use Intake Sketches for observed facts, candidate assumptions, gate status, and the next gate-closing choice. Do not include artifact acceptance choices in an Intake Sketch.
+   - Present Intake Sketch and Baseline Candidate with `references/briefings.md`.
+   - Move from intake to Mission Spec drafting only after a Baseline Candidate has no open readiness gates and the User has accepted it as the basis for a Mission Spec draft.
 
 3. Draft the Mission Spec.
    - Load `references/mission-spec.md`.
-   - Draft only after intake can produce a Baseline Candidate without open readiness gates.
+   - Draft only after the User accepts a Baseline Candidate with no open readiness gates as the basis for a Mission Spec draft.
    - Draft all required Mission Spec fields.
-   - Present the draft for User review and revise until the User accepts it as the baseline.
+   - Present the draft with `references/briefings.md` Mission Spec Review.
+   - Revise, request a `challenger` role handoff, or stop according to the User's choice.
+   - After the User accepts the Mission Spec, use `geas init` if runtime storage is absent, use `geas mission create` if no Mission is active, and record the accepted Spec before drafting Mission Design.
 
 4. Draft the Mission Design.
+   - Start only after an accepted Mission Spec has been recorded or is the explicit accepted basis for the current revision.
    - Load `references/mission-design.md`.
-   - Compare approach options that differ in scope, risk, cost, or verification path, then record the selected approach with the reason it was chosen.
-   - Use or hand off to the `work-designer` role when Task structure, dependency order, alternatives, or risk tradeoffs need an independent design pass.
-   - Present the design for User review and revise until accepted.
+   - Make the Design Role Decision from `references/mission-design.md` before drafting.
+   - Use `work-designer` as `role_required` when the Design creates or changes approach, Task graph, dependency order, alternatives, risk tradeoffs, or review-cost tradeoffs.
+   - If `work-designer` is required, prepare the handoff packet with `read_first` pointing to the accepted Mission Spec path and wait for the role result. The specifying context does not author the Mission Design payload itself.
+   - Use `role_omitted` only when the accepted Mission Spec or explicit User decision already supplies the approach and Task graph; include the omission reason in Mission Design Review.
+   - Present the draft with `references/briefings.md` Mission Design Review.
+   - Revise, request a `challenger` role handoff, return to Mission Spec, or stop according to the User's choice.
+   - After the User accepts the Mission Design, record it before drafting initial Task Contracts.
 
 5. Draft initial Task Contracts.
+   - Start only after an accepted Mission Design has been recorded or is the explicit accepted basis for the current revision.
    - Load `references/task-contract.md`.
    - Create one Task Contract per User-judgment-worthy work unit.
-   - Prepare Task Cards so the User can review goal, scope, acceptance, verification, review focus, and dependencies before baseline acceptance.
+   - Prepare Task Cards so the User can review goal, scope, acceptance, verification, review focus, and dependencies before Task Contract acceptance.
    - Ensure each Task has acceptance criteria, verification checks, review focus, and risks.
+   - Present the drafts with `references/briefings.md` Task Contract Review.
+   - Initial Task Contracts may be reviewed in one packet after Mission Design acceptance, but this approval is separate from Mission Spec and Mission Design approval.
+   - After the User accepts the Task Contracts, record each accepted Task Contract before entering building.
 
-6. Run baseline review.
+6. Run baseline readiness review.
    - Load `references/baseline-review.md`.
-   - Check readiness gate status, Spec Self-Check, Task Cards, Mission Spec, Mission Design, and Task Contracts for clarity, coverage, traceability, testability, and review cost.
-   - If the review finds readiness blockers, return to interview, Mission Design drafting, or Task Contract drafting before offering `accept baseline`.
-   - Recommend Challenger involvement when baseline ambiguity, risk, irreversibility, or broad delegation justifies it. Proceed with challenge only when the User accepts the added review pass.
+   - Check accepted Mission Spec, accepted Mission Design, accepted Task Contracts, readiness gate status, Spec Self-Check, Task Cards, and transfer context for clarity, coverage, traceability, testability, and review cost.
+   - If the review finds readiness blockers, return to interview, Mission Spec revision, Mission Design revision, or Task Contract revision before entering building.
+   - Recommend Challenger involvement at the current approval stage when ambiguity, risk, irreversibility, or broad delegation justifies it. Proceed only by `challenger` role handoff when the User accepts the added role pass.
+   - Use `references/briefings.md` Baseline Readiness when all accepted artifacts are ready for building transition.
 
-7. Record accepted baselines.
-   - Use `geas init` if runtime storage is absent.
-   - Use `geas mission create` when starting a new Mission.
-   - Use `geas mission spec record --from <path|->`.
-   - Use `geas mission design record --from <path|->`.
-   - Use `geas task contract record --task <task-id> --from <path|->` for each initial Task Contract.
+7. Enter building after accepted baselines are recorded.
    - Use `geas mission transition --to building --task <task-id>` only after the first Task Contract is recorded and the User is ready to start building.
 
 8. Consider session handoff before building.
-   - Load `../mission/references/session-handoff.md`.
    - Recommend a fresh building session when specifying consumed substantial context, required heavy research, produced five or more initial Tasks, or left many baseline decisions that must stay visible.
-   - Use `../mission/references/briefings.md` Session Handoff Briefing.
+   - Use `references/briefings.md` Session Handoff.
    - If the User chooses a fresh session, stop after the briefing and leave building to resume from recorded runtime state.
 
 ## Outputs
@@ -89,4 +102,4 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
 - `references/mission-design.md`: Draft Mission Design content.
 - `references/task-contract.md`: Draft Task Contracts from the Mission baseline.
 - `references/baseline-review.md`: Prepare baseline review and optional Challenger recommendation.
-- `../mission/references/session-handoff.md`: Decide whether to recommend a fresh building session after context-heavy specifying.
+- `references/briefings.md`: Prepare specifying-stage review, readiness, challenge, and session handoff briefings.

@@ -79,7 +79,7 @@ Allowed criteria result values:
 
 Successful recording closes the Task phase.
 
-After accepted Task Evidence is recorded, load `git-checkpoint.md` and use the accepted Task Closure Briefing plus Git Checkpoint Briefing in `../../mission/references/briefings.md`.
+After accepted Task Evidence is recorded, load `git-checkpoint.md` and use the accepted Task Closure briefing plus Git Checkpoint briefing in `briefings.md`.
 
 ## Revise
 

@@ -66,16 +66,16 @@ Example:
 
 ```yaml
 completion_criteria:
-  - "All planned Skill and Agent prompt files exist and pass structural validation."
+  - "All planned procedure documents exist and pass structural validation."
   - "Task Evidence for each implementation Task has been accepted by the User."
 acceptance_criteria:
-  - "The mission skill can route stage Skills, and the building skill can coordinate the Task loop using prompt-level handoff."
-  - "Every role Evidence type has a corresponding Skill procedure and Agent role prompt."
+  - "The entrypoint can route the agreed stages, and the Task loop can coordinate implementation, verification, review, optional challenge, and User judgment."
+  - "Every Evidence type has a corresponding procedure and output shape."
 ```
 
 ## Review Before Recording
 
-Before recording, present the draft and ask the User to accept or revise it. Include:
+Before recording, present the Mission Spec draft and ask the User to accept or revise the Spec only. This acceptance does not approve Mission Design or Task Contracts. Include:
 
 - One sentence summary.
 - Scope in/out.
@@ -83,4 +83,4 @@ Before recording, present the draft and ask the User to accept or revise it. Inc
 - Assumptions that affect implementation.
 - Risks that may require Challenger.
 
-Record only the accepted baseline.
+Record only the accepted Mission Spec. After it is recorded, use it as the basis for Mission Design drafting.

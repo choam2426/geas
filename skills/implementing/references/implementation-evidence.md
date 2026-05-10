@@ -54,7 +54,7 @@ Use `contract_deltas` when implementation reveals:
 - A dependency was discovered.
 - The Task touches Mission scope not represented in the contract.
 
-Contract deltas do not authorize scope expansion. They give `mission` and the User a basis for revision or acceptance with limits.
+Contract deltas do not authorize scope expansion. They give the calling context and the User a basis for revision or acceptance with limits.
 
 ## Evidence Quality Checklist
 

@@ -13,7 +13,7 @@ Use this reference to prepare Mission-level User Judgment input.
 
 ## Output Packet
 
-Return this packet to `mission`:
+Return this packet to the calling Mission or orchestration context:
 
 ```yaml
 mission_summary: ""

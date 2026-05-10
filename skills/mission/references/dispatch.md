@@ -28,15 +28,21 @@ If state and artifacts disagree, treat it as drift. Brief the User and choose th
 
 Building owns Task phase dispatch, Task Judgment, Task closure, task-end checkpoints, next Task selection, and transition to `consolidating`.
 
+If the selected procedure is unavailable, do not simulate its output. Prepare the prompt-level handoff packet, brief the missing capability, and offer retry with the procedure available, proceed without that procedure when safe, or stop.
+
 ## Prompt-Level Handoff
 
-Internal skill invocation in step 5 is a prompt-level handoff. Include:
+Procedure invocation is a prompt-level handoff. Include:
 
-- Procedure name.
+- Procedure name or requested capability.
 - Mission id and current stage.
 - Task id and phase when relevant.
-- Latest baseline artifact paths.
-- Evidence paths to read.
+- `read_first`: artifact paths the receiving procedure or role must read before work.
+  - Latest accepted Mission Spec when present.
+  - Latest accepted Mission Design when present.
+  - Current Task Contract when task-scoped.
+  - Relevant Evidence when evidence-scoped.
+  - Current draft target when draft-scoped.
 - User decisions and constraints.
 - Required output payload.
 - CLI command expected after User review.
@@ -45,17 +51,52 @@ Internal skill invocation in step 5 is a prompt-level handoff. Include:
 
 This handoff is context, not a runtime artifact.
 
+## Role Invocation Flow
+
+Before a calling context reaches a role-producing step, decide one of:
+
+- `role_required`: the role output is needed before changing the baseline, Task state, or Evidence path.
+- `role_optional`: the role can improve confidence, but the caller may continue without it after naming the missing role output.
+- `role_omitted`: the role is not needed because the current artifact already supplies the role's decision surface.
+
+Use `role_required` for:
+
+- Work design that creates or changes approach, Task graph, dependency order, or review-cost tradeoffs.
+- Implementation, verification, or review phases that produce Task Evidence.
+- Challenger passes the User requested or the procedure marked necessary before recording.
+
+Use `role_omitted` only when the caller can name the accepted artifact or User decision that already covers the role's responsibility. Surface the omission reason in the briefing or review packet. Do not silently omit a role-producing step.
+
+## Role Execution Boundary
+
+Role output is produced in the role context named by the handoff.
+
+The calling context prepares the handoff packet, receives the role result, briefs the User, and applies User decisions. It does not impersonate the role or replace the role result with a locally written equivalent.
+
+The role reads every `read_first` path before working. If a required `read_first` path cannot be read, treat the role handoff as unavailable.
+
+When role handoff is unavailable, surface the recovery choice to the User:
+
+- Retry the role handoff.
+- Proceed without that role pass and name the missing role output.
+- Stop before changing the baseline, Task, or Evidence path that needed the role pass.
+
 ## Role Handoff Checklist
 
 When using an Agent role, pass:
 
 - `role`: `work-designer`, `implementer`, `verifier`, `reviewer`, or `challenger`.
+- `invocation_decision`: `role_required` or `role_optional`.
+- `role_prompt_path`: prompt file or role instruction path to use.
+- `procedure_skill`: procedure skill the role should run, such as `specifying`, `implementing`, `verifying`, `reviewing`, or `challenging`.
 - `lenses`: zero or more lenses such as `documentation`, `software`, `runtime`, `security`, `compatibility`, `operations`, `data`, `research`, `product`, `ux`.
 - Common Memory and the role-specific Memory for the role being invoked, when present.
-- Mission context and artifact paths.
-- Task context and artifact paths.
+- `read_first`: artifact paths the role must read before work, including latest accepted Mission Spec and Mission Design when present, current Task Contract when task-scoped, relevant Evidence when evidence-scoped, and current draft target when draft-scoped.
+- Mission and Task context summaries that help navigation.
 - Inputs to inspect.
-- Output type and Evidence kind.
+- Expected output type and Evidence kind.
+- Write authority: whether the role may record through the CLI or must return output for the caller to review.
+- Return format: Evidence path, briefing input, structured findings, or draft payload.
 - Focus.
 - Responsibility boundary.
 - Decisions to surface.

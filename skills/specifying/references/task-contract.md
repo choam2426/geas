@@ -1,10 +1,12 @@
 # Task Contract
 
-Use this reference to draft Task Contracts from the Mission Design.
+Use this reference to draft Task Contracts from the accepted Mission Design.
 
 ## Purpose
 
 Task Contract turns a Mission Design task node into an execution baseline. It defines what the Task will do, what it will leave out, what it must deliver, how the result will be checked, and what Review Evidence should inspect.
+
+Draft Task Contracts only from accepted Mission Design task nodes. If the Design is still a draft, return to Mission Design review before drafting Task Contracts.
 
 After User review, record each accepted Task Contract with:
 
@@ -29,7 +31,7 @@ risks: []
 
 ## Drafting Procedure
 
-1. Start from the Mission Design `task_breakdown` entry.
+1. Start from the accepted Mission Design `task_breakdown` entry.
 2. Write the Task's intended result in one sentence.
 3. Map the Task to Mission acceptance criteria or scope.
 4. Carry dependencies from Mission Design.
@@ -54,8 +56,8 @@ Use examples:
 
 ```yaml
 acceptance_criteria:
-  - "The mission Skill dispatches stage Skills, and the building Skill coordinates implementation, verification, review, optional challenge, and Task Judgment without requiring a separate orchestrator Agent file."
-  - "Each internal Skill includes only the CLI commands it directly uses."
+  - "The entrypoint can route the agreed work through implementation, verification, review, optional challenge, and User judgment without requiring unrelated coordinator files."
+  - "Each procedure document includes only the command examples it directly uses."
 ```
 
 ## Verification Checks
@@ -74,7 +76,7 @@ Example:
 ```yaml
 verification_checks:
   - "Run skill validator for every Skill directory."
-  - "Search skills/ and skills/mission/references/agents/ for retired product prefixes and retired shared-reference directory names."
+  - "Search the relevant procedure and role prompt files for retired product prefixes and retired shared-reference directory names."
 ```
 
 ## Review Focus
@@ -88,7 +90,7 @@ Examples:
 - Hidden scope expansion.
 - Overly vague acceptance criteria.
 - Missing unverified scope.
-- Mismatch with `docs/cli.md`.
+- Mismatch with the CLI commands used by this Task.
 
 ## Split Heuristics
 
@@ -104,3 +106,9 @@ Keep a Task together when:
 - The deliverables are tightly coupled.
 - A single Evidence packet can lower User review cost.
 - Splitting would create artificial handoff overhead.
+
+## Review Before Recording
+
+Before recording, present the Task Contract drafts and ask the User to accept or revise Task Contracts only. Initial Task Contracts may be reviewed in one packet after Mission Design acceptance.
+
+Record only accepted Task Contracts. This approval is separate from Mission Spec and Mission Design approval.

@@ -5,7 +5,7 @@ Use this reference to operate the current Task inside the Mission's `building` s
 ## Inputs
 
 - Current Mission id.
-- Current Task id from `.geas/run-state.yaml`.
+- Current Task id from recorded runtime state or caller-provided Task context.
 - Latest Mission Spec and Mission Design.
 - Latest Task Contract.
 - Current Task State.
@@ -23,13 +23,15 @@ Dispatch by current Task phase:
 
 | Task phase | Building action |
 | --- | --- |
-| `unstarted` | Run `geas task transition --to implementing --task <task-id>`, then invoke `implementing`. |
-| `implementing` | Invoke `implementing`. |
-| `verifying` | Invoke `verifying`. |
-| `reviewing` | Invoke `reviewing`. Review Evidence advances to `awaiting_user_judgment`; decide optional Challenger before asking for Task User Judgment. |
-| `challenging` | Invoke `challenging`. |
-| `awaiting_user_judgment` | Prepare Task Judgment Briefing from `../../mission/references/briefings.md`, then use `task-closure.md` after User decision. |
+| `unstarted` | Run `geas task transition --to implementing --task <task-id>`, then prepare an `implementer` handoff with `invocation_decision: role_required`. |
+| `implementing` | Prepare an `implementer` handoff with `invocation_decision: role_required`. |
+| `verifying` | Prepare a `verifier` handoff with `invocation_decision: role_required`. |
+| `reviewing` | Prepare a `reviewer` handoff with `invocation_decision: role_required`. Review Evidence advances to `awaiting_user_judgment`; decide optional Challenger before asking for Task User Judgment. |
+| `challenging` | Prepare a `challenger` handoff with `invocation_decision: role_required` for the inserted challenge pass. |
+| `awaiting_user_judgment` | Prepare Task Judgment briefing from `briefings.md`, then use `task-closure.md` after User decision. |
 | `closed` | Choose the next Task, transition to `consolidating`, or brief the User on the resume point. |
+
+Building prepares role handoff packets, waits for role results or Evidence paths, and then continues phase coordination. It does not create Implementation, Verification, Review, or Challenger Evidence locally.
 
 Evidence recording usually advances the phase:
 
@@ -58,7 +60,7 @@ Review Evidence advances the Task to `awaiting_user_judgment`. If Challenger is 
 geas task transition --to challenging --task <task-id>
 ```
 
-Call Challenger when the extra pass is within the Task's expected risk budget. Ask the User first if it materially expands cost or scope.
+Call Challenger when the extra pass is within the Task's expected risk budget. Ask the User first if it materially expands cost or scope. If Challenger is omitted, name the omission reason before Task Judgment.
 
 ## Next Step Selection
 

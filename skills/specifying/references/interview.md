@@ -45,6 +45,16 @@ Use scan results as `observed` gate sources only when they are repository, runti
 
 The pre-scan should reduce question cost. It should not become a separate report unless the User asks for it or the scan reveals drift, missing prerequisites, or conflicting project facts.
 
+## Intake Output Flow
+
+Use this flow to decide what the User sees next:
+
+1. Project Pre-Scan produces working notes: observed facts, candidate interpretation, likely affected surfaces, and candidate verification checks.
+2. The first user-facing specifying output is an Intake Sketch unless the current conversation already has a User-accepted Baseline Candidate.
+3. Intake Sketches show observed facts and candidate interpretation, then ask the smallest gate-closing question. They do not offer `accept spec`, `accept design`, `accept task contracts`, or runtime recording choices.
+4. When every readiness gate has an accepted source status, present a Baseline Candidate. This is still an intake output: it asks whether the candidate should become the basis for a Mission Spec draft.
+5. Mission Spec Review starts only after the User accepts the Baseline Candidate as the basis for a Spec draft.
+
 ## Interview Expansion Triggers
 
 Use these triggers to decide when intake needs more than a quick confirm-this round. These are interview effort signals, not runtime fields.
@@ -61,13 +71,14 @@ Every Mission still receives a Mission Design. Keep it short when the tradeoff s
 
 ## Intake Stages
 
-Separate draft types so the User can see whether the conversation is still discovering requirements or ready for baseline acceptance.
+Separate draft types so the User can see whether the conversation is still discovering requirements or ready for artifact-specific review.
 
 | Stage | Use When | Output |
 | --- | --- | --- |
 | Intake Sketch | One or more readiness gates are `open`, or the User asks for a draft before readiness is complete. | Current interpretation, candidate assumptions, gate status, unresolved questions, and the next gate-closing question. |
-| Baseline Candidate | Every readiness gate has source status `confirmed`, `observed`, `delegated`, or `deferred`, but self-check and Task Cards have not been reviewed yet. | Draft Mission Spec, Mission Design approach, initial Task Card drafts, and readiness gate status. |
-| Baseline Review | Baseline Candidate has passed baseline review blockers and includes self-check and Task Cards. | Review packet with choices to accept, revise, challenge, split, or stop. |
+| Baseline Candidate | Every readiness gate has source status `confirmed`, `observed`, `delegated`, or `deferred`, but the User has not yet accepted the candidate as the basis for a Mission Spec draft. | Compact candidate goal, boundary, evidence path, decision ownership, review cost, assumptions, risks, and the choice to draft Mission Spec from it or revise intake. |
+| Artifact Review | The current artifact draft has the prerequisite accepted artifact and is ready for User review. | Mission Spec Review, Mission Design Review, or Task Contract Review with choices scoped to that artifact. |
+| Baseline Readiness Review | Mission Spec, Mission Design, and initial Task Contracts have each been accepted and recorded. | Transition packet with readiness blockers, transfer context, and choices to start building or return to a specific artifact. |
 
 ## Elicitation Loop
 
@@ -78,7 +89,7 @@ Run Discovery, Compression, Options, and Locking until every minimum readiness g
 3. Options: present two or three viable approaches with tradeoffs. Include the recommended option when the available context supports one.
 4. Locking: convert the User's answer into Mission Spec, Mission Design, Task Contract fields, or explicit assumptions. State which user-owned decisions remain open.
 
-Use open questions for Discovery, then closed or confirm-this questions for Locking. Move to Mission Spec review after the readiness gates are filled from accepted sources. When a gate remains open, continue the interview with the smallest question that fills that gate.
+Use open questions for Discovery, then closed or confirm-this questions for Locking. Move to Baseline Candidate after the readiness gates are filled from accepted sources. Move to Mission Spec Review only after the User accepts the Baseline Candidate as the basis for a Spec draft. When a gate remains open, continue the interview with the smallest question that fills that gate.
 
 For structured choices, ask one decision at a time. Offer two to four options that differ in scope, cost, risk, or review path, plus a free-form escape so the User can correct the frame.
 
@@ -96,9 +107,11 @@ Track the source of each readiness gate.
 
 Agent-created candidate assumptions help form questions and partial drafts. They do not fill readiness gates until the User confirms, delegates, or defers them.
 
+Observed project facts can close gates about existing files, runtime state, manifests, tests, commands, or recorded artifacts. They do not close gates about why the User wants the work, who will judge it, which product decisions the agent may make, or what review burden is acceptable unless those facts are explicitly recorded in existing accepted artifacts.
+
 ## Intake Sketch Before Readiness
 
-When the User asks for a draft before readiness gates are filled, provide an Intake Sketch rather than a Baseline Review packet.
+After pre-scan, or when the User asks for a draft before readiness gates are filled, provide an Intake Sketch rather than an artifact review packet.
 
 Include:
 
@@ -108,7 +121,7 @@ Include:
 - Unresolved questions.
 - The next smallest question that would close the most important open gate.
 
-Offer choices that answer open gates. Reserve `accept baseline` for the later Baseline Review packet after readiness blockers are cleared.
+Offer choices that answer open gates. Reserve artifact acceptance choices for the appropriate Mission Spec, Mission Design, or Task Contract review after readiness blockers are cleared.
 
 ## Minimum Readiness Gates
 
@@ -156,7 +169,7 @@ I found Vitest config and existing tests under tests/. Should verification for t
 Use when the User is choosing scope, cost, or review burden.
 
 ```text
-The Mission can either cover only the Skill/Agent prompt files, or also update docs that describe them. I recommend covering both because the docs are the baseline for this step. Which boundary do you want?
+The Mission can either cover only the procedure files, or also update the docs that describe them. I recommend covering both when the docs are the review baseline for this step. Which boundary do you want?
 ```
 
 ### Decision Ownership Prompt
@@ -164,7 +177,7 @@ The Mission can either cover only the Skill/Agent prompt files, or also update d
 Use when agent autonomy could blur User responsibility.
 
 ```text
-For wording tradeoffs inside role prompts, should I choose and report them, or bring back persona/boundary decisions that change scope, risk, or review burden?
+For wording tradeoffs inside role guidance, should I choose and report them, or bring back boundary decisions that change scope, risk, or review burden?
 ```
 
 ### Ambiguity Compression Prompt
@@ -193,7 +206,7 @@ Do not leave important answers only in prose conversation. If the answer will go
 
 ## Quality Bar
 
-The interview is ready to move to Mission Spec review when:
+The interview is ready to present a Baseline Candidate when:
 
 - Minimum readiness gates have source status `confirmed`, `observed`, `delegated`, or `deferred`.
 - The goal is stated as a desired end state.
@@ -203,4 +216,4 @@ The interview is ready to move to Mission Spec review when:
 - Constraints and risks are visible.
 - User-owned decisions are identified.
 - Remaining assumptions are few and explicit.
-- The User can reject, revise, or accept the draft without reconstructing the conversation.
+- The User can reject, revise, or accept the candidate as the basis for a Mission Spec draft without reconstructing the conversation.

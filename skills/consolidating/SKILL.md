@@ -7,7 +7,7 @@ description: "Internal consolidation procedure. Use only inside an active Missio
 
 Use this skill to prepare Mission-level User Judgment input after Task Evidence has been accepted.
 
-Consolidating compares accepted Task results to Mission Spec and Mission Design. It prepares the User's Mission judgment input and reflection/Memory candidates. The `mission` skill records Mission User Judgment, Memory, and Mission Evidence after the User decides.
+Consolidating compares accepted Task results to Mission Spec and Mission Design. It prepares the User's Mission judgment input and reflection/Memory candidates. The calling context records Mission User Judgment, Memory, and Mission Evidence after the User decides.
 
 ## Core Rules
 
@@ -16,7 +16,7 @@ Consolidating compares accepted Task results to Mission Spec and Mission Design.
 - Separate gap, debt, and follow-up.
 - Surface accepted and remaining unverified scope.
 - Prepare Memory candidates only from Evidence-backed repeated lessons.
-- Return Mission judgment input to `mission`; do not write Mission Evidence.
+- Return Mission judgment input to the calling context; do not write Mission Evidence.
 
 ## Workflow
 
@@ -27,9 +27,9 @@ Consolidating compares accepted Task results to Mission Spec and Mission Design.
 5. Classify gaps, debts, follow-ups, unverified scope, and remaining risk.
 6. Load `references/reflection-memory.md`.
 7. Prepare reflection summary and Memory candidates.
-8. Return a Mission User Judgment input packet to `mission`.
+8. Return a Mission User Judgment input packet to the calling context.
 
-`mission` then asks the User for Mission result judgment and records Memory and Mission Evidence if accepted.
+The calling context then asks the User for Mission result judgment and records Memory and Mission Evidence if accepted.
 
 ## References
 

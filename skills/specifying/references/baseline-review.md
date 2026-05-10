@@ -1,23 +1,22 @@
-# Baseline Review
+# Baseline Readiness Review
 
-Use this reference to check Mission Spec, Mission Design, and Task Contracts before recording or entering building.
+Use this reference to check accepted Mission Spec, accepted Mission Design, and accepted Task Contracts before entering building.
 
 ## Review Goal
 
-Baseline review makes sure the User can understand what will happen, what will stay out, how success will be judged, and where agent autonomy ends.
+Baseline readiness review makes sure accepted baseline artifacts can guide building without forcing the next stage to reconstruct the conversation.
 
-This is not User Judgment. It is a structured review moment before runtime baseline recording.
+This is not User Judgment and not a new all-in-one baseline approval. It is a structured transition check after the artifact-specific review steps.
 
-## Baseline Review Packet
+## Baseline Readiness Packet
 
 Present:
 
-- Mission goal in one sentence.
-- Scope in/out.
-- Mission acceptance criteria.
-- Key Mission Design choices and alternatives.
-- Task breakdown table with dependencies.
-- Initial Task Cards.
+- Recorded Mission Spec reference and one-sentence goal.
+- Recorded Mission Design reference and selected approach.
+- Recorded Task Contract references.
+- Task breakdown table with dependencies from the accepted Mission Design.
+- Initial Task Cards from accepted Task Contracts.
 - Spec self-check results.
 - Readiness gate status with source: `confirmed`, `observed`, `delegated`, `deferred`, or `open`.
 - Unresolved questions or deferred decisions.
@@ -29,23 +28,26 @@ Present:
 
 ## Readiness Blockers
 
-When any blocker is present, the review packet should offer a focused return to interview, design drafting, or task drafting before it offers `accept baseline`.
+When any blocker is present, the review packet should offer a focused return to interview, Mission Spec revision, Mission Design revision, or Task Contract revision before entering building.
 
 - A minimum readiness gate lacks a baseline value and lacks an explicit User decision to defer it.
 - A minimum readiness gate is filled only by an agent-created candidate assumption.
+- Mission Design was drafted or recorded without an accepted Mission Spec as its basis.
+- A Task Contract was drafted or recorded without an accepted Mission Design task node as its basis.
+- One User choice is used to approve Mission Spec, Mission Design, and Task Contracts together.
 - Mission Design does not show approach alternatives that differ in scope, risk, cost, or verification path, or does not state the reason for the selected approach.
 - Acceptance criteria are not connected to verification checks, review focus, or named unverified scope.
 - User-owned decisions are invisible, or agent-delegated decisions lack boundaries.
 - Known constraints, current Task, or acceptance criteria cannot be passed to the next stage as a compact context pack.
 - Initial Task Contracts do not identify the checks or review focus that will produce Evidence for User review.
-- The User asked for a draft while gates are open and the response offers baseline acceptance instead of gate-closing choices.
-- An Intake Sketch or Baseline Candidate is presented as a Baseline Review.
+- The User asked for a draft while gates are open and the response offers artifact acceptance instead of gate-closing choices.
+- An Intake Sketch or Baseline Candidate is presented as a Baseline Readiness Review.
 - Initial Task Cards are missing, or tasks are presented only as titles.
-- Spec self-check results are missing from the review packet.
+- Spec self-check results are missing from the readiness packet.
 
 ## Spec Self-Check
 
-Run this check before presenting Baseline Review. It is a baseline review aid, not Evidence, not User Judgment, and not a runtime artifact.
+Run this check before presenting Baseline Readiness Review. It is a readiness review aid, not Evidence, not User Judgment, and not a runtime artifact.
 
 | Axis | Check |
 | --- | --- |
@@ -54,11 +56,11 @@ Run this check before presenting Baseline Review. It is a baseline review aid, n
 | Evidence to Review Cost | Verification checks, review focus, and expected unverified scope give the User a practical review path. |
 | Decision Ownership | Agent-delegated decisions have boundaries, and user-owned decisions are visible before acceptance. |
 
-When a self-check item finds a gap, present the gap as a revise target or gate-closing question before offering `accept baseline`.
+When a self-check item finds a gap, present the gap as a revise target or gate-closing question before offering building transition.
 
 ## Task Cards
 
-Present every initial Task as a reviewable card before baseline acceptance. A card includes:
+Present every initial Task as a reviewable card before Task Contract acceptance and again in compact form before building transition. A card includes:
 
 - Goal: observable outcome for this Task.
 - Scope: included and excluded surfaces or outcomes.
@@ -97,8 +99,8 @@ Present every initial Task as a reviewable card before baseline acceptance. A ca
 
 ### Runtime Readiness
 
-- Payloads match `docs/runtime.md`.
-- CLI commands match `docs/cli.md`.
+- Payloads match the bundled payload shapes in the specifying references or the validation result returned by the recording tool.
+- CLI commands match the Geas command surface used by this Skill, or recording is marked unavailable with a caller/User decision needed.
 - Task ids match `task-001` style and are unique.
 - Dependencies point to existing task ids.
 
@@ -124,18 +126,32 @@ Recommend a Challenger pass when any condition is true:
 Ask the User whether to include Challenger. Make the cost explicit:
 
 ```text
-I recommend a Challenger pass before we lock this baseline because the scope and acceptance criteria will drive several downstream files. It will add one adversarial review round, focused on hidden assumptions and long-term cost. Want to include it?
+I recommend a Challenger role pass before recording this draft because the scope and acceptance criteria will drive several downstream files. It will add one separate role review round, focused on hidden assumptions and long-term cost. Want to include it?
 ```
 
-If the User accepts, run the challenge through `challenging` or a `challenger` role handoff. Present the result with `briefings.md` Baseline Challenge Briefing. Baseline challenge findings are not Challenger Evidence, not User Judgment, and not runtime artifacts.
+If the User accepts, prepare a `challenger` role handoff using the boundary below and the current draft as input. Do not load or execute the challenging procedure locally to author findings. Wait for the challenger role result before presenting `references/briefings.md` Baseline Challenge. Baseline challenge findings are not Challenger Evidence, not User Judgment, and not runtime artifacts.
 
-Incorporate only User-accepted findings into the Mission Spec, Mission Design, or Task Contract drafts. If the User declines the challenge or discards a finding, proceed with the reviewed baseline and keep the remaining assumption visible where relevant.
+Incorporate only User-accepted findings into the current Mission Spec, Mission Design, or Task Contract draft. If the finding affects an already recorded artifact, return to that artifact's revision path and record a new accepted version before building. If the User declines the challenge or discards a finding, keep the remaining assumption visible where relevant.
+
+## Challenge Handoff Boundary
+
+The challenge output must be produced from the `challenger` role context when that role is available. The specifying context prepares the handoff packet, receives the result, and briefs the User. It does not impersonate the challenger.
+
+The challenger reads every `read_first` path before working. If the challenge target is an unrecorded draft, prepare a readable draft payload path for `read_first` before handoff.
+
+When role handoff is unavailable, surface the recovery choice:
+
+- Retry the role handoff.
+- Proceed without the challenge and name the missing challenge output.
+- Stop before recording the draft that needed the challenge.
+
+The handoff packet includes the current draft type, `read_first` paths for the current draft target and existing accepted artifacts, accepted User decisions, challenge focus, expected output shape from `references/briefings.md`, and decisions to surface.
 
 ## Record Sequence
 
-After the User accepts the baseline:
+Record artifacts only after their own review step has been accepted.
 
-1. Ensure runtime exists:
+1. After Mission Spec acceptance, ensure runtime exists:
 
 ```text
 geas init
@@ -147,25 +163,25 @@ geas init
 geas mission create
 ```
 
-3. Record Mission Spec:
+3. Record the accepted Mission Spec:
 
 ```text
 geas mission spec record --from <path|->
 ```
 
-4. Record Mission Design:
+4. After Mission Design acceptance, record the accepted Mission Design:
 
 ```text
 geas mission design record --from <path|->
 ```
 
-5. Record initial Task Contracts:
+5. After Task Contract acceptance, record each accepted initial Task Contract:
 
 ```text
 geas task contract record --task <task-id> --from <path|->
 ```
 
-6. Enter building when the first Task is ready:
+6. After Baseline Readiness Review and User choice to start building, enter building when the first Task is ready:
 
 ```text
 geas mission transition --to building --task <task-id>

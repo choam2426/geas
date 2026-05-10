@@ -68,7 +68,7 @@ Use `escalated` when:
 `checks_performed` should be concrete:
 
 ```text
-Ran npm test -- --runInBand; inspected docs/skills.md references; searched for retired product prefixes.
+Ran npm test -- --runInBand; inspected relevant project references; searched for retired product prefixes.
 ```
 
 `outputs` should include concise command results, log references, screenshots, or artifact paths. Do not paste massive logs; summarize and name where to find details.
