@@ -6,7 +6,7 @@ Briefings are conversation output. They help the User see current state, Evidenc
 
 ## Briefing Principles
 
-- Write in the User's conversation language.
+- Write the full briefing in the User's conversation language, including headings, choice labels, recommendations, and status words, unless the User requests another language.
 - Use compact Markdown headings and short bullets.
 - Put the decision needed near the top when the User must choose.
 - Separate facts, Evidence basis, agent recommendation, and User decision.

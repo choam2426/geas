@@ -17,11 +17,55 @@ Present:
 - Mission acceptance criteria.
 - Key Mission Design choices and alternatives.
 - Task breakdown table with dependencies.
-- Initial Task Contract summaries.
+- Initial Task Cards.
+- Spec self-check results.
+- Readiness gate status with source: `confirmed`, `observed`, `delegated`, `deferred`, or `open`.
+- Unresolved questions or deferred decisions.
+- Transfer context: known constraints, current Task, and acceptance criteria that the next stage can use without reconstructing the conversation.
 - Assumptions.
 - Risks.
 - Recommended first Task.
 - Challenger recommendation, if any.
+
+## Readiness Blockers
+
+When any blocker is present, the review packet should offer a focused return to interview, design drafting, or task drafting before it offers `accept baseline`.
+
+- A minimum readiness gate lacks a baseline value and lacks an explicit User decision to defer it.
+- A minimum readiness gate is filled only by an agent-created candidate assumption.
+- Mission Design does not show approach alternatives that differ in scope, risk, cost, or verification path, or does not state the reason for the selected approach.
+- Acceptance criteria are not connected to verification checks, review focus, or named unverified scope.
+- User-owned decisions are invisible, or agent-delegated decisions lack boundaries.
+- Known constraints, current Task, or acceptance criteria cannot be passed to the next stage as a compact context pack.
+- Initial Task Contracts do not identify the checks or review focus that will produce Evidence for User review.
+- The User asked for a draft while gates are open and the response offers baseline acceptance instead of gate-closing choices.
+- An Intake Sketch or Baseline Candidate is presented as a Baseline Review.
+- Initial Task Cards are missing, or tasks are presented only as titles.
+- Spec self-check results are missing from the review packet.
+
+## Spec Self-Check
+
+Run this check before presenting Baseline Review. It is a baseline review aid, not Evidence, not User Judgment, and not a runtime artifact.
+
+| Axis | Check |
+| --- | --- |
+| Outcome to Acceptance | Each acceptance criterion supports the desired outcome, and the full set is enough for the User to judge the Mission result. |
+| Boundary to Surface | Included scope maps to changed or produced surfaces, and excluded scope names adjacent work that stays outside the Mission. |
+| Evidence to Review Cost | Verification checks, review focus, and expected unverified scope give the User a practical review path. |
+| Decision Ownership | Agent-delegated decisions have boundaries, and user-owned decisions are visible before acceptance. |
+
+When a self-check item finds a gap, present the gap as a revise target or gate-closing question before offering `accept baseline`.
+
+## Task Cards
+
+Present every initial Task as a reviewable card before baseline acceptance. A card includes:
+
+- Goal: observable outcome for this Task.
+- Scope: included and excluded surfaces or outcomes.
+- Acceptance: criteria this Task must satisfy.
+- Verification: checks, commands, inspections, or outputs expected for this Task.
+- Review focus: quality, boundary, regression, or risk points the User or reviewer should inspect.
+- Depends on: prior Task ids or `none`.
 
 ## Quality Checks
 
@@ -57,6 +101,13 @@ Present:
 - CLI commands match `docs/cli.md`.
 - Task ids match `task-001` style and are unique.
 - Dependencies point to existing task ids.
+
+### Context Transfer
+
+- Known constraints name the surfaces, files, commands, policy limits, or user decisions they constrain.
+- Current Task is clear, including its dependency state.
+- Acceptance criteria and verification checks travel together.
+- Deferred User decisions are labeled so later stages can return to the User at the right moment.
 
 ## Challenger Recommendation
 

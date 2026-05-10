@@ -12,6 +12,7 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
 ## Core Rules
 
 - Treat the User's goal as the source of truth; turn assumptions into explicit draft assumptions or questions.
+- Treat agent-created assumptions as candidates until the User confirms, delegates, or defers them.
 - Ask one focused question at a time during elicitation unless a small batch of related choices lowers User burden.
 - Prefer confirm-this prompts when repo facts or existing artifacts already suggest a likely answer.
 - Keep drafts outside runtime until the User has reviewed the baseline.
@@ -22,33 +23,41 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
 
 1. Prepare context.
    - Read `docs/definition.md`, `docs/runtime.md`, `docs/cli.md`, and the relevant operating docs when working in the Geas repo.
-   - Inspect the project and existing `.geas/` state enough to convert blank questions into confirm-this prompts.
    - Load `references/interview.md` and `references/ambiguity-patterns.md`.
+   - Run the `references/interview.md` Project Pre-Scan before the first intake question.
+   - Use observed project facts to convert blank questions into confirm-this prompts.
 
 2. Elicit the Mission.
    - Identify goal, background, success criteria, included scope, excluded scope, constraints, assumptions, risks, decision owners, and expected review burden.
    - Use `references/interview.md` for the interaction loop.
    - Use `references/ambiguity-patterns.md` whenever a request has multiple plausible interpretations.
+   - Maintain an intake ledger: readiness gate, current value, source status, target artifact field, and whether it remains open.
+   - If the User asks for a draft while gates are open, show an Intake Sketch with gate status and ask the next gate-closing question.
+   - Move from intake to baseline drafting after the minimum readiness gates in `references/interview.md` have accepted source statuses.
 
 3. Draft the Mission Spec.
    - Load `references/mission-spec.md`.
+   - Draft only after intake can produce a Baseline Candidate without open readiness gates.
    - Draft all required Mission Spec fields.
    - Present the draft for User review and revise until the User accepts it as the baseline.
 
 4. Draft the Mission Design.
    - Load `references/mission-design.md`.
+   - Compare approach options that differ in scope, risk, cost, or verification path, then record the selected approach with the reason it was chosen.
    - Use or hand off to the `work-designer` role when Task structure, dependency order, alternatives, or risk tradeoffs need an independent design pass.
    - Present the design for User review and revise until accepted.
 
 5. Draft initial Task Contracts.
    - Load `references/task-contract.md`.
    - Create one Task Contract per User-judgment-worthy work unit.
+   - Prepare Task Cards so the User can review goal, scope, acceptance, verification, review focus, and dependencies before baseline acceptance.
    - Ensure each Task has acceptance criteria, verification checks, review focus, and risks.
 
 6. Run baseline review.
    - Load `references/baseline-review.md`.
-   - Check Mission Spec, Mission Design, and Task Contracts for clarity, coverage, traceability, testability, and review cost.
-   - Recommend Challenger involvement when baseline ambiguity, risk, irreversibility, or delegation depth justifies it. Proceed with challenge only when the User accepts the added depth.
+   - Check readiness gate status, Spec Self-Check, Task Cards, Mission Spec, Mission Design, and Task Contracts for clarity, coverage, traceability, testability, and review cost.
+   - If the review finds readiness blockers, return to interview, Mission Design drafting, or Task Contract drafting before offering `accept baseline`.
+   - Recommend Challenger involvement when baseline ambiguity, risk, irreversibility, or broad delegation justifies it. Proceed with challenge only when the User accepts the added review pass.
 
 7. Record accepted baselines.
    - Use `geas init` if runtime storage is absent.

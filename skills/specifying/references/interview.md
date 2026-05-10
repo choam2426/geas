@@ -10,7 +10,8 @@ The interview model applies these source patterns:
 - PMI requirements elicitation guidance: stakeholder needs often start latent or unclear; elicitation asks questions, selects techniques for the context, iteratively documents, analyzes, and confirms requirements.
 - Agile Alliance user story guidance: preserve who, what, and why; use conversation to fill details; split work into valuable increments; apply INVEST as a quality check when useful.
 - Atlassian acceptance criteria guidance: criteria should be clear, concise, testable, measurable where possible, outcome-focused, and independent.
-- Scrum.org Definition of Done guidance: a shared done standard improves transparency and makes completed work inspectable.
+- Scrum.org Definition of Done guidance: a shared done criterion improves transparency and makes completed work inspectable.
+- Specification-first agent workflow patterns: compare viable approaches, record why one option was selected, and pass a compact context pack to the next stage.
 
 These sources inform the procedure; do not quote them to the User unless the User asks for methodology background.
 
@@ -26,19 +27,101 @@ Before asking the User for more input, collect context that can reduce question 
 
 Keep preparation notes as working context. Runtime artifacts start only after the User accepts a baseline payload.
 
+## Project Pre-Scan
+
+Before the first intake question, run a read-only scan that is sized to the request and workspace.
+
+Check:
+
+- Runtime state: `.geas/run-state.yaml`, active Mission, current Task, latest baseline artifacts, and relevant Memory.
+- Project shape: top-level files, source directories, documentation directories, and whether the workspace is empty or already an app/library/plugin.
+- Manifests and build files: `package.json`, lockfiles, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Makefile`, framework configs, and script entries.
+- Tests and checks: `tests/`, `vitest`, `jest`, `pytest`, `cargo test`, CI configs, lint configs, and format configs.
+- Existing conventions: nearby components, docs, naming, storage patterns, state management, and UI or API patterns related to the request.
+- Likely affected surfaces: files, docs, commands, runtime artifacts, or user flows named by the request or matching its keywords.
+- Verification candidates: commands, manual checks, screenshots, rendered artifacts, or review steps that could support later Evidence.
+
+Use scan results as `observed` gate sources only when they are repository, runtime, test, configuration, or artifact facts. Use confirm-this prompts for inferred product intent, stakeholder needs, scope preferences, or delegated decisions.
+
+The pre-scan should reduce question cost. It should not become a separate report unless the User asks for it or the scan reveals drift, missing prerequisites, or conflicting project facts.
+
+## Interview Expansion Triggers
+
+Use these triggers to decide when intake needs more than a quick confirm-this round. These are interview effort signals, not runtime fields.
+
+| Trigger | Intake Response |
+| --- | --- |
+| Broad delegation | Clarify which decisions the agent may make and which decisions return to the User. |
+| Data, security, permissions, or migration | Ask for constraints, failure cost, and review evidence before drafting acceptance criteria. |
+| Storage or persistence choice | Compare approach options and lock the review path for data loss or migration risk. |
+| Long-term maintenance cost | Ask what future change should remain easy and what complexity stays out. |
+| "Real use", "production-ready", "app-like", or "extend later" language | Clarify stakeholder, review cost, and boundary before proposing a baseline. |
+
+Every Mission still receives a Mission Design. Keep it short when the tradeoff surface is small.
+
+## Intake Stages
+
+Separate draft types so the User can see whether the conversation is still discovering requirements or ready for baseline acceptance.
+
+| Stage | Use When | Output |
+| --- | --- | --- |
+| Intake Sketch | One or more readiness gates are `open`, or the User asks for a draft before readiness is complete. | Current interpretation, candidate assumptions, gate status, unresolved questions, and the next gate-closing question. |
+| Baseline Candidate | Every readiness gate has source status `confirmed`, `observed`, `delegated`, or `deferred`, but self-check and Task Cards have not been reviewed yet. | Draft Mission Spec, Mission Design approach, initial Task Card drafts, and readiness gate status. |
+| Baseline Review | Baseline Candidate has passed baseline review blockers and includes self-check and Task Cards. | Review packet with choices to accept, revise, challenge, split, or stop. |
+
 ## Elicitation Loop
 
-Run this loop until Mission Spec fields are concrete enough for User review.
+Run Discovery, Compression, Options, and Locking until every minimum readiness gate has a confirmed value, observed project fact, explicit User delegation, or explicit User decision to defer it.
 
-1. State the current interpretation in one or two sentences.
-2. Name the one gap that most affects scope, success, verification, or User responsibility.
-3. Ask one focused question.
-4. Offer two to four concrete options when the choice has clear tradeoffs.
-5. Include a free-form escape when options may miss the User's intent.
-6. Reflect the answer back as a baseline update.
-7. Record remaining assumptions explicitly.
+1. Discovery: ask open-ended questions that reveal the desired outcome, real users or reviewers, the problem being solved, and known constraints.
+2. Compression: turn several ambiguities into the smallest useful decision. State the core choice in the User's language.
+3. Options: present two or three viable approaches with tradeoffs. Include the recommended option when the available context supports one.
+4. Locking: convert the User's answer into Mission Spec, Mission Design, Task Contract fields, or explicit assumptions. State which user-owned decisions remain open.
 
-Use open questions for goal discovery, then closed or confirm-this questions for baseline locking.
+Use open questions for Discovery, then closed or confirm-this questions for Locking. Move to Mission Spec review after the readiness gates are filled from accepted sources. When a gate remains open, continue the interview with the smallest question that fills that gate.
+
+For structured choices, ask one decision at a time. Offer two to four options that differ in scope, cost, risk, or review path, plus a free-form escape so the User can correct the frame.
+
+## Gate Sources
+
+Track the source of each readiness gate.
+
+| Status | Meaning |
+| --- | --- |
+| `confirmed` | The User directly answered, corrected, or accepted the value for this gate. |
+| `observed` | The value comes from repository, runtime, test, configuration, or artifact facts. |
+| `delegated` | The User explicitly gave the agent authority to decide this gate within stated boundaries. |
+| `deferred` | The User explicitly chose to postpone this gate, and the baseline names the consequence. |
+| `open` | The value is missing or exists only as an agent-created candidate assumption. |
+
+Agent-created candidate assumptions help form questions and partial drafts. They do not fill readiness gates until the User confirms, delegates, or defers them.
+
+## Intake Sketch Before Readiness
+
+When the User asks for a draft before readiness gates are filled, provide an Intake Sketch rather than a Baseline Review packet.
+
+Include:
+
+- Current interpretation.
+- Candidate assumptions, labeled as unconfirmed.
+- Readiness gate status.
+- Unresolved questions.
+- The next smallest question that would close the most important open gate.
+
+Offer choices that answer open gates. Reserve `accept baseline` for the later Baseline Review packet after readiness blockers are cleared.
+
+## Minimum Readiness Gates
+
+Each gate describes information that must appear in the baseline. The gate is complete when the baseline contains the information and its source status is `confirmed`, `observed`, `delegated`, or `deferred`.
+
+| Gate | Baseline Information Required |
+| --- | --- |
+| Outcome | The desired end state, the reason it matters now, and the observable change from the current state. |
+| Stakeholder | The user, reviewer, or affected party whose needs shape the work, plus what they care about most. |
+| Boundary | The included scope, excluded adjacent work, and constraints that protect unrelated behavior or documents. |
+| Evidence | The verification basis for each acceptance criterion, plus known unverified scope that the User will need to review. |
+| Decision Ownership | Decisions delegated to the agent, decisions retained by the User, and triggers for returning to the User. |
+| Review Cost | The artifacts, output, screenshots, commands, or notes that make human review and acceptance judgment practical. |
 
 ## Question Ladder
 
@@ -70,7 +153,7 @@ I found Vitest config and existing tests under tests/. Should verification for t
 
 ### Tradeoff Prompt
 
-Use when the User is choosing depth or scope.
+Use when the User is choosing scope, cost, or review burden.
 
 ```text
 The Mission can either cover only the Skill/Agent prompt files, or also update docs that describe them. I recommend covering both because the docs are the baseline for this step. Which boundary do you want?
@@ -81,7 +164,7 @@ The Mission can either cover only the Skill/Agent prompt files, or also update d
 Use when agent autonomy could blur User responsibility.
 
 ```text
-For wording tradeoffs inside role prompts, should I choose and report them, or bring each meaningful persona/boundary decision back to you?
+For wording tradeoffs inside role prompts, should I choose and report them, or bring back persona/boundary decisions that change scope, risk, or review burden?
 ```
 
 ### Ambiguity Compression Prompt
@@ -103,6 +186,8 @@ Every material answer should become one of:
 - Risk.
 - Excluded scope.
 - User decision to revisit later.
+- Readiness gate status.
+- Readiness gate source.
 
 Do not leave important answers only in prose conversation. If the answer will govern implementation, make it part of the baseline draft.
 
@@ -110,8 +195,9 @@ Do not leave important answers only in prose conversation. If the answer will go
 
 The interview is ready to move to Mission Spec review when:
 
+- Minimum readiness gates have source status `confirmed`, `observed`, `delegated`, or `deferred`.
 - The goal is stated as a desired end state.
-- Included and excluded scope are both meaningful.
+- Included scope names the surfaces to change, and excluded scope names adjacent work that stays outside the Mission.
 - Acceptance criteria are observable enough for User review.
 - Verification expectations are connected to criteria.
 - Constraints and risks are visible.
