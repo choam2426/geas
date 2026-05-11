@@ -93,6 +93,9 @@ flowchart LR
 ```mermaid
 flowchart TD
   R["User request"]
+  I["Orchestrator<br/>Intake Sketch"]
+  C["Orchestrator<br/>Baseline Candidate"]
+  U0["User<br/>Spec 초안 basis 수용"]
   O["Orchestrator<br/>Mission spec 초안"]
   U1["User<br/>Mission spec 합의"]
   D["Work Designer<br/>Mission design"]
@@ -102,16 +105,17 @@ flowchart TD
   U3["User<br/>초기 Task contract 합의"]
   B["building"]
 
-  R --> O --> U1 --> D --> U2 --> T
+  R --> I --> C --> U0 --> O --> U1 --> D --> U2 --> T
   T --> H --> U3
   T --> U3
+  U0 -->|"intake 수정 요청"| I
   U1 -->|"수정 요청"| O
   U2 -->|"수정 요청"| D
   U3 -->|"수정 요청"| T
   U3 -->|"합의"| B
 ```
 
-이 흐름에서 Orchestrator는 User 요청을 Mission spec 초안으로 구체화한다. Work Designer는 합의된 Mission spec을 Mission design과 초기 Task contract로 이어지게 만든다.
+이 흐름에서 Orchestrator는 User 요청을 먼저 intake로 구체화한다. Intake Sketch는 관찰 사실, 후보 해석, open readiness gate, 다음 gate-closing question을 드러낸다. 모든 readiness gate가 `confirmed`, `observed`, `delegated`, `deferred` 중 하나로 채워지면 Orchestrator는 Baseline Candidate를 제시한다. User가 이 candidate를 Mission Spec 초안의 basis로 수용한 뒤에만 Orchestrator는 Mission spec 초안을 작성한다. Work Designer는 합의된 Mission spec을 Mission design과 초기 Task contract로 이어지게 만든다.
 
 Challenger가 참여하면 Mission spec, Mission design, 초기 Task contract 초안의 숨은 가정, scope 경계, Task 분해와 의존 관계의 장기 위험을 드러낸다. Orchestrator는 드러난 내용을 User와 토론하고 합의된 기준선에 반영한다.
 

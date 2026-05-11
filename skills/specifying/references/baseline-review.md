@@ -24,6 +24,7 @@ Present:
 - Assumptions.
 - Risks.
 - Recommended first Task.
+- Session handoff option for continuing building in a fresh session from the recorded baseline.
 - Challenger recommendation, if any.
 
 ## Readiness Blockers
@@ -189,5 +190,7 @@ geas task contract record --task <task-id> --from <path|->
 ```text
 geas mission transition --to building --task <task-id>
 ```
+
+If the User chooses `handoff session`, prepare Session Handoff instead of transitioning to building in the current session.
 
 Summarize CLI output paths for the User.

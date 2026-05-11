@@ -149,7 +149,7 @@ Use after accepted Mission Spec, accepted Mission Design, and accepted initial T
 ```text
 **Baseline Readiness**
 Mission: {mission_id_or_goal}
-Decision needed: start building, return to a baseline artifact, or stop.
+Decision needed: start building here, hand off to a fresh session, or return to a baseline artifact.
 
 **Recorded Baseline**
 - Mission Spec: {mission_spec_ref}
@@ -165,10 +165,10 @@ Decision needed: start building, return to a baseline artifact, or stop.
 
 **Choices**
 1. start building - transition to building with the first recorded Task Contract.
-2. return to spec - revise Mission Spec before building.
-3. return to design - revise Mission Design before building.
-4. return to task contracts - revise initial Task Contracts before building.
-5. stop - keep recorded baselines and do not enter building.
+2. handoff session - keep recorded baselines and prepare Session Handoff so building can resume in a fresh session.
+3. return to spec - revise Mission Spec before building.
+4. return to design - revise Mission Design before building.
+5. return to task contracts - revise initial Task Contracts before building.
 ```
 
 ## Baseline Challenge
@@ -195,13 +195,13 @@ Decision needed: decide which challenge findings should return to the current ar
 
 ## Session Handoff
 
-Use when a fresh session would lower building risk after baseline recording.
+Use after the User chooses `handoff session` from Baseline Readiness.
 
 ```text
 **Session Handoff**
 Mission: {mission_id}
 Stage: {stage}
-Decision needed: continue here or resume building in a fresh session.
+Decision: building will resume in a fresh session from the recorded baseline.
 
 **Recorded Baseline**
 - Mission Spec: {mission_spec_ref}
@@ -214,5 +214,5 @@ Decision needed: continue here or resume building in a fresh session.
 - Memory to read: {memory_refs_or_none}
 
 **Resume Prompt**
-Resume this Geas Mission from the recorded runtime state. Read the latest Mission Spec, Mission Design, current Task Contract, Task State, relevant Memory, and continue with {next_procedure}.
+Resume this Geas Mission from the recorded runtime state. Read the latest Mission Spec, Mission Design, first Task Contract, Task State if present, relevant Memory, and continue with {next_procedure}.
 ```

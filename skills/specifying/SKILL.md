@@ -33,7 +33,7 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
    - Separate observed facts from candidate interpretation.
    - Use `references/interview.md` Intake Output Flow to choose the next user-facing output.
 
-2. Elicit the Mission.
+2. Frame the Mission before drafting artifacts.
    - Identify goal, background, success criteria, included scope, excluded scope, constraints, assumptions, risks, decision owners, and expected review burden.
    - Use `references/interview.md` for the interaction loop.
    - Use `references/ambiguity-patterns.md` whenever a request has multiple plausible interpretations.
@@ -41,6 +41,7 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
    - Start user-facing intake with an Intake Sketch when the conversation does not already contain a User-accepted Baseline Candidate.
    - Use Intake Sketches for observed facts, candidate assumptions, gate status, and the next gate-closing choice. Do not include artifact acceptance choices in an Intake Sketch.
    - Present Intake Sketch and Baseline Candidate with `references/briefings.md`.
+   - Treat the Baseline Candidate as the intake result, not as Mission Spec approval.
    - Move from intake to Mission Spec drafting only after a Baseline Candidate has no open readiness gates and the User has accepted it as the basis for a Mission Spec draft.
 
 3. Draft the Mission Spec.
@@ -81,15 +82,15 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
    - Check accepted Mission Spec, accepted Mission Design, accepted Task Contracts, readiness gate status, Spec Self-Check, Task Cards, and transfer context for clarity, coverage, traceability, testability, and review cost.
    - If the review finds readiness blockers, return to interview, Mission Spec revision, Mission Design revision, or Task Contract revision before entering building.
    - Recommend Challenger involvement at the current approval stage when ambiguity, risk, irreversibility, or broad delegation justifies it. Proceed only by `challenger` role handoff when the User accepts the added role pass.
-   - Use `references/briefings.md` Baseline Readiness when all accepted artifacts are ready for building transition.
+   - Use `references/briefings.md` Baseline Readiness when all accepted artifacts are ready for building transition or session handoff.
 
 7. Enter building after accepted baselines are recorded.
    - Use `geas mission transition --to building --task <task-id>` only after the first Task Contract is recorded and the User is ready to start building.
 
-8. Consider session handoff before building.
+8. Prepare session handoff when chosen before building.
    - Recommend a fresh building session when specifying consumed substantial context, required heavy research, produced five or more initial Tasks, or left many baseline decisions that must stay visible.
    - Use `references/briefings.md` Session Handoff.
-   - If the User chooses a fresh session, stop after the briefing and leave building to resume from recorded runtime state.
+   - If the User chooses `handoff session`, stop after the briefing and leave building for a fresh session to start from the recorded baseline.
 
 ## Outputs
 

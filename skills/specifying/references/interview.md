@@ -53,7 +53,8 @@ Use this flow to decide what the User sees next:
 2. The first user-facing specifying output is an Intake Sketch unless the current conversation already has a User-accepted Baseline Candidate.
 3. Intake Sketches show observed facts and candidate interpretation, then ask the smallest gate-closing question. They do not offer `accept spec`, `accept design`, `accept task contracts`, or runtime recording choices.
 4. When every readiness gate has an accepted source status, present a Baseline Candidate. This is still an intake output: it asks whether the candidate should become the basis for a Mission Spec draft.
-5. Mission Spec Review starts only after the User accepts the Baseline Candidate as the basis for a Spec draft.
+5. Baseline Candidate acceptance is not artifact approval. It only permits drafting a Mission Spec from the framed request.
+6. Mission Spec Review starts only after the User accepts the Baseline Candidate as the basis for a Spec draft.
 
 ## Interview Expansion Triggers
 
@@ -78,7 +79,7 @@ Separate draft types so the User can see whether the conversation is still disco
 | Intake Sketch | One or more readiness gates are `open`, or the User asks for a draft before readiness is complete. | Current interpretation, candidate assumptions, gate status, unresolved questions, and the next gate-closing question. |
 | Baseline Candidate | Every readiness gate has source status `confirmed`, `observed`, `delegated`, or `deferred`, but the User has not yet accepted the candidate as the basis for a Mission Spec draft. | Compact candidate goal, boundary, evidence path, decision ownership, review cost, assumptions, risks, and the choice to draft Mission Spec from it or revise intake. |
 | Artifact Review | The current artifact draft has the prerequisite accepted artifact and is ready for User review. | Mission Spec Review, Mission Design Review, or Task Contract Review with choices scoped to that artifact. |
-| Baseline Readiness Review | Mission Spec, Mission Design, and initial Task Contracts have each been accepted and recorded. | Transition packet with readiness blockers, transfer context, and choices to start building or return to a specific artifact. |
+| Baseline Readiness Review | Mission Spec, Mission Design, and initial Task Contracts have each been accepted and recorded. | Transition packet with readiness blockers, transfer context, and choices to start building, hand off to a fresh session, or return to a specific artifact. |
 
 ## Elicitation Loop
 

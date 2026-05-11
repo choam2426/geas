@@ -15,16 +15,14 @@ This utility supports continuity. It does not create a runtime artifact, replace
 ## Procedure
 
 1. Record accepted Mission Spec, Mission Design, and initial Task Contracts through the CLI.
-2. Transition to `building` with the first Task only when the User is ready for building to begin.
-3. Prepare a Session Handoff Briefing from `briefings.md`.
-4. Ask whether to continue building in the current session or start a fresh session from the recorded state.
-5. If the User chooses a fresh session, stop after the handoff briefing and do not begin implementation.
-6. If the User continues, dispatch `building` from recorded runtime state.
+2. Present Baseline Readiness with a choice to start building here or hand off to a fresh session.
+3. If the User chooses `handoff session`, prepare a Session Handoff Briefing from `briefings.md` and do not transition to `building` in the current session.
+4. If the User chooses `start building`, transition to `building` with the first Task and dispatch `building` from recorded runtime state.
 
 ## Boundaries
 
 - Do not create a separate handoff runtime artifact.
-- Use recorded Mission Spec, Mission Design, Task Contracts, Run State, Task State, Evidence, User Judgment, and Memory as the recovery basis.
+- Use recorded Mission Spec, Mission Design, Task Contracts, Run State, Task State when present, Evidence, User Judgment, and Memory as the recovery basis.
 - Do not leave important baseline decisions only in conversation.
 - Do not treat the handoff recommendation as User Judgment.
 

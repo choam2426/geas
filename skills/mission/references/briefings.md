@@ -306,14 +306,14 @@ Include:
 - Readiness blocker status.
 - Transfer context for building.
 - Recommended first Task.
-- Explicit User choice: start building, return to spec, return to design, return to task contracts, or stop.
+- Explicit User choice: start building, hand off to a fresh session, return to spec, return to design, or return to task contracts.
 
 Use this shape:
 
 ```text
 **Baseline Readiness**
 Mission: {mission_id_or_goal}
-Decision needed: start building, return to a baseline artifact, or stop.
+Decision needed: start building here, hand off to a fresh session, or return to a baseline artifact.
 
 **Recorded Baseline**
 - Mission Spec: {mission_spec_ref}
@@ -332,10 +332,10 @@ I recommend {start_building_or_return} because {basis}. This is agent-side conte
 
 **Choices**
 1. start building - transition to building with the first recorded Task Contract.
-2. return to spec - revise Mission Spec before building.
-3. return to design - revise Mission Design before building.
-4. return to task contracts - revise initial Task Contracts before building.
-5. stop - keep recorded baselines and do not enter building.
+2. handoff session - keep recorded baselines and prepare Session Handoff so building can resume in a fresh session.
+3. return to spec - revise Mission Spec before building.
+4. return to design - revise Mission Design before building.
+5. return to task contracts - revise initial Task Contracts before building.
 ```
 
 ## Baseline Challenge Briefing
@@ -607,7 +607,7 @@ User decision: `{decision}`
 
 ## Session Handoff Briefing
 
-Use after specifying records accepted baselines when continuing in a fresh session would lower context risk.
+Use after specifying records accepted baselines and the User chooses `handoff session` from Baseline Readiness.
 
 This briefing is conversation output. It is not Evidence, not User Judgment, and not a runtime artifact.
 
@@ -627,7 +627,7 @@ Use this shape:
 **Session Handoff**
 Mission: {mission_id}
 Stage: {stage}
-Decision needed: continue here or start building in a fresh session.
+Decision: building will resume in a fresh session from the recorded baseline.
 
 **Recorded Baseline**
 - Mission Spec: {mission_spec_ref}
@@ -643,11 +643,8 @@ Decision needed: continue here or start building in a fresh session.
 - {context_risk_or_none}
 
 **Fresh Session Prompt**
-Resume Mission `{mission_id}` from the recorded Geas runtime state. Read the latest Mission Spec, Mission Design, current Task Contract, Task State, relevant Memory, and then continue with `{next_procedure}` using the available Geas entrypoint.
+Resume Mission `{mission_id}` from the recorded Geas runtime state. Read the latest Mission Spec, Mission Design, first Task Contract, Task State if present, relevant Memory, and then continue with `{next_procedure}` using the available Geas entrypoint.
 
-**Choices**
-1. continue here - start building in this session.
-2. fresh session - stop here and resume building from recorded runtime state.
 ```
 
 ## Git Checkpoint Briefing
