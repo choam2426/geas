@@ -16,7 +16,8 @@ Building owns Task loop coordination. It dispatches Task phases through role han
 - Treat Task phase dispatch as a role invocation decision. `implementing`, `verifying`, and `reviewing` phases require the matching role pass.
 - Record User Judgment only from the User's decision.
 - Record Task Evidence only after `accepted` or `accepted_with_limits` Task User Judgment.
-- Use the Geas CLI for runtime writes; do not hand-edit `.geas/` runtime artifacts.
+- Before any runtime write, load `geas-cli` and follow its bundled script invocation rule.
+- Use the Geas CLI for runtime writes; do not invoke a bare `geas` command or hand-edit `.geas/` runtime artifacts.
 - If the CLI or a phase procedure is unavailable, prepare the intended payload or handoff packet, brief the unavailable capability, and wait for caller/User direction instead of simulating the missing procedure or role output.
 - Use `references/briefings.md` for User-facing Task and checkpoint briefings.
 - Use `references/role-handoff.md` when invoking role agents.

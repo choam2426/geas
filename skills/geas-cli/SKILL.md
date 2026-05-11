@@ -11,14 +11,14 @@ This skill is self-contained. It describes where the bundled CLI lives, how to i
 
 ## Bundled script
 
-The bundled executable lives at `scripts/geas` beside this `SKILL.md`. Resolve the script relative to this skill directory. From another workspace, invoke it as `node <path-to-geas-cli-skill>/scripts/geas <command>` unless the client exposes the script as `geas` on PATH.
+The bundled executable lives at `scripts/geas` beside this `SKILL.md`. Resolve the script relative to this skill directory and invoke it as `node <path-to-geas-cli-skill>/scripts/geas <command>`.
 
-In the examples below, `geas` means that bundled executable.
+In the examples below, `geas ...` names the CLI surface. When executing a command, use the bundled script invocation above.
 
 ## Calling pattern
 
 1. Build the YAML payload as a temp file (e.g. `task-001-contract.yaml`).
-2. Invoke `geas <command> --from <path>`.
+2. Invoke `node <path-to-geas-cli-skill>/scripts/geas <command> --from <path>`.
 3. Read the JSON result on stdout. `ok: true` means the artifact and any state pointer were updated atomically. `ok: false` means runtime is unchanged; act on `error.code` and `error.guards`.
 
 `--from -` reads payload from stdin.

@@ -13,7 +13,8 @@ Mission owns state inspection, User briefing, stage dispatch, Mission closure, a
 
 - Start by inspecting context; do not dispatch from stale memory.
 - Treat `run-state.yaml`, Mission baselines, Task Contract, Evidence, and User Judgment as the recovery basis.
-- Keep runtime writes behind the Geas CLI.
+- Before any runtime write, load `geas-cli` and follow its bundled script invocation rule.
+- Keep runtime writes behind the Geas CLI; do not invoke a bare `geas` command or hand-edit `.geas/` runtime artifacts.
 - If the CLI or required procedure is unavailable, prepare the draft or handoff packet that would be recorded, brief the unavailable capability, and wait for caller/User direction instead of inventing a runtime write.
 - Use prompt-level handoff to internal skills and role prompts; product-specific plugin dispatch belongs to packaging.
 - At each role-producing step, decide `role_required`, `role_optional`, or `role_omitted` from `references/dispatch.md`.
@@ -25,7 +26,7 @@ Mission owns state inspection, User briefing, stage dispatch, Mission closure, a
 ## Workflow
 
 1. Inspect runtime and workspace.
-   - If `.geas/` is absent and the User wants Geas Mission work, run `geas init`.
+   - If `.geas/` is absent and the User wants Geas Mission work, run the CLI surface command `geas init` through `geas-cli`.
    - If a Mission is active, read current run state, latest Mission Spec, latest Mission Design, current Task State, current Task Contract, relevant Evidence, User Judgment, and Memory.
    - Use `references/dispatch.md` for continuity and drift checks.
 

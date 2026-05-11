@@ -18,9 +18,11 @@ If state and artifacts disagree, treat it as drift. Brief the User and choose th
 
 ## Stage Dispatch
 
+CLI commands in this reference name the CLI surface; execute runtime writes through `geas-cli` using the bundled script invocation rule.
+
 | Runtime Signal | Procedure |
 | --- | --- |
-| `.geas/` absent and User wants Mission work | Run `geas init`, then continue. |
+| `.geas/` absent and User wants Mission work | Run the CLI surface command `geas init` through `geas-cli`, then continue. |
 | No active Mission and User wants new Mission | `specifying`. |
 | `current_stage: specifying` | `specifying`. |
 | `current_stage: building` | `building`. |

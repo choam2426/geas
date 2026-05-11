@@ -20,7 +20,8 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
 - Treat `challenge spec`, `challenge design`, `challenge task contracts`, and `challenge deeper` as requests for a `challenger` role handoff. The specifying context prepares the handoff and briefs the returned result; it does not produce challenge findings itself.
 - Include `read_first` artifact or draft payload paths in specifying-stage role handoffs. The role must read those paths before producing findings or design output.
 - Track the author of every draft. If a role is required for an artifact, the role must return the draft or candidate payload; specifying may render, serialize, and record it, but must not add substantive content.
-- Record agreed baselines with the CLI; never hand-edit `.geas/` runtime artifacts.
+- Before any runtime write, load `geas-cli` and follow its bundled script invocation rule.
+- Record agreed baselines with the CLI; do not invoke a bare `geas` command or hand-edit `.geas/` runtime artifacts.
 - If the CLI or runtime write is unavailable, keep the accepted payload ready, brief recording unavailable, and wait for caller/User direction instead of inventing a runtime artifact.
 - Keep User review and User Judgment separate from agent-side confidence or recommendations.
 
@@ -51,7 +52,7 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
    - Draft all required Mission Spec fields.
    - Present the draft with `references/briefings.md` Mission Spec Review.
    - Revise, request a `challenger` role handoff, or stop according to the User's choice. If Challenger findings are accepted, revise only through the current Spec author.
-   - After the User accepts the Mission Spec, use `geas init` if runtime storage is absent, use `geas mission create` if no Mission is active, and record the accepted Spec before drafting Mission Design.
+   - After the User accepts the Mission Spec, use the CLI surface commands `geas init` if runtime storage is absent and `geas mission create` if no Mission is active through `geas-cli`, then record the accepted Spec before drafting Mission Design.
 
 4. Draft the Mission Design.
    - Start only after an accepted Mission Spec has been recorded or is the explicit accepted basis for the current revision.
@@ -85,7 +86,7 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
    - Use `references/briefings.md` Baseline Readiness when all accepted artifacts are ready for building transition or session handoff.
 
 7. Enter building after accepted baselines are recorded.
-   - Use `geas mission transition --to building --task <task-id>` only after the first Task Contract is recorded and the User is ready to start building.
+   - Use the CLI surface command `geas mission transition --to building --task <task-id>` through `geas-cli` only after the first Task Contract is recorded and the User is ready to start building.
 
 8. Prepare session handoff when chosen before building.
    - Recommend a fresh building session when specifying consumed substantial context, required heavy research, produced five or more initial Tasks, or left many baseline decisions that must stay visible.
