@@ -61,11 +61,11 @@ Mission design에는 다음 내용이 들어간다.
 |핵심 개념|Mission을 이해하는 데 필요한 핵심 개념과 이번 Mission에서의 의미|
 |scope in|Mission 진행 계획에 포함하는 구조적 범위|
 |scope out|Mission 진행 계획에서 제외하는 구조적 범위|
-|Task 분해|Mission을 어떤 Task로 나누는지, 각 Task의 의존 관계, 그 이유|
+|Task 분해|Mission을 User가 판단할 수 있는 Task로 어떻게 나누는지, 각 Task의 의존 관계, 그 이유|
 |주요 가정|작업 계획이 의존하는 전제|
 |위험|선택한 Mission 진행 계획과 Task 구조에서 고려해야 하는 위험|
 
-Mission design의 Task 분해는 Mission 수준 planned task graph의 정본이다. Task contract는 각 Task node를 실행 가능한 계약으로 구체화한다.
+Mission design의 Task 분해는 Mission 수준 planned task graph의 정본이다. 이 분해는 파일 종류나 agent 실행 편의보다 User가 각 Task 결과를 따로 받아들이거나 재작업 요청할 수 있는 판단 경계를 기준으로 삼는다. Task contract는 각 Task node를 실행 가능한 계약으로 구체화한다.
 
 ## Mission 흐름
 

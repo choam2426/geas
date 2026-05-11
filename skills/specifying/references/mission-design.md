@@ -73,7 +73,7 @@ Use this procedure inside the `work-designer` role context, or in the specifying
 
 1. Read the accepted Mission Spec.
 2. Identify the smallest set of Task outcomes that can satisfy the Mission acceptance criteria.
-3. Group work by User judgment boundary, not by file type alone.
+3. Group work by User judgment boundary, so the User can accept or request rework for each Task result without rechecking unrelated outputs.
 4. Identify dependencies that affect execution order.
 5. Define key concepts that future roles need to interpret consistently.
 6. Compare at least one plausible alternative for meaningful structure decisions.
@@ -94,6 +94,8 @@ Good Task nodes:
 - Produce reviewable deliverables.
 - Have acceptance criteria that can be tested or reviewed.
 - Have dependencies that can be checked from Task Evidence or accepted User Judgment.
+- Can be accepted, revised, deferred, or stopped as one User decision.
+- Keep unverified scope and remaining risks separable in Evidence.
 - Avoid mixing unrelated User judgments.
 
 Use multiple Tasks when:
@@ -102,6 +104,7 @@ Use multiple Tasks when:
 - One part can be accepted while another may need rework.
 - Work touches different risk profiles, such as docs vs. runtime writes vs. permissions.
 - The User may want to stop after a partial outcome.
+- The combined result would be too large for one practical User review.
 
 Use one Task when:
 

@@ -41,6 +41,7 @@ When any blocker is present, the review packet should offer a focused return to 
 - Initial Task Contracts were created after a role-required Mission Design without work-designer-provided Task Contract candidates.
 - Mission Design does not show approach alternatives that differ in scope, risk, cost, or verification path, or does not state the reason for the selected approach.
 - Acceptance criteria are not connected to verification checks, review focus, or named unverified scope.
+- A Task Contract is too large or mixed for the User to judge from one Task result and Evidence packet.
 - User-owned decisions are invisible, or agent-delegated decisions lack boundaries.
 - Known constraints, current Task, or acceptance criteria cannot be passed to the next stage as a compact context pack.
 - Initial Task Contracts do not identify the checks or review focus that will produce Evidence for User review.
@@ -57,7 +58,7 @@ Run this check before presenting Baseline Readiness Review. It is a readiness re
 | --- | --- |
 | Outcome to Acceptance | Each acceptance criterion supports the desired outcome, and the full set is enough for the User to judge the Mission result. |
 | Boundary to Surface | Included scope maps to changed or produced surfaces, and excluded scope names adjacent work that stays outside the Mission. |
-| Evidence to Review Cost | Verification checks, review focus, and expected unverified scope give the User a practical review path. |
+| Evidence to Review Cost | Verification checks, review focus, expected unverified scope, and Task size give the User a practical review path. |
 | Decision Ownership | Agent-delegated decisions have boundaries, and user-owned decisions are visible before acceptance. |
 
 When a self-check item finds a gap, present the gap as a revise target or gate-closing question before offering building transition.
@@ -86,6 +87,7 @@ Present every initial Task as a reviewable card before Task Contract acceptance 
 - Every Mission acceptance criterion maps to at least one Task.
 - Every Task maps back to Mission scope or acceptance criteria.
 - Every included surface is owned by a Task.
+- Each Task can be judged from its own result and Evidence without bundling unrelated acceptance decisions.
 - Excluded scope covers tempting adjacent work.
 
 ### Testability

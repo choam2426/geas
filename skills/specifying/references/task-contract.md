@@ -48,10 +48,11 @@ The specifying context may format Task Cards, serialize accepted payloads, and r
 5. Define `scope_in` as surfaces or outcomes this Task owns.
 6. Define `scope_out` as adjacent work this Task will not absorb.
 7. Define deliverables as artifacts, files, behavior, docs, or decisions that will exist after the Task.
-8. Write acceptance criteria that can be judged independently.
-9. Pair criteria with verification checks.
-10. Write review focus for quality, boundary, risk, and consistency.
-11. List Task-specific risks.
+8. Check that the Task result can be accepted, revised, deferred, or stopped as one User decision.
+9. Write acceptance criteria that can be judged independently.
+10. Pair criteria with verification checks.
+11. Write review focus for quality, boundary, risk, and consistency.
+12. List Task-specific risks, including expected unverified scope or remaining risk that may need User judgment.
 
 ## Acceptance Criteria
 
@@ -110,12 +111,15 @@ Split a Task when one of these is true:
 - The Task has unrelated verification strategies.
 - One part is high risk and should not hold lower-risk work hostage.
 - A dependency must be accepted before later work can be meaningful.
+- The User would need to review too much changed surface or too many unrelated criteria at once.
+- Unverified scope from one part would obscure confidence in another part.
 
 Keep a Task together when:
 
 - The deliverables are tightly coupled.
 - A single Evidence packet can lower User review cost.
 - Splitting would create artificial handoff overhead.
+- The whole result can be accepted, revised, deferred, or stopped as one decision.
 
 ## Review Before Recording
 
