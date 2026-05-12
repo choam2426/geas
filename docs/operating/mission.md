@@ -44,6 +44,8 @@ Mission spec에는 다음 내용이 들어간다.
 
 Mission spec은 User가 이해하고 받아들일 수 있어야 한다.
 
+수용 기준은 나중에 Evidence와 대조하기 쉽도록 안정적인 식별자를 붙여 쓸 수 있다. 예를 들어 `AC-001:`처럼 시작하면 Mission Evidence와 Task Evidence에서 어떤 기준을 확인했는지 추적하기 쉽다. 이는 작성 관례이며 runtime schema를 바꾸는 규칙은 아니다.
+
 Mission spec이 받아들여진 뒤 완료 기준이나 범위가 바뀌어야 한다면 기존 실행 기준을 조용히 확장하지 않는다. Mission을 갱신할지, 보류할지, 중단할지, 후속 Mission으로 넘길지 판단해야 한다.
 
 ## Mission Design
@@ -66,6 +68,8 @@ Mission design에는 다음 내용이 들어간다.
 |위험|선택한 Mission 진행 계획과 Task 구조에서 고려해야 하는 위험|
 
 Mission design의 Task 분해는 Mission 수준 planned task graph의 정본이다. 이 분해는 파일 종류나 agent 실행 편의보다 User가 각 Task 결과를 따로 받아들이거나 재작업 요청할 수 있는 판단 경계를 기준으로 삼는다. Task contract는 각 Task node를 실행 가능한 계약으로 구체화한다.
+
+Task를 나눌 때는 `task.md`의 판단 가능한 작업 단위 기준을 따른다. 하나의 Task는 User가 그 Task의 산출물과 Evidence만 보고 완료 수용, 재작업, 보류, 중단을 판단할 수 있어야 한다. 서로 다른 수용 판단이 필요한 일이 섞이거나, 확인 방법과 위험 수준이 크게 다르거나, 앞선 결과가 받아들여져야 뒤의 결과를 판단할 수 있으면 별도 Task로 나눈다.
 
 ## Mission 흐름
 
@@ -92,36 +96,54 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-  R["User request"]
-  I["Orchestrator<br/>Intake Sketch"]
-  C["Orchestrator<br/>Baseline Candidate"]
-  U0["User<br/>Spec 초안 basis 수용"]
-  O["Orchestrator<br/>Mission spec 초안"]
-  U1["User<br/>Mission spec 합의"]
-  D["Work Designer<br/>Mission design"]
-  U2["User<br/>Mission design 합의"]
-  T["Work Designer<br/>초기 Task contract"]
-  H["Challenger<br/>기준선 초안 압박 optional"]
-  U3["User<br/>초기 Task contract 합의"]
+  R["User 요청"]
+  P["사전 파악"]
+  I["요청 해석 정리<br/>(Intake Sketch)"]
+  C["기준선 후보 정리<br/>(Baseline Candidate)"]
+  S["Mission Spec 합의"]
+  D["Mission Design 합의"]
+  T["초기 Task Contract 합의"]
+  H["Challenger<br/>기준선 압박 optional"]
+  K["실행 준비 확인"]
   B["building"]
 
-  R --> I --> C --> U0 --> O --> U1 --> D --> U2 --> T
-  T --> H --> U3
-  T --> U3
-  U0 -->|"intake 수정 요청"| I
-  U1 -->|"수정 요청"| O
-  U2 -->|"수정 요청"| D
-  U3 -->|"수정 요청"| T
-  U3 -->|"합의"| B
+  R --> P --> I --> C --> S --> D --> T
+  T --> H
+  H -->|"문제 없음 또는 반영됨"| K
+  H -->|"기준선 수정 필요"| S
+  T --> K
+  I -->|"열린 질문 있음"| I
+  C -->|"후보 수정"| I
+  S -->|"수정 요청"| S
+  D -->|"수정 요청"| D
+  T -->|"수정 요청"| T
+  K -->|"준비됨"| B
 ```
 
-이 흐름에서 Orchestrator는 User 요청을 먼저 intake로 구체화한다. Intake Sketch는 관찰 사실, 후보 해석, open readiness gate, 다음 gate-closing question을 드러낸다. 모든 readiness gate가 `confirmed`, `observed`, `delegated`, `deferred` 중 하나로 채워지면 Orchestrator는 Baseline Candidate를 제시한다. User가 이 candidate를 Mission Spec 초안의 basis로 수용한 뒤에만 Orchestrator는 Mission spec 초안을 작성한다. Work Designer는 합의된 Mission spec을 Mission design과 초기 Task contract로 이어지게 만든다.
+User 요청을 바로 Mission Spec으로 옮기지 않는다. 먼저 기존 runtime 상태, 관련 문서, 프로젝트 구조, 검증 후보를 사전 파악하고, 현재 해석과 열린 질문을 요청 해석 정리(Intake Sketch)로 드러낸다.
 
-Challenger가 참여하면 Mission spec, Mission design, 초기 Task contract 초안의 숨은 가정, scope 경계, Task 분해와 의존 관계의 장기 위험을 드러낸다. Orchestrator는 드러난 내용을 User와 토론하고 합의된 기준선에 반영한다.
+목표, 범위, 검증 경로, 판단 책임이 충분히 잡히면 기준선 후보(Baseline Candidate)를 정리한다. User가 이 후보를 받아들이면 Mission Spec 합의로 넘어간다.
 
-User는 Mission spec, Mission design, 초기 Task contract를 순서대로 검토하고 합의한다. 수정이 필요하면 specifying 안에서 기준선을 다시 다듬고, 합의되면 building으로 넘어간다.
+Mission Spec에 합의하면 Mission Design에 합의한다. Mission Design은 접근 전략과 Task 분해가 User가 판단할 수 있는 구조인지 확인하는 기준선이다.
 
-남겨야 할 것은 versioned Mission spec, Mission design, 초기 Task contract다. 이 기준선 합의는 별도 User Judgment artifact로 남기지 않는다.
+Mission Design에 합의하면 초기 Task Contract에 합의한다. 초기 Task Contract는 각 Task를 실행하기 전에 범위, 산출물, 수용 기준, verification checks, review focus를 고정한다.
+
+세 기준선이 각각 합의되고 기록되면 실행 준비 확인을 거쳐 building으로 넘어간다.
+
+Mission Spec에 합의했다고 Mission Design까지 합의한 것은 아니다. Mission Design에 합의했다고 초기 Task Contract까지 합의한 것은 아니다. 초기 Task Contract 합의는 Task 결과 수용 판단이 아니다.
+
+Challenger가 참여하면 Mission Spec, Mission Design, 초기 Task Contract의 숨은 가정, scope 경계, Task 분해와 의존 관계의 장기 위험을 드러낸다. Orchestrator는 드러난 내용을 User와 토론하고 합의된 기준선에 반영한다.
+
+User는 Mission Spec, Mission Design, 초기 Task Contract를 순서대로 확인하고 합의한다. 수정이 필요하면 specifying 안에서 기준선을 다시 다듬고, 합의되면 building으로 넘어간다.
+
+남겨야 할 것은 versioned Mission Spec, Mission Design, 초기 Task Contract다. 이 기준선 합의는 별도 User Judgment artifact로 남기지 않는다.
+
+다음 경우에는 조용히 실행 범위를 넓히지 않고 specifying 안에서 기준선을 다시 합의한다.
+
+- Mission 목표, 포함 범위, 제외 범위, 수용 기준이 바뀐다.
+- Task 추가, 삭제, 기본 진행 순서, dependency, mission coverage가 바뀐다.
+- Task 결과나 Evidence가 Mission 기준선 자체의 문제를 드러낸다.
+- User가 Task 수준 재작업이 아니라 Mission 수준 재검토를 요청한다.
 
 ### building
 

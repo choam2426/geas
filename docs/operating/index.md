@@ -102,13 +102,47 @@ User request
   -> Mission 수용 판단
 ```
 
+### 단계별 운영 요약
+
+|단계|입력|출력|진행 조건|멈추거나 돌아가는 조건|
+|---|---|---|---|---|
+|specifying|User 요청, 기존 runtime 상태, 관련 문서와 작업 맥락|합의된 Mission spec, Mission design, 초기 Task contract|세 기준선이 각각 User에게 받아들여지고 기록된다.|목표, 범위, 수용 기준, 판단 책임, 검증 경로가 불명확하다.|
+|building|수용된 Task contract, Run State, Task State, 관련 Evidence와 Memory|role별 Evidence, Task User Judgment, Task Evidence|Task 결과가 User 판단으로 닫히고 Task Evidence가 남는다.|재작업, Task contract 갱신, Mission 기준선 재검토, 보류, 중단이 필요하다.|
+|consolidating|수용된 Task Evidence, 필요한 role별 Evidence, Mission 기준선|Mission 수용 판단 입력, gap, debt, follow-up 후보|Mission 전체를 User가 판단할 수 있을 만큼 근거와 남은 항목이 정리된다.|추가 Task, Task contract 갱신, Mission 기준선 갱신이 필요하다.|
+|Mission 수용 판단|Mission 수용 판단 입력, Evidence, 남은 gap, debt, follow-up 후보|Mission User Judgment, Memory 반영, Mission Evidence|User가 Mission 결과를 수용하거나 한계를 알고 수용한다.|User가 재작업, 보류, 중단, 기준선 재검토를 판단한다.|
+
+### User 판단 지점
+
+User 판단은 기준선 합의와 결과 수용 판단으로 나뉜다.
+
+- Mission Spec 합의: User의 목표, 배경, 범위, 제외 범위, 수용 기준이 맞는지 확인한다.
+- Mission Design 합의: 접근 전략과 Task 분해가 판단 가능한 구조인지 확인한다.
+- 초기 Task Contract 합의: 개별 Task의 실행 범위, 산출물, 수용 기준, verification checks, review focus가 충분한지 확인한다.
+- Task 결과 수용 판단: Task 결과와 Evidence를 보고 완료 수용, 재작업, 보류, 중단을 판단한다.
+- Mission 결과 수용 판단: 수용된 Task들을 Mission 기준선과 다시 대조해 Mission을 닫을지 판단한다.
+
+Mission Spec, Mission Design, 초기 Task Contract 합의는 기준선 합의다. 이 합의는 Task나 Mission 결과에 대한 User Judgment artifact가 아니다. Task 결과와 Mission 결과에 대한 수용 판단은 Evidence를 검토한 뒤 별도 User Judgment로 남긴다.
+
+### 단순 작업 축약 기준
+
+단순한 작업에서도 Mission, Task, Evidence, User Judgment의 책임 경계는 유지한다. 다만 기준선과 Evidence의 길이는 작업 위험과 판단 비용에 맞게 짧게 쓸 수 있다.
+
+단순 작업에서 축약할 수 있는 것은 설명의 양이다. 다음 항목은 생략하지 않는다.
+
+- 무엇을 할지
+- 어디까지 하지 않을지
+- 어떤 기준이면 충분한지
+- 어떤 검증 근거를 남길지
+- 무엇을 확인하지 못했는지
+- User가 어디서 수용 판단할지
+
 ### specifying
 
 specifying은 User의 요청을 Mission 기준선과 Task 계약으로 구체화하는 단계다.
 
 Orchestrator는 User 요청을 Mission 기준선으로 구체화하고, Mission spec, Mission design, 초기 Task contract가 이어지도록 조율한다.
 
-이 단계에서는 Mission spec, Mission design, 초기 Task contract 순서로 기준선을 합의하고 남긴다.
+이 단계에서는 Mission spec, Mission design, 초기 Task contract 순서로 기준선에 합의하고 남긴다.
 
 - Mission spec은 User가 agent로 수행하려는 작업을 기획하는 기준선이다. 무엇을 이루려는지, 왜 필요한지, 어디까지 포함하거나 제외하는지, 어떤 결과를 충분하다고 볼지 고정한다.
 - Mission design은 Mission spec을 실행 가능한 작업 계획으로 바꾸는 기준선이다. 수용 판단 비용을 낮추기 위한 접근 전략, 핵심 개념, scope, Task 분해와 의존 관계를 설명한다.

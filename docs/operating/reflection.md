@@ -12,12 +12,21 @@
 
 Task가 종료될 때는 필요한 회고 후보를 Task Evidence에 가볍게 참조하고, Mission이 종료될 때는 확정한 회고 결과와 반영한 memory를 Mission Evidence에 남긴다.
 
+회고 후보는 Task 중에도 발견될 수 있지만, Memory로 확정하는 것은 Mission 수용 판단 이후다.
+
 회고 후보는 다음 범주로 분류한다.
 
 - memory
 - debt
 - gap
 - follow-up
+
+|분류|판단 질문|남기는 위치|
+|---|---|---|
+|memory|다음 작업의 판단이나 행동을 바꿀 반복 가능한 교훈인가?|Memory, Mission Evidence의 memory 업데이트 요약|
+|debt|이번 Mission 안에서 받아들였지만 이후 비용으로 남는가?|Mission Evidence의 debts|
+|gap|Mission 기준선에 있었는데 아직 충족되지 않았는가?|Mission Evidence의 gaps|
+|follow-up|현재 Mission 밖에서 새로 다룰 수 있는 작업인가?|Mission Evidence의 follow_ups|
 
 회고의 중심은 이후 작업에서 실제 판단을 바꿀 항목을 남기는 데 있다.
 
@@ -106,7 +115,7 @@ Gap에는 다음이 들어갈 수 있다.
 - User 기대와 산출물 사이의 차이
 - Mission scope 안에 있었지만 산출물이나 Evidence에 반영되지 않은 부분
 
-Gap은 User 수용 판단의 대상이다. Gap은 이름만 바꿔 debt나 follow-up으로 돌리지 않는다.
+Gap은 User 수용 판단의 대상이다. Gap은 이름만 바꿔 debt나 follow-up으로 돌리지 않는다. Mission 기준선에 포함된 미충족 항목은 follow-up으로 이름만 바꿔 Mission 밖으로 밀어내지 않는다.
 
 Mission 완료 기준이나 scope에 걸린 gap은 추가 Task로 해결하거나, Mission 기준선을 갱신하고 User 수용 판단을 다시 거친다.
 
@@ -127,6 +136,17 @@ Follow-up은 다음 중 하나로 분류할 수 있다.
 - 별도 조사나 의사결정
 
 Follow-up은 다음 작업의 입력으로 남긴다. 현재 Mission의 완료 여부는 User가 Evidence와 남은 항목을 보고 수용 판단한다.
+
+## 분류 예시
+
+다음 예시는 분류 경계를 보여 주기 위한 것이다.
+
+|분류|예시|
+|---|---|
+|memory|문서 Task에서는 acceptance criteria에 확인할 문서 목록을 포함한다. UI Task에서는 viewport 확인을 verification checks에 포함한다.|
+|debt|이번 Mission에서는 임시 구조를 받아들였지만 다음 확장 때 분리 비용이 생긴다. 최소 테스트만 수용해 이후 회귀 검증 비용이 남는다.|
+|gap|Mission scope에 포함된 문서 하나가 아직 업데이트되지 않았다. 특정 환경 확인이 acceptance criteria에 있었지만 수행되지 않았다.|
+|follow-up|현재 Mission 밖의 추가 자동화를 별도 작업으로 다룬다. 운영 문서와 별개인 Skill packaging 개선을 다음 후보로 둔다.|
 
 ## 수용 판단과 회고 흐름
 
@@ -161,6 +181,7 @@ Mission 수용 판단 이후에는 다음을 정리한다.
 회고의 책임 경계는 다음과 같다.
 
 - User 수용 판단은 Evidence를 검토한 뒤 별도로 남긴다.
+- 회고 항목은 User 수용 판단을 대신하지 않는다.
 - 회고 후보는 자동으로 memory가 되지 않는다.
 - debt와 gap은 성과처럼 표현하지 않는다.
 - follow-up의 존재만으로 현재 Mission의 완료 여부를 결정하지 않는다.
