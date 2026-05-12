@@ -95,20 +95,25 @@ Decision needed: accept this Mission Design, revise it, challenge it, return to 
 - Coordinator edits: {formatting_only | none | user_delegated_mechanical_edits}
 
 **Approach**
+- Summary: {plan_summary}
 - Selected: {approach_strategy}
 - Alternatives: {alternatives_or_none}
 - Work-designer: {role_required_result_ref | role_omitted_with_reason}
 
-**Task Breakdown**
-- {task_id}: {task_summary}; depends on {dependencies_or_none}
+**Plan Outline**
+- {focus}: {purpose}. User-visible result: {user_visible_result}
+
+**Decision Points**
+- {decision_points_or_none}
 
 **Assumptions And Risks**
 - Assumptions: {items_or_none}
 - Risks: {items_or_none}
+- Change triggers: {items_or_none}
 
 **Choices**
-1. accept design - record this Mission Design, then present initial Task Contracts from the artifact author candidates.
-2. revise design - adjust approach, task structure, dependencies, concepts, assumptions, or risks before recording.
+1. accept design - record this Mission Design, then draft initial Task Contracts.
+2. revise design - adjust summary, approach, plan outline, decision points, concepts, assumptions, risks, or change triggers before recording.
 3. challenge design - request a challenger role pass on this Mission Design draft before recording.
 4. return to spec - revise the accepted Mission Spec before continuing.
 5. stop - leave the Mission Design draft unrecorded.

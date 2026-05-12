@@ -96,20 +96,22 @@ test('mission spec record fails outside specifying stage', () => {
 });
 
 const minimalDesign = {
+  plan_summary: 'Plan summary',
   approach_strategy: 'A',
   alternatives_considered: [],
   key_concepts: [],
   scope_in: [],
   scope_out: [],
-  task_breakdown: [
-    { task_id: 'task-001', description: 't1', mission_coverage: [], depends_on: [], reason: '' },
-    { task_id: 'task-002', description: 't2', mission_coverage: [], depends_on: ['task-001'], reason: '' },
+  plan_outline: [
+    { focus: 'Prepare', purpose: 'Set the baseline', user_visible_result: 'Accepted plan and contracts' },
   ],
+  decision_points: [],
   assumptions: [],
   risks: [],
+  change_triggers: [],
 };
 
-test('mission design record materializes task directories', () => {
+test('mission design record stores numbered mission-design without creating tasks', () => {
   const created = runMissionCreate();
   if (!created.ok) throw new Error('setup');
   const id = created.current.mission_id;
@@ -118,54 +120,7 @@ test('mission design record materializes task directories', () => {
   const result = runMissionDesignRecord(minimalDesign);
   assert.equal(result.ok, true);
   assert.ok(existsSync(join(workdir, '.geas', 'missions', id, 'mission-design-001.yaml')));
-  assert.ok(existsSync(join(workdir, '.geas', 'missions', id, 'tasks', 'task-001')));
-  assert.ok(existsSync(join(workdir, '.geas', 'missions', id, 'tasks', 'task-002')));
-  // task-state.yaml should NOT exist — it's task contract record's job
-  assert.equal(existsSync(join(workdir, '.geas', 'missions', id, 'tasks', 'task-001', 'task-state.yaml')), false);
-});
-
-test('mission design record rejects duplicate task_id', () => {
-  runMissionCreate();
-  runMissionSpecRecord(minimalSpec);
-  const bad = {
-    ...minimalDesign,
-    task_breakdown: [
-      { task_id: 'task-001', description: '', mission_coverage: [], depends_on: [], reason: '' },
-      { task_id: 'task-001', description: '', mission_coverage: [], depends_on: [], reason: '' },
-    ],
-  };
-  const result = runMissionDesignRecord(bad);
-  assert.equal(result.ok, false);
-  if (!result.ok) assert.ok(result.error.guards?.some((g) => g.code === 'task_id_duplicate'));
-});
-
-test('mission design record rejects unknown dependency', () => {
-  runMissionCreate();
-  runMissionSpecRecord(minimalSpec);
-  const bad = {
-    ...minimalDesign,
-    task_breakdown: [
-      { task_id: 'task-001', description: '', mission_coverage: [], depends_on: ['task-999'], reason: '' },
-    ],
-  };
-  const result = runMissionDesignRecord(bad);
-  assert.equal(result.ok, false);
-  if (!result.ok) assert.ok(result.error.guards?.some((g) => g.code === 'dependency_unknown'));
-});
-
-test('mission design record rejects dependency cycle', () => {
-  runMissionCreate();
-  runMissionSpecRecord(minimalSpec);
-  const bad = {
-    ...minimalDesign,
-    task_breakdown: [
-      { task_id: 'task-001', description: '', mission_coverage: [], depends_on: ['task-002'], reason: '' },
-      { task_id: 'task-002', description: '', mission_coverage: [], depends_on: ['task-001'], reason: '' },
-    ],
-  };
-  const result = runMissionDesignRecord(bad);
-  assert.equal(result.ok, false);
-  if (!result.ok) assert.ok(result.error.guards?.some((g) => g.code === 'dependency_cycle'));
+  assert.equal(existsSync(join(workdir, '.geas', 'missions', id, 'tasks')), false);
 });
 
 test('mission transition fails when no task contract exists', () => {

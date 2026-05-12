@@ -1,6 +1,6 @@
 import { join as pathJoin } from 'node:path';
 import type { GuardFailure } from './output';
-import { missionDir, readLatestNumbered, taskDir, readTaskState, type RunState } from './runtime';
+import { listTaskIds, missionDir, readLatestNumbered, taskDir, readTaskState, type RunState } from './runtime';
 
 export type GuardResult = { ok: true } | { ok: false; guards: GuardFailure[] };
 
@@ -46,15 +46,7 @@ export function checkMissionSpecRecord(runState: RunState | null): GuardResult {
   return failures.length === 0 ? ok() : fail(failures);
 }
 
-type MissionDesignPayload = {
-  task_breakdown: Array<{ task_id: string; depends_on: string[] }>;
-};
-
-export function checkMissionDesignRecord(
-  runState: RunState | null,
-  payload: MissionDesignPayload,
-  cwd?: string,
-): GuardResult {
+export function checkMissionDesignRecord(runState: RunState | null, cwd?: string): GuardResult {
   if (!runState) return fail([{ code: 'run_state_missing' }]);
   const failures: GuardFailure[] = [];
   if (runState.current_mission_id === '') failures.push({ code: 'no_current_mission' });
@@ -63,45 +55,6 @@ export function checkMissionDesignRecord(
     const dir = missionDir(runState.current_mission_id, cwd);
     const spec = readLatestNumbered(dir, 'mission-spec');
     if (!spec) failures.push({ code: 'mission_spec_missing', path: pathJoin(dir, 'mission-spec-001.yaml') });
-  }
-
-  // task_id duplicates
-  const taskIds = payload.task_breakdown?.map((t) => t.task_id) ?? [];
-  const dupes = taskIds.filter((id, i) => taskIds.indexOf(id) !== i);
-  if (dupes.length > 0) failures.push({ code: 'task_id_duplicate', detail: Array.from(new Set(dupes)).join(',') });
-
-  // dependency target exists
-  const idSet = new Set(taskIds);
-  for (const t of payload.task_breakdown ?? []) {
-    for (const dep of t.depends_on ?? []) {
-      if (!idSet.has(dep)) {
-        failures.push({ code: 'dependency_unknown', detail: `${t.task_id} -> ${dep}` });
-      }
-    }
-  }
-
-  // dependency cycle (DFS)
-  const graph = new Map<string, string[]>();
-  for (const t of payload.task_breakdown ?? []) graph.set(t.task_id, t.depends_on ?? []);
-  const WHITE = 0, GRAY = 1, BLACK = 2;
-  const color = new Map<string, number>();
-  function dfs(node: string): boolean {
-    color.set(node, GRAY);
-    for (const next of graph.get(node) ?? []) {
-      const c = color.get(next) ?? WHITE;
-      if (c === GRAY) return true;
-      if (c === WHITE && dfs(next)) return true;
-    }
-    color.set(node, BLACK);
-    return false;
-  }
-  for (const id of taskIds) {
-    if ((color.get(id) ?? WHITE) === WHITE) {
-      if (dfs(id)) {
-        failures.push({ code: 'dependency_cycle' });
-        break;
-      }
-    }
   }
 
   return failures.length === 0 ? ok() : fail(failures);
@@ -116,7 +69,61 @@ const ALLOWED_MISSION_TRANSITIONS = new Set<string>([
   'consolidating->specifying',
 ]);
 
-type DesignPayload = { task_breakdown: Array<{ task_id: string; depends_on: string[] }> };
+type TaskContractPayload = { depends_on: string[] };
+
+function readTaskContract(missionId: string, taskId: string, cwd?: string) {
+  return readLatestNumbered<TaskContractPayload>(taskDir(missionId, taskId, cwd), 'task-contract');
+}
+
+function listContractedTaskIds(missionId: string, cwd?: string): string[] {
+  return listTaskIds(missionId, cwd).filter((taskId) => Boolean(readTaskContract(missionId, taskId, cwd)));
+}
+
+function checkTaskDependencies(
+  missionId: string,
+  taskId: string,
+  payload: TaskContractPayload,
+  cwd?: string,
+): GuardFailure[] {
+  const failures: GuardFailure[] = [];
+  const taskIds = new Set(listContractedTaskIds(missionId, cwd));
+  taskIds.add(taskId);
+
+  for (const dep of payload.depends_on ?? []) {
+    if (!taskIds.has(dep)) {
+      failures.push({ code: 'dependency_unknown', detail: `${taskId} -> ${dep}` });
+    }
+  }
+
+  const graph = new Map<string, string[]>();
+  for (const id of taskIds) {
+    const deps = id === taskId ? payload.depends_on ?? [] : readTaskContract(missionId, id, cwd)?.payload.depends_on ?? [];
+    graph.set(id, deps);
+  }
+
+  const WHITE = 0, GRAY = 1, BLACK = 2;
+  const color = new Map<string, number>();
+  function dfs(node: string): boolean {
+    color.set(node, GRAY);
+    for (const next of graph.get(node) ?? []) {
+      if (!taskIds.has(next)) continue;
+      const c = color.get(next) ?? WHITE;
+      if (c === GRAY) return true;
+      if (c === WHITE && dfs(next)) return true;
+    }
+    color.set(node, BLACK);
+    return false;
+  }
+
+  for (const id of taskIds) {
+    if ((color.get(id) ?? WHITE) === WHITE && dfs(id)) {
+      failures.push({ code: 'dependency_cycle' });
+      break;
+    }
+  }
+
+  return failures;
+}
 
 export function dependencyAccepted(missionId: string, depTaskId: string, cwd?: string): boolean {
   const td = taskDir(missionId, depTaskId, cwd);
@@ -150,22 +157,16 @@ export function checkMissionTransition(
       failures.push({ code: 'task_required' });
     } else {
       const spec = readLatestNumbered(md, 'mission-spec');
-      const design = readLatestNumbered<DesignPayload>(md, 'mission-design');
+      const design = readLatestNumbered(md, 'mission-design');
       if (!spec) failures.push({ code: 'mission_spec_missing' });
       if (!design) failures.push({ code: 'mission_design_missing' });
-      if (design && !design.payload.task_breakdown.some((t) => t.task_id === taskId)) {
-        failures.push({ code: 'task_unknown', detail: taskId });
-      }
       const td = taskDir(mid, taskId, cwd);
-      const contract = readLatestNumbered(td, 'task-contract');
+      const contract = readTaskContract(mid, taskId, cwd);
       if (!contract) failures.push({ code: 'task_contract_missing', path: pathJoin(td, 'task-contract-001.yaml') });
 
-      if (design) {
-        const node = design.payload.task_breakdown.find((t) => t.task_id === taskId);
-        for (const dep of node?.depends_on ?? []) {
-          if (!dependencyAccepted(mid, dep, cwd)) {
-            failures.push({ code: 'dependency_not_ready', detail: dep });
-          }
+      if (contract) {
+        for (const dep of contract.payload.depends_on ?? []) {
+          if (!dependencyAccepted(mid, dep, cwd)) failures.push({ code: 'dependency_not_ready', detail: dep });
         }
       }
 
@@ -182,20 +183,19 @@ export function checkMissionTransition(
   }
 
   if (toStage === 'consolidating') {
-    const design = readLatestNumbered<DesignPayload>(md, 'mission-design');
-    if (!design) {
-      failures.push({ code: 'mission_design_missing' });
-    } else {
-      for (const t of design.payload.task_breakdown) {
-        const tdir = taskDir(mid, t.task_id, cwd);
-        const fs = require('node:fs') as typeof import('node:fs');
-        if (!fs.existsSync(`${tdir}/task-evidence.yaml`)) {
-          failures.push({ code: 'task_evidence_missing', detail: t.task_id });
-        }
-        const judgment = readLatestNumbered<{ decision: string }>(tdir, 'user-judgment-result');
-        if (!judgment || !['accepted', 'accepted_with_limits'].includes(judgment.payload.decision)) {
-          failures.push({ code: 'task_judgment_not_accepted', detail: t.task_id });
-        }
+    const design = readLatestNumbered(md, 'mission-design');
+    if (!design) failures.push({ code: 'mission_design_missing' });
+    const taskIds = listContractedTaskIds(mid, cwd);
+    if (taskIds.length === 0) failures.push({ code: 'task_contract_missing' });
+    for (const task of taskIds) {
+      const tdir = taskDir(mid, task, cwd);
+      const fs = require('node:fs') as typeof import('node:fs');
+      if (!fs.existsSync(`${tdir}/task-evidence.yaml`)) {
+        failures.push({ code: 'task_evidence_missing', detail: task });
+      }
+      const judgment = readLatestNumbered<{ decision: string }>(tdir, 'user-judgment-result');
+      if (!judgment || !['accepted', 'accepted_with_limits'].includes(judgment.payload.decision)) {
+        failures.push({ code: 'task_judgment_not_accepted', detail: task });
       }
     }
   }
@@ -206,10 +206,11 @@ export function checkMissionTransition(
 type TaskContractGuardCtx = {
   runState: RunState | null;
   taskId: string;
+  payload: TaskContractPayload;
 };
 
 export function checkTaskContractRecord(ctx: TaskContractGuardCtx, cwd?: string): GuardResult {
-  const { runState, taskId } = ctx;
+  const { runState, taskId, payload } = ctx;
   if (!runState) return fail([{ code: 'run_state_missing' }]);
   if (runState.current_mission_id === '') return fail([{ code: 'no_current_mission' }]);
   const failures: GuardFailure[] = [];
@@ -217,11 +218,9 @@ export function checkTaskContractRecord(ctx: TaskContractGuardCtx, cwd?: string)
     failures.push({ code: 'stage_not_specifying_or_building', detail: runState.current_stage });
   }
   const md = missionDir(runState.current_mission_id, cwd);
-  const design = readLatestNumbered<DesignPayload>(md, 'mission-design');
+  const design = readLatestNumbered(md, 'mission-design');
   if (!design) failures.push({ code: 'mission_design_missing' });
-  if (design && !design.payload.task_breakdown.some((t) => t.task_id === taskId)) {
-    failures.push({ code: 'task_unknown_in_design', detail: taskId });
-  }
+  failures.push(...checkTaskDependencies(runState.current_mission_id, taskId, payload, cwd));
   if (runState.current_stage === 'building') {
     if (runState.current_task_id !== taskId) {
       failures.push({ code: 'task_not_current', detail: `current=${runState.current_task_id} requested=${taskId}` });

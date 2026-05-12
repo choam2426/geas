@@ -63,7 +63,7 @@ Before a calling context reaches a role-producing step, decide one of:
 
 Use `role_required` for:
 
-- Work design that creates or changes approach, Task graph, dependency order, or review-cost tradeoffs.
+- Work design that creates or changes Mission approach, Mission plan outline, Task graph, dependency order, or review-cost tradeoffs.
 - Implementation, verification, or review phases that produce Task Evidence.
 - Challenger passes the User requested or the procedure marked necessary before recording.
 

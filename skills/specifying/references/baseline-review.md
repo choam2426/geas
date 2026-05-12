@@ -13,9 +13,9 @@ This is not User Judgment and not a new all-in-one baseline approval. It is a st
 Present:
 
 - Recorded Mission Spec reference and one-sentence goal.
-- Recorded Mission Design reference and selected approach.
+- Recorded Mission Design reference, plan summary, selected approach, and decision points.
 - Recorded Task Contract references.
-- Task breakdown table with dependencies from the accepted Mission Design.
+- Task Contract table with Task ids and dependencies from accepted Task Contracts.
 - Initial Task Cards from accepted Task Contracts.
 - Spec self-check results.
 - Readiness gate status with source: `confirmed`, `observed`, `delegated`, `deferred`, or `open`.
@@ -34,12 +34,13 @@ When any blocker is present, the review packet should offer a focused return to 
 - A minimum readiness gate lacks a baseline value and lacks an explicit User decision to defer it.
 - A minimum readiness gate is filled only by an agent-created candidate assumption.
 - Mission Design was drafted or recorded without an accepted Mission Spec as its basis.
-- A Task Contract was drafted or recorded without an accepted Mission Design task node as its basis.
+- A Task Contract was drafted or recorded without an accepted Mission Design as context.
 - One User choice is used to approve Mission Spec, Mission Design, and Task Contracts together.
 - A role-required artifact review lacks draft source or coordinator edit summary.
 - A role-required artifact was substantively authored, completed, or revised by the specifying context instead of the artifact author role.
-- Initial Task Contracts were created after a role-required Mission Design without work-designer-provided Task Contract candidates.
+- Initial Task Contracts were created after a role-required Task Contract pass without work-designer-provided Task Contract candidates.
 - Mission Design does not show approach alternatives that differ in scope, risk, cost, or verification path, or does not state the reason for the selected approach.
+- Mission Design records Task ids, Task dependencies, Task acceptance criteria, verification checks, review focus, or Task Cards instead of leaving them to Task Contracts.
 - Acceptance criteria are not connected to verification checks, review focus, or named unverified scope.
 - A Task Contract is too large or mixed for the User to judge from one Task result and Evidence packet.
 - User-owned decisions are invisible, or agent-delegated decisions lack boundaries.
@@ -109,7 +110,7 @@ Present every initial Task as a reviewable card before Task Contract acceptance 
 - Payloads match the bundled payload shapes in the specifying references or the validation result returned by the recording tool.
 - CLI commands match the Geas command surface used by this Skill, or recording is marked unavailable with a caller/User decision needed.
 - Task ids match `task-001` style and are unique.
-- Dependencies point to existing task ids.
+- Dependencies point to recorded Task Contracts and do not create dependency cycles.
 
 ### Context Transfer
 

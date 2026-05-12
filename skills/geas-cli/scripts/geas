@@ -9866,7 +9866,7 @@ var require_ajv = __commonJS({
 // virtual:virtual:schemas
 var require_virtual_schemas = __commonJS({
   "virtual:virtual:schemas"(exports2, module2) {
-    module2.exports = { "challenger-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["target", "challenge_focus", "findings", "user_decisions_needed", "deeper_checks_needed", "verdict", "overall_recommendation"], "properties": { "target": { "type": "array", "items": { "type": "string" } }, "challenge_focus": { "type": "array", "items": { "type": "string" } }, "findings": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["finding", "risk_type", "basis", "escalation"], "properties": { "finding": { "type": "string" }, "risk_type": { "type": "string", "enum": ["assumption", "scope", "verification_gap", "operational_risk", "tradeoff", "repeat_risk"] }, "basis": { "type": "string" }, "escalation": { "type": "string" } } } }, "user_decisions_needed": { "type": "array", "items": { "type": "string" } }, "deeper_checks_needed": { "type": "array", "items": { "type": "string" } }, "verdict": { "type": "string", "enum": ["passed", "changes_requested", "escalated"] }, "overall_recommendation": { "type": "string" } } }, "implementation-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "changed_outputs", "affected_scope", "decisions", "contract_deltas", "self_checks", "limits", "reflection_candidates"], "properties": { "summary": { "type": "string" }, "changed_outputs": { "type": "array", "items": { "type": "string" } }, "affected_scope": { "type": "array", "items": { "type": "string" } }, "decisions": { "type": "array", "items": { "type": "string" } }, "contract_deltas": { "type": "array", "items": { "type": "string" } }, "self_checks": { "type": "array", "items": { "type": "string" } }, "limits": { "type": "array", "items": { "type": "string" } }, "reflection_candidates": { "type": "array", "items": { "type": "string" } } } }, "memory-file": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["items"], "properties": { "items": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["guideline", "applies_when", "source_refs"], "properties": { "guideline": { "type": "string" }, "applies_when": { "type": "array", "items": { "type": "string" } }, "source_refs": { "type": "array", "items": { "type": "string" } } } } } } }, "memory-item": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["guideline", "applies_when", "source_refs"], "properties": { "guideline": { "type": "string" }, "applies_when": { "type": "array", "items": { "type": "string" } }, "source_refs": { "type": "array", "items": { "type": "string" } } } }, "mission-design": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["approach_strategy", "alternatives_considered", "key_concepts", "scope_in", "scope_out", "task_breakdown", "assumptions", "risks"], "properties": { "approach_strategy": { "type": "string" }, "alternatives_considered": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["approach", "benefit", "cost", "decision_reason"], "properties": { "approach": { "type": "string" }, "benefit": { "type": "string" }, "cost": { "type": "string" }, "decision_reason": { "type": "string" } } } }, "key_concepts": { "type": "array", "items": { "type": "string" } }, "scope_in": { "type": "array", "items": { "type": "string" } }, "scope_out": { "type": "array", "items": { "type": "string" } }, "task_breakdown": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["task_id", "description", "mission_coverage", "depends_on", "reason"], "properties": { "task_id": { "type": "string" }, "description": { "type": "string" }, "mission_coverage": { "type": "array", "items": { "type": "string" } }, "depends_on": { "type": "array", "items": { "type": "string" } }, "reason": { "type": "string" } } } }, "assumptions": { "type": "array", "items": { "type": "string" } }, "risks": { "type": "array", "items": { "type": "string" } } } }, "mission-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "user_judgment_summary", "mission_criteria_results", "mission_design_deltas", "accepted_unverified_scope", "accepted_remaining_risks", "gaps", "debts", "follow_ups", "reflection_summary", "memory_updates"], "properties": { "summary": { "type": "string" }, "user_judgment_summary": { "type": "string" }, "mission_criteria_results": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["criterion", "result", "evidence_refs", "unverified_scope", "remaining_risks"], "properties": { "criterion": { "type": "string" }, "result": { "type": "string", "enum": ["satisfied", "satisfied_with_limits", "not_satisfied"] }, "evidence_refs": { "type": "array", "items": { "type": "string" } }, "unverified_scope": { "type": "array", "items": { "type": "string" } }, "remaining_risks": { "type": "array", "items": { "type": "string" } } } } }, "mission_design_deltas": { "type": "array", "items": { "type": "string" } }, "accepted_unverified_scope": { "type": "array", "items": { "type": "string" } }, "accepted_remaining_risks": { "type": "array", "items": { "type": "string" } }, "gaps": { "type": "array", "items": { "type": "string" } }, "debts": { "type": "array", "items": { "type": "string" } }, "follow_ups": { "type": "array", "items": { "type": "string" } }, "reflection_summary": { "type": "string" }, "memory_updates": { "type": "array", "items": { "type": "string" } } } }, "mission-spec": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["name", "goal", "background", "completion_criteria", "included_scope", "excluded_scope", "acceptance_criteria", "constraints", "assumptions", "risks"], "properties": { "name": { "type": "string" }, "goal": { "type": "string" }, "background": { "type": "string" }, "completion_criteria": { "type": "array", "items": { "type": "string" } }, "included_scope": { "type": "array", "items": { "type": "string" } }, "excluded_scope": { "type": "array", "items": { "type": "string" } }, "acceptance_criteria": { "type": "array", "items": { "type": "string" } }, "constraints": { "type": "array", "items": { "type": "string" } }, "assumptions": { "type": "array", "items": { "type": "string" } }, "risks": { "type": "array", "items": { "type": "string" } } } }, "review-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "target", "review_focus_used", "scope_in", "scope_out", "review_methods", "findings", "remaining_risks", "verdict", "overall_recommendation"], "properties": { "summary": { "type": "string" }, "target": { "type": "array", "items": { "type": "string" } }, "review_focus_used": { "type": "array", "items": { "type": "string" } }, "scope_in": { "type": "array", "items": { "type": "string" } }, "scope_out": { "type": "array", "items": { "type": "string" } }, "review_methods": { "type": "array", "items": { "type": "string" } }, "findings": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["finding", "severity", "basis", "recommendation"], "properties": { "finding": { "type": "string" }, "severity": { "type": "string" }, "basis": { "type": "string" }, "recommendation": { "type": "string" } } } }, "remaining_risks": { "type": "array", "items": { "type": "string" } }, "verdict": { "type": "string", "enum": ["passed", "changes_requested", "escalated"] }, "overall_recommendation": { "type": "string" } } }, "run-state": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["current_mission_id", "current_stage", "current_task_id"], "properties": { "current_mission_id": { "type": "string" }, "current_stage": { "type": "string", "enum": ["", "specifying", "building", "consolidating"] }, "current_task_id": { "type": "string" } } }, "task-contract": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["description", "mission_relation", "depends_on", "scope_in", "scope_out", "deliverables", "acceptance_criteria", "verification_checks", "review_focus", "risk_level", "risks"], "properties": { "description": { "type": "string" }, "mission_relation": { "type": "string" }, "depends_on": { "type": "array", "items": { "type": "string" } }, "scope_in": { "type": "array", "items": { "type": "string" } }, "scope_out": { "type": "array", "items": { "type": "string" } }, "deliverables": { "type": "array", "items": { "type": "string" } }, "acceptance_criteria": { "type": "array", "items": { "type": "string" } }, "verification_checks": { "type": "array", "items": { "type": "string" } }, "review_focus": { "type": "array", "items": { "type": "string" } }, "risk_level": { "type": "string", "enum": ["low", "medium", "high"] }, "risks": { "type": "array", "items": { "type": "string" } } } }, "task-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "user_judgment_summary", "criteria_results", "accepted_unverified_scope", "accepted_remaining_risks"], "properties": { "summary": { "type": "string" }, "user_judgment_summary": { "type": "string" }, "criteria_results": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["criterion", "result", "evidence_refs", "unverified_scope", "remaining_risks"], "properties": { "criterion": { "type": "string" }, "result": { "type": "string", "enum": ["satisfied", "satisfied_with_limits", "not_satisfied"] }, "evidence_refs": { "type": "array", "items": { "type": "string" } }, "unverified_scope": { "type": "array", "items": { "type": "string" } }, "remaining_risks": { "type": "array", "items": { "type": "string" } } } } }, "accepted_unverified_scope": { "type": "array", "items": { "type": "string" } }, "accepted_remaining_risks": { "type": "array", "items": { "type": "string" } } } }, "task-state": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["phase"], "properties": { "phase": { "type": "string", "enum": ["unstarted", "implementing", "verifying", "reviewing", "challenging", "awaiting_user_judgment", "closed"] } } }, "user-judgment": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["decision", "accepted_unverified_scope", "accepted_remaining_risks", "requested_actions"], "properties": { "decision": { "type": "string", "enum": ["accepted", "accepted_with_limits", "revise", "deferred", "stopped"] }, "accepted_unverified_scope": { "type": "array", "items": { "type": "string" } }, "accepted_remaining_risks": { "type": "array", "items": { "type": "string" } }, "requested_actions": { "type": "array", "items": { "type": "string" } } } }, "verification-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "environment", "target", "checks_performed", "criteria_results", "outputs", "deviations", "unverified_scope", "recheck_needed", "verdict"], "properties": { "summary": { "type": "string" }, "environment": { "type": "string" }, "target": { "type": "array", "items": { "type": "string" } }, "checks_performed": { "type": "array", "items": { "type": "string" } }, "criteria_results": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["criterion", "result", "basis"], "properties": { "criterion": { "type": "string" }, "result": { "type": "string", "enum": ["passed", "failed", "partial", "not_checked", "blocked"] }, "basis": { "type": "string" } } } }, "outputs": { "type": "array", "items": { "type": "string" } }, "deviations": { "type": "array", "items": { "type": "string" } }, "unverified_scope": { "type": "array", "items": { "type": "string" } }, "recheck_needed": { "type": "array", "items": { "type": "string" } }, "verdict": { "type": "string", "enum": ["passed", "changes_requested", "escalated"] } } } };
+    module2.exports = { "challenger-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["target", "challenge_focus", "findings", "user_decisions_needed", "deeper_checks_needed", "verdict", "overall_recommendation"], "properties": { "target": { "type": "array", "items": { "type": "string" } }, "challenge_focus": { "type": "array", "items": { "type": "string" } }, "findings": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["finding", "risk_type", "basis", "escalation"], "properties": { "finding": { "type": "string" }, "risk_type": { "type": "string", "enum": ["assumption", "scope", "verification_gap", "operational_risk", "tradeoff", "repeat_risk"] }, "basis": { "type": "string" }, "escalation": { "type": "string" } } } }, "user_decisions_needed": { "type": "array", "items": { "type": "string" } }, "deeper_checks_needed": { "type": "array", "items": { "type": "string" } }, "verdict": { "type": "string", "enum": ["passed", "changes_requested", "escalated"] }, "overall_recommendation": { "type": "string" } } }, "implementation-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "changed_outputs", "affected_scope", "decisions", "contract_deltas", "self_checks", "limits", "reflection_candidates"], "properties": { "summary": { "type": "string" }, "changed_outputs": { "type": "array", "items": { "type": "string" } }, "affected_scope": { "type": "array", "items": { "type": "string" } }, "decisions": { "type": "array", "items": { "type": "string" } }, "contract_deltas": { "type": "array", "items": { "type": "string" } }, "self_checks": { "type": "array", "items": { "type": "string" } }, "limits": { "type": "array", "items": { "type": "string" } }, "reflection_candidates": { "type": "array", "items": { "type": "string" } } } }, "memory-file": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["items"], "properties": { "items": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["guideline", "applies_when", "source_refs"], "properties": { "guideline": { "type": "string" }, "applies_when": { "type": "array", "items": { "type": "string" } }, "source_refs": { "type": "array", "items": { "type": "string" } } } } } } }, "memory-item": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["guideline", "applies_when", "source_refs"], "properties": { "guideline": { "type": "string" }, "applies_when": { "type": "array", "items": { "type": "string" } }, "source_refs": { "type": "array", "items": { "type": "string" } } } }, "mission-design": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["plan_summary", "approach_strategy", "alternatives_considered", "key_concepts", "scope_in", "scope_out", "plan_outline", "decision_points", "assumptions", "risks", "change_triggers"], "properties": { "plan_summary": { "type": "string" }, "approach_strategy": { "type": "string" }, "alternatives_considered": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["approach", "benefit", "cost", "decision_reason"], "properties": { "approach": { "type": "string" }, "benefit": { "type": "string" }, "cost": { "type": "string" }, "decision_reason": { "type": "string" } } } }, "key_concepts": { "type": "array", "items": { "type": "string" } }, "scope_in": { "type": "array", "items": { "type": "string" } }, "scope_out": { "type": "array", "items": { "type": "string" } }, "plan_outline": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["focus", "purpose", "user_visible_result"], "properties": { "focus": { "type": "string" }, "purpose": { "type": "string" }, "user_visible_result": { "type": "string" } } } }, "decision_points": { "type": "array", "items": { "type": "string" } }, "assumptions": { "type": "array", "items": { "type": "string" } }, "risks": { "type": "array", "items": { "type": "string" } }, "change_triggers": { "type": "array", "items": { "type": "string" } } } }, "mission-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "user_judgment_summary", "mission_criteria_results", "mission_design_deltas", "accepted_unverified_scope", "accepted_remaining_risks", "gaps", "debts", "follow_ups", "reflection_summary", "memory_updates"], "properties": { "summary": { "type": "string" }, "user_judgment_summary": { "type": "string" }, "mission_criteria_results": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["criterion", "result", "evidence_refs", "unverified_scope", "remaining_risks"], "properties": { "criterion": { "type": "string" }, "result": { "type": "string", "enum": ["satisfied", "satisfied_with_limits", "not_satisfied"] }, "evidence_refs": { "type": "array", "items": { "type": "string" } }, "unverified_scope": { "type": "array", "items": { "type": "string" } }, "remaining_risks": { "type": "array", "items": { "type": "string" } } } } }, "mission_design_deltas": { "type": "array", "items": { "type": "string" } }, "accepted_unverified_scope": { "type": "array", "items": { "type": "string" } }, "accepted_remaining_risks": { "type": "array", "items": { "type": "string" } }, "gaps": { "type": "array", "items": { "type": "string" } }, "debts": { "type": "array", "items": { "type": "string" } }, "follow_ups": { "type": "array", "items": { "type": "string" } }, "reflection_summary": { "type": "string" }, "memory_updates": { "type": "array", "items": { "type": "string" } } } }, "mission-spec": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["name", "goal", "background", "completion_criteria", "included_scope", "excluded_scope", "acceptance_criteria", "constraints", "assumptions", "risks"], "properties": { "name": { "type": "string" }, "goal": { "type": "string" }, "background": { "type": "string" }, "completion_criteria": { "type": "array", "items": { "type": "string" } }, "included_scope": { "type": "array", "items": { "type": "string" } }, "excluded_scope": { "type": "array", "items": { "type": "string" } }, "acceptance_criteria": { "type": "array", "items": { "type": "string" } }, "constraints": { "type": "array", "items": { "type": "string" } }, "assumptions": { "type": "array", "items": { "type": "string" } }, "risks": { "type": "array", "items": { "type": "string" } } } }, "review-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "target", "review_focus_used", "scope_in", "scope_out", "review_methods", "findings", "remaining_risks", "verdict", "overall_recommendation"], "properties": { "summary": { "type": "string" }, "target": { "type": "array", "items": { "type": "string" } }, "review_focus_used": { "type": "array", "items": { "type": "string" } }, "scope_in": { "type": "array", "items": { "type": "string" } }, "scope_out": { "type": "array", "items": { "type": "string" } }, "review_methods": { "type": "array", "items": { "type": "string" } }, "findings": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["finding", "severity", "basis", "recommendation"], "properties": { "finding": { "type": "string" }, "severity": { "type": "string" }, "basis": { "type": "string" }, "recommendation": { "type": "string" } } } }, "remaining_risks": { "type": "array", "items": { "type": "string" } }, "verdict": { "type": "string", "enum": ["passed", "changes_requested", "escalated"] }, "overall_recommendation": { "type": "string" } } }, "run-state": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["current_mission_id", "current_stage", "current_task_id"], "properties": { "current_mission_id": { "type": "string" }, "current_stage": { "type": "string", "enum": ["", "specifying", "building", "consolidating"] }, "current_task_id": { "type": "string" } } }, "task-contract": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["description", "mission_relation", "depends_on", "scope_in", "scope_out", "deliverables", "acceptance_criteria", "verification_checks", "review_focus", "risk_level", "risks"], "properties": { "description": { "type": "string" }, "mission_relation": { "type": "string" }, "depends_on": { "type": "array", "items": { "type": "string" } }, "scope_in": { "type": "array", "items": { "type": "string" } }, "scope_out": { "type": "array", "items": { "type": "string" } }, "deliverables": { "type": "array", "items": { "type": "string" } }, "acceptance_criteria": { "type": "array", "items": { "type": "string" } }, "verification_checks": { "type": "array", "items": { "type": "string" } }, "review_focus": { "type": "array", "items": { "type": "string" } }, "risk_level": { "type": "string", "enum": ["low", "medium", "high"] }, "risks": { "type": "array", "items": { "type": "string" } } } }, "task-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "user_judgment_summary", "criteria_results", "accepted_unverified_scope", "accepted_remaining_risks"], "properties": { "summary": { "type": "string" }, "user_judgment_summary": { "type": "string" }, "criteria_results": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["criterion", "result", "evidence_refs", "unverified_scope", "remaining_risks"], "properties": { "criterion": { "type": "string" }, "result": { "type": "string", "enum": ["satisfied", "satisfied_with_limits", "not_satisfied"] }, "evidence_refs": { "type": "array", "items": { "type": "string" } }, "unverified_scope": { "type": "array", "items": { "type": "string" } }, "remaining_risks": { "type": "array", "items": { "type": "string" } } } } }, "accepted_unverified_scope": { "type": "array", "items": { "type": "string" } }, "accepted_remaining_risks": { "type": "array", "items": { "type": "string" } } } }, "task-state": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["phase"], "properties": { "phase": { "type": "string", "enum": ["unstarted", "implementing", "verifying", "reviewing", "challenging", "awaiting_user_judgment", "closed"] } } }, "user-judgment": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["decision", "accepted_unverified_scope", "accepted_remaining_risks", "requested_actions"], "properties": { "decision": { "type": "string", "enum": ["accepted", "accepted_with_limits", "revise", "deferred", "stopped"] }, "accepted_unverified_scope": { "type": "array", "items": { "type": "string" } }, "accepted_remaining_risks": { "type": "array", "items": { "type": "string" } }, "requested_actions": { "type": "array", "items": { "type": "string" } } } }, "verification-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "environment", "target", "checks_performed", "criteria_results", "outputs", "deviations", "unverified_scope", "recheck_needed", "verdict"], "properties": { "summary": { "type": "string" }, "environment": { "type": "string" }, "target": { "type": "array", "items": { "type": "string" } }, "checks_performed": { "type": "array", "items": { "type": "string" } }, "criteria_results": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["criterion", "result", "basis"], "properties": { "criterion": { "type": "string" }, "result": { "type": "string", "enum": ["passed", "failed", "partial", "not_checked", "blocked"] }, "basis": { "type": "string" } } } }, "outputs": { "type": "array", "items": { "type": "string" } }, "deviations": { "type": "array", "items": { "type": "string" } }, "unverified_scope": { "type": "array", "items": { "type": "string" } }, "recheck_needed": { "type": "array", "items": { "type": "string" } }, "verdict": { "type": "string", "enum": ["passed", "changes_requested", "escalated"] } } } };
   }
 });
 
@@ -12582,6 +12582,11 @@ function generateMissionId(now = /* @__PURE__ */ new Date()) {
   const random = (0, import_node_crypto.randomBytes)(8).toString("hex").slice(0, 6);
   return `${yyyy}${mm}${dd}-${random}`;
 }
+function listTaskIds(missionId, cwd) {
+  const tasks = (0, import_node_path.join)(missionDir(missionId, cwd), "tasks");
+  if (!(0, import_node_fs.existsSync)(tasks)) return [];
+  return (0, import_node_fs.readdirSync)(tasks).filter((name) => (0, import_node_fs.existsSync)((0, import_node_path.join)(tasks, name)));
+}
 
 // src/lib/output.ts
 function emptyLocation() {
@@ -12691,7 +12696,7 @@ function checkMissionSpecRecord(runState) {
   if (runState.current_stage !== "specifying") failures.push({ code: "stage_not_specifying", detail: runState.current_stage });
   return failures.length === 0 ? ok() : fail(failures);
 }
-function checkMissionDesignRecord(runState, payload, cwd) {
+function checkMissionDesignRecord(runState, cwd) {
   if (!runState) return fail([{ code: "run_state_missing" }]);
   const failures = [];
   if (runState.current_mission_id === "") failures.push({ code: "no_current_mission" });
@@ -12700,39 +12705,6 @@ function checkMissionDesignRecord(runState, payload, cwd) {
     const dir = missionDir(runState.current_mission_id, cwd);
     const spec = readLatestNumbered(dir, "mission-spec");
     if (!spec) failures.push({ code: "mission_spec_missing", path: (0, import_node_path2.join)(dir, "mission-spec-001.yaml") });
-  }
-  const taskIds = payload.task_breakdown?.map((t) => t.task_id) ?? [];
-  const dupes = taskIds.filter((id, i) => taskIds.indexOf(id) !== i);
-  if (dupes.length > 0) failures.push({ code: "task_id_duplicate", detail: Array.from(new Set(dupes)).join(",") });
-  const idSet = new Set(taskIds);
-  for (const t of payload.task_breakdown ?? []) {
-    for (const dep of t.depends_on ?? []) {
-      if (!idSet.has(dep)) {
-        failures.push({ code: "dependency_unknown", detail: `${t.task_id} -> ${dep}` });
-      }
-    }
-  }
-  const graph = /* @__PURE__ */ new Map();
-  for (const t of payload.task_breakdown ?? []) graph.set(t.task_id, t.depends_on ?? []);
-  const WHITE = 0, GRAY = 1, BLACK = 2;
-  const color = /* @__PURE__ */ new Map();
-  function dfs(node) {
-    color.set(node, GRAY);
-    for (const next of graph.get(node) ?? []) {
-      const c = color.get(next) ?? WHITE;
-      if (c === GRAY) return true;
-      if (c === WHITE && dfs(next)) return true;
-    }
-    color.set(node, BLACK);
-    return false;
-  }
-  for (const id of taskIds) {
-    if ((color.get(id) ?? WHITE) === WHITE) {
-      if (dfs(id)) {
-        failures.push({ code: "dependency_cycle" });
-        break;
-      }
-    }
   }
   return failures.length === 0 ? ok() : fail(failures);
 }
@@ -12744,6 +12716,47 @@ var ALLOWED_MISSION_TRANSITIONS = /* @__PURE__ */ new Set([
   "consolidating->building",
   "consolidating->specifying"
 ]);
+function readTaskContract(missionId, taskId, cwd) {
+  return readLatestNumbered(taskDir(missionId, taskId, cwd), "task-contract");
+}
+function listContractedTaskIds(missionId, cwd) {
+  return listTaskIds(missionId, cwd).filter((taskId) => Boolean(readTaskContract(missionId, taskId, cwd)));
+}
+function checkTaskDependencies(missionId, taskId, payload, cwd) {
+  const failures = [];
+  const taskIds = new Set(listContractedTaskIds(missionId, cwd));
+  taskIds.add(taskId);
+  for (const dep of payload.depends_on ?? []) {
+    if (!taskIds.has(dep)) {
+      failures.push({ code: "dependency_unknown", detail: `${taskId} -> ${dep}` });
+    }
+  }
+  const graph = /* @__PURE__ */ new Map();
+  for (const id of taskIds) {
+    const deps = id === taskId ? payload.depends_on ?? [] : readTaskContract(missionId, id, cwd)?.payload.depends_on ?? [];
+    graph.set(id, deps);
+  }
+  const WHITE = 0, GRAY = 1, BLACK = 2;
+  const color = /* @__PURE__ */ new Map();
+  function dfs(node) {
+    color.set(node, GRAY);
+    for (const next of graph.get(node) ?? []) {
+      if (!taskIds.has(next)) continue;
+      const c = color.get(next) ?? WHITE;
+      if (c === GRAY) return true;
+      if (c === WHITE && dfs(next)) return true;
+    }
+    color.set(node, BLACK);
+    return false;
+  }
+  for (const id of taskIds) {
+    if ((color.get(id) ?? WHITE) === WHITE && dfs(id)) {
+      failures.push({ code: "dependency_cycle" });
+      break;
+    }
+  }
+  return failures;
+}
 function dependencyAccepted(missionId, depTaskId, cwd) {
   const td = taskDir(missionId, depTaskId, cwd);
   const fs = require("node:fs");
@@ -12770,18 +12783,12 @@ function checkMissionTransition(runState, toStage, taskId, cwd) {
       const design = readLatestNumbered(md, "mission-design");
       if (!spec) failures.push({ code: "mission_spec_missing" });
       if (!design) failures.push({ code: "mission_design_missing" });
-      if (design && !design.payload.task_breakdown.some((t) => t.task_id === taskId)) {
-        failures.push({ code: "task_unknown", detail: taskId });
-      }
       const td = taskDir(mid, taskId, cwd);
-      const contract = readLatestNumbered(td, "task-contract");
+      const contract = readTaskContract(mid, taskId, cwd);
       if (!contract) failures.push({ code: "task_contract_missing", path: (0, import_node_path2.join)(td, "task-contract-001.yaml") });
-      if (design) {
-        const node = design.payload.task_breakdown.find((t) => t.task_id === taskId);
-        for (const dep of node?.depends_on ?? []) {
-          if (!dependencyAccepted(mid, dep, cwd)) {
-            failures.push({ code: "dependency_not_ready", detail: dep });
-          }
+      if (contract) {
+        for (const dep of contract.payload.depends_on ?? []) {
+          if (!dependencyAccepted(mid, dep, cwd)) failures.push({ code: "dependency_not_ready", detail: dep });
         }
       }
       if ((from === "specifying" || from === "consolidating") && runState.current_task_id !== "") {
@@ -12797,26 +12804,25 @@ function checkMissionTransition(runState, toStage, taskId, cwd) {
   }
   if (toStage === "consolidating") {
     const design = readLatestNumbered(md, "mission-design");
-    if (!design) {
-      failures.push({ code: "mission_design_missing" });
-    } else {
-      for (const t of design.payload.task_breakdown) {
-        const tdir = taskDir(mid, t.task_id, cwd);
-        const fs = require("node:fs");
-        if (!fs.existsSync(`${tdir}/task-evidence.yaml`)) {
-          failures.push({ code: "task_evidence_missing", detail: t.task_id });
-        }
-        const judgment = readLatestNumbered(tdir, "user-judgment-result");
-        if (!judgment || !["accepted", "accepted_with_limits"].includes(judgment.payload.decision)) {
-          failures.push({ code: "task_judgment_not_accepted", detail: t.task_id });
-        }
+    if (!design) failures.push({ code: "mission_design_missing" });
+    const taskIds = listContractedTaskIds(mid, cwd);
+    if (taskIds.length === 0) failures.push({ code: "task_contract_missing" });
+    for (const task of taskIds) {
+      const tdir = taskDir(mid, task, cwd);
+      const fs = require("node:fs");
+      if (!fs.existsSync(`${tdir}/task-evidence.yaml`)) {
+        failures.push({ code: "task_evidence_missing", detail: task });
+      }
+      const judgment = readLatestNumbered(tdir, "user-judgment-result");
+      if (!judgment || !["accepted", "accepted_with_limits"].includes(judgment.payload.decision)) {
+        failures.push({ code: "task_judgment_not_accepted", detail: task });
       }
     }
   }
   return failures.length === 0 ? ok() : fail(failures);
 }
 function checkTaskContractRecord(ctx, cwd) {
-  const { runState, taskId } = ctx;
+  const { runState, taskId, payload } = ctx;
   if (!runState) return fail([{ code: "run_state_missing" }]);
   if (runState.current_mission_id === "") return fail([{ code: "no_current_mission" }]);
   const failures = [];
@@ -12826,9 +12832,7 @@ function checkTaskContractRecord(ctx, cwd) {
   const md = missionDir(runState.current_mission_id, cwd);
   const design = readLatestNumbered(md, "mission-design");
   if (!design) failures.push({ code: "mission_design_missing" });
-  if (design && !design.payload.task_breakdown.some((t) => t.task_id === taskId)) {
-    failures.push({ code: "task_unknown_in_design", detail: taskId });
-  }
+  failures.push(...checkTaskDependencies(runState.current_mission_id, taskId, payload, cwd));
   if (runState.current_stage === "building") {
     if (runState.current_task_id !== taskId) {
       failures.push({ code: "task_not_current", detail: `current=${runState.current_task_id} requested=${taskId}` });
@@ -13169,44 +13173,19 @@ function runMissionDesignRecord(payload, cwd = process.cwd()) {
   if (!v.valid) {
     return { ok: false, command: COMMAND_DESIGN, current, writes: [], error: { code: "schema_invalid", detail: v.errors.join("; ") } };
   }
-  const guard = checkMissionDesignRecord(
-    runState,
-    payload,
-    cwd
-  );
+  const guard = checkMissionDesignRecord(runState, cwd);
   if (!guard.ok) {
     return { ok: false, command: COMMAND_DESIGN, current, writes: [], error: { code: "guard_failed", guards: guard.guards } };
   }
   const dir = missionDir(runState.current_mission_id, cwd);
-  const taskBreakdown = payload.task_breakdown;
-  const createdTaskDirs = [];
   let writtenDesignPath = null;
   try {
     const { number, path: designPath } = writeNumberedArtifact(dir, "mission-design", payload);
     writtenDesignPath = designPath;
-    for (const t of taskBreakdown) {
-      const tdir = taskDir(runState.current_mission_id, t.task_id, cwd);
-      if (!(0, import_node_fs5.existsSync)(tdir)) {
-        ensureDir(tdir);
-        createdTaskDirs.push({ taskId: t.task_id, tdir });
-      }
-    }
     const rel = `.geas/missions/${runState.current_mission_id}/mission-design-${String(number).padStart(3, "0")}.yaml`;
     const writes = [{ path: rel, type: "created" }];
-    for (const { taskId } of createdTaskDirs) {
-      writes.push({
-        path: `.geas/missions/${runState.current_mission_id}/tasks/${taskId}/`,
-        type: "created"
-      });
-    }
     return { ok: true, command: COMMAND_DESIGN, current, writes, state_changes: [] };
   } catch (e) {
-    for (const { tdir } of createdTaskDirs) {
-      try {
-        (0, import_node_fs5.rmSync)(tdir, { recursive: true, force: true });
-      } catch {
-      }
-    }
     if (writtenDesignPath) {
       try {
         (0, import_node_fs5.rmSync)(writtenDesignPath, { force: true });
@@ -13393,7 +13372,7 @@ function runTaskContractRecord(taskId, payload, cwd = process.cwd()) {
   if (!v.valid) {
     return { ok: false, command: COMMAND_CONTRACT, current, writes: [], error: { code: "schema_invalid", detail: v.errors.join("; ") } };
   }
-  const guard = checkTaskContractRecord({ runState, taskId }, cwd);
+  const guard = checkTaskContractRecord({ runState, taskId, payload }, cwd);
   if (!guard.ok) {
     return { ok: false, command: COMMAND_CONTRACT, current, writes: [], error: { code: "guard_failed", guards: guard.guards } };
   }

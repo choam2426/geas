@@ -58,9 +58,9 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
    - Start only after an accepted Mission Spec has been recorded or is the explicit accepted basis for the current revision.
    - Load `references/mission-design.md`.
    - Make the Design Role Decision from `references/mission-design.md` before drafting.
-   - Use `work-designer` as `role_required` when the Design creates or changes approach, Task graph, dependency order, alternatives, risk tradeoffs, or review-cost tradeoffs.
-   - If `work-designer` is required, prepare the handoff packet with `read_first` pointing to the accepted Mission Spec path and wait for the role result. The work-designer must return the Mission Design payload and initial Task Contract candidates. The specifying context does not author the Mission Design payload or fill missing candidate content itself.
-   - Use `role_omitted` only when the accepted Mission Spec or explicit User decision already supplies the approach and Task graph; include the omission reason in Mission Design Review.
+   - Use `work-designer` as `role_required` when the Design creates or changes approach, plan outline, scope framing, alternatives, risk tradeoffs, decision points, or change triggers.
+   - If `work-designer` is required, prepare the handoff packet with `read_first` pointing to the accepted Mission Spec path and wait for the role result. The work-designer must return the Mission Design payload. The specifying context does not author the Mission Design payload or fill missing content itself.
+   - Use `role_omitted` only when the accepted Mission Spec or explicit User decision already supplies the Mission plan; include the omission reason in Mission Design Review.
    - Present Design drafts with draft source and coordinator edits from `references/briefings.md`.
    - Present the draft with `references/briefings.md` Mission Design Review.
    - Revise, request a `challenger` role handoff, return to Mission Spec, or stop according to the User's choice. If Challenger findings are accepted for a work-designer-authored draft, return them to work-designer for a revised payload before presenting a new Design Review.
@@ -69,8 +69,10 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
 5. Draft initial Task Contracts.
    - Start only after an accepted Mission Design has been recorded or is the explicit accepted basis for the current revision.
    - Load `references/task-contract.md`.
-   - Use initial Task Contract candidates returned by the Mission Design author. If `work-designer` was `role_required` and candidates are missing or incomplete, return to the work-designer author instead of writing them locally.
-   - Create one Task Contract per User-judgment-worthy work unit only when the Design author is specifying through `role_omitted`.
+   - Make the Task Contract Role Decision from `references/task-contract.md` before drafting.
+   - Use `work-designer` as `role_required` when Task Contracts create or change Task split, Task ids, dependencies, User-judgment boundaries, acceptance/verification tradeoffs, review focus, or risk levels.
+   - If `work-designer` is required, prepare the handoff packet with `read_first` pointing to the accepted Mission Spec and Mission Design paths and wait for the role result. The work-designer must return Task Contract candidates and Task Cards. The specifying context does not author or fill missing candidate content itself.
+   - Use `role_omitted` only when the accepted baseline or explicit User decision already supplies the Task split and Task Contract content; include the omission reason in Task Contract Review.
    - Prepare Task Cards so the User can review goal, scope, acceptance, verification, review focus, risk level, and dependencies before Task Contract acceptance.
    - Ensure each Task has acceptance criteria, verification checks, review focus, risk level, and risks.
    - Present Task Contract drafts with draft source and coordinator edits from `references/briefings.md`.

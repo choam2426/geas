@@ -14,7 +14,7 @@ Use this reference to detect ambiguity before it becomes silent scope expansion.
 | Verification ambiguity | Success is claimed without a check method. | Pair each criterion with a verification check, review method, observable signal, expected unverified scope, or User decision point. |
 | Decision ownership ambiguity | Agent could make product, risk, or tradeoff decisions silently. | Ask which decisions are delegated and which require User review. |
 | Irreversibility ambiguity | Work may affect data, permissions, migration, deployment, or public behavior. | Add constraints, rollback expectations, and consider Challenger. |
-| Dependency ambiguity | A Task may depend on another baseline or accepted result. | Represent dependency in Mission Design and Task Contract. |
+| Dependency ambiguity | A Task may depend on another baseline or accepted result. | Represent Mission-level reset triggers in Mission Design and Task dependencies in Task Contracts. |
 | Terminology ambiguity | Same word may mean different things across docs, code, or User intent. | Define the term in Mission Design key concepts. |
 | Completion ambiguity | Task done and Mission done can be confused. | Separate Task acceptance criteria from Mission completion criteria. |
 | Evidence ambiguity | The User may not know what proof they need. | Propose verification checks, review focus, and Evidence expectations. |

@@ -41,7 +41,7 @@ This packet is judgment input, not Mission Evidence.
 2. For each criterion, find supporting Task Evidence.
 3. Mark result as `satisfied`, `satisfied_with_limits`, or `not_satisfied`.
 4. Carry over unverified scope and remaining risks.
-5. Compare actual Task sequence and outputs to Mission Design.
+5. Compare actual execution, Task results, and User-visible outcomes to the Mission Design plan summary, approach, plan outline, decision points, assumptions, risks, and change triggers.
 6. Classify differences as design deltas, gaps, debts, or follow-ups.
 7. Prepare User options.
 

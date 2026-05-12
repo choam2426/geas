@@ -13,7 +13,7 @@ let originalCwd: string;
 let missionId: string;
 
 const minimalSpec = { name: '', goal: '', background: '', completion_criteria: [], included_scope: [], excluded_scope: [], acceptance_criteria: [], constraints: [], assumptions: [], risks: [] };
-const minimalDesign = { approach_strategy: '', alternatives_considered: [], key_concepts: [], scope_in: [], scope_out: [], task_breakdown: [{ task_id: 'task-001', description: '', mission_coverage: [], depends_on: [], reason: '' }], assumptions: [], risks: [] };
+const minimalDesign = { plan_summary: '', approach_strategy: '', alternatives_considered: [], key_concepts: [], scope_in: [], scope_out: [], plan_outline: [], decision_points: [], assumptions: [], risks: [], change_triggers: [] };
 const minimalContract = { description: '', mission_relation: '', depends_on: [], scope_in: [], scope_out: [], deliverables: [], acceptance_criteria: [], verification_checks: [], review_focus: [], risk_level: 'low', risks: [] };
 const implEv = { summary: '', changed_outputs: [], affected_scope: [], decisions: [], contract_deltas: [], self_checks: [], limits: [], reflection_candidates: [] };
 const verifPassed = { summary: '', environment: '', target: [], checks_performed: [], criteria_results: [], outputs: [], deviations: [], unverified_scope: [], recheck_needed: [], verdict: 'passed' };

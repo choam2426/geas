@@ -68,12 +68,12 @@ The local marketplace entries point at the same plugin root.
   "owner": {
     "name": "Geas"
   },
-  "description": "Structure agent work as Mission, Task Contract, Evidence, User Judgment, and reflection.",
+  "description": "Structure agent work as Mission Spec, Mission Design, Task Contract, Evidence, User Judgment, and reflection.",
   "plugins": [
     {
       "name": "geas",
       "source": "./",
-      "description": "Structure agent work as Mission, Task Contract, Evidence, User Judgment, and reflection.",
+      "description": "Structure agent work as Mission Spec, Mission Design, Task Contract, Evidence, User Judgment, and reflection.",
       "author": {
         "name": "Geas"
       },
@@ -91,7 +91,7 @@ Codex reads `.codex-plugin/plugin.json`.
 {
   "name": "geas",
   "version": "0.1.0",
-  "description": "Structure agent work as Mission, Task Contract, Evidence, User Judgment, and reflection.",
+  "description": "Structure agent work as Mission Spec, Mission Design, Task Contract, Evidence, User Judgment, and reflection.",
   "author": {
     "name": "Geas"
   },
@@ -110,7 +110,7 @@ Codex reads `.codex-plugin/plugin.json`.
   "interface": {
     "displayName": "Geas",
     "shortDescription": "Contract-driven agent work with Evidence for User Judgment",
-    "longDescription": "Use Geas to run agent work through Mission, Task Contract, implementation, verification, review, Evidence, User Judgment, and reflection.",
+    "longDescription": "Use Geas to run agent work through Mission Spec, Mission Design, Task Contract, implementation, verification, review, Evidence, User Judgment, and reflection.",
     "developerName": "Geas",
     "category": "Coding",
     "capabilities": [
@@ -140,7 +140,7 @@ Claude Code reads `.claude-plugin/plugin.json`.
 {
   "name": "geas",
   "version": "0.1.0",
-  "description": "Structure agent work as Mission, Task Contract, Evidence, User Judgment, and reflection.",
+  "description": "Structure agent work as Mission Spec, Mission Design, Task Contract, Evidence, User Judgment, and reflection.",
   "author": {
     "name": "Geas"
   },

@@ -5,7 +5,6 @@ import {
   generateMissionId,
   missionDir,
   readRunState,
-  taskDir,
   writeNumberedArtifact,
   writeRunState,
   writeYamlAtomic,
@@ -137,49 +136,24 @@ export function runMissionDesignRecord(payload: unknown, cwd: string = process.c
     return { ok: false, command: COMMAND_DESIGN, current, writes: [], error: { code: 'schema_invalid', detail: v.errors.join('; ') } };
   }
 
-  const guard = checkMissionDesignRecord(
-    runState,
-    payload as { task_breakdown: Array<{ task_id: string; depends_on: string[] }> },
-    cwd,
-  );
+  const guard = checkMissionDesignRecord(runState, cwd);
   if (!guard.ok) {
     return { ok: false, command: COMMAND_DESIGN, current, writes: [], error: { code: 'guard_failed', guards: guard.guards } };
   }
 
   const dir = missionDir(runState!.current_mission_id, cwd);
-  const taskBreakdown = (payload as { task_breakdown: Array<{ task_id: string }> }).task_breakdown;
-
-  // Track which task dirs we create for rollback on partial failure
-  const createdTaskDirs: Array<{ taskId: string; tdir: string }> = [];
   let writtenDesignPath: string | null = null;
 
   try {
     const { number, path: designPath } = writeNumberedArtifact(dir, 'mission-design', payload);
     writtenDesignPath = designPath;
 
-    for (const t of taskBreakdown) {
-      const tdir = taskDir(runState!.current_mission_id, t.task_id, cwd);
-      if (!existsSync(tdir)) {
-        ensureDir(tdir);
-        createdTaskDirs.push({ taskId: t.task_id, tdir });
-      }
-    }
-
     const rel = `.geas/missions/${runState!.current_mission_id}/mission-design-${String(number).padStart(3, '0')}.yaml`;
     const writes: SuccessResult['writes'] = [{ path: rel, type: 'created' }];
-    for (const { taskId } of createdTaskDirs) {
-      writes.push({
-        path: `.geas/missions/${runState!.current_mission_id}/tasks/${taskId}/`,
-        type: 'created',
-      });
-    }
 
     return { ok: true, command: COMMAND_DESIGN, current, writes, state_changes: [] };
   } catch (e: unknown) {
-    // Roll back: remove the design file and any task dirs we just created
-    for (const { tdir } of createdTaskDirs) {
-      try { rmSync(tdir, { recursive: true, force: true }); } catch { /* best-effort */ }
-    }
+    // Roll back the design file if the numbered write partially succeeded.
     if (writtenDesignPath) {
       try { rmSync(writtenDesignPath, { force: true }); } catch { /* best-effort */ }
     }

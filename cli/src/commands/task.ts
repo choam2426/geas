@@ -70,7 +70,7 @@ export function runTaskContractRecord(taskId: string, payload: unknown, cwd: str
     return { ok: false, command: COMMAND_CONTRACT, current, writes: [], error: { code: 'schema_invalid', detail: v.errors.join('; ') } };
   }
 
-  const guard = checkTaskContractRecord({ runState, taskId }, cwd);
+  const guard = checkTaskContractRecord({ runState, taskId, payload: payload as { depends_on: string[] } }, cwd);
   if (!guard.ok) {
     return { ok: false, command: COMMAND_CONTRACT, current, writes: [], error: { code: 'guard_failed', guards: guard.guards } };
   }

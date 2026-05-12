@@ -20,16 +20,17 @@ const minimalSpec = {
   name: '', goal: '', background: '', completion_criteria: [], included_scope: [], excluded_scope: [], acceptance_criteria: [], constraints: [], assumptions: [], risks: [],
 };
 const minimalDesign = {
+  plan_summary: '',
   approach_strategy: '',
   alternatives_considered: [],
   key_concepts: [],
   scope_in: [],
   scope_out: [],
-  task_breakdown: [
-    { task_id: 'task-001', description: '', mission_coverage: [], depends_on: [], reason: '' },
-  ],
+  plan_outline: [],
+  decision_points: [],
   assumptions: [],
   risks: [],
+  change_triggers: [],
 };
 const minimalContract = {
   description: 't1',
@@ -72,12 +73,12 @@ test('task contract record stores numbered contract and creates task-state', () 
   assert.match(ts, /phase: unstarted/);
 });
 
-test('task contract record fails for unknown task id', () => {
+test('task contract record creates a new task id', () => {
   const result = runTaskContractRecord('task-999', minimalContract);
-  assert.equal(result.ok, false);
-  if (!result.ok) {
-    assert.ok(result.error.guards?.some((g) => g.code === 'task_unknown_in_design'));
-  }
+  assert.equal(result.ok, true);
+  const taskBase = join(workdir, '.geas', 'missions', missionId, 'tasks', 'task-999');
+  assert.ok(existsSync(join(taskBase, 'task-contract-001.yaml')));
+  assert.ok(existsSync(join(taskBase, 'task-state.yaml')));
 });
 
 test('task contract record rejects unsupported risk level', () => {
@@ -85,6 +86,26 @@ test('task contract record rejects unsupported risk level', () => {
   assert.equal(result.ok, false);
   if (!result.ok) {
     assert.equal(result.error.code, 'schema_invalid');
+  }
+});
+
+test('task contract record rejects unknown dependency', () => {
+  const result = runTaskContractRecord('task-001', { ...minimalContract, depends_on: ['task-999'] });
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.ok(result.error.guards?.some((g) => g.code === 'dependency_unknown'));
+  }
+});
+
+test('task contract record rejects dependency cycle', () => {
+  const first = runTaskContractRecord('task-001', minimalContract);
+  assert.equal(first.ok, true);
+  const second = runTaskContractRecord('task-002', { ...minimalContract, depends_on: ['task-001'] });
+  assert.equal(second.ok, true);
+  const cycle = runTaskContractRecord('task-001', { ...minimalContract, depends_on: ['task-002'] });
+  assert.equal(cycle.ok, false);
+  if (!cycle.ok) {
+    assert.ok(cycle.error.guards?.some((g) => g.code === 'dependency_cycle'));
   }
 });
 
