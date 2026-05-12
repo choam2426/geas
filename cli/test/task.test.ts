@@ -41,6 +41,7 @@ const minimalContract = {
   acceptance_criteria: [],
   verification_checks: [],
   review_focus: [],
+  risk_level: 'low',
   risks: [],
 };
 
@@ -76,6 +77,14 @@ test('task contract record fails for unknown task id', () => {
   assert.equal(result.ok, false);
   if (!result.ok) {
     assert.ok(result.error.guards?.some((g) => g.code === 'task_unknown_in_design'));
+  }
+});
+
+test('task contract record rejects unsupported risk level', () => {
+  const result = runTaskContractRecord('task-001', { ...minimalContract, risk_level: 'critical' });
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.equal(result.error.code, 'schema_invalid');
   }
 });
 

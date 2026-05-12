@@ -130,7 +130,7 @@ When invoking the `work-designer` role, pass:
 - Known User decisions and constraints.
 - Candidate task boundaries.
 - Risks and ambiguities.
-- Required output: Mission Design payload and initial Task Contract candidates, including Task Cards with Goal, Scope, Acceptance, Verification, Review focus, and Depends on.
+- Required output: Mission Design payload and initial Task Contract candidates, including Task Cards with Goal, Scope, Acceptance, Verification, Review focus, Risk level, and Depends on.
 - Lenses, if useful, such as `documentation`, `software`, `runtime`, or `product`.
 
 If the role cannot read the accepted Mission Spec path, treat the handoff as unavailable and use the recovery choices above.

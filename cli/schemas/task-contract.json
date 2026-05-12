@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "additionalProperties": false,
-  "required": ["description", "mission_relation", "depends_on", "scope_in", "scope_out", "deliverables", "acceptance_criteria", "verification_checks", "review_focus", "risks"],
+  "required": ["description", "mission_relation", "depends_on", "scope_in", "scope_out", "deliverables", "acceptance_criteria", "verification_checks", "review_focus", "risk_level", "risks"],
   "properties": {
     "description": { "type": "string" },
     "mission_relation": { "type": "string" },
@@ -13,6 +13,10 @@
     "acceptance_criteria": { "type": "array", "items": { "type": "string" } },
     "verification_checks": { "type": "array", "items": { "type": "string" } },
     "review_focus": { "type": "array", "items": { "type": "string" } },
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
     "risks": { "type": "array", "items": { "type": "string" } }
   }
 }

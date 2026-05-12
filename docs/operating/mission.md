@@ -196,7 +196,7 @@ Orchestrator는 수용된 Task 결과와 Task Evidence를 Mission spec, Mission 
 
 추가 Task나 Task contract 갱신이 필요하면 building으로 돌아간다. Mission spec이나 Mission design 수정이 필요하면 specifying으로 돌아간다.
 
-Task 추가, 삭제, 기본 진행 순서, dependency, Mission coverage가 바뀌면 새 Mission design을 남긴다. Task의 실행 범위, 산출물, 수용 기준, verification checks, review focus가 바뀌면 새 Task contract를 남긴다.
+Task 추가, 삭제, 기본 진행 순서, dependency, Mission coverage가 바뀌면 새 Mission design을 남긴다. Task의 실행 범위, 산출물, 수용 기준, verification checks, review focus, 위험 수준이 바뀌면 새 Task contract를 남긴다.
 
 Mission 판단이 가능하면 Orchestrator는 Task Evidence, 필요한 role별 Evidence, Mission 기준선, gap, debt, follow-up 후보를 대조해 Mission 수용 판단 입력, agent 측 권고, 가능한 선택지를 구성한다.
 

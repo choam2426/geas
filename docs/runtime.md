@@ -29,7 +29,7 @@ Geas runtime에서 사용하는 artifact는 다음과 같다.
 |---|---|
 |Mission Spec|Mission의 목표, 배경, 범위, 제외 범위, 완료 기준, 수용 기준을 검토 가능한 기준선으로 남긴다.|
 |Mission Design|Mission Spec을 실행 가능한 작업 구조로 바꾸고, 접근 전략, 대안, 핵심 개념, scope, Task 분해와 의존 관계, 주요 가정, 위험을 남긴다.|
-|Task Contract|Task의 설명, Mission과의 관계, 범위, 산출물, 수용 기준, verification checks, review focus를 고정한다.|
+|Task Contract|Task의 설명, Mission과의 관계, 범위, 산출물, 수용 기준, verification checks, review focus, 위험 수준을 고정한다.|
 |Task State|Task 안에서 현재 이어갈 phase를 찾는 진행 위치 pointer를 남긴다.|
 |Implementation Evidence|Implementer가 Task 안에서 만든 결과, 구현 판단, 영향 범위, 자기 점검, 한계를 남긴다.|
 |Verification Evidence|Verifier가 수행한 verification checks, 기준별 확인 결과, 미검증 범위, verdict를 남긴다.|
@@ -123,15 +123,18 @@ Task Contract는 개별 Task의 실행 계약이다.
 |`acceptance_criteria`|list of string|Task 결과를 판단할 기준|
 |`verification_checks`|list of string|Verifier가 확인할 대상, 기준, 방법|
 |`review_focus`|list of string|Reviewer가 품질, 경계, 위험 관점에서 특히 점검할 지점|
+|`risk_level`|string|`low`, `medium`, `high` 중 하나. Task 실행 전 검토 비용, Challenger 검토, Task 분리 판단에 쓰는 위험 수준|
 |`risks`|list of string|Task를 실행하거나 수용 판단할 때 미리 의식해야 할 위험|
 
 Task Contract는 실행 전에 User가 수용 판단할 수 있는 기준선이어야 한다.
 
 Task Contract는 Mission Design의 Task node를 실행 가능한 계약으로 구체화한 정본이다.
 
+`risk_level`은 구체 위험 목록을 대체하지 않는다. `low`는 좁고 되돌리기 쉬운 변경, `medium`은 코드·스키마·여러 문서처럼 일반적인 verification과 review가 필요한 변경, `high`는 실패 비용이 크고 되돌리기 어렵거나, 사용자·운영·데이터·보안·배포·외부 동작에 큰 영향을 줄 수 있는 변경을 뜻한다.
+
 verification checks와 review focus는 Evidence 자체가 아니라, Verification Evidence와 Review Evidence가 무엇을 확인하고 점검해야 하는지 정하는 초점이다.
 
-Task Contract의 실행 범위, 산출물, 수용 기준, verification checks, review focus가 바뀌면 Task Contract를 갱신한다.
+Task Contract의 실행 범위, 산출물, 수용 기준, verification checks, review focus, risk_level이 바뀌면 Task Contract를 갱신한다.
 
 ### Task State
 

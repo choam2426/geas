@@ -62,6 +62,8 @@ geas task transition --to challenging --task <task-id>
 
 Call Challenger when the extra pass is within the Task's expected risk budget. Ask the User first if it materially expands cost or scope. If Challenger is omitted, name the omission reason before Task Judgment.
 
+Treat `risk_level: high` in the current Task Contract as a standing reason to insert Challenger before Task Judgment unless the User declines the extra pass or Review Evidence already covers the same risk with enough basis.
+
 ## Next Step Selection
 
 After a Task is closed:

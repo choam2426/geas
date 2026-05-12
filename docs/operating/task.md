@@ -24,7 +24,7 @@ Task는 User가 그 단위만 보고 완료 수용, 재작업, 보류, 중단을
 
 ## Task Contract
 
-Task contract는 Task가 맡는 Mission의 일부, 수행 범위, 산출물, 수용 기준, verification checks, review focus를 고정하는 실행 계약이다.
+Task contract는 Task가 맡는 Mission의 일부, 수행 범위, 산출물, 수용 기준, verification checks, review focus, 위험 수준을 고정하는 실행 계약이다.
 
 Task contract에는 다음 내용이 들어간다.
 
@@ -39,9 +39,12 @@ Task contract에는 다음 내용이 들어간다.
 |수용 기준|Task 결과를 판단할 기준|
 |verification checks|Verifier가 확인할 대상, 기준, 방법|
 |review focus|Reviewer가 품질, 경계, 위험 관점에서 특히 점검할 지점|
-|고려해야 할 위험|Task를 실행하거나 수용 판단할 때 미리 의식해야 할 위험|
+|위험 수준|`low`, `medium`, `high` 중 하나로 표현한 실행 전 위험 분류|
+|고려해야 할 위험|Task를 실행하거나 수용 판단할 때 미리 의식해야 할 구체 위험|
 
 Task contract는 실행 전에 User와 합의되어야 한다. 단순한 Task에서는 이 계약이 대화 안의 짧은 합의일 수 있다. runtime에 남은 `task-contract-NNN.yaml`은 User와 합의된 실행 기준선이다.
+
+위험 수준은 Task를 나눌지, Challenger를 넣을지, 검토 부담을 어떻게 설명할지 정하는 라우팅 신호다. `low`는 좁고 되돌리기 쉬운 변경, `medium`은 일반적인 verification과 review가 필요한 변경, `high`는 실패 비용이 크고 되돌리기 어렵거나, 사용자·운영·데이터·보안·배포·외부 동작에 큰 영향을 줄 수 있는 변경을 뜻한다.
 
 Mission design의 Task 분해는 Mission 수준 planned task graph의 정본이고, Task contract는 해당 Task node의 실행 계약이다.
 
@@ -53,7 +56,7 @@ Task State는 Task 안에서 현재 이어갈 phase를 찾는 진행 위치 poin
 
 verification checks와 review focus는 Evidence 자체가 아니라, Verification Evidence와 Review Evidence가 무엇을 확인하고 점검해야 하는지 정하는 초점이다.
 
-building 중 Task contract의 범위, 산출물, 수용 기준, verification checks, review focus가 바뀌어야 하면 조용히 실행 기준을 넓히지 않는다. Orchestrator는 Work Designer 또는 적절한 작성 role을 호출해 갱신안을 만들고, 합의된 Task contract를 새 `task-contract-NNN.yaml`로 남긴다.
+building 중 Task contract의 범위, 산출물, 수용 기준, verification checks, review focus, 위험 수준이 바뀌어야 하면 조용히 실행 기준을 넓히지 않는다. Orchestrator는 Work Designer 또는 적절한 작성 role을 호출해 갱신안을 만들고, 합의된 Task contract를 새 `task-contract-NNN.yaml`로 남긴다.
 
 Mission spec이나 Mission design 수정이 필요하면 specifying으로 돌아간다.
 
@@ -153,7 +156,7 @@ User는 산출물과 Evidence를 검토하고 다음 중 하나로 수용 판단
 |---|---|
 |완료 수용|User가 산출물과 Evidence가 Task contract를 충분히 만족한다고 판단한다.|
 |재작업|Task contract는 유지해도 되지만 Review Evidence나 Verification Evidence에서 반영해야 할 문제가 드러났다.|
-|계약 갱신|Task의 범위, 산출물, 수용 기준, verification checks, review focus를 바꿔야 한다.|
+|계약 갱신|Task의 범위, 산출물, 수용 기준, verification checks, review focus, 위험 수준을 바꿔야 한다.|
 |Task 폐기|Task 결과를 수용하지 않고 작업 이전 상태로 되돌린다.|
 |Mission 재검토|Task 수준을 넘어 Mission spec이나 Mission design을 다시 봐야 한다.|
 
@@ -186,9 +189,9 @@ Task Evidence가 남으면 Task 흐름은 닫힌다.
 
 |상황|돌아갈 위치|남길 것|
 |---|---|---|
-|Task contract의 범위, 산출물, 수용 기준, verification checks, review focus가 바뀌어야 한다.|Task contract|바뀐 내용과 이유|
+|Task contract의 범위, 산출물, 수용 기준, verification checks, review focus, 위험 수준이 바뀌어야 한다.|Task contract|바뀐 내용과 이유|
 |Task 수준을 넘어 Mission spec이나 Mission design을 다시 봐야 한다.|Mission 재검토|Mission 기준선 재검토가 필요한 이유|
 
-Task 추가, 삭제, 기본 진행 순서, dependency, Mission coverage가 바뀌면 새 Mission design을 남긴다. Task의 실행 범위, 산출물, 수용 기준, verification checks, review focus가 바뀌면 새 Task contract를 남긴다.
+Task 추가, 삭제, 기본 진행 순서, dependency, Mission coverage가 바뀌면 새 Mission design을 남긴다. Task의 실행 범위, 산출물, 수용 기준, verification checks, review focus, 위험 수준이 바뀌면 새 Task contract를 남긴다.
 
 기준선이 갱신되면 Orchestrator는 이전 기준선과 새 기준선의 차이, 갱신 사유, 영향을 받는 산출물과 Evidence, 재검증이 필요한 범위를 남긴다. 이전 Evidence는 자동 폐기하지 않고, 새 기준선에서도 유효한 범위와 참고만 가능한 범위를 구분한다.

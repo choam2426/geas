@@ -26,6 +26,7 @@ deliverables: []
 acceptance_criteria: []
 verification_checks: []
 review_focus: []
+risk_level: low
 risks: []
 ```
 
@@ -37,7 +38,7 @@ Task Contract authorship follows Mission Design authorship.
 - If Mission Design used `role_omitted`, specifying may draft Task Contracts from the accepted Mission Design task nodes and must name the omission reason in the review packet.
 - If Challenger findings are accepted against Task Contract drafts, return them to the current Task Contract author for revision before presenting a new review.
 
-The specifying context may format Task Cards, serialize accepted payloads, and record through the CLI. It must not add substantive scope, deliverables, acceptance criteria, verification checks, review focus, dependencies, or risks to a role-authored Task Contract candidate.
+The specifying context may format Task Cards, serialize accepted payloads, and record through the CLI. It must not add substantive scope, deliverables, acceptance criteria, verification checks, review focus, dependencies, risk level, or risks to a role-authored Task Contract candidate.
 
 ## Drafting Procedure
 
@@ -52,7 +53,18 @@ The specifying context may format Task Cards, serialize accepted payloads, and r
 9. Write acceptance criteria that can be judged independently.
 10. Pair criteria with verification checks.
 11. Write review focus for quality, boundary, risk, and consistency.
-12. List Task-specific risks, including expected unverified scope or remaining risk that may need User judgment.
+12. Set `risk_level` to `low`, `medium`, or `high`.
+13. List Task-specific risks, including expected unverified scope or remaining risk that may need User judgment.
+
+## Risk Level
+
+`risk_level` is the Task's execution-time routing signal. It does not replace `risks`.
+
+- `low`: Narrow, reversible changes with small review burden.
+- `medium`: Code, schema, or multi-document changes that need normal verification and review.
+- `high`: Changes with high failure cost, hard-to-reverse effects, or major impact on users, operations, data, security, deployment, or external behavior.
+
+Use `high` as a standing reason to consider Task splitting, stronger verification, or a Challenger pass before Task Judgment.
 
 ## Acceptance Criteria
 

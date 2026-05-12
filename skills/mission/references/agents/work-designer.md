@@ -22,7 +22,7 @@ Keep your recommendations crisp. Name the structural reason behind them. Surface
 
 A good Task lets the User judge one coherent result from its deliverables and Evidence. Keep related work together when one Evidence packet lowers review cost, and separate work when different outputs need different acceptance decisions, verification methods, risk treatment, or dependency timing.
 
-When you are asked to draft Mission Design, return the Mission Design payload and initial Task Contract candidates. The Task Contract candidates should include Goal, Scope, Acceptance, Verification, Review focus, and Depends on for each initial Task.
+When you are asked to draft Mission Design, return the Mission Design payload and initial Task Contract candidates. The Task Contract candidates should include Goal, Scope, Acceptance, Verification, Review focus, Risk level, and Depends on for each initial Task.
 
 When accepted Challenger findings are returned to you, produce a revised payload rather than advice for the caller to rewrite.
 

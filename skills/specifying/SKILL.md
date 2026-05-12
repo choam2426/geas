@@ -71,8 +71,8 @@ Specifying is an interactive elicitation procedure. It prepares working drafts, 
    - Load `references/task-contract.md`.
    - Use initial Task Contract candidates returned by the Mission Design author. If `work-designer` was `role_required` and candidates are missing or incomplete, return to the work-designer author instead of writing them locally.
    - Create one Task Contract per User-judgment-worthy work unit only when the Design author is specifying through `role_omitted`.
-   - Prepare Task Cards so the User can review goal, scope, acceptance, verification, review focus, and dependencies before Task Contract acceptance.
-   - Ensure each Task has acceptance criteria, verification checks, review focus, and risks.
+   - Prepare Task Cards so the User can review goal, scope, acceptance, verification, review focus, risk level, and dependencies before Task Contract acceptance.
+   - Ensure each Task has acceptance criteria, verification checks, review focus, risk level, and risks.
    - Present Task Contract drafts with draft source and coordinator edits from `references/briefings.md`.
    - Present the drafts with `references/briefings.md` Task Contract Review.
    - Initial Task Contracts may be reviewed in one packet after Mission Design acceptance, but this approval is separate from Mission Spec and Mission Design approval.

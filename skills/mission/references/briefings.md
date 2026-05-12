@@ -278,7 +278,7 @@ Decision needed: accept these Task Contracts, revise them, return to Mission Des
 - Coordinator edits: {formatting_only | none | user_delegated_mechanical_edits}
 
 **Task Cards**
-- {task_id}: Goal: {goal}. Scope: {scope_summary}. Acceptance: {criteria_summary}. Verification: {checks_summary}. Review focus: {focus_summary}. Depends on: {dependencies_or_none}
+- {task_id}: Goal: {goal}. Scope: {scope_summary}. Acceptance: {criteria_summary}. Verification: {checks_summary}. Review focus: {focus_summary}. Risk level: {low_medium_or_high}. Depends on: {dependencies_or_none}
 
 **Coverage And Risks**
 - Mission criteria coverage: {coverage_summary}
@@ -289,7 +289,7 @@ I recommend {accept_or_revise_or_return} because {basis}. This is agent-side con
 
 **Choices**
 1. accept task contracts - record these Task Contracts, then run baseline readiness review.
-2. revise task contracts - adjust Task scope, deliverables, acceptance, verification, review focus, or dependencies before recording.
+2. revise task contracts - adjust Task scope, deliverables, acceptance, verification, review focus, risk level, or dependencies before recording.
 3. return to design - revise the accepted Mission Design before continuing.
 4. stop - leave the Task Contract drafts unrecorded.
 ```

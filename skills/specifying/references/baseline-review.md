@@ -72,6 +72,7 @@ Present every initial Task as a reviewable card before Task Contract acceptance 
 - Acceptance: criteria this Task must satisfy.
 - Verification: checks, commands, inspections, or outputs expected for this Task.
 - Review focus: quality, boundary, regression, or risk points the User or reviewer should inspect.
+- Risk level: `low`, `medium`, or `high`, based on failure cost and review burden.
 - Depends on: prior Task ids or `none`.
 
 ## Quality Checks
