@@ -10,6 +10,7 @@ decision: "accepted_with_limits"
 2. Orchestrator는 브라우저 로컬 저장 한계, 미검증 모바일 동작, 공유할 수 없는 필터 상태를 Mission 수준 한계로 올렸다.
 3. User는 그 한계를 알고 Mission 결과를 수용하기로 선택했다.
 4. User는 서버 동기화와 URL 필터 상태를 가능한 후속 작업으로 남기도록 요청했다.
+5. User는 Todo 저장 스키마 마이그레이션 비용을 프로젝트 debt로 남기는 데 동의했다.
 
 ## Accepted Unverified Scope
 
@@ -24,6 +25,7 @@ decision: "accepted_with_limits"
 ## Requested Actions
 
 - 수용한 한계를 Mission Evidence에 기록한다.
+- `DEBT-001`을 Debt Ledger에 기록한다.
 - 서버 동기화와 URL 필터 상태는 가능한 후속 작업으로 남긴다.
 
 ## Notes

@@ -15,6 +15,7 @@ artifact에서 참조하는 앱 소스 파일은 예시 Mission의 설명용 산
 - Task 상태: `tasks/task-001/task-state.yaml`
 - Task 작업과 Evidence: implementation, verification, review, task challenger, Task Evidence, result judgment
 - Mission 마감: Mission 결과 수용 판단, Mission Evidence
+- Debt Ledger: `.geas/debts.yaml`
 - 연속성: `.geas/run-state.yaml`
 - Memory: `.geas/memory/common.yaml`, `.geas/memory/roles/reviewer.yaml`
 

@@ -87,7 +87,7 @@ Remaining risks:
 
 ## Debts
 
-- Todo 항목 필드가 나중에 확장되면 localStorage 스키마에 버전 마이그레이션이 필요할 수 있다.
+- `DEBT-001`: Todo 항목 필드가 나중에 확장되면 localStorage 스키마에 버전 마이그레이션이 필요할 수 있다.
 
 ## Follow Ups
 
