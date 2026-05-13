@@ -1,6 +1,6 @@
 items:
-  - guideline: "For frontend state changes, review persistence behavior separately from visual filtering behavior."
+  - guideline: "프론트엔드 상태 변경은 저장 유지 동작과 시각적 필터링 동작을 분리해 검토한다."
     applies_when:
-      - "Reviewing a UI change that stores client-side state"
+      - "클라이언트 상태를 저장하는 UI 변경을 검토할 때"
     source_refs:
-      - "missions/20260507-a1b2c3/tasks/task-001/review-evidence-001.yaml"
+      - "missions/20260507-a1b2c3/tasks/task-001/review-evidence-001.md"
