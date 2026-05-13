@@ -159,7 +159,7 @@ Guard 조건은 다음과 같다.
 - current Mission Spec이 있어야 한다.
 - payload는 Mission Design 형식의 YAML frontmatter와 Markdown body여야 한다.
 - `name` frontmatter는 current Mission Spec의 `name`과 맞아야 한다.
-- refs와 task ids가 충돌 없이 해석되어야 한다.
+- refs가 있으면 모두 존재해야 한다.
 - 다음 `mission-design-NNN.md` 파일명이 충돌하지 않아야 한다.
 
 기록 후 current Mission Design pointer는 새 파일을 가리킨다.
@@ -176,7 +176,7 @@ Mission transition은 다음을 검증한다.
 - 현재 stage에서 요청 stage로 이동할 수 있어야 한다.
 - `--task`가 필요한 stage에서는 해당 Task Contract가 존재해야 한다.
 - building stage로 이동할 때는 대상 Task의 dependency가 닫혀 있어야 한다.
-- consolidating stage로 이동할 때는 Mission Design의 Task들이 필요한 Task Evidence와 User Judgment를 갖고 있어야 한다.
+- consolidating stage로 이동할 때는 current Mission에서 Task Contract가 기록된 Task들이 필요한 Task Evidence와 User Judgment를 갖고 있어야 한다.
 
 ## Task Commands
 
@@ -187,7 +187,8 @@ Mission transition은 다음을 검증한다.
 Guard 조건은 다음과 같다.
 
 - current Mission과 current Mission Design이 있어야 한다.
-- `--task`는 Mission Design에 존재하는 task id여야 한다.
+- `--task`는 current Mission 안에서 충돌하지 않는 task id여야 한다.
+- Task id, dependency, Task별 scope와 mission coverage는 Task Contract 기록으로 확정하며, CLI는 Mission Design에서 Task membership을 추론하지 않는다.
 - payload frontmatter의 `task_id`는 `--task`와 같아야 한다.
 - payload frontmatter의 `name`은 같은 Task의 기존 최신 Contract가 있으면 그 `name`과 맞아야 한다.
 - dependency refs가 있으면 존재하는 Task를 가리켜야 하며 cycle을 만들지 않아야 한다.
@@ -201,7 +202,7 @@ Guard 조건은 다음과 같다.
 
 Task transition은 다음을 검증한다.
 
-- `--task`가 current Mission Design에 존재해야 한다.
+- `--task`가 current Mission 안에서 Task State와 current Task Contract를 가진 Task여야 한다.
 - 요청한 phase가 runtime schema의 phase enum에 포함되어야 한다.
 - 현재 phase에서 요청 phase로 이동할 수 있어야 한다.
 - implementing으로 이동할 때는 current Task Contract가 있어야 한다.
