@@ -43,7 +43,7 @@ Evidence는 agent가 준비하는 검증 근거다. User Judgment는 User가 Evi
 
 role handoff는 Implementer, Verifier, Reviewer, Challenger처럼 role-producing Evidence나 challenge finding을 맡기는 절차다.
 
-caller는 role이 작성해야 하는 Evidence payload나 challenge finding의 substantive content를 대신 쓰지 않는다. caller가 할 수 있는 일은 role 산출물을 렌더링, 직렬화, 기록하거나 User briefing으로 연결하는 것이다.
+caller는 role이 작성하고 기록해야 하는 Evidence 본문이나 challenge finding의 substantive content를 대신 쓰지 않는다. caller가 할 수 있는 일은 role이 기록한 Evidence ref와 요약을 User briefing으로 연결하는 것이다.
 
 role handoff 없이 Evidence 흐름을 진행할 때는 생략 이유와 남는 한계를 User briefing에 드러낸다.
 
@@ -51,7 +51,7 @@ role handoff 없이 Evidence 흐름을 진행할 때는 생략 이유와 남는 
 
 role handoff에는 `read_first`를 넣는다. role이 필요한 artifact path를 읽을 수 없으면 handoff 실패로 보고, caller는 role 산출물을 대신 만들지 않는다.
 
-Challenge finding을 반영해야 하면 원 artifact author에게 revision handoff를 보낸다. caller가 직접 고치는 범위는 User가 명시적으로 맡긴 기계적 문구 정리나 포맷팅에 한정한다.
+Challenge finding을 반영해야 하면 해당 artifact를 책임지는 stage나 role에 revision handoff를 보낸다. caller가 직접 고치는 범위는 User가 명시적으로 맡긴 기계적 문구 정리나 포맷팅에 한정한다.
 
 Mission Design과 Task Contract는 `specifying`이 작성하고 조율하는 기준선이며, 이 role handoff 규칙의 대상이 아니다.
 
@@ -69,7 +69,7 @@ resource는 필요가 확인된 것만 만든다. 후보 resource는 `reference`
 | --- | --- |
 | `entrypoint` | User 요청을 받아 Mission 시작, 재개, 상태 점검, 다음 절차 선택을 조율한다. |
 | `stage` | Mission 안의 큰 작업 단계를 조율하고 User briefing, runtime 기록 시점, 다음 단계 전환을 준비한다. |
-| `role-producing` | 특정 role 책임으로 Evidence payload나 challenge finding을 만든다. |
+| `role-producing` | 특정 role 책임으로 Evidence를 기록하거나 challenge finding을 만든다. |
 | `adapter` | runtime 기록이나 외부 도구 연결처럼 다른 Skill이 복사하지 않을 공통 실행 표면을 제공한다. |
 
 ## Skill 목록
@@ -79,11 +79,11 @@ resource는 필요가 확인된 것만 만든다. 후보 resource는 `reference`
 | `mission` | `entrypoint` | Mission 시작, 재개, 상태 점검, stage 전환, User briefing을 하나의 진입점에서 조율한다. |
 | `specifying` | `stage` | User 목표를 Mission Spec, Mission Design, Task Contract로 검토 가능한 기준선으로 만든다. |
 | `building` | `stage` | Task 실행 loop를 조율하고 Task 수용 판단 입력과 Task Evidence 기록으로 이어지게 한다. |
-| `implementing` | `role-producing` | Task Contract 안에서 변경을 수행하고 Implementation Evidence payload를 준비한다. |
-| `verifying` | `role-producing` | Task 결과를 검증하고 Verification Evidence payload를 준비한다. |
-| `reviewing` | `role-producing` | 변경과 Evidence를 점검하고 Review Evidence payload를 준비한다. |
-| `challenging` | `role-producing` | 숨은 가정, 범위 누수, 약한 기준, 미검증 범위, 장기 비용을 압박해 Challenger Evidence나 challenge finding을 준비한다. |
-| `consolidating` | `stage` | accepted Task Evidence를 Mission 기준으로 종합하고 Mission 수용 판단 입력, debt 후보, memory 후보를 준비한다. |
+| `implementing` | `role-producing` | Task Contract 안에서 변경을 수행하고 Implementation Evidence를 기록한다. |
+| `verifying` | `role-producing` | Task 결과를 검증하고 Verification Evidence를 기록한다. |
+| `reviewing` | `role-producing` | 변경과 Evidence를 점검하고 Review Evidence를 기록한다. |
+| `challenging` | `role-producing` | 숨은 가정, 범위 누수, 약한 기준, 미검증 범위, 장기 비용을 압박해 Challenger Evidence를 기록하거나 baseline challenge finding을 만든다. |
+| `consolidating` | `stage` | 수용된 Task Evidence를 Mission 기준으로 종합하고 Mission 수용 판단 입력, debt 후보, memory 후보를 준비한다. |
 | `geas-cli` | `adapter` | runtime artifact 기록을 CLI를 통해 수행하는 단일 write adapter를 제공한다. |
 
 설명 전용 Skill은 기본 Skill 목록에 포함하지 않는다. 사용자가 Geas 사용법을 묻는 경우에는 일반 문서 응답으로 처리하고, 반복 사용 필요가 확인되면 별도 Skill 후보로 검토한다.
@@ -102,12 +102,12 @@ mission
      -> verifying
      -> reviewing
      -> optional challenging
-     -> Task Judgment input
+     -> Task 수용 판단 입력
      -> User Judgment
      -> Task Evidence
 
   -> consolidating
-     -> Mission Judgment input
+     -> Mission 수용 판단 입력
      -> User Judgment
      -> Debt / Memory candidates
      -> Mission Evidence
@@ -188,7 +188,7 @@ resource 계획:
 - Mission Spec draft를 만들고 User review로 올린다.
 - Mission Design draft를 만들고 User review로 올린다.
 - 초기 Task Contract draft를 만들고 User review로 올린다.
-- accepted Mission Spec, Mission Design, Task Contract를 기록한다.
+- User가 수용한 Mission Spec, Mission Design, 초기 Task Contract를 기록한다.
 
 간단 흐름:
 
@@ -203,15 +203,17 @@ resource 계획:
 
 - Mission Spec 수용은 Mission Design 수용을 뜻하지 않는다.
 - Mission Design 수용은 초기 Task Contract 수용을 뜻하지 않는다.
+- Task 분리와 dependency는 초기 Task Contract에서 정하고, Mission Design은 Task graph의 정본이 아니다.
 - implementation, verification, review, challenge Evidence는 담당하지 않는다.
-- 하나의 User 응답으로 Mission Spec, Mission Design, Task Contract를 한꺼번에 수용한 것으로 처리하지 않는다.
+- 하나의 User 응답으로 Mission Spec, Mission Design, 초기 Task Contract를 한꺼번에 수용한 것으로 처리하지 않는다.
 
 입력:
 
 - User 목표와 대화 맥락
 - 프로젝트 관찰 사실
-- accepted Mission Spec 또는 revision 대상 draft
-- accepted Mission Design 또는 revision 대상 draft
+- 새 Mission이면 이전 기준선 없음
+- 기준선 갱신이면 accepted Mission Spec, Mission Design, Task Contract
+- 기준선 갱신이면 관련 Evidence와 User Judgment
 - User가 명시한 결정과 위임 범위
 
 출력:
@@ -219,7 +221,7 @@ resource 계획:
 - Baseline Candidate
 - Mission Spec payload
 - Mission Design payload
-- Task Contract payload
+- 초기 Task Contract payload
 - baseline readiness briefing
 - 기록 불가 시 payload와 stop briefing
 
@@ -227,10 +229,10 @@ runtime artifact 기록 지점:
 
 - User가 Mission Spec을 수용한 뒤 Mission Spec을 기록한다.
 - User가 Mission Design을 수용한 뒤 Mission Design을 기록한다.
-- User가 Task Contract를 수용한 뒤 Task Contract를 기록한다.
-- User가 building 진입을 선택한 뒤 Mission stage transition을 기록한다.
+- User가 초기 Task Contract를 수용한 뒤 Task Contract를 기록한다.
+- User가 building 진입을 선택한 뒤 Mission stage를 `building`으로 기록한다.
 
-handoff 경계:
+baseline challenge 경계:
 
 - Challenge가 필요하면 `challenging`에 baseline challenge handoff를 보낸다.
 
@@ -254,23 +256,24 @@ resource 계획:
 책임:
 
 - 현재 Task State와 current Task Contract를 읽는다.
-- Task phase에 맞는 role-producing Skill handoff를 준비한다.
-- Implementation, Verification, Review, optional Challenge 결과를 모아 Task Judgment input을 준비한다.
+- Task phase에 맞는 role-producing Skill을 호출한다.
+- Implementation, Verification, Review, optional Challenge 결과를 모아 Task 수용 판단 입력을 준비한다.
 - User의 Task 수용 판단을 기록한다.
-- accepted 또는 accepted_with_limits Task Judgment 이후 Task Evidence를 기록한다.
+- Task result User Judgment가 accepted 또는 accepted_with_limits이면 Task Evidence를 기록한다.
 - 다음 Task 또는 Mission consolidation 전환을 준비한다.
 
 간단 흐름:
 
 1. current Task Contract와 Task State를 읽는다.
-2. 필요한 role-producing Skill로 handoff한다.
-3. role Evidence를 모아 Task Judgment input을 준비한다.
+2. 필요한 role-producing Skill을 호출하고 handoff packet을 전달한다.
+3. role Evidence를 모아 Task 수용 판단 입력을 준비한다.
 4. User의 Task 수용 판단을 기록한다.
-5. accepted 판단 이후 Task Evidence를 준비하고 다음 Task 또는 `consolidating`으로 전환한다.
+5. accepted 또는 accepted_with_limits 판단 이후 Task Evidence를 준비하고 다음 Task 또는 `consolidating`으로 전환한다.
 
 경계:
 
 - 변경 작업, 검증, review, challenge finding의 substantive content는 해당 role-producing Skill이 작성한다.
+- Task Contract가 바뀌어야 하면 조용히 실행 범위를 넓히지 않고 Task Contract 갱신안을 만들고 User 수용 뒤 기록한다.
 - User Judgment 전에는 Task Evidence를 기록하지 않는다.
 - git checkpoint는 Evidence나 User Judgment가 아니다.
 
@@ -286,23 +289,23 @@ resource 계획:
 출력:
 
 - role handoff packet
-- Task Judgment briefing
-- Task Evidence payload
-- 다음 Task 또는 consolidation 전환 요청
+- Task 수용 판단 입력
+- Task Evidence ref
+- 다음 Task 또는 consolidating 전환 briefing
 - 기록 불가 시 stop briefing
 
 runtime artifact 기록 지점:
 
-- Task phase transition 요청
-- role Evidence는 role-producing Skill output 이후 기록한다.
+- Task phase transition을 기록한다.
+- role-producing Skill이 자기 Evidence를 기록하면 building은 Evidence ref를 받는다.
 - Task result User Judgment를 기록한다.
-- accepted Task Evidence를 기록한다.
-- Mission transition 요청
+- Task Evidence를 기록한다.
+- Mission stage transition을 기록한다.
 
 handoff 경계:
 
-- `implementing`, `verifying`, `reviewing`, `challenging`으로 role handoff를 보낸다.
-- 각 handoff에는 current Task Contract와 관련 Evidence를 `read_first`로 넣는다.
+- `implementing`, `verifying`, `reviewing`, `challenging`을 호출할 때 handoff packet을 전달한다.
+- 각 handoff packet에는 current Task Contract와 관련 Evidence를 `read_first`로 넣는다.
 
 resource 계획:
 
@@ -310,15 +313,15 @@ resource 계획:
 | --- | --- | --- | --- |
 | `references/task-loop.md` | `reference` | Task phase 선택 | phase별 dispatch와 recovery 기준이 반복된다. |
 | `references/role-handoff.md` | `reference` | role 호출 전 | handoff packet shape와 `read_first` 규칙이 공통으로 쓰인다. |
-| `references/task-judgment.md` | `reference` | User 판단 입력 | Evidence 요약, 미검증 범위, 선택지 briefing shape가 길다. |
-| `references/task-evidence.md` | `reference` | Task 수용 판단 이후 | Task Evidence payload shape와 기준별 결과 표현이 반복된다. |
+| `references/task-acceptance-input.md` | `reference` | User 판단 입력 | Evidence 요약, 미검증 범위, 선택지 briefing shape가 길다. |
+| `references/task-evidence.md` | `reference` | Task 수용 판단 이후 | Task Evidence shape와 기준별 결과 표현이 반복된다. |
 | `references/git-checkpoint.md` | `reference` | User가 checkpoint를 원할 때 | checkpoint가 Evidence가 아니라는 경계와 실행 조건이 필요하다. |
 | `scripts/` | `none` | 없음 | phase 선택은 runtime state와 User 결정에 묶여 있어 script보다 절차 기준이 우선이다. |
 | `assets/` | `none` | 없음 | Task briefing은 텍스트 출력으로 충분하다. |
 
 ### `implementing`
 
-`implementing`은 Task Contract 안에서 변경을 수행하고 Implementation Evidence payload를 준비한다.
+`implementing`은 Task Contract 안에서 변경을 수행하고 Implementation Evidence를 기록한다.
 
 책임:
 
@@ -333,13 +336,13 @@ resource 계획:
 2. Task Contract 범위와 stop condition을 확인한다.
 3. 계약 범위 안에서 변경을 수행한다.
 4. self check와 contract delta를 정리한다.
-5. Implementation Evidence payload와 한계를 caller에게 반환한다.
+5. Implementation Evidence를 기록하고 Evidence ref와 한계를 caller에게 반환한다.
 
 경계:
 
 - Verification Evidence와 Review Evidence를 작성하지 않는다.
-- User Judgment를 제안할 수는 있어도 결정하지 않는다.
-- Task Contract 밖 변경이 필요하면 caller에게 계약 갱신을 요청한다.
+- Task 수용 판단에 필요한 구현 측 사실, 한계, contract delta만 남긴다.
+- Task Contract 밖 변경이 필요하면 contract delta로 드러낸다.
 
 입력:
 
@@ -352,13 +355,13 @@ resource 계획:
 출력:
 
 - 변경된 산출물
-- Implementation Evidence payload
+- Implementation Evidence ref
 - contract delta와 미검증 범위
 - handoff 실패 보고
 
 runtime artifact 기록 지점:
 
-- Implementation Evidence payload를 caller에게 반환하거나 `geas-cli`로 기록한다.
+- Implementation Evidence를 기록한다.
 
 resource 계획:
 
@@ -370,7 +373,7 @@ resource 계획:
 
 ### `verifying`
 
-`verifying`은 Task 결과를 agent 쪽에서 검증하고 Verification Evidence payload를 준비한다.
+`verifying`은 Task 결과를 agent 쪽에서 검증하고 Verification Evidence를 기록한다.
 
 책임:
 
@@ -385,13 +388,13 @@ resource 계획:
 2. acceptance criteria와 verification checks를 확인한다.
 3. 실행 가능한 검증을 수행한다.
 4. 기준별 결과와 미검증 범위를 정리한다.
-5. Verification Evidence payload를 caller에게 반환한다.
+5. Verification Evidence를 기록하고 Evidence ref와 미검증 범위를 caller에게 반환한다.
 
 경계:
 
 - 확인하지 않은 기준을 passed로 표현하지 않는다.
 - Review Evidence를 작성하지 않는다.
-- User Judgment를 대체하지 않는다.
+- 검증 결과와 미검증 범위만 남기고, 수용 여부를 결정하지 않는다.
 
 입력:
 
@@ -402,21 +405,21 @@ resource 계획:
 
 출력:
 
-- Verification Evidence payload
+- Verification Evidence ref
 - 실행 출력 요약
 - 미검증 범위와 recheck 필요 항목
 - handoff 실패 보고
 
 runtime artifact 기록 지점:
 
-- Verification Evidence payload를 caller에게 반환하거나 `geas-cli`로 기록한다.
+- Verification Evidence를 기록한다.
 
 resource 계획:
 
 | Resource | Type | 읽히는 단계 | 분리 이유 |
 | --- | --- | --- | --- |
 | `references/verification-evidence.md` | `reference` | Evidence 작성 | 기준별 결과, check id, output, unverified scope shape가 반복된다. |
-| `scripts/verification-shape-check.*` | `script` | Evidence 기록 전 후보 | Evidence payload 구조 검증이 반복적이고 결정적이면 만든다. |
+| `scripts/` | `none` | 없음 | Evidence 구조 검증 script는 반복 오류가 확인된 뒤 만든다. |
 | `assets/` | `none` | 없음 | 검증 output은 runtime artifact와 실행 출력으로 충분하다. |
 
 ### `reviewing`
@@ -427,7 +430,7 @@ resource 계획:
 
 - Task Contract의 review focus를 읽는다.
 - Implementation Evidence와 Verification Evidence를 함께 점검한다.
-- finding, remaining risk, coverage, recommendation을 근거와 함께 남긴다.
+- finding, 남은 위험, 점검 범위, recommendation을 근거와 함께 남긴다.
 - Evidence 자체의 충분성과 미검증 범위를 점검한다.
 
 간단 흐름:
@@ -435,14 +438,14 @@ resource 계획:
 1. `read_first`에 있는 Task Contract와 관련 Evidence를 읽는다.
 2. review focus와 실제 점검 범위를 정한다.
 3. 변경과 Evidence를 함께 점검한다.
-4. finding, remaining risk, not covered 범위를 정리한다.
-5. Review Evidence payload를 caller에게 반환한다.
+4. finding, 남은 위험, 점검하지 않은 범위를 정리한다.
+5. Review Evidence를 기록하고 Evidence ref와 finding 요약을 caller에게 반환한다.
 
 경계:
 
 - 구현 변경을 직접 수행하지 않는다.
 - Verification Evidence를 대신 작성하지 않는다.
-- recommendation은 User Judgment가 아니다.
+- recommendation은 review 관점의 다음 조치 제안으로만 남긴다.
 
 입력:
 
@@ -454,21 +457,21 @@ resource 계획:
 
 출력:
 
-- Review Evidence payload
+- Review Evidence ref
 - finding 목록
-- remaining risk와 not covered 범위
+- 남은 위험과 점검하지 않은 범위
 - handoff 실패 보고
 
 runtime artifact 기록 지점:
 
-- Review Evidence payload를 caller에게 반환하거나 `geas-cli`로 기록한다.
+- Review Evidence를 기록한다.
 
 resource 계획:
 
 | Resource | Type | 읽히는 단계 | 분리 이유 |
 | --- | --- | --- | --- |
 | `references/review-evidence.md` | `reference` | Evidence 작성 | finding shape, severity, coverage, recommendation 기준이 반복된다. |
-| `scripts/review-shape-check.*` | `script` | Evidence 기록 전 후보 | Review Evidence 구조 검증이 반복적이고 결정적이면 만든다. |
+| `scripts/` | `none` | 없음 | Evidence 구조 검증 script는 반복 오류가 확인된 뒤 만든다. |
 | `assets/` | `none` | 없음 | review output은 Markdown Evidence로 충분하다. |
 
 ### `challenging`
@@ -479,22 +482,22 @@ resource 계획:
 
 - Mission baseline, Task Contract, 산출물, Evidence를 challenge focus에 따라 읽는다.
 - 숨은 가정, scope boundary, verification gap, operational risk, tradeoff, repeat risk를 찾는다.
-- finding이 있으면 User 판단에 영향을 줄 수 있는 이유와 근거를 남긴다.
+- finding이 있으면 User 수용 판단에 영향을 줄 수 있는 이유와 근거를 남긴다.
 - finding이 없으면 압박한 초점과 한계를 남긴다.
 
 간단 흐름:
 
 1. challenge target과 `read_first` 입력을 읽는다.
-2. challenge focus와 User 판단에 영향을 줄 수 있는 위험 기준을 정한다.
+2. challenge focus와 User 수용 판단에 영향을 줄 수 있는 위험 기준을 정한다.
 3. 숨은 가정, scope boundary, verification gap, 장기 비용을 압박한다.
-4. finding, User decisions needed, deeper checks needed를 정리한다.
-5. Challenger Evidence payload 또는 baseline challenge finding을 caller에게 반환한다.
+4. finding, User에게 올릴 판단 항목, 추가 점검·평가 또는 verification 필요 항목을 정리한다.
+5. Task-scoped challenge는 Challenger Evidence를 기록하고, baseline challenge는 finding을 caller에게 반환한다.
 
 경계:
 
 - 불만 목록을 늘리는 역할이 아니라 User 판단 비용을 낮추는 위험 선별 역할이다.
 - Review Evidence를 반복하지 않는다.
-- Challenge finding을 반영한 artifact 수정은 원 author에게 돌아간다.
+- Challenge finding을 반영해야 하면 해당 artifact를 책임지는 stage나 role로 돌려보낸다.
 
 입력:
 
@@ -506,14 +509,14 @@ resource 계획:
 
 출력:
 
-- Challenger Evidence payload 또는 baseline challenge finding
-- User decisions needed
-- deeper checks needed
+- Challenger Evidence ref 또는 baseline challenge finding
+- User에게 올릴 판단 항목
+- 추가 점검·평가 또는 verification 필요 항목
 - handoff 실패 보고
 
 runtime artifact 기록 지점:
 
-- Task-scoped challenge는 Challenger Evidence payload를 caller에게 반환하거나 `geas-cli`로 기록한다.
+- Task-scoped challenge는 Challenger Evidence를 기록한다.
 - specifying-stage baseline challenge는 runtime artifact가 아니라 User briefing 입력으로 남긴다.
 
 resource 계획:
@@ -531,21 +534,21 @@ resource 계획:
 
 책임:
 
-- accepted Task Evidence를 Mission Spec과 Mission Design에 대조한다.
+- 수용된 Task Evidence를 Mission Spec과 Mission Design에 대조한다.
 - Mission acceptance criteria별 결과와 근거를 정리한다.
-- gap, accepted unverified scope, remaining risk, follow-up 후보를 드러낸다.
+- gap, 수용된 Task들의 미검증 범위, 남은 위험, follow-up 후보를 드러낸다.
 - Debt Ledger 후보와 Memory 후보를 준비한다.
-- Mission Judgment input을 caller에게 반환한다.
-- User가 Mission result 판단을 내리면 Mission result User Judgment를 기록한다.
+- Mission 수용 판단 입력을 User briefing으로 올린다.
+- User가 Mission 결과 수용 판단을 내리면 Mission result User Judgment를 기록한다.
 - Mission result User Judgment 이후 Debt, Memory, Mission Evidence를 기록한다.
 
 간단 흐름:
 
-1. Mission 기준선과 accepted Task Evidence를 읽는다.
+1. Mission 기준선과 수용된 Task Evidence를 읽는다.
 2. Mission acceptance criteria별 결과와 근거를 대조한다.
-3. gap, accepted unverified scope, remaining risk를 정리한다.
+3. gap, 수용된 Task들의 미검증 범위, 남은 위험을 정리한다.
 4. Debt 후보, Memory 후보, follow-up 후보를 준비한다.
-5. Mission Judgment input과 기록 가능한 payload 후보를 caller에게 반환한다.
+5. Mission 수용 판단 입력을 User briefing으로 올리고, User 판단 이후 필요한 기록으로 이어 간다.
 
 경계:
 
@@ -557,17 +560,17 @@ resource 계획:
 
 - Mission Spec
 - Mission Design
-- accepted Task Evidence
+- 수용된 Task Evidence
 - Task result User Judgment
 - relevant role Evidence
 - Debt Ledger와 Memory
 
 출력:
 
-- Mission Judgment input
+- Mission 수용 판단 입력
 - Debt 후보
 - Memory 후보
-- Mission Evidence payload 후보
+- Mission Evidence ref
 - 기록 불가 시 stop briefing
 
 runtime artifact 기록 지점:
@@ -581,10 +584,10 @@ resource 계획:
 
 | Resource | Type | 읽히는 단계 | 분리 이유 |
 | --- | --- | --- | --- |
-| `references/mission-judgment-input.md` | `reference` | Mission 판단 입력 | criteria별 종합과 gap 표현 shape가 길다. |
+| `references/mission-acceptance-input.md` | `reference` | Mission 수용 판단 입력 | criteria별 종합과 gap 표현 shape가 길다. |
 | `references/reflection-memory.md` | `reference` | User 수용 판단 이후 | Memory 후보와 Debt 후보의 경계가 반복된다. |
-| `references/mission-evidence.md` | `reference` | Mission Evidence 작성 | Mission Evidence payload shape와 기록 순서가 반복된다. |
-| `scripts/criteria-trace-check.*` | `script` | Mission 종합 후보 | Acceptance Criteria와 Task Evidence refs 대조가 반복적이고 결정적이면 만든다. |
+| `references/mission-evidence.md` | `reference` | Mission Evidence 작성 | Mission Evidence shape와 기록 순서가 반복된다. |
+| `scripts/` | `none` | 없음 | criteria trace 검증 script는 반복 오류가 확인된 뒤 만든다. |
 | `assets/` | `none` | 없음 | Mission 종합 output은 Markdown/YAML payload로 충분하다. |
 
 ### `geas-cli`
