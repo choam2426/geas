@@ -4,7 +4,21 @@ import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runInit } from '../src/commands/init';
+import { runJudgmentRecord } from '../src/commands/judgment';
 import { runMissionCreate, runMissionSpecRecord, runMissionDesignRecord, runMissionTransition, runMissionEvidenceRecord } from '../src/commands/mission';
+import { runTaskContractRecord, runTaskEvidenceRecord, runTaskTransition } from '../src/commands/task';
+import {
+  implementationEvidence,
+  missionDesign,
+  missionEvidence,
+  missionJudgment,
+  missionSpec,
+  reviewEvidence,
+  taskContract,
+  taskEvidence,
+  taskJudgment,
+  verificationEvidence,
+} from './helpers/artifacts';
 
 let workdir: string;
 let originalCwd: string;
@@ -44,18 +58,7 @@ test('mission create fails when one is already in progress', () => {
   }
 });
 
-const minimalSpec = {
-  name: 'Demo',
-  goal: 'Demo goal',
-  background: 'context',
-  completion_criteria: ['done'],
-  included_scope: ['scope a'],
-  excluded_scope: [],
-  acceptance_criteria: ['criterion'],
-  constraints: [],
-  assumptions: [],
-  risks: [],
-};
+const minimalSpec = missionSpec();
 
 test('mission spec record stores numbered mission-spec', () => {
   const created = runMissionCreate();
@@ -66,16 +69,16 @@ test('mission spec record stores numbered mission-spec', () => {
   const result = runMissionSpecRecord(minimalSpec);
   assert.equal(result.ok, true);
   if (!result.ok) return;
-  assert.ok(existsSync(join(workdir, '.geas', 'missions', id, 'mission-spec-001.yaml')));
-  assert.equal(result.writes[0]?.path, `.geas/missions/${id}/mission-spec-001.yaml`);
+  assert.ok(existsSync(join(workdir, '.geas', 'missions', id, 'mission-spec-001.md')));
+  assert.equal(result.writes[0]?.path, `.geas/missions/${id}/mission-spec-001.md`);
 });
 
 test('mission spec record rejects invalid payload', () => {
   runMissionCreate();
-  const result = runMissionSpecRecord({ name: 'missing fields' });
+  const result = runMissionSpecRecord(missionDesign());
   assert.equal(result.ok, false);
   if (!result.ok) {
-    assert.equal(result.error.code, 'schema_invalid');
+    assert.equal(result.error.code, 'artifact_kind_mismatch');
   }
 });
 
@@ -86,8 +89,7 @@ test('mission spec record fails outside specifying stage', () => {
   workdir = mkdtempSync(join(tmpdir(), 'geas-mission-'));
   process.chdir(workdir);
   runInit();
-  const payload = { name: '', goal: '', background: '', completion_criteria: [], included_scope: [], excluded_scope: [], acceptance_criteria: [], constraints: [], assumptions: [], risks: [] };
-  const result = runMissionSpecRecord(payload);
+  const result = runMissionSpecRecord(minimalSpec);
   assert.equal(result.ok, false);
   if (!result.ok) {
     assert.equal(result.error.code, 'guard_failed');
@@ -95,21 +97,7 @@ test('mission spec record fails outside specifying stage', () => {
   }
 });
 
-const minimalDesign = {
-  plan_summary: 'Plan summary',
-  approach_strategy: 'A',
-  alternatives_considered: [],
-  key_concepts: [],
-  scope_in: [],
-  scope_out: [],
-  plan_outline: [
-    { focus: 'Prepare', purpose: 'Set the baseline', user_visible_result: 'Accepted plan and contracts' },
-  ],
-  decision_points: [],
-  assumptions: [],
-  risks: [],
-  change_triggers: [],
-};
+const minimalDesign = missionDesign();
 
 test('mission design record stores numbered mission-design without creating tasks', () => {
   const created = runMissionCreate();
@@ -119,7 +107,7 @@ test('mission design record stores numbered mission-design without creating task
 
   const result = runMissionDesignRecord(minimalDesign);
   assert.equal(result.ok, true);
-  assert.ok(existsSync(join(workdir, '.geas', 'missions', id, 'mission-design-001.yaml')));
+  assert.ok(existsSync(join(workdir, '.geas', 'missions', id, 'mission-design-001.md')));
   assert.equal(existsSync(join(workdir, '.geas', 'missions', id, 'tasks')), false);
 });
 
@@ -147,19 +135,7 @@ test('mission transition specifying -> specifying not allowed', () => {
   if (!result.ok) assert.ok(result.error.guards?.some((g) => g.code === 'transition_not_allowed'));
 });
 
-const minimalMissionEvidence = {
-  summary: '',
-  user_judgment_summary: '',
-  mission_criteria_results: [],
-  mission_design_deltas: [],
-  accepted_unverified_scope: [],
-  accepted_remaining_risks: [],
-  gaps: [],
-  debts: [],
-  follow_ups: [],
-  reflection_summary: '',
-  memory_updates: [],
-};
+const minimalMissionEvidence = missionEvidence();
 
 test('mission evidence record fails outside consolidating', () => {
   runMissionCreate();
@@ -170,9 +146,32 @@ test('mission evidence record fails outside consolidating', () => {
 
 test('mission evidence record rejects invalid payload', () => {
   runMissionCreate();
-  const result = runMissionEvidenceRecord({ summary: 'partial' });
+  const result = runMissionEvidenceRecord(missionSpec());
   assert.equal(result.ok, false);
   if (!result.ok) {
-    assert.equal(result.error.code, 'schema_invalid');
+    assert.equal(result.error.code, 'artifact_kind_mismatch');
   }
 });
+
+test('mission evidence record rejects missing refs', () => {
+  enterAcceptedConsolidatingMission();
+  const result = runMissionEvidenceRecord(missionEvidence('Demo', { userJudgmentRef: 'missing.md' }));
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.ok(result.error.guards?.some((g) => g.code === 'artifact_ref_missing'));
+});
+
+function enterAcceptedConsolidatingMission(): void {
+  runMissionCreate();
+  runMissionSpecRecord(missionSpec());
+  runMissionDesignRecord(missionDesign());
+  runTaskContractRecord('task-001', taskContract());
+  runMissionTransition('building', 'task-001');
+  runTaskTransition('task-001', 'implementing');
+  runTaskEvidenceRecord('task-001', 'implementation', implementationEvidence());
+  runTaskEvidenceRecord('task-001', 'verification', verificationEvidence('passed'));
+  runTaskEvidenceRecord('task-001', 'review', reviewEvidence());
+  runJudgmentRecord('task-result', taskJudgment(), 'task-001');
+  runTaskEvidenceRecord('task-001', 'task', taskEvidence());
+  runMissionTransition('consolidating');
+  runJudgmentRecord('mission-result', missionJudgment());
+}

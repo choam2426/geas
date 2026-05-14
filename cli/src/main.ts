@@ -3,7 +3,9 @@ import { registerInit } from './commands/init';
 import { registerMission } from './commands/mission';
 import { registerTask } from './commands/task';
 import { registerJudgment } from './commands/judgment';
+import { registerDebt } from './commands/debt';
 import { registerMemory } from './commands/memory';
+import { registerStatus } from './commands/status';
 
 export function buildProgram(): Command {
   const program = new Command();
@@ -11,10 +13,12 @@ export function buildProgram(): Command {
     .name('geas')
     .description('Geas CLI — atomic actuator for .geas/ runtime artifacts')
     .version('3.0.0');
+  registerStatus(program);
   registerInit(program);
   registerMission(program);
   registerTask(program);
   registerJudgment(program);
+  registerDebt(program);
   registerMemory(program);
   return program;
 }

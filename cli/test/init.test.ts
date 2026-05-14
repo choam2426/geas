@@ -23,6 +23,7 @@ test('init creates .geas/ skeleton', () => {
   const result = runInit();
   assert.equal(result.ok, true);
   assert.ok(existsSync(join(workdir, '.geas', 'run-state.yaml')));
+  assert.ok(existsSync(join(workdir, '.geas', 'debts.yaml')));
   assert.ok(existsSync(join(workdir, '.geas', 'memory', 'common.yaml')));
   assert.ok(existsSync(join(workdir, '.geas', 'memory', 'roles', 'orchestrator.yaml')));
   assert.ok(existsSync(join(workdir, '.geas', 'memory', 'roles', 'reviewer.yaml')));

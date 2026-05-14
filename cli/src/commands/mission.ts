@@ -1,13 +1,14 @@
 import { Command } from 'commander';
 import { existsSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { frontmatterString, type MarkdownArtifact } from '../lib/artifacts';
 import {
-  ensureDir,
   generateMissionId,
+  geasRoot,
   missionDir,
+  readLatestMarkdownArtifact,
   readRunState,
-  writeNumberedArtifact,
-  writeRunState,
-  writeYamlAtomic,
+  writeNumberedMarkdownArtifact,
 } from '../lib/runtime';
 import {
   emptyLocation,
@@ -17,8 +18,8 @@ import {
   type SuccessResult,
 } from '../lib/output';
 import { checkMissionCreate, checkMissionDesignRecord, checkMissionEvidenceRecord, checkMissionSpecRecord, checkMissionTransition } from '../lib/guards';
-import { validate } from '../lib/schema';
-import { readPayload } from '../lib/io';
+import { readMarkdownArtifact } from '../lib/io';
+import { runTransaction } from '../lib/transaction';
 
 const COMMAND_CREATE = 'mission create';
 const COMMAND_SPEC = 'mission spec record';
@@ -54,14 +55,11 @@ export function runMissionCreate(cwd: string = process.cwd()): MissionResult {
   };
 
   try {
-    ensureDir(dir);
-    writeRunState(newState, cwd);
+    runTransaction((tx) => {
+      tx.ensureDir(dir);
+      tx.writeYaml(join(geasRoot(cwd), 'run-state.yaml'), newState);
+    });
   } catch (e: unknown) {
-    try {
-      rmSync(dir, { recursive: true, force: true });
-    } catch {
-      // best-effort rollback
-    }
     const detail = e instanceof Error ? e.message : String(e);
     return {
       ok: false,
@@ -84,11 +82,15 @@ export function runMissionCreate(cwd: string = process.cwd()): MissionResult {
   };
 }
 
-export function runMissionSpecRecord(payload: unknown, cwd: string = process.cwd()): MissionResult {
+export function runMissionSpecRecord(artifact: MarkdownArtifact, cwd: string = process.cwd()): MissionResult {
   const runState = readRunState(cwd);
   const current = runState
     ? { mission_id: runState.current_mission_id, stage: runState.current_stage, task_id: runState.current_task_id, phase: '' }
     : emptyLocation();
+
+  if (artifact.kind !== 'mission-spec') {
+    return { ok: false, command: COMMAND_SPEC, current, writes: [], error: { code: 'artifact_kind_mismatch', detail: artifact.kind } };
+  }
 
   const guard = checkMissionSpecRecord(runState);
   if (!guard.ok) {
@@ -101,20 +103,9 @@ export function runMissionSpecRecord(payload: unknown, cwd: string = process.cwd
     };
   }
 
-  const v = validate('mission-spec', payload);
-  if (!v.valid) {
-    return {
-      ok: false,
-      command: COMMAND_SPEC,
-      current,
-      writes: [],
-      error: { code: 'schema_invalid', detail: v.errors.join('; ') },
-    };
-  }
-
   const dir = missionDir(runState!.current_mission_id, cwd);
-  const { number } = writeNumberedArtifact(dir, 'mission-spec', payload);
-  const rel = `.geas/missions/${runState!.current_mission_id}/mission-spec-${String(number).padStart(3, '0')}.yaml`;
+  const { number } = writeNumberedMarkdownArtifact(dir, 'mission-spec', artifact);
+  const rel = `.geas/missions/${runState!.current_mission_id}/mission-spec-${String(number).padStart(3, '0')}.md`;
 
   return {
     ok: true,
@@ -125,15 +116,14 @@ export function runMissionSpecRecord(payload: unknown, cwd: string = process.cwd
   };
 }
 
-export function runMissionDesignRecord(payload: unknown, cwd: string = process.cwd()): MissionResult {
+export function runMissionDesignRecord(artifact: MarkdownArtifact, cwd: string = process.cwd()): MissionResult {
   const runState = readRunState(cwd);
   const current = runState
     ? { mission_id: runState.current_mission_id, stage: runState.current_stage, task_id: runState.current_task_id, phase: '' }
     : emptyLocation();
 
-  const v = validate('mission-design', payload);
-  if (!v.valid) {
-    return { ok: false, command: COMMAND_DESIGN, current, writes: [], error: { code: 'schema_invalid', detail: v.errors.join('; ') } };
+  if (artifact.kind !== 'mission-design') {
+    return { ok: false, command: COMMAND_DESIGN, current, writes: [], error: { code: 'artifact_kind_mismatch', detail: artifact.kind } };
   }
 
   const guard = checkMissionDesignRecord(runState, cwd);
@@ -142,13 +132,23 @@ export function runMissionDesignRecord(payload: unknown, cwd: string = process.c
   }
 
   const dir = missionDir(runState!.current_mission_id, cwd);
+  const spec = readLatestMarkdownArtifact(dir, 'mission-spec', 'mission-spec');
+  if (spec && frontmatterString(spec.artifact, 'name') !== frontmatterString(artifact, 'name')) {
+    return {
+      ok: false,
+      command: COMMAND_DESIGN,
+      current,
+      writes: [],
+      error: { code: 'frontmatter_mismatch', detail: 'name does not match current Mission Spec' },
+    };
+  }
   let writtenDesignPath: string | null = null;
 
   try {
-    const { number, path: designPath } = writeNumberedArtifact(dir, 'mission-design', payload);
+    const { number, path: designPath } = writeNumberedMarkdownArtifact(dir, 'mission-design', artifact);
     writtenDesignPath = designPath;
 
-    const rel = `.geas/missions/${runState!.current_mission_id}/mission-design-${String(number).padStart(3, '0')}.yaml`;
+    const rel = `.geas/missions/${runState!.current_mission_id}/mission-design-${String(number).padStart(3, '0')}.md`;
     const writes: SuccessResult['writes'] = [{ path: rel, type: 'created' }];
 
     return { ok: true, command: COMMAND_DESIGN, current, writes, state_changes: [] };
@@ -183,7 +183,9 @@ export function runMissionTransition(
     current_stage: toStage,
     current_task_id: toStage === 'building' ? taskId! : '',
   };
-  writeRunState(next, cwd);
+  runTransaction((tx) => {
+    tx.writeYaml(join(geasRoot(cwd), 'run-state.yaml'), next);
+  });
 
   const stateChanges: SuccessResult['state_changes'] = [];
   if (before.current_stage !== next.current_stage) {
@@ -202,49 +204,47 @@ export function runMissionTransition(
   };
 }
 
-export function runMissionEvidenceRecord(payload: unknown, cwd: string = process.cwd()): MissionResult {
+export function runMissionEvidenceRecord(artifact: MarkdownArtifact, cwd: string = process.cwd()): MissionResult {
   const runState = readRunState(cwd);
   const current = runState
     ? { mission_id: runState.current_mission_id, stage: runState.current_stage, task_id: runState.current_task_id, phase: '' }
     : emptyLocation();
 
-  const v = validate('mission-evidence', payload);
-  if (!v.valid) {
-    return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: 'schema_invalid', detail: v.errors.join('; ') } };
+  if (artifact.kind !== 'mission-evidence') {
+    return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: 'artifact_kind_mismatch', detail: artifact.kind } };
   }
 
-  const guard = checkMissionEvidenceRecord(runState, cwd);
+  const guard = checkMissionEvidenceRecord(runState, artifact, cwd);
   if (!guard.ok) {
     return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: 'guard_failed', guards: guard.guards } };
   }
 
   const md = missionDir(runState!.current_mission_id, cwd);
-  const evPath = `${md}/mission-evidence.yaml`;
-  const before = { ...runState! };
-
-  try {
-    writeYamlAtomic(evPath, payload);
-  } catch (e: unknown) {
-    const detail = e instanceof Error ? e.message : String(e);
-    return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: 'mission_evidence_write_failed', detail } };
+  const spec = readLatestMarkdownArtifact(md, 'mission-spec', 'mission-spec');
+  if (spec && frontmatterString(spec.artifact, 'name') !== frontmatterString(artifact, 'name')) {
+    return {
+      ok: false,
+      command: COMMAND_MISSION_EVIDENCE,
+      current,
+      writes: [],
+      error: { code: 'frontmatter_mismatch', detail: 'name does not match current Mission Spec' },
+    };
   }
+  const evPath = join(md, 'mission-evidence.md');
+  const before = { ...runState! };
 
   const next = { current_mission_id: '', current_stage: '' as const, current_task_id: '' };
   try {
-    writeRunState(next, cwd);
+    runTransaction((tx) => {
+      tx.writeMarkdown(evPath, artifact);
+      tx.writeYaml(join(geasRoot(cwd), 'run-state.yaml'), next);
+    });
   } catch (e: unknown) {
-    // Rollback the evidence file
-    try {
-      const fs = require('node:fs') as typeof import('node:fs');
-      fs.rmSync(evPath, { force: true });
-    } catch {
-      // best-effort
-    }
     const detail = e instanceof Error ? e.message : String(e);
-    return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: 'run_state_write_failed', detail } };
+    return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: 'mission_evidence_record_failed', detail } };
   }
 
-  const rel = `.geas/missions/${before.current_mission_id}/mission-evidence.yaml`;
+  const rel = `.geas/missions/${before.current_mission_id}/mission-evidence.md`;
   return {
     ok: true,
     command: COMMAND_MISSION_EVIDENCE,
@@ -272,10 +272,10 @@ export function registerMission(program: Command): void {
   const spec = mission.command('spec').description('Mission Spec baseline');
   spec
     .command('record')
-    .requiredOption('--from <path>', 'YAML payload path or - for stdin')
+    .requiredOption('--from <path>', 'Markdown artifact path or - for stdin')
     .description('Record Mission Spec baseline')
     .action((opts: { from: string }) => {
-      const read = readPayload(opts.from);
+      const read = readMarkdownArtifact(opts.from, 'mission-spec');
       if (!read.ok) {
         failure({
           ok: false,
@@ -286,7 +286,7 @@ export function registerMission(program: Command): void {
         });
         return;
       }
-      const result = runMissionSpecRecord(read.payload);
+      const result = runMissionSpecRecord(read.artifact);
       if (result.ok) success(result);
       else failure(result);
     });
@@ -294,10 +294,10 @@ export function registerMission(program: Command): void {
   const design = mission.command('design').description('Mission Design baseline');
   design
     .command('record')
-    .requiredOption('--from <path>', 'YAML payload path or - for stdin')
+    .requiredOption('--from <path>', 'Markdown artifact path or - for stdin')
     .description('Record Mission Design baseline')
     .action((opts: { from: string }) => {
-      const read = readPayload(opts.from);
+      const read = readMarkdownArtifact(opts.from, 'mission-design');
       if (!read.ok) {
         failure({
           ok: false,
@@ -308,7 +308,7 @@ export function registerMission(program: Command): void {
         });
         return;
       }
-      const result = runMissionDesignRecord(read.payload);
+      const result = runMissionDesignRecord(read.artifact);
       if (result.ok) success(result);
       else failure(result);
     });
@@ -327,10 +327,10 @@ export function registerMission(program: Command): void {
   const evidence = mission.command('evidence').description('Mission Evidence');
   evidence
     .command('record')
-    .requiredOption('--from <path>', 'YAML payload path or - for stdin')
+    .requiredOption('--from <path>', 'Markdown artifact path or - for stdin')
     .description('Record Mission Evidence (mission closure summary)')
     .action((opts: { from: string }) => {
-      const read = readPayload(opts.from);
+      const read = readMarkdownArtifact(opts.from, 'mission-evidence');
       if (!read.ok) {
         failure({
           ok: false,
@@ -341,7 +341,7 @@ export function registerMission(program: Command): void {
         });
         return;
       }
-      const result = runMissionEvidenceRecord(read.payload);
+      const result = runMissionEvidenceRecord(read.artifact);
       if (result.ok) success(result);
       else failure(result);
     });

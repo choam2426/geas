@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { join } from 'node:path';
-import { geasRoot, readRunState, readYaml, writeYamlAtomic } from '../lib/runtime';
+import { geasRoot, readRunState, readYaml } from '../lib/runtime';
 import {
   emptyLocation,
   failure,
@@ -11,13 +11,14 @@ import {
 import { checkMemoryRecord } from '../lib/guards';
 import { validate } from '../lib/schema';
 import { readPayload } from '../lib/io';
+import { runTransaction } from '../lib/transaction';
 
 export type MemoryResult = SuccessResult | FailureResult;
 
 const COMMAND = 'memory record';
 
 export function runMemoryRecord(
-  scope: 'common' | 'role',
+  scope: 'common' | 'role' | string,
   role: string | undefined,
   payload: unknown,
   cwd: string = process.cwd(),
@@ -26,6 +27,10 @@ export function runMemoryRecord(
   const current = runState
     ? { mission_id: runState.current_mission_id, stage: runState.current_stage, task_id: runState.current_task_id, phase: '' }
     : emptyLocation();
+
+  if (scope !== 'common' && scope !== 'role') {
+    return { ok: false, command: COMMAND, current, writes: [], error: { code: 'scope_invalid', detail: scope } };
+  }
 
   const v = validate('memory-item', payload);
   if (!v.valid) {
@@ -43,8 +48,15 @@ export function runMemoryRecord(
     : join(root, 'memory', 'roles', `${role}.yaml`);
 
   const existing = readYaml<{ items: unknown[] }>(file) ?? { items: [] };
-  existing.items.push(payload);
-  writeYamlAtomic(file, existing);
+  const next = { items: [...existing.items, payload] };
+  try {
+    runTransaction((tx) => {
+      tx.writeYaml(file, next);
+    });
+  } catch (e: unknown) {
+    const detail = e instanceof Error ? e.message : String(e);
+    return { ok: false, command: COMMAND, current, writes: [], error: { code: 'memory_record_failed', detail } };
+  }
 
   const rel = scope === 'common' ? '.geas/memory/common.yaml' : `.geas/memory/roles/${role}.yaml`;
   return {
@@ -65,7 +77,7 @@ export function registerMemory(program: Command): void {
     .option('--role <role>', 'Required for --scope role')
     .requiredOption('--from <path>', 'YAML payload path or - for stdin')
     .description('Append a memory item')
-    .action((opts: { scope: 'common' | 'role'; role?: string; from: string }) => {
+    .action((opts: { scope: string; role?: string; from: string }) => {
       const read = readPayload(opts.from);
       if (!read.ok) {
         failure({

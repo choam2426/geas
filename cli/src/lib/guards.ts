@@ -1,6 +1,9 @@
 import { join as pathJoin } from 'node:path';
+import { existsSync } from 'node:fs';
+import { frontmatterString, frontmatterStringArray, type MarkdownArtifact } from './artifacts';
 import type { GuardFailure } from './output';
-import { listTaskIds, missionDir, readLatestNumbered, taskDir, readTaskState, type RunState } from './runtime';
+import { resolveProjectRef, resolveTaskArtifactRef, resolveMissionRef, type RefResolveFailure } from './refs';
+import { listTaskIds, missionDir, readLatestMarkdownArtifact, taskDir, readTaskState, type RunState } from './runtime';
 
 export type GuardResult = { ok: true } | { ok: false; guards: GuardFailure[] };
 
@@ -53,8 +56,8 @@ export function checkMissionDesignRecord(runState: RunState | null, cwd?: string
   if (runState.current_stage !== 'specifying') failures.push({ code: 'stage_not_specifying', detail: runState.current_stage });
   if (runState.current_mission_id !== '') {
     const dir = missionDir(runState.current_mission_id, cwd);
-    const spec = readLatestNumbered(dir, 'mission-spec');
-    if (!spec) failures.push({ code: 'mission_spec_missing', path: pathJoin(dir, 'mission-spec-001.yaml') });
+    const spec = readLatestMarkdownArtifact(dir, 'mission-spec', 'mission-spec');
+    if (!spec) failures.push({ code: 'mission_spec_missing', path: pathJoin(dir, 'mission-spec-001.md') });
   }
 
   return failures.length === 0 ? ok() : fail(failures);
@@ -72,11 +75,85 @@ const ALLOWED_MISSION_TRANSITIONS = new Set<string>([
 type TaskContractPayload = { depends_on: string[] };
 
 function readTaskContract(missionId: string, taskId: string, cwd?: string) {
-  return readLatestNumbered<TaskContractPayload>(taskDir(missionId, taskId, cwd), 'task-contract');
+  return readLatestMarkdownArtifact(taskDir(missionId, taskId, cwd), 'task-contract', 'task-contract');
 }
 
 function listContractedTaskIds(missionId: string, cwd?: string): string[] {
   return listTaskIds(missionId, cwd).filter((taskId) => Boolean(readTaskContract(missionId, taskId, cwd)));
+}
+
+function checkArtifactRefKeys(
+  missionId: string,
+  artifact: MarkdownArtifact,
+  keys: string[],
+  cwd: string | undefined,
+  taskId?: string,
+): GuardFailure[] {
+  const failures: GuardFailure[] = [];
+  for (const key of keys) {
+    const ref = frontmatterString(artifact, key);
+    const resolved = taskId
+      ? resolveTaskArtifactRef(missionId, taskId, ref, cwd)
+      : resolveMissionRef(missionId, ref, cwd);
+    if (!resolved.ok) failures.push(refFailureToGuard('artifact_ref', resolved));
+  }
+  return failures;
+}
+
+function refFailureToGuard(prefix: 'artifact_ref' | 'source_ref' | 'debt_ref', failure: RefResolveFailure): GuardFailure {
+  const suffix = failure.code.replace(/^ref_/, '');
+  return {
+    code: `${prefix}_${suffix}`,
+    path: failure.path ?? failure.ref,
+  };
+}
+
+type DebtRefPayload = {
+  status: string;
+  source_refs: string[];
+  accepted_in_ref: string;
+  resolved_by_refs: string[];
+};
+
+function checkMissionAcceptedWindow(runState: RunState | null, cwd?: string): GuardFailure[] {
+  if (!runState) return [{ code: 'run_state_missing' }];
+  const failures: GuardFailure[] = [];
+  if (runState.current_mission_id === '') failures.push({ code: 'no_current_mission' });
+  if (runState.current_stage !== 'consolidating') {
+    failures.push({ code: 'stage_not_consolidating', detail: runState.current_stage });
+  }
+  if (runState.current_mission_id !== '') {
+    const md = missionDir(runState.current_mission_id, cwd);
+    const judgment = readLatestMarkdownArtifact(md, 'user-judgment-result', 'user-judgment');
+    if (!judgment || !['accepted', 'accepted_with_limits'].includes(frontmatterString(judgment.artifact, 'decision'))) {
+      failures.push({ code: 'mission_judgment_not_accepted' });
+    }
+    const evPath = pathJoin(md, 'mission-evidence.md');
+    if (existsSync(evPath)) failures.push({ code: 'mission_evidence_already_exists', path: evPath });
+  }
+  return failures;
+}
+
+function checkDebtRefs(payload: DebtRefPayload, cwd?: string): GuardFailure[] {
+  const failures: GuardFailure[] = [];
+  for (const ref of payload.source_refs ?? []) {
+    const resolved = resolveProjectRef(ref, cwd);
+    if (!resolved.ok) failures.push(refFailureToGuard('debt_ref', resolved));
+  }
+
+  const accepted = resolveProjectRef(payload.accepted_in_ref, cwd);
+  if (!accepted.ok) failures.push(refFailureToGuard('debt_ref', accepted));
+
+  for (const ref of payload.resolved_by_refs ?? []) {
+    const resolved = resolveProjectRef(ref, cwd);
+    if (!resolved.ok) failures.push(refFailureToGuard('debt_ref', resolved));
+  }
+
+  if (payload.status === 'resolved' && (payload.resolved_by_refs ?? []).length === 0) {
+    failures.push({ code: 'resolved_by_refs_required' });
+  }
+
+  return failures;
 }
 
 function checkTaskDependencies(
@@ -97,7 +174,8 @@ function checkTaskDependencies(
 
   const graph = new Map<string, string[]>();
   for (const id of taskIds) {
-    const deps = id === taskId ? payload.depends_on ?? [] : readTaskContract(missionId, id, cwd)?.payload.depends_on ?? [];
+    const contract = readTaskContract(missionId, id, cwd);
+    const deps = id === taskId ? payload.depends_on ?? [] : frontmatterStringArray(contract!.artifact, 'depends_on');
     graph.set(id, deps);
   }
 
@@ -127,12 +205,10 @@ function checkTaskDependencies(
 
 export function dependencyAccepted(missionId: string, depTaskId: string, cwd?: string): boolean {
   const td = taskDir(missionId, depTaskId, cwd);
-  // task-evidence.yaml exists
-  const fs = require('node:fs') as typeof import('node:fs');
-  if (!fs.existsSync(`${td}/task-evidence.yaml`)) return false;
-  const judgment = readLatestNumbered<{ decision: string }>(td, 'user-judgment-result');
+  if (!existsSync(`${td}/task-evidence.md`)) return false;
+  const judgment = readLatestMarkdownArtifact(td, 'user-judgment-result', 'user-judgment');
   if (!judgment) return false;
-  return ['accepted', 'accepted_with_limits'].includes(judgment.payload.decision);
+  return ['accepted', 'accepted_with_limits'].includes(frontmatterString(judgment.artifact, 'decision'));
 }
 
 export function checkMissionTransition(
@@ -156,16 +232,16 @@ export function checkMissionTransition(
     if (!taskId) {
       failures.push({ code: 'task_required' });
     } else {
-      const spec = readLatestNumbered(md, 'mission-spec');
-      const design = readLatestNumbered(md, 'mission-design');
+      const spec = readLatestMarkdownArtifact(md, 'mission-spec', 'mission-spec');
+      const design = readLatestMarkdownArtifact(md, 'mission-design', 'mission-design');
       if (!spec) failures.push({ code: 'mission_spec_missing' });
       if (!design) failures.push({ code: 'mission_design_missing' });
       const td = taskDir(mid, taskId, cwd);
       const contract = readTaskContract(mid, taskId, cwd);
-      if (!contract) failures.push({ code: 'task_contract_missing', path: pathJoin(td, 'task-contract-001.yaml') });
+      if (!contract) failures.push({ code: 'task_contract_missing', path: pathJoin(td, 'task-contract-001.md') });
 
       if (contract) {
-        for (const dep of contract.payload.depends_on ?? []) {
+        for (const dep of frontmatterStringArray(contract.artifact, 'depends_on')) {
           if (!dependencyAccepted(mid, dep, cwd)) failures.push({ code: 'dependency_not_ready', detail: dep });
         }
       }
@@ -183,18 +259,17 @@ export function checkMissionTransition(
   }
 
   if (toStage === 'consolidating') {
-    const design = readLatestNumbered(md, 'mission-design');
+    const design = readLatestMarkdownArtifact(md, 'mission-design', 'mission-design');
     if (!design) failures.push({ code: 'mission_design_missing' });
     const taskIds = listContractedTaskIds(mid, cwd);
     if (taskIds.length === 0) failures.push({ code: 'task_contract_missing' });
     for (const task of taskIds) {
       const tdir = taskDir(mid, task, cwd);
-      const fs = require('node:fs') as typeof import('node:fs');
-      if (!fs.existsSync(`${tdir}/task-evidence.yaml`)) {
+      if (!existsSync(`${tdir}/task-evidence.md`)) {
         failures.push({ code: 'task_evidence_missing', detail: task });
       }
-      const judgment = readLatestNumbered<{ decision: string }>(tdir, 'user-judgment-result');
-      if (!judgment || !['accepted', 'accepted_with_limits'].includes(judgment.payload.decision)) {
+      const judgment = readLatestMarkdownArtifact(tdir, 'user-judgment-result', 'user-judgment');
+      if (!judgment || !['accepted', 'accepted_with_limits'].includes(frontmatterString(judgment.artifact, 'decision'))) {
         failures.push({ code: 'task_judgment_not_accepted', detail: task });
       }
     }
@@ -206,11 +281,11 @@ export function checkMissionTransition(
 type TaskContractGuardCtx = {
   runState: RunState | null;
   taskId: string;
-  payload: TaskContractPayload;
+  artifact: MarkdownArtifact;
 };
 
 export function checkTaskContractRecord(ctx: TaskContractGuardCtx, cwd?: string): GuardResult {
-  const { runState, taskId, payload } = ctx;
+  const { runState, taskId, artifact } = ctx;
   if (!runState) return fail([{ code: 'run_state_missing' }]);
   if (runState.current_mission_id === '') return fail([{ code: 'no_current_mission' }]);
   const failures: GuardFailure[] = [];
@@ -218,9 +293,11 @@ export function checkTaskContractRecord(ctx: TaskContractGuardCtx, cwd?: string)
     failures.push({ code: 'stage_not_specifying_or_building', detail: runState.current_stage });
   }
   const md = missionDir(runState.current_mission_id, cwd);
-  const design = readLatestNumbered(md, 'mission-design');
+  const design = readLatestMarkdownArtifact(md, 'mission-design', 'mission-design');
   if (!design) failures.push({ code: 'mission_design_missing' });
-  failures.push(...checkTaskDependencies(runState.current_mission_id, taskId, payload, cwd));
+  failures.push(...checkTaskDependencies(runState.current_mission_id, taskId, {
+    depends_on: frontmatterStringArray(artifact, 'depends_on'),
+  }, cwd));
   if (runState.current_stage === 'building') {
     if (runState.current_task_id !== taskId) {
       failures.push({ code: 'task_not_current', detail: `current=${runState.current_task_id} requested=${taskId}` });
@@ -230,8 +307,8 @@ export function checkTaskContractRecord(ctx: TaskContractGuardCtx, cwd?: string)
     if (!ts || ts.phase !== 'awaiting_user_judgment') {
       failures.push({ code: 'phase_not_awaiting_user_judgment', detail: ts?.phase ?? 'missing' });
     }
-    const judgment = readLatestNumbered<{ decision: string }>(td, 'user-judgment-result');
-    if (!judgment || judgment.payload.decision !== 'revise') {
+    const judgment = readLatestMarkdownArtifact(td, 'user-judgment-result', 'user-judgment');
+    if (!judgment || frontmatterString(judgment.artifact, 'decision') !== 'revise') {
       failures.push({ code: 'judgment_not_revise' });
     }
   }
@@ -263,7 +340,7 @@ export function checkTaskTransition(
   if (runState.current_task_id !== taskId) return fail([{ code: 'task_not_current', detail: `current=${runState.current_task_id}` }]);
   const failures: GuardFailure[] = [];
   const td = taskDir(runState.current_mission_id, taskId, cwd);
-  const contract = readLatestNumbered(td, 'task-contract');
+  const contract = readLatestMarkdownArtifact(td, 'task-contract', 'task-contract');
   if (!contract) failures.push({ code: 'task_contract_missing' });
   const ts = readTaskState(runState.current_mission_id, taskId, cwd);
   if (!ts) {
@@ -276,9 +353,9 @@ export function checkTaskTransition(
     failures.push({ code: 'transition_not_allowed', detail: pair });
   }
   if (fromPhase === 'awaiting_user_judgment' && REVISE_REQUIRED_TARGETS.has(toPhase)) {
-    const judgment = readLatestNumbered<{ decision: string }>(td, 'user-judgment-result');
-    if (!judgment || judgment.payload.decision !== 'revise') {
-      failures.push({ code: 'judgment_not_revise', detail: judgment?.payload.decision ?? 'missing' });
+    const judgment = readLatestMarkdownArtifact(td, 'user-judgment-result', 'user-judgment');
+    if (!judgment || frontmatterString(judgment.artifact, 'decision') !== 'revise') {
+      failures.push({ code: 'judgment_not_revise', detail: judgment ? frontmatterString(judgment.artifact, 'decision') : 'missing' });
     }
   }
   return failures.length === 0 ? ok() : fail(failures);
@@ -298,7 +375,7 @@ export function checkTaskEvidenceRecord(
   runState: RunState | null,
   taskId: string,
   kind: EvidenceKind,
-  _payload: { verdict?: string },
+  _artifact: MarkdownArtifact,
   cwd?: string,
 ): GuardResult {
   if (!runState) return fail([{ code: 'run_state_missing' }]);
@@ -307,22 +384,30 @@ export function checkTaskEvidenceRecord(
 
   const failures: GuardFailure[] = [];
   const td = taskDir(runState.current_mission_id, taskId, cwd);
-  const contract = readLatestNumbered(td, 'task-contract');
+  const contract = readLatestMarkdownArtifact(td, 'task-contract', 'task-contract');
   if (!contract) failures.push({ code: 'task_contract_missing' });
   const ts = readTaskState(runState.current_mission_id, taskId, cwd);
   if (!ts) failures.push({ code: 'task_state_missing' });
+
+  const refKeys: Record<EvidenceKind, string[]> = {
+    implementation: ['task_contract_ref'],
+    verification: ['task_contract_ref', 'implementation_evidence_ref'],
+    review: ['task_contract_ref', 'implementation_evidence_ref', 'verification_evidence_ref'],
+    challenger: ['task_contract_ref', 'implementation_evidence_ref', 'verification_evidence_ref', 'review_evidence_ref'],
+    task: ['task_contract_ref', 'user_judgment_ref'],
+  };
+  failures.push(...checkArtifactRefKeys(runState.current_mission_id, _artifact, refKeys[kind], cwd, taskId));
 
   if (ts && ts.phase !== KIND_TO_REQUIRED_PHASE[kind]) {
     failures.push({ code: 'phase_does_not_match_kind', detail: `phase=${ts.phase} kind=${kind}` });
   }
 
   if (kind === 'task') {
-    const judgment = readLatestNumbered<{ decision: string }>(td, 'user-judgment-result');
-    if (!judgment || !['accepted', 'accepted_with_limits'].includes(judgment.payload.decision)) {
-      failures.push({ code: 'task_judgment_not_accepted', detail: judgment?.payload.decision ?? 'missing' });
+    const judgment = readLatestMarkdownArtifact(td, 'user-judgment-result', 'user-judgment');
+    if (!judgment || !['accepted', 'accepted_with_limits'].includes(frontmatterString(judgment.artifact, 'decision'))) {
+      failures.push({ code: 'task_judgment_not_accepted', detail: judgment ? frontmatterString(judgment.artifact, 'decision') : 'missing' });
     }
-    const fs = require('node:fs') as typeof import('node:fs');
-    if (fs.existsSync(`${td}/task-evidence.yaml`)) {
+    if (existsSync(`${td}/task-evidence.md`)) {
       failures.push({ code: 'task_evidence_already_exists' });
     }
   }
@@ -368,17 +453,7 @@ export function checkMemoryRecord(
   payload: MemoryItemPayload,
   cwd?: string,
 ): GuardResult {
-  if (!runState) return fail([{ code: 'run_state_missing' }]);
-  const failures: GuardFailure[] = [];
-  if (runState.current_mission_id === '') failures.push({ code: 'no_current_mission' });
-  if (runState.current_stage !== 'consolidating') failures.push({ code: 'stage_not_consolidating', detail: runState.current_stage });
-  if (runState.current_mission_id !== '') {
-    const md = missionDir(runState.current_mission_id, cwd);
-    const judgment = readLatestNumbered<{ decision: string }>(md, 'user-judgment-result');
-    if (!judgment || !['accepted', 'accepted_with_limits'].includes(judgment.payload.decision)) {
-      failures.push({ code: 'mission_judgment_not_accepted' });
-    }
-  }
+  const failures: GuardFailure[] = checkMissionAcceptedWindow(runState, cwd);
   if (scope === 'role') {
     if (!role) failures.push({ code: 'role_required' });
     else if (!['orchestrator', 'work-designer', 'implementer', 'verifier', 'reviewer', 'challenger'].includes(role)) {
@@ -386,35 +461,51 @@ export function checkMemoryRecord(
     }
   }
 
-  // source_refs must point at existing artifacts under .geas/missions/<mid>/
-  if (runState.current_mission_id !== '') {
-    const fs = require('node:fs') as typeof import('node:fs');
-    const md = missionDir(runState.current_mission_id, cwd);
-    for (const ref of payload.source_refs ?? []) {
-      const abs = pathJoin(md, ref);
-      if (!fs.existsSync(abs)) {
-        failures.push({ code: 'source_ref_missing', path: abs });
-      }
-    }
+  for (const ref of payload.source_refs ?? []) {
+    const resolved = resolveProjectRef(ref, cwd);
+    if (!resolved.ok) failures.push(refFailureToGuard('source_ref', resolved));
   }
 
   return failures.length === 0 ? ok() : fail(failures);
 }
 
-export function checkMissionEvidenceRecord(runState: RunState | null, cwd?: string): GuardResult {
+export function checkDebtRecord(runState: RunState | null, payload: DebtRefPayload, cwd?: string): GuardResult {
+  const failures = [
+    ...checkMissionAcceptedWindow(runState, cwd),
+    ...checkDebtRefs(payload, cwd),
+  ];
+  return failures.length === 0 ? ok() : fail(failures);
+}
+
+export function checkDebtUpdate(runState: RunState | null, payload: DebtRefPayload, cwd?: string): GuardResult {
+  const failures = [
+    ...checkMissionAcceptedWindow(runState, cwd),
+    ...checkDebtRefs(payload, cwd),
+  ];
+  return failures.length === 0 ? ok() : fail(failures);
+}
+
+export function checkMissionEvidenceRecord(runState: RunState | null, artifact?: MarkdownArtifact, cwd?: string): GuardResult {
   if (!runState) return fail([{ code: 'run_state_missing' }]);
   const failures: GuardFailure[] = [];
   if (runState.current_mission_id === '') failures.push({ code: 'no_current_mission' });
   if (runState.current_stage !== 'consolidating') failures.push({ code: 'stage_not_consolidating', detail: runState.current_stage });
   if (runState.current_mission_id !== '') {
     const md = missionDir(runState.current_mission_id, cwd);
-    const judgment = readLatestNumbered<{ decision: string }>(md, 'user-judgment-result');
-    if (!judgment || !['accepted', 'accepted_with_limits'].includes(judgment.payload.decision)) {
+    const judgment = readLatestMarkdownArtifact(md, 'user-judgment-result', 'user-judgment');
+    if (!judgment || !['accepted', 'accepted_with_limits'].includes(frontmatterString(judgment.artifact, 'decision'))) {
       failures.push({ code: 'mission_judgment_not_accepted' });
     }
-    const fs = require('node:fs') as typeof import('node:fs');
-    const evPath = pathJoin(md, 'mission-evidence.yaml');
-    if (fs.existsSync(evPath)) failures.push({ code: 'mission_evidence_already_exists', path: evPath });
+    const evPath = pathJoin(md, 'mission-evidence.md');
+    if (existsSync(evPath)) failures.push({ code: 'mission_evidence_already_exists', path: evPath });
+    if (artifact) {
+      failures.push(...checkArtifactRefKeys(
+        runState.current_mission_id,
+        artifact,
+        ['mission_spec_ref', 'mission_design_ref', 'user_judgment_ref'],
+        cwd,
+      ));
+    }
   }
   return failures.length === 0 ? ok() : fail(failures);
 }

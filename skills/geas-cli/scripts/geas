@@ -6939,49 +6939,49 @@ var require_fast_uri = __commonJS({
       schemelessOptions.skipEscape = true;
       return serialize(resolved, schemelessOptions);
     }
-    function resolveComponent(base, relative, options, skipNormalization) {
+    function resolveComponent(base, relative2, options, skipNormalization) {
       const target = {};
       if (!skipNormalization) {
         base = parse(serialize(base, options), options);
-        relative = parse(serialize(relative, options), options);
+        relative2 = parse(serialize(relative2, options), options);
       }
       options = options || {};
-      if (!options.tolerant && relative.scheme) {
-        target.scheme = relative.scheme;
-        target.userinfo = relative.userinfo;
-        target.host = relative.host;
-        target.port = relative.port;
-        target.path = removeDotSegments(relative.path || "");
-        target.query = relative.query;
+      if (!options.tolerant && relative2.scheme) {
+        target.scheme = relative2.scheme;
+        target.userinfo = relative2.userinfo;
+        target.host = relative2.host;
+        target.port = relative2.port;
+        target.path = removeDotSegments(relative2.path || "");
+        target.query = relative2.query;
       } else {
-        if (relative.userinfo !== void 0 || relative.host !== void 0 || relative.port !== void 0) {
-          target.userinfo = relative.userinfo;
-          target.host = relative.host;
-          target.port = relative.port;
-          target.path = removeDotSegments(relative.path || "");
-          target.query = relative.query;
+        if (relative2.userinfo !== void 0 || relative2.host !== void 0 || relative2.port !== void 0) {
+          target.userinfo = relative2.userinfo;
+          target.host = relative2.host;
+          target.port = relative2.port;
+          target.path = removeDotSegments(relative2.path || "");
+          target.query = relative2.query;
         } else {
-          if (!relative.path) {
+          if (!relative2.path) {
             target.path = base.path;
-            if (relative.query !== void 0) {
-              target.query = relative.query;
+            if (relative2.query !== void 0) {
+              target.query = relative2.query;
             } else {
               target.query = base.query;
             }
           } else {
-            if (relative.path[0] === "/") {
-              target.path = removeDotSegments(relative.path);
+            if (relative2.path[0] === "/") {
+              target.path = removeDotSegments(relative2.path);
             } else {
               if ((base.userinfo !== void 0 || base.host !== void 0 || base.port !== void 0) && !base.path) {
-                target.path = "/" + relative.path;
+                target.path = "/" + relative2.path;
               } else if (!base.path) {
-                target.path = relative.path;
+                target.path = relative2.path;
               } else {
-                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative.path;
+                target.path = base.path.slice(0, base.path.lastIndexOf("/") + 1) + relative2.path;
               }
               target.path = removeDotSegments(target.path);
             }
-            target.query = relative.query;
+            target.query = relative2.query;
           }
           target.userinfo = base.userinfo;
           target.host = base.host;
@@ -6989,7 +6989,7 @@ var require_fast_uri = __commonJS({
         }
         target.scheme = base.scheme;
       }
-      target.fragment = relative.fragment;
+      target.fragment = relative2.fragment;
       return target;
     }
     function equal(uriA, uriB, options) {
@@ -9866,7 +9866,7 @@ var require_ajv = __commonJS({
 // virtual:virtual:schemas
 var require_virtual_schemas = __commonJS({
   "virtual:virtual:schemas"(exports2, module2) {
-    module2.exports = { "challenger-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["target", "challenge_focus", "findings", "user_decisions_needed", "deeper_checks_needed", "verdict", "overall_recommendation"], "properties": { "target": { "type": "array", "items": { "type": "string" } }, "challenge_focus": { "type": "array", "items": { "type": "string" } }, "findings": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["finding", "risk_type", "basis", "escalation"], "properties": { "finding": { "type": "string" }, "risk_type": { "type": "string", "enum": ["assumption", "scope", "verification_gap", "operational_risk", "tradeoff", "repeat_risk"] }, "basis": { "type": "string" }, "escalation": { "type": "string" } } } }, "user_decisions_needed": { "type": "array", "items": { "type": "string" } }, "deeper_checks_needed": { "type": "array", "items": { "type": "string" } }, "verdict": { "type": "string", "enum": ["passed", "changes_requested", "escalated"] }, "overall_recommendation": { "type": "string" } } }, "implementation-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "changed_outputs", "affected_scope", "decisions", "contract_deltas", "self_checks", "limits", "reflection_candidates"], "properties": { "summary": { "type": "string" }, "changed_outputs": { "type": "array", "items": { "type": "string" } }, "affected_scope": { "type": "array", "items": { "type": "string" } }, "decisions": { "type": "array", "items": { "type": "string" } }, "contract_deltas": { "type": "array", "items": { "type": "string" } }, "self_checks": { "type": "array", "items": { "type": "string" } }, "limits": { "type": "array", "items": { "type": "string" } }, "reflection_candidates": { "type": "array", "items": { "type": "string" } } } }, "memory-file": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["items"], "properties": { "items": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["guideline", "applies_when", "source_refs"], "properties": { "guideline": { "type": "string" }, "applies_when": { "type": "array", "items": { "type": "string" } }, "source_refs": { "type": "array", "items": { "type": "string" } } } } } } }, "memory-item": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["guideline", "applies_when", "source_refs"], "properties": { "guideline": { "type": "string" }, "applies_when": { "type": "array", "items": { "type": "string" } }, "source_refs": { "type": "array", "items": { "type": "string" } } } }, "mission-design": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["plan_summary", "approach_strategy", "alternatives_considered", "key_concepts", "scope_in", "scope_out", "plan_outline", "decision_points", "assumptions", "risks", "change_triggers"], "properties": { "plan_summary": { "type": "string" }, "approach_strategy": { "type": "string" }, "alternatives_considered": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["approach", "benefit", "cost", "decision_reason"], "properties": { "approach": { "type": "string" }, "benefit": { "type": "string" }, "cost": { "type": "string" }, "decision_reason": { "type": "string" } } } }, "key_concepts": { "type": "array", "items": { "type": "string" } }, "scope_in": { "type": "array", "items": { "type": "string" } }, "scope_out": { "type": "array", "items": { "type": "string" } }, "plan_outline": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["focus", "purpose", "user_visible_result"], "properties": { "focus": { "type": "string" }, "purpose": { "type": "string" }, "user_visible_result": { "type": "string" } } } }, "decision_points": { "type": "array", "items": { "type": "string" } }, "assumptions": { "type": "array", "items": { "type": "string" } }, "risks": { "type": "array", "items": { "type": "string" } }, "change_triggers": { "type": "array", "items": { "type": "string" } } } }, "mission-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "user_judgment_summary", "mission_criteria_results", "mission_design_deltas", "accepted_unverified_scope", "accepted_remaining_risks", "gaps", "debts", "follow_ups", "reflection_summary", "memory_updates"], "properties": { "summary": { "type": "string" }, "user_judgment_summary": { "type": "string" }, "mission_criteria_results": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["criterion", "result", "evidence_refs", "unverified_scope", "remaining_risks"], "properties": { "criterion": { "type": "string" }, "result": { "type": "string", "enum": ["satisfied", "satisfied_with_limits", "not_satisfied"] }, "evidence_refs": { "type": "array", "items": { "type": "string" } }, "unverified_scope": { "type": "array", "items": { "type": "string" } }, "remaining_risks": { "type": "array", "items": { "type": "string" } } } } }, "mission_design_deltas": { "type": "array", "items": { "type": "string" } }, "accepted_unverified_scope": { "type": "array", "items": { "type": "string" } }, "accepted_remaining_risks": { "type": "array", "items": { "type": "string" } }, "gaps": { "type": "array", "items": { "type": "string" } }, "debts": { "type": "array", "items": { "type": "string" } }, "follow_ups": { "type": "array", "items": { "type": "string" } }, "reflection_summary": { "type": "string" }, "memory_updates": { "type": "array", "items": { "type": "string" } } } }, "mission-spec": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["name", "goal", "background", "completion_criteria", "included_scope", "excluded_scope", "acceptance_criteria", "constraints", "assumptions", "risks"], "properties": { "name": { "type": "string" }, "goal": { "type": "string" }, "background": { "type": "string" }, "completion_criteria": { "type": "array", "items": { "type": "string" } }, "included_scope": { "type": "array", "items": { "type": "string" } }, "excluded_scope": { "type": "array", "items": { "type": "string" } }, "acceptance_criteria": { "type": "array", "items": { "type": "string" } }, "constraints": { "type": "array", "items": { "type": "string" } }, "assumptions": { "type": "array", "items": { "type": "string" } }, "risks": { "type": "array", "items": { "type": "string" } } } }, "review-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "target", "review_focus_used", "scope_in", "scope_out", "review_methods", "findings", "remaining_risks", "verdict", "overall_recommendation"], "properties": { "summary": { "type": "string" }, "target": { "type": "array", "items": { "type": "string" } }, "review_focus_used": { "type": "array", "items": { "type": "string" } }, "scope_in": { "type": "array", "items": { "type": "string" } }, "scope_out": { "type": "array", "items": { "type": "string" } }, "review_methods": { "type": "array", "items": { "type": "string" } }, "findings": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["finding", "severity", "basis", "recommendation"], "properties": { "finding": { "type": "string" }, "severity": { "type": "string" }, "basis": { "type": "string" }, "recommendation": { "type": "string" } } } }, "remaining_risks": { "type": "array", "items": { "type": "string" } }, "verdict": { "type": "string", "enum": ["passed", "changes_requested", "escalated"] }, "overall_recommendation": { "type": "string" } } }, "run-state": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["current_mission_id", "current_stage", "current_task_id"], "properties": { "current_mission_id": { "type": "string" }, "current_stage": { "type": "string", "enum": ["", "specifying", "building", "consolidating"] }, "current_task_id": { "type": "string" } } }, "task-contract": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["description", "mission_relation", "depends_on", "scope_in", "scope_out", "deliverables", "acceptance_criteria", "verification_checks", "review_focus", "risk_level", "risks"], "properties": { "description": { "type": "string" }, "mission_relation": { "type": "string" }, "depends_on": { "type": "array", "items": { "type": "string" } }, "scope_in": { "type": "array", "items": { "type": "string" } }, "scope_out": { "type": "array", "items": { "type": "string" } }, "deliverables": { "type": "array", "items": { "type": "string" } }, "acceptance_criteria": { "type": "array", "items": { "type": "string" } }, "verification_checks": { "type": "array", "items": { "type": "string" } }, "review_focus": { "type": "array", "items": { "type": "string" } }, "risk_level": { "type": "string", "enum": ["low", "medium", "high"] }, "risks": { "type": "array", "items": { "type": "string" } } } }, "task-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "user_judgment_summary", "criteria_results", "accepted_unverified_scope", "accepted_remaining_risks"], "properties": { "summary": { "type": "string" }, "user_judgment_summary": { "type": "string" }, "criteria_results": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["criterion", "result", "evidence_refs", "unverified_scope", "remaining_risks"], "properties": { "criterion": { "type": "string" }, "result": { "type": "string", "enum": ["satisfied", "satisfied_with_limits", "not_satisfied"] }, "evidence_refs": { "type": "array", "items": { "type": "string" } }, "unverified_scope": { "type": "array", "items": { "type": "string" } }, "remaining_risks": { "type": "array", "items": { "type": "string" } } } } }, "accepted_unverified_scope": { "type": "array", "items": { "type": "string" } }, "accepted_remaining_risks": { "type": "array", "items": { "type": "string" } } } }, "task-state": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["phase"], "properties": { "phase": { "type": "string", "enum": ["unstarted", "implementing", "verifying", "reviewing", "challenging", "awaiting_user_judgment", "closed"] } } }, "user-judgment": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["decision", "accepted_unverified_scope", "accepted_remaining_risks", "requested_actions"], "properties": { "decision": { "type": "string", "enum": ["accepted", "accepted_with_limits", "revise", "deferred", "stopped"] }, "accepted_unverified_scope": { "type": "array", "items": { "type": "string" } }, "accepted_remaining_risks": { "type": "array", "items": { "type": "string" } }, "requested_actions": { "type": "array", "items": { "type": "string" } } } }, "verification-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "environment", "target", "checks_performed", "criteria_results", "outputs", "deviations", "unverified_scope", "recheck_needed", "verdict"], "properties": { "summary": { "type": "string" }, "environment": { "type": "string" }, "target": { "type": "array", "items": { "type": "string" } }, "checks_performed": { "type": "array", "items": { "type": "string" } }, "criteria_results": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["criterion", "result", "basis"], "properties": { "criterion": { "type": "string" }, "result": { "type": "string", "enum": ["passed", "failed", "partial", "not_checked", "blocked"] }, "basis": { "type": "string" } } } }, "outputs": { "type": "array", "items": { "type": "string" } }, "deviations": { "type": "array", "items": { "type": "string" } }, "unverified_scope": { "type": "array", "items": { "type": "string" } }, "recheck_needed": { "type": "array", "items": { "type": "string" } }, "verdict": { "type": "string", "enum": ["passed", "changes_requested", "escalated"] } } } };
+    module2.exports = { "challenger-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["target", "challenge_focus", "findings", "user_decisions_needed", "deeper_checks_needed", "verdict", "overall_recommendation"], "properties": { "target": { "type": "array", "items": { "type": "string" } }, "challenge_focus": { "type": "array", "items": { "type": "string" } }, "findings": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["finding", "risk_type", "basis", "escalation"], "properties": { "finding": { "type": "string" }, "risk_type": { "type": "string", "enum": ["assumption", "scope", "verification_gap", "operational_risk", "tradeoff", "repeat_risk"] }, "basis": { "type": "string" }, "escalation": { "type": "string" } } } }, "user_decisions_needed": { "type": "array", "items": { "type": "string" } }, "deeper_checks_needed": { "type": "array", "items": { "type": "string" } }, "verdict": { "type": "string", "enum": ["passed", "changes_requested", "escalated"] }, "overall_recommendation": { "type": "string" } } }, "debt-item": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["debt_id", "status", "title", "summary", "impact", "source_refs", "accepted_in_ref", "revisit_when", "resolved_by_refs"], "properties": { "debt_id": { "type": "string", "pattern": "^DEBT-[0-9]{3}$" }, "status": { "type": "string", "enum": ["open", "resolved", "dropped"] }, "title": { "type": "string" }, "summary": { "type": "string" }, "impact": { "type": "string" }, "source_refs": { "type": "array", "items": { "type": "string" } }, "accepted_in_ref": { "type": "string" }, "revisit_when": { "type": "array", "items": { "type": "string" } }, "resolved_by_refs": { "type": "array", "items": { "type": "string" } } } }, "debt-ledger": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["items"], "properties": { "items": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["debt_id", "status", "title", "summary", "impact", "source_refs", "accepted_in_ref", "revisit_when", "resolved_by_refs"], "properties": { "debt_id": { "type": "string", "pattern": "^DEBT-[0-9]{3}$" }, "status": { "type": "string", "enum": ["open", "resolved", "dropped"] }, "title": { "type": "string" }, "summary": { "type": "string" }, "impact": { "type": "string" }, "source_refs": { "type": "array", "items": { "type": "string" } }, "accepted_in_ref": { "type": "string" }, "revisit_when": { "type": "array", "items": { "type": "string" } }, "resolved_by_refs": { "type": "array", "items": { "type": "string" } } } } } } }, "implementation-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "changed_outputs", "affected_scope", "decisions", "contract_deltas", "self_checks", "limits", "reflection_candidates"], "properties": { "summary": { "type": "string" }, "changed_outputs": { "type": "array", "items": { "type": "string" } }, "affected_scope": { "type": "array", "items": { "type": "string" } }, "decisions": { "type": "array", "items": { "type": "string" } }, "contract_deltas": { "type": "array", "items": { "type": "string" } }, "self_checks": { "type": "array", "items": { "type": "string" } }, "limits": { "type": "array", "items": { "type": "string" } }, "reflection_candidates": { "type": "array", "items": { "type": "string" } } } }, "memory-file": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["items"], "properties": { "items": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["guideline", "applies_when", "source_refs"], "properties": { "guideline": { "type": "string" }, "applies_when": { "type": "array", "items": { "type": "string" } }, "source_refs": { "type": "array", "items": { "type": "string" } } } } } } }, "memory-item": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["guideline", "applies_when", "source_refs"], "properties": { "guideline": { "type": "string" }, "applies_when": { "type": "array", "items": { "type": "string" } }, "source_refs": { "type": "array", "items": { "type": "string" } } } }, "mission-design": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["plan_summary", "approach_strategy", "alternatives_considered", "key_concepts", "scope_in", "scope_out", "plan_outline", "decision_points", "assumptions", "risks", "change_triggers"], "properties": { "plan_summary": { "type": "string" }, "approach_strategy": { "type": "string" }, "alternatives_considered": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["approach", "benefit", "cost", "decision_reason"], "properties": { "approach": { "type": "string" }, "benefit": { "type": "string" }, "cost": { "type": "string" }, "decision_reason": { "type": "string" } } } }, "key_concepts": { "type": "array", "items": { "type": "string" } }, "scope_in": { "type": "array", "items": { "type": "string" } }, "scope_out": { "type": "array", "items": { "type": "string" } }, "plan_outline": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["focus", "purpose", "user_visible_result"], "properties": { "focus": { "type": "string" }, "purpose": { "type": "string" }, "user_visible_result": { "type": "string" } } } }, "decision_points": { "type": "array", "items": { "type": "string" } }, "assumptions": { "type": "array", "items": { "type": "string" } }, "risks": { "type": "array", "items": { "type": "string" } }, "change_triggers": { "type": "array", "items": { "type": "string" } } } }, "mission-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "user_judgment_summary", "mission_criteria_results", "mission_design_deltas", "accepted_unverified_scope", "accepted_remaining_risks", "gaps", "debts", "follow_ups", "reflection_summary", "memory_updates"], "properties": { "summary": { "type": "string" }, "user_judgment_summary": { "type": "string" }, "mission_criteria_results": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["criterion", "result", "evidence_refs", "unverified_scope", "remaining_risks"], "properties": { "criterion": { "type": "string" }, "result": { "type": "string", "enum": ["satisfied", "satisfied_with_limits", "not_satisfied"] }, "evidence_refs": { "type": "array", "items": { "type": "string" } }, "unverified_scope": { "type": "array", "items": { "type": "string" } }, "remaining_risks": { "type": "array", "items": { "type": "string" } } } } }, "mission_design_deltas": { "type": "array", "items": { "type": "string" } }, "accepted_unverified_scope": { "type": "array", "items": { "type": "string" } }, "accepted_remaining_risks": { "type": "array", "items": { "type": "string" } }, "gaps": { "type": "array", "items": { "type": "string" } }, "debts": { "type": "array", "items": { "type": "string" } }, "follow_ups": { "type": "array", "items": { "type": "string" } }, "reflection_summary": { "type": "string" }, "memory_updates": { "type": "array", "items": { "type": "string" } } } }, "mission-spec": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["name", "goal", "background", "completion_criteria", "included_scope", "excluded_scope", "acceptance_criteria", "constraints", "assumptions", "risks"], "properties": { "name": { "type": "string" }, "goal": { "type": "string" }, "background": { "type": "string" }, "completion_criteria": { "type": "array", "items": { "type": "string" } }, "included_scope": { "type": "array", "items": { "type": "string" } }, "excluded_scope": { "type": "array", "items": { "type": "string" } }, "acceptance_criteria": { "type": "array", "items": { "type": "string" } }, "constraints": { "type": "array", "items": { "type": "string" } }, "assumptions": { "type": "array", "items": { "type": "string" } }, "risks": { "type": "array", "items": { "type": "string" } } } }, "review-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "target", "review_focus_used", "scope_in", "scope_out", "review_methods", "findings", "remaining_risks", "verdict", "overall_recommendation"], "properties": { "summary": { "type": "string" }, "target": { "type": "array", "items": { "type": "string" } }, "review_focus_used": { "type": "array", "items": { "type": "string" } }, "scope_in": { "type": "array", "items": { "type": "string" } }, "scope_out": { "type": "array", "items": { "type": "string" } }, "review_methods": { "type": "array", "items": { "type": "string" } }, "findings": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["finding", "severity", "basis", "recommendation"], "properties": { "finding": { "type": "string" }, "severity": { "type": "string" }, "basis": { "type": "string" }, "recommendation": { "type": "string" } } } }, "remaining_risks": { "type": "array", "items": { "type": "string" } }, "verdict": { "type": "string", "enum": ["passed", "changes_requested", "escalated"] }, "overall_recommendation": { "type": "string" } } }, "run-state": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["current_mission_id", "current_stage", "current_task_id"], "properties": { "current_mission_id": { "type": "string" }, "current_stage": { "type": "string", "enum": ["", "specifying", "building", "consolidating"] }, "current_task_id": { "type": "string" } } }, "task-contract": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["description", "mission_relation", "depends_on", "scope_in", "scope_out", "deliverables", "acceptance_criteria", "verification_checks", "review_focus", "risk_level", "risks"], "properties": { "description": { "type": "string" }, "mission_relation": { "type": "string" }, "depends_on": { "type": "array", "items": { "type": "string" } }, "scope_in": { "type": "array", "items": { "type": "string" } }, "scope_out": { "type": "array", "items": { "type": "string" } }, "deliverables": { "type": "array", "items": { "type": "string" } }, "acceptance_criteria": { "type": "array", "items": { "type": "string" } }, "verification_checks": { "type": "array", "items": { "type": "string" } }, "review_focus": { "type": "array", "items": { "type": "string" } }, "risk_level": { "type": "string", "enum": ["low", "medium", "high"] }, "risks": { "type": "array", "items": { "type": "string" } } } }, "task-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "user_judgment_summary", "criteria_results", "accepted_unverified_scope", "accepted_remaining_risks"], "properties": { "summary": { "type": "string" }, "user_judgment_summary": { "type": "string" }, "criteria_results": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["criterion", "result", "evidence_refs", "unverified_scope", "remaining_risks"], "properties": { "criterion": { "type": "string" }, "result": { "type": "string", "enum": ["satisfied", "satisfied_with_limits", "not_satisfied"] }, "evidence_refs": { "type": "array", "items": { "type": "string" } }, "unverified_scope": { "type": "array", "items": { "type": "string" } }, "remaining_risks": { "type": "array", "items": { "type": "string" } } } } }, "accepted_unverified_scope": { "type": "array", "items": { "type": "string" } }, "accepted_remaining_risks": { "type": "array", "items": { "type": "string" } } } }, "task-state": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["phase"], "properties": { "phase": { "type": "string", "enum": ["unstarted", "implementing", "verifying", "reviewing", "challenging", "awaiting_user_judgment", "closed"] } } }, "user-judgment": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["decision", "accepted_unverified_scope", "accepted_remaining_risks", "requested_actions"], "properties": { "decision": { "type": "string", "enum": ["accepted", "accepted_with_limits", "revise", "deferred", "stopped"] }, "accepted_unverified_scope": { "type": "array", "items": { "type": "string" } }, "accepted_remaining_risks": { "type": "array", "items": { "type": "string" } }, "requested_actions": { "type": "array", "items": { "type": "string" } } } }, "verification-evidence": { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "additionalProperties": false, "required": ["summary", "environment", "target", "checks_performed", "criteria_results", "outputs", "deviations", "unverified_scope", "recheck_needed", "verdict"], "properties": { "summary": { "type": "string" }, "environment": { "type": "string" }, "target": { "type": "array", "items": { "type": "string" } }, "checks_performed": { "type": "array", "items": { "type": "string" } }, "criteria_results": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["criterion", "result", "basis"], "properties": { "criterion": { "type": "string" }, "result": { "type": "string", "enum": ["passed", "failed", "partial", "not_checked", "blocked"] }, "basis": { "type": "string" } } } }, "outputs": { "type": "array", "items": { "type": "string" } }, "deviations": { "type": "array", "items": { "type": "string" } }, "unverified_scope": { "type": "array", "items": { "type": "string" } }, "recheck_needed": { "type": "array", "items": { "type": "string" } }, "verdict": { "type": "string", "enum": ["passed", "changes_requested", "escalated"] } } } };
   }
 });
 
@@ -12490,6 +12490,287 @@ var safeLoad = renamed("safeLoad", "load");
 var safeLoadAll = renamed("safeLoadAll", "loadAll");
 var safeDump = renamed("safeDump", "dump");
 
+// src/lib/artifacts.ts
+var EVIDENCE_VERDICTS = ["passed", "changes_requested", "escalated"];
+var RESULT_DECISIONS = ["accepted", "accepted_with_limits", "revise", "deferred", "stopped"];
+var ARTIFACT_SPECS = {
+  "mission-spec": {
+    requiredFrontmatter: ["name"],
+    requiredSections: [
+      "Goal",
+      "Background",
+      "Scope",
+      "Acceptance Criteria",
+      "Constraints",
+      "Assumptions",
+      "Risks"
+    ]
+  },
+  "mission-design": {
+    requiredFrontmatter: ["name"],
+    requiredSections: [
+      "Plan Summary",
+      "Approach Strategy",
+      "Alternatives Considered",
+      "Key Concepts",
+      "Scope",
+      "Plan Outline",
+      "Decision Points",
+      "Assumptions",
+      "Risks",
+      "Change Triggers"
+    ]
+  },
+  "task-contract": {
+    requiredFrontmatter: ["name", "task_id", "mission_acceptance_refs", "depends_on", "risk_level"],
+    requiredSections: [
+      "Description",
+      "Mission Relation",
+      "Scope",
+      "Deliverables",
+      "Acceptance Criteria",
+      "Verification Checks",
+      "Review Focus",
+      "Assumptions",
+      "Constraints",
+      "Risks",
+      "Change Triggers"
+    ],
+    enums: { risk_level: ["low", "medium", "high"] }
+  },
+  "implementation-evidence": {
+    requiredFrontmatter: ["name", "task_id", "evidence_type", "task_contract_ref"],
+    requiredSections: [
+      "Summary",
+      "Changed Outputs",
+      "Affected Scope",
+      "Implementation Decisions",
+      "Assumptions",
+      "Contract Deltas",
+      "Self Checks",
+      "Limits",
+      "Reflection Candidates"
+    ],
+    enums: { evidence_type: ["implementation"] }
+  },
+  "verification-evidence": {
+    requiredFrontmatter: [
+      "name",
+      "task_id",
+      "evidence_type",
+      "task_contract_ref",
+      "implementation_evidence_ref",
+      "verdict"
+    ],
+    requiredSections: [
+      "Summary",
+      "Environment",
+      "Target",
+      "Checks Performed",
+      "Criteria Results",
+      "Outputs",
+      "Deviations",
+      "Unverified Scope",
+      "Recheck Needed"
+    ],
+    enums: { evidence_type: ["verification"], verdict: EVIDENCE_VERDICTS }
+  },
+  "review-evidence": {
+    requiredFrontmatter: [
+      "name",
+      "task_id",
+      "evidence_type",
+      "task_contract_ref",
+      "implementation_evidence_ref",
+      "verification_evidence_ref",
+      "verdict"
+    ],
+    requiredSections: [
+      "Summary",
+      "Target",
+      "Review Focus Used",
+      "Review Coverage",
+      "Review Methods",
+      "Findings",
+      "Remaining Risks",
+      "Overall Recommendation"
+    ],
+    enums: { evidence_type: ["review"], verdict: EVIDENCE_VERDICTS }
+  },
+  "challenger-evidence": {
+    requiredFrontmatter: [
+      "name",
+      "task_id",
+      "evidence_type",
+      "task_contract_ref",
+      "implementation_evidence_ref",
+      "verification_evidence_ref",
+      "review_evidence_ref",
+      "verdict"
+    ],
+    requiredSections: [
+      "Target",
+      "Challenge Focus",
+      "Challenge Methods",
+      "Findings",
+      "User Decisions Needed",
+      "Deeper Checks Needed",
+      "Overall Recommendation"
+    ],
+    enums: { evidence_type: ["challenger"], verdict: EVIDENCE_VERDICTS }
+  },
+  "task-evidence": {
+    requiredFrontmatter: ["name", "task_id", "evidence_type", "task_contract_ref", "user_judgment_ref"],
+    requiredSections: [
+      "Summary",
+      "User Judgment Summary",
+      "Criteria Results",
+      "Accepted Unverified Scope",
+      "Accepted Remaining Risks"
+    ],
+    enums: { evidence_type: ["task"] }
+  },
+  "mission-evidence": {
+    requiredFrontmatter: [
+      "name",
+      "evidence_type",
+      "mission_spec_ref",
+      "mission_design_ref",
+      "user_judgment_ref"
+    ],
+    requiredSections: [
+      "Summary",
+      "User Judgment Summary",
+      "Mission Criteria Results",
+      "Mission Design Deltas",
+      "Accepted Unverified Scope",
+      "Accepted Remaining Risks",
+      "Gaps",
+      "Debts",
+      "Follow Ups",
+      "Reflection Summary",
+      "Memory Updates"
+    ],
+    enums: { evidence_type: ["mission"] }
+  },
+  "user-judgment": {
+    requiredFrontmatter: ["name", "judgment_type", "decision"],
+    requiredSections: [
+      "Decision Trail",
+      "Accepted Unverified Scope",
+      "Accepted Remaining Risks",
+      "Requested Actions",
+      "Notes"
+    ],
+    enums: { judgment_type: ["task-result", "mission-result"], decision: RESULT_DECISIONS }
+  }
+};
+function parseMarkdownArtifact(text, kind) {
+  const normalized = text.replace(/^\uFEFF/, "");
+  const frontmatterMatch = normalized.match(/^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)([\s\S]*)$/);
+  if (!frontmatterMatch) {
+    return { ok: false, code: "frontmatter_missing", detail: "Markdown artifact must start with YAML frontmatter" };
+  }
+  let frontmatter;
+  try {
+    frontmatter = load(frontmatterMatch[1], { schema: CORE_SCHEMA });
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    return { ok: false, code: "frontmatter_parse_failed", detail };
+  }
+  if (!isPlainObject(frontmatter)) {
+    return { ok: false, code: "frontmatter_invalid", detail: "frontmatter must be a YAML object" };
+  }
+  const body = frontmatterMatch[2];
+  const structure = validateBodySections(body, ARTIFACT_SPECS[kind].requiredSections);
+  if (!structure.ok) return structure;
+  const fm = validateFrontmatter(frontmatter, ARTIFACT_SPECS[kind]);
+  if (!fm.ok) return fm;
+  return {
+    ok: true,
+    artifact: {
+      kind,
+      frontmatter,
+      body,
+      text: normalized,
+      sections: structure.sections
+    }
+  };
+}
+function validateBodySections(body, requiredSections) {
+  const trimmed = body.trimStart();
+  if (!trimmed.startsWith("## ")) {
+    return { ok: false, code: "body_section_start_invalid", detail: "Markdown body must start with a level-2 section" };
+  }
+  const sections = [];
+  const seen = /* @__PURE__ */ new Set();
+  const h1 = [];
+  for (const rawLine of body.split(/\r?\n/)) {
+    const line = rawLine.trimEnd();
+    if (/^#(?!#)\s+/.test(line)) h1.push(line);
+    const section = line.match(/^##\s+(.+?)\s*$/);
+    if (section) {
+      const name = section[1].trim();
+      if (seen.has(name)) {
+        return { ok: false, code: "section_duplicate", detail: name };
+      }
+      seen.add(name);
+      sections.push(name);
+    }
+  }
+  if (h1.length > 0) {
+    return { ok: false, code: "h1_forbidden", detail: h1[0] };
+  }
+  const missing = requiredSections.filter((section) => !seen.has(section));
+  if (missing.length > 0) {
+    return { ok: false, code: "section_missing", detail: missing.join(", ") };
+  }
+  return { ok: true, sections };
+}
+function validateFrontmatter(frontmatter, spec) {
+  for (const key of spec.requiredFrontmatter) {
+    if (!Object.prototype.hasOwnProperty.call(frontmatter, key)) {
+      return { ok: false, code: "frontmatter_key_missing", detail: key };
+    }
+  }
+  for (const key of spec.requiredFrontmatter) {
+    const value = frontmatter[key];
+    if (key === "depends_on" || key === "mission_acceptance_refs") {
+      if (!isStringArray(value)) return { ok: false, code: "frontmatter_key_invalid", detail: `${key} must be a string array` };
+    } else if (typeof value !== "string") {
+      return { ok: false, code: "frontmatter_key_invalid", detail: `${key} must be a string` };
+    }
+  }
+  for (const [key, allowed] of Object.entries(spec.enums ?? {})) {
+    const value = frontmatter[key];
+    if (typeof value !== "string" || !allowed.includes(value)) {
+      return { ok: false, code: "frontmatter_enum_invalid", detail: `${key}=${String(value)}` };
+    }
+  }
+  return { ok: true };
+}
+function isPlainObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function isStringArray(value) {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+function frontmatterString(artifact, key) {
+  const value = artifact.frontmatter[key];
+  return typeof value === "string" ? value : "";
+}
+function frontmatterStringArray(artifact, key) {
+  const value = artifact.frontmatter[key];
+  return isStringArray(value) ? value : [];
+}
+function kindForEvidence(evidenceKind) {
+  if (evidenceKind === "implementation") return "implementation-evidence";
+  if (evidenceKind === "verification") return "verification-evidence";
+  if (evidenceKind === "review") return "review-evidence";
+  if (evidenceKind === "challenger") return "challenger-evidence";
+  return "task-evidence";
+}
+
 // src/lib/runtime.ts
 var ROLE_NAMES = [
   "orchestrator",
@@ -12517,6 +12798,9 @@ function readYaml(path) {
 }
 function writeYamlAtomic(path, payload) {
   const text = dump(payload, { schema: CORE_SCHEMA, lineWidth: -1, noRefs: true });
+  writeTextAtomic(path, text);
+}
+function writeTextAtomic(path, text) {
   ensureDir((0, import_node_path.dirname)(path));
   const tmp = `${path}.tmp.${(0, import_node_crypto.randomBytes)(4).toString("hex")}`;
   (0, import_node_fs.writeFileSync)(tmp, text, "utf8");
@@ -12528,19 +12812,16 @@ function ensureDir(path) {
 function readRunState(cwd) {
   return readYaml((0, import_node_path.join)(geasRoot(cwd), "run-state.yaml"));
 }
-function writeRunState(state, cwd) {
-  writeYamlAtomic((0, import_node_path.join)(geasRoot(cwd), "run-state.yaml"), state);
-}
 function readTaskState(missionId, taskId, cwd) {
   return readYaml((0, import_node_path.join)(taskDir(missionId, taskId, cwd), "task-state.yaml"));
 }
 function writeTaskState(missionId, taskId, state, cwd) {
   writeYamlAtomic((0, import_node_path.join)(taskDir(missionId, taskId, cwd), "task-state.yaml"), state);
 }
-function nextNumber(dir, prefix) {
+function nextArtifactNumber(dir, prefix, extension) {
   if (!(0, import_node_fs.existsSync)(dir)) return 1;
   let max = 0;
-  const re = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-(\\d{3})\\.yaml$`);
+  const re = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-(\\d{3})\\.${extension}$`);
   for (const file of (0, import_node_fs.readdirSync)(dir)) {
     const m = file.match(re);
     if (m) {
@@ -12553,9 +12834,9 @@ function nextNumber(dir, prefix) {
 function pad3(n) {
   return String(n).padStart(3, "0");
 }
-function readLatestNumbered(dir, prefix) {
+function readLatestMarkdownArtifact(dir, prefix, kind) {
   if (!(0, import_node_fs.existsSync)(dir)) return null;
-  const re = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-(\\d{3})\\.yaml$`);
+  const re = new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-(\\d{3})\\.md$`);
   let best = null;
   for (const file of (0, import_node_fs.readdirSync)(dir)) {
     const m = file.match(re);
@@ -12565,14 +12846,18 @@ function readLatestNumbered(dir, prefix) {
     }
   }
   if (!best) return null;
-  const p = (0, import_node_path.join)(dir, best.file);
-  return { number: best.number, payload: readYaml(p), path: p };
+  const path = (0, import_node_path.join)(dir, best.file);
+  const parsed = parseMarkdownArtifact((0, import_node_fs.readFileSync)(path, "utf8"), kind);
+  if (!parsed.ok) {
+    throw new Error(`invalid stored artifact ${path}: ${parsed.code}: ${parsed.detail}`);
+  }
+  return { number: best.number, artifact: parsed.artifact, path };
 }
-function writeNumberedArtifact(dir, prefix, payload) {
+function writeNumberedMarkdownArtifact(dir, prefix, artifact) {
   ensureDir(dir);
-  const n = nextNumber(dir, prefix);
-  const path = (0, import_node_path.join)(dir, `${prefix}-${pad3(n)}.yaml`);
-  writeYamlAtomic(path, payload);
+  const n = nextArtifactNumber(dir, prefix, "md");
+  const path = (0, import_node_path.join)(dir, `${prefix}-${pad3(n)}.md`);
+  writeTextAtomic(path, artifact.text);
   return { path, number: n };
 }
 function generateMissionId(now = /* @__PURE__ */ new Date()) {
@@ -12586,6 +12871,13 @@ function listTaskIds(missionId, cwd) {
   const tasks = (0, import_node_path.join)(missionDir(missionId, cwd), "tasks");
   if (!(0, import_node_fs.existsSync)(tasks)) return [];
   return (0, import_node_fs.readdirSync)(tasks).filter((name) => (0, import_node_fs.existsSync)((0, import_node_path.join)(tasks, name)));
+}
+function relGeasPath(absolute, cwd) {
+  const root = geasRoot(cwd);
+  if (absolute.startsWith(root)) {
+    return (".geas/" + absolute.slice(root.length + 1)).replace(/\\/g, "/");
+  }
+  return absolute.replace(/\\/g, "/");
 }
 
 // src/lib/output.ts
@@ -12623,6 +12915,7 @@ function runInit(cwd = process.cwd()) {
       current_stage: "",
       current_task_id: ""
     });
+    writeYamlAtomic(`${root}/debts.yaml`, { items: [] });
     writeYamlAtomic(`${root}/memory/common.yaml`, { items: [] });
     for (const role of ALL_ROLES) {
       writeYamlAtomic(`${root}/memory/roles/${role}.yaml`, { items: [] });
@@ -12643,6 +12936,7 @@ function runInit(cwd = process.cwd()) {
   }
   const writes = [
     { path: ".geas/run-state.yaml", type: "created" },
+    { path: ".geas/debts.yaml", type: "created" },
     { path: ".geas/memory/common.yaml", type: "created" },
     ...ALL_ROLES.map((r) => ({ path: `.geas/memory/roles/${r}.yaml`, type: "created" }))
   ];
@@ -12663,10 +12957,50 @@ function registerInit(program2) {
 }
 
 // src/commands/mission.ts
-var import_node_fs5 = require("node:fs");
+var import_node_fs7 = require("node:fs");
+var import_node_path5 = require("node:path");
 
 // src/lib/guards.ts
+var import_node_path3 = require("node:path");
+var import_node_fs4 = require("node:fs");
+
+// src/lib/refs.ts
+var import_node_fs3 = require("node:fs");
 var import_node_path2 = require("node:path");
+function resolveMissionRef(missionId, ref, cwd) {
+  return resolveUnderRoot(missionDir(missionId, cwd), ref);
+}
+function resolveTaskArtifactRef(missionId, taskId, ref, cwd) {
+  const root = hasDirectorySegment(ref) ? missionDir(missionId, cwd) : taskDir(missionId, taskId, cwd);
+  return resolveUnderRoot(root, ref);
+}
+function resolveProjectRef(ref, cwd) {
+  const normalized = normalizeRef(ref);
+  const stripped = normalized.startsWith(".geas/") ? normalized.slice(".geas/".length) : normalized;
+  return resolveUnderRoot(geasRoot(cwd), stripped, ref);
+}
+function resolveUnderRoot(root, ref, originalRef = ref) {
+  const normalized = normalizeRef(ref);
+  if (normalized === "") return { ok: false, code: "ref_empty", ref: originalRef };
+  if ((0, import_node_path2.isAbsolute)(ref) || (0, import_node_path2.isAbsolute)(normalized)) return { ok: false, code: "ref_absolute", ref: originalRef };
+  if (normalized.split("/").includes("..")) return { ok: false, code: "ref_escape", ref: originalRef };
+  if (normalized.endsWith(".yaml")) return { ok: false, code: "ref_stale_yaml_artifact", ref: originalRef };
+  const path = (0, import_node_path2.join)(root, normalized);
+  const rel = (0, import_node_path2.relative)(root, path);
+  if (rel === "" || rel.startsWith("..") || (0, import_node_path2.isAbsolute)(rel)) {
+    return { ok: false, code: "ref_outside_scope", ref: originalRef, path };
+  }
+  if (!(0, import_node_fs3.existsSync)(path)) return { ok: false, code: "ref_missing", ref: originalRef, path };
+  return { ok: true, ref: originalRef, path };
+}
+function normalizeRef(ref) {
+  return ref.trim().replace(/\\/g, "/").replace(/^\/+/, "");
+}
+function hasDirectorySegment(ref) {
+  return normalizeRef(ref).includes("/");
+}
+
+// src/lib/guards.ts
 function ok() {
   return { ok: true };
 }
@@ -12703,8 +13037,8 @@ function checkMissionDesignRecord(runState, cwd) {
   if (runState.current_stage !== "specifying") failures.push({ code: "stage_not_specifying", detail: runState.current_stage });
   if (runState.current_mission_id !== "") {
     const dir = missionDir(runState.current_mission_id, cwd);
-    const spec = readLatestNumbered(dir, "mission-spec");
-    if (!spec) failures.push({ code: "mission_spec_missing", path: (0, import_node_path2.join)(dir, "mission-spec-001.yaml") });
+    const spec = readLatestMarkdownArtifact(dir, "mission-spec", "mission-spec");
+    if (!spec) failures.push({ code: "mission_spec_missing", path: (0, import_node_path3.join)(dir, "mission-spec-001.md") });
   }
   return failures.length === 0 ? ok() : fail(failures);
 }
@@ -12717,10 +13051,61 @@ var ALLOWED_MISSION_TRANSITIONS = /* @__PURE__ */ new Set([
   "consolidating->specifying"
 ]);
 function readTaskContract(missionId, taskId, cwd) {
-  return readLatestNumbered(taskDir(missionId, taskId, cwd), "task-contract");
+  return readLatestMarkdownArtifact(taskDir(missionId, taskId, cwd), "task-contract", "task-contract");
 }
 function listContractedTaskIds(missionId, cwd) {
   return listTaskIds(missionId, cwd).filter((taskId) => Boolean(readTaskContract(missionId, taskId, cwd)));
+}
+function checkArtifactRefKeys(missionId, artifact, keys, cwd, taskId) {
+  const failures = [];
+  for (const key of keys) {
+    const ref = frontmatterString(artifact, key);
+    const resolved = taskId ? resolveTaskArtifactRef(missionId, taskId, ref, cwd) : resolveMissionRef(missionId, ref, cwd);
+    if (!resolved.ok) failures.push(refFailureToGuard("artifact_ref", resolved));
+  }
+  return failures;
+}
+function refFailureToGuard(prefix, failure2) {
+  const suffix = failure2.code.replace(/^ref_/, "");
+  return {
+    code: `${prefix}_${suffix}`,
+    path: failure2.path ?? failure2.ref
+  };
+}
+function checkMissionAcceptedWindow(runState, cwd) {
+  if (!runState) return [{ code: "run_state_missing" }];
+  const failures = [];
+  if (runState.current_mission_id === "") failures.push({ code: "no_current_mission" });
+  if (runState.current_stage !== "consolidating") {
+    failures.push({ code: "stage_not_consolidating", detail: runState.current_stage });
+  }
+  if (runState.current_mission_id !== "") {
+    const md = missionDir(runState.current_mission_id, cwd);
+    const judgment = readLatestMarkdownArtifact(md, "user-judgment-result", "user-judgment");
+    if (!judgment || !["accepted", "accepted_with_limits"].includes(frontmatterString(judgment.artifact, "decision"))) {
+      failures.push({ code: "mission_judgment_not_accepted" });
+    }
+    const evPath = (0, import_node_path3.join)(md, "mission-evidence.md");
+    if ((0, import_node_fs4.existsSync)(evPath)) failures.push({ code: "mission_evidence_already_exists", path: evPath });
+  }
+  return failures;
+}
+function checkDebtRefs(payload, cwd) {
+  const failures = [];
+  for (const ref of payload.source_refs ?? []) {
+    const resolved = resolveProjectRef(ref, cwd);
+    if (!resolved.ok) failures.push(refFailureToGuard("debt_ref", resolved));
+  }
+  const accepted = resolveProjectRef(payload.accepted_in_ref, cwd);
+  if (!accepted.ok) failures.push(refFailureToGuard("debt_ref", accepted));
+  for (const ref of payload.resolved_by_refs ?? []) {
+    const resolved = resolveProjectRef(ref, cwd);
+    if (!resolved.ok) failures.push(refFailureToGuard("debt_ref", resolved));
+  }
+  if (payload.status === "resolved" && (payload.resolved_by_refs ?? []).length === 0) {
+    failures.push({ code: "resolved_by_refs_required" });
+  }
+  return failures;
 }
 function checkTaskDependencies(missionId, taskId, payload, cwd) {
   const failures = [];
@@ -12733,7 +13118,8 @@ function checkTaskDependencies(missionId, taskId, payload, cwd) {
   }
   const graph = /* @__PURE__ */ new Map();
   for (const id of taskIds) {
-    const deps = id === taskId ? payload.depends_on ?? [] : readTaskContract(missionId, id, cwd)?.payload.depends_on ?? [];
+    const contract = readTaskContract(missionId, id, cwd);
+    const deps = id === taskId ? payload.depends_on ?? [] : frontmatterStringArray(contract.artifact, "depends_on");
     graph.set(id, deps);
   }
   const WHITE = 0, GRAY = 1, BLACK = 2;
@@ -12759,11 +13145,10 @@ function checkTaskDependencies(missionId, taskId, payload, cwd) {
 }
 function dependencyAccepted(missionId, depTaskId, cwd) {
   const td = taskDir(missionId, depTaskId, cwd);
-  const fs = require("node:fs");
-  if (!fs.existsSync(`${td}/task-evidence.yaml`)) return false;
-  const judgment = readLatestNumbered(td, "user-judgment-result");
+  if (!(0, import_node_fs4.existsSync)(`${td}/task-evidence.md`)) return false;
+  const judgment = readLatestMarkdownArtifact(td, "user-judgment-result", "user-judgment");
   if (!judgment) return false;
-  return ["accepted", "accepted_with_limits"].includes(judgment.payload.decision);
+  return ["accepted", "accepted_with_limits"].includes(frontmatterString(judgment.artifact, "decision"));
 }
 function checkMissionTransition(runState, toStage, taskId, cwd) {
   if (!runState) return fail([{ code: "run_state_missing" }]);
@@ -12779,15 +13164,15 @@ function checkMissionTransition(runState, toStage, taskId, cwd) {
     if (!taskId) {
       failures.push({ code: "task_required" });
     } else {
-      const spec = readLatestNumbered(md, "mission-spec");
-      const design = readLatestNumbered(md, "mission-design");
+      const spec = readLatestMarkdownArtifact(md, "mission-spec", "mission-spec");
+      const design = readLatestMarkdownArtifact(md, "mission-design", "mission-design");
       if (!spec) failures.push({ code: "mission_spec_missing" });
       if (!design) failures.push({ code: "mission_design_missing" });
       const td = taskDir(mid, taskId, cwd);
       const contract = readTaskContract(mid, taskId, cwd);
-      if (!contract) failures.push({ code: "task_contract_missing", path: (0, import_node_path2.join)(td, "task-contract-001.yaml") });
+      if (!contract) failures.push({ code: "task_contract_missing", path: (0, import_node_path3.join)(td, "task-contract-001.md") });
       if (contract) {
-        for (const dep of contract.payload.depends_on ?? []) {
+        for (const dep of frontmatterStringArray(contract.artifact, "depends_on")) {
           if (!dependencyAccepted(mid, dep, cwd)) failures.push({ code: "dependency_not_ready", detail: dep });
         }
       }
@@ -12803,18 +13188,17 @@ function checkMissionTransition(runState, toStage, taskId, cwd) {
     }
   }
   if (toStage === "consolidating") {
-    const design = readLatestNumbered(md, "mission-design");
+    const design = readLatestMarkdownArtifact(md, "mission-design", "mission-design");
     if (!design) failures.push({ code: "mission_design_missing" });
     const taskIds = listContractedTaskIds(mid, cwd);
     if (taskIds.length === 0) failures.push({ code: "task_contract_missing" });
     for (const task of taskIds) {
       const tdir = taskDir(mid, task, cwd);
-      const fs = require("node:fs");
-      if (!fs.existsSync(`${tdir}/task-evidence.yaml`)) {
+      if (!(0, import_node_fs4.existsSync)(`${tdir}/task-evidence.md`)) {
         failures.push({ code: "task_evidence_missing", detail: task });
       }
-      const judgment = readLatestNumbered(tdir, "user-judgment-result");
-      if (!judgment || !["accepted", "accepted_with_limits"].includes(judgment.payload.decision)) {
+      const judgment = readLatestMarkdownArtifact(tdir, "user-judgment-result", "user-judgment");
+      if (!judgment || !["accepted", "accepted_with_limits"].includes(frontmatterString(judgment.artifact, "decision"))) {
         failures.push({ code: "task_judgment_not_accepted", detail: task });
       }
     }
@@ -12822,7 +13206,7 @@ function checkMissionTransition(runState, toStage, taskId, cwd) {
   return failures.length === 0 ? ok() : fail(failures);
 }
 function checkTaskContractRecord(ctx, cwd) {
-  const { runState, taskId, payload } = ctx;
+  const { runState, taskId, artifact } = ctx;
   if (!runState) return fail([{ code: "run_state_missing" }]);
   if (runState.current_mission_id === "") return fail([{ code: "no_current_mission" }]);
   const failures = [];
@@ -12830,9 +13214,11 @@ function checkTaskContractRecord(ctx, cwd) {
     failures.push({ code: "stage_not_specifying_or_building", detail: runState.current_stage });
   }
   const md = missionDir(runState.current_mission_id, cwd);
-  const design = readLatestNumbered(md, "mission-design");
+  const design = readLatestMarkdownArtifact(md, "mission-design", "mission-design");
   if (!design) failures.push({ code: "mission_design_missing" });
-  failures.push(...checkTaskDependencies(runState.current_mission_id, taskId, payload, cwd));
+  failures.push(...checkTaskDependencies(runState.current_mission_id, taskId, {
+    depends_on: frontmatterStringArray(artifact, "depends_on")
+  }, cwd));
   if (runState.current_stage === "building") {
     if (runState.current_task_id !== taskId) {
       failures.push({ code: "task_not_current", detail: `current=${runState.current_task_id} requested=${taskId}` });
@@ -12842,8 +13228,8 @@ function checkTaskContractRecord(ctx, cwd) {
     if (!ts || ts.phase !== "awaiting_user_judgment") {
       failures.push({ code: "phase_not_awaiting_user_judgment", detail: ts?.phase ?? "missing" });
     }
-    const judgment = readLatestNumbered(td, "user-judgment-result");
-    if (!judgment || judgment.payload.decision !== "revise") {
+    const judgment = readLatestMarkdownArtifact(td, "user-judgment-result", "user-judgment");
+    if (!judgment || frontmatterString(judgment.artifact, "decision") !== "revise") {
       failures.push({ code: "judgment_not_revise" });
     }
   }
@@ -12867,7 +13253,7 @@ function checkTaskTransition(runState, taskId, toPhase, cwd) {
   if (runState.current_task_id !== taskId) return fail([{ code: "task_not_current", detail: `current=${runState.current_task_id}` }]);
   const failures = [];
   const td = taskDir(runState.current_mission_id, taskId, cwd);
-  const contract = readLatestNumbered(td, "task-contract");
+  const contract = readLatestMarkdownArtifact(td, "task-contract", "task-contract");
   if (!contract) failures.push({ code: "task_contract_missing" });
   const ts = readTaskState(runState.current_mission_id, taskId, cwd);
   if (!ts) {
@@ -12880,9 +13266,9 @@ function checkTaskTransition(runState, taskId, toPhase, cwd) {
     failures.push({ code: "transition_not_allowed", detail: pair });
   }
   if (fromPhase === "awaiting_user_judgment" && REVISE_REQUIRED_TARGETS.has(toPhase)) {
-    const judgment = readLatestNumbered(td, "user-judgment-result");
-    if (!judgment || judgment.payload.decision !== "revise") {
-      failures.push({ code: "judgment_not_revise", detail: judgment?.payload.decision ?? "missing" });
+    const judgment = readLatestMarkdownArtifact(td, "user-judgment-result", "user-judgment");
+    if (!judgment || frontmatterString(judgment.artifact, "decision") !== "revise") {
+      failures.push({ code: "judgment_not_revise", detail: judgment ? frontmatterString(judgment.artifact, "decision") : "missing" });
     }
   }
   return failures.length === 0 ? ok() : fail(failures);
@@ -12894,26 +13280,33 @@ var KIND_TO_REQUIRED_PHASE = {
   challenger: "challenging",
   task: "awaiting_user_judgment"
 };
-function checkTaskEvidenceRecord(runState, taskId, kind, _payload, cwd) {
+function checkTaskEvidenceRecord(runState, taskId, kind, _artifact, cwd) {
   if (!runState) return fail([{ code: "run_state_missing" }]);
   if (runState.current_stage !== "building") return fail([{ code: "stage_not_building", detail: runState.current_stage }]);
   if (runState.current_task_id !== taskId) return fail([{ code: "task_not_current", detail: `current=${runState.current_task_id}` }]);
   const failures = [];
   const td = taskDir(runState.current_mission_id, taskId, cwd);
-  const contract = readLatestNumbered(td, "task-contract");
+  const contract = readLatestMarkdownArtifact(td, "task-contract", "task-contract");
   if (!contract) failures.push({ code: "task_contract_missing" });
   const ts = readTaskState(runState.current_mission_id, taskId, cwd);
   if (!ts) failures.push({ code: "task_state_missing" });
+  const refKeys = {
+    implementation: ["task_contract_ref"],
+    verification: ["task_contract_ref", "implementation_evidence_ref"],
+    review: ["task_contract_ref", "implementation_evidence_ref", "verification_evidence_ref"],
+    challenger: ["task_contract_ref", "implementation_evidence_ref", "verification_evidence_ref", "review_evidence_ref"],
+    task: ["task_contract_ref", "user_judgment_ref"]
+  };
+  failures.push(...checkArtifactRefKeys(runState.current_mission_id, _artifact, refKeys[kind], cwd, taskId));
   if (ts && ts.phase !== KIND_TO_REQUIRED_PHASE[kind]) {
     failures.push({ code: "phase_does_not_match_kind", detail: `phase=${ts.phase} kind=${kind}` });
   }
   if (kind === "task") {
-    const judgment = readLatestNumbered(td, "user-judgment-result");
-    if (!judgment || !["accepted", "accepted_with_limits"].includes(judgment.payload.decision)) {
-      failures.push({ code: "task_judgment_not_accepted", detail: judgment?.payload.decision ?? "missing" });
+    const judgment = readLatestMarkdownArtifact(td, "user-judgment-result", "user-judgment");
+    if (!judgment || !["accepted", "accepted_with_limits"].includes(frontmatterString(judgment.artifact, "decision"))) {
+      failures.push({ code: "task_judgment_not_accepted", detail: judgment ? frontmatterString(judgment.artifact, "decision") : "missing" });
     }
-    const fs = require("node:fs");
-    if (fs.existsSync(`${td}/task-evidence.yaml`)) {
+    if ((0, import_node_fs4.existsSync)(`${td}/task-evidence.md`)) {
       failures.push({ code: "task_evidence_already_exists" });
     }
   }
@@ -12941,128 +13334,64 @@ function checkJudgmentRecord(runState, target, taskId, cwd) {
   return failures.length === 0 ? ok() : fail(failures);
 }
 function checkMemoryRecord(runState, scope, role, payload, cwd) {
-  if (!runState) return fail([{ code: "run_state_missing" }]);
-  const failures = [];
-  if (runState.current_mission_id === "") failures.push({ code: "no_current_mission" });
-  if (runState.current_stage !== "consolidating") failures.push({ code: "stage_not_consolidating", detail: runState.current_stage });
-  if (runState.current_mission_id !== "") {
-    const md = missionDir(runState.current_mission_id, cwd);
-    const judgment = readLatestNumbered(md, "user-judgment-result");
-    if (!judgment || !["accepted", "accepted_with_limits"].includes(judgment.payload.decision)) {
-      failures.push({ code: "mission_judgment_not_accepted" });
-    }
-  }
+  const failures = checkMissionAcceptedWindow(runState, cwd);
   if (scope === "role") {
     if (!role) failures.push({ code: "role_required" });
     else if (!["orchestrator", "work-designer", "implementer", "verifier", "reviewer", "challenger"].includes(role)) {
       failures.push({ code: "role_invalid", detail: role });
     }
   }
-  if (runState.current_mission_id !== "") {
-    const fs = require("node:fs");
-    const md = missionDir(runState.current_mission_id, cwd);
-    for (const ref of payload.source_refs ?? []) {
-      const abs = (0, import_node_path2.join)(md, ref);
-      if (!fs.existsSync(abs)) {
-        failures.push({ code: "source_ref_missing", path: abs });
-      }
-    }
+  for (const ref of payload.source_refs ?? []) {
+    const resolved = resolveProjectRef(ref, cwd);
+    if (!resolved.ok) failures.push(refFailureToGuard("source_ref", resolved));
   }
   return failures.length === 0 ? ok() : fail(failures);
 }
-function checkMissionEvidenceRecord(runState, cwd) {
+function checkDebtRecord(runState, payload, cwd) {
+  const failures = [
+    ...checkMissionAcceptedWindow(runState, cwd),
+    ...checkDebtRefs(payload, cwd)
+  ];
+  return failures.length === 0 ? ok() : fail(failures);
+}
+function checkDebtUpdate(runState, payload, cwd) {
+  const failures = [
+    ...checkMissionAcceptedWindow(runState, cwd),
+    ...checkDebtRefs(payload, cwd)
+  ];
+  return failures.length === 0 ? ok() : fail(failures);
+}
+function checkMissionEvidenceRecord(runState, artifact, cwd) {
   if (!runState) return fail([{ code: "run_state_missing" }]);
   const failures = [];
   if (runState.current_mission_id === "") failures.push({ code: "no_current_mission" });
   if (runState.current_stage !== "consolidating") failures.push({ code: "stage_not_consolidating", detail: runState.current_stage });
   if (runState.current_mission_id !== "") {
     const md = missionDir(runState.current_mission_id, cwd);
-    const judgment = readLatestNumbered(md, "user-judgment-result");
-    if (!judgment || !["accepted", "accepted_with_limits"].includes(judgment.payload.decision)) {
+    const judgment = readLatestMarkdownArtifact(md, "user-judgment-result", "user-judgment");
+    if (!judgment || !["accepted", "accepted_with_limits"].includes(frontmatterString(judgment.artifact, "decision"))) {
       failures.push({ code: "mission_judgment_not_accepted" });
     }
-    const fs = require("node:fs");
-    const evPath = (0, import_node_path2.join)(md, "mission-evidence.yaml");
-    if (fs.existsSync(evPath)) failures.push({ code: "mission_evidence_already_exists", path: evPath });
+    const evPath = (0, import_node_path3.join)(md, "mission-evidence.md");
+    if ((0, import_node_fs4.existsSync)(evPath)) failures.push({ code: "mission_evidence_already_exists", path: evPath });
+    if (artifact) {
+      failures.push(...checkArtifactRefKeys(
+        runState.current_mission_id,
+        artifact,
+        ["mission_spec_ref", "mission_design_ref", "user_judgment_ref"],
+        cwd
+      ));
+    }
   }
   return failures.length === 0 ? ok() : fail(failures);
 }
 
-// src/lib/schema.ts
-var import_ajv = __toESM(require_ajv());
-var import_node_fs3 = require("node:fs");
-var import_node_path3 = require("node:path");
-var ALL_SCHEMA_IDS = [
-  "mission-spec",
-  "mission-design",
-  "task-contract",
-  "task-state",
-  "run-state",
-  "implementation-evidence",
-  "verification-evidence",
-  "review-evidence",
-  "challenger-evidence",
-  "task-evidence",
-  "mission-evidence",
-  "user-judgment",
-  "memory-file",
-  "memory-item"
-];
-var ajvInstance = null;
-var validators = /* @__PURE__ */ new Map();
-function loadSchemas() {
-  try {
-    return require_virtual_schemas();
-  } catch (e) {
-    const code = e?.code;
-    if (code !== "MODULE_NOT_FOUND") throw e;
-    const schemasDir = (0, import_node_path3.join)(__dirname, "..", "..", "schemas");
-    const out = {};
-    for (const file of (0, import_node_fs3.readdirSync)(schemasDir)) {
-      if (file.endsWith(".json")) {
-        const id = file.replace(/\.json$/, "");
-        out[id] = JSON.parse((0, import_node_fs3.readFileSync)((0, import_node_path3.join)(schemasDir, file), "utf8"));
-      }
-    }
-    return out;
-  }
-}
-function ensureInitialized() {
-  if (ajvInstance) return ajvInstance;
-  const ajv = new import_ajv.default({ allErrors: true, strict: false });
-  const schemas = loadSchemas();
-  for (const id of ALL_SCHEMA_IDS) {
-    const schema2 = schemas[id];
-    if (!schema2) {
-      throw new Error(`schema not loaded: ${id}`);
-    }
-    validators.set(id, ajv.compile(schema2));
-  }
-  ajvInstance = ajv;
-  return ajv;
-}
-function validate(id, payload) {
-  ensureInitialized();
-  const v = validators.get(id);
-  if (!v) {
-    throw new Error(`unknown schema id: ${id}`);
-  }
-  const ok2 = v(payload);
-  if (ok2) return { valid: true };
-  const errors = (v.errors ?? []).map((e) => {
-    const path = e.instancePath || "/";
-    const extra = e.keyword === "additionalProperties" ? ` (${e.params.additionalProperty})` : "";
-    return `${path} ${e.message ?? "invalid"}${extra}`;
-  });
-  return { valid: false, errors };
-}
-
 // src/lib/io.ts
-var import_node_fs4 = require("node:fs");
+var import_node_fs5 = require("node:fs");
 function readPayload(from) {
   let text;
   try {
-    text = from === "-" ? (0, import_node_fs4.readFileSync)(0, "utf8") : (0, import_node_fs4.readFileSync)(from, "utf8");
+    text = from === "-" ? (0, import_node_fs5.readFileSync)(0, "utf8") : (0, import_node_fs5.readFileSync)(from, "utf8");
   } catch (e) {
     const detail = e instanceof Error ? e.message : String(e);
     return { ok: false, code: "payload_read_failed", detail };
@@ -13073,6 +13402,90 @@ function readPayload(from) {
   } catch (e) {
     const detail = e instanceof Error ? e.message : String(e);
     return { ok: false, code: "payload_parse_failed", detail };
+  }
+}
+function readMarkdownArtifact(from, kind) {
+  let text;
+  try {
+    text = from === "-" ? (0, import_node_fs5.readFileSync)(0, "utf8") : (0, import_node_fs5.readFileSync)(from, "utf8");
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    return { ok: false, code: "payload_read_failed", detail };
+  }
+  const parsed = parseMarkdownArtifact(text, kind);
+  if (!parsed.ok) {
+    return { ok: false, code: "payload_parse_failed", detail: `${parsed.code}: ${parsed.detail}` };
+  }
+  return { ok: true, artifact: parsed.artifact };
+}
+
+// src/lib/transaction.ts
+var import_node_fs6 = require("node:fs");
+var import_node_path4 = require("node:path");
+var Transaction = class {
+  rollbackActions = [];
+  committed = false;
+  ensureDir(path) {
+    const existed = (0, import_node_fs6.existsSync)(path);
+    (0, import_node_fs6.mkdirSync)(path, { recursive: true });
+    if (!existed) {
+      this.rollbackActions.push(() => {
+        (0, import_node_fs6.rmSync)(path, { recursive: true, force: true });
+      });
+    }
+  }
+  writeText(path, text) {
+    const existed = (0, import_node_fs6.existsSync)(path);
+    const previous = existed ? (0, import_node_fs6.readFileSync)(path, "utf8") : null;
+    this.ensureDir((0, import_node_path4.dirname)(path));
+    writeTextAtomic(path, text);
+    this.rollbackActions.push(() => {
+      if (previous !== null) {
+        writeTextAtomic(path, previous);
+      } else {
+        (0, import_node_fs6.rmSync)(path, { force: true });
+      }
+    });
+  }
+  writeYaml(path, payload) {
+    const text = dump(payload, { schema: CORE_SCHEMA, lineWidth: -1, noRefs: true });
+    this.writeText(path, text);
+  }
+  writeMarkdown(path, artifact) {
+    this.writeText(path, artifact.text);
+  }
+  writeNumberedMarkdown(dir, prefix, artifact) {
+    this.ensureDir(dir);
+    const number = nextArtifactNumber(dir, prefix, "md");
+    const path = (0, import_node_path4.join)(dir, `${prefix}-${pad3(number)}.md`);
+    if ((0, import_node_fs6.existsSync)(path)) {
+      throw new Error(`artifact path already exists: ${path}`);
+    }
+    this.writeMarkdown(path, artifact);
+    return { path, number };
+  }
+  rollback() {
+    if (this.committed) return;
+    for (const action of [...this.rollbackActions].reverse()) {
+      try {
+        action();
+      } catch {
+      }
+    }
+  }
+  commit() {
+    this.committed = true;
+  }
+};
+function runTransaction(fn) {
+  const tx = new Transaction();
+  try {
+    const result = fn(tx);
+    tx.commit();
+    return result;
+  } catch (e) {
+    tx.rollback();
+    throw e;
   }
 }
 
@@ -13095,7 +13508,7 @@ function runMissionCreate(cwd = process.cwd()) {
     };
   }
   let id = generateMissionId();
-  while ((0, import_node_fs5.existsSync)(missionDir(id, cwd))) {
+  while ((0, import_node_fs7.existsSync)(missionDir(id, cwd))) {
     id = generateMissionId();
   }
   const dir = missionDir(id, cwd);
@@ -13105,13 +13518,11 @@ function runMissionCreate(cwd = process.cwd()) {
     current_task_id: ""
   };
   try {
-    ensureDir(dir);
-    writeRunState(newState, cwd);
+    runTransaction((tx) => {
+      tx.ensureDir(dir);
+      tx.writeYaml((0, import_node_path5.join)(geasRoot(cwd), "run-state.yaml"), newState);
+    });
   } catch (e) {
-    try {
-      (0, import_node_fs5.rmSync)(dir, { recursive: true, force: true });
-    } catch {
-    }
     const detail = e instanceof Error ? e.message : String(e);
     return {
       ok: false,
@@ -13132,9 +13543,12 @@ function runMissionCreate(cwd = process.cwd()) {
     ]
   };
 }
-function runMissionSpecRecord(payload, cwd = process.cwd()) {
+function runMissionSpecRecord(artifact, cwd = process.cwd()) {
   const runState = readRunState(cwd);
   const current = runState ? { mission_id: runState.current_mission_id, stage: runState.current_stage, task_id: runState.current_task_id, phase: "" } : emptyLocation();
+  if (artifact.kind !== "mission-spec") {
+    return { ok: false, command: COMMAND_SPEC, current, writes: [], error: { code: "artifact_kind_mismatch", detail: artifact.kind } };
+  }
   const guard = checkMissionSpecRecord(runState);
   if (!guard.ok) {
     return {
@@ -13145,19 +13559,9 @@ function runMissionSpecRecord(payload, cwd = process.cwd()) {
       error: { code: "guard_failed", guards: guard.guards }
     };
   }
-  const v = validate("mission-spec", payload);
-  if (!v.valid) {
-    return {
-      ok: false,
-      command: COMMAND_SPEC,
-      current,
-      writes: [],
-      error: { code: "schema_invalid", detail: v.errors.join("; ") }
-    };
-  }
   const dir = missionDir(runState.current_mission_id, cwd);
-  const { number } = writeNumberedArtifact(dir, "mission-spec", payload);
-  const rel = `.geas/missions/${runState.current_mission_id}/mission-spec-${String(number).padStart(3, "0")}.yaml`;
+  const { number } = writeNumberedMarkdownArtifact(dir, "mission-spec", artifact);
+  const rel = `.geas/missions/${runState.current_mission_id}/mission-spec-${String(number).padStart(3, "0")}.md`;
   return {
     ok: true,
     command: COMMAND_SPEC,
@@ -13166,29 +13570,38 @@ function runMissionSpecRecord(payload, cwd = process.cwd()) {
     state_changes: []
   };
 }
-function runMissionDesignRecord(payload, cwd = process.cwd()) {
+function runMissionDesignRecord(artifact, cwd = process.cwd()) {
   const runState = readRunState(cwd);
   const current = runState ? { mission_id: runState.current_mission_id, stage: runState.current_stage, task_id: runState.current_task_id, phase: "" } : emptyLocation();
-  const v = validate("mission-design", payload);
-  if (!v.valid) {
-    return { ok: false, command: COMMAND_DESIGN, current, writes: [], error: { code: "schema_invalid", detail: v.errors.join("; ") } };
+  if (artifact.kind !== "mission-design") {
+    return { ok: false, command: COMMAND_DESIGN, current, writes: [], error: { code: "artifact_kind_mismatch", detail: artifact.kind } };
   }
   const guard = checkMissionDesignRecord(runState, cwd);
   if (!guard.ok) {
     return { ok: false, command: COMMAND_DESIGN, current, writes: [], error: { code: "guard_failed", guards: guard.guards } };
   }
   const dir = missionDir(runState.current_mission_id, cwd);
+  const spec = readLatestMarkdownArtifact(dir, "mission-spec", "mission-spec");
+  if (spec && frontmatterString(spec.artifact, "name") !== frontmatterString(artifact, "name")) {
+    return {
+      ok: false,
+      command: COMMAND_DESIGN,
+      current,
+      writes: [],
+      error: { code: "frontmatter_mismatch", detail: "name does not match current Mission Spec" }
+    };
+  }
   let writtenDesignPath = null;
   try {
-    const { number, path: designPath } = writeNumberedArtifact(dir, "mission-design", payload);
+    const { number, path: designPath } = writeNumberedMarkdownArtifact(dir, "mission-design", artifact);
     writtenDesignPath = designPath;
-    const rel = `.geas/missions/${runState.current_mission_id}/mission-design-${String(number).padStart(3, "0")}.yaml`;
+    const rel = `.geas/missions/${runState.current_mission_id}/mission-design-${String(number).padStart(3, "0")}.md`;
     const writes = [{ path: rel, type: "created" }];
     return { ok: true, command: COMMAND_DESIGN, current, writes, state_changes: [] };
   } catch (e) {
     if (writtenDesignPath) {
       try {
-        (0, import_node_fs5.rmSync)(writtenDesignPath, { force: true });
+        (0, import_node_fs7.rmSync)(writtenDesignPath, { force: true });
       } catch {
       }
     }
@@ -13209,7 +13622,9 @@ function runMissionTransition(toStage, taskId, cwd = process.cwd()) {
     current_stage: toStage,
     current_task_id: toStage === "building" ? taskId : ""
   };
-  writeRunState(next, cwd);
+  runTransaction((tx) => {
+    tx.writeYaml((0, import_node_path5.join)(geasRoot(cwd), "run-state.yaml"), next);
+  });
   const stateChanges = [];
   if (before.current_stage !== next.current_stage) {
     stateChanges.push({ pointer: "current_stage", from: before.current_stage, to: next.current_stage });
@@ -13225,39 +13640,40 @@ function runMissionTransition(toStage, taskId, cwd = process.cwd()) {
     state_changes: stateChanges
   };
 }
-function runMissionEvidenceRecord(payload, cwd = process.cwd()) {
+function runMissionEvidenceRecord(artifact, cwd = process.cwd()) {
   const runState = readRunState(cwd);
   const current = runState ? { mission_id: runState.current_mission_id, stage: runState.current_stage, task_id: runState.current_task_id, phase: "" } : emptyLocation();
-  const v = validate("mission-evidence", payload);
-  if (!v.valid) {
-    return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: "schema_invalid", detail: v.errors.join("; ") } };
+  if (artifact.kind !== "mission-evidence") {
+    return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: "artifact_kind_mismatch", detail: artifact.kind } };
   }
-  const guard = checkMissionEvidenceRecord(runState, cwd);
+  const guard = checkMissionEvidenceRecord(runState, artifact, cwd);
   if (!guard.ok) {
     return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: "guard_failed", guards: guard.guards } };
   }
   const md = missionDir(runState.current_mission_id, cwd);
-  const evPath = `${md}/mission-evidence.yaml`;
-  const before = { ...runState };
-  try {
-    writeYamlAtomic(evPath, payload);
-  } catch (e) {
-    const detail = e instanceof Error ? e.message : String(e);
-    return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: "mission_evidence_write_failed", detail } };
+  const spec = readLatestMarkdownArtifact(md, "mission-spec", "mission-spec");
+  if (spec && frontmatterString(spec.artifact, "name") !== frontmatterString(artifact, "name")) {
+    return {
+      ok: false,
+      command: COMMAND_MISSION_EVIDENCE,
+      current,
+      writes: [],
+      error: { code: "frontmatter_mismatch", detail: "name does not match current Mission Spec" }
+    };
   }
+  const evPath = (0, import_node_path5.join)(md, "mission-evidence.md");
+  const before = { ...runState };
   const next = { current_mission_id: "", current_stage: "", current_task_id: "" };
   try {
-    writeRunState(next, cwd);
+    runTransaction((tx) => {
+      tx.writeMarkdown(evPath, artifact);
+      tx.writeYaml((0, import_node_path5.join)(geasRoot(cwd), "run-state.yaml"), next);
+    });
   } catch (e) {
-    try {
-      const fs = require("node:fs");
-      fs.rmSync(evPath, { force: true });
-    } catch {
-    }
     const detail = e instanceof Error ? e.message : String(e);
-    return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: "run_state_write_failed", detail } };
+    return { ok: false, command: COMMAND_MISSION_EVIDENCE, current, writes: [], error: { code: "mission_evidence_record_failed", detail } };
   }
-  const rel = `.geas/missions/${before.current_mission_id}/mission-evidence.yaml`;
+  const rel = `.geas/missions/${before.current_mission_id}/mission-evidence.md`;
   return {
     ok: true,
     command: COMMAND_MISSION_EVIDENCE,
@@ -13277,8 +13693,8 @@ function registerMission(program2) {
     else failure(result);
   });
   const spec = mission.command("spec").description("Mission Spec baseline");
-  spec.command("record").requiredOption("--from <path>", "YAML payload path or - for stdin").description("Record Mission Spec baseline").action((opts) => {
-    const read = readPayload(opts.from);
+  spec.command("record").requiredOption("--from <path>", "Markdown artifact path or - for stdin").description("Record Mission Spec baseline").action((opts) => {
+    const read = readMarkdownArtifact(opts.from, "mission-spec");
     if (!read.ok) {
       failure({
         ok: false,
@@ -13289,13 +13705,13 @@ function registerMission(program2) {
       });
       return;
     }
-    const result = runMissionSpecRecord(read.payload);
+    const result = runMissionSpecRecord(read.artifact);
     if (result.ok) success(result);
     else failure(result);
   });
   const design = mission.command("design").description("Mission Design baseline");
-  design.command("record").requiredOption("--from <path>", "YAML payload path or - for stdin").description("Record Mission Design baseline").action((opts) => {
-    const read = readPayload(opts.from);
+  design.command("record").requiredOption("--from <path>", "Markdown artifact path or - for stdin").description("Record Mission Design baseline").action((opts) => {
+    const read = readMarkdownArtifact(opts.from, "mission-design");
     if (!read.ok) {
       failure({
         ok: false,
@@ -13306,7 +13722,7 @@ function registerMission(program2) {
       });
       return;
     }
-    const result = runMissionDesignRecord(read.payload);
+    const result = runMissionDesignRecord(read.artifact);
     if (result.ok) success(result);
     else failure(result);
   });
@@ -13316,8 +13732,8 @@ function registerMission(program2) {
     else failure(result);
   });
   const evidence = mission.command("evidence").description("Mission Evidence");
-  evidence.command("record").requiredOption("--from <path>", "YAML payload path or - for stdin").description("Record Mission Evidence (mission closure summary)").action((opts) => {
-    const read = readPayload(opts.from);
+  evidence.command("record").requiredOption("--from <path>", "Markdown artifact path or - for stdin").description("Record Mission Evidence (mission closure summary)").action((opts) => {
+    const read = readMarkdownArtifact(opts.from, "mission-evidence");
     if (!read.ok) {
       failure({
         ok: false,
@@ -13328,23 +13744,17 @@ function registerMission(program2) {
       });
       return;
     }
-    const result = runMissionEvidenceRecord(read.payload);
+    const result = runMissionEvidenceRecord(read.artifact);
     if (result.ok) success(result);
     else failure(result);
   });
 }
 
 // src/commands/task.ts
+var import_node_path6 = require("node:path");
 var COMMAND_CONTRACT = "task contract record";
 var COMMAND_TRANSITION2 = "task transition";
 var COMMAND_TASK_EVIDENCE = "task evidence record";
-var KIND_TO_SCHEMA = {
-  implementation: "implementation-evidence",
-  verification: "verification-evidence",
-  review: "review-evidence",
-  challenger: "challenger-evidence",
-  task: "task-evidence"
-};
 var KIND_TO_PREFIX = {
   implementation: "implementation-evidence",
   verification: "verification-evidence",
@@ -13352,10 +13762,13 @@ var KIND_TO_PREFIX = {
   challenger: "challenger-evidence",
   task: "task-evidence"
 };
-function nextPhaseAfterEvidence(kind, payload) {
+function isEvidenceKind(value) {
+  return ["implementation", "verification", "review", "challenger", "task"].includes(value);
+}
+function nextPhaseAfterEvidence(kind, artifact) {
   if (kind === "implementation") return "verifying";
   if (kind === "verification") {
-    return payload.verdict === "passed" ? "reviewing" : "awaiting_user_judgment";
+    return frontmatterString(artifact, "verdict") === "passed" ? "reviewing" : "awaiting_user_judgment";
   }
   if (kind === "review" || kind === "challenger") return "awaiting_user_judgment";
   return "closed";
@@ -13364,28 +13777,42 @@ function loc(state, taskId, phase) {
   if (!state) return emptyLocation();
   return { mission_id: state.current_mission_id, stage: state.current_stage, task_id: taskId || state.current_task_id, phase };
 }
-function runTaskContractRecord(taskId, payload, cwd = process.cwd()) {
+function runTaskContractRecord(taskId, artifact, cwd = process.cwd()) {
   const runState = readRunState(cwd);
   const ts = runState ? readTaskState(runState.current_mission_id, taskId, cwd) : null;
   const current = loc(runState, taskId, ts?.phase ?? "");
-  const v = validate("task-contract", payload);
-  if (!v.valid) {
-    return { ok: false, command: COMMAND_CONTRACT, current, writes: [], error: { code: "schema_invalid", detail: v.errors.join("; ") } };
+  if (frontmatterString(artifact, "task_id") !== taskId) {
+    return {
+      ok: false,
+      command: COMMAND_CONTRACT,
+      current,
+      writes: [],
+      error: { code: "frontmatter_mismatch", detail: `task_id must match --task ${taskId}` }
+    };
   }
-  const guard = checkTaskContractRecord({ runState, taskId, payload }, cwd);
+  const guard = checkTaskContractRecord({ runState, taskId, artifact }, cwd);
   if (!guard.ok) {
     return { ok: false, command: COMMAND_CONTRACT, current, writes: [], error: { code: "guard_failed", guards: guard.guards } };
   }
   const td = taskDir(runState.current_mission_id, taskId, cwd);
-  ensureDir(td);
-  const { number } = writeNumberedArtifact(td, "task-contract", payload);
+  let number = 0;
+  try {
+    const result = runTransaction((tx) => {
+      const written = tx.writeNumberedMarkdown(td, "task-contract", artifact);
+      if (!ts) tx.writeYaml((0, import_node_path6.join)(td, "task-state.yaml"), { phase: "unstarted" });
+      return written;
+    });
+    number = result.number;
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    return { ok: false, command: COMMAND_CONTRACT, current, writes: [], error: { code: "task_contract_record_failed", detail } };
+  }
   const writes = [{
-    path: `.geas/missions/${runState.current_mission_id}/tasks/${taskId}/task-contract-${String(number).padStart(3, "0")}.yaml`,
+    path: `.geas/missions/${runState.current_mission_id}/tasks/${taskId}/task-contract-${String(number).padStart(3, "0")}.md`,
     type: "created"
   }];
   const stateChanges = [];
   if (!ts) {
-    writeTaskState(runState.current_mission_id, taskId, { phase: "unstarted" }, cwd);
     writes.push({
       path: `.geas/missions/${runState.current_mission_id}/tasks/${taskId}/task-state.yaml`,
       type: "created"
@@ -13430,30 +13857,49 @@ function runTaskTransition(taskId, toPhase, cwd = process.cwd()) {
     state_changes: [{ pointer: `task[${taskId}].phase`, from: before, to: toPhase }]
   };
 }
-function runTaskEvidenceRecord(taskId, kind, payload, cwd = process.cwd()) {
+function runTaskEvidenceRecord(taskId, kind, artifact, cwd = process.cwd()) {
   const runState = readRunState(cwd);
   const ts = runState ? readTaskState(runState.current_mission_id, taskId, cwd) : null;
   const current = loc(runState, taskId, ts?.phase ?? "");
-  const v = validate(KIND_TO_SCHEMA[kind], payload);
-  if (!v.valid) {
-    return { ok: false, command: COMMAND_TASK_EVIDENCE, current, writes: [], error: { code: "schema_invalid", detail: v.errors.join("; ") } };
+  if (artifact.kind !== kindForEvidence(kind)) {
+    return { ok: false, command: COMMAND_TASK_EVIDENCE, current, writes: [], error: { code: "artifact_kind_mismatch", detail: artifact.kind } };
   }
-  const guard = checkTaskEvidenceRecord(runState, taskId, kind, payload, cwd);
+  if (frontmatterString(artifact, "task_id") !== taskId) {
+    return {
+      ok: false,
+      command: COMMAND_TASK_EVIDENCE,
+      current,
+      writes: [],
+      error: { code: "frontmatter_mismatch", detail: `task_id must match --task ${taskId}` }
+    };
+  }
+  const guard = checkTaskEvidenceRecord(runState, taskId, kind, artifact, cwd);
   if (!guard.ok) {
     return { ok: false, command: COMMAND_TASK_EVIDENCE, current, writes: [], error: { code: "guard_failed", guards: guard.guards } };
   }
   const td = taskDir(runState.current_mission_id, taskId, cwd);
   const writes = [];
-  if (kind === "task") {
-    writeYamlAtomic(`${td}/task-evidence.yaml`, payload);
-    writes.push({ path: `.geas/missions/${runState.current_mission_id}/tasks/${taskId}/task-evidence.yaml`, type: "created" });
-  } else {
-    const { number } = writeNumberedArtifact(td, KIND_TO_PREFIX[kind], payload);
-    writes.push({ path: `.geas/missions/${runState.current_mission_id}/tasks/${taskId}/${KIND_TO_PREFIX[kind]}-${String(number).padStart(3, "0")}.yaml`, type: "created" });
-  }
   const fromPhase = ts.phase;
-  const toPhase = nextPhaseAfterEvidence(kind, payload);
-  writeTaskState(runState.current_mission_id, taskId, { phase: toPhase }, cwd);
+  const toPhase = nextPhaseAfterEvidence(kind, artifact);
+  try {
+    if (kind === "task") {
+      runTransaction((tx) => {
+        tx.writeMarkdown((0, import_node_path6.join)(td, "task-evidence.md"), artifact);
+        tx.writeYaml((0, import_node_path6.join)(td, "task-state.yaml"), { phase: toPhase });
+      });
+      writes.push({ path: `.geas/missions/${runState.current_mission_id}/tasks/${taskId}/task-evidence.md`, type: "created" });
+    } else {
+      const { number } = runTransaction((tx) => {
+        const written = tx.writeNumberedMarkdown(td, KIND_TO_PREFIX[kind], artifact);
+        tx.writeYaml((0, import_node_path6.join)(td, "task-state.yaml"), { phase: toPhase });
+        return written;
+      });
+      writes.push({ path: `.geas/missions/${runState.current_mission_id}/tasks/${taskId}/${KIND_TO_PREFIX[kind]}-${String(number).padStart(3, "0")}.md`, type: "created" });
+    }
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    return { ok: false, command: COMMAND_TASK_EVIDENCE, current, writes: [], error: { code: "task_evidence_record_failed", detail } };
+  }
   return {
     ok: true,
     command: COMMAND_TASK_EVIDENCE,
@@ -13465,8 +13911,8 @@ function runTaskEvidenceRecord(taskId, kind, payload, cwd = process.cwd()) {
 function registerTask(program2) {
   const task = program2.command("task").description("Task lifecycle commands");
   const contract = task.command("contract").description("Task Contract baseline");
-  contract.command("record").requiredOption("--task <task-id>", "Target task id").requiredOption("--from <path>", "YAML payload path or - for stdin").description("Record Task Contract baseline").action((opts) => {
-    const read = readPayload(opts.from);
+  contract.command("record").requiredOption("--task <task-id>", "Target task id").requiredOption("--from <path>", "Markdown artifact path or - for stdin").description("Record Task Contract baseline").action((opts) => {
+    const read = readMarkdownArtifact(opts.from, "task-contract");
     if (!read.ok) {
       failure({
         ok: false,
@@ -13477,7 +13923,7 @@ function registerTask(program2) {
       });
       return;
     }
-    const result = runTaskContractRecord(opts.task, read.payload);
+    const result = runTaskContractRecord(opts.task, read.artifact);
     if (result.ok) success(result);
     else failure(result);
   });
@@ -13487,8 +13933,18 @@ function registerTask(program2) {
     else failure(result);
   });
   const evidence = task.command("evidence").description("Task scope Evidence");
-  evidence.command("record").requiredOption("--task <task-id>", "Target task id").requiredOption("--kind <kind>", "implementation|verification|review|challenger|task").requiredOption("--from <path>", "YAML payload path or - for stdin").description("Record Task scope Evidence").action((opts) => {
-    const read = readPayload(opts.from);
+  evidence.command("record").requiredOption("--task <task-id>", "Target task id").requiredOption("--kind <kind>", "implementation|verification|review|challenger|task").requiredOption("--from <path>", "Markdown artifact path or - for stdin").description("Record Task scope Evidence").action((opts) => {
+    if (!isEvidenceKind(opts.kind)) {
+      failure({
+        ok: false,
+        command: COMMAND_TASK_EVIDENCE,
+        current: emptyLocation(),
+        writes: [],
+        error: { code: "flag_invalid", detail: `kind=${opts.kind}` }
+      });
+      return;
+    }
+    const read = readMarkdownArtifact(opts.from, kindForEvidence(opts.kind));
     if (!read.ok) {
       failure({
         ok: false,
@@ -13499,7 +13955,7 @@ function registerTask(program2) {
       });
       return;
     }
-    const result = runTaskEvidenceRecord(opts.task, opts.kind, read.payload);
+    const result = runTaskEvidenceRecord(opts.task, opts.kind, read.artifact);
     if (result.ok) success(result);
     else failure(result);
   });
@@ -13507,20 +13963,34 @@ function registerTask(program2) {
 
 // src/commands/judgment.ts
 var COMMAND2 = "judgment record";
-function runJudgmentRecord(target, payload, taskId, cwd = process.cwd()) {
+function runJudgmentRecord(target, artifact, taskId, cwd = process.cwd()) {
   const runState = readRunState(cwd);
   const current = runState ? { mission_id: runState.current_mission_id, stage: runState.current_stage, task_id: runState.current_task_id, phase: "" } : emptyLocation();
-  const v = validate("user-judgment", payload);
-  if (!v.valid) {
-    return { ok: false, command: COMMAND2, current, writes: [], error: { code: "schema_invalid", detail: v.errors.join("; ") } };
+  if (frontmatterString(artifact, "judgment_type") !== target) {
+    return {
+      ok: false,
+      command: COMMAND2,
+      current,
+      writes: [],
+      error: { code: "frontmatter_mismatch", detail: `judgment_type must match --target ${target}` }
+    };
+  }
+  if (target === "task-result" && frontmatterString(artifact, "task_id") !== taskId) {
+    return {
+      ok: false,
+      command: COMMAND2,
+      current,
+      writes: [],
+      error: { code: "frontmatter_mismatch", detail: `task_id must match --task ${taskId ?? ""}` }
+    };
   }
   const guard = checkJudgmentRecord(runState, target, taskId, cwd);
   if (!guard.ok) {
     return { ok: false, command: COMMAND2, current, writes: [], error: { code: "guard_failed", guards: guard.guards } };
   }
   const dir = target === "task-result" ? taskDir(runState.current_mission_id, taskId, cwd) : missionDir(runState.current_mission_id, cwd);
-  const { number } = writeNumberedArtifact(dir, "user-judgment-result", payload);
-  const rel = target === "task-result" ? `.geas/missions/${runState.current_mission_id}/tasks/${taskId}/user-judgment-result-${String(number).padStart(3, "0")}.yaml` : `.geas/missions/${runState.current_mission_id}/user-judgment-result-${String(number).padStart(3, "0")}.yaml`;
+  const { number } = writeNumberedMarkdownArtifact(dir, "user-judgment-result", artifact);
+  const rel = target === "task-result" ? `.geas/missions/${runState.current_mission_id}/tasks/${taskId}/user-judgment-result-${String(number).padStart(3, "0")}.md` : `.geas/missions/${runState.current_mission_id}/user-judgment-result-${String(number).padStart(3, "0")}.md`;
   return {
     ok: true,
     command: COMMAND2,
@@ -13530,8 +14000,8 @@ function runJudgmentRecord(target, payload, taskId, cwd = process.cwd()) {
   };
 }
 function registerJudgment(program2) {
-  program2.command("judgment").description("User judgment").command("record").requiredOption("--target <target>", "task-result or mission-result").option("--task <task-id>", "Required for task-result").requiredOption("--from <path>", "YAML payload path or - for stdin").description("Record User Judgment").action((opts) => {
-    const read = readPayload(opts.from);
+  program2.command("judgment").description("User judgment").command("record").requiredOption("--target <target>", "task-result or mission-result").option("--task <task-id>", "Required for task-result").requiredOption("--from <path>", "Markdown artifact path or - for stdin").description("Record User Judgment").action((opts) => {
+    const read = readMarkdownArtifact(opts.from, "user-judgment");
     if (!read.ok) {
       failure({
         ok: false,
@@ -13542,18 +14012,223 @@ function registerJudgment(program2) {
       });
       return;
     }
-    const result = runJudgmentRecord(opts.target, read.payload, opts.task);
+    const result = runJudgmentRecord(opts.target, read.artifact, opts.task);
     if (result.ok) success(result);
     else failure(result);
   });
 }
 
+// src/commands/debt.ts
+var import_node_path8 = require("node:path");
+
+// src/lib/schema.ts
+var import_ajv = __toESM(require_ajv());
+var import_node_fs8 = require("node:fs");
+var import_node_path7 = require("node:path");
+var ALL_SCHEMA_IDS = [
+  "mission-spec",
+  "mission-design",
+  "task-contract",
+  "task-state",
+  "run-state",
+  "implementation-evidence",
+  "verification-evidence",
+  "review-evidence",
+  "challenger-evidence",
+  "task-evidence",
+  "mission-evidence",
+  "user-judgment",
+  "debt-item",
+  "debt-ledger",
+  "memory-file",
+  "memory-item"
+];
+var ajvInstance = null;
+var validators = /* @__PURE__ */ new Map();
+function loadSchemas() {
+  try {
+    return require_virtual_schemas();
+  } catch (e) {
+    const code = e?.code;
+    if (code !== "MODULE_NOT_FOUND") throw e;
+    const schemasDir = (0, import_node_path7.join)(__dirname, "..", "..", "schemas");
+    const out = {};
+    for (const file of (0, import_node_fs8.readdirSync)(schemasDir)) {
+      if (file.endsWith(".json")) {
+        const id = file.replace(/\.json$/, "");
+        out[id] = JSON.parse((0, import_node_fs8.readFileSync)((0, import_node_path7.join)(schemasDir, file), "utf8"));
+      }
+    }
+    return out;
+  }
+}
+function ensureInitialized() {
+  if (ajvInstance) return ajvInstance;
+  const ajv = new import_ajv.default({ allErrors: true, strict: false });
+  const schemas = loadSchemas();
+  for (const id of ALL_SCHEMA_IDS) {
+    const schema2 = schemas[id];
+    if (!schema2) {
+      throw new Error(`schema not loaded: ${id}`);
+    }
+    validators.set(id, ajv.compile(schema2));
+  }
+  ajvInstance = ajv;
+  return ajv;
+}
+function validate(id, payload) {
+  ensureInitialized();
+  const v = validators.get(id);
+  if (!v) {
+    throw new Error(`unknown schema id: ${id}`);
+  }
+  const ok2 = v(payload);
+  if (ok2) return { valid: true };
+  const errors = (v.errors ?? []).map((e) => {
+    const path = e.instancePath || "/";
+    const extra = e.keyword === "additionalProperties" ? ` (${e.params.additionalProperty})` : "";
+    return `${path} ${e.message ?? "invalid"}${extra}`;
+  });
+  return { valid: false, errors };
+}
+
+// src/commands/debt.ts
+var COMMAND_RECORD = "debt record";
+var COMMAND_UPDATE = "debt update";
+function runDebtRecord(payload, cwd = process.cwd()) {
+  const runState = readRunState(cwd);
+  const current = runState ? { mission_id: runState.current_mission_id, stage: runState.current_stage, task_id: runState.current_task_id, phase: "" } : emptyLocation();
+  if (!isPlainObject2(payload)) {
+    return { ok: false, command: COMMAND_RECORD, current, writes: [], error: { code: "payload_invalid", detail: "payload must be an object" } };
+  }
+  if (Object.prototype.hasOwnProperty.call(payload, "debt_id")) {
+    return { ok: false, command: COMMAND_RECORD, current, writes: [], error: { code: "debt_id_not_allowed" } };
+  }
+  const ledgerPath = (0, import_node_path8.join)(geasRoot(cwd), "debts.yaml");
+  const ledger = readYaml(ledgerPath) ?? { items: [] };
+  const item = { ...payload, debt_id: nextDebtId(ledger) };
+  const v = validate("debt-item", item);
+  if (!v.valid) {
+    return { ok: false, command: COMMAND_RECORD, current, writes: [], error: { code: "schema_invalid", detail: v.errors.join("; ") } };
+  }
+  const guard = checkDebtRecord(runState, item, cwd);
+  if (!guard.ok) {
+    return { ok: false, command: COMMAND_RECORD, current, writes: [], error: { code: "guard_failed", guards: guard.guards } };
+  }
+  const nextLedger = { items: [...ledger.items, item] };
+  const lv = validate("debt-ledger", nextLedger);
+  if (!lv.valid) {
+    return { ok: false, command: COMMAND_RECORD, current, writes: [], error: { code: "schema_invalid", detail: lv.errors.join("; ") } };
+  }
+  try {
+    runTransaction((tx) => {
+      tx.writeYaml(ledgerPath, nextLedger);
+    });
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    return { ok: false, command: COMMAND_RECORD, current, writes: [], error: { code: "debt_record_failed", detail } };
+  }
+  return {
+    ok: true,
+    command: COMMAND_RECORD,
+    current,
+    writes: [{ path: ".geas/debts.yaml", type: "updated" }],
+    state_changes: []
+  };
+}
+function runDebtUpdate(debtId, patch, cwd = process.cwd()) {
+  const runState = readRunState(cwd);
+  const current = runState ? { mission_id: runState.current_mission_id, stage: runState.current_stage, task_id: runState.current_task_id, phase: "" } : emptyLocation();
+  if (!isPlainObject2(patch)) {
+    return { ok: false, command: COMMAND_UPDATE, current, writes: [], error: { code: "payload_invalid", detail: "payload must be an object" } };
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "debt_id")) {
+    return { ok: false, command: COMMAND_UPDATE, current, writes: [], error: { code: "debt_id_not_allowed" } };
+  }
+  const ledgerPath = (0, import_node_path8.join)(geasRoot(cwd), "debts.yaml");
+  const ledger = readYaml(ledgerPath) ?? { items: [] };
+  const index = ledger.items.findIndex((item) => item.debt_id === debtId);
+  if (index < 0) {
+    return { ok: false, command: COMMAND_UPDATE, current, writes: [], error: { code: "debt_not_found", detail: debtId } };
+  }
+  const merged = { ...ledger.items[index], ...patch };
+  const v = validate("debt-item", merged);
+  if (!v.valid) {
+    return { ok: false, command: COMMAND_UPDATE, current, writes: [], error: { code: "schema_invalid", detail: v.errors.join("; ") } };
+  }
+  const guard = checkDebtUpdate(runState, merged, cwd);
+  if (!guard.ok) {
+    return { ok: false, command: COMMAND_UPDATE, current, writes: [], error: { code: "guard_failed", guards: guard.guards } };
+  }
+  const nextItems = [...ledger.items];
+  nextItems[index] = merged;
+  const nextLedger = { items: nextItems };
+  const lv = validate("debt-ledger", nextLedger);
+  if (!lv.valid) {
+    return { ok: false, command: COMMAND_UPDATE, current, writes: [], error: { code: "schema_invalid", detail: lv.errors.join("; ") } };
+  }
+  try {
+    runTransaction((tx) => {
+      tx.writeYaml(ledgerPath, nextLedger);
+    });
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    return { ok: false, command: COMMAND_UPDATE, current, writes: [], error: { code: "debt_update_failed", detail } };
+  }
+  return {
+    ok: true,
+    command: COMMAND_UPDATE,
+    current,
+    writes: [{ path: ".geas/debts.yaml", type: "updated" }],
+    state_changes: []
+  };
+}
+function registerDebt(program2) {
+  const debt = program2.command("debt").description("Debt Ledger commands");
+  debt.command("record").requiredOption("--from <path>", "YAML debt item payload path or - for stdin").description("Append a debt item").action((opts) => {
+    const read = readPayload(opts.from);
+    if (!read.ok) {
+      failure({ ok: false, command: COMMAND_RECORD, current: emptyLocation(), writes: [], error: { code: read.code, detail: read.detail } });
+      return;
+    }
+    const result = runDebtRecord(read.payload);
+    if (result.ok) success(result);
+    else failure(result);
+  });
+  debt.command("update").requiredOption("--id <debt-id>", "Debt id to update").requiredOption("--from <path>", "YAML debt item patch path or - for stdin").description("Patch a debt item").action((opts) => {
+    const read = readPayload(opts.from);
+    if (!read.ok) {
+      failure({ ok: false, command: COMMAND_UPDATE, current: emptyLocation(), writes: [], error: { code: read.code, detail: read.detail } });
+      return;
+    }
+    const result = runDebtUpdate(opts.id, read.payload);
+    if (result.ok) success(result);
+    else failure(result);
+  });
+}
+function nextDebtId(ledger) {
+  let max = 0;
+  for (const item of ledger.items) {
+    const m = item.debt_id.match(/^DEBT-(\d{3})$/);
+    if (!m) continue;
+    const n = parseInt(m[1], 10);
+    if (n > max) max = n;
+  }
+  return `DEBT-${String(max + 1).padStart(3, "0")}`;
+}
+function isPlainObject2(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 // src/commands/memory.ts
-var import_node_path4 = require("node:path");
+var import_node_path9 = require("node:path");
 var COMMAND3 = "memory record";
 function runMemoryRecord(scope, role, payload, cwd = process.cwd()) {
   const runState = readRunState(cwd);
   const current = runState ? { mission_id: runState.current_mission_id, stage: runState.current_stage, task_id: runState.current_task_id, phase: "" } : emptyLocation();
+  if (scope !== "common" && scope !== "role") {
+    return { ok: false, command: COMMAND3, current, writes: [], error: { code: "scope_invalid", detail: scope } };
+  }
   const v = validate("memory-item", payload);
   if (!v.valid) {
     return { ok: false, command: COMMAND3, current, writes: [], error: { code: "schema_invalid", detail: v.errors.join("; ") } };
@@ -13563,10 +14238,17 @@ function runMemoryRecord(scope, role, payload, cwd = process.cwd()) {
     return { ok: false, command: COMMAND3, current, writes: [], error: { code: "guard_failed", guards: guard.guards } };
   }
   const root = geasRoot(cwd);
-  const file = scope === "common" ? (0, import_node_path4.join)(root, "memory", "common.yaml") : (0, import_node_path4.join)(root, "memory", "roles", `${role}.yaml`);
+  const file = scope === "common" ? (0, import_node_path9.join)(root, "memory", "common.yaml") : (0, import_node_path9.join)(root, "memory", "roles", `${role}.yaml`);
   const existing = readYaml(file) ?? { items: [] };
-  existing.items.push(payload);
-  writeYamlAtomic(file, existing);
+  const next = { items: [...existing.items, payload] };
+  try {
+    runTransaction((tx) => {
+      tx.writeYaml(file, next);
+    });
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    return { ok: false, command: COMMAND3, current, writes: [], error: { code: "memory_record_failed", detail } };
+  }
   const rel = scope === "common" ? ".geas/memory/common.yaml" : `.geas/memory/roles/${role}.yaml`;
   return {
     ok: true,
@@ -13595,14 +14277,111 @@ function registerMemory(program2) {
   });
 }
 
+// src/commands/status.ts
+var import_node_fs9 = require("node:fs");
+var import_node_path10 = require("node:path");
+var COMMAND4 = "status";
+function runStatus(cwd = process.cwd()) {
+  const root = geasRoot(cwd);
+  const runState = readRunState(cwd);
+  if (!runState) {
+    return {
+      ok: false,
+      command: COMMAND4,
+      current: emptyLocation(),
+      writes: [],
+      error: { code: "run_state_missing", detail: ".geas/run-state.yaml" }
+    };
+  }
+  const current = {
+    mission_id: runState.current_mission_id,
+    stage: runState.current_stage,
+    task_id: runState.current_task_id,
+    phase: ""
+  };
+  const rolePaths = {};
+  for (const role of ALL_ROLES) {
+    rolePaths[role] = `.geas/memory/roles/${role}.yaml`;
+  }
+  let missionPaths = {
+    mission_dir: "",
+    mission_spec: "",
+    mission_design: "",
+    mission_judgment: "",
+    mission_evidence: ""
+  };
+  let taskPaths = {
+    task_dir: "",
+    task_state: "",
+    task_contract: "",
+    task_judgment: "",
+    task_evidence: ""
+  };
+  if (runState.current_mission_id !== "") {
+    const md = missionDir(runState.current_mission_id, cwd);
+    const missionSpec = readLatestMarkdownArtifact(md, "mission-spec", "mission-spec");
+    const missionDesign = readLatestMarkdownArtifact(md, "mission-design", "mission-design");
+    const missionJudgment = readLatestMarkdownArtifact(md, "user-judgment-result", "user-judgment");
+    const missionEvidence = (0, import_node_path10.join)(md, "mission-evidence.md");
+    missionPaths = {
+      mission_dir: relGeasPath(md, cwd),
+      mission_spec: missionSpec ? relGeasPath(missionSpec.path, cwd) : "",
+      mission_design: missionDesign ? relGeasPath(missionDesign.path, cwd) : "",
+      mission_judgment: missionJudgment ? relGeasPath(missionJudgment.path, cwd) : "",
+      mission_evidence: (0, import_node_fs9.existsSync)(missionEvidence) ? relGeasPath(missionEvidence, cwd) : ""
+    };
+    if (runState.current_task_id !== "") {
+      const td = taskDir(runState.current_mission_id, runState.current_task_id, cwd);
+      const taskState = readTaskState(runState.current_mission_id, runState.current_task_id, cwd);
+      const taskContract = readLatestMarkdownArtifact(td, "task-contract", "task-contract");
+      const taskJudgment = readLatestMarkdownArtifact(td, "user-judgment-result", "user-judgment");
+      const taskEvidence = (0, import_node_path10.join)(td, "task-evidence.md");
+      current.phase = taskState?.phase ?? "";
+      taskPaths = {
+        task_dir: relGeasPath(td, cwd),
+        task_state: (0, import_node_fs9.existsSync)((0, import_node_path10.join)(td, "task-state.yaml")) ? relGeasPath((0, import_node_path10.join)(td, "task-state.yaml"), cwd) : "",
+        task_contract: taskContract ? relGeasPath(taskContract.path, cwd) : "",
+        task_judgment: taskJudgment ? relGeasPath(taskJudgment.path, cwd) : "",
+        task_evidence: (0, import_node_fs9.existsSync)(taskEvidence) ? relGeasPath(taskEvidence, cwd) : ""
+      };
+    }
+  }
+  return {
+    ok: true,
+    command: COMMAND4,
+    current,
+    writes: [],
+    state_changes: [],
+    paths: {
+      run_state: ".geas/run-state.yaml",
+      debt_ledger: (0, import_node_fs9.existsSync)((0, import_node_path10.join)(root, "debts.yaml")) ? ".geas/debts.yaml" : "",
+      memory: {
+        common: ".geas/memory/common.yaml",
+        roles: rolePaths
+      },
+      current_mission: missionPaths,
+      current_task: taskPaths
+    }
+  };
+}
+function registerStatus(program2) {
+  program2.command("status").description("Show read-only runtime status").action(() => {
+    const result = runStatus();
+    if (result.ok) success(result);
+    else failure(result);
+  });
+}
+
 // src/main.ts
 function buildProgram() {
   const program2 = new Command();
   program2.name("geas").description("Geas CLI \u2014 atomic actuator for .geas/ runtime artifacts").version("3.0.0");
+  registerStatus(program2);
   registerInit(program2);
   registerMission(program2);
   registerTask(program2);
   registerJudgment(program2);
+  registerDebt(program2);
   registerMemory(program2);
   return program2;
 }

@@ -15,6 +15,8 @@ export type SchemaId =
   | 'task-evidence'
   | 'mission-evidence'
   | 'user-judgment'
+  | 'debt-item'
+  | 'debt-ledger'
   | 'memory-file'
   | 'memory-item';
 
@@ -31,6 +33,8 @@ const ALL_SCHEMA_IDS: SchemaId[] = [
   'task-evidence',
   'mission-evidence',
   'user-judgment',
+  'debt-item',
+  'debt-ledger',
   'memory-file',
   'memory-item',
 ];

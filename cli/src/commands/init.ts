@@ -40,6 +40,7 @@ export function runInit(cwd: string = process.cwd()): InitResult {
       current_stage: '',
       current_task_id: '',
     });
+    writeYamlAtomic(`${root}/debts.yaml`, { items: [] });
     writeYamlAtomic(`${root}/memory/common.yaml`, { items: [] });
     for (const role of ALL_ROLES) {
       writeYamlAtomic(`${root}/memory/roles/${role}.yaml`, { items: [] });
@@ -63,6 +64,7 @@ export function runInit(cwd: string = process.cwd()): InitResult {
 
   const writes: SuccessResult['writes'] = [
     { path: '.geas/run-state.yaml', type: 'created' },
+    { path: '.geas/debts.yaml', type: 'created' },
     { path: '.geas/memory/common.yaml', type: 'created' },
     ...ALL_ROLES.map((r) => ({ path: `.geas/memory/roles/${r}.yaml`, type: 'created' as const })),
   ];
