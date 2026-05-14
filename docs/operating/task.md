@@ -62,7 +62,7 @@ verification checks와 review focus는 Evidence 자체가 아니라, Verificatio
 
 verification checks는 "테스트한다" 같은 일반 문구보다 확인 대상, 확인 방법, 기대 근거를 드러낸다. review focus는 결과 품질, scope 경계, 회귀 위험, 누락 가능성 중 무엇을 특히 볼지 명시한다.
 
-building 중 Task 추가, 삭제, dependency, 범위, 산출물, 수용 기준, verification checks, review focus, 위험 수준이 바뀌어야 하면 조용히 실행 기준을 넓히지 않는다. Orchestrator는 Work Designer 또는 적절한 작성 role을 호출해 갱신안을 만들고, 합의된 Task contract를 새 `task-contract-NNN.yaml`로 남긴다.
+building 중 Task 추가, 삭제, dependency, 범위, 산출물, 수용 기준, verification checks, review focus, 위험 수준이 바뀌어야 하면 조용히 실행 기준을 넓히지 않는다. Orchestrator는 Task contract 갱신안을 만들고, User와 합의한 뒤 새 `task-contract-NNN.yaml`로 남긴다.
 
 Mission spec이나 Mission design 수정이 필요하면 specifying으로 돌아간다.
 

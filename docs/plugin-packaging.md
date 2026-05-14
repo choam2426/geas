@@ -173,7 +173,6 @@ skills/
       mission-closure.md
       session-handoff.md
       agents/
-        work-designer.md
         implementer.md
         verifier.md
         reviewer.md
@@ -232,7 +231,7 @@ Codex exposes these procedure and support Skills under `geas`.
 
 Claude Code exposes these as namespaced plugin Skills such as `/geas:mission`.
 
-Role execution uses role prompt templates packaged under `skills/mission/references/agents/`. The `mission` Skill fills the role prompt and dispatches it with the client subagent mechanism.
+Role execution for Evidence-producing roles uses role prompt templates packaged under `skills/mission/references/agents/`. The `mission` Skill fills the role prompt and dispatches it with the client subagent mechanism.
 
 ## Agents
 
@@ -240,7 +239,6 @@ Geas packages role prompts under the `mission` Skill.
 
 ```text
 skills/mission/references/agents/
-  work-designer.md
   implementer.md
   verifier.md
   reviewer.md
