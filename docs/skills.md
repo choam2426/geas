@@ -681,6 +681,8 @@ handoff 실패 조건:
 
 ## Skill 작성 기준
 
+개별 `SKILL.md`의 공통 section 계약은 `docs/skill-template.md`를 기준으로 한다.
+
 ### Frontmatter
 
 - `name`과 `description`만 사용한다.
