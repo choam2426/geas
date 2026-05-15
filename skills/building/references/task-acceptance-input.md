@@ -13,6 +13,7 @@ Use this reference when Task State is `awaiting_user_judgment` or when role Evid
 - Review Evidence when available
 - Challenger Evidence when available
 - role-required, role-optional, or role-omitted decisions and omission reasons
+- environment gaps that affect verification or judgment
 - known unverified scope
 - remaining risks
 - contract deltas or requested actions surfaced by roles
@@ -32,6 +33,8 @@ Task result judgment input:
   - Challenge: <ref, omitted with reason, or missing>
 - Role decisions:
   - <role>: <role_required | role_optional | role_omitted> - <basis, omitted reason, residual risk>
+- Environment gaps:
+  - <unavailable toolchain, verification support, runtime service, secret, connector, or none>
 - Unverified scope:
   - <scope and reason>
 - Remaining risks:

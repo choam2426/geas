@@ -312,9 +312,10 @@ resource 계획:
 | --- | --- | --- | --- |
 | `references/task-loop.md` | `reference` | Task phase 선택 | phase별 dispatch와 recovery 기준이 반복된다. |
 | `references/role-handoff.md` | `reference` | role 호출 전 | handoff packet shape와 `read_first` 규칙이 공통으로 쓰인다. |
+| `references/task-environment.md` | `reference` | Task 실행 전과 role handoff 전 | toolchain, verification support, runtime service, setup mutation boundary 합의가 필요하다. |
 | `references/task-acceptance-input.md` | `reference` | User 판단 입력 | Evidence 요약, 미검증 범위, 선택지 briefing shape가 길다. |
 | `references/task-evidence.md` | `reference` | Task 수용 판단 이후 | Task Evidence shape와 기준별 결과 표현이 반복된다. |
-| `references/git-checkpoint.md` | `reference` | User가 checkpoint를 원할 때 | checkpoint가 Evidence가 아니라는 경계와 실행 조건이 필요하다. |
+| `references/git-checkpoint.md` | `reference` | Task 실행 전과 checkpoint 요청 시 | worktree, branch, Task commit policy와 checkpoint 경계가 필요하다. |
 | `scripts/` | `none` | 없음 | phase 선택은 runtime state와 User 결정에 묶여 있어 script보다 절차 기준이 우선이다. |
 | `assets/` | `none` | 없음 | Task briefing은 텍스트 출력으로 충분하다. |
 

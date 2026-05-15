@@ -26,6 +26,8 @@ Role handoff:
   - <phase-relevant Evidence refs>
 - Target refs:
   - <changed outputs, target files, result refs, or draft payload paths>
+- Environment context:
+  - <toolchain, verification tools, runtime services, secrets/connectors, setup limits, environment gaps>
 - Focus:
   - <specific work, checks, review focus, or challenge focus>
 - Expected output:
@@ -54,6 +56,13 @@ Role handoff:
 - Require target refs for `verifying`, `reviewing`, and `challenging`.
 - For `implementing`, include target refs when the Task Contract names existing files or artifacts to modify.
 - If target refs are missing for a role that needs them, do not call the role.
+
+## Environment Context Rules
+
+- Include environment context when toolchain, verification tools, runtime services, secrets, connectors, or setup limits affect the role.
+- Use `references/task-environment.md` for the environment context shape.
+- If required environment setup is unavailable, do not call the role unless the User accepts that gap as unverified scope.
+- Pass unavailable verification support as unverified scope instead of treating it as Evidence.
 
 ## Role Decision Rules
 

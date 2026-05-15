@@ -13,7 +13,8 @@ Coordinate one Geas Task from accepted Task Contract through role Evidence, User
 
 Normal:
 - Read the current Mission id, accepted Mission Spec, accepted Mission Design, current Task id, current Task Contract, Task State, and relevant Evidence refs.
-- Before starting the Task loop, brief and record Task work options with `references/git-checkpoint.md`.
+- Before starting the Task loop, brief and preserve Task work options with `references/git-checkpoint.md`.
+- Before dispatching Task work, brief and preserve Task environment readiness with `references/task-environment.md`.
 - Use `references/task-loop.md` to choose the next action from the current Task phase.
 - For `unstarted` or implementation-ready work, request a transition to `implementing` through `geas-cli` when needed, then prepare an `implementing` handoff with `references/role-handoff.md`.
 - For `verifying`, prepare a `verifying` handoff with the current Task Contract and Implementation Evidence.
@@ -47,6 +48,13 @@ Work Options:
 - Ask whether to commit after each accepted Task, skip commits, or decide at each Task boundary.
 - Treat work option and checkpoint output as operational support, not Evidence, User Judgment, or Task completion.
 
+Environment:
+- Before Task work starts, ask which toolchain, verification support, runtime services, secrets, or connectors are required.
+- Ask before installing tools, adding MCP or connectors, starting services, or changing repo configuration.
+- Route to `specifying` when required environment setup changes tracked project files outside the accepted Task Contract.
+- Pass selected environment context and unavailable verification support into role handoffs and Task judgment input.
+- Treat environment readiness as operational context, not Evidence, User Judgment, or Task completion.
+
 Stop:
 - Preserve the current Task Contract ref, Task State, role handoff packet, Evidence refs, draft briefing, prepared payload, and `geas-cli` output when available.
 - Stop when required input, role Skill, readable `read_first` path, User decision, or CLI write is unavailable.
@@ -74,6 +82,8 @@ Optional:
 
 - User request for challenge, checkpoint, deferral, or stop
 - User-selected Task work options
+- User-selected environment options
+- required toolchain, service, secret, connector, or MCP decisions
 - relevant Memory
 - previous User Judgment refs
 - baseline or Task Contract revision request
@@ -84,6 +94,7 @@ Optional:
 | --- | --- | --- |
 | `references/task-loop.md` | Task phase selection and recovery | Choose phase dispatch, transition, stop, or revision route. |
 | `references/role-handoff.md` | before role-producing Skill calls | Build handoff packets with `read_first`, focus, expected output, and stop conditions. |
+| `references/task-environment.md` | before Task work and role handoff | Choose toolchain, verification support, runtime services, and setup mutation boundary. |
 | `references/task-acceptance-input.md` | before User Task result judgment | Prepare Evidence summary, unverified scope, risks, choices, and final summary. |
 | `references/task-evidence.md` | after accepted Task result User Judgment | Prepare Task Evidence payload shape and criteria result summary. |
 | `references/git-checkpoint.md` | before Task work and when checkpointing | Choose worktree, branch, and Task commit policy; keep git actions separate from Evidence and User Judgment. |
@@ -101,6 +112,9 @@ No scripts or assets are required. Task dispatch depends on runtime state, role 
 - Do not start Task work on `main` without explicit User decision.
 - Do not commit before Task result User Judgment and Task Evidence are recorded.
 - Do not include unrelated work in a Task commit.
+- Do not install tools, add MCP or connectors, start services, change repo config, or use secrets without a User decision.
+- Do not treat unavailable verification tooling as verification Evidence.
+- Do not change tracked project files for environment setup unless the Task Contract covers that setup.
 - Do not treat Task Evidence as a replacement for role Evidence.
 - Do not broaden Task scope or change Task acceptance criteria inside `building`; route Task Contract changes to `specifying`.
 - Do not call role-producing Skills without `read_first` refs for accepted Mission Spec, accepted Mission Design, current Task Contract, and phase-relevant Evidence.
@@ -115,10 +129,13 @@ No scripts or assets are required. Task dispatch depends on runtime state, role 
 
 - Accepted Mission Spec, accepted Mission Design, current Task Contract, or Task State is missing.
 - Task work options are required but not selected.
+- Task environment options are required but not selected.
 - Current Task phase cannot be mapped to a route in `references/task-loop.md`.
 - Required role-producing Skill is unavailable.
 - Required `read_first` path is unreadable.
 - Target, output, or result refs required by the next role are missing.
+- Required toolchain, runtime service, secret, connector, or MCP is unavailable.
+- Required environment setup would change tracked project files outside the accepted Task Contract.
 - Role Evidence required for the next phase is missing.
 - User result judgment is required but has not been provided.
 - `geas-cli` transition, judgment record, Evidence record, or Mission transition does not report success.
