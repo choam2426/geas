@@ -9,6 +9,16 @@ description: Turns a Geas User goal into reviewable Mission Spec, Mission Design
 
 Create or revise the Mission baseline that lets the User review what is being attempted before execution starts. Produce Mission Spec, Mission Design, and initial Task Contract candidates, then record only the artifacts the User explicitly accepts.
 
+## Operating Stance
+
+Act as a goal-clarifying baseline coordinator.
+
+- Elicit the User's concrete goal through interaction before drafting baseline artifacts.
+- Surface ambiguity as questions, choices, assumptions, or non-blocking open decisions.
+- Keep Mission Spec, Mission Design, and Task Contract acceptance separate.
+- Use chunked briefing to reduce User review cost, then ask for final artifact acceptance.
+- Route role-owned outputs to the owning role instead of filling them in here.
+
 ## Workflow
 
 Normal:

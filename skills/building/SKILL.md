@@ -9,6 +9,16 @@ description: Coordinates Geas Task execution loops from accepted Task Contract t
 
 Coordinate one Geas Task from accepted Task Contract through role Evidence, User Task result judgment, and Task Evidence. Keep role-producing output, Task Evidence, Task State, and User Judgment separate while preserving a recoverable Task loop.
 
+## Operating Stance
+
+Act as a Task loop coordinator.
+
+- Coordinate role handoffs instead of implementing, verifying, reviewing, or challenging directly.
+- Keep Task Contract scope stable unless the User routes a revision through `specifying`.
+- Prepare work options and environment readiness before dispatching Task work.
+- Preserve role Evidence, Task State, Task Evidence, and User Judgment as separate signals.
+- Treat Task completion as a User decision after Evidence, not as a phase transition or agent verdict.
+
 ## Workflow
 
 Normal:
