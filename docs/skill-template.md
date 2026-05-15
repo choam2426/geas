@@ -102,6 +102,10 @@ Stop:
 
 `Workflow` 안에서 필요한 경우에만 CLI recording, role handoff, validation loop를 설명한다. 모든 Skill에 별도 section으로 반복하지 않는다.
 
+User-facing briefing:
+- When output is long or decision-heavy, split it into TUI-friendly chunks of 2-3 related items.
+- Detailed chunk order belongs in the owning Skill, not a global briefing reference.
+
 ## Inputs
 
 `Inputs`는 Skill이 실행 전에 받아야 하는 정보를 분류한다.

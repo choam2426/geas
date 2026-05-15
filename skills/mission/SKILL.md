@@ -11,8 +11,17 @@ Coordinate Geas Mission work from the User entrypoint. Read the request and runt
 
 ## Workflow
 
+Mission Applicability:
+- Treat a request as direct work instead of Mission work when it is bounded, local, immediately executable, can be verified within the normal assistant turn, and does not need runtime state or stage handoff.
+- Direct work examples include answering a question, editing one small function, fixing a narrow bug or typo, running a single check, or explaining a file.
+- Keep Geas basics for direct work: state the working scope when needed, provide verification evidence, and disclose unverified scope.
+- Treat a request as Mission work when the User explicitly asks to run, continue, inspect, close, or route a Mission, or when the request needs persistent state, staged contracts, multiple Task units, role handoffs, accumulated Evidence, session recovery, or an explicit User acceptance flow.
+- When the User explicitly asks to run a small direct request as a Mission, ask for confirmation before initializing runtime or creating a Mission.
+
 Normal:
+- Apply Mission Applicability before checking runtime state.
 - Read the User request and decide whether it is Mission work.
+- If it is direct work, stop Mission routing and handle the request outside the Mission runtime flow.
 - Ask for a User decision when the request could be either a direct answer or a Geas Mission.
 - Check runtime status through the `geas-cli` adapter when state is needed.
 - If there is no initialized runtime and the User wants Mission work, ask `geas-cli` to initialize runtime storage before creating a Mission.
@@ -31,7 +40,7 @@ Handoff:
 - For Task-scoped work, make `building` prepare role handoffs instead of calling role-producing Skills directly here.
 
 User Decision:
-- Ask whether to start a Mission when the User request is too small or ambiguous for Mission handling.
+- Ask whether to start a Mission when the User explicitly asks to run a too-small request as Mission work or when the request is ambiguous for Mission handling.
 - Ask whether to continue, revise baseline, close Mission, or stop when runtime state and User request point to different next actions.
 - Present Evidence refs and unverified scope as judgment inputs; do not make the User Judgment.
 

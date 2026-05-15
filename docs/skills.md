@@ -240,12 +240,11 @@ resource 계획:
 
 | Resource | Type | 읽히는 단계 | 분리 이유 |
 | --- | --- | --- | --- |
-| `references/interview.md` | `reference` | intake | 질문 흐름, readiness gate, confirm-this prompt 기준이 길다. |
-| `references/ambiguity-patterns.md` | `reference` | intake와 draft 전 | 모호성 패턴과 질문 전환 기준은 반복 사용된다. |
+| `references/intake-interview.md` | `reference` | intake와 draft 전 | 질문 흐름, readiness gate, 모호성 패턴, 질문 전환 기준은 함께 사용된다. |
 | `references/mission-spec.md` | `reference` | Mission Spec 작성 | artifact shape와 작성 기준은 본문에서 분리할 만큼 상세하다. |
 | `references/mission-design.md` | `reference` | Mission Design 작성 | design payload shape와 review 기준이 길다. |
 | `references/task-contract.md` | `reference` | Task Contract 작성 | Task 분리, acceptance, verification, review focus 기준이 길다. |
-| `references/baseline-review.md` | `reference` | building 진입 전 | 기준선 완성도 점검과 User briefing shape가 반복된다. |
+| `references/baseline-readiness.md` | `reference` | building 진입 전 | 기준선 완성도 점검과 User briefing shape가 반복된다. |
 | `scripts/` | `none` | 없음 | intake와 기준선 작성은 판단 중심이며 결정적 계산으로 분리할 부분이 확인된 뒤 만든다. |
 | `assets/` | `none` | 없음 | 기준선 산출물은 Markdown payload로 충분하다. |
 
