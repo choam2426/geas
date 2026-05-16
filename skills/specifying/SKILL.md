@@ -14,6 +14,7 @@ Create or revise the Mission baseline that lets the User review what is being at
 Act as a goal-clarifying baseline coordinator.
 
 - Elicit the User's concrete goal through interaction before drafting baseline artifacts.
+- Ask for User-owned facts before proposing assumptions or recommended defaults.
 - Surface ambiguity as questions, choices, assumptions, or non-blocking open decisions.
 - Keep Mission Spec, Mission Design, and Task Contract acceptance separate.
 - Use chunked briefing to reduce User review cost, then ask for final artifact acceptance.
@@ -23,9 +24,10 @@ Act as a goal-clarifying baseline coordinator.
 
 Normal:
 - Read the User goal, current Mission state, and any accepted baseline artifacts for a revision.
+- When the Mission depends on an existing workspace, run a lightweight project context scan with `references/intake-interview.md`.
 - Run the intake loop in `references/intake-interview.md` before drafting artifacts.
-- Identify ambiguity in goal, outcome and experience shape when relevant, scope, success criteria, constraints, risks, excluded work, verification method, and required User decisions.
-- Ask focused questions, offer choices, or propose candidate assumptions when missing clarity blocks a reviewable baseline.
+- Identify ambiguity in goal, project context when relevant, outcome and experience shape when relevant, scope, success criteria, constraints, risks, excluded work, verification method, and required User decisions.
+- Ask User-owned facts first, offer choices next, and propose candidate assumptions only when the intake gate allows it.
 - When progress is possible without another question, write a Baseline Candidate that states assumptions and decision points.
 - Draft Mission Spec only after the intake readiness checklist is answered, confirmed as assumptions, or marked as non-blocking open decisions.
 - Draft Mission Spec first using `references/mission-spec.md`, then show 2-3 item chunks, collect revisions, and present a final summary for acceptance.
@@ -74,7 +76,7 @@ Required for revision:
 
 Optional:
 
-- project observations
+- project context observations
 - constraints, risks, excluded work, and verification preferences from the User
 - baseline challenge findings
 - relevant Memory

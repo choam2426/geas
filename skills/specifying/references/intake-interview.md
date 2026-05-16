@@ -4,8 +4,12 @@
 
 - [Purpose](#purpose)
 - [Interview Loop](#interview-loop)
+- [Interview Move Priority](#interview-move-priority)
+- [Assumption Proposal Gate](#assumption-proposal-gate)
 - [Readiness Checklist](#readiness-checklist)
+- [Project Context Scan](#project-context-scan)
 - [Outcome & Experience Shape](#outcome--experience-shape)
+- [Existing Workflow Replacement](#existing-workflow-replacement)
 - [Open Decision Minimum Shape](#open-decision-minimum-shape)
 - [Ambiguity Patterns](#ambiguity-patterns)
 - [Question Patterns](#question-patterns)
@@ -21,16 +25,34 @@ Repeat this loop until the readiness checklist is satisfied or a stop condition 
 
 1. Restate the User goal in one sentence.
 2. Scan for ambiguity using the readiness checklist.
-3. Choose one response move:
-   - ask one focused question;
-   - offer 2-3 choices;
-   - propose a candidate assumption for User confirmation;
-   - mark a non-blocking item as an open decision with the minimum shape below.
+3. Choose the next response move using Interview Move Priority.
 4. Reflect the User answer back as updated understanding.
 5. Update the Baseline Candidate.
 6. Check whether Mission Spec drafting is ready.
 
 Ask only the next useful question. Do not send a long questionnaire when one blocker determines the next step.
+
+## Interview Move Priority
+
+Use response moves in this order.
+
+1. Ask one focused question for User-owned facts when the missing fact affects goal, scope, success, constraints, existing workflow, current data, roles, authority, risk tolerance, or acceptance.
+2. Offer 2-3 choices when the User can decide between plausible options and the tradeoff is clear.
+3. Propose a candidate assumption only when the Assumption Proposal Gate is satisfied.
+4. Mark a decision as a non-blocking open decision only when it does not block the current artifact.
+
+Do not replace missing User-owned facts with a preferred design. A recommendation may accompany choices, but it does not remove the need to ask for facts that only the User can know.
+
+## Assumption Proposal Gate
+
+Propose a candidate assumption only when all of these conditions are true:
+
+- the decision is low-risk, reversible, explicitly delegated by the User, or supported by enough User answers and project context;
+- the decision does not block the current artifact's goal, scope, acceptance criteria, or reviewability;
+- the assumption names its impact, risk, and where it will be verified or revisited;
+- the assumption covers one material decision, or a small chunk of 2-3 related decisions with each decision and impact shown separately.
+
+Do not bundle multiple material assumptions into one approval question. If several material decisions remain, ask them as focused questions or as a 2-3 item choice chunk.
 
 ## Readiness Checklist
 
@@ -38,6 +60,7 @@ Before drafting Mission Spec, confirm each item is answered, explicitly assumed,
 
 - [ ] Goal: What outcome is the User trying to achieve?
 - [ ] Background: Why does this matter now?
+- [ ] Project context: If an existing workspace matters, what current state, files, conventions, constraints, or instructions should shape the baseline?
 - [ ] Success: What observable state means this worked?
 - [ ] Outcome and experience shape: If the result form or human use/review experience is unclear and could affect acceptance, what shape decisions are needed now?
 - [ ] Included scope: What must be part of this Mission?
@@ -49,6 +72,26 @@ Before drafting Mission Spec, confirm each item is answered, explicitly assumed,
 - [ ] Assumptions: Which assumptions are safe to carry forward only after User confirmation?
 
 If an item is unclear, do not silently fill it. Ask, offer choices, propose a candidate assumption, or keep it as an open decision if it does not block Mission Spec review.
+
+## Project Context Scan
+
+Run a lightweight Project Context Scan when the Mission changes, extends, explains, or depends on an existing workspace. The goal is to avoid drafting a baseline from User wording alone when current project state should constrain the Mission.
+
+Mark project context not applicable when the Mission is greenfield, the User supplies all necessary content, the workspace is unavailable, or the existing workspace cannot affect scope, success, verification, or risk.
+
+Inspect only context that can affect the current baseline artifact:
+
+- relevant top-level structure and likely target areas;
+- project-local instructions, conventions, or ownership notes when available;
+- existing artifacts, docs, schemas, examples, or outputs related to the User goal;
+- build, test, packaging, runtime, or entrypoint clues when they affect success or verification;
+- current accepted baseline, Evidence, User Judgment, Memory, or debt refs when this is a revision.
+
+Keep the scan focused. Do not inventory the whole workspace by default. Prefer targeted file listing and search terms derived from the User goal, then record concise observations with refs in the Baseline Candidate.
+
+If current project state conflicts with the User request, surface the conflict as a decision. If a needed target or instruction cannot be read, ask the User, mark it as a blocking open decision, or stop.
+
+Project context does not replace User intent. Use it to ask better questions, avoid false assumptions, and preserve existing conventions.
 
 ## Outcome & Experience Shape
 
@@ -79,6 +122,22 @@ If the User does not know a shape decision, offer options and a recommended assu
 If a shape decision affects the current artifact's goal, scope, acceptance criteria, or reviewability, resolve it before drafting that artifact. Do not carry it as a later open decision.
 
 Route shape decisions by ownership. Mission-level outcome form, audience, use context, structure, approach, experience, lifecycle, and ownership usually belong in Mission Design. Directly executable or reviewable commitments, acceptance criteria, verification checks, review focus, concrete quality thresholds, first-Task constraints, and first-step commitments belong in Task Contract.
+
+## Existing Workflow Replacement
+
+Run this pattern when the Mission replaces or upgrades an existing spreadsheet, document, manual process, inbox, tracker, tool, or handoff flow.
+
+Ask about the current workflow before proposing the replacement shape. Start with the smallest set of User-owned facts that changes the baseline:
+
+- current fields, columns, labels, states, or artifacts;
+- where new items come from and who enters them;
+- how items are currently classified, prioritized, assigned, reviewed, or closed;
+- who needs shared access, ownership, permissions, or auditability;
+- what must remain compatible with the old workflow;
+- what pain is most important to remove in the MVP;
+- what can stay manual or out of scope for the first version.
+
+After the current workflow is understood, offer replacement options or a recommended assumption. Keep the recommendation separate from the facts gathered from the User.
 
 ## Open Decision Minimum Shape
 
@@ -125,6 +184,14 @@ Verification ambiguity:
 - The result can be produced but not checked.
 - Response move: ask what evidence would support acceptance.
 
+Project context ambiguity:
+- The request touches existing work, but relevant current files, conventions, instructions, or constraints are unknown.
+- Response move: run a focused context scan, then ask about conflicts or missing context that block the current artifact.
+
+Existing workflow ambiguity:
+- The Mission replaces a spreadsheet, document, manual process, inbox, tracker, or existing tool, but the current workflow is unknown.
+- Response move: ask for the current fields, actors, item flow, classification or assignment rules, access needs, and pain points before proposing a replacement shape.
+
 ## Question Patterns
 
 Use questions that make the User's real goal easier to state.
@@ -135,6 +202,7 @@ Good:
 - "What must be included now, and what should stay out of this Mission?"
 - "Which of these is closest: A, B, or C?"
 - "Can I carry `<assumption>` as an assumption, or should we decide it now?"
+- "What are the current fields, steps, and handoffs in the workflow this Mission is replacing?"
 
 Avoid:
 - "Should I make it good?"
@@ -142,6 +210,7 @@ Avoid:
 - "Do you want everything handled?"
 - "This implementation is fine, right?"
 - "Can I just proceed?"
+- "I'll assume these seven product decisions; approve?"
 
 ## Exit Gate
 
