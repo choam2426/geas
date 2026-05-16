@@ -26,12 +26,12 @@ Normal:
 - Before starting the Task loop, brief and preserve Task work options with `references/git-checkpoint.md`.
 - Before dispatching Task work, brief and preserve Task environment readiness with `references/task-environment.md`.
 - Use `references/task-loop.md` to choose the next action from the current Task phase.
-- For `unstarted` or implementation-ready work, request a transition to `implementing` through `geas-cli` when needed, then prepare an `implementing` handoff with `references/role-handoff.md`.
-- For `verifying`, prepare a `verifying` handoff with the current Task Contract and Implementation Evidence.
-- For `reviewing`, prepare a `reviewing` handoff with the current Task Contract, outputs, Implementation Evidence, and Verification Evidence.
-- Before each role-producing step, decide `role_required`, `role_optional`, or `role_omitted` and preserve the basis.
-- When risk, User request, or Evidence findings call for challenge before judgment, ask `geas-cli` to transition the Task to `challenging`, then prepare a `challenging` handoff.
-- When challenge is optional and omitted, preserve the omitted reason and residual risk in the Task result judgment input.
+- For `unstarted` or implementation-ready work, request a transition to `implementing` through `geas-cli` when needed, then prepare and dispatch a separated role subagent handoff to `implementing` with `references/role-handoff.md`.
+- For `verifying`, prepare and dispatch a separated role subagent handoff to `verifying` with the current Task Contract and Implementation Evidence.
+- For `reviewing`, prepare and dispatch a separated role subagent handoff to `reviewing` with the current Task Contract, outputs, Implementation Evidence, and Verification Evidence.
+- A role-producing step succeeds only when `building` creates the handoff packet as the role subagent prompt, passes it to the separated role subagent or role session, and receives a role result or handoff failure.
+- When risk, User request, or Evidence findings call for challenge before judgment, ask `geas-cli` to transition the Task to `challenging`, then prepare and dispatch a separated role subagent handoff to `challenging`.
+- When challenge is not routed, preserve the reason and any residual risk in the Task result judgment input.
 - After role Evidence is recorded, continue from the Task State reported by `geas-cli`; do not infer acceptance from the role verdict.
 - For `awaiting_user_judgment`, prepare Task result judgment input with `references/task-acceptance-input.md`.
 - After the User provides a Task result decision, prepare the User Judgment payload with `references/task-acceptance-input.md`, then ask `geas-cli` to record it.
@@ -126,10 +126,12 @@ No scripts or assets are required. Task dispatch depends on runtime state, role 
 - Do not treat unavailable verification tooling as verification Evidence.
 - Do not change tracked project files for environment setup unless the Task Contract covers that setup.
 - Do not treat Task Evidence as a replacement for role Evidence.
+- Do not stop at writing a handoff packet or perform role work inside the main coordinator session.
+- Do not treat Implementation Evidence, Verification Evidence, Review Evidence, or Challenger Evidence written by the main coordinator session as role Evidence.
 - Do not broaden Task scope or change Task acceptance criteria inside `building`; route Task Contract changes to `specifying`.
 - Do not call role-producing Skills without `read_first` refs for accepted Mission Spec, accepted Mission Design, current Task Contract, and phase-relevant Evidence.
+- Do not continue when a role handoff packet cannot be dispatched to a separated role subagent or role session.
 - Do not call verification, review, or challenge without target/output refs needed to inspect the Task result.
-- Do not omit an optional role without an omitted reason and residual risk briefing.
 - Do not continue when a role handoff fails or a required `read_first` path cannot be read.
 - Do not show a long Task result briefing all at once when chunked review would reduce User judgment cost.
 - Do not treat chunk-level confirmation as final User Judgment.
@@ -142,6 +144,7 @@ No scripts or assets are required. Task dispatch depends on runtime state, role 
 - Task environment options are required but not selected.
 - Current Task phase cannot be mapped to a route in `references/task-loop.md`.
 - Required role-producing Skill is unavailable.
+- A role handoff packet cannot be dispatched to a separated role subagent or role session.
 - Required `read_first` path is unreadable.
 - Target, output, or result refs required by the next role are missing.
 - Required toolchain, runtime service, secret, connector, or MCP is unavailable.

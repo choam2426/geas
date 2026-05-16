@@ -2,20 +2,21 @@
 
 ## Purpose
 
-Use this reference before calling `implementing`, `verifying`, `reviewing`, or `challenging`. A role handoff is a role subagent call. The role subagent runs in a separated context, and the handoff packet gives it enough context to work and stop safely without making `building` write the role output.
+Use this reference before calling `implementing`, `verifying`, `reviewing`, or `challenging`. A role handoff is a role subagent call. The handoff packet is the prompt sent to the role subagent. The role subagent runs in a separated context, and the handoff packet gives it enough context to work and stop safely without making `building` write the role output.
+
+## Dispatch Sequence
+
+1. Build the handoff packet as the prompt for the named Role Skill.
+2. Include required `read_first`, target refs, focus, expected output, and stop conditions.
+3. Dispatch the packet to the separated role subagent or role session.
+4. Wait for the role result or handoff failure before continuing the Task loop.
+5. Treat the handoff as incomplete when no separated role subagent or role session was created.
 
 ## Handoff Packet Shape
 
 ```markdown
 Role handoff:
 - Role Skill: implementing | verifying | reviewing | challenging
-- Role decision: role_required | role_optional | role_omitted
-- Decision basis:
-  - <why this role is required, optional, or omitted>
-- Omitted reason:
-  - <only when role_omitted>
-- Residual risk:
-  - <risk accepted for omission, or none>
 - Task id: <task-id>
 - Current phase: <phase>
 - Trigger: <why this role is being called now>
@@ -64,13 +65,12 @@ Role handoff:
 - If required environment setup is unavailable, do not call the role unless the User accepts that gap as unverified scope.
 - Pass unavailable verification support as unverified scope instead of treating it as Evidence.
 
-## Role Decision Rules
+## Dispatch Rules
 
-- Use `role_required` when the current phase requires the role or the User explicitly requested it.
-- Use `role_optional` when the role can add judgment value but the Task Contract or current phase does not require it.
-- Use `role_omitted` when the role is skipped.
-- For `role_omitted`, preserve the omitted reason and residual risk so `building` can include them in Task judgment input.
-- Do not use `role_omitted` for implementation, verification, or review when the current Task phase requires that role.
+- A role handoff packet is sent only when the Task loop is dispatching that role.
+- Once a role handoff packet is created, the role is required for that dispatch.
+- Do not include any dispatch-choice field in the handoff packet.
+- If the Task loop does not route to challenge, preserve the challenge-not-routed reason in Task judgment input instead of creating a role handoff packet.
 
 ## Role Focus
 
@@ -86,9 +86,8 @@ Role handoff:
 - If the caller cannot create the role subagent, the role has not been handed off.
 - The role writes substantive role Evidence.
 - `building` may render, preserve, or record a role payload returned by the role, but it does not invent missing role content.
-- Omitted-role reasons are briefing inputs, not role Evidence.
-- If no role subagent is available, `role_required` is a handoff failure.
-- Only `role_optional` may be omitted when the omitted reason and residual risk are preserved.
+- Challenge-not-routed reasons are briefing inputs, not role Evidence.
+- If no role subagent is available, the handoff fails.
 - Role output produced by the main coordinator session in place of a role is not role Evidence.
 - If a role reports contract delta, `building` treats it as Task result judgment input or a route to `specifying`.
 - If a role cannot produce Evidence, `building` preserves the failure briefing and stops or asks the User for the next route.

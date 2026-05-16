@@ -12,7 +12,8 @@ Use this reference when Task State is `awaiting_user_judgment` or when role Evid
 - Verification Evidence when available
 - Review Evidence when available
 - Challenger Evidence when available
-- role-required, role-optional, or role-omitted decisions and omission reasons
+- role Evidence refs and handoff failures
+- challenge-not-routed reason when challenge was not run
 - environment gaps that affect verification or judgment
 - known unverified scope
 - remaining risks
@@ -30,9 +31,9 @@ Task result judgment input:
   - Implementation: <ref or missing>
   - Verification: <ref or missing>
   - Review: <ref or missing>
-  - Challenge: <ref, omitted with reason, or missing>
-- Role decisions:
-  - <role>: <role_required | role_optional | role_omitted> - <basis, omitted reason, residual risk>
+  - Challenge: <ref, not routed with reason, or missing>
+- Role handoff status:
+  - <role>: <Evidence ref, handoff failure, or missing>
 - Environment gaps:
   - <unavailable toolchain, verification support, runtime service, secret, connector, or none>
 - Unverified scope:
@@ -103,4 +104,4 @@ decision: accepted | accepted_with_limits | revise | deferred | stopped
 - Use `revise` when the User asks for rework, Task Contract update, additional Task, discard, or Mission baseline review.
 - Use `deferred` when the User postpones judgment.
 - Use `stopped` when the User stops the Task or Mission path.
-- Keep omitted-role reasons and residual risks in `Decision Trail`, `Accepted Remaining Risks`, or `Requested Actions` as appropriate.
+- Keep handoff failures, missing role Evidence, challenge-not-routed reasons, and residual risks in `Decision Trail`, `Accepted Remaining Risks`, or `Requested Actions` as appropriate.
