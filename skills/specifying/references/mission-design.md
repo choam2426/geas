@@ -49,10 +49,10 @@ name: <same mission name as Mission Spec>
 ## Drafting Rules
 
 - Tie the approach to Mission Spec acceptance criteria.
-- Keep Task order and Task dependencies out unless they are design constraints; initial Task Contract owns executable Task slicing.
+- Keep Task order and Task dependencies out unless they are design constraints; the initial Task Contract Set owns executable Task slicing and dependencies.
 - Include alternatives only when they explain a meaningful tradeoff.
 - Record change triggers that would invalidate the design or require baseline revision.
-- Do not imply that design acceptance means Task Contract acceptance.
+- Do not imply that design acceptance means Task Contract Set acceptance.
 
 ## Review Checks
 
@@ -60,4 +60,4 @@ name: <same mission name as Mission Spec>
 - Risks and assumptions are visible enough for User review.
 - Open decision points are not hidden inside the plan.
 - The design does not silently expand Mission scope.
-- The Task Contract can be drafted from this design without treating the design as the Task graph.
+- The Task Contract Set can be drafted from this design without treating the design as the Task graph.

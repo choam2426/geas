@@ -1,13 +1,13 @@
 ---
 name: specifying
-description: Turns a Geas User goal into reviewable Mission Spec, Mission Design, and initial Task Contract baselines. Use during Mission intake, baseline revision, scope clarification, acceptance criteria definition, task slicing, or building-entry readiness. Do not use for Task implementation, role Evidence, verification, review, challenge Evidence, or Mission closure.
+description: Turns a Geas User goal into reviewable Mission Spec, Mission Design, and initial Task Contract Set baselines. Use during Mission intake, baseline revision, scope clarification, acceptance criteria definition, task slicing, or building-entry readiness. Do not use for Task implementation, role Evidence, verification, review, challenge Evidence, or Mission closure.
 ---
 
 # Specifying
 
 ## Job
 
-Create or revise the Mission baseline that lets the User review what is being attempted before execution starts. Produce Mission Spec, Mission Design, and initial Task Contract candidates, then record only the artifacts the User explicitly accepts.
+Create or revise the Mission baseline that lets the User review what is being attempted before execution starts. Produce Mission Spec, Mission Design, and initial Task Contract Set candidates, then record only the artifacts the User explicitly accepts.
 
 ## Operating Stance
 
@@ -16,7 +16,7 @@ Act as a goal-clarifying baseline coordinator.
 - Elicit the User's concrete goal through interaction before drafting baseline artifacts.
 - Ask for User-owned facts before proposing assumptions or recommended defaults.
 - Surface ambiguity as questions, choices, assumptions, or non-blocking open decisions.
-- Keep Mission Spec, Mission Design, and Task Contract acceptance separate.
+- Keep Mission Spec, Mission Design, and Task Contract Set acceptance separate.
 - Use chunked briefing to reduce User review cost, then ask for final artifact acceptance.
 - Route role-owned outputs to the owning role instead of filling them in here.
 
@@ -34,8 +34,10 @@ Normal:
 - After final summary acceptance of the Mission Spec, record it through `geas-cli`.
 - Draft Mission Design only after Mission Spec acceptance, using `references/mission-design.md`, then show 2-3 item chunks, collect revisions, and present a final summary for acceptance.
 - After final summary acceptance of the Mission Design, record it through `geas-cli`.
-- Draft the initial Task Contract only after Mission Design acceptance, using `references/task-contract.md`, then show 2-3 item chunks, collect revisions, and present a final summary for acceptance.
-- After final summary acceptance of the Task Contract, record it through `geas-cli`.
+- Draft the initial Task Contract Set only after Mission Design acceptance, using `references/task-contract.md`. Draft one Task Contract candidate per executable Task, with `task_id`, `depends_on`, and `mission_acceptance_refs` expressing the Set relationship.
+- Show the Task Contract Set in 2-3 Task or related-item chunks, collect revisions, and present a final Set summary for acceptance. A very small Mission can have a Set with one Task Contract.
+- After final summary acceptance of the Task Contract Set, record each Task Contract through `geas-cli` with `task contract record --task <task-id>`.
+- If any Task Contract record fails, preserve already recorded refs, the failed payload, and the `geas-cli` output, then stop.
 - Check building-entry readiness with `references/baseline-readiness.md`.
 - When the User chooses to enter execution and required baseline records exist, route back to `mission` or `building` for the next stage.
 
@@ -45,12 +47,12 @@ Challenge:
 - Revise baseline candidates only through this Skill after the User chooses which findings to address.
 
 User Decision:
-- Ask the User to accept, revise, defer, or stop each baseline artifact separately.
-- Treat acceptance of Mission Spec, Mission Design, and Task Contract as separate decisions.
+- Ask the User to accept, revise, defer, or stop each baseline artifact or Task Contract Set separately.
+- Treat acceptance of Mission Spec, Mission Design, and Task Contract Set as separate decisions.
 - Preserve draft payloads and open decisions when the User pauses before acceptance.
 
 Briefing:
-- For Mission Spec, Mission Design, and Task Contract agreement, show 2-3 related items at a time.
+- For Mission Spec, Mission Design, and Task Contract Set agreement, show 2-3 related items or Task candidates at a time.
 - Each chunk includes current draft, decision to confirm, choices, and next step.
 - Treat chunk confirmation as provisional review input, not artifact acceptance.
 - After chunk revisions converge, present a final summary and ask whether to accept the whole artifact.
@@ -71,7 +73,7 @@ Required:
 
 Required for revision:
 
-- accepted Mission Spec, Mission Design, or Task Contract being revised
+- accepted Mission Spec, Mission Design, or Task Contract Set being revised
 - related Evidence, User Judgment, or change trigger that explains why the baseline must change
 
 Optional:
@@ -87,24 +89,24 @@ Optional:
 | --- | --- | --- |
 | `references/intake-interview.md` | before artifact drafting | Elicit concrete goals, scan ambiguity, and prevent premature baseline drafting. |
 | `references/mission-spec.md` | Mission Spec draft | Define Mission Spec payload shape and review checks. |
-| `references/mission-design.md` | Mission Design draft | Define Mission Design payload shape and boundaries from Task Contract. |
-| `references/task-contract.md` | initial Task Contract draft | Define Task slicing, acceptance criteria, verification checks, and review focus. |
+| `references/mission-design.md` | Mission Design draft | Define Mission Design payload shape and boundaries from the Task Contract Set. |
+| `references/task-contract.md` | initial Task Contract Set draft | Define Task slicing, acceptance criteria, verification checks, review focus, and Task relationships. |
 | `references/baseline-readiness.md` | before building entry | Check accepted baseline and open decisions before execution starts. |
 
-Use the `geas-cli` adapter Skill to record accepted Mission Spec, Mission Design, Task Contract, and stage transitions. If `geas-cli` does not report success, preserve the payload and stop.
+Use the `geas-cli` adapter Skill to record accepted Mission Spec, Mission Design, each Task Contract in the Task Contract Set, and stage transitions. If `geas-cli` does not report success, preserve the payload and stop.
 
 No scripts or assets are required. Baseline drafting is judgment-centered, and the outputs are Markdown payloads rather than reusable asset-based artifacts.
 
 ## Gotchas
 
-- Do not treat one User approval as acceptance of Mission Spec, Mission Design, and Task Contract together.
+- Do not treat one User approval as acceptance of Mission Spec, Mission Design, and Task Contract Set together.
 - Do not end intake while readiness checklist items are still ambiguous; ask, offer choices, propose assumptions, or mark non-blocking open decisions first.
 - Do not show the whole baseline artifact at once when asking for agreement.
 - Do not treat chunk-level confirmation as final artifact acceptance.
 - Do not draft Mission Design before Mission Spec is accepted.
-- Do not draft Task Contract before Mission Design is accepted.
+- Do not draft the Task Contract Set before Mission Design is accepted.
 - Do not record drafts before explicit User acceptance.
-- Do not let Mission Design become the Task graph source of truth; Task Contract owns task slicing and dependencies.
+- Do not let Mission Design become the Task graph source of truth; the Task Contract Set owns task slicing and dependencies.
 - Do not write implementation, verification, review, challenge, Task Evidence, or Mission Evidence.
 - Do not broaden scope silently when new work appears; surface a baseline revision decision.
 - Do not require repo root docs as execution prerequisites for a distributed Skill.

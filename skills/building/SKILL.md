@@ -36,7 +36,7 @@ Normal:
 - For `awaiting_user_judgment`, prepare Task result judgment input with `references/task-acceptance-input.md`.
 - After the User provides a Task result decision, prepare the User Judgment payload with `references/task-acceptance-input.md`, then ask `geas-cli` to record it.
 - If the recorded decision is `accepted` or `accepted_with_limits`, prepare Task Evidence with `references/task-evidence.md` and ask `geas-cli` to record it.
-- If more accepted Task Contracts remain, prepare the next Task briefing and transition to `building` for that Task through `geas-cli`.
+- If more accepted Task Contracts remain in the initial Task Contract Set or later accepted Task Contracts, prepare the next Task briefing and transition to `building` for that Task through `geas-cli`.
 - If no Task remains and accepted Task Evidence exists for required Task Contracts, prepare a consolidation briefing and ask `geas-cli` to transition the Mission to `consolidating`.
 
 Revision:
