@@ -30,6 +30,10 @@ Normal:
 - For `verifying`, prepare and dispatch a separated role subagent handoff to `verifying` with the current Task Contract and Implementation Evidence.
 - For `reviewing`, prepare and dispatch a separated role subagent handoff to `reviewing` with the current Task Contract, outputs, Implementation Evidence, and Verification Evidence.
 - A role-producing step succeeds only when `building` creates the handoff packet as the role subagent prompt, passes it to the separated role subagent or role session, and receives a role result or handoff failure.
+- Default non-escalated continuation is `implementing` -> `verifying` -> `reviewing` -> Task result judgment input.
+- After Implementation Evidence is recorded and `geas-cli` reports `verifying`, continue by dispatching the `verifying` handoff.
+- After Verification Evidence has verdict `passed` and `geas-cli` reports `reviewing`, continue by dispatching the `reviewing` handoff.
+- After Verification Evidence has verdict `changes_requested` or `escalated`, route to Task result judgment input.
 - When risk, User request, or Evidence findings call for challenge before judgment, ask `geas-cli` to transition the Task to `challenging`, then prepare and dispatch a separated role subagent handoff to `challenging`.
 - When challenge is not routed, preserve the reason and any residual risk in the Task result judgment input.
 - After role Evidence is recorded, continue from the Task State reported by `geas-cli`; do not infer acceptance from the role verdict.

@@ -69,6 +69,7 @@ Role handoff:
 
 - A role handoff packet is sent only when the Task loop is dispatching that role.
 - Once a role handoff packet is created, the role is required for that dispatch.
+- When Task State routes to `implementing`, `verifying`, or `reviewing`, the matching role handoff is the required dispatch target for that phase.
 - Do not include any dispatch-choice field in the handoff packet.
 - If the Task loop does not route to challenge, preserve the challenge-not-routed reason in Task judgment input instead of creating a role handoff packet.
 

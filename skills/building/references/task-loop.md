@@ -18,14 +18,19 @@ Use this reference to choose the next `building` action from Task State, role Ev
 
 ## Evidence-Driven Continuation
 
-- After Implementation Evidence is recorded, continue from the Task State reported by `geas-cli`; normally this is `verifying`.
-- After Verification Evidence with `passed`, continue from reported Task State; normally this is `reviewing`.
-- After Verification Evidence with `changes_requested` or `escalated`, prepare Task result judgment input instead of forcing review.
+- The default non-escalated path is `implementing` -> `verifying` -> `reviewing` -> Task result judgment input.
+- After Implementation Evidence is recorded, continue from the Task State reported by `geas-cli`; when the reported state is `verifying`, dispatch the verification handoff.
+- After Verification Evidence with verdict `passed`, continue from the Task State reported by `geas-cli`; when the reported state is `reviewing`, dispatch the review handoff.
+- After Verification Evidence with verdict `changes_requested` or `escalated`, prepare Task result judgment input.
 - After Review Evidence, decide whether the challenge route is needed from risk, User request, or Evidence findings.
 - If the challenge route is needed, ask `geas-cli` to transition to `challenging`, then prepare and dispatch a separated role subagent handoff to `challenging`.
-- If the challenge route is not needed, preserve the reason and any residual risk, then prepare Task result judgment input.
+- If the challenge route is not needed, preserve the challenge-not-routed reason and any residual risk, then prepare Task result judgment input.
 - After Challenger Evidence, prepare Task result judgment input.
 - After accepted or accepted-with-limits User Judgment, prepare Task Evidence.
+
+## Continuation Stop Conditions
+
+- Stop the automatic continuation when required refs are missing, a role handoff fails, `geas-cli` fails, a required User or coordinator decision appears, a blocking contract delta appears, or the challenge route is needed.
 
 ## Revision Routes
 
