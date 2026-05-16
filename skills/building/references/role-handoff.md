@@ -81,8 +81,12 @@ Role handoff:
 
 ## Handoff Boundaries
 
+- Role handoff dispatches the packet to a separate role execution context or subagent; it is not role-producing work performed inside the main coordinator session.
 - The role writes substantive role Evidence.
 - `building` may render, preserve, or record a role payload returned by the role, but it does not invent missing role content.
 - Omitted-role reasons are briefing inputs, not role Evidence.
+- If no separate role execution context is available, `role_required` is a handoff failure.
+- Only `role_optional` may be omitted when the omitted reason and residual risk are preserved.
+- Role output produced by the main coordinator session in place of a role is not role Evidence.
 - If a role reports contract delta, `building` treats it as Task result judgment input or a route to `specifying`.
 - If a role cannot produce Evidence, `building` preserves the failure briefing and stops or asks the User for the next route.
