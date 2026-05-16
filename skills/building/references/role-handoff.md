@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Use this reference before calling `implementing`, `verifying`, `reviewing`, or `challenging`. The handoff packet gives the role enough context to work and stop safely without making `building` write the role output.
+Use this reference before calling `implementing`, `verifying`, `reviewing`, or `challenging`. A role handoff is a role subagent call. The role subagent runs in a separated context, and the handoff packet gives it enough context to work and stop safely without making `building` write the role output.
 
 ## Handoff Packet Shape
 
@@ -81,11 +81,13 @@ Role handoff:
 
 ## Handoff Boundaries
 
-- Role handoff dispatches the packet to a separate role execution context or subagent; it is not role-producing work performed inside the main coordinator session.
+- Role handoff calls a role subagent with a separated execution context; it is not role-producing work performed inside the main coordinator session.
+- The role subagent uses the handoff packet and `read_first` refs as its working context, not the main coordinator session's scratch context.
+- If the caller cannot create the role subagent, the role has not been handed off.
 - The role writes substantive role Evidence.
 - `building` may render, preserve, or record a role payload returned by the role, but it does not invent missing role content.
 - Omitted-role reasons are briefing inputs, not role Evidence.
-- If no separate role execution context is available, `role_required` is a handoff failure.
+- If no role subagent is available, `role_required` is a handoff failure.
 - Only `role_optional` may be omitted when the omitted reason and residual risk are preserved.
 - Role output produced by the main coordinator session in place of a role is not role Evidence.
 - If a role reports contract delta, `building` treats it as Task result judgment input or a route to `specifying`.
