@@ -61,6 +61,8 @@ geas mission evidence record --from <path|->
 - `.md` artifact 기록 명령은 YAML frontmatter와 Markdown body를 함께 받는다.
 - YAML artifact와 ledger 명령은 해당 runtime schema에 맞는 YAML 문서를 받는다.
 - `-`는 stdin을 뜻한다.
+- 성공한 write 명령은 `--from <path>` 입력 파일을 소비한 것으로 보고 삭제한다.
+- 실패한 명령은 payload 수정과 재시도를 위해 `--from <path>` 입력 파일을 보존한다.
 - CLI는 payload 내용을 runtime artifact 파일로 복사하거나 정규화해서 기록할 수 있지만, 본문 의미를 새로 작성하지 않는다.
 
 `.md` artifact의 frontmatter는 caller가 작성한다.

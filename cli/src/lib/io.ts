@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, rmSync } from 'node:fs';
 import * as yaml from 'js-yaml';
 import { parseMarkdownArtifact, type MarkdownArtifact, type MarkdownArtifactKind } from './artifacts';
 
@@ -41,4 +41,14 @@ export function readMarkdownArtifact(from: string, kind: MarkdownArtifactKind): 
     return { ok: false, code: 'payload_parse_failed', detail: `${parsed.code}: ${parsed.detail}` };
   }
   return { ok: true, artifact: parsed.artifact };
+}
+
+export function cleanupFromSource(from: string): void {
+  if (from === '-') return;
+  try {
+    rmSync(from, { force: true });
+  } catch (e: unknown) {
+    const detail = e instanceof Error ? e.message : String(e);
+    process.stderr.write(`warning: failed to remove --from source ${from}: ${detail}\n`);
+  }
 }

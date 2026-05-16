@@ -1,7 +1,7 @@
 import { Command } from 'commander';
 import { join } from 'node:path';
 import { checkDebtRecord, checkDebtUpdate } from '../lib/guards';
-import { readPayload } from '../lib/io';
+import { cleanupFromSource, readPayload } from '../lib/io';
 import {
   emptyLocation,
   failure,
@@ -156,7 +156,10 @@ export function registerDebt(program: Command): void {
         return;
       }
       const result = runDebtRecord(read.payload);
-      if (result.ok) success(result);
+      if (result.ok) {
+        cleanupFromSource(opts.from);
+        success(result);
+      }
       else failure(result);
     });
 
@@ -172,7 +175,10 @@ export function registerDebt(program: Command): void {
         return;
       }
       const result = runDebtUpdate(opts.id, read.payload);
-      if (result.ok) success(result);
+      if (result.ok) {
+        cleanupFromSource(opts.from);
+        success(result);
+      }
       else failure(result);
     });
 }

@@ -10,7 +10,7 @@ import {
 } from '../lib/output';
 import { checkMemoryRecord } from '../lib/guards';
 import { validate } from '../lib/schema';
-import { readPayload } from '../lib/io';
+import { cleanupFromSource, readPayload } from '../lib/io';
 import { runTransaction } from '../lib/transaction';
 
 export type MemoryResult = SuccessResult | FailureResult;
@@ -90,7 +90,10 @@ export function registerMemory(program: Command): void {
         return;
       }
       const result = runMemoryRecord(opts.scope, opts.role, read.payload);
-      if (result.ok) success(result);
+      if (result.ok) {
+        cleanupFromSource(opts.from);
+        success(result);
+      }
       else failure(result);
     });
 }

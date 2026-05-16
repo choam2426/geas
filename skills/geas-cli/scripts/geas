@@ -13418,6 +13418,16 @@ function readMarkdownArtifact(from, kind) {
   }
   return { ok: true, artifact: parsed.artifact };
 }
+function cleanupFromSource(from) {
+  if (from === "-") return;
+  try {
+    (0, import_node_fs5.rmSync)(from, { force: true });
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    process.stderr.write(`warning: failed to remove --from source ${from}: ${detail}
+`);
+  }
+}
 
 // src/lib/transaction.ts
 var import_node_fs6 = require("node:fs");
@@ -13706,8 +13716,10 @@ function registerMission(program2) {
       return;
     }
     const result = runMissionSpecRecord(read.artifact);
-    if (result.ok) success(result);
-    else failure(result);
+    if (result.ok) {
+      cleanupFromSource(opts.from);
+      success(result);
+    } else failure(result);
   });
   const design = mission.command("design").description("Mission Design baseline");
   design.command("record").requiredOption("--from <path>", "Markdown artifact path or - for stdin").description("Record Mission Design baseline").action((opts) => {
@@ -13723,8 +13735,10 @@ function registerMission(program2) {
       return;
     }
     const result = runMissionDesignRecord(read.artifact);
-    if (result.ok) success(result);
-    else failure(result);
+    if (result.ok) {
+      cleanupFromSource(opts.from);
+      success(result);
+    } else failure(result);
   });
   mission.command("transition").requiredOption("--to <stage>", "Target stage: specifying, building, or consolidating").option("--task <task-id>", "Required when --to=building").description("Transition mission stage").action((opts) => {
     const result = runMissionTransition(opts.to, opts.task);
@@ -13745,8 +13759,10 @@ function registerMission(program2) {
       return;
     }
     const result = runMissionEvidenceRecord(read.artifact);
-    if (result.ok) success(result);
-    else failure(result);
+    if (result.ok) {
+      cleanupFromSource(opts.from);
+      success(result);
+    } else failure(result);
   });
 }
 
@@ -13924,8 +13940,10 @@ function registerTask(program2) {
       return;
     }
     const result = runTaskContractRecord(opts.task, read.artifact);
-    if (result.ok) success(result);
-    else failure(result);
+    if (result.ok) {
+      cleanupFromSource(opts.from);
+      success(result);
+    } else failure(result);
   });
   task.command("transition").requiredOption("--task <task-id>", "Target task id").requiredOption("--to <phase>", "Target phase").description("Transition task phase explicitly").action((opts) => {
     const result = runTaskTransition(opts.task, opts.to);
@@ -13956,8 +13974,10 @@ function registerTask(program2) {
       return;
     }
     const result = runTaskEvidenceRecord(opts.task, opts.kind, read.artifact);
-    if (result.ok) success(result);
-    else failure(result);
+    if (result.ok) {
+      cleanupFromSource(opts.from);
+      success(result);
+    } else failure(result);
   });
 }
 
@@ -14013,8 +14033,10 @@ function registerJudgment(program2) {
       return;
     }
     const result = runJudgmentRecord(opts.target, read.artifact, opts.task);
-    if (result.ok) success(result);
-    else failure(result);
+    if (result.ok) {
+      cleanupFromSource(opts.from);
+      success(result);
+    } else failure(result);
   });
 }
 
@@ -14192,8 +14214,10 @@ function registerDebt(program2) {
       return;
     }
     const result = runDebtRecord(read.payload);
-    if (result.ok) success(result);
-    else failure(result);
+    if (result.ok) {
+      cleanupFromSource(opts.from);
+      success(result);
+    } else failure(result);
   });
   debt.command("update").requiredOption("--id <debt-id>", "Debt id to update").requiredOption("--from <path>", "YAML debt item patch path or - for stdin").description("Patch a debt item").action((opts) => {
     const read = readPayload(opts.from);
@@ -14202,8 +14226,10 @@ function registerDebt(program2) {
       return;
     }
     const result = runDebtUpdate(opts.id, read.payload);
-    if (result.ok) success(result);
-    else failure(result);
+    if (result.ok) {
+      cleanupFromSource(opts.from);
+      success(result);
+    } else failure(result);
   });
 }
 function nextDebtId(ledger) {
@@ -14272,8 +14298,10 @@ function registerMemory(program2) {
       return;
     }
     const result = runMemoryRecord(opts.scope, opts.role, read.payload);
-    if (result.ok) success(result);
-    else failure(result);
+    if (result.ok) {
+      cleanupFromSource(opts.from);
+      success(result);
+    } else failure(result);
   });
 }
 

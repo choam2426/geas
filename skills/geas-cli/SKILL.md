@@ -7,7 +7,7 @@ description: Provides the Geas runtime write adapter and status interface throug
 
 ## Job
 
-Run the bundled `scripts/geas` CLI as the single adapter for `.geas/` runtime reads and writes. Keep readable Markdown artifacts, runtime YAML data, CLI guard results, and User Judgment responsibilities separate.
+Run the bundled `scripts/geas` CLI as the single adapter for `.geas/` runtime reads and writes. Resolve `scripts/geas` from the `geas-cli` Skill directory as `<geas-cli Skill directory>/scripts/geas`, not from the caller's current workspace. Keep readable Markdown artifacts, runtime YAML data, CLI guard results, and User Judgment responsibilities separate.
 
 ## Workflow
 
@@ -17,9 +17,10 @@ Normal:
 - Use readable `.md` artifact payloads for Mission Spec, Mission Design, Task Contract, Evidence, User Judgment, and Mission Evidence records.
 - Let the CLI update runtime `.yaml` data such as Run State, Task State, Debt Ledger, and Memory through guarded commands.
 - Run the needed `scripts/geas ...` command.
+- Treat a successful `--from <path>` write as consuming the prepared payload file; keep the CLI output paths as the durable refs.
 - Return the JSON result, written paths, state changes, and any current location fields to the caller.
 
-Common command surface:
+Common command surface, with `scripts/geas` resolved relative to the `geas-cli` Skill directory:
 - `scripts/geas init`
 - `scripts/geas status`
 - `scripts/geas mission create`
@@ -32,6 +33,7 @@ Common command surface:
 - `scripts/geas task evidence record --task <task-id> --kind <implementation|verification|review|challenger|task> --from <path>`
 - `scripts/geas judgment record --target <task-result|mission-result> [--task <task-id>] --from <path>`
 - `scripts/geas debt record --from <path>`
+- `scripts/geas debt update --id <debt-id> --from <path>`
 - `scripts/geas memory record --scope <common|role> [--role <role>] --from <path>`
 
 Handoff:
@@ -65,9 +67,9 @@ Optional:
 
 | Resource | When to use | Purpose |
 | --- | --- | --- |
-| `scripts/geas` | every runtime read or write | execute the bundled Geas CLI adapter |
+| `scripts/geas` | every runtime read or write | execute the bundled Geas CLI adapter from the `geas-cli` Skill directory |
 
-Run `scripts/geas --help` to inspect the current command surface before using a command not listed above. On Windows PowerShell, run `node scripts/geas --help` if the extensionless script cannot execute directly.
+Run `<geas-cli Skill directory>/scripts/geas --help` to inspect the current command surface before using a command not listed above. On Windows PowerShell, run `node <geas-cli Skill directory>/scripts/geas --help` if the extensionless script cannot execute directly.
 
 ## Gotchas
 
@@ -76,6 +78,7 @@ Run `scripts/geas --help` to inspect the current command surface before using a 
 - Markdown artifacts are readable payloads; runtime YAML files are state data guarded by CLI commands.
 - User Judgment payloads must come from User decisions, not agent recommendations.
 - Mission Evidence is recorded only after Mission result User Judgment and the required Mission closure inputs exist.
+- From a repository or workspace root, invoke the resolved Skill script path. For this repository layout, use `node skills/geas-cli/scripts/geas ...`; `node scripts/geas ...` targets a workspace-local path.
 - Do not copy CLI invocation rules into every other Skill; route runtime writes through this adapter.
 
 ## Stop Conditions

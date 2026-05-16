@@ -18,7 +18,7 @@ import {
   type SuccessResult,
 } from '../lib/output';
 import { checkMissionCreate, checkMissionDesignRecord, checkMissionEvidenceRecord, checkMissionSpecRecord, checkMissionTransition } from '../lib/guards';
-import { readMarkdownArtifact } from '../lib/io';
+import { cleanupFromSource, readMarkdownArtifact } from '../lib/io';
 import { runTransaction } from '../lib/transaction';
 
 const COMMAND_CREATE = 'mission create';
@@ -287,7 +287,10 @@ export function registerMission(program: Command): void {
         return;
       }
       const result = runMissionSpecRecord(read.artifact);
-      if (result.ok) success(result);
+      if (result.ok) {
+        cleanupFromSource(opts.from);
+        success(result);
+      }
       else failure(result);
     });
 
@@ -309,7 +312,10 @@ export function registerMission(program: Command): void {
         return;
       }
       const result = runMissionDesignRecord(read.artifact);
-      if (result.ok) success(result);
+      if (result.ok) {
+        cleanupFromSource(opts.from);
+        success(result);
+      }
       else failure(result);
     });
 
@@ -342,7 +348,10 @@ export function registerMission(program: Command): void {
         return;
       }
       const result = runMissionEvidenceRecord(read.artifact);
-      if (result.ok) success(result);
+      if (result.ok) {
+        cleanupFromSource(opts.from);
+        success(result);
+      }
       else failure(result);
     });
 }

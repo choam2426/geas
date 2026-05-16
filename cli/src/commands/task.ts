@@ -15,7 +15,7 @@ import {
   type SuccessResult,
 } from '../lib/output';
 import { checkTaskContractRecord, checkTaskEvidenceRecord, checkTaskTransition } from '../lib/guards';
-import { readMarkdownArtifact } from '../lib/io';
+import { cleanupFromSource, readMarkdownArtifact } from '../lib/io';
 import { runTransaction } from '../lib/transaction';
 
 export type TaskResult = SuccessResult | FailureResult;
@@ -223,7 +223,10 @@ export function registerTask(program: Command): void {
         return;
       }
       const result = runTaskContractRecord(opts.task, read.artifact);
-      if (result.ok) success(result);
+      if (result.ok) {
+        cleanupFromSource(opts.from);
+        success(result);
+      }
       else failure(result);
     });
 
@@ -268,7 +271,10 @@ export function registerTask(program: Command): void {
         return;
       }
       const result = runTaskEvidenceRecord(opts.task, opts.kind, read.artifact);
-      if (result.ok) success(result);
+      if (result.ok) {
+        cleanupFromSource(opts.from);
+        success(result);
+      }
       else failure(result);
     });
 }

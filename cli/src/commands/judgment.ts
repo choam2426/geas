@@ -14,7 +14,7 @@ import {
   type SuccessResult,
 } from '../lib/output';
 import { checkJudgmentRecord } from '../lib/guards';
-import { readMarkdownArtifact } from '../lib/io';
+import { cleanupFromSource, readMarkdownArtifact } from '../lib/io';
 
 export type JudgmentResult = SuccessResult | FailureResult;
 
@@ -95,7 +95,10 @@ export function registerJudgment(program: Command): void {
         return;
       }
       const result = runJudgmentRecord(opts.target, read.artifact, opts.task);
-      if (result.ok) success(result);
+      if (result.ok) {
+        cleanupFromSource(opts.from);
+        success(result);
+      }
       else failure(result);
     });
 }
