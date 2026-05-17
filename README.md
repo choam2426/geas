@@ -1,8 +1,10 @@
+English | [한국어](README.ko.md)
+
+<img src="assets/logo.png" alt="Geas logo" width="96">
+
 # Geas
 
 Geas is a set of operating principles and Skills that structure AI agent work around explicit contracts, execution, Evidence, User Judgment, and reflection so humans can judge results responsibly at lower cost.
-
-Korean: [README.ko.md](README.ko.md)
 
 ## Why Geas Exists
 

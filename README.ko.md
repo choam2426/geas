@@ -1,3 +1,7 @@
+[English](README.md) | 한국어
+
+<img src="assets/logo.png" alt="Geas logo" width="96">
+
 # Geas
 
 Geas는 AI agent 작업을 명확한 계약, 실행, 검증 근거, 수용 판단, 회고로 구조화해 사람이 더 낮은 비용으로 책임 있게 결과를 판단할 수 있게 하는 운영 원칙과 Skill 묶음입니다.
