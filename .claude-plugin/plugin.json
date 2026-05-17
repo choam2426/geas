@@ -1,0 +1,20 @@
+{
+  "name": "geas",
+  "version": "0.1.0",
+  "description": "Structure agent work as Mission, Task Contract, Evidence, User Judgment, and reflection.",
+  "author": {
+    "name": "Geas"
+  },
+  "homepage": "https://github.com/choam2426/geas",
+  "repository": "https://github.com/choam2426/geas",
+  "license": "Apache-2.0",
+  "keywords": [
+    "agents",
+    "skills",
+    "verification",
+    "codex",
+    "claude"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}

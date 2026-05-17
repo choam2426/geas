@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["plan_summary", "approach_strategy", "alternatives_considered", "key_concepts", "scope_in", "scope_out", "plan_outline", "decision_points", "assumptions", "risks", "change_triggers"],
+  "properties": {
+    "plan_summary": { "type": "string" },
+    "approach_strategy": { "type": "string" },
+    "alternatives_considered": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["approach", "benefit", "cost", "decision_reason"],
+        "properties": {
+          "approach": { "type": "string" },
+          "benefit": { "type": "string" },
+          "cost": { "type": "string" },
+          "decision_reason": { "type": "string" }
+        }
+      }
+    },
+    "key_concepts": { "type": "array", "items": { "type": "string" } },
+    "scope_in": { "type": "array", "items": { "type": "string" } },
+    "scope_out": { "type": "array", "items": { "type": "string" } },
+    "plan_outline": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["focus", "purpose", "user_visible_result"],
+        "properties": {
+          "focus": { "type": "string" },
+          "purpose": { "type": "string" },
+          "user_visible_result": { "type": "string" }
+        }
+      }
+    },
+    "decision_points": { "type": "array", "items": { "type": "string" } },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "change_triggers": { "type": "array", "items": { "type": "string" } }
+  }
+}

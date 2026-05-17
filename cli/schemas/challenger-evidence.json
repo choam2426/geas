@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["target", "challenge_focus", "findings", "user_decisions_needed", "deeper_checks_needed", "verdict", "overall_recommendation"],
+  "properties": {
+    "target": { "type": "array", "items": { "type": "string" } },
+    "challenge_focus": { "type": "array", "items": { "type": "string" } },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["finding", "risk_type", "basis", "escalation"],
+        "properties": {
+          "finding": { "type": "string" },
+          "risk_type": {
+            "type": "string",
+            "enum": ["assumption", "scope", "verification_gap", "operational_risk", "tradeoff", "repeat_risk"]
+          },
+          "basis": { "type": "string" },
+          "escalation": { "type": "string" }
+        }
+      }
+    },
+    "user_decisions_needed": { "type": "array", "items": { "type": "string" } },
+    "deeper_checks_needed": { "type": "array", "items": { "type": "string" } },
+    "verdict": {
+      "type": "string",
+      "enum": ["passed", "changes_requested", "escalated"]
+    },
+    "overall_recommendation": { "type": "string" }
+  }
+}
