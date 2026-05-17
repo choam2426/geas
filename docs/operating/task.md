@@ -50,6 +50,8 @@ Task contract는 실행 전에 User와 합의되어야 한다. 단순한 Task에
 
 Task contract는 Task graph와 해당 Task 실행 계약의 정본이다. Mission design은 Task graph를 고정하지 않고, Task contract를 작성할 때 참고할 진행 계획을 제공한다.
 
+Pre-build Design Surface에서 User가 선택한 구현 전 결정은 Task contract에 반영될 때 실행 기준이 된다. HTML, diagram, prototype, comparison 같은 design surface 자체는 Task contract나 Evidence를 대체하지 않는다.
+
 Task State는 Task 안에서 현재 이어갈 phase를 찾는 진행 위치 pointer다. Task contract는 실행 기준선이다.
 
 `unstarted` phase는 Task contract가 기록되었지만 아직 implementation으로 들어가지 않은 Task를 가리킨다.

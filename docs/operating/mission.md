@@ -79,7 +79,7 @@ Mission은 다음 흐름을 따른다.
 
 ```mermaid
 flowchart LR
-  S["specifying<br/>Mission spec, Mission design, 초기 Task contract"]
+  S["specifying<br/>Mission spec, Mission design, Pre-build Design Surface, 초기 Task contract"]
   B["building<br/>Task 실행과 Task 수용 판단"]
   C["consolidating<br/>Mission 대조와 Mission 수용 판단"]
 
@@ -104,12 +104,13 @@ flowchart TD
   C["기준선 후보 정리<br/>(Baseline Candidate)"]
   S["Mission Spec 합의"]
   D["Mission Design 합의"]
+  PBS["Pre-build Design Surface<br/>필요 시"]
   T["초기 Task Contract 합의"]
   H["Challenger<br/>기준선 압박 optional"]
   K["실행 준비 확인"]
   B["building"]
 
-  R --> P --> I --> C --> S --> D --> T
+  R --> P --> I --> C --> S --> D --> PBS --> T
   T --> H
   H -->|"문제 없음 또는 반영됨"| K
   H -->|"기준선 수정 필요"| S
@@ -118,6 +119,7 @@ flowchart TD
   C -->|"후보 수정"| I
   S -->|"수정 요청"| S
   D -->|"수정 요청"| D
+  PBS -->|"구현 전 결정 수정"| PBS
   T -->|"수정 요청"| T
   K -->|"준비됨"| B
 ```
@@ -128,22 +130,25 @@ User 요청을 바로 Mission Spec으로 옮기지 않는다. 먼저 기존 runt
 
 Mission Spec에 합의하면 Mission Design에 합의한다. Mission Design은 접근 전략, 계획 outline, 판단 지점, 가정과 위험이 User가 이해하고 검토할 수 있는지 확인하는 기준선이다.
 
-Mission Design에 합의하면 초기 Task Contract에 합의한다. 초기 Task Contract는 Task 분리, Task id, 의존 관계와 각 Task를 실행하기 전에 범위, 산출물, 수용 기준, verification checks, review focus를 고정한다.
+Mission Design에 합의하면 Pre-build Design Surface가 필요한지 판단한다. Markdown 설명만으로 Task Contract 결정을 판단하기 어렵고, 비교·시각화·조작·탐색 가능한 표면이 판단 비용을 낮추면 HTML, diagram, prototype, comparison 같은 임시 표면을 만든다. 이 표면은 runtime 정본이나 Evidence가 아니며, User가 선택한 결정만 초기 Task Contract에 반영한다.
 
-세 기준선이 각각 합의되고 기록되면 실행 준비 확인을 거쳐 building으로 넘어간다.
+Pre-build Design Surface가 필요하지 않거나 필요한 결정이 반영되면 초기 Task Contract에 합의한다. 초기 Task Contract는 Task 분리, Task id, 의존 관계와 각 Task를 실행하기 전에 범위, 산출물, 수용 기준, verification checks, review focus를 고정한다.
 
-Mission Spec에 합의했다고 Mission Design까지 합의한 것은 아니다. Mission Design에 합의했다고 초기 Task Contract까지 합의한 것은 아니다. 초기 Task Contract 합의는 Task 결과 수용 판단이 아니다.
+세 기준선이 각각 합의되고 필요한 Pre-build Design Surface 결정이 Task Contract에 반영되면 실행 준비 확인을 거쳐 building으로 넘어간다.
 
-Challenger가 참여하면 Mission Spec과 Mission Design의 숨은 가정, scope 경계, 계획 위험을 드러내고, 초기 Task Contract가 정하는 Task 분리, 의존 관계, 검증·검토 경계의 장기 위험을 드러낸다. Orchestrator는 드러난 내용을 User와 토론하고 합의된 기준선에 반영한다.
+Mission Spec에 합의했다고 Mission Design까지 합의한 것은 아니다. Mission Design에 합의했다고 Pre-build Design Surface 결정이나 초기 Task Contract까지 합의한 것은 아니다. 초기 Task Contract 합의는 Task 결과 수용 판단이 아니다.
 
-User는 Mission Spec, Mission Design, 초기 Task Contract를 순서대로 확인하고 합의한다. 수정이 필요하면 specifying 안에서 기준선을 다시 다듬고, 합의되면 building으로 넘어간다.
+Challenger가 참여하면 Mission Spec과 Mission Design의 숨은 가정, scope 경계, 계획 위험을 드러내고, Pre-build Design Surface 결정과 초기 Task Contract가 정하는 Task 분리, 의존 관계, 검증·검토 경계의 장기 위험을 드러낸다. Orchestrator는 드러난 내용을 User와 토론하고 합의된 기준선에 반영한다.
 
-남겨야 할 것은 versioned Mission Spec, Mission Design, 초기 Task Contract다. 이 기준선 합의는 별도 User Judgment artifact로 남기지 않는다.
+User는 Mission Spec, Mission Design, 필요한 Pre-build Design Surface 결정, 초기 Task Contract를 순서대로 확인하고 합의한다. 수정이 필요하면 specifying 안에서 기준선을 다시 다듬고, 합의되면 building으로 넘어간다.
+
+남겨야 할 것은 versioned Mission Spec, Mission Design, 초기 Task Contract다. Pre-build Design Surface 파일이나 링크는 판단 맥락으로 briefing에 남길 수 있지만 기준선 정본은 아니며, 선택된 결정은 초기 Task Contract에 들어가야 한다. 이 기준선 합의는 별도 User Judgment artifact로 남기지 않는다.
 
 다음 경우에는 조용히 실행 범위를 넓히지 않고 specifying 안에서 기준선을 다시 합의한다.
 
 - Mission 목표, 포함 범위, 제외 범위, 수용 기준이 바뀐다.
 - Mission 진행 방식, 주요 scope framing, 판단 지점, 가정, 위험, 변경 trigger가 바뀐다.
+- Pre-build Design Surface에서 선택한 구현 전 결정이 바뀌거나, 필요한 결정이 Task Contract에 반영되지 않았다.
 - Task 추가, 삭제, dependency, task별 mission coverage가 바뀐다.
 - Task 결과나 Evidence가 Mission 기준선 자체의 문제를 드러낸다.
 - User가 Task 수준 재작업이 아니라 Mission 수준 재검토를 요청한다.
