@@ -1,6 +1,6 @@
 [English](README.md) | 한국어
 
-<img src="assets/logo.png" alt="Geas logo" width="96">
+<img src="plugins/geas/assets/logo.png" alt="Geas logo" width="96">
 
 # Geas
 
@@ -64,7 +64,7 @@ Geas는 agent 작업을 다음 흐름으로 다루는 기본 운영 원칙입니
 ```bash
 git clone https://github.com/choam2426/geas.git
 mkdir -p .agents/skills
-cp -R geas/skills/* .agents/skills/
+cp -R geas/plugins/geas/skills/* .agents/skills/
 ```
 
 </details>
@@ -75,7 +75,7 @@ cp -R geas/skills/* .agents/skills/
 ```bash
 git clone https://github.com/choam2426/geas.git
 mkdir -p .claude/skills
-cp -R geas/skills/* .claude/skills/
+cp -R geas/plugins/geas/skills/* .claude/skills/
 ```
 
 </details>

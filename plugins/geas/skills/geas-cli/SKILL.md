@@ -78,7 +78,7 @@ Run `<geas-cli Skill directory>/scripts/geas --help` to inspect the current comm
 - Markdown artifacts are readable payloads; runtime YAML files are state data guarded by CLI commands.
 - User Judgment payloads must come from User decisions, not agent recommendations.
 - Mission Evidence is recorded only after Mission result User Judgment and the required Mission closure inputs exist.
-- From a repository or workspace root, invoke the resolved Skill script path. For this repository layout, use `node skills/geas-cli/scripts/geas ...`; `node scripts/geas ...` targets a workspace-local path.
+- From a repository or workspace root, invoke the resolved Skill script path. For this repository layout, use `node plugins/geas/skills/geas-cli/scripts/geas ...`; `node scripts/geas ...` targets a workspace-local path.
 - Do not copy CLI invocation rules into every other Skill; route runtime writes through this adapter.
 
 ## Stop Conditions

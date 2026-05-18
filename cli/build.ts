@@ -1,5 +1,5 @@
 import { build } from 'esbuild';
-import { existsSync, readFileSync, writeFileSync, chmodSync, readdirSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, chmodSync, readdirSync, mkdirSync, renameSync, rmSync } from 'node:fs';
 import { resolve, join, dirname } from 'node:path';
 
 async function main() {
@@ -15,11 +15,13 @@ async function main() {
   }
   const schemasModule = `module.exports = ${JSON.stringify(schemas)};`;
 
-  const outFile = resolve(__dirname, '..', 'skills', 'geas-cli', 'scripts', 'geas');
+  const outFile = resolve(__dirname, '..', 'plugins', 'geas', 'skills', 'geas-cli', 'scripts', 'geas');
+  const tempOutFile = `${outFile}.tmp`;
   const outDir = dirname(outFile);
   if (!existsSync(outDir)) {
     mkdirSync(outDir, { recursive: true });
   }
+  rmSync(tempOutFile, { force: true });
 
   await build({
     entryPoints: [resolve(__dirname, 'src', 'main.ts')],
@@ -27,7 +29,7 @@ async function main() {
     platform: 'node',
     target: 'node18',
     format: 'cjs',
-    outfile: outFile,
+    outfile: tempOutFile,
     minify: false,
     plugins: [
       {
@@ -46,12 +48,14 @@ async function main() {
     ],
   });
 
-  const built = readFileSync(outFile, 'utf8');
-  writeFileSync(outFile, '#!/usr/bin/env node\n' + built);
+  const built = readFileSync(tempOutFile, 'utf8');
+  writeFileSync(tempOutFile, '#!/usr/bin/env node\n' + built);
+  rmSync(outFile, { force: true });
+  renameSync(tempOutFile, outFile);
   try {
     chmodSync(outFile, 0o755);
   } catch {
-    // Windows or restricted FS — git update-index --chmod=+x carries the bit.
+    // Windows or restricted filesystems may ignore chmod; Git carries the executable bit.
   }
 }
 

@@ -1,6 +1,6 @@
 English | [한국어](README.ko.md)
 
-<img src="assets/logo.png" alt="Geas logo" width="96">
+<img src="plugins/geas/assets/logo.png" alt="Geas logo" width="96">
 
 # Geas
 
@@ -64,7 +64,7 @@ Use one of the following methods.
 ```bash
 git clone https://github.com/choam2426/geas.git
 mkdir -p .agents/skills
-cp -R geas/skills/* .agents/skills/
+cp -R geas/plugins/geas/skills/* .agents/skills/
 ```
 
 </details>
@@ -75,7 +75,7 @@ cp -R geas/skills/* .agents/skills/
 ```bash
 git clone https://github.com/choam2426/geas.git
 mkdir -p .claude/skills
-cp -R geas/skills/* .claude/skills/
+cp -R geas/plugins/geas/skills/* .claude/skills/
 ```
 
 </details>

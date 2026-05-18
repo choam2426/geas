@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "geas",
-      "source": "./",
+      "source": "./plugins/geas",
       "description": "Structure agent work as Mission, Task Contract, Evidence, User Judgment, and reflection.",
       "author": {
         "name": "Geas"

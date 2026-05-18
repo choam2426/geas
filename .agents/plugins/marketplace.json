@@ -8,7 +8,7 @@
       "name": "geas",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./plugins/geas"
       },
       "policy": {
         "installation": "AVAILABLE",
