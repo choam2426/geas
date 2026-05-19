@@ -35,11 +35,11 @@ Normal:
 - Draft Mission Spec first using `references/mission-spec.md`, then show 2-3 item chunks, collect revisions, and present a final summary for acceptance.
 - After final summary acceptance of the Mission Spec, record it through `geas-cli`.
 - After Mission Spec acceptance, decide whether a design-level Pre-build Design Surface is required by running and classifying every Trigger Lens Scan item in `references/pre-build-design-surface.md`.
-- If a design-level Pre-build Design Surface is required, prepare the surface briefing or surface artifact refs, collect the User decisions needed for Mission Design drafting, and preserve unresolved decisions as stop conditions when they can affect Mission approach, final output shape, data meaning, workflow handoff, evidence/export shape, external interface contract, domain or structural model, key tradeoff, risks, assumptions, or change triggers.
+- If a design-level Pre-build Design Surface is required, prepare the surface briefing or surface artifact refs using the HTML-first surface policy in `references/pre-build-design-surface.md`, collect the User decisions needed for Mission Design drafting, and preserve unresolved decisions as stop conditions when they can affect Mission approach, final output shape, data meaning, workflow handoff, evidence/export shape, external interface contract, domain or structural model, key tradeoff, risks, assumptions, or change triggers.
 - Draft Mission Design only after Mission Spec acceptance and after required design-level Pre-build Design Surface decisions are resolved or explicitly classified as non-blocking, using `references/mission-design.md`, then show 2-3 item chunks, collect revisions, and present a final summary for acceptance.
 - After final summary acceptance of the Mission Design, record it through `geas-cli`.
 - After the User accepts Mission Design, decide whether a contract-level Pre-build Design Surface is required by rerunning and classifying every Trigger Lens Scan item in `references/pre-build-design-surface.md` for Task Contract effects.
-- If a contract-level Pre-build Design Surface is required, prepare the surface briefing or surface artifact refs, collect the User decisions needed for Task Contract drafting, and preserve unresolved decisions as stop conditions when they can affect Task scope, dependencies, deliverables, acceptance criteria, verification checks, review focus, risk level, or first building Task.
+- If a contract-level Pre-build Design Surface is required, prepare the surface briefing or surface artifact refs using the HTML-first surface policy in `references/pre-build-design-surface.md`, collect the User decisions needed for Task Contract drafting, and preserve unresolved decisions as stop conditions when they can affect Task scope, dependencies, deliverables, acceptance criteria, verification checks, review focus, risk level, or first building Task.
 - If a Pre-build Design Surface is skipped, state the baseline level, each lens classification, and skip reason in the baseline briefing using the skip conditions in `references/pre-build-design-surface.md`.
 - Before drafting the initial Task Contract Set, choose the Task boundary pattern using `references/task-contract.md`, then preserve the pattern, AC coverage matrix, Task boundary rationale, and first Task rationale in the Task Contract Set briefing.
 - For broad MVP, app, workflow replacement, data workflow, reporting, or multi-surface product Missions, decide whether the Set should start with an implementation criteria Task before feature implementation Tasks. Use this when later implementation Tasks would otherwise depend on hidden decisions about data structure, screen or workflow flow, route/API shape, export shape, acceptance coverage, or verification approach.
@@ -112,7 +112,7 @@ Optional:
 
 Use the `geas-cli` adapter Skill to record accepted Mission Spec, Mission Design, each Task Contract in the Task Contract Set, and stage transitions. If `geas-cli` does not report success, preserve the payload and stop.
 
-No scripts or assets are required by default. A Pre-build Design Surface may point to temporary HTML, Mermaid, SVG, table, static mockup, or small JS editor artifacts, but those artifacts are decision surfaces rather than runtime records.
+No scripts or assets are required by default. A Pre-build Design Surface classified as `surface` defaults to self-contained HTML, with Markdown tables, Mermaid, SVG, or briefing-only output reserved for the exception cases in `references/pre-build-design-surface.md`. These artifacts are decision surfaces rather than runtime records.
 
 ## Gotchas
 
@@ -126,6 +126,7 @@ No scripts or assets are required by default. A Pre-build Design Surface may poi
 - Do not draft the Task Contract Set before Mission Design is accepted and blocking contract-level Pre-build Design Surface decisions are resolved.
 - Do not skip a Pre-build Design Surface when unresolved implementation-before-build decisions would affect Mission Design, Task Contract scope, dependencies, deliverables, acceptance criteria, verification checks, review focus, or the first building Task.
 - Do not use an implementation criteria Task to postpone decisions that can change Mission Design, Task boundaries, dependencies, deliverables, acceptance criteria, or the first building Task.
+- Do not classify a decision as `surface` and then provide only prose or a Markdown summary unless the HTML-first exception rules explicitly apply.
 - Do not treat a Pre-build Design Surface as runtime artifact, Evidence, User Judgment, or Task Contract source of truth.
 - Do not leave selected design decisions only in an HTML, diagram, prototype, comparison, or briefing; reflect them in Mission Design or the Task Contract Set before accepting the owning artifact.
 - Do not record drafts before explicit User acceptance.

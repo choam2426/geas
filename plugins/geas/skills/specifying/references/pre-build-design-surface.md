@@ -4,7 +4,7 @@
 
 Use this reference after the User accepts Mission Spec and before accepting the baseline artifact that would otherwise lock a costly decision.
 
-Pre-build Design Surface lowers User decision cost when prose alone is a weak medium for deciding baseline inputs. It can use HTML, Mermaid, SVG, tables, static mockups, prototypes, comparisons, concrete examples, or small JS editors to help the User compare, visualize, manipulate, or explore implementation-before-build choices.
+Pre-build Design Surface lowers User decision cost when prose alone is a weak medium for deciding baseline inputs. When a decision is classified as `surface`, use self-contained HTML as the default medium so the User can compare, visualize, manipulate, or explore implementation-before-build choices in a browser. Use Markdown tables, Mermaid, SVG, or briefing-only output only under the exception rules below.
 
 The surface is temporary decision support. It is not a runtime artifact, Evidence, User Judgment, Mission Design, or Task Contract. A selected Mission-level decision becomes baseline only when reflected in Mission Design. A selected Task-level decision becomes execution baseline only when reflected in the Task Contract Set.
 
@@ -48,7 +48,7 @@ Use the scan twice when both baseline levels exist. Before Mission Design, keep 
 
 Classify every lens as one of these:
 
-- `surface`: the User needs a comparison, mockup, table, diagram, sample output, or prototype before the next baseline artifact can be accepted.
+- `surface`: the User needs a comparison, mockup, table, diagram, sample output, prototype, or editor before the next baseline artifact can be accepted. This defaults to a self-contained HTML surface.
 - `direct question`: one focused User answer can settle the decision without a surface.
 - `reflected`: the owning baseline artifact already states the decision clearly enough for acceptance.
 - `non-blocking`: the decision can move to a named later artifact without changing the current baseline artifact.
@@ -71,6 +71,26 @@ Common trigger shapes:
 - Operational artifact: release plan, rollback plan, monitoring map, migration sequence, or runbook preview when the artifact itself shapes Mission or Task acceptance.
 - Decision input tool: triage board, priority sorter, scope picker, prompt/config tuner, or decision worksheet.
 
+## HTML-First Surface Policy
+
+Use self-contained HTML as the default for `surface` decisions. The file must open directly in a browser, keep its CSS and JavaScript inline, avoid external services, and include enough labels or copyable output for the selected decision to be carried into Mission Design or the Task Contract Set.
+
+HTML is the expected medium when the User needs one of these:
+
+- side-by-side option comparison with tradeoffs visible at once;
+- clickable flow, screen sequence, form preview, data-entry preview, state transition, or interaction feel;
+- sample export, CSV/report preview, confirmation screen, or generated artifact preview;
+- custom decision editor such as a sorter, picker, tuner, toggle board, or scoped checklist;
+- component, screen, state, token, or variant sheet for visual or interaction judgment;
+- annotated diagram with expandable detail, toggles, tabs, filters, or linked examples.
+
+Use these exceptions instead of HTML:
+
+- Use `direct question` when one focused User answer can settle the decision.
+- Use a Markdown table when the decision is a small static comparison and interactivity or layout would not lower User decision cost.
+- Use Mermaid or SVG when the decision is a pure structure or flow diagram and no interaction, variant, or sample output is needed.
+- Use briefing-only output when no artifact would lower User decision cost beyond the written choices.
+
 ## Skip Conditions
 
 Skip the surface and state the reason in the baseline briefing when one of these applies:
@@ -84,8 +104,7 @@ Skip the surface and state the reason in the baseline briefing when one of these
 
 ## Surface Rules
 
-- Prefer self-contained HTML for interactive or multi-view surfaces.
-- Use static Markdown tables, Mermaid, or SVG when interaction does not lower decision cost.
+- Apply the HTML-first surface policy before choosing Markdown, Mermaid, SVG, or briefing-only output.
 - Make the surface answer a concrete baseline decision question.
 - Present distinct options, constraints, risks, and expected Mission Design or Task Contract implications.
 - Include an exportable or copyable decision summary when the surface is interactive.
