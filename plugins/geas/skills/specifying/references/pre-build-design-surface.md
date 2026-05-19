@@ -21,10 +21,38 @@ Resolve a design-level surface before the User accepts Mission Design when the d
 
 Resolve a contract-level surface after the User accepts Mission Design and before Task Contract Set acceptance when the decision affects Task slicing, deliverables, acceptance criteria, verification checks, dependencies, risk level, or the first building Task.
 
+## Trigger Lens Scan
+
+Before creating or skipping a Pre-build Design Surface, scan these lenses and classify each result. The scan is a gate for the next baseline artifact: the coordinator cannot skip by saying the main architecture, stack, or deployment choice is settled while another lens still contains a blocking baseline decision.
+
+A lens creates a surface candidate when the decision can affect Mission Design or the Task Contract Set and the User can judge it at lower cost through a surface than through prose alone. A lens can be skipped only when its result is already reflected in the owning accepted or draft baseline artifact, does not affect that artifact, or can be resolved by a single direct User question without a surface.
+
+- Result shape lens: final screen, document, file, report, command output, or briefing structure can affect User acceptance.
+- Data meaning lens: record unit, field meaning, item-level versus record-level attachment, state values, identifiers, or relationships are easy to misread and costly to change later.
+- Workflow handoff lens: who enters, reviews, confirms, assigns, closes, or reopens work, and which state transitions matter, are not yet reviewable.
+- Evidence/export lens: CSV shape, report sections, sample output, confirmation screen, or other User judgment surface affects whether the result can be accepted.
+- Acceptance slicing lens: Task boundaries, acceptance checkpoints, verification checks, or first building Task depend on a User decision.
+- Operational constraint lens: deployment, storage, file retention, access, environment, or operational ownership can change Mission Design or Task Contract contents.
+
+Use the scan twice when both baseline levels exist. Before Mission Design, keep design-level candidates that shape Mission approach, result shape, data meaning, workflow, export expectations, or operational constraints. Before Task Contract Set, keep contract-level candidates that shape Task scope, deliverables, acceptance criteria, verification checks, review focus, dependencies, or first building Task.
+
+Classify every lens as one of these:
+
+- `surface`: the User needs a comparison, mockup, table, diagram, sample output, or prototype before the next baseline artifact can be accepted.
+- `direct question`: one focused User answer can settle the decision without a surface.
+- `reflected`: the owning baseline artifact already states the decision clearly enough for acceptance.
+- `non-blocking`: the decision can move to a named later artifact without changing the current baseline artifact.
+- `not applicable`: the lens has no effect on the Mission or Task Contract.
+
+Treat the scan as incomplete when a broad product, MVP, workflow replacement, data workflow, reporting/export, or human handoff Mission has only technology, architecture, storage, or deployment classified. At least result shape, data meaning, workflow handoff, evidence/export, and acceptance slicing must be classified before Mission Design or Task Contract Set drafting proceeds.
+
 Common trigger shapes:
 
 - Final output shape: report format, generated artifact structure, document, deck, HTML artifact, CLI output, or user-facing briefing structure.
 - External interface contract: CLI command surface, API shape, config format, schema, error shape, response shape, or compatibility boundary.
+- Data shape: record unit, field meanings, item relationships, state model, identifier policy, attachment target, or retention unit.
+- Workflow handoff shape: intake, assignment, review, confirmation, closure, escalation, status transition, or ownership boundary.
+- Export shape: CSV row model, report sectioning, sample output, spreadsheet compatibility target, downloadable artifact, or confirmation view.
 - Domain or structural model: ERD, state machine, event flow, module map, dependency graph, system boundary, or ownership map.
 - Acceptance examples: rule-heavy behavior, policy logic, edge cases, decision tables, example maps, or concrete expected outputs.
 - Scope and acceptance slicing: competing Task boundaries, dependency order, acceptance checkpoint placement, or first building Task.
@@ -38,6 +66,7 @@ Skip the surface and state the reason in the baseline briefing when one of these
 
 - The Mission is a small document edit or small bug fix with no decision matching the trigger.
 - The choice is already explicit and accepted in the baseline artifact that owns it.
+- Every lens is classified as `reflected`, `non-blocking`, or `not applicable`, and no remaining decision can affect Mission Design, the Task Contract Set, or User decision cost.
 - The result can be judged directly through tests, verification checks, or a short Task Contract.
 - The surface would not change Mission Design quality, Task Contract quality, or User decision cost.
 - The User explicitly asks for fast execution and accepts the risk of prose-only baseline drafting.
@@ -61,6 +90,7 @@ Use this shape in the User briefing or handoff result:
 ```markdown
 Pre-build Design Surface:
 - Purpose: <decision the surface exists to support>
+- Lens scan result: <each lens classified as surface, direct question, reflected, non-blocking, or not applicable>
 - Surface refs: <file paths, URLs, or "briefing only">
 - Options shown: <option labels and short meanings>
 - User decisions needed: <decisions still required>
@@ -119,6 +149,7 @@ Stop and return a specifying briefing when:
 - A required surface cannot be prepared or read.
 - The surface does not answer the decision it was meant to support.
 - The User has not selected among blocking options.
+- The lens scan has an unclassified lens that can affect the next baseline artifact.
 - An unresolved decision can affect Mission Design, Task Contract Set contents, dependencies, or first building Task.
 - The selected decision requires Mission Spec or Mission Design revision.
 

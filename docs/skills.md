@@ -191,6 +191,7 @@ resource 계획:
 - Mission Design draft를 만들고 User review로 올린다.
 - Mission Spec 수용 뒤 Mission Design 수용 전에 design-level Pre-build Design Surface가 필요한지 판단한다.
 - Mission Design 합의 이후 Task Contract Set 수용 전에 contract-level Pre-build Design Surface가 필요한지 판단한다.
+- Pre-build Design Surface 필요 여부를 판단할 때 result, data, workflow, export, acceptance, operational lens를 각각 분류해 빠뜨리기 쉬운 기준선 결정을 찾는다.
 - 필요한 경우 HTML, diagram, prototype, comparison 같은 임시 판단 표면으로 User가 구현 전 결정을 내릴 수 있게 한다.
 - 초기 Task Contract Set draft를 만들고 User review로 올린다.
 - User가 수용한 Mission Spec, Mission Design, 초기 Task Contract Set을 기록한다.

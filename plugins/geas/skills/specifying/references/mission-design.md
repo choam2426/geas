@@ -63,5 +63,6 @@ name: <same mission name as Mission Spec>
 - Open decision points are not hidden inside the plan.
 - The design does not silently expand Mission scope.
 - Design-level Pre-build Design Surface decisions that affect the approach, output shape, external interface contract, domain or structural model, or key tradeoff are reflected in the design.
+- Design-level Trigger Lens Scan results classify each lens, and every design-level `surface` or `direct question` result is resolved before Mission Design acceptance.
 - The design identifies whether Task Contract Set drafting can proceed directly or requires a contract-level Pre-build Design Surface first.
 - The Task Contract Set can be drafted from this design and any selected Pre-build Design Surface decisions without treating the design or surface as the Task graph.

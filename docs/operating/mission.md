@@ -130,7 +130,7 @@ User 요청을 바로 Mission Spec으로 옮기지 않는다. 먼저 기존 runt
 
 목표, 범위, 검증 경로, 판단 책임이 충분히 잡히면 기준선 후보(Baseline Candidate)를 정리한다. User가 이 후보를 받아들이면 Mission Spec 합의로 넘어간다.
 
-Mission Spec에 합의하면 Mission Design을 잠그기 전에 design-level Pre-build Design Surface가 필요한지 판단한다. Mission 접근, 최종 산출물 형태, 외부 interface contract, domain/structural model, 큰 tradeoff를 prose만으로 판단하기 어렵고 임시 표면이 판단 비용을 낮추면 HTML, diagram, prototype, comparison 같은 표면을 만든다. 이 표면은 runtime 정본이나 Evidence가 아니며, User가 선택한 Mission-level 결정만 Mission Design에 반영한다.
+Mission Spec에 합의하면 Mission Design을 잠그기 전에 design-level Pre-build Design Surface가 필요한지 판단한다. Mission 접근, 최종 산출물 형태, 외부 interface contract, domain/structural model, 큰 tradeoff를 prose만으로 판단하기 어렵고 임시 표면이 판단 비용을 낮추면 HTML, diagram, prototype, comparison 같은 표면을 만든다. 필요 여부를 판단할 때 result, data, workflow, export, acceptance, operational lens를 각각 분류해 빠뜨리기 쉬운 기준선 결정을 찾는다. 이 표면은 runtime 정본이나 Evidence가 아니며, User가 선택한 Mission-level 결정만 Mission Design에 반영한다.
 
 design-level 결정이 필요하지 않거나 필요한 결정이 반영되면 Mission Design에 합의한다. Mission Design은 접근 전략, 계획 outline, 판단 지점, 가정과 위험이 User가 이해하고 검토할 수 있는지 확인하는 기준선이다.
 

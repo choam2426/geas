@@ -34,13 +34,13 @@ Normal:
 - Draft Mission Spec only after the intake readiness checklist and Premature Commitment Guard are satisfied: items are answered, confirmed as assumptions, marked not applicable, or marked as non-blocking open decisions, and no unresolved decision can affect Mission Spec goal, scope, acceptance criteria, or reviewability.
 - Draft Mission Spec first using `references/mission-spec.md`, then show 2-3 item chunks, collect revisions, and present a final summary for acceptance.
 - After final summary acceptance of the Mission Spec, record it through `geas-cli`.
-- After Mission Spec acceptance, decide whether a design-level Pre-build Design Surface is required using `references/pre-build-design-surface.md`.
-- If a design-level Pre-build Design Surface is required, prepare the surface briefing or surface artifact refs, collect the User decisions needed for Mission Design drafting, and preserve unresolved decisions as stop conditions when they can affect Mission approach, final output shape, external interface contract, domain or structural model, key tradeoff, risks, assumptions, or change triggers.
+- After Mission Spec acceptance, decide whether a design-level Pre-build Design Surface is required by running and classifying every Trigger Lens Scan item in `references/pre-build-design-surface.md`.
+- If a design-level Pre-build Design Surface is required, prepare the surface briefing or surface artifact refs, collect the User decisions needed for Mission Design drafting, and preserve unresolved decisions as stop conditions when they can affect Mission approach, final output shape, data meaning, workflow handoff, evidence/export shape, external interface contract, domain or structural model, key tradeoff, risks, assumptions, or change triggers.
 - Draft Mission Design only after Mission Spec acceptance and after required design-level Pre-build Design Surface decisions are resolved or explicitly classified as non-blocking, using `references/mission-design.md`, then show 2-3 item chunks, collect revisions, and present a final summary for acceptance.
 - After final summary acceptance of the Mission Design, record it through `geas-cli`.
-- After the User accepts Mission Design, decide whether a contract-level Pre-build Design Surface is required using `references/pre-build-design-surface.md`.
+- After the User accepts Mission Design, decide whether a contract-level Pre-build Design Surface is required by rerunning and classifying every Trigger Lens Scan item in `references/pre-build-design-surface.md` for Task Contract effects.
 - If a contract-level Pre-build Design Surface is required, prepare the surface briefing or surface artifact refs, collect the User decisions needed for Task Contract drafting, and preserve unresolved decisions as stop conditions when they can affect Task scope, dependencies, deliverables, acceptance criteria, verification checks, review focus, risk level, or first building Task.
-- If a Pre-build Design Surface is skipped, state the baseline level and skip reason in the baseline briefing using the skip conditions in `references/pre-build-design-surface.md`.
+- If a Pre-build Design Surface is skipped, state the baseline level, each lens classification, and skip reason in the baseline briefing using the skip conditions in `references/pre-build-design-surface.md`.
 - Draft the initial Task Contract Set only after the User accepts Mission Design and after required contract-level Pre-build Design Surface decisions are resolved or explicitly classified as non-blocking, using `references/task-contract.md`. Draft one Task Contract candidate per executable Task, with `task_id`, `depends_on`, and `mission_acceptance_refs` expressing the Set relationship.
 - Show the Task Contract Set in 2-3 Task or related-item chunks, collect revisions, and present a final Set summary for acceptance. A very small Mission can have a Set with one Task Contract.
 - After final summary acceptance of the Task Contract Set, record each Task Contract through `geas-cli` with `task contract record --task <task-id>`.
@@ -63,7 +63,7 @@ User Decision:
 Briefing:
 - For Mission Spec, Mission Design, and Task Contract Set agreement, show 2-3 related items or Task candidates at a time.
 - For intake before Mission Spec, show an Intake Sketch when decisions remain: known User facts, unknowns that block drafting, choices that can be offered, and which later artifact would own each decision.
-- For Pre-build Design Surface agreement, show the surface purpose, baseline level, refs or preview summary, options presented, decisions requested, selected decisions, and Mission Design or Task Contract implications.
+- For Pre-build Design Surface agreement, show the surface purpose, baseline level, lens scan result, refs or preview summary, options presented, decisions requested, selected decisions, and Mission Design or Task Contract implications.
 - Each chunk includes current draft, decision to confirm, choices, and next step.
 - Treat chunk confirmation as provisional review input, not artifact acceptance.
 - After chunk revisions converge, present a final summary and ask whether to accept the whole artifact.
@@ -116,6 +116,7 @@ No scripts or assets are required by default. A Pre-build Design Surface may poi
 - Do not treat one User approval as acceptance of Mission Spec, Mission Design, Pre-build Design Surface decisions, and Task Contract Set together.
 - Do not end intake while readiness checklist items are still ambiguous; ask, offer choices, propose assumptions, or mark non-blocking open decisions first.
 - Do not convert broad MVP or product requests into a preferred stack, storage model, deployment model, authentication boundary, offline/sync boundary, data model, or scope-out list before the User confirms those decisions or they are recorded as non-blocking open decisions owned by a later artifact.
+- Treat architecture, stack, storage, or hosting decisions as incomplete until result shape, data meaning, workflow handoff, evidence/export shape, acceptance slicing, and operational constraints are each classified as surface, direct question, reflected, non-blocking, or not applicable.
 - Do not show the whole baseline artifact at once when asking for agreement.
 - Do not treat chunk-level confirmation as final artifact acceptance.
 - Do not draft Mission Design before Mission Spec is accepted and blocking design-level Pre-build Design Surface decisions are resolved.
@@ -135,6 +136,7 @@ No scripts or assets are required by default. A Pre-build Design Surface may poi
 - Required accepted baseline state is missing for a revision.
 - A required Pre-build Design Surface cannot be prepared, read, or briefed well enough for User decision.
 - A design-surface decision that affects Mission Design or the Task Contract Set remains unresolved.
+- A Trigger Lens Scan item that can affect the next baseline artifact remains unclassified.
 - User has not accepted the artifact that would be recorded next.
 - `geas-cli` recording does not report success.
 - Baseline challenge is required or requested but `challenging` is unavailable.

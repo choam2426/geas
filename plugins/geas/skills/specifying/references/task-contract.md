@@ -85,6 +85,7 @@ risk_level: low|medium|high
 - Review focus matches the risk and changed surface.
 - Dependencies are explicit.
 - Selected contract-level Pre-build Design Surface decisions that affect execution are reflected in scope, deliverables, criteria, checks, review focus, risks, dependencies, or change triggers.
+- Contract-level Trigger Lens Scan results classify each lens, and every execution-affecting `surface` or `direct question` result is reflected in Task scope, deliverables, acceptance criteria, verification checks, review focus, risks, dependencies, or change triggers.
 - Blocking design-surface decisions are not left open for building.
 - Change triggers tell future agents when to return to specifying.
 - The Set covers the intended Mission scope without hiding separate acceptance decisions inside one Task.
