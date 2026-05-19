@@ -41,6 +41,8 @@ Normal:
 - After the User accepts Mission Design, decide whether a contract-level Pre-build Design Surface is required by rerunning and classifying every Trigger Lens Scan item in `references/pre-build-design-surface.md` for Task Contract effects.
 - If a contract-level Pre-build Design Surface is required, prepare the surface briefing or surface artifact refs, collect the User decisions needed for Task Contract drafting, and preserve unresolved decisions as stop conditions when they can affect Task scope, dependencies, deliverables, acceptance criteria, verification checks, review focus, risk level, or first building Task.
 - If a Pre-build Design Surface is skipped, state the baseline level, each lens classification, and skip reason in the baseline briefing using the skip conditions in `references/pre-build-design-surface.md`.
+- Before drafting the initial Task Contract Set, choose the Task boundary pattern using `references/task-contract.md`, then preserve the pattern, AC coverage matrix, Task boundary rationale, and first Task rationale in the Task Contract Set briefing.
+- For broad MVP, app, workflow replacement, data workflow, reporting, or multi-surface product Missions, decide whether the Set should start with an implementation criteria Task before feature implementation Tasks. Use this when later implementation Tasks would otherwise depend on hidden decisions about data structure, screen or workflow flow, route/API shape, export shape, acceptance coverage, or verification approach.
 - Draft the initial Task Contract Set only after the User accepts Mission Design and after required contract-level Pre-build Design Surface decisions are resolved or explicitly classified as non-blocking, using `references/task-contract.md`. Draft one Task Contract candidate per executable Task, with `task_id`, `depends_on`, and `mission_acceptance_refs` expressing the Set relationship.
 - Show the Task Contract Set in 2-3 Task or related-item chunks, collect revisions, and present a final Set summary for acceptance. A very small Mission can have a Set with one Task Contract.
 - After final summary acceptance of the Task Contract Set, record each Task Contract through `geas-cli` with `task contract record --task <task-id>`.
@@ -64,6 +66,7 @@ Briefing:
 - For Mission Spec, Mission Design, and Task Contract Set agreement, show 2-3 related items or Task candidates at a time.
 - For intake before Mission Spec, show an Intake Sketch when decisions remain: known User facts, unknowns that block drafting, choices that can be offered, and which later artifact would own each decision.
 - For Pre-build Design Surface agreement, show the surface purpose, baseline level, lens scan result, refs or preview summary, options presented, decisions requested, selected decisions, and Mission Design or Task Contract implications.
+- For Task Contract Set agreement, show the selected Task boundary pattern, AC coverage matrix, split or merge rationale, first Task rationale, and any reason an implementation criteria Task was included or skipped for a broad Mission.
 - Each chunk includes current draft, decision to confirm, choices, and next step.
 - Treat chunk confirmation as provisional review input, not artifact acceptance.
 - After chunk revisions converge, present a final summary and ask whether to accept the whole artifact.
@@ -122,6 +125,7 @@ No scripts or assets are required by default. A Pre-build Design Surface may poi
 - Do not draft Mission Design before Mission Spec is accepted and blocking design-level Pre-build Design Surface decisions are resolved.
 - Do not draft the Task Contract Set before Mission Design is accepted and blocking contract-level Pre-build Design Surface decisions are resolved.
 - Do not skip a Pre-build Design Surface when unresolved implementation-before-build decisions would affect Mission Design, Task Contract scope, dependencies, deliverables, acceptance criteria, verification checks, review focus, or the first building Task.
+- Do not use an implementation criteria Task to postpone decisions that can change Mission Design, Task boundaries, dependencies, deliverables, acceptance criteria, or the first building Task.
 - Do not treat a Pre-build Design Surface as runtime artifact, Evidence, User Judgment, or Task Contract source of truth.
 - Do not leave selected design decisions only in an HTML, diagram, prototype, comparison, or briefing; reflect them in Mission Design or the Task Contract Set before accepting the owning artifact.
 - Do not record drafts before explicit User acceptance.
@@ -137,6 +141,7 @@ No scripts or assets are required by default. A Pre-build Design Surface may poi
 - A required Pre-build Design Surface cannot be prepared, read, or briefed well enough for User decision.
 - A design-surface decision that affects Mission Design or the Task Contract Set remains unresolved.
 - A Trigger Lens Scan item that can affect the next baseline artifact remains unclassified.
+- The Task boundary pattern, AC coverage matrix, Task boundary rationale, or first Task rationale is missing before Task Contract Set acceptance.
 - User has not accepted the artifact that would be recorded next.
 - `geas-cli` recording does not report success.
 - Baseline challenge is required or requested but `challenging` is unavailable.

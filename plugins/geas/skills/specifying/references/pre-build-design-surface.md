@@ -8,6 +8,16 @@ Pre-build Design Surface lowers User decision cost when prose alone is a weak me
 
 The surface is temporary decision support. It is not a runtime artifact, Evidence, User Judgment, Mission Design, or Task Contract. A selected Mission-level decision becomes baseline only when reflected in Mission Design. A selected Task-level decision becomes execution baseline only when reflected in the Task Contract Set.
 
+## Boundary With Implementation Criteria Tasks
+
+Pre-build Design Surface is pre-acceptance decision support. An implementation criteria Task is a normal accepted Task that produces durable criteria artifacts for later implementation Tasks.
+
+Use a Pre-build Design Surface or direct User question when the decision can change Mission Design, Task boundaries, dependencies, deliverables, acceptance criteria, review focus, risk level, or the first building Task.
+
+Use an implementation criteria Task only after those baseline-shaping decisions are resolved or explicitly accepted as non-blocking, and only when later implementation Tasks need a reviewable artifact for data structure, screen or workflow flow, route/API shape, export shape, acceptance coverage, or verification approach.
+
+Do not use an implementation criteria Task as a place to defer a blocking decision that the User needs before accepting Mission Design or the Task Contract Set.
+
 ## Trigger
 
 Create or request a Pre-build Design Surface when all of these are true:
@@ -31,7 +41,7 @@ A lens creates a surface candidate when the decision can affect Mission Design o
 - Data meaning lens: record unit, field meaning, item-level versus record-level attachment, state values, identifiers, or relationships are easy to misread and costly to change later.
 - Workflow handoff lens: who enters, reviews, confirms, assigns, closes, or reopens work, and which state transitions matter, are not yet reviewable.
 - Evidence/export lens: CSV shape, report sections, sample output, confirmation screen, or other User judgment surface affects whether the result can be accepted.
-- Acceptance slicing lens: Task boundaries, acceptance checkpoints, verification checks, or first building Task depend on a User decision.
+- Acceptance slicing lens: Task boundaries, acceptance checkpoints, verification checks, first building Task, or the need for an implementation criteria Task depend on a User decision.
 - Operational constraint lens: deployment, storage, file retention, access, environment, or operational ownership can change Mission Design or Task Contract contents.
 
 Use the scan twice when both baseline levels exist. Before Mission Design, keep design-level candidates that shape Mission approach, result shape, data meaning, workflow, export expectations, or operational constraints. Before Task Contract Set, keep contract-level candidates that shape Task scope, deliverables, acceptance criteria, verification checks, review focus, dependencies, or first building Task.
@@ -56,6 +66,7 @@ Common trigger shapes:
 - Domain or structural model: ERD, state machine, event flow, module map, dependency graph, system boundary, or ownership map.
 - Acceptance examples: rule-heavy behavior, policy logic, edge cases, decision tables, example maps, or concrete expected outputs.
 - Scope and acceptance slicing: competing Task boundaries, dependency order, acceptance checkpoint placement, or first building Task.
+- Implementation criteria need: later implementation Tasks need a durable data, workflow, route/API, export, acceptance coverage, or verification criteria artifact after Task Contract Set acceptance.
 - Hard-to-reverse tradeoff: architecture, library, storage, migration, rollout, compatibility, or operational strategy.
 - Operational artifact: release plan, rollback plan, monitoring map, migration sequence, or runbook preview when the artifact itself shapes Mission or Task acceptance.
 - Decision input tool: triage board, priority sorter, scope picker, prompt/config tuner, or decision worksheet.
@@ -127,6 +138,7 @@ Map selected decisions into Task Contract Set drafts as follows:
 - Mission coverage decisions go to `mission_acceptance_refs`.
 - Risk severity decisions go to `risk_level`.
 - Conditions that invalidate the selected design go to `Change Triggers`.
+- Implementation criteria Task decisions go to the relevant Task `Scope`, `Deliverables`, `Acceptance Criteria`, `Verification Checks`, `depends_on`, and `Change Triggers`.
 
 When a selected decision affects Mission purpose, scope, or approach rather than Task execution, return to Mission Spec or Mission Design revision before drafting or accepting Task Contracts.
 
