@@ -45,7 +45,9 @@ name: <short mission name>
 - Write acceptance criteria as observable conditions, not implementation tasks.
 - Use completion criteria for Mission closure readiness, not as a substitute for User Judgment.
 - Keep excluded scope explicit when User wording could imply adjacent work.
-- State assumptions as reviewable claims, not hidden defaults.
+- State assumptions as reviewable claims confirmed by the User, or as explicitly non-blocking open decisions with impact, risk, owner, and resolution point.
+- Fix implementation choices, technology stack, storage, deployment, access control, offline/sync behavior, data fields, or workflow replacement details only when the User supplied them as constraints or accepted them during intake.
+- Do not add adjacent exclusions such as authentication, cloud deployment, offline sync, mobile polish, admin tools, or reporting unless the User confirmed them as out of scope or accepted them as non-blocking risk.
 - Include risks that may change sequencing, verification, or User acceptance.
 - Do not define Task dependencies here; Task Contract owns Task slicing.
 
@@ -55,4 +57,5 @@ name: <short mission name>
 - Every included scope item has at least one acceptance criterion or completion criterion, or a clear reason it does not need one.
 - Excluded work blocks obvious scope creep.
 - Constraints are testable or inspectable where possible.
+- Any stack, storage, deployment, access-control, offline/sync, data-shape, or scope-out choice has a visible User source or is absent from the Mission Spec.
 - Open questions are surfaced before asking for acceptance.

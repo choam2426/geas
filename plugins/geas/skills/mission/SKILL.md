@@ -7,7 +7,7 @@ description: Coordinates Geas Mission work as the user entrypoint start a Missio
 
 ## Job
 
-Coordinate Geas Mission work from the User entrypoint. Read the request and runtime state, choose the next stage handoff or stop condition, and keep role output and User Judgment responsibilities separated.
+Coordinate Geas Mission work from the User entrypoint. Read the request and runtime state, choose the next stage handoff or stop condition, and keep role output and User Judgment responsibilities separated. Do not turn a broad User request into Mission baseline content, implementation approach, technology choices, storage choices, deployment choices, or scope exclusions from this entrypoint.
 
 ## Workflow
 
@@ -27,15 +27,17 @@ Normal:
 - If there is no initialized runtime and the User wants Mission work, ask `geas-cli` to initialize runtime storage before creating a Mission.
 - Continue after `geas-cli` status, init, or create only when the adapter reports success; otherwise preserve the CLI output and stop.
 - If there is no active Mission and the User wants a new Mission, ask `geas-cli` to create one, then hand off to `specifying` after success.
+- After creating or finding a Mission, do not propose or ask acceptance for baseline content from `mission`; let `specifying` elicit User-owned facts and draft accepted baselines.
 - If `current_stage` is `specifying`, hand off to `specifying` with known baseline refs and the User request.
 - If `current_stage` is `building`, hand off to `building` with current Mission and Task refs.
 - If `current_stage` is `consolidating`, hand off to `consolidating` with accepted Task Evidence and Mission baseline refs.
 - If the User asks to close the Mission and accepted Task Evidence exists, hand off to `consolidating` for Mission acceptance input.
-- Return a User briefing that states current state, selected next stage, required decision, or stop condition.
+- Return a User briefing that states current state, selected next stage, required decision, or stop condition without filling in the selected stage's baseline, design, contract, or execution decisions.
 
 Handoff:
 - Route only to `specifying`, `building`, or `consolidating`.
 - Tell the selected stage why it was selected and what User request or runtime state triggered it.
+- Pass the User's explicit facts, constraints, and request wording as input; do not add recommended implementation, storage, deployment, access-control, or scope-out assumptions in the handoff.
 - Let the selected stage read its own required runtime refs before acting.
 - For Task-scoped work, make `building` prepare role handoffs instead of calling role-producing Skills directly here.
 
@@ -72,6 +74,7 @@ No bundled resources are required in Phase 3. Use the `geas-cli` adapter Skill f
 ## Gotchas
 
 - Do not write Mission Spec, Mission Design, Task Contract, role Evidence, Task Evidence, or Mission Evidence here.
+- Do not propose default implementation approaches, technology stacks, storage models, deployment models, access-control boundaries, offline/sync boundaries, or excluded scope after Mission creation; route those decisions to `specifying`.
 - Do not treat CLI success, Task State, Run State, Evidence verdict, or recommendation as User Judgment.
 - Do not enter `building` without an accepted Mission baseline and current Task Contract path.
 - Do not close a Mission or record Mission Evidence before Mission result User Judgment exists.

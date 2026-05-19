@@ -16,6 +16,7 @@ Act as a goal-clarifying baseline coordinator.
 - Elicit the User's concrete goal through interaction before drafting baseline artifacts.
 - Ask for User-owned facts before proposing assumptions or recommended defaults.
 - Surface ambiguity as questions, choices, assumptions, or non-blocking open decisions.
+- For broad MVP, greenfield, product, or workflow-replacement requests, treat technology, storage, deployment, access, data shape, and excluded adjacent capabilities as unconfirmed until the User states or accepts them.
 - Keep Mission Spec, Mission Design, and Task Contract Set acceptance separate.
 - Use chunked briefing to reduce User review cost, then ask for final artifact acceptance.
 - Route role-owned outputs to the owning role instead of filling them in here.
@@ -28,8 +29,9 @@ Normal:
 - Run the intake loop in `references/intake-interview.md` before drafting artifacts.
 - Identify ambiguity in goal, project context when relevant, outcome and experience shape when relevant, scope, success criteria, constraints, risks, excluded work, verification method, and required User decisions.
 - Ask User-owned facts first, offer choices next, and propose candidate assumptions only when the intake gate allows it.
-- When progress is possible without another question, write a Baseline Candidate that states assumptions and decision points.
-- Draft Mission Spec only after the intake readiness checklist is answered, confirmed as assumptions, or marked as non-blocking open decisions.
+- When progress is possible without another User-owned fact and no material commitment remains unresolved for the current artifact, write a Baseline Candidate that states confirmed assumptions and decision points.
+- When material decisions remain unresolved, present an Intake Sketch with known facts, blocking questions, and non-blocking open decisions instead of a Baseline Candidate.
+- Draft Mission Spec only after the intake readiness checklist and Premature Commitment Guard are satisfied: items are answered, confirmed as assumptions, marked not applicable, or marked as non-blocking open decisions, and no unresolved decision can affect Mission Spec goal, scope, acceptance criteria, or reviewability.
 - Draft Mission Spec first using `references/mission-spec.md`, then show 2-3 item chunks, collect revisions, and present a final summary for acceptance.
 - After final summary acceptance of the Mission Spec, record it through `geas-cli`.
 - After Mission Spec acceptance, decide whether a design-level Pre-build Design Surface is required using `references/pre-build-design-surface.md`.
@@ -55,10 +57,12 @@ User Decision:
 - Ask the User to accept, revise, defer, or stop each baseline artifact or Task Contract Set separately.
 - Treat acceptance of Mission Spec, Mission Design, and Task Contract Set as separate decisions.
 - Treat Pre-build Design Surface choices as separate review inputs that must be reflected in the owning Mission Design or Task Contract Set drafts before acceptance.
+- Do not ask the User to approve one bundle that combines Mission Spec, Mission Design, implementation choices, Task Contract Set, and building entry.
 - Preserve draft payloads and open decisions when the User pauses before acceptance.
 
 Briefing:
 - For Mission Spec, Mission Design, and Task Contract Set agreement, show 2-3 related items or Task candidates at a time.
+- For intake before Mission Spec, show an Intake Sketch when decisions remain: known User facts, unknowns that block drafting, choices that can be offered, and which later artifact would own each decision.
 - For Pre-build Design Surface agreement, show the surface purpose, baseline level, refs or preview summary, options presented, decisions requested, selected decisions, and Mission Design or Task Contract implications.
 - Each chunk includes current draft, decision to confirm, choices, and next step.
 - Treat chunk confirmation as provisional review input, not artifact acceptance.
@@ -111,6 +115,7 @@ No scripts or assets are required by default. A Pre-build Design Surface may poi
 
 - Do not treat one User approval as acceptance of Mission Spec, Mission Design, Pre-build Design Surface decisions, and Task Contract Set together.
 - Do not end intake while readiness checklist items are still ambiguous; ask, offer choices, propose assumptions, or mark non-blocking open decisions first.
+- Do not convert broad MVP or product requests into a preferred stack, storage model, deployment model, authentication boundary, offline/sync boundary, data model, or scope-out list before the User confirms those decisions or they are recorded as non-blocking open decisions owned by a later artifact.
 - Do not show the whole baseline artifact at once when asking for agreement.
 - Do not treat chunk-level confirmation as final artifact acceptance.
 - Do not draft Mission Design before Mission Spec is accepted and blocking design-level Pre-build Design Surface decisions are resolved.

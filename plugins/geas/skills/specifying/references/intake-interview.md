@@ -6,6 +6,7 @@
 - [Interview Loop](#interview-loop)
 - [Interview Move Priority](#interview-move-priority)
 - [Assumption Proposal Gate](#assumption-proposal-gate)
+- [Premature Commitment Guard](#premature-commitment-guard)
 - [Readiness Checklist](#readiness-checklist)
 - [Project Context Scan](#project-context-scan)
 - [Outcome & Experience Shape](#outcome--experience-shape)
@@ -17,7 +18,7 @@
 
 ## Purpose
 
-Use this reference before drafting Mission Spec. The goal is to turn an unclear User request into a reviewable baseline candidate without silently inventing goals, scope, success criteria, or constraints.
+Use this reference before drafting Mission Spec. The goal is to turn an unclear User request into a reviewable baseline candidate without silently inventing goals, scope, success criteria, constraints, implementation choices, or excluded work.
 
 ## Interview Loop
 
@@ -27,7 +28,7 @@ Repeat this loop until the readiness checklist is satisfied or a stop condition 
 2. Scan for ambiguity using the readiness checklist.
 3. Choose the next response move using Interview Move Priority.
 4. Reflect the User answer back as updated understanding.
-5. Update the Baseline Candidate.
+5. Update the Intake Sketch or Baseline Candidate.
 6. Check whether Mission Spec drafting is ready.
 
 Ask only the next useful question. Do not send a long questionnaire when one blocker determines the next step.
@@ -42,6 +43,7 @@ Use response moves in this order.
 4. Mark a decision as a non-blocking open decision only when it does not block the current artifact.
 
 Do not replace missing User-owned facts with a preferred design. A recommendation may accompany choices, but it does not remove the need to ask for facts that only the User can know.
+Apply the Premature Commitment Guard before writing a Baseline Candidate, Mission Spec, Mission Design, or Task Contract candidate.
 
 ## Assumption Proposal Gate
 
@@ -53,6 +55,36 @@ Propose a candidate assumption only when all of these conditions are true:
 - the assumption covers one material decision, or a small chunk of 2-3 related decisions with each decision and impact shown separately.
 
 Do not bundle multiple material assumptions into one approval question. If several material decisions remain, ask them as focused questions or as a 2-3 item choice chunk.
+
+## Premature Commitment Guard
+
+Use this guard for broad MVP, greenfield product, internal tool, workflow-replacement, or "make an app/tool/system" requests before drafting or asking for acceptance of any baseline artifact.
+
+A material commitment is confirmed only when the User states it directly, selects it from choices, or explicitly accepts it as a named assumption with impact and risk. Project context may constrain choices, but it does not decide User-owned facts.
+
+Do not default these decisions before confirmation:
+
+- technology stack, framework, runtime, dependency policy, or implementation style;
+- data storage, database, file format, persistence, import/export, or retention;
+- deployment, hosting, local network sharing, device access, environment, or operational ownership;
+- authentication, authorization, role boundaries, audit trail, privacy, or sensitive data handling;
+- offline behavior, sync behavior, conflict handling, notification, or recovery expectations;
+- data fields, checklist items, states, classifications, identifiers, or reporting shape;
+- current workflow replacement details, including who enters items, who reviews them, and what pain the MVP must remove first;
+- adjacent scope exclusions such as login, cloud deployment, offline sync, mobile polish, admin tools, or reporting, unless the User has accepted them as out of scope;
+- first building Task or Task slicing when multiple reviewable outcomes are still plausible.
+
+When one of these decisions affects Mission Spec goal, included scope, excluded scope, acceptance criteria, constraints, or reviewability, ask one focused question or offer 2-3 choices before drafting. When several decisions remain, provide an Intake Sketch instead of a Baseline Candidate:
+
+```markdown
+Intake Sketch:
+- Current understanding: <one-sentence goal>
+- User-confirmed facts: <facts only>
+- Blocking question: <one next question or choice>
+- Open decisions for later: <non-blocking decisions with owner and resolution point>
+```
+
+For a field inspection MVP request where field staff record inspection results on mobile and office staff review them later, first clarify the current inspection workflow, checklist/data fields, users/roles, shared access environment, or minimum acceptable evidence. Do not state or ask approval for Node.js, JSON files, local-network sharing, no login, no cloud deployment, or no offline sync unless the User has stated or selected those choices.
 
 ## Readiness Checklist
 
@@ -72,6 +104,7 @@ Before drafting Mission Spec, confirm each item is answered, explicitly assumed,
 - [ ] Assumptions: Which assumptions are safe to carry forward only after User confirmation?
 
 If an item is unclear, do not silently fill it. Ask, offer choices, propose a candidate assumption, or keep it as an open decision if it does not block Mission Spec review.
+If a broad MVP or product request triggers the Premature Commitment Guard, do not mark a material commitment as assumed until the guard conditions are met.
 
 ## Project Context Scan
 
@@ -126,6 +159,7 @@ Route shape decisions by ownership. Mission-level outcome form, audience, use co
 ## Existing Workflow Replacement
 
 Run this pattern when the Mission replaces or upgrades an existing spreadsheet, document, manual process, inbox, tracker, tool, or handoff flow.
+Treat a new MVP that digitizes a manual field, office, approval, inspection, reporting, or handoff process as workflow replacement unless the User says there is no current workflow.
 
 Ask about the current workflow before proposing the replacement shape. Start with the smallest set of User-owned facts that changes the baseline:
 
@@ -180,6 +214,10 @@ Decision ambiguity:
 - The agent could choose, but the choice changes scope, risk, or User acceptance.
 - Response move: ask the User to decide or mark it as an open decision.
 
+Premature implementation ambiguity:
+- The User asks for an MVP, app, tool, or system, and the agent can imagine a stack, storage model, deployment model, access boundary, or scope exclusions.
+- Response move: use the Premature Commitment Guard; ask the next User-owned fact or offer choices instead of proposing a bundled implementation assumption.
+
 Verification ambiguity:
 - The result can be produced but not checked.
 - Response move: ask what evidence would support acceptance.
@@ -211,12 +249,14 @@ Avoid:
 - "This implementation is fine, right?"
 - "Can I just proceed?"
 - "I'll assume these seven product decisions; approve?"
+- "I'll use Node.js, JSON files, local-network access, no login, and no offline sync; approve?"
 
 ## Exit Gate
 
 End intake and draft Mission Spec only when:
 
 - every readiness item is answered, confirmed as an assumption, marked not applicable, or listed as a non-blocking open decision;
+- the Premature Commitment Guard is satisfied for broad MVP, greenfield, product, or workflow-replacement requests;
 - open decisions do not block Mission Spec review;
 - each open decision has decision, impact, reason non-blocking, owner, resolution point, and blocks fields;
 - the User can reject or correct the summarized Baseline Candidate;
