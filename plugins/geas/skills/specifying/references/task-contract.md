@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Use this reference after the User accepts Mission Design and after required Pre-build Design Surface decisions are resolved or explicitly classified as non-blocking. The initial Task Contract Set defines the executable Task units that can later be implemented, verified, reviewed, and judged. Each Task Contract is still an individual Task artifact; the Set is the accepted group of those artifacts.
+Use this reference after the User accepts Mission Design and after required contract-level Pre-build Design Surface decisions are resolved or explicitly classified as non-blocking. The initial Task Contract Set defines the executable Task units that can later be implemented, verified, reviewed, and judged. Each Task Contract is still an individual Task artifact; the Set is the accepted group of those artifacts.
 
 ## Payload Shape
 
@@ -58,7 +58,7 @@ risk_level: low|medium|high
 - Make the Task small enough for one User acceptance decision.
 - Link the Task to Mission acceptance refs, but do not claim the whole Mission is complete.
 - Put executable scope and dependencies here, not in Mission Design or the Pre-build Design Surface.
-- Reflect selected Pre-build Design Surface decisions in the relevant Task Contract fields instead of leaving them only in a surface file or briefing.
+- Reflect selected contract-level Pre-build Design Surface decisions in the relevant Task Contract fields instead of leaving them only in a surface file or briefing.
 - Write verification checks as agent-side checks that can leave Evidence.
 - Write review focus as inspection targets, not generic quality language.
 - Keep out-of-scope work explicit when a nearby change is tempting.
@@ -84,7 +84,7 @@ risk_level: low|medium|high
 - Each Task acceptance criterion has at least one verification check or visible reason it cannot be verified automatically.
 - Review focus matches the risk and changed surface.
 - Dependencies are explicit.
-- Selected Pre-build Design Surface decisions that affect execution are reflected in scope, deliverables, criteria, checks, review focus, risks, dependencies, or change triggers.
+- Selected contract-level Pre-build Design Surface decisions that affect execution are reflected in scope, deliverables, criteria, checks, review focus, risks, dependencies, or change triggers.
 - Blocking design-surface decisions are not left open for building.
 - Change triggers tell future agents when to return to specifying.
 - The Set covers the intended Mission scope without hiding separate acceptance decisions inside one Task.

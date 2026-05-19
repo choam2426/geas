@@ -94,8 +94,9 @@ resource는 필요가 확인된 것만 만든다. 후보 resource는 `reference`
 mission
   -> specifying
      -> Mission Spec
+     -> Pre-build Design Surface (design-level, 필요 시)
      -> Mission Design
-     -> Pre-build Design Surface
+     -> Pre-build Design Surface (contract-level, 필요 시)
      -> Task Contract
 
   -> building
@@ -188,7 +189,8 @@ resource 계획:
 - 애매한 요구를 Baseline Candidate로 구체화한다.
 - Mission Spec draft를 만들고 User review로 올린다.
 - Mission Design draft를 만들고 User review로 올린다.
-- Mission Design 수용 뒤 Task Contract Set 작성 전에 Pre-build Design Surface가 필요한지 판단한다.
+- Mission Spec 수용 뒤 Mission Design 수용 전에 design-level Pre-build Design Surface가 필요한지 판단한다.
+- Mission Design 합의 이후 Task Contract Set 수용 전에 contract-level Pre-build Design Surface가 필요한지 판단한다.
 - 필요한 경우 HTML, diagram, prototype, comparison 같은 임시 판단 표면으로 User가 구현 전 결정을 내릴 수 있게 한다.
 - 초기 Task Contract Set draft를 만들고 User review로 올린다.
 - User가 수용한 Mission Spec, Mission Design, 초기 Task Contract Set을 기록한다.
@@ -199,15 +201,17 @@ resource 계획:
 2. 애매한 지점을 질문이나 candidate assumption으로 드러낸다.
 3. Mission Spec 후보를 만들고 User review로 올린다.
 4. User가 Mission Spec을 수용하면 Mission Design 후보를 만들고 User review로 올린다.
-5. User가 Mission Design을 수용하면 Pre-build Design Surface 필요 여부를 판단하고, 필요한 경우 User가 비교·시각화·조작·탐색 가능한 표면에서 결정을 내리게 한다.
-6. 선택된 design decision을 반영해 초기 Task Contract 후보를 만들고 User review로 올린다.
-7. User가 수용한 기준선만 runtime에 기록한다.
+5. User가 Mission Spec을 수용하면 Mission Design을 잠그기 전에 design-level Pre-build Design Surface 필요 여부를 판단하고, 필요한 경우 User가 Mission 접근, 산출물 형태, 외부 contract, domain/structural model, 큰 tradeoff를 판단하게 한다.
+6. 선택된 design-level 결정을 반영해 Mission Design 후보를 만들고 User review로 올린다.
+7. Mission Design 합의 이후에는 Task Contract를 잠그기 전에 contract-level Pre-build Design Surface 필요 여부를 판단하고, 필요한 경우 Task slicing, 산출물, 수용 기준, verification checks, dependency, 첫 building Task를 판단하게 한다.
+8. 선택된 contract-level 결정을 반영해 초기 Task Contract 후보를 만들고 User review로 올린다.
+9. User가 수용한 기준선만 runtime에 기록한다.
 
 경계:
 
 - Mission Spec 수용은 Mission Design 수용을 뜻하지 않는다.
-- Mission Design 수용은 Pre-build Design Surface 결정이나 초기 Task Contract 수용을 뜻하지 않는다.
-- Pre-build Design Surface는 runtime artifact, Evidence, User Judgment가 아니며, 선택된 결정이 Task Contract Set에 반영될 때 실행 기준이 된다.
+- Mission Design 수용은 contract-level Pre-build Design Surface 결정이나 초기 Task Contract 수용을 뜻하지 않는다.
+- Pre-build Design Surface는 runtime artifact, Evidence, User Judgment가 아니며, 선택된 결정이 Mission Design이나 Task Contract Set에 반영될 때 기준선이 된다.
 - Task 분리와 dependency는 초기 Task Contract에서 정하고, Mission Design은 Task graph의 정본이 아니다.
 - implementation, verification, review, challenge Evidence는 담당하지 않는다.
 - 하나의 User 응답으로 Mission Spec, Mission Design, Pre-build Design Surface 결정, 초기 Task Contract Set을 한꺼번에 수용한 것으로 처리하지 않는다.
@@ -249,7 +253,7 @@ resource 계획:
 | `references/intake-interview.md` | `reference` | intake와 draft 전 | 질문 흐름, readiness gate, 모호성 패턴, 질문 전환 기준은 함께 사용된다. |
 | `references/mission-spec.md` | `reference` | Mission Spec 작성 | artifact shape와 작성 기준은 본문에서 분리할 만큼 상세하다. |
 | `references/mission-design.md` | `reference` | Mission Design 작성 | design payload shape와 review 기준이 길다. |
-| `references/pre-build-design-surface.md` | `reference` | Mission Design 수용 뒤 Task Contract 작성 전 | HTML, diagram, prototype, comparison 같은 임시 판단 표면의 trigger, 생략 조건, 결정 반영 기준이 필요하다. |
+| `references/pre-build-design-surface.md` | `reference` | Mission Spec 수용 뒤, 결정을 잠글 기준선 artifact 수용 전 | HTML, diagram, prototype, comparison 같은 임시 판단 표면의 trigger, 생략 조건, Mission Design/Task Contract 반영 기준이 필요하다. |
 | `references/task-contract.md` | `reference` | Task Contract 작성 | Task 분리, acceptance, verification, review focus 기준이 길다. |
 | `references/baseline-readiness.md` | `reference` | building 진입 전 | 기준선 완성도 점검과 User briefing shape가 반복된다. |
 | `scripts/` | `none` | 없음 | intake와 기준선 작성은 판단 중심이며 결정적 계산으로 분리할 부분이 확인된 뒤 만든다. |

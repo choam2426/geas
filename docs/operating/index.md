@@ -108,7 +108,7 @@ User request
 
 |단계|입력|출력|진행 조건|멈추거나 돌아가는 조건|
 |---|---|---|---|---|
-|specifying|User 요청, 기존 runtime 상태, 관련 문서와 작업 맥락|합의된 Mission spec, Mission design, 필요한 Pre-build Design Surface 결정, 초기 Task contract|세 기준선이 각각 User에게 받아들여지고, 필요한 구현 전 결정이 Task contract에 반영되어 기록된다.|목표, 범위, 수용 기준, 판단 책임, 검증 경로, 구현 전 결정이 불명확하다.|
+|specifying|User 요청, 기존 runtime 상태, 관련 문서와 작업 맥락|합의된 Mission spec, Mission design, 필요한 Pre-build Design Surface 결정, 초기 Task contract|세 기준선이 각각 User에게 받아들여지고, 필요한 구현 전 결정이 Mission design 또는 Task contract에 반영되어 기록된다.|목표, 범위, 수용 기준, 판단 책임, 검증 경로, 구현 전 결정이 불명확하다.|
 |building|수용된 Task contract, Run State, Task State, 관련 Evidence와 Memory|role별 Evidence, Task User Judgment, Task Evidence|Task 결과가 User 판단으로 닫히고 Task Evidence가 남는다.|재작업, Task contract 갱신, Mission 기준선 재검토, 보류, 중단이 필요하다.|
 |consolidating|수용된 Task Evidence, 필요한 role별 Evidence, Mission 기준선|Mission 수용 판단 입력, gap, debt, follow-up 후보|Mission 전체를 User가 판단할 수 있을 만큼 근거와 남은 항목이 정리된다.|추가 Task, Task contract 갱신, Mission 기준선 갱신이 필요하다.|
 |Mission 수용 판단|Mission 수용 판단 입력, Evidence, 남은 gap, debt, follow-up 후보|Mission User Judgment, Memory 반영, Mission Evidence|User가 Mission 결과를 수용하거나 한계를 알고 수용한다.|User가 재작업, 보류, 중단, 기준선 재검토를 판단한다.|
@@ -119,12 +119,12 @@ User 판단은 기준선 합의와 결과 수용 판단으로 나뉜다.
 
 - Mission Spec 합의: User의 목표, 배경, 범위, 제외 범위, 수용 기준이 맞는지 확인한다.
 - Mission Design 합의: 접근 전략, 계획 outline, 판단 지점, 가정과 위험이 이해 가능한 계획인지 확인한다.
-- Pre-build Design Surface 결정: Markdown 설명만으로 Task Contract 결정을 판단하기 어려운 경우 HTML, diagram, prototype, comparison 같은 임시 표면을 보고 선택한다.
+- Pre-build Design Surface 결정: prose 설명만으로 baseline 결정을 판단하기 어려운 경우 HTML, diagram, prototype, comparison 같은 임시 표면을 보고 Mission Design 또는 Task Contract에 반영할 결정을 선택한다.
 - 초기 Task Contract 합의: Task 분리, 의존 관계, 개별 Task의 실행 범위, 산출물, 수용 기준, verification checks, review focus가 충분한지 확인한다.
 - Task 결과 수용 판단: Task 결과와 Evidence를 보고 완료 수용, 재작업, 보류, 중단을 판단한다.
 - Mission 결과 수용 판단: 수용된 Task들을 Mission 기준선과 다시 대조해 Mission을 닫을지 판단한다.
 
-Mission Spec, Mission Design, 초기 Task Contract 합의와 그 사이의 Pre-build Design Surface 결정은 기준선 합의 흐름에 속한다. 이 합의는 Task나 Mission 결과에 대한 User Judgment artifact가 아니다. Task 결과와 Mission 결과에 대한 수용 판단은 Evidence를 검토한 뒤 별도 User Judgment로 남긴다.
+Mission Spec, 필요한 design-level Pre-build Design Surface 결정, Mission Design, 필요한 contract-level Pre-build Design Surface 결정, 초기 Task Contract 합의는 기준선 합의 흐름에 속한다. 이 합의는 Task나 Mission 결과에 대한 User Judgment artifact가 아니다. Task 결과와 Mission 결과에 대한 수용 판단은 Evidence를 검토한 뒤 별도 User Judgment로 남긴다.
 
 ### 단순 작업 축약 기준
 
@@ -143,13 +143,13 @@ Mission Spec, Mission Design, 초기 Task Contract 합의와 그 사이의 Pre-b
 
 specifying은 User의 요청을 Mission 기준선과 Task 계약으로 구체화하는 단계다.
 
-Orchestrator는 User 요청을 Mission 기준선으로 구체화하고, Mission spec, Mission design, 필요한 Pre-build Design Surface 결정, 초기 Task contract가 이어지도록 조율한다.
+Orchestrator는 User 요청을 Mission 기준선으로 구체화하고, Mission spec, 필요한 design-level Pre-build Design Surface 결정, Mission design, 필요한 contract-level Pre-build Design Surface 결정, 초기 Task contract가 이어지도록 조율한다.
 
-이 단계에서는 Mission spec, Mission design, 필요한 Pre-build Design Surface 결정, 초기 Task contract 순서로 기준선에 합의하고 남긴다.
+이 단계에서는 Mission spec, 필요한 design-level Pre-build Design Surface 결정, Mission design, 필요한 contract-level Pre-build Design Surface 결정, 초기 Task contract 순서로 기준선에 합의하고 남긴다.
 
 - Mission spec은 User가 agent로 수행하려는 작업을 기획하는 기준선이다. 무엇을 이루려는지, 왜 필요한지, 어디까지 포함하거나 제외하는지, 어떤 결과를 충분하다고 볼지 고정한다.
 - Mission design은 Mission spec을 사용자가 보기 좋은 진행 계획으로 바꾸는 기준선이다. 수용 판단 비용을 낮추기 위한 접근 전략, 핵심 개념, scope, 계획 outline, 판단 지점, 가정, 위험, 변경 trigger를 설명한다.
-- Pre-build Design Surface는 Task contract를 쓰기 전에 User가 구현 전 결정을 낮은 비용으로 내리게 하는 임시 판단 표면이다. HTML, diagram, prototype, comparison을 사용할 수 있지만 runtime 정본이나 Evidence가 아니며, 선택된 결정만 Task contract에 반영한다.
+- Pre-build Design Surface는 결정을 잠글 기준선 artifact를 수용하기 전에 User가 구현 전 결정을 낮은 비용으로 내리게 하는 임시 판단 표면이다. HTML, diagram, prototype, comparison을 사용할 수 있지만 runtime 정본이나 Evidence가 아니며, 선택된 결정만 Mission design 또는 Task contract에 반영한다.
 - Task contract는 Task 분리와 개별 Task의 실행 계약이다. Task id, 의존 관계, 해당 Task가 맡는 Mission의 일부, 수행 범위, 산출물, 수용 기준, verification checks, review focus를 고정한다.
 
 Task 분리와 dependency는 Task contract의 책임이다. Mission design과 Pre-build Design Surface는 Task graph의 정본이 아니다.
