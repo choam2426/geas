@@ -112,7 +112,9 @@ Geas Workflow는 컨텍스트 압축, 세션 전환, 작업자 교체, agent 도
 
 이어갈 수 있는 작업 상태에는 현재 Mission 기준, Task 기준, 산출물, Evidence, User Judgment, 받아들인 위험, 미검증 범위, 남은 문제, Task Memory, Debt Ledger, Memory, Continuity Ledger가 함께 남는다.
 
-새 세션이나 다른 agent 도구에서 작업을 재개할 때 Orchestrator는 남은 대화 맥락보다 이 작업 상태를 우선해 현재 위치와 다음 행동을 복원한다. 이 복원 가능한 상태가 있어야 User와 agent가 이전 판단을 다시 설명하지 않고도 같은 기준으로 검토와 실행을 이어 갈 수 있다.
+작업 연속성은 별도 상태 관리 절차가 아니라 workflow 산출물이 남긴 결과다. 새 세션이나 다른 agent 도구에서 작업을 재개할 때 Orchestrator는 남은 대화 맥락보다 이 작업 상태를 우선해 현재 위치와 다음 행동을 판단한다.
+
+작업 기준, 산출물, Evidence, User Judgment, 이어받기 맥락이 서로 어긋나면 Orchestrator는 가장 신뢰할 수 있는 기준과 부족한 근거를 User에게 드러낸다. 이후 누락 Evidence 보완, 안전한 단계로 되돌아가기, 기준 재수용, Task 취소, User Judgment 요청 중 하나로 이어 간다.
 
 ## 문서 구성
 
@@ -120,5 +122,4 @@ Geas Workflow는 컨텍스트 압축, 세션 전환, 작업자 교체, agent 도
 |---|---|
 |[roles.md](./roles.md)|User와 agent 역할의 책임 경계를 정의한다.|
 |[mission-task.md](./mission-task.md)|Mission과 Task의 관계, Mission Workflow, Task Workflow, 단계별 Evidence, 재작업과 기준 변경을 정의한다.|
-|[continuity.md](./continuity.md)|끊긴 작업을 이어 가기 위한 연속성 원칙과 상태 신뢰 경계를 정의한다.|
 |[reflection.md](./reflection.md)|Task Memory, Memory, Debt Ledger, Continuity Ledger를 정의한다.|
