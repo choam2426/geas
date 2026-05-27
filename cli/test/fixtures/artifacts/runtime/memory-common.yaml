@@ -1,5 +1,0 @@
-guideline: Keep the CLI E2E mission closure path covered.
-applies_when:
-  - Updating mission closure commands.
-source_refs:
-  - missions/__MISSION_ID__/tasks/task-001/task-evidence.md

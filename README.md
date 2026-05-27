@@ -20,7 +20,7 @@ Geas reduces the total cost of reviewing, judging, maintaining, and continuing a
 - Keeps verification evidence, unchecked scope, and remaining risks with the implementation result.
 - Separates implementation, verification, review, and challenge so context, quality, omissions, and long-term risks can be inspected independently.
 - Returns to baseline revision instead of silently expanding scope when the criteria change during work.
-- Lets interrupted work resume from the Mission baseline, Task state, and Evidence.
+- Lets interrupted work resume from accepted Mission criteria, Task criteria, Evidence, User Judgment, and continuity context.
 - Separates gap, debt, follow-up, and memory so remaining issues and repeatable lessons can feed the next work.
 
 ## What Geas Is
@@ -32,7 +32,7 @@ Geas treats agent work as a basic operating flow.
 - The human reviews the evidence and judges whether to accept the result.
 - Facts discovered during work become reflection and memory for future work.
 
-This repository contains the documentation, Skill workflows, a CLI that guards `.geas/` runtime records, and marketplace plugin packages for Codex and Claude Code.
+This repository contains the documentation, Skill workflows, and marketplace plugin packages for Codex and Claude Code.
 
 ## Installation
 
@@ -84,7 +84,7 @@ cp -R geas/plugins/geas/skills/* .claude/skills/
 
 After installing Geas, open Codex or Claude Code in your project and use `/mission` to start or resume Geas work.
 
-If work is interrupted, call `/mission` again to continue from the remaining Mission baseline, Task state, and Evidence.
+If work is interrupted, call `/mission` again to continue from the accepted Mission criteria, Task criteria, Evidence, User Judgment, and continuity context.
 
 ```text
 /mission Add login error messages that tell users why sign-in failed
@@ -100,16 +100,16 @@ Geas does not push the agent to declare completion immediately. It first fixes t
 
 ```mermaid
 flowchart TD
-  request["User request"] --> specifying["specifying<br/>Mission baseline and Task contracts"]
+  request["User request"] --> specifying["specifying<br/>Mission criteria and Task contracts"]
   specifying --> building["building<br/>Task execution and Evidence"]
   building --> consolidating["consolidating<br/>Mission result synthesis"]
   consolidating --> judgment["User Judgment"]
-  building -->|"baseline review"| specifying
+  building -->|"criteria review"| specifying
   consolidating -->|"more Tasks needed"| building
-  consolidating -->|"Mission baseline update"| specifying
+  consolidating -->|"Mission criteria update"| specifying
 ```
 
-`specifying` turns the user request into a Mission baseline and Task contracts. `building` executes accepted Task contracts and records Evidence through implementation, verification, and review. `consolidating` compares accepted Tasks against the Mission baseline so the human can judge the Mission result. When more work or baseline revision is needed, the flow returns to an earlier stage.
+`specifying` turns the user request into Mission criteria and Task contracts. `building` executes accepted Task contracts and records Evidence through implementation, verification, and review. `consolidating` compares accepted Tasks against the Mission criteria so the human can judge the Mission result. When more work or criteria revision is needed, the flow returns to an earlier stage.
 
 A Task moves through this flow.
 

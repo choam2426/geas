@@ -1,5 +1,0 @@
-items:
-  - guideline: "작은 제품 예시는 변경 파일 이름만 적지 말고 관찰 가능한 사용자 동작을 기준으로 쓴다."
-    applies_when: []
-    source_refs:
-      - "missions/20260507-a1b2c3/mission-evidence.md"

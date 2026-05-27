@@ -1,12 +1,8 @@
 ---
-name: "todo-filter-and-persistence"
-evidence_type: "mission"
-mission_spec_ref: "mission-spec-001.md"
-mission_design_ref: "mission-design-001.md"
 user_judgment_ref: "user-judgment-result-001.md"
 ---
 
-## Summary
+## Mission Result
 
 Todo 앱은 All, Active, Completed 필터를 지원하고, Todo 항목은 localStorage를 사용해 브라우저 새로고침 뒤에도 유지된다.
 
@@ -67,38 +63,36 @@ Unverified scope:
 Remaining risks:
 - 없음.
 
-## Mission Design Deltas
+## Mission Plan Deltas
 
 - 구현은 선택한 접근에 맞게 필터 선택은 컴포넌트 상태로 두고 Todo 항목만 저장했다.
 
-## Accepted Unverified Scope
+## Accepted Limits
+
+### Unverified Scope
 
 - 사생활 보호 모드와 localStorage 비활성화 환경은 완전히 확인하지 않았다.
 - 여러 모바일 브라우저 동작은 확인하지 않았다.
 
-## Accepted Remaining Risks
+### Remaining Risks
 
 - Todo 데이터는 브라우저 로컬에 남고 앱 밖에서 지워질 수 있다.
 - 필터 상태는 URL에 인코딩되지 않는다.
 
-## Gaps
+## Decisions And Tradeoffs
 
-- 없음.
+- 필터 상태는 컴포넌트 상태로 두고 Todo 항목만 localStorage에 저장한다.
+- 서버 저장소와 여러 기기 동기화는 이번 Mission 범위에서 제외한다.
 
-## Debts
+## Debt Ledger Updates
 
 - `DEBT-001`: Todo 항목 필드가 나중에 확장되면 localStorage 스키마에 버전 마이그레이션이 필요할 수 있다.
-
-## Follow Ups
-
-- 선택된 필터를 URL 쿼리 파라미터로 지원한다.
-- 여러 기기 Todo 목록이 필요해지면 서버 기반 저장 유지를 추가한다.
-
-## Reflection Summary
-
-작은 프론트엔드 상태 기능도 저장 유지, 필터 동작, 수용한 저장 한계를 Evidence에서 분리하면 판단 비용이 낮아진다.
 
 ## Memory Updates
 
 - 작은 제품 예시는 변경 파일 이름만 적지 말고 관찰 가능한 사용자 동작을 기준으로 쓴다.
 - 프론트엔드 상태 변경은 저장 유지 동작과 시각적 필터링 동작을 분리해 검토한다.
+
+## Continuity Ledger Updates
+
+- Mission은 수용되었고 남은 장기 비용은 Debt Ledger와 Memory에 반영했다.
