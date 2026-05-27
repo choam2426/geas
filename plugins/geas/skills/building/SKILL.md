@@ -1,164 +1,84 @@
----
+﻿---
 name: building
-description: Coordinates Geas Task execution loops from accepted Task Contract through role handoffs, Task result User Judgment input, Task Evidence, and next Task or consolidation routing. Use when a Mission is in building stage, Task State needs phase dispatch or recovery, Task result briefing is needed, or accepted Task results must be recorded. Do not use for writing implementation, verification, review, challenger Evidence, Mission baseline drafts, Mission closure, or User Judgment decisions.
+description: Coordinates Geas building work from Mission Plan Task Structure through Task specifying, optional Task Direction, Task Contract acceptance, role handoffs, Task result judgment briefing, User Judgment recording, Task Evidence, Task Memory, and next Task or Mission consolidation routing. Use when Mission Spec and Mission Plan are accepted and a Task needs to be specified, executed, judged, or recorded. Do not use for writing role Evidence itself, Mission Spec or Mission Plan drafting, Mission closure, or deciding User Judgment.
 ---
 
 # Building
 
-## Job
+Coordinate building from one Task candidate to one judged Task result. `building` performs Task specifying, then coordinates role-producing skills, summarizes results for the User, writes User-provided judgments, writes Task Evidence after judgment, and updates Task Memory.
 
-Coordinate one Geas Task from accepted Task Contract through role Evidence, User Task result judgment, and Task Evidence. Keep role-producing output, Task Evidence, Task State, and User Judgment separate while preserving a recoverable Task loop.
+## Core Rules
 
-## Operating Stance
-
-Act as a Task loop coordinator.
-
-- Coordinate role handoffs instead of implementing, verifying, reviewing, or challenging directly.
-- Keep Task Contract scope stable unless the User routes a revision through `specifying`.
-- Prepare work options and environment readiness before dispatching Task work.
-- Preserve role Evidence, Task State, Task Evidence, and User Judgment as separate signals.
-- Treat Task completion as a User decision after Evidence, not as a phase transition or agent verdict.
+- Read Mission Spec, Mission Plan, current Task candidate or current Task Contract, Task Direction if referenced, related Role Evidence, Task Memory, Memory, Debt Ledger, and Continuity Ledger before choosing the next action.
+- Determine the next action from missing or present artifacts and User decisions.
+- Start each new Task with Task specifying. Task Direction and Task Contract acceptance happen before implementation.
+- Use Task Direction when User direction changes outputs, tradeoffs, accepted risks, or Evidence expectations before Task Contract can be precise.
+- Write one Task Contract for the current executable Task after User acceptance.
+- Dispatch role-producing skills in this order when required by the Task Contract: implementing, verifying, reviewing, optional challenging.
+- Use a separated handoff packet with `read_first` refs for every role-producing skill.
+- Include Task Memory, common Memory, and the receiving role's Memory in each role handoff when those files exist.
+- Treat Role Evidence verdicts and recommendations as User Judgment inputs only.
+- Write Task result User Judgment only from an explicit User decision.
+- Write Task Evidence only after Task result User Judgment exists.
+- Update Task Memory after User Judgment when later Tasks can benefit from the accepted context.
 
 ## Workflow
 
-Normal:
-- Read the current Mission id, accepted Mission Spec, accepted Mission Design, current Task id, current Task Contract, Task State, and relevant Evidence refs.
-- Before starting the Task loop, brief and preserve Task work options with `references/git-checkpoint.md`.
-- Before dispatching Task work, brief and preserve Task environment readiness with `references/task-environment.md`.
-- Use `references/task-loop.md` to choose the next action from the current Task phase.
-- For `unstarted` or implementation-ready work, request a transition to `implementing` through `geas-cli` when needed, then prepare and dispatch a separated role subagent handoff to `implementing` with `references/role-handoff.md`.
-- For `verifying`, prepare and dispatch a separated role subagent handoff to `verifying` with the current Task Contract and Implementation Evidence.
-- For `reviewing`, prepare and dispatch a separated role subagent handoff to `reviewing` with the current Task Contract, outputs, Implementation Evidence, and Verification Evidence.
-- A role-producing step succeeds only when `building` creates the handoff packet as the role subagent prompt, passes it to the separated role subagent or role session, and receives a role result or handoff failure.
-- Default non-escalated continuation is `implementing` -> `verifying` -> `reviewing` -> Task result judgment input.
-- After Implementation Evidence is recorded and `geas-cli` reports `verifying`, continue by dispatching the `verifying` handoff.
-- After Verification Evidence has verdict `passed` and `geas-cli` reports `reviewing`, continue by dispatching the `reviewing` handoff.
-- After Verification Evidence has verdict `changes_requested` or `escalated`, route to Task result judgment input.
-- When risk, User request, or Evidence findings call for challenge before judgment, ask `geas-cli` to transition the Task to `challenging`, then prepare and dispatch a separated role subagent handoff to `challenging`.
-- When challenge is not routed, preserve the reason and any residual risk in the Task result judgment input.
-- After role Evidence is recorded, continue from the Task State reported by `geas-cli`; do not infer acceptance from the role verdict.
-- For `awaiting_user_judgment`, prepare Task result judgment input with `references/task-acceptance-input.md`.
-- After the User provides a Task result decision, prepare the User Judgment payload with `references/task-acceptance-input.md`, then ask `geas-cli` to record it.
-- If the recorded decision is `accepted` or `accepted_with_limits`, prepare Task Evidence with `references/task-evidence.md` and ask `geas-cli` to record it.
-- If more accepted Task Contracts remain in the initial Task Contract Set or later accepted Task Contracts, prepare the next Task briefing and transition to `building` for that Task through `geas-cli`.
-- If no Task remains and accepted Task Evidence exists for required Task Contracts, prepare a consolidation briefing and ask `geas-cli` to transition the Mission to `consolidating`.
+1. Read Mission Spec, Mission Plan, current Task Memory, relevant Memory, Debt Ledger, and Continuity Ledger.
+2. Select the next Task candidate from Mission Plan Task Structure, User request, Task Evidence already recorded, Task Memory, and Continuity Ledger.
+3. Create the Task directory when the Task id is known and no existing Task directory owns that work.
+4. Run Task specifying for the selected Task:
+   - Restate the Task purpose and Mission relation from Mission Plan.
+   - Read accepted prior Task Evidence and Task Memory that affect Starting Context.
+   - Decide whether Task Direction is needed before Task Contract.
+   - If Task Direction is needed, prepare it with `references/task-direction.md`, present it for User direction acceptance, and write the accepted direction under the Task `directions/` directory.
+   - Draft Task Contract with `references/task-contract.md`, including `task_direction_ref` when a direction was accepted.
+   - Present a User-facing Task Contract review briefing and wait for explicit acceptance or requested revision.
+   - Write the accepted Task Contract to `.geas/missions/<mission-id>/tasks/<task-id>/task-contract.md`.
+5. If environment details affect role work, prepare operational context with `references/task-environment.md`.
+6. Before each role handoff, gather `read_first` refs for Mission Spec, Mission Plan, Task Contract, Task Direction when referenced, Task Memory, common Memory, the receiving role's Memory, Debt Ledger, Continuity Ledger, and role-relevant Evidence.
+7. If Implementation Evidence is missing and implementation work is needed, prepare an `implementing` handoff with `references/role-handoff.md`.
+8. If Verification Evidence is missing after implementation, prepare a `verifying` handoff.
+9. If Review Evidence is missing after verification, prepare a `reviewing` handoff.
+10. If the Task Contract, User request, Role Evidence, or risk profile calls for pressure testing, prepare a `challenging` handoff.
+11. When enough Role Evidence exists for User judgment, prepare the Task result briefing with `references/task-judgment-briefing.md`.
+12. After the User decides, write User Judgment to `.geas/missions/<mission-id>/tasks/<task-id>/user-judgment.md`.
+13. For `accepted` or `canceled` Task judgments, write Task Evidence with `references/task-evidence.md`.
+14. Update `.geas/missions/<mission-id>/task-memory.md` with `references/task-memory.md` when accepted Task context should affect later Tasks.
+15. Route to the next Task candidate, Mission criteria revision through `specifying`, or Mission consolidation.
 
-Revision:
-- If the User decision is `revise`, read `requested_actions` and choose the narrowest route that matches the request.
-- For rework inside the current Task Contract, transition to the requested phase through `geas-cli` and preserve the Evidence refs that remain valid.
-- For Task Contract changes, stop and route to `specifying` with the current Task Contract, Evidence refs, User Judgment ref, and requested changes.
-- For Task discard, Mission baseline review, deferral, or stop, preserve the current state, User Judgment ref, and required next decision.
-- Do not broaden Task scope, change acceptance criteria, or add Tasks inside `building` without a Task Contract revision through `specifying`.
+## Direct Runtime Writes
 
-Briefing:
-- For long or decision-heavy Task result briefings, show 2-3 related items at a time.
-- Each chunk includes current result, Evidence refs, unverified scope or risk, decision needed, and next step.
-- Treat chunk confirmation as provisional review input, not User Judgment.
-- Present a final summary before recording User Judgment or Task Evidence.
+- Task Direction: `.geas/missions/<mission-id>/tasks/<task-id>/directions/<direction-output>`
+- Task Contract: `.geas/missions/<mission-id>/tasks/<task-id>/task-contract.md`
+- Task User Judgment: `.geas/missions/<mission-id>/tasks/<task-id>/user-judgment.md`
+- Task Evidence: `.geas/missions/<mission-id>/tasks/<task-id>/task-evidence.md`
+- Task Memory: `.geas/missions/<mission-id>/task-memory.md`
+- Continuity Ledger: `.geas/continuity.md`
 
-Work Options:
-- Before Task work starts, ask whether to use the current worktree or a separate git worktree.
-- Ask whether to keep the current branch, create or switch from `main`, or use a Task-specific branch.
-- Ask whether to commit after each accepted Task, skip commits, or decide at each Task boundary.
-- Treat work option and checkpoint output as operational support, not Evidence, User Judgment, or Task completion.
+Do not overwrite existing Task Evidence without explicit User instruction. If a second Task result must be judged, preserve the old Task directory or create a new Task Contract rather than silently replacing the record.
 
-Environment:
-- Before Task work starts, ask which toolchain, verification support, runtime services, secrets, or connectors are required.
-- Ask before installing tools, adding MCP or connectors, starting services, or changing repo configuration.
-- Route to `specifying` when required environment setup changes tracked project files outside the accepted Task Contract.
-- Pass selected environment context and unavailable verification support into role handoffs and Task judgment input.
-- Treat environment readiness as operational context, not Evidence, User Judgment, or Task completion.
+## Output
 
-Stop:
-- Preserve the current Task Contract ref, Task State, role handoff packet, Evidence refs, draft briefing, prepared payload, and `geas-cli` output when available.
-- Stop when required input, role Skill, readable `read_first` path, User decision, or CLI write is unavailable.
+Return:
 
-## Inputs
+- selected next action
+- Task specifying briefing, role handoff packet, or Task result judgment briefing
+- Task Direction payload and write path when needed
+- Task Contract payload and write path when accepted
+- User Judgment payload and write path when the User decided
+- Task Evidence payload and write path when eligible
+- Task Memory updates
+- next Task or consolidation handoff packet
+- stop reason with preserved payloads when a required artifact, readable path, User decision, or write target is missing
 
-Required:
+## Boundaries
 
-- current Mission id and stage
-- accepted Mission Spec ref
-- accepted Mission Design ref
-- current Task id
-- current Task Contract ref
-- current Task State
-- relevant role Evidence refs for the current phase
-- changed output, target, or result refs required by the next role
+- Do not write Implementation Evidence, Verification Evidence, Review Evidence, or Challenger Evidence.
+- Do not decide Task acceptance.
+- Do not treat a Role Evidence verdict, recommendation, test result, review result, or git checkpoint as User Judgment.
+- Do not change Mission Spec or Mission Plan directly; route Mission criteria changes to `specifying`.
+- Do not treat Task Direction acceptance or Task Contract acceptance as Task result User Judgment.
+- Do not write Mission Evidence.
 
-Required for User judgment:
-
-- Task result judgment input shown to the User
-- User decision and any accepted limits, risks, or requested actions
-- User Judgment payload path before calling `geas-cli`
-
-Optional:
-
-- User request for challenge, checkpoint, deferral, or stop
-- User-selected Task work options
-- User-selected environment options
-- required toolchain, service, secret, connector, or MCP decisions
-- relevant Memory
-- previous User Judgment refs
-- baseline or Task Contract revision request
-
-## Resources
-
-| Resource | When to use | Purpose |
-| --- | --- | --- |
-| `references/task-loop.md` | Task phase selection and recovery | Choose phase dispatch, transition, stop, or revision route. |
-| `references/role-handoff.md` | before role-producing Skill calls | Build handoff packets with `read_first`, focus, expected output, and stop conditions. |
-| `references/task-environment.md` | before Task work and role handoff | Choose toolchain, verification support, runtime services, and setup mutation boundary. |
-| `references/task-acceptance-input.md` | before User Task result judgment | Prepare Evidence summary, unverified scope, risks, choices, and final summary. |
-| `references/task-evidence.md` | after accepted Task result User Judgment | Prepare Task Evidence payload shape and criteria result summary. |
-| `references/git-checkpoint.md` | before Task work and when checkpointing | Choose worktree, branch, and Task commit policy; keep git actions separate from Evidence and User Judgment. |
-
-Use the `geas-cli` adapter Skill for Task phase transitions, User Judgment records, Task Evidence records, and Mission stage transitions. If `geas-cli` does not report success, preserve the payload and stop.
-
-No scripts or assets are required. Task dispatch depends on runtime state, role outputs, and User decisions rather than deterministic local computation.
-
-## Gotchas
-
-- Do not write Implementation Evidence, Verification Evidence, Review Evidence, or Challenger Evidence here.
-- Do not treat Task State, CLI success, Evidence verdict, recommendation, or checkpoint success as User Judgment.
-- Do not write Task Evidence before Task result User Judgment is recorded.
-- Do not write Task Evidence for `revise`, `deferred`, or `stopped` decisions.
-- Do not start Task work on `main` without explicit User decision.
-- Do not commit before Task result User Judgment and Task Evidence are recorded.
-- Do not include unrelated work in a Task commit.
-- Do not install tools, add MCP or connectors, start services, change repo config, or use secrets without a User decision.
-- Do not treat unavailable verification tooling as verification Evidence.
-- Do not change tracked project files for environment setup unless the Task Contract covers that setup.
-- Do not treat Task Evidence as a replacement for role Evidence.
-- Do not stop at writing a handoff packet or perform role work inside the main coordinator session.
-- Do not treat Implementation Evidence, Verification Evidence, Review Evidence, or Challenger Evidence written by the main coordinator session as role Evidence.
-- Do not broaden Task scope or change Task acceptance criteria inside `building`; route Task Contract changes to `specifying`.
-- Do not call role-producing Skills without `read_first` refs for accepted Mission Spec, accepted Mission Design, current Task Contract, and phase-relevant Evidence.
-- Do not continue when a role handoff packet cannot be dispatched to a separated role subagent or role session.
-- Do not call verification, review, or challenge without target/output refs needed to inspect the Task result.
-- Do not continue when a role handoff fails or a required `read_first` path cannot be read.
-- Do not show a long Task result briefing all at once when chunked review would reduce User judgment cost.
-- Do not treat chunk-level confirmation as final User Judgment.
-- Do not require repo root docs as execution prerequisites for a distributed Skill.
-
-## Stop Conditions
-
-- Accepted Mission Spec, accepted Mission Design, current Task Contract, or Task State is missing.
-- Task work options are required but not selected.
-- Task environment options are required but not selected.
-- Current Task phase cannot be mapped to a route in `references/task-loop.md`.
-- Required role-producing Skill is unavailable.
-- A role handoff packet cannot be dispatched to a separated role subagent or role session.
-- Required `read_first` path is unreadable.
-- Target, output, or result refs required by the next role are missing.
-- Required toolchain, runtime service, secret, connector, or MCP is unavailable.
-- Required environment setup would change tracked project files outside the accepted Task Contract.
-- Role Evidence required for the next phase is missing.
-- User result judgment is required but has not been provided.
-- `geas-cli` transition, judgment record, Evidence record, or Mission transition does not report success.
-- User requested Task Contract change, Task discard, Mission baseline review, deferral, or stop.
-- The next action would require `building` to write role Evidence, decide User Judgment, or close the Mission.
-
-## Boundary
-
-`building` coordinates Task execution state, role handoffs, Task result judgment input, Task Evidence after User Judgment, and next Task or consolidation routing. It does not implement changes, verify outputs, review work, challenge artifacts, revise Mission baseline artifacts, decide acceptance, or close Missions.
+`building` owns Task specifying and Task flow coordination. It does not produce role work, close Missions, or replace User decisions.

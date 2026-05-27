@@ -1,9 +1,5 @@
----
-name: "todo-filter-and-persistence"
-task_id: "task-001"
-evidence_type: "task"
-task_contract_ref: "task-contract-001.md"
-user_judgment_ref: "user-judgment-result-001.md"
+﻿---
+user_judgment_ref: "user-judgment.md"
 ---
 
 ## Summary
@@ -20,7 +16,7 @@ User는 localStorage 신뢰성, 모바일 확인 범위, 필터 reset 동작의 
 
 Result: satisfied  
 Evidence refs:
-- `verification-evidence-001.md`
+- `verification-evidence.md`
 
 Unverified scope:
 - 없음.
@@ -32,7 +28,7 @@ Remaining risks:
 
 Result: satisfied  
 Evidence refs:
-- `verification-evidence-001.md`
+- `verification-evidence.md`
 
 Unverified scope:
 - 없음.
@@ -44,7 +40,7 @@ Remaining risks:
 
 Result: satisfied  
 Evidence refs:
-- `verification-evidence-001.md`
+- `verification-evidence.md`
 
 Unverified scope:
 - 없음.
@@ -56,8 +52,8 @@ Remaining risks:
 
 Result: satisfied_with_limits  
 Evidence refs:
-- `implementation-evidence-001.md`
-- `verification-evidence-001.md`
+- `implementation-evidence.md`
+- `verification-evidence.md`
 
 Unverified scope:
 - 사생활 보호 모드와 localStorage 비활성화 동작은 확인하지 않았다.
@@ -69,7 +65,7 @@ Remaining risks:
 
 Result: satisfied  
 Evidence refs:
-- `verification-evidence-001.md`
+- `verification-evidence.md`
 
 Unverified scope:
 - 없음.
@@ -81,7 +77,7 @@ Remaining risks:
 
 Result: satisfied  
 Evidence refs:
-- `review-evidence-001.md`
+- `review-evidence.md`
 
 Unverified scope:
 - 없음.

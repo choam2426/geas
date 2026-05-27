@@ -1,7 +1,4 @@
 ---
-name: "todo-filter-and-persistence"
-judgment_type: "task-result"
-task_id: "task-001"
 decision: "accepted_with_limits"
 ---
 

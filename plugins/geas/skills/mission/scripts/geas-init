@@ -1,0 +1,116 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+const HELP = `Usage: geas-init [workspace]
+
+Initialize the minimal .geas/ runtime scaffold in the workspace.
+
+Creates missing directories and ledger files only. Existing files are left
+unchanged. This script does not create Missions, Tasks, Evidence, User
+Judgment, or workflow state.
+`;
+
+function parseArgs(argv) {
+  const args = argv.slice(2);
+  if (args.includes("-h") || args.includes("--help")) {
+    return { help: true };
+  }
+  if (args.length > 1) {
+    throw new Error("Expected at most one workspace path.");
+  }
+  return { workspace: args[0] || process.cwd() };
+}
+
+function ensureDir(dirPath, result) {
+  if (fs.existsSync(dirPath)) {
+    const stat = fs.statSync(dirPath);
+    if (!stat.isDirectory()) {
+      throw new Error(`Path exists and is not a directory: ${dirPath}`);
+    }
+    result.existing.push(dirPath);
+    return;
+  }
+  fs.mkdirSync(dirPath, { recursive: true });
+  result.created.push(dirPath);
+}
+
+function ensureFile(filePath, content, result) {
+  if (fs.existsSync(filePath)) {
+    const stat = fs.statSync(filePath);
+    if (!stat.isFile()) {
+      throw new Error(`Path exists and is not a file: ${filePath}`);
+    }
+    result.existing.push(filePath);
+    return;
+  }
+  fs.writeFileSync(filePath, content, "utf8");
+  result.created.push(filePath);
+}
+
+function normalizeWorkspace(inputPath) {
+  return path.resolve(inputPath);
+}
+
+function initGeas(workspace) {
+  const root = normalizeWorkspace(workspace);
+  const geas = path.join(root, ".geas");
+  const result = {
+    workspace: root,
+    geas,
+    created: [],
+    existing: [],
+  };
+
+  ensureDir(geas, result);
+  ensureDir(path.join(geas, "missions"), result);
+  ensureDir(path.join(geas, "memory"), result);
+  ensureDir(path.join(geas, "memory", "roles"), result);
+
+  ensureFile(
+    path.join(geas, "debts.md"),
+    "## Open Items\n\n## Resolved Items\n\n## Dropped Items\n",
+    result
+  );
+  ensureFile(
+    path.join(geas, "continuity.md"),
+    "## Open Items\n\n## Closed Items\n",
+    result
+  );
+  ensureFile(
+    path.join(geas, "memory", "common.md"),
+    "## Active Items\n\n## Superseded Items\n\n## Dropped Items\n",
+    result
+  );
+
+  for (const role of ["orchestrator", "implementer", "verifier", "reviewer", "challenger"]) {
+    ensureFile(
+      path.join(geas, "memory", "roles", `${role}.md`),
+      "## Active Items\n\n## Superseded Items\n\n## Dropped Items\n",
+      result
+    );
+  }
+
+  return result;
+}
+
+function main() {
+  try {
+    const options = parseArgs(process.argv);
+    if (options.help) {
+      process.stdout.write(HELP);
+      return;
+    }
+
+    const result = initGeas(options.workspace);
+    process.stdout.write(`Initialized Geas scaffold at ${result.geas}\n`);
+    process.stdout.write(`Created: ${result.created.length}\n`);
+    process.stdout.write(`Existing: ${result.existing.length}\n`);
+  } catch (error) {
+    process.stderr.write(`geas-init failed: ${error.message}\n`);
+    process.exitCode = 1;
+  }
+}
+
+main();

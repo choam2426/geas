@@ -1,9 +1,4 @@
----
-name: "todo-filter-and-persistence"
-task_id: "task-001"
-evidence_type: "verification"
-task_contract_ref: "task-contract-001.md"
-implementation_evidence_ref: "implementation-evidence-001.md"
+﻿---
 verdict: "changes_requested"
 ---
 
@@ -23,7 +18,7 @@ verdict: "changes_requested"
 - `src/todoStorage.ts`
 - `src/App.test.tsx`
 - Todo 앱 UI
-- `implementation-evidence-001.md`
+- `implementation-evidence.md`
 
 ## Checks Performed
 

@@ -1,11 +1,4 @@
----
-name: "todo-filter-and-persistence"
-task_id: "task-001"
-evidence_type: "implementation"
-task_contract_ref: "task-contract-001.md"
----
-
-## Summary
+﻿## Summary
 
 Todo 필터 컨트롤을 추가하고, 선택된 필터 상태에서 보이는 Todo 목록을 파생했으며, Todo 항목을 localStorage에 저장하고 앱 시작 시 복원하도록 구현했다.
 

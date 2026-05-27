@@ -1,4 +1,4 @@
-# Runtime Minimal Example
+﻿# Runtime Minimal Example
 
 이 디렉터리는 `docs/runtime.md`의 runtime 저장 모델을 최소 형태로 예행 실행한 예시다.
 
@@ -10,8 +10,8 @@ artifact에서 참조하는 앱 소스 파일은 예시 Mission의 설명용 산
 
 예시는 하나의 Mission과 하나의 Task가 버전이 있는 기준 artifact에서 수용된 결과 요약까지 이동하는 흐름을 따른다.
 
-- Mission 기준 산출물: `mission-spec-001.md`, `mission-plan-001.md`
-- Task 계약: `tasks/task-001/task-contract-001.md`
+- Mission 기준 산출물: `mission-spec.md`, `mission-plan.md`
+- Task 계약: `tasks/task-001/task-contract.md`
 - Task 작업과 Evidence: implementation, verification, review, task challenger, Task Evidence, result judgment
 - Mission 마감: Mission 결과 수용 판단, Mission Evidence
 - Debt Ledger: `.geas/debts.md`

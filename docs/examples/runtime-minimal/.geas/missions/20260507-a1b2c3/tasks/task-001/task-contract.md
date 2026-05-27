@@ -1,6 +1,5 @@
 ---
-name: "todo-filter-and-persistence"
-task_id: "task-001"
+task_direction_ref: ""
 mission_acceptance_refs:
   - "AC-001"
   - "AC-002"

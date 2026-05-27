@@ -1,20 +1,13 @@
----
-name: "todo-filter-and-persistence"
-task_id: "task-001"
-evidence_type: "challenger"
-task_contract_ref: "task-contract-001.md"
-implementation_evidence_ref: "implementation-evidence-001.md"
-verification_evidence_ref: "verification-evidence-001.md"
-review_evidence_ref: "review-evidence-001.md"
+﻿---
 verdict: "escalated"
 ---
 
 ## Target
 
-- `task-contract-001.md`
-- `implementation-evidence-001.md`
-- `verification-evidence-001.md`
-- `review-evidence-001.md`
+- `task-contract.md`
+- `implementation-evidence.md`
+- `verification-evidence.md`
+- `review-evidence.md`
 
 ## Challenge Focus
 

@@ -1,4 +1,4 @@
-## Open Items
+﻿## Open Items
 
 없음.
 
@@ -18,7 +18,7 @@ Next Action: ""
 
 Source Refs:
 - missions/20260507-a1b2c3/mission-evidence.md
-- missions/20260507-a1b2c3/user-judgment-result-001.md
+- missions/20260507-a1b2c3/user-judgment.md
 
 Closed By Refs:
 - missions/20260507-a1b2c3/mission-evidence.md

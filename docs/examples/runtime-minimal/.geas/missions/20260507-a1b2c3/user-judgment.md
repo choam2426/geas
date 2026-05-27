@@ -1,6 +1,4 @@
 ---
-name: "todo-filter-and-persistence"
-judgment_type: "mission-result"
 decision: "accepted_with_limits"
 ---
 

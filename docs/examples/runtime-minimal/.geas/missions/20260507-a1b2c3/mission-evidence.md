@@ -1,5 +1,5 @@
----
-user_judgment_ref: "user-judgment-result-001.md"
+﻿---
+user_judgment_ref: "user-judgment.md"
 ---
 
 ## Mission Result
@@ -28,7 +28,7 @@ Remaining risks:
 
 Result: satisfied_with_limits  
 Evidence refs:
-- `tasks/task-001/verification-evidence-001.md`
+- `tasks/task-001/verification-evidence.md`
 - `tasks/task-001/task-evidence.md`
 
 Unverified scope:
@@ -41,7 +41,7 @@ Remaining risks:
 
 Result: satisfied  
 Evidence refs:
-- `tasks/task-001/verification-evidence-001.md`
+- `tasks/task-001/verification-evidence.md`
 - `tasks/task-001/task-evidence.md`
 
 Unverified scope:
@@ -54,7 +54,7 @@ Remaining risks:
 
 Result: satisfied  
 Evidence refs:
-- `tasks/task-001/review-evidence-001.md`
+- `tasks/task-001/review-evidence.md`
 - `tasks/task-001/task-evidence.md`
 
 Unverified scope:
